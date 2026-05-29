@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pulse Fitness - Exercise Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-variant": "#e2e2e7",
+                    "primary": "#006e1c",
+                    "surface-bright": "#f9f9fe",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed": "#002204",
+                    "on-error": "#ffffff",
+                    "surface-container": "#ededf2",
+                    "outline": "#6d7b68",
+                    "surface-dim": "#d9dade",
+                    "on-tertiary-container": "#00489b",
+                    "on-error-container": "#93000a",
+                    "primary-fixed": "#70ff76",
+                    "primary-container": "#32d74b",
+                    "on-secondary-fixed": "#2b1700",
+                    "secondary-fixed-dim": "#ffb868",
+                    "on-primary-container": "#005814",
+                    "tertiary": "#005bc1",
+                    "outline-variant": "#bbcbb5",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-fixed-variant": "#673d00",
+                    "on-primary-fixed-variant": "#005313",
+                    "on-surface-variant": "#3d4a3a",
+                    "error-container": "#ffdad6",
+                    "secondary": "#885200",
+                    "surface-container-high": "#e8e8ed",
+                    "surface-container-low": "#f3f3f8",
+                    "surface": "#f9f9fe",
+                    "tertiary-fixed-dim": "#adc6ff",
+                    "secondary-container": "#fd9d06",
+                    "on-surface": "#1a1c1f",
+                    "tertiary-container": "#9bbbff",
+                    "inverse-surface": "#2e3034",
+                    "secondary-fixed": "#ffddbb",
+                    "tertiary-fixed": "#d8e2ff",
+                    "inverse-primary": "#42e355",
+                    "on-secondary-container": "#653c00",
+                    "surface-tint": "#006e1c",
+                    "on-tertiary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "inverse-on-surface": "#f0f0f5",
+                    "primary-fixed-dim": "#42e355",
+                    "background": "#f9f9fe",
+                    "surface-container-highest": "#e2e2e7",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed": "#001a41",
+                    "on-background": "#1a1c1f",
+                    "on-tertiary-fixed-variant": "#004493"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "section-gap": "24px",
+                    "gutter-stack": "8px",
+                    "touch-target": "44px",
+                    "margin-page": "16px",
+                    "card-padding": "16px"
+            },
+            "fontFamily": {
+                    "callout": ["Inter"],
+                    "large-title": ["Inter"],
+                    "headline": ["Inter"],
+                    "data-display": ["Inter"],
+                    "caption-sm": ["Inter"],
+                    "footnote": ["Inter"],
+                    "body": ["Inter"],
+                    "subheadline": ["Inter"]
+            },
+            "fontSize": {
+                    "callout": ["16px", {"lineHeight": "21px", "letterSpacing": "-0.32px", "fontWeight": "400"}],
+                    "large-title": ["34px", {"lineHeight": "41px", "letterSpacing": "0.37px", "fontWeight": "700"}],
+                    "headline": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "600"}],
+                    "data-display": ["48px", {"lineHeight": "52px", "letterSpacing": "-1px", "fontWeight": "800"}],
+                    "caption-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0px", "fontWeight": "400"}],
+                    "footnote": ["13px", {"lineHeight": "18px", "letterSpacing": "-0.08px", "fontWeight": "400"}],
+                    "body": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "400"}],
+                    "subheadline": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.24px", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: #F2F2F7; /* Base Level System Grey */
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .card-shadow {
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .ios-separator {
+            border-bottom: 0.5px solid #C6C6C8;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-background font-body pb-[90px]">
+<!-- TopAppBar -->
+<header class="bg-surface-dim/80 backdrop-blur-md text-primary dark:text-primary-fixed-dim font-headline text-headline dark:text-on-surface flex justify-between items-center px-margin-page h-touch-target w-full sticky top-0 z-40 transition-transform">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-variation-settings: 'FILL' 1;">person</span>
+</div>
+<span class="font-large-title text-large-title text-primary dark:text-primary-fixed">Pulse Fitness</span>
+</div>
+<button class="w-touch-target h-touch-target flex items-center justify-center text-primary dark:text-primary-fixed-dim hover:opacity-80 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">add</span>
+</button>
+</header>
+<main class="px-margin-page pt-section-gap">
+<!-- Page Title -->
+<div class="mb-gutter-stack">
+<h1 class="font-large-title text-large-title text-on-background">Exercise Library</h1>
+</div>
+<!-- Search Bar -->
+<div class="mb-section-gap relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="w-full h-10 pl-10 pr-4 rounded-xl bg-surface-container-high border-none text-body font-body placeholder:text-outline focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-colors" placeholder="Search exercises..." type="text"/>
+</div>
+<!-- Filters (Scrollable) -->
+<div class="mb-section-gap overflow-x-auto hide-scrollbar -mx-margin-page px-margin-page">
+<div class="flex gap-2 w-max pb-2">
+<button class="px-4 py-1.5 rounded-full bg-primary text-on-primary font-subheadline text-subheadline whitespace-nowrap active:scale-95 transition-transform">All</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-variant font-subheadline text-subheadline whitespace-nowrap active:scale-95 transition-transform">Chest</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-variant font-subheadline text-subheadline whitespace-nowrap active:scale-95 transition-transform">Back</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-variant font-subheadline text-subheadline whitespace-nowrap active:scale-95 transition-transform">Legs</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-variant font-subheadline text-subheadline whitespace-nowrap active:scale-95 transition-transform">Dumbbell</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-variant font-subheadline text-subheadline whitespace-nowrap active:scale-95 transition-transform">Bodyweight</button>
+</div>
+</div>
+<!-- Exercise List (Grouped List Style) -->
+<div class="bg-surface-container-lowest rounded-xl card-shadow overflow-hidden mb-section-gap">
+<!-- Item 1 -->
+<button class="w-full flex items-center p-card-padding ios-separator active:bg-surface-container-low transition-colors text-left group">
+<div class="w-16 h-16 rounded-lg bg-surface-variant shrink-0 mr-4 overflow-hidden relative">
+<img alt="Barbell Bench Press" class="w-full h-full object-cover" data-alt="A close-up shot of a fitness model performing a barbell bench press in a modern, brightly lit gym. The environment is clean and professional, with a light-mode aesthetic, utilizing white surfaces and subtle green accents in the background. The lighting is crisp and even, highlighting the physical exertion and the metallic texture of the barbell." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHEOYVYTEN8GjmY4olaSfGReCkBsodUnUJVLWYUKyVSXUD9YnOpYuSSJ6dcZRRSWhl3zvNEXAS64v510SLl4w3XRV5OTSHCUoeQ4-FinFjU5qxvBlVqdC1poHGrCcHNmYsGnM0Rhlj2xXzAnMc2eqJfSi0z9TLc8CWOQ4D4DWQkeVSNVgG_dtLahXSzmwbm4G7fP1xV-8M2Vz2YFiu4k3R5Fop-ShCTYMWyqZQtjKEfMesV4BMMpnjEjgcFy3Q12N0AgDzCBtQnZg"/>
+</div>
+<div class="flex-1">
+<h3 class="font-headline text-headline text-on-background mb-1 group-hover:text-primary transition-colors">Barbell Bench Press</h3>
+<div class="flex items-center gap-2">
+<span class="font-caption-sm text-caption-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">Chest</span>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">Barbell</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant ml-2">chevron_right</span>
+</button>
+<!-- Item 2 -->
+<button class="w-full flex items-center p-card-padding ios-separator active:bg-surface-container-low transition-colors text-left group">
+<div class="w-16 h-16 rounded-lg bg-surface-variant shrink-0 mr-4 overflow-hidden relative">
+<img alt="Dumbbell Rows" class="w-full h-full object-cover" data-alt="A focused image of a person executing a single-arm dumbbell row on a workout bench. The gym setting is bright and contemporary, adhering to a clean, light-mode visual style with expansive white walls and light grey flooring. The dumbbell is dark, providing a strong contrast against the bright, energetic atmosphere. Lighting is natural and soft." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGlbcx-DuEkE2RmwOJLYR-icc2YfFkEIMYs43wFVhYZ-6KMXWyPr4va390YxAm25XEfWN2WM-7j46H0pbQDn9zo2mnKYGyOD---Rg3Ki_nnOx3FI8riceYRaIK2SpgzJMykzAT_jjkP3PFJrTXL3mH2CsjIH-fRqCCF-fTYV3q-j76FWKpHDsCG4yB_pAZRiPj4TNXW9RY-uothtcf3YJE8AFVkRdbi-PNyurSDUbPsAmlBWkIXGVfhEgCnUeNTCYzRWHQYdyJL68"/>
+</div>
+<div class="flex-1">
+<h3 class="font-headline text-headline text-on-background mb-1 group-hover:text-primary transition-colors">Dumbbell Rows</h3>
+<div class="flex items-center gap-2">
+<span class="font-caption-sm text-caption-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">Back</span>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">Dumbbell</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant ml-2">chevron_right</span>
+</button>
+<!-- Item 3 -->
+<button class="w-full flex items-center p-card-padding ios-separator active:bg-surface-container-low transition-colors text-left group">
+<div class="w-16 h-16 rounded-lg bg-surface-variant shrink-0 mr-4 overflow-hidden relative">
+<img alt="Squats" class="w-full h-full object-cover" data-alt="A low-angle, powerful shot of an athlete at the bottom of a heavy barbell squat. The background is a minimalist, high-end fitness studio characterized by bright white lighting and pale grey surfaces, fitting a pristine light-mode aesthetic. A subtle hint of vibrant green from a gym mat adds a touch of energy. The mood is intense yet structured." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDeLenM9meBA0TDuYPQTtE2Jmm6o6EYtMTPMklvlT_RpIz9xPnmyOxTXGdZxTiKFzeoBx1ZUzaazV6FZWOw9oGYWQpBzc4AIYCK0uZ5w0QMQF3zBZU6EhUlCVZxGogrTDFykkwLDhtHjKUM1kyuLBdSQm0wX86Nh24B__WS8qi1phEEivKHkt0EReCact-mNK-twL-Hv_SP_1Yt366f9OcJTIx_OHRZ3Wpo5AT5Rxwwg9l4PaHF9qs9ZE9fVQtvR35qJFrR7JREbOY"/>
+</div>
+<div class="flex-1">
+<h3 class="font-headline text-headline text-on-background mb-1 group-hover:text-primary transition-colors">Barbell Back Squat</h3>
+<div class="flex items-center gap-2">
+<span class="font-caption-sm text-caption-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">Legs</span>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">Barbell</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant ml-2">chevron_right</span>
+</button>
+<!-- Item 4 -->
+<button class="w-full flex items-center p-card-padding active:bg-surface-container-low transition-colors text-left group">
+<div class="w-16 h-16 rounded-lg bg-surface-variant shrink-0 mr-4 overflow-hidden relative flex items-center justify-center bg-primary/10">
+<span class="material-symbols-outlined text-primary text-3xl">fitness_center</span>
+</div>
+<div class="flex-1">
+<h3 class="font-headline text-headline text-on-background mb-1 group-hover:text-primary transition-colors">Push-ups</h3>
+<div class="flex items-center gap-2">
+<span class="font-caption-sm text-caption-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">Chest</span>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">Bodyweight</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant ml-2">chevron_right</span>
+</button>
+</div>
+<!-- Add Custom Button -->
+<button class="w-full flex items-center justify-center gap-2 py-3 rounded-full bg-surface-container-lowest text-primary border border-outline-variant/50 font-headline text-headline hover:bg-surface-container-low active:scale-95 transition-all mb-section-gap">
+<span class="material-symbols-outlined">add_circle</span>
+            Add Custom Exercise
+        </button>
+</main>
+<!-- BottomNavBar -->
+<!-- Active State Logic: Intent matches "Plans" as it's a library of exercises to build plans -->
+<nav class="bg-surface-dim/90 dark:bg-inverse-surface/90 font-caption-sm text-caption-sm docked full-width bottom-0 rounded-t-xl border-t border-outline-variant/30 flat no shadows fixed bottom-0 w-full z-50 flex justify-around items-center px-4 pb-8 pt-2 backdrop-blur-md">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-variant/20 active:scale-90 transition-all duration-150 p-2 rounded-lg min-w-[64px]" href="#">
+<span class="material-symbols-outlined mb-1">today</span>
+<span>Today</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed font-semibold hover:bg-surface-variant/20 active:scale-90 transition-all duration-150 p-2 rounded-lg min-w-[64px]" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+<span>Plans</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-variant/20 active:scale-90 transition-all duration-150 p-2 rounded-lg min-w-[64px]" href="#">
+<span class="material-symbols-outlined mb-1">monitoring</span>
+<span>Progress</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-variant/20 active:scale-90 transition-all duration-150 p-2 rounded-lg min-w-[64px]" href="#">
+<span class="material-symbols-outlined mb-1">calendar_month</span>
+<span>Calendar</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-variant/20 active:scale-90 transition-all duration-150 p-2 rounded-lg min-w-[64px]" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span>Profile</span>
+</a>
+</nav>
+</body></html>

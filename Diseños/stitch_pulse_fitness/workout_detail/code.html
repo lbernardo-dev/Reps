@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Workout Detail - Pulse Fitness</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#653c00",
+                        "on-primary-container": "#005814",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#f3f3f8",
+                        "on-background": "#1a1c1f",
+                        "primary-fixed": "#70ff76",
+                        "inverse-on-surface": "#f0f0f5",
+                        "outline": "#6d7b68",
+                        "on-secondary-fixed": "#2b1700",
+                        "error-container": "#ffdad6",
+                        "surface": "#f9f9fe",
+                        "surface-variant": "#e2e2e7",
+                        "outline-variant": "#bbcbb5",
+                        "on-tertiary-container": "#00489b",
+                        "tertiary-fixed": "#d8e2ff",
+                        "tertiary-container": "#9bbbff",
+                        "surface-dim": "#d9dade",
+                        "secondary": "#885200",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#005bc1",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed-variant": "#004493",
+                        "surface-container-high": "#e8e8ed",
+                        "secondary-container": "#fd9d06",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#3d4a3a",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "on-primary-fixed": "#002204",
+                        "primary-container": "#32d74b",
+                        "on-primary-fixed-variant": "#005313",
+                        "secondary-fixed": "#ffddbb",
+                        "surface-container": "#ededf2",
+                        "primary": "#006e1c",
+                        "on-tertiary-fixed": "#001a41",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f9f9fe",
+                        "inverse-surface": "#2e3034",
+                        "surface-container-highest": "#e2e2e7",
+                        "secondary-fixed-dim": "#ffb868",
+                        "background": "#f9f9fe",
+                        "surface-tint": "#006e1c",
+                        "on-surface": "#1a1c1f",
+                        "inverse-primary": "#42e355",
+                        "primary-fixed-dim": "#42e355",
+                        "on-secondary-fixed-variant": "#673d00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "24px",
+                        "gutter-stack": "8px",
+                        "touch-target": "44px",
+                        "margin-page": "16px",
+                        "card-padding": "16px"
+                    },
+                    "fontFamily": {
+                        "data-display": ["Inter"],
+                        "callout": ["Inter"],
+                        "subheadline": ["Inter"],
+                        "large-title": ["Inter"],
+                        "headline": ["Inter"],
+                        "footnote": ["Inter"],
+                        "caption-sm": ["Inter"],
+                        "body": ["Inter"]
+                    },
+                    "fontSize": {
+                        "data-display": ["48px", { "lineHeight": "52px", "letterSpacing": "-1px", "fontWeight": "800" }],
+                        "callout": ["16px", { "lineHeight": "21px", "letterSpacing": "-0.32px", "fontWeight": "400" }],
+                        "subheadline": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.24px", "fontWeight": "400" }],
+                        "large-title": ["34px", { "lineHeight": "41px", "letterSpacing": "0.37px", "fontWeight": "700" }],
+                        "headline": ["17px", { "lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "600" }],
+                        "footnote": ["13px", { "lineHeight": "18px", "letterSpacing": "-0.08px", "fontWeight": "400" }],
+                        "caption-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0px", "fontWeight": "400" }],
+                        "body": ["17px", { "lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .ios-shadow {
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .ios-divider {
+            border-bottom: 0.5px solid #C6C6C8;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#F2F2F7] text-on-background font-body min-h-screen flex flex-col pt-[calc(var(--spacing-touch-target)+env(safe-area-inset-top))] pb-[calc(100px+env(safe-area-inset-bottom))]">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface-dim/80 backdrop-blur-md flex justify-between items-center px-margin-page h-touch-target">
+<button class="h-touch-target w-touch-target flex items-center justify-start text-primary active:opacity-50 transition-opacity">
+<span class="material-symbols-outlined text-2xl">arrow_back_ios</span>
+</button>
+<h1 class="font-headline text-headline text-on-surface">Push Pull Legs</h1>
+<button class="h-touch-target w-touch-target flex items-center justify-end text-primary font-headline text-headline active:opacity-50 transition-opacity">
+            Edit
+        </button>
+</header>
+<main class="flex-1 px-margin-page py-section-gap space-y-section-gap max-w-3xl mx-auto w-full">
+<!-- Hero Section -->
+<div class="rounded-xl overflow-hidden h-48 relative ios-shadow">
+<img alt="A modern gym environment with natural lighting highlighting a row of barbells. The scene is energetic and premium, shot from a low angle to emphasize strength and precision. The overall tone is bright and motivating, fitting a high-end fitness application aesthetic." class="w-full h-full object-cover" data-alt="A modern gym environment with natural lighting highlighting a row of barbells. The scene is energetic and premium, shot from a low angle to emphasize strength and precision. The overall tone is bright and motivating, fitting a high-end fitness application aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVCUlcUIak5KDaRB4_TOTazqyvSSmf_VBhAKcEiOWbUrEvP47-dabVc3u0ElB5jRKqs47noemt5DX0YFzxvaxUAamWRSgb6PEDxRhWOKzYXetct9Ya-nGY761bhA7uWGEJZZhjhkuzRkPGfQij5vuIBd3tRbcBVxvcSu66yS-nNGudCdVeVluNLdndcZ0_JhoWRK6jpnTdgqT6ZtI9RZ8EP60SneDK6CdROAq611qaqFEfd72VVWrpTYV4PHTnjnHyt5j61oJV64s"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-card-padding">
+<h2 class="font-large-title text-large-title text-white">Push Pull Legs</h2>
+<p class="font-subheadline text-subheadline text-white/80 mt-1">Focus: Chest, Shoulders, Triceps</p>
+</div>
+</div>
+<!-- Meta Info -->
+<div class="flex space-x-gutter-stack">
+<div class="flex-1 bg-surface-container-lowest rounded-xl p-card-padding flex items-center space-x-3 ios-shadow">
+<div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">timer</span>
+</div>
+<div>
+<p class="font-footnote text-footnote text-on-surface-variant">Duration</p>
+<p class="font-headline text-headline">60 min</p>
+</div>
+</div>
+<div class="flex-1 bg-surface-container-lowest rounded-xl p-card-padding flex items-center space-x-3 ios-shadow">
+<div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+</div>
+<div>
+<p class="font-footnote text-footnote text-on-surface-variant">Intensity</p>
+<p class="font-headline text-headline">High</p>
+</div>
+</div>
+</div>
+<!-- Exercises List -->
+<div>
+<h3 class="font-headline text-headline text-on-background mb-3 px-2">Exercises</h3>
+<div class="bg-surface-container-lowest rounded-xl ios-shadow overflow-hidden">
+<!-- Exercise 1 -->
+<div class="p-card-padding ios-divider flex items-center">
+<div class="h-12 w-12 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant mr-4">
+<span class="material-symbols-outlined text-3xl">sports_gymnastics</span>
+</div>
+<div class="flex-1">
+<h4 class="font-body text-body text-on-background">Barbell Bench Press</h4>
+<p class="font-footnote text-footnote text-on-surface-variant mt-0.5">4 Sets • 8-10 Reps</p>
+</div>
+<button class="h-8 w-8 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant active:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-xl">more_horiz</span>
+</button>
+</div>
+<!-- Exercise 2 -->
+<div class="p-card-padding ios-divider flex items-center">
+<div class="h-12 w-12 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant mr-4">
+<span class="material-symbols-outlined text-3xl">accessibility_new</span>
+</div>
+<div class="flex-1">
+<h4 class="font-body text-body text-on-background">Overhead Press</h4>
+<p class="font-footnote text-footnote text-on-surface-variant mt-0.5">3 Sets • 10-12 Reps</p>
+</div>
+<button class="h-8 w-8 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant active:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-xl">more_horiz</span>
+</button>
+</div>
+<!-- Exercise 3 -->
+<div class="p-card-padding flex items-center">
+<div class="h-12 w-12 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant mr-4">
+<span class="material-symbols-outlined text-3xl">airline_seat_recline_extra</span>
+</div>
+<div class="flex-1">
+<h4 class="font-body text-body text-on-background">Lateral Raises</h4>
+<p class="font-footnote text-footnote text-on-surface-variant mt-0.5">3 Sets • 12-15 Reps</p>
+</div>
+<button class="h-8 w-8 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant active:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-xl">more_horiz</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button Area -->
+<div class="fixed bottom-0 left-0 w-full p-margin-page bg-gradient-to-t from-[#F2F2F7] via-[#F2F2F7]/90 to-transparent pb-[calc(var(--spacing-margin-page)+env(safe-area-inset-bottom))] z-40">
+<div class="max-w-3xl mx-auto">
+<button class="w-full bg-primary text-on-primary font-headline text-headline py-4 rounded-full ios-shadow active:scale-[0.98] transition-transform flex justify-center items-center space-x-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+<span>Start Workout</span>
+</button>
+</div>
+</div>
+</body></html>

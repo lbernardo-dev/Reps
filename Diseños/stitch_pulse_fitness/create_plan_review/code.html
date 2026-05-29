@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Review &amp; Save Plan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#673d00",
+                        "inverse-primary": "#42e355",
+                        "surface-variant": "#e2e2e7",
+                        "surface-dim": "#d9dade",
+                        "error": "#ba1a1a",
+                        "secondary-fixed-dim": "#ffb868",
+                        "on-primary-fixed-variant": "#005313",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e2e2e7",
+                        "tertiary-fixed": "#d8e2ff",
+                        "primary-fixed-dim": "#42e355",
+                        "secondary-container": "#fd9d06",
+                        "on-primary-container": "#005814",
+                        "inverse-on-surface": "#f0f0f5",
+                        "on-surface-variant": "#3d4a3a",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "on-tertiary-fixed-variant": "#004493",
+                        "surface-bright": "#f9f9fe",
+                        "on-tertiary-container": "#00489b",
+                        "tertiary-container": "#9bbbff",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#f3f3f8",
+                        "on-tertiary": "#ffffff",
+                        "background": "#f9f9fe",
+                        "surface-container": "#ededf2",
+                        "on-secondary-fixed": "#2b1700",
+                        "primary": "#006e1c",
+                        "on-secondary": "#ffffff",
+                        "outline-variant": "#bbcbb5",
+                        "on-secondary-container": "#653c00",
+                        "surface-container-high": "#e8e8ed",
+                        "on-primary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#005bc1",
+                        "surface": "#f9f9fe",
+                        "secondary-fixed": "#ffddbb",
+                        "on-tertiary-fixed": "#001a41",
+                        "on-primary-fixed": "#002204",
+                        "primary-fixed": "#70ff76",
+                        "on-background": "#1a1c1f",
+                        "outline": "#6d7b68",
+                        "secondary": "#885200",
+                        "primary-container": "#32d74b",
+                        "surface-tint": "#006e1c",
+                        "on-surface": "#1a1c1f",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2e3034"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter-stack": "8px",
+                        "touch-target": "44px",
+                        "margin-page": "16px",
+                        "card-padding": "16px",
+                        "section-gap": "24px"
+                    },
+                    "fontFamily": {
+                        "callout": ["Inter"],
+                        "footnote": ["Inter"],
+                        "subheadline": ["Inter"],
+                        "data-display": ["Inter"],
+                        "caption-sm": ["Inter"],
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "large-title": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body text-[17px] leading-[22px] tracking-[-0.41px] antialiased min-h-screen flex flex-col">
+<!-- Progress Header (Transactional Flow) -->
+<header class="sticky top-0 z-40 bg-background/90 backdrop-blur-md pb-2 border-b border-surface-variant/50">
+<!-- Progress Bar -->
+<div class="w-full h-1.5 bg-surface-variant">
+<div class="h-full bg-primary w-full origin-left transition-transform duration-500 rounded-r-full"></div>
+</div>
+<!-- Top Nav -->
+<div class="flex items-center justify-between px-margin-page h-[56px]">
+<button class="w-touch-target h-touch-target flex items-center justify-start text-primary active:opacity-70 transition-opacity">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="font-caption-sm text-[12px] leading-[16px] text-on-surface-variant uppercase tracking-wider font-semibold">Step 4 of 4</span>
+<span class="font-headline text-[17px] leading-[22px] tracking-[-0.41px] font-semibold">Review &amp; Save</span>
+</div>
+<button class="w-touch-target h-touch-target flex items-center justify-end text-primary active:opacity-70 transition-opacity">
+<span class="font-subheadline text-[15px] leading-[20px] tracking-[-0.24px] font-semibold">Cancel</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 px-margin-page py-6 flex flex-col gap-section-gap pb-[120px]">
+<!-- Header Text -->
+<div class="flex flex-col gap-2">
+<h1 class="font-large-title text-[34px] leading-[41px] tracking-[0.37px] font-bold text-on-surface">Almost there!</h1>
+<p class="font-body text-on-surface-variant">Review your plan details before activating it.</p>
+</div>
+<!-- Bento Grid Summary -->
+<section class="grid grid-cols-2 gap-3">
+<!-- Plan Name (Full Width) -->
+<div class="col-span-2 bg-surface-container-lowest rounded-xl p-card-padding flex items-center justify-between shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-surface-variant/40 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
+<div class="flex flex-col gap-1 z-10">
+<span class="font-caption-sm text-on-surface-variant uppercase tracking-wider font-semibold">Plan Name</span>
+<h2 class="font-large-title text-[24px] leading-[30px] font-bold text-primary">Push Pull Legs</h2>
+</div>
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary z-10">
+<span class="material-symbols-outlined icon-fill text-[28px]">fitness_center</span>
+</div>
+</div>
+<!-- Goal -->
+<div class="col-span-1 bg-surface-container-lowest rounded-xl p-card-padding flex flex-col gap-3 shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-surface-variant/40">
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined icon-fill text-xl">flag</span>
+<span class="font-caption-sm uppercase tracking-wider font-semibold text-on-surface-variant">Primary Goal</span>
+</div>
+<span class="font-headline font-semibold text-on-surface">Build Muscle</span>
+</div>
+<!-- Schedule -->
+<div class="col-span-1 bg-surface-container-lowest rounded-xl p-card-padding flex flex-col gap-3 shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-surface-variant/40">
+<div class="flex items-center gap-2 text-tertiary">
+<span class="material-symbols-outlined icon-fill text-xl">calendar_today</span>
+<span class="font-caption-sm uppercase tracking-wider font-semibold text-on-surface-variant">Schedule</span>
+</div>
+<div class="flex gap-1.5 flex-wrap">
+<span class="px-2 py-1 bg-surface-container text-on-surface rounded-md font-caption-sm font-semibold">Mon</span>
+<span class="px-2 py-1 bg-surface-container text-on-surface rounded-md font-caption-sm font-semibold">Wed</span>
+<span class="px-2 py-1 bg-surface-container text-on-surface rounded-md font-caption-sm font-semibold">Fri</span>
+</div>
+</div>
+</section>
+<!-- Workout Schedule List -->
+<section class="flex flex-col gap-4">
+<h3 class="font-headline font-semibold text-on-surface mb-2">Training Days</h3>
+<!-- Monday: Push -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-surface-variant/40">
+<div class="bg-surface-container-low px-4 py-3 border-b border-surface-variant/50 flex items-center gap-3">
+<div class="w-2 h-8 bg-primary rounded-full"></div>
+<div class="flex flex-col">
+<span class="font-caption-sm text-on-surface-variant font-semibold">Monday</span>
+<span class="font-headline font-semibold text-on-surface">Push Day</span>
+</div>
+<span class="font-caption-sm text-on-surface-variant ml-auto">5 Exercises</span>
+</div>
+<div class="flex flex-col">
+<div class="px-4 py-3 flex items-center justify-between border-b border-surface-variant/30 last:border-0">
+<span class="font-subheadline text-on-surface">Barbell Bench Press</span>
+<span class="font-caption-sm text-on-surface-variant bg-surface-variant/30 px-2 py-1 rounded">3 x 8-10</span>
+</div>
+<div class="px-4 py-3 flex items-center justify-between border-b border-surface-variant/30 last:border-0">
+<span class="font-subheadline text-on-surface">Overhead Press</span>
+<span class="font-caption-sm text-on-surface-variant bg-surface-variant/30 px-2 py-1 rounded">3 x 8-12</span>
+</div>
+<div class="px-4 py-3 flex items-center justify-between border-b border-surface-variant/30 last:border-0">
+<span class="font-subheadline text-on-surface">Incline Dumbbell Press</span>
+<span class="font-caption-sm text-on-surface-variant bg-surface-variant/30 px-2 py-1 rounded">3 x 10-12</span>
+</div>
+</div>
+</div>
+<!-- Wednesday: Pull -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-surface-variant/40">
+<div class="bg-surface-container-low px-4 py-3 border-b border-surface-variant/50 flex items-center gap-3">
+<div class="w-2 h-8 bg-secondary-container rounded-full"></div>
+<div class="flex flex-col">
+<span class="font-caption-sm text-on-surface-variant font-semibold">Wednesday</span>
+<span class="font-headline font-semibold text-on-surface">Pull Day</span>
+</div>
+<span class="font-caption-sm text-on-surface-variant ml-auto">4 Exercises</span>
+</div>
+<div class="flex flex-col">
+<div class="px-4 py-3 flex items-center justify-between border-b border-surface-variant/30 last:border-0">
+<span class="font-subheadline text-on-surface">Barbell Deadlift</span>
+<span class="font-caption-sm text-on-surface-variant bg-surface-variant/30 px-2 py-1 rounded">3 x 5-8</span>
+</div>
+<div class="px-4 py-3 flex items-center justify-between border-b border-surface-variant/30 last:border-0">
+<span class="font-subheadline text-on-surface">Lat Pulldown</span>
+<span class="font-caption-sm text-on-surface-variant bg-surface-variant/30 px-2 py-1 rounded">3 x 10-12</span>
+</div>
+</div>
+</div>
+<!-- Friday: Legs -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-surface-variant/40">
+<div class="bg-surface-container-low px-4 py-3 border-b border-surface-variant/50 flex items-center gap-3">
+<div class="w-2 h-8 bg-tertiary-container rounded-full"></div>
+<div class="flex flex-col">
+<span class="font-caption-sm text-on-surface-variant font-semibold">Friday</span>
+<span class="font-headline font-semibold text-on-surface">Leg Day</span>
+</div>
+<span class="font-caption-sm text-on-surface-variant ml-auto">5 Exercises</span>
+</div>
+<div class="flex flex-col">
+<div class="px-4 py-3 flex items-center justify-between border-b border-surface-variant/30 last:border-0">
+<span class="font-subheadline text-on-surface">Barbell Squat</span>
+<span class="font-caption-sm text-on-surface-variant bg-surface-variant/30 px-2 py-1 rounded">3 x 8-10</span>
+</div>
+<div class="px-4 py-3 flex items-center justify-between border-b border-surface-variant/30 last:border-0">
+<span class="font-subheadline text-on-surface">Leg Press</span>
+<span class="font-caption-sm text-on-surface-variant bg-surface-variant/30 px-2 py-1 rounded">3 x 10-15</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Fixed Bottom Action Area -->
+<div class="fixed bottom-0 left-0 w-full p-margin-page pb-8 bg-background/95 backdrop-blur-md border-t border-surface-variant/50 z-50">
+<button class="w-full h-14 bg-primary text-on-primary rounded-full font-headline text-[17px] leading-[22px] font-semibold flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(0,110,28,0.2)] active:scale-[0.98] transition-all duration-200">
+<span class="material-symbols-outlined icon-fill">rocket_launch</span>
+            Save &amp; Activate Plan
+        </button>
+</div>
+</body></html>

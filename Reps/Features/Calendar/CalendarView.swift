@@ -1,0 +1,391 @@
+import MuscleMap
+import SwiftUI
+
+struct CalendarView: View {
+    @EnvironmentObject private var store: AppStore
+    @State private var showSchedule = false
+    @State private var visibleMonth = Date()
+    @State private var selectedDate = Date()
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Calendario")
+                                .font(.system(size: 30, weight: .bold, design: .rounded))
+                            Text("Planifica, revisa carga y salta a la sesión correcta")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+                        Button {
+                            showSchedule = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 48, height: 48)
+                                .background(PulseTheme.primary)
+                                .clipShape(Circle())
+                                .shadow(color: PulseTheme.primary.opacity(0.24), radius: 12, x: 0, y: 6)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Programar entrenamiento")
+                    }
+
+                    calendarCommandCard
+
+                    HStack {
+                        Button { changeMonth(by: -1) } label: { Image(systemName: "chevron.left") }
+                        Spacer()
+                        Text(visibleMonth.formatted(.dateTime.month(.wide).year()))
+                            .font(.title.bold())
+                        Spacer()
+                        Button { changeMonth(by: 1) } label: { Image(systemName: "chevron.right") }
+                    }
+                    .foregroundStyle(PulseTheme.primary)
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 14) {
+                        let weekdays = ["L", "M", "X", "J", "V", "S", "D"]
+                        ForEach(weekdays.indices, id: \.self) { index in
+                            Text(weekdays[index])
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+
+                        ForEach(Array(monthCells.enumerated()), id: \.offset) { _, day in
+                            if let day {
+                                let hasWorkout = !loggedWorkouts(on: day).isEmpty
+                                let hasScheduled = !scheduledWorkouts(on: day).isEmpty
+                                let isSelected = Calendar.current.isDate(day, inSameDayAs: selectedDate)
+                                Button {
+                                    selectedDate = day
+                                } label: {
+                                    VStack(spacing: 4) {
+                                        Text("\(Calendar.current.component(.day, from: day))")
+                                            .font(.headline)
+                                            .frame(width: 40, height: 40)
+                                            .background(isSelected ? PulseTheme.primary : .clear)
+                                            .foregroundStyle(isSelected ? .white : .primary)
+                                            .clipShape(Circle())
+                                        HStack(spacing: 3) {
+                                            Circle()
+                                                .fill(hasScheduled ? PulseTheme.accent : .clear)
+                                                .frame(width: 5, height: 5)
+                                            Circle()
+                                                .fill(hasWorkout ? PulseTheme.primary : .clear)
+                                                .frame(width: 5, height: 5)
+                                        }
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                Color.clear.frame(height: 49)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(PulseTheme.card)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text(selectedDate.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                                .font(.headline)
+                            let daySessions = loggedWorkouts(on: selectedDate)
+                            let plannedSessions = scheduledWorkouts(on: selectedDate)
+                            if !plannedSessions.isEmpty {
+                                Text("Programado")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(PulseTheme.accent)
+                                ForEach(plannedSessions) { scheduled in
+                                    NavigationLink {
+                                        ActiveWorkoutView(workout: scheduled.workoutDay)
+                                    } label: {
+                                        CalendarPlannedWorkoutRow(
+                                            scheduled: scheduled,
+                                            gender: store.userProfile.muscleMapGender
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            if !daySessions.isEmpty {
+                                HStack(spacing: 12) {
+                                    CalendarSummaryPill(title: "\(daySessions.count)", subtitle: "sesiones", systemImage: "checkmark.circle")
+                                    CalendarSummaryPill(title: "\(dayExerciseCount(on: selectedDate))", subtitle: "ejercicios", systemImage: "dumbbell")
+                                    CalendarSummaryPill(title: "\(Int(FitnessMetrics.totalVolumeKg(for: daySessions)))", subtitle: "kg", systemImage: "scalemass")
+                                }
+                            }
+                            ForEach(loggedWorkouts(on: selectedDate)) { session in
+                                NavigationLink {
+                                    WorkoutSessionDetailView(session: session)
+                                } label: {
+                                    HStack {
+                                        VStack(alignment: .leading) {
+                                            Text(session.workoutTitle).font(.title3.weight(.bold))
+                                            Text("\(session.durationMinutes) min · \(exerciseCount(for: session)) ejercicios")
+                                                .foregroundStyle(PulseTheme.secondaryText)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+
+                                ForEach(exerciseLogs(for: session)) { log in
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack {
+                                            Text(log.exercise.name)
+                                                .font(.headline)
+                                            Spacer()
+                                            Text("\(log.sets.count) series")
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundStyle(PulseTheme.primary)
+                                        }
+                                        Text("\(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg volumen")
+                                            .font(.subheadline)
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                    }
+                                    .padding(12)
+                                    .background(PulseTheme.grouped)
+                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                                }
+                            }
+                            if loggedWorkouts(on: selectedDate).isEmpty {
+                                if !plannedSessions.isEmpty {
+                                    EmptyView()
+                                } else {
+                                PulseEmptyState(
+                                    title: "Sin actividad registrada",
+                                    message: "Programa una sesión o empieza un entreno libre para este día.",
+                                    systemImage: "calendar.badge.clock"
+                                )
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(20)
+                .padding(.bottom, 112)
+            }
+            .screenBackground()
+            .navigationBarHidden(true)
+            .sheet(isPresented: $showSchedule) {
+                ScheduleWorkoutView()
+            }
+        }
+    }
+
+    private var calendarCommandCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Label("Esta semana", systemImage: "calendar")
+                        .font(.headline)
+                    Spacer()
+                    Text("\(weekSessions.count)/\(store.activePlan.daysPerWeek)")
+                        .font(.title2.bold())
+                        .foregroundStyle(PulseTheme.primary)
+                }
+                HStack(spacing: 10) {
+                    CalendarSummaryPill(title: "\(weekScheduled.count)", subtitle: "programadas", systemImage: "calendar.badge.clock")
+                    CalendarSummaryPill(title: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg", systemImage: "scalemass")
+                    CalendarSummaryPill(title: "\(weekSessions.reduce(0) { $0 + $1.durationMinutes })", subtitle: "min", systemImage: "timer")
+                }
+                Button {
+                    showSchedule = true
+                } label: {
+                    Label("Programar sesión", systemImage: "calendar.badge.plus")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .foregroundStyle(.white)
+                        .background(PulseTheme.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+            }
+        }
+    }
+
+    private var weekSessions: [WorkoutSession] {
+        guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: selectedDate) else { return [] }
+        return store.workoutSessions.filter { interval.contains($0.date) }
+    }
+
+    private var weekScheduled: [ScheduledWorkout] {
+        guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: selectedDate) else { return [] }
+        return store.scheduledWorkouts.filter { interval.contains($0.date) }
+    }
+
+    private var monthCells: [Date?] {
+        let calendar = Calendar.current
+        guard let interval = calendar.dateInterval(of: .month, for: visibleMonth),
+              let range = calendar.range(of: .day, in: .month, for: visibleMonth) else {
+            return []
+        }
+
+        let firstWeekday = calendar.component(.weekday, from: interval.start)
+        let leadingBlanks = (firstWeekday + 5) % 7
+        let days = range.compactMap { day in
+            calendar.date(byAdding: .day, value: day - 1, to: interval.start)
+        }
+
+        return Array(repeating: nil, count: leadingBlanks) + days
+    }
+
+    private func loggedWorkouts(on date: Date) -> [WorkoutSession] {
+        let calendar = Calendar.current
+        return store.workoutSessions
+            .filter {
+            calendar.isDate($0.date, inSameDayAs: date)
+            }
+            .sorted { $0.date > $1.date }
+        }
+
+    private func scheduledWorkouts(on date: Date) -> [ScheduledWorkout] {
+        let calendar = Calendar.current
+        return store.scheduledWorkouts
+            .filter { calendar.isDate($0.date, inSameDayAs: date) }
+            .sorted { $0.date < $1.date }
+    }
+
+    private func dayExerciseCount(on date: Date) -> Int {
+        loggedWorkouts(on: date).reduce(0) { $0 + exerciseCount(for: $1) }
+    }
+
+    private func exerciseCount(for session: WorkoutSession) -> Int {
+        let logs = session.exerciseLogs ?? []
+        if !logs.isEmpty {
+            return logs.count
+        }
+        return session.sets.isEmpty ? 0 : 1
+    }
+
+    private func exerciseLogs(for session: WorkoutSession) -> [ExerciseLog] {
+        if let logs = session.exerciseLogs, !logs.isEmpty {
+            return logs
+        }
+        guard !session.sets.isEmpty else {
+            return []
+        }
+        return [ExerciseLog(exercise: SeedData.bench, notes: session.notes ?? "", sets: session.sets)]
+    }
+
+    private func changeMonth(by value: Int) {
+        let nextMonth = Calendar.current.date(byAdding: .month, value: value, to: visibleMonth) ?? visibleMonth
+        visibleMonth = nextMonth
+        selectedDate = Calendar.current.dateInterval(of: .month, for: nextMonth)?.start ?? nextMonth
+    }
+}
+
+private struct CalendarSummaryPill: View {
+    let title: String
+    let subtitle: LocalizedStringKey
+    let systemImage: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+                .foregroundStyle(PulseTheme.primary)
+            Text(subtitle)
+                .font(.caption)
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private struct CalendarPlannedWorkoutRow: View {
+    let scheduled: ScheduledWorkout
+    let gender: BodyGender
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ExerciseMediaThumbnail(exercise: scheduled.workoutDay.exercises.first?.exercise ?? SeedData.bench, gender: gender)
+                .frame(width: 58, height: 58)
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(scheduled.workoutDay.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text("\(scheduled.workoutDay.durationMinutes) min · \(calendarSessionTypeTitle(scheduled.workoutDay.sessionType))")
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            Spacer()
+            Image(systemName: "play.fill")
+                .foregroundStyle(.white)
+                .frame(width: 42, height: 42)
+                .background(PulseTheme.accent)
+                .clipShape(Circle())
+        }
+        .padding(12)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private func calendarSessionTypeTitle(_ type: WorkoutDay.SessionType) -> String {
+    switch type {
+    case .strength: "Fuerza"
+    case .cardioRun: "Carrera"
+    case .cardioWalk: "Caminata"
+    case .mixedRoute: "Mixta + ruta"
+    case .mobility: "Movilidad"
+    case .free: "Libre"
+    }
+}
+
+struct ScheduleWorkoutView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: AppStore
+
+    @State private var selectedWorkoutID: WorkoutDay.ID?
+    @State private var date = Date()
+
+    private var selectedWorkout: WorkoutDay {
+        store.activePlan.days.first { $0.id == selectedWorkoutID } ?? store.todaysWorkout
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Entreno") {
+                    Picker("Entreno", selection: $selectedWorkoutID) {
+                        ForEach(store.activePlan.days) { workout in
+                            Text(workout.title).tag(Optional(workout.id))
+                        }
+                    }
+                }
+
+                Section("Fecha") {
+                    DatePicker("Día de entrenamiento", selection: $date, displayedComponents: [.date])
+                }
+            }
+            .navigationTitle("Programar entreno")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                selectedWorkoutID = store.activePlan.days.first?.id
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancelar") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Guardar") {
+                        store.addScheduledWorkout(selectedWorkout, date: date)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}

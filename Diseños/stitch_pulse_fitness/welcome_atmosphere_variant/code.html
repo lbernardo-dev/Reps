@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Welcome to Pulse</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#2b1700",
+                        "primary": "#006e1c",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#005bc1",
+                        "surface": "#f9f9fe",
+                        "outline-variant": "#bbcbb5",
+                        "on-secondary-container": "#653c00",
+                        "surface-container-high": "#e8e8ed",
+                        "on-primary-fixed": "#002204",
+                        "primary-fixed": "#70ff76",
+                        "on-background": "#1a1c1f",
+                        "secondary-fixed": "#ffddbb",
+                        "on-tertiary-fixed": "#001a41",
+                        "secondary": "#885200",
+                        "primary-container": "#32d74b",
+                        "surface-tint": "#006e1c",
+                        "on-surface": "#1a1c1f",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2e3034",
+                        "outline": "#6d7b68",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#673d00",
+                        "inverse-primary": "#42e355",
+                        "surface-variant": "#e2e2e7",
+                        "surface-dim": "#d9dade",
+                        "error": "#ba1a1a",
+                        "secondary-fixed-dim": "#ffb868",
+                        "on-primary-fixed-variant": "#005313",
+                        "secondary-container": "#fd9d06",
+                        "on-primary-container": "#005814",
+                        "inverse-on-surface": "#f0f0f5",
+                        "on-surface-variant": "#3d4a3a",
+                        "surface-container-highest": "#e2e2e7",
+                        "tertiary-fixed": "#d8e2ff",
+                        "primary-fixed-dim": "#42e355",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "on-tertiary-fixed-variant": "#004493",
+                        "surface-bright": "#f9f9fe",
+                        "on-tertiary-container": "#00489b",
+                        "tertiary-container": "#9bbbff",
+                        "surface-container-low": "#f3f3f8",
+                        "on-tertiary": "#ffffff",
+                        "background": "#f9f9fe",
+                        "surface-container": "#ededf2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "card-padding": "16px",
+                        "section-gap": "24px",
+                        "gutter-stack": "8px",
+                        "touch-target": "44px",
+                        "margin-page": "16px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "large-title": ["Inter"],
+                        "data-display": ["Inter"],
+                        "caption-sm": ["Inter"],
+                        "subheadline": ["Inter"],
+                        "callout": ["Inter"],
+                        "footnote": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "600"}],
+                        "body": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "400"}],
+                        "large-title": ["34px", {"lineHeight": "41px", "letterSpacing": "0.37px", "fontWeight": "700"}],
+                        "data-display": ["48px", {"lineHeight": "52px", "letterSpacing": "-1px", "fontWeight": "800"}],
+                        "caption-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0px", "fontWeight": "400"}],
+                        "subheadline": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.24px", "fontWeight": "400"}],
+                        "callout": ["16px", {"lineHeight": "21px", "letterSpacing": "-0.32px", "fontWeight": "400"}],
+                        "footnote": ["13px", {"lineHeight": "18px", "letterSpacing": "-0.08px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background antialiased h-screen w-screen overflow-hidden">
+<!-- Full Bleed Background -->
+<div class="absolute inset-0 w-full h-full">
+<img alt="" class="w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzrKATjpJKaxxwkFM3fIBJUJ4UHidS5YzDLbIKrGL-E0CHU1UzdOechB07Vo-8nyH_9aChqklTdc97WLEfZt4zLSszWMxAePF35fOya86XYjy2d6604unGXE70ePwMTsWAaM-HLM2p4LGSYRXAzMcokZJkgwjSsuad36DO6WFctheSZr3HB9Aa8ToqH5EeDThYnlw0OPV9MPIunJF-TECVv-6rvOu904lw5Ub9vgJLDKQh1GGInCxPI2X-mi_-jcJ3fTrnTMCbqHs"/>
+<!-- Subtle dark gradient overlay to ensure the glass card pops and text remains legible even if the image is bright in spots -->
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+</div>
+<!-- Content Container - Lower Third Glassmorphism Card -->
+<div class="relative z-10 flex flex-col justify-end h-full w-full px-margin-page pb-[env(safe-area-inset-bottom,32px)] pt-12">
+<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[32px] p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)] mb-8 flex flex-col gap-8">
+<!-- Text Content -->
+<div class="flex flex-col gap-2">
+<h1 class="font-data-display text-data-display text-white tracking-tight">
+                    Pulse
+                </h1>
+<p class="font-body text-body text-white/90">
+                    Track your training. Reach your goals. Anywhere.
+                </p>
+</div>
+<!-- Actions -->
+<div class="flex flex-col gap-4 w-full mt-4">
+<button class="w-full h-touch-target rounded-full bg-primary text-on-primary font-headline text-headline flex items-center justify-center transition-transform active:scale-95 hover:opacity-90 shadow-lg shadow-primary/30">
+                    Get Started
+                </button>
+<button class="w-full h-touch-target rounded-full bg-transparent text-white border-2 border-white/50 font-headline text-headline flex items-center justify-center transition-all active:scale-95 hover:bg-white/10">
+                    Log In
+                </button>
+</div>
+</div>
+</div>
+</body></html>

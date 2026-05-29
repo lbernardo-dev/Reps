@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pulse Fitness - Create Plan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#653c00",
+                        "on-primary-container": "#005814",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#f3f3f8",
+                        "on-background": "#1a1c1f",
+                        "primary-fixed": "#70ff76",
+                        "inverse-on-surface": "#f0f0f5",
+                        "outline": "#6d7b68",
+                        "on-secondary-fixed": "#2b1700",
+                        "error-container": "#ffdad6",
+                        "surface": "#f9f9fe",
+                        "surface-variant": "#e2e2e7",
+                        "outline-variant": "#bbcbb5",
+                        "on-tertiary-container": "#00489b",
+                        "tertiary-fixed": "#d8e2ff",
+                        "tertiary-container": "#9bbbff",
+                        "surface-dim": "#d9dade",
+                        "secondary": "#885200",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#005bc1",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed-variant": "#004493",
+                        "surface-container-high": "#e8e8ed",
+                        "secondary-container": "#fd9d06",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#3d4a3a",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "on-primary-fixed": "#002204",
+                        "primary-container": "#32d74b",
+                        "on-primary-fixed-variant": "#005313",
+                        "secondary-fixed": "#ffddbb",
+                        "surface-container": "#ededf2",
+                        "primary": "#006e1c",
+                        "on-tertiary-fixed": "#001a41",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f9f9fe",
+                        "inverse-surface": "#2e3034",
+                        "surface-container-highest": "#e2e2e7",
+                        "secondary-fixed-dim": "#ffb868",
+                        "background": "#f9f9fe",
+                        "surface-tint": "#006e1c",
+                        "on-surface": "#1a1c1f",
+                        "inverse-primary": "#42e355",
+                        "primary-fixed-dim": "#42e355",
+                        "on-secondary-fixed-variant": "#673d00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "24px",
+                        "gutter-stack": "8px",
+                        "touch-target": "44px",
+                        "margin-page": "16px",
+                        "card-padding": "16px"
+                    },
+                    "fontFamily": {
+                        "data-display": ["Inter", "sans-serif"],
+                        "callout": ["Inter", "sans-serif"],
+                        "subheadline": ["Inter", "sans-serif"],
+                        "large-title": ["Inter", "sans-serif"],
+                        "headline": ["Inter", "sans-serif"],
+                        "footnote": ["Inter", "sans-serif"],
+                        "caption-sm": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "data-display": ["48px", { "lineHeight": "52px", "letterSpacing": "-1px", "fontWeight": "800" }],
+                        "callout": ["16px", { "lineHeight": "21px", "letterSpacing": "-0.32px", "fontWeight": "400" }],
+                        "subheadline": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.24px", "fontWeight": "400" }],
+                        "large-title": ["34px", { "lineHeight": "41px", "letterSpacing": "0.37px", "fontWeight": "700" }],
+                        "headline": ["17px", { "lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "600" }],
+                        "footnote": ["13px", { "lineHeight": "18px", "letterSpacing": "-0.08px", "fontWeight": "400" }],
+                        "caption-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0px", "fontWeight": "400" }],
+                        "body": ["17px", { "lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "400" }]
+                    },
+                    "boxShadow": {
+                        "card": "0px 4px 12px rgba(0, 0, 0, 0.05)"
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #F2F2F7; /* Apple System Grey 6 */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        
+        .ios-segment-active {
+            background-color: #FFFFFF;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            border-radius: 0.375rem; /* ~6px */
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body text-body text-on-background min-h-screen flex flex-col relative pb-32">
+<!-- Top Navigation (Transactional/Task-Focused, no standard shell) -->
+<header class="flex justify-between items-center px-margin-page h-touch-target w-full bg-surface/90 backdrop-blur-md sticky top-0 z-50 pt-2">
+<button aria-label="Cancel" class="h-touch-target w-touch-target flex items-center justify-start text-primary active:scale-95 transition-transform">
+<span class="font-body text-body">Cancel</span>
+</button>
+<div class="flex-1 text-center">
+<h1 class="font-headline text-headline text-on-surface">Create Plan</h1>
+</div>
+<div class="h-touch-target w-touch-target"></div> <!-- Spacer for center alignment -->
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 px-margin-page pt-section-gap flex flex-col gap-section-gap w-full max-w-md mx-auto">
+<!-- Step Indicator -->
+<div class="flex flex-col items-center gap-2">
+<span class="font-caption-sm text-caption-sm text-on-surface-variant uppercase tracking-widest">Step 1 of 4</span>
+<h2 class="font-large-title text-large-title text-on-surface text-center">Basic Info</h2>
+<div class="w-full flex gap-1 mt-2">
+<div class="h-1.5 flex-1 bg-primary rounded-full"></div>
+<div class="h-1.5 flex-1 bg-surface-variant rounded-full"></div>
+<div class="h-1.5 flex-1 bg-surface-variant rounded-full"></div>
+<div class="h-1.5 flex-1 bg-surface-variant rounded-full"></div>
+</div>
+</div>
+<!-- Plan Name Input -->
+<section class="flex flex-col gap-gutter-stack">
+<label class="font-headline text-headline text-on-surface ml-2" for="planName">Plan Name</label>
+<div class="bg-surface-container-lowest rounded-2xl p-card-padding shadow-card">
+<input class="w-full border-none bg-transparent font-body text-body text-on-surface placeholder-on-surface-variant focus:ring-0 p-0" id="planName" placeholder="e.g., Summer Shred, Off-Season Bulking" type="text"/>
+</div>
+</section>
+<!-- Goal Selection (Bento-style list) -->
+<section class="flex flex-col gap-gutter-stack">
+<label class="font-headline text-headline text-on-surface ml-2">Primary Goal</label>
+<div class="bg-surface-container-lowest rounded-2xl shadow-card flex flex-col overflow-hidden">
+<!-- Goal Item 1 -->
+<button class="w-full p-card-padding flex items-center justify-between hover:bg-surface-container-low active:bg-surface-variant transition-colors text-left border-b border-surface-variant" onclick="selectGoal(this)">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+</div>
+<div>
+<p class="font-headline text-headline text-on-surface">Build Muscle</p>
+<p class="font-footnote text-footnote text-on-surface-variant">Hypertrophy &amp; Strength</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary opacity-0 transition-opacity goal-check">check_circle</span>
+</button>
+<!-- Goal Item 2 -->
+<button class="w-full p-card-padding flex items-center justify-between hover:bg-surface-container-low active:bg-surface-variant transition-colors text-left border-b border-surface-variant" onclick="selectGoal(this)">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+<div>
+<p class="font-headline text-headline text-on-surface">Lose Fat</p>
+<p class="font-footnote text-footnote text-on-surface-variant">Calorie Deficit &amp; Cardio</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary opacity-0 transition-opacity goal-check">check_circle</span>
+</button>
+<!-- Goal Item 3 -->
+<button class="w-full p-card-padding flex items-center justify-between hover:bg-surface-container-low active:bg-surface-variant transition-colors text-left" onclick="selectGoal(this)">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">monitor_heart</span>
+</div>
+<div>
+<p class="font-headline text-headline text-on-surface">Endurance</p>
+<p class="font-footnote text-footnote text-on-surface-variant">Stamina &amp; Conditioning</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary opacity-0 transition-opacity goal-check">check_circle</span>
+</button>
+</div>
+</section>
+<!-- Training Location (Segmented Control) -->
+<section class="flex flex-col gap-gutter-stack mb-8">
+<label class="font-headline text-headline text-on-surface ml-2">Training Environment</label>
+<div class="bg-surface-variant/50 p-1 rounded-lg flex items-center relative">
+<button class="flex-1 py-2 font-subheadline text-subheadline text-on-surface text-center rounded-md relative z-10 transition-colors ios-segment-active" onclick="selectLocation(this)">Gym</button>
+<button class="flex-1 py-2 font-subheadline text-subheadline text-on-surface-variant text-center rounded-md relative z-10 transition-colors" onclick="selectLocation(this)">Home</button>
+<button class="flex-1 py-2 font-subheadline text-subheadline text-on-surface-variant text-center rounded-md relative z-10 transition-colors" onclick="selectLocation(this)">Both</button>
+</div>
+</section>
+</main>
+<!-- Bottom Action Area -->
+<div class="fixed bottom-0 left-0 w-full bg-surface-container-lowest/90 backdrop-blur-md border-t border-surface-variant p-margin-page pb-8 z-50">
+<div class="max-w-md mx-auto">
+<button class="w-full h-[50px] bg-primary text-on-primary rounded-full font-headline text-headline flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                Next
+                <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<script>
+        function selectGoal(element) {
+            // Reset all
+            document.querySelectorAll('.goal-check').forEach(el => el.classList.remove('opacity-100'));
+            
+            // Set selected
+            const check = element.querySelector('.goal-check');
+            if(check) check.classList.add('opacity-100');
+        }
+
+        function selectLocation(element) {
+            // Reset all
+            const siblings = element.parentElement.querySelectorAll('button');
+            siblings.forEach(btn => {
+                btn.classList.remove('ios-segment-active', 'text-on-surface');
+                btn.classList.add('text-on-surface-variant');
+            });
+            
+            // Set selected
+            element.classList.add('ios-segment-active', 'text-on-surface');
+            element.classList.remove('text-on-surface-variant');
+        }
+
+        // Initialize first goal as selected
+        document.querySelector('.goal-check').classList.add('opacity-100');
+    </script>
+</body></html>

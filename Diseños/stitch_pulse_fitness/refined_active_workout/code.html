@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Active Workout - Pulse Fitness</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom Stepper Input Styling to remove arrows */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "surface-variant": "#e2e2e7",
+                            "primary": "#006e1c",
+                            "surface-bright": "#f9f9fe",
+                            "surface-container-lowest": "#ffffff",
+                            "on-primary-fixed": "#002204",
+                            "on-error": "#ffffff",
+                            "surface-container": "#ededf2",
+                            "outline": "#6d7b68",
+                            "surface-dim": "#d9dade",
+                            "on-tertiary-container": "#00489b",
+                            "on-error-container": "#93000a",
+                            "primary-fixed": "#70ff76",
+                            "primary-container": "#32d74b",
+                            "on-secondary-fixed": "#2b1700",
+                            "secondary-fixed-dim": "#ffb868",
+                            "on-primary-container": "#005814",
+                            "tertiary": "#005bc1",
+                            "outline-variant": "#bbcbb5",
+                            "on-secondary": "#ffffff",
+                            "on-secondary-fixed-variant": "#673d00",
+                            "on-primary-fixed-variant": "#005313",
+                            "on-surface-variant": "#3d4a3a",
+                            "error-container": "#ffdad6",
+                            "secondary": "#885200",
+                            "surface-container-high": "#e8e8ed",
+                            "surface-container-low": "#f3f3f8",
+                            "surface": "#f9f9fe",
+                            "tertiary-fixed-dim": "#adc6ff",
+                            "secondary-container": "#fd9d06",
+                            "on-surface": "#1a1c1f",
+                            "tertiary-container": "#9bbbff",
+                            "inverse-surface": "#2e3034",
+                            "secondary-fixed": "#ffddbb",
+                            "tertiary-fixed": "#d8e2ff",
+                            "inverse-primary": "#42e355",
+                            "on-secondary-container": "#653c00",
+                            "surface-tint": "#006e1c",
+                            "on-tertiary": "#ffffff",
+                            "error": "#ba1a1a",
+                            "inverse-on-surface": "#f0f0f5",
+                            "primary-fixed-dim": "#42e355",
+                            "background": "#f9f9fe",
+                            "surface-container-highest": "#e2e2e7",
+                            "on-primary": "#ffffff",
+                            "on-tertiary-fixed": "#001a41",
+                            "on-background": "#1a1c1f",
+                            "on-tertiary-fixed-variant": "#004493"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.25rem",
+                            "lg": "0.5rem",
+                            "xl": "0.75rem",
+                            "full": "9999px"
+                    },
+                    "spacing": {
+                            "section-gap": "24px",
+                            "gutter-stack": "8px",
+                            "touch-target": "44px",
+                            "margin-page": "16px",
+                            "card-padding": "16px"
+                    },
+                    "fontFamily": {
+                            "callout": ["Inter"],
+                            "large-title": ["Inter"],
+                            "headline": ["Inter"],
+                            "data-display": ["Inter"],
+                            "caption-sm": ["Inter"],
+                            "footnote": ["Inter"],
+                            "body": ["Inter"],
+                            "subheadline": ["Inter"]
+                    },
+                    "fontSize": {
+                            "callout": ["16px", {"lineHeight": "21px", "letterSpacing": "-0.32px", "fontWeight": "400"}],
+                            "large-title": ["34px", {"lineHeight": "41px", "letterSpacing": "0.37px", "fontWeight": "700"}],
+                            "headline": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "600"}],
+                            "data-display": ["48px", {"lineHeight": "52px", "letterSpacing": "-1px", "fontWeight": "800"}],
+                            "caption-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0px", "fontWeight": "400"}],
+                            "footnote": ["13px", {"lineHeight": "18px", "letterSpacing": "-0.08px", "fontWeight": "400"}],
+                            "body": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "400"}],
+                            "subheadline": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.24px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col pb-24">
+<!-- Active Workout Header (Translating TopAppBar JSON intent to active state) -->
+<header class="bg-surface-dim/80 backdrop-blur-md text-primary font-headline text-headline docked full-width top-0 z-50 flex justify-between items-center px-margin-page h-touch-target w-full sticky">
+<!-- Leading: Timer -->
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">timer</span>
+<span class="font-data-display text-[24px] tracking-tight leading-none" id="workout-timer">00:24:15</span>
+</div>
+<!-- Center: Title -->
+<div class="font-headline text-headline text-on-surface">
+            Push Day
+        </div>
+<!-- Trailing: Finish Button -->
+<button class="bg-primary text-on-primary px-6 py-2 rounded-full font-headline text-footnote hover:opacity-90 active:scale-95 transition-all shadow-md">
+            Finish
+        </button>
+</header>
+<main class="flex-1 flex flex-col gap-section-gap px-margin-page pt-6">
+<!-- Rest Timer Bar (Sticky just under header) -->
+<div class="bg-surface-container-highest rounded-xl p-4 flex items-center justify-between shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant/20 sticky top-16 z-40"><div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">hourglass_top</span>
+</div>
+<div>
+<p class="font-subheadline text-subheadline text-on-surface font-semibold">Resting</p>
+<p class="font-data-display text-[24px] text-secondary font-bold leading-none">00:58</p>
+</div>
+</div>
+<div class="flex flex-col items-end gap-2">
+<button class="px-4 py-1.5 bg-surface-container-high rounded-full font-subheadline text-footnote text-on-surface-variant hover:bg-surface-variant transition-colors active:scale-95">Skip</button>
+<div class="w-32 h-1.5 bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-secondary-container w-[70%] transition-all"></div>
+</div>
+</div></div>
+<!-- Active Exercise Card: Barbell Bench Press -->
+<section class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant/20 flex flex-col gap-gutter-stack">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h2 class="font-headline text-headline text-on-surface">Barbell Bench Press</h2>
+<p class="font-footnote text-footnote text-on-surface-variant">Prev: 60kg x 10</p>
+</div>
+<button class="text-primary p-2 hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<!-- Sets Table Header -->
+<div class="grid grid-cols-12 gap-2 pb-2 border-b border-surface-variant font-caption-sm text-caption-sm text-on-surface-variant text-center px-2">
+<div class="col-span-2 text-left">Set</div>
+<div class="col-span-4">kg</div>
+<div class="col-span-4">Reps</div>
+<div class="col-span-2 text-right"><span class="material-symbols-outlined text-[16px]">check</span></div>
+</div>
+<!-- Set 1 (Completed) -->
+<div class="grid grid-cols-12 gap-2 items-center py-2 border-b border-surface-variant/50 bg-primary/5 rounded-lg px-2 transition-colors">
+<div class="col-span-2 font-subheadline text-subheadline text-on-surface font-semibold">1</div>
+<div class="col-span-4 flex justify-center">
+<div class="bg-surface-container-high rounded-lg px-4 py-2 w-full text-center font-callout text-callout font-medium text-on-surface opacity-60">60</div>
+</div>
+<div class="col-span-4 flex justify-center">
+<div class="bg-surface-container-high rounded-lg px-4 py-2 w-full text-center font-callout text-callout font-medium text-on-surface opacity-60">10</div>
+</div>
+<div class="col-span-2 flex justify-end">
+<button class="w-8 h-8 rounded-md bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</button>
+</div>
+</div>
+<!-- Set 2 (Completed) -->
+<div class="grid grid-cols-12 gap-2 items-center py-2 border-b border-surface-variant/50 bg-primary/5 rounded-lg px-2 transition-colors">
+<div class="col-span-2 font-subheadline text-subheadline text-on-surface font-semibold">2</div>
+<div class="col-span-4 flex justify-center">
+<div class="bg-surface-container-high rounded-lg px-4 py-2 w-full text-center font-callout text-callout font-medium text-on-surface opacity-60">60</div>
+</div>
+<div class="col-span-4 flex justify-center">
+<div class="bg-surface-container-high rounded-lg px-4 py-2 w-full text-center font-callout text-callout font-medium text-on-surface opacity-60">8</div>
+</div>
+<div class="col-span-2 flex justify-end">
+<button class="w-8 h-8 rounded-md bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</button>
+</div>
+</div>
+<!-- Set 3 (Active) -->
+<div class="grid grid-cols-12 gap-1 items-center py-4 bg-surface-container-lowest rounded-xl px-2 -mx-2 shadow-lg border border-primary/30 z-10 relative">
+<div class="col-span-1 font-subheadline text-subheadline text-on-surface font-bold">3</div>
+<!-- Stepper Weight -->
+<div class="col-span-5 flex items-center bg-surface-container-high rounded-lg p-1">
+<button class="w-10 h-10 flex items-center justify-center text-primary active:scale-90">
+<span class="material-symbols-outlined font-bold">remove</span>
+</button>
+<div class="flex-1 text-center">
+<span class="block font-headline text-headline text-on-surface">60</span>
+<span class="block font-caption-sm text-[10px] uppercase text-on-surface-variant">kg</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center text-primary active:scale-90">
+<span class="material-symbols-outlined font-bold">add</span>
+</button>
+</div>
+<!-- Stepper Reps -->
+<div class="col-span-4 flex items-center bg-surface-container-high rounded-lg p-1 ml-1">
+<button class="w-8 h-10 flex items-center justify-center text-primary active:scale-90">
+<span class="material-symbols-outlined font-bold">remove</span>
+</button>
+<div class="flex-1 text-center">
+<span class="block font-headline text-headline text-on-surface">8</span>
+<span class="block font-caption-sm text-[10px] uppercase text-on-surface-variant">reps</span>
+</div>
+<button class="w-8 h-10 flex items-center justify-center text-primary active:scale-90">
+<span class="material-symbols-outlined font-bold">add</span>
+</button>
+</div>
+<div class="col-span-2 flex justify-end pl-1">
+<button class="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</button>
+</div>
+</div>
+<!-- Add Set Button -->
+<button class="mt-4 w-full py-3 rounded-xl border border-dashed border-outline-variant text-primary font-subheadline text-subheadline flex items-center justify-center gap-2 hover:bg-surface-container transition-colors active:scale-95">
+<span class="material-symbols-outlined">add</span>
+                Add Set
+            </button>
+</section>
+<!-- Next Exercise Preview (Bento style small card) -->
+<section class="bg-surface-container-low rounded-xl p-4 border border-outline-variant/10 flex items-center justify-between opacity-80 mt-auto"><div class="flex items-center gap-4">
+<div class="w-14 h-14 bg-surface-container-highest rounded-xl flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-primary text-[32px]">fitness_center</span>
+</div>
+<div class="flex-1">
+<p class="font-caption-sm text-caption-sm text-primary font-bold uppercase tracking-widest">Up Next</p>
+<h3 class="font-headline text-headline text-on-surface">Incline Dumbbell Press</h3>
+<p class="font-footnote text-footnote text-on-surface-variant">3 Sets × 10-12 Reps</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</div></section>
+</main>
+<!-- Suppress BottomNavBar because this is a focused task/transactional screen -->
+<script>
+        // Simple timer logic for demonstration
+        let seconds = 1455; // 00:24:15
+        const timerElement = document.getElementById('workout-timer');
+        
+        setInterval(() => {
+            seconds++;
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            timerElement.textContent = 
+                `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }, 1000);
+    </script>
+</body></html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-width=1.0" name="viewport"/>
+<title>Pulse Fitness - Today</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "surface-container-lowest": "#ffffff",
+                "primary-fixed-dim": "#79dc77",
+                "inverse-on-surface": "#f3f0f2",
+                "tertiary-container": "#c24978",
+                "tertiary-fixed": "#ffd9e2",
+                "background": "#fcf8fb",
+                "secondary": "#006e1c",
+                "primary": "#006b1b",
+                "tertiary": "#a23060",
+                "on-tertiary-fixed-variant": "#86194a",
+                "on-secondary": "#ffffff",
+                "secondary-fixed": "#70ff76",
+                "on-secondary-fixed-variant": "#005313",
+                "inverse-primary": "#79dc77",
+                "surface-variant": "#e4e2e4",
+                "error": "#ba1a1a",
+                "surface-container": "#f0edef",
+                "on-error": "#ffffff",
+                "outline": "#6f7a6b",
+                "tertiary-fixed-dim": "#ffb0c8",
+                "on-primary-fixed": "#002204",
+                "surface-container-high": "#eae7ea",
+                "on-primary-container": "#f7fff1",
+                "surface-dim": "#dcd9dc",
+                "surface-container-low": "#f6f3f5",
+                "outline-variant": "#becab9",
+                "on-tertiary-fixed": "#3e001d",
+                "primary-container": "#1f862d",
+                "on-secondary-fixed": "#002204",
+                "on-surface-variant": "#3f4a3c",
+                "on-background": "#1b1b1d",
+                "surface-container-highest": "#e4e2e4",
+                "secondary-fixed-dim": "#42e355",
+                "on-surface": "#1b1b1d",
+                "on-secondary-container": "#00731d",
+                "on-primary": "#ffffff",
+                "primary-fixed": "#94f990",
+                "on-primary-fixed-variant": "#005312",
+                "surface-bright": "#fcf8fb",
+                "surface-tint": "#006e1c",
+                "surface": "#fcf8fb",
+                "secondary-container": "#60fe6c",
+                "inverse-surface": "#303032",
+                "on-tertiary-container": "#fffbff",
+                "error-container": "#ffdad6",
+                "on-error-container": "#93000a",
+                "on-tertiary": "#ffffff"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "stack-md": "0.5rem",
+                "margin-page": "1rem",
+                "stack-sm": "0.25rem",
+                "gutter-grid": "0.75rem",
+                "stack-lg": "1rem",
+                "element-height-md": "2.75rem"
+        },
+        "fontFamily": {
+                "title-3": [
+                        "Inter"
+                ],
+                "title-1": [
+                        "Inter"
+                ],
+                "caption-1": [
+                        "Inter"
+                ],
+                "body": [
+                        "Inter"
+                ],
+                "title-2": [
+                        "Inter"
+                ],
+                "large-title": [
+                        "Inter"
+                ],
+                "large-title-mobile": [
+                        "Inter"
+                ],
+                "footnote": [
+                        "Inter"
+                ],
+                "headline": [
+                        "Inter"
+                ],
+                "subheadline": [
+                        "Inter"
+                ],
+                "callout": [
+                        "Inter"
+                ]
+        },
+        "fontSize": {
+                "title-3": [
+                        "20px",
+                        {
+                                "lineHeight": "25px",
+                                "letterSpacing": "0.38px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "title-1": [
+                        "28px",
+                        {
+                                "lineHeight": "34px",
+                                "letterSpacing": "0.36px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "caption-1": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body": [
+                        "17px",
+                        {
+                                "lineHeight": "22px",
+                                "letterSpacing": "-0.41px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "title-2": [
+                        "22px",
+                        {
+                                "lineHeight": "28px",
+                                "letterSpacing": "0.35px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "large-title": [
+                        "34px",
+                        {
+                                "lineHeight": "41px",
+                                "letterSpacing": "0.37px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "large-title-mobile": [
+                        "32px",
+                        {
+                                "lineHeight": "38px",
+                                "letterSpacing": "0.37px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "footnote": [
+                        "13px",
+                        {
+                                "lineHeight": "18px",
+                                "letterSpacing": "-0.08px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline": [
+                        "17px",
+                        {
+                                "lineHeight": "22px",
+                                "letterSpacing": "-0.41px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "subheadline": [
+                        "15px",
+                        {
+                                "lineHeight": "20px",
+                                "letterSpacing": "-0.24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "callout": [
+                        "16px",
+                        {
+                                "lineHeight": "21px",
+                                "letterSpacing": "-0.32px",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body {
+            background-color: #F2F2F7; /* System Grey Base Layer */
+            -webkit-tap-highlight-color: transparent;
+        }
+        .card-shadow {
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .ios-separator {
+            border-bottom: 0.5px solid #C6C6C8;
+        }
+        .ios-separator:last-child {
+            border-bottom: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="font-body text-body text-on-surface antialiased flex flex-col min-h-screen bg-background dark:bg-background">
+<!-- TopAppBar -->
+<header class="bg-background dark:bg-background fixed top-0 w-full z-50 flex justify-between items-center px-margin-page h-element-height-md active:scale-95 transition-transform duration-200">
+<button aria-label="Menu" class="flex items-center text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-[24px]">fitness_center</span>
+</button>
+<div class="flex-1 flex justify-center">
+<h1 class="font-title-1 text-title-1 text-primary dark:text-primary-fixed-dim tracking-tight">Pulse</h1>
+</div>
+<button aria-label="Notifications" class="flex items-center text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-margin-page pt-20 pb-32 flex flex-col gap-stack-lg max-w-2xl mx-auto w-full">
+<!-- Today's Workout Card -->
+<section class="bg-surface-container-lowest rounded-xl card-shadow p-margin-page flex flex-col gap-stack-md relative overflow-hidden">
+<!-- Decorative gradient orb -->
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-primary-container rounded-full opacity-20 blur-2xl"></div>
+<div class="flex justify-between items-start z-10">
+<div>
+<h2 class="font-large-title text-large-title text-on-surface tracking-tight">Push Day</h2>
+<p class="font-subheadline text-subheadline text-on-surface-variant mt-1">Upper Body &amp; Core</p>
+</div>
+<div class="bg-primary-container/20 text-on-primary-container font-caption-1 text-caption-1 px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">timer</span>
+                    45 min
+                </div>
+</div>
+<div class="mt-4 z-10">
+<button class="w-full bg-primary text-on-primary font-headline text-headline py-3 rounded-full hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                    Start Workout
+                </button>
+</div>
+</section>
+<!-- Quick Stats Bento Grid -->
+<section class="grid grid-cols-2 gap-gutter-grid">
+<!-- Streak -->
+<div class="bg-surface-container-lowest rounded-xl card-shadow p-margin-page flex flex-col justify-between h-32">
+<div class="flex items-center gap-2 text-secondary-container">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-caption-1 text-caption-1 text-on-surface-variant">Streak</span>
+</div>
+<div>
+<div class="font-large-title text-large-title text-on-surface">5</div>
+<div class="font-footnote text-footnote text-on-surface-variant">Days in a row</div>
+</div>
+</div>
+<!-- Workouts This Week -->
+<div class="bg-surface-container-lowest rounded-xl card-shadow p-margin-page flex flex-col justify-between h-32">
+<div class="flex justify-between items-center">
+<span class="font-caption-1 text-caption-1 text-on-surface-variant">This Week</span>
+<span class="material-symbols-outlined text-outline-variant text-[18px]">calendar_today</span>
+</div>
+<div>
+<div class="font-headline text-headline text-on-surface flex items-baseline gap-1">
+<span class="font-large-title text-large-title text-primary">3</span>
+<span class="text-on-surface-variant">/ 4</span>
+</div>
+<!-- Mini progress track -->
+<div class="w-full h-1 bg-surface-variant rounded-full mt-2 overflow-hidden flex">
+<div class="w-[75%] h-full bg-primary rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Last Session -->
+<div class="col-span-2 bg-surface-container-lowest rounded-xl card-shadow p-margin-page flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">history</span>
+</div>
+<div>
+<div class="font-headline text-headline text-on-surface">Leg Day</div>
+<div class="font-footnote text-footnote text-on-surface-variant">Yesterday</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-subheadline text-subheadline text-on-surface">55 min</div>
+<div class="font-caption-1 text-caption-1 text-primary flex items-center justify-end gap-1">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+                        PR set
+                    </div>
+</div>
+</div>
+</section>
+<!-- Active Goal -->
+<section class="bg-surface-container-lowest rounded-xl card-shadow p-margin-page flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<h3 class="font-headline text-headline text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">target</span>
+                    Active Goal
+                </h3>
+<span class="font-caption-1 text-caption-1 text-on-surface-variant">Bench Press Max</span>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between font-footnote text-footnote">
+<span class="text-on-surface-variant">Current: <span class="font-semibold text-on-surface">205 lbs</span></span>
+<span class="text-on-surface-variant">Goal: <span class="font-semibold text-on-surface">225 lbs</span></span>
+</div>
+<!-- Standard iOS style Progress Bar -->
+<div class="w-full h-1 bg-surface-variant rounded-full overflow-hidden">
+<div class="w-[60%] h-full bg-primary rounded-full transition-all duration-1000 ease-out"></div>
+</div>
+<div class="text-center font-caption-1 text-caption-1 text-on-surface-variant mt-2">
+                    20 lbs to go
+                </div>
+</div>
+</section>
+<!-- Motivational Footer -->
+<footer class="mt-8 text-center pb-8">
+<p class="font-callout text-callout text-on-surface-variant italic flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[32px] font-light">format_quote</span>
+                "Consistency is key. You got this."
+            </p>
+</footer>
+</main>
+<!-- BottomNavBar -->
+<nav class="bg-surface-container-lowest/80 dark:bg-surface-dim/80 backdrop-blur-md border-t border-outline-variant dark:border-outline fixed bottom-0 w-full z-50 flex justify-around items-center px-2 pb-safe h-16">
+<a aria-label="Today" class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-headline hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors active:scale-90 transition-transform duration-150 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1">today</span>
+<span class="font-caption-1 text-caption-1">Today</span>
+</a>
+<a aria-label="Plans" class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors active:scale-90 transition-transform duration-150 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1">assignment</span>
+<span class="font-caption-1 text-caption-1">Plans</span>
+</a>
+<a aria-label="Progress" class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors active:scale-90 transition-transform duration-150 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1">insights</span>
+<span class="font-caption-1 text-caption-1">Progress</span>
+</a>
+<a aria-label="Calendar" class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors active:scale-90 transition-transform duration-150 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1">calendar_today</span>
+<span class="font-caption-1 text-caption-1">Calendar</span>
+</a>
+<a aria-label="Profile" class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors active:scale-90 transition-transform duration-150 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1">person</span>
+<span class="font-caption-1 text-caption-1">Profile</span>
+</a>
+</nav>
+</body></html>

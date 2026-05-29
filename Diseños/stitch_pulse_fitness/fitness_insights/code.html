@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Progress Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-variant": "#e2e2e7",
+                    "primary": "#006e1c",
+                    "surface-bright": "#f9f9fe",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed": "#002204",
+                    "on-error": "#ffffff",
+                    "surface-container": "#ededf2",
+                    "outline": "#6d7b68",
+                    "surface-dim": "#d9dade",
+                    "on-tertiary-container": "#00489b",
+                    "on-error-container": "#93000a",
+                    "primary-fixed": "#70ff76",
+                    "primary-container": "#32d74b",
+                    "on-secondary-fixed": "#2b1700",
+                    "secondary-fixed-dim": "#ffb868",
+                    "on-primary-container": "#005814",
+                    "tertiary": "#005bc1",
+                    "outline-variant": "#bbcbb5",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-fixed-variant": "#673d00",
+                    "on-primary-fixed-variant": "#005313",
+                    "on-surface-variant": "#3d4a3a",
+                    "error-container": "#ffdad6",
+                    "secondary": "#885200",
+                    "surface-container-high": "#e8e8ed",
+                    "surface-container-low": "#f3f3f8",
+                    "surface": "#f9f9fe",
+                    "tertiary-fixed-dim": "#adc6ff",
+                    "secondary-container": "#fd9d06",
+                    "on-surface": "#1a1c1f",
+                    "tertiary-container": "#9bbbff",
+                    "inverse-surface": "#2e3034",
+                    "secondary-fixed": "#ffddbb",
+                    "tertiary-fixed": "#d8e2ff",
+                    "inverse-primary": "#42e355",
+                    "on-secondary-container": "#653c00",
+                    "surface-tint": "#006e1c",
+                    "on-tertiary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "inverse-on-surface": "#f0f0f5",
+                    "primary-fixed-dim": "#42e355",
+                    "background": "#f9f9fe",
+                    "surface-container-highest": "#e2e2e7",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed": "#001a41",
+                    "on-background": "#1a1c1f",
+                    "on-tertiary-fixed-variant": "#004493"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "section-gap": "24px",
+                    "gutter-stack": "8px",
+                    "touch-target": "44px",
+                    "margin-page": "16px",
+                    "card-padding": "16px"
+            },
+            "fontFamily": {
+                    "callout": ["Inter"],
+                    "large-title": ["Inter"],
+                    "headline": ["Inter"],
+                    "data-display": ["Inter"],
+                    "caption-sm": ["Inter"],
+                    "footnote": ["Inter"],
+                    "body": ["Inter"],
+                    "subheadline": ["Inter"]
+            },
+            "fontSize": {
+                    "callout": ["16px", {"lineHeight": "21px", "letterSpacing": "-0.32px", "fontWeight": "400"}],
+                    "large-title": ["34px", {"lineHeight": "41px", "letterSpacing": "0.37px", "fontWeight": "700"}],
+                    "headline": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "600"}],
+                    "data-display": ["48px", {"lineHeight": "52px", "letterSpacing": "-1px", "fontWeight": "800"}],
+                    "caption-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0px", "fontWeight": "400"}],
+                    "footnote": ["13px", {"lineHeight": "18px", "letterSpacing": "-0.08px", "fontWeight": "400"}],
+                    "body": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "400"}],
+                    "subheadline": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.24px", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: #F2F2F7; /* System Grey Base Layer */
+            -webkit-font-smoothing: antialiased;
+        }
+        .card-shadow {
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-background pb-[100px] md:pb-0">
+<!-- TopAppBar (Web) -->
+<header class="hidden md:flex justify-between items-center px-margin-page h-touch-target w-full bg-surface-dim/80 backdrop-blur-md sticky top-0 z-40">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0etN-Qu4bow9sBHzu4K7CXGY05XFSkq1fCUx35UaTZlFt9mOjpeutP-oKC6pGKObfBVUpjS8Mk8Vi-9yfMpwb46cKLlAqt7YzbZbUC_NyMAJlFaOnfZ6NdWEEZ92_WyHw3mwCM5wIqNw_tZAyEGRKenhIesp9vBZfbVBvrtIcLxUaSK0WaGeYfcFv4UIxZrsFGBA_d2_IJy3SqK9AlcR8_8GEMdSKND_NqTz-kel7eTMw3FhjMHA6LVd0TYQsJjoH532OhU4hLdk"/>
+</div>
+<span class="font-headline text-headline dark:text-on-surface">Pulse Fitness</span>
+</div>
+<nav class="flex gap-6">
+<a class="text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-transform active:scale-95" href="#">Today</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-transform active:scale-95" href="#">Plans</a>
+<a class="text-primary dark:text-primary-fixed hover:opacity-80 transition-transform active:scale-95 font-semibold" href="#">Progress</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-transform active:scale-95" href="#">Calendar</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-transform active:scale-95" href="#">Profile</a>
+</nav>
+<button class="text-primary dark:text-primary-fixed-dim hover:opacity-80 active:scale-95 transition-transform flex items-center justify-center w-touch-target h-touch-target">
+<span class="material-symbols-outlined">add</span>
+</button>
+</header>
+<!-- Mobile Header -->
+<div class="md:hidden px-margin-page pt-8 pb-4 flex justify-between items-end sticky top-0 bg-[#F2F2F7]/90 backdrop-blur-xl z-30">
+<h1 class="font-large-title text-large-title">Progress</h1>
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden border-2 border-surface-container-lowest">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBr1dTrgZo8b3xnnSRWsVtrm4PXjZgh9L82SADVeO6Lm2yJHvUrbPuhtH_pp0Hp6DG9IgIYpW4uLgwtJ7KuKKy5hNpY_YIu17qC8RnlZ3w9wvNM31A3ZKIzU56w2X2BuOCvaUL_K3nzNoZBcFoPrwIAhcTYCBDyC389Ab8xYp5h68p-5C9Jr2y82z8OmbzoZCLblXtDlGwq_ESP2pLAgP3a5CMSSXzeQ1FbAmtRnkC9me2i7X72oWFnom8yn0ov8srKm8Skg5yj_mI"/>
+</div>
+</div>
+<!-- Main Content -->
+<main class="px-margin-page max-w-4xl mx-auto flex flex-col gap-section-gap pt-4">
+<!-- Segmented Control -->
+<div class="bg-surface-variant p-1 rounded-lg flex w-full">
+<button class="flex-1 py-1.5 text-center font-subheadline text-subheadline rounded-md text-on-surface-variant">Week</button>
+<button class="flex-1 py-1.5 text-center font-subheadline text-subheadline rounded-md bg-surface-container-lowest shadow-sm text-on-surface font-semibold">Month</button>
+<button class="flex-1 py-1.5 text-center font-subheadline text-subheadline rounded-md text-on-surface-variant">Year</button>
+</div>
+<!-- Total Stats Bento -->
+<section class="grid grid-cols-2 md:grid-cols-3 gap-gutter-stack">
+<div class="bg-surface-container-lowest rounded-2xl p-card-padding card-shadow flex flex-col justify-between aspect-square md:aspect-auto">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">fitness_center</span>
+<span class="font-footnote text-footnote">Total Workouts</span>
+</div>
+<div>
+<span class="font-data-display text-data-display text-primary">42</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-2xl p-card-padding card-shadow flex flex-col justify-between aspect-square md:aspect-auto">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">weight</span>
+<span class="font-footnote text-footnote">Volume</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-data-display text-data-display text-on-surface">120</span>
+<span class="font-headline text-headline text-on-surface-variant">k kg</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-2xl p-card-padding card-shadow flex flex-col justify-between col-span-2 md:col-span-1 h-32 md:h-auto">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">emoji_events</span>
+<span class="font-footnote text-footnote">Personal Records</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-data-display text-data-display text-secondary-container">12</span>
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center border-2 border-surface-container-lowest text-[12px]">🏆</div>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center border-2 border-surface-container-lowest text-[12px]">🔥</div>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center border-2 border-surface-container-lowest text-[12px]">💪</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Consistency Chart -->
+<section class="bg-surface-container-lowest rounded-2xl p-card-padding card-shadow">
+<h2 class="font-headline text-headline mb-4">Consistency</h2>
+<div class="flex items-end justify-between h-40 gap-2">
+<!-- Bar 1 -->
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-surface-variant rounded-t-sm h-full flex items-end">
+<div class="w-full bg-primary rounded-t-sm" style="height: 60%"></div>
+</div>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant">W1</span>
+</div>
+<!-- Bar 2 -->
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-surface-variant rounded-t-sm h-full flex items-end">
+<div class="w-full bg-primary rounded-t-sm" style="height: 80%"></div>
+</div>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant">W2</span>
+</div>
+<!-- Bar 3 -->
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-surface-variant rounded-t-sm h-full flex items-end">
+<div class="w-full bg-primary rounded-t-sm" style="height: 40%"></div>
+</div>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant">W3</span>
+</div>
+<!-- Bar 4 (Current) -->
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-surface-variant rounded-t-sm h-full flex items-end">
+<div class="w-full bg-primary-container rounded-t-sm relative" style="height: 100%">
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-secondary-container"></div>
+</div>
+</div>
+<span class="font-caption-sm text-caption-sm text-on-surface font-semibold">W4</span>
+</div>
+</div>
+</section>
+<!-- Grid Layout for Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-section-gap">
+<!-- Goal Cards: Bench Press Max -->
+<section class="bg-surface-container-lowest rounded-2xl p-card-padding card-shadow relative overflow-hidden">
+<div class="flex justify-between items-start mb-6 relative z-10">
+<div>
+<h2 class="font-headline text-headline">Bench Press Max</h2>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant">Goal: 100kg</span>
+</div>
+<span class="font-body text-body font-semibold">95 kg</span>
+</div>
+<!-- SVG Line Graph Abstracted with CSS -->
+<div class="h-24 w-full flex items-end relative z-10">
+<svg class="w-full h-full stroke-secondary-container fill-none" preserveaspectratio="none" stroke-width="3" viewbox="0 0 100 40">
+<path d="M0 35 L20 30 L40 32 L60 20 L80 15 L100 5"></path>
+</svg>
+<!-- Data points -->
+<div class="absolute top-[87%] left-[0%] w-2 h-2 rounded-full bg-secondary-container -translate-x-1/2 -translate-y-1/2"></div>
+<div class="absolute top-[12.5%] left-[100%] w-3 h-3 rounded-full bg-secondary-container -translate-x-1/2 -translate-y-1/2 border-2 border-white"></div>
+</div>
+<!-- Gradient under graph -->
+<div class="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-secondary-container/20 to-transparent z-0"></div>
+</section>
+<!-- Body Metrics: Weight -->
+<section class="bg-surface-container-lowest rounded-2xl p-card-padding card-shadow">
+<div class="flex justify-between items-start mb-4">
+<h2 class="font-headline text-headline">Body Weight</h2>
+<span class="font-body text-body font-semibold">78.5 kg</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<span class="font-caption-sm text-caption-sm text-on-surface-variant w-8">Start</span>
+<div class="flex-1 h-1.5 bg-surface-variant rounded-full overflow-hidden relative">
+<div class="absolute left-0 top-0 h-full bg-outline-variant w-[80%] rounded-full"></div>
+</div>
+<span class="font-caption-sm text-caption-sm w-8 text-right">82.0</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-caption-sm text-caption-sm text-on-surface-variant w-8">Now</span>
+<div class="flex-1 h-1.5 bg-surface-variant rounded-full overflow-hidden relative">
+<div class="absolute left-0 top-0 h-full bg-primary w-[65%] rounded-full"></div>
+</div>
+<span class="font-caption-sm text-caption-sm w-8 text-right font-semibold">78.5</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-caption-sm text-caption-sm text-on-surface-variant w-8">Goal</span>
+<div class="flex-1 h-1.5 bg-surface-variant rounded-full overflow-hidden relative">
+<div class="absolute left-0 top-0 h-full bg-primary/30 w-[50%] rounded-full border-r-2 border-primary border-dashed"></div>
+</div>
+<span class="font-caption-sm text-caption-sm w-8 text-right text-on-surface-variant">75.0</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Muscle Group Distribution -->
+<section class="bg-surface-container-lowest rounded-2xl p-card-padding card-shadow mb-section-gap">
+<h2 class="font-headline text-headline mb-4">Muscle Group Focus</h2>
+<div class="space-y-3">
+<div class="flex items-center justify-between group cursor-pointer hover:bg-surface-variant/30 p-2 -mx-2 rounded-lg transition-colors">
+<div class="w-24">
+<span class="font-subheadline text-subheadline">Chest</span>
+</div>
+<div class="flex-1 mx-4 h-2 bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 35%"></div>
+</div>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant w-10 text-right">35%</span>
+</div>
+<div class="h-[0.5px] bg-[#C6C6C8] ml-24"></div>
+<div class="flex items-center justify-between group cursor-pointer hover:bg-surface-variant/30 p-2 -mx-2 rounded-lg transition-colors">
+<div class="w-24">
+<span class="font-subheadline text-subheadline">Back</span>
+</div>
+<div class="flex-1 mx-4 h-2 bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 25%"></div>
+</div>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant w-10 text-right">25%</span>
+</div>
+<div class="h-[0.5px] bg-[#C6C6C8] ml-24"></div>
+<div class="flex items-center justify-between group cursor-pointer hover:bg-surface-variant/30 p-2 -mx-2 rounded-lg transition-colors">
+<div class="w-24">
+<span class="font-subheadline text-subheadline">Legs</span>
+</div>
+<div class="flex-1 mx-4 h-2 bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-outline rounded-full" style="width: 20%"></div>
+</div>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant w-10 text-right">20%</span>
+</div>
+<div class="h-[0.5px] bg-[#C6C6C8] ml-24"></div>
+<div class="flex items-center justify-between group cursor-pointer hover:bg-surface-variant/30 p-2 -mx-2 rounded-lg transition-colors">
+<div class="w-24">
+<span class="font-subheadline text-subheadline">Arms</span>
+</div>
+<div class="flex-1 mx-4 h-2 bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-outline-variant rounded-full" style="width: 20%"></div>
+</div>
+<span class="font-caption-sm text-caption-sm text-on-surface-variant w-10 text-right">20%</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 flex justify-around items-center px-4 pb-8 pt-2 bg-surface-dim/90 dark:bg-inverse-surface/90 rounded-t-xl border-t border-outline-variant/30 backdrop-blur-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-variant/20 active:scale-90 transition-all duration-150 p-2 rounded-lg min-w-[64px]" href="#">
+<span class="material-symbols-outlined mb-1">today</span>
+<span class="font-caption-sm text-caption-sm">Today</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-variant/20 active:scale-90 transition-all duration-150 p-2 rounded-lg min-w-[64px]" href="#">
+<span class="material-symbols-outlined mb-1">fitness_center</span>
+<span class="font-caption-sm text-caption-sm">Plans</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed font-semibold hover:bg-surface-variant/20 active:scale-90 transition-all duration-150 p-2 rounded-lg min-w-[64px]" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">monitoring</span>
+<span class="font-caption-sm text-caption-sm">Progress</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-variant/20 active:scale-90 transition-all duration-150 p-2 rounded-lg min-w-[64px]" href="#">
+<span class="material-symbols-outlined mb-1">calendar_month</span>
+<span class="font-caption-sm text-caption-sm">Calendar</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-variant/20 active:scale-90 transition-all duration-150 p-2 rounded-lg min-w-[64px]" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-caption-sm text-caption-sm">Profile</span>
+</a>
+</nav>
+</body></html>

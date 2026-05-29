@@ -1,0 +1,860 @@
+import Charts
+import MuscleMap
+import SwiftUI
+
+struct ProgressDashboardView: View {
+    @EnvironmentObject private var store: AppStore
+    @State private var selectedRange: ProgressRange = .week
+    @State private var selectedSection: ProgressSection = .muscles
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 18) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Progreso")
+                                .font(.system(size: 42, weight: .bold, design: .rounded))
+                            Text(selectedSection == .muscles ? "Series por músculo en los últimos 7 días" : selectedRange.subtitle)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+                        ZStack {
+                            Circle()
+                                .fill(PulseTheme.primary.opacity(0.12))
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.headline)
+                                .foregroundStyle(PulseTheme.primary)
+                        }
+                        .frame(width: 44, height: 44)
+                    }
+
+                    Picker("Rango", selection: $selectedRange) {
+                        ForEach(ProgressRange.allCases) { range in
+                            Text(range.title).tag(range)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(ProgressSection.allCases) { section in
+                                Button {
+                                    withAnimation(.snappy(duration: 0.2)) {
+                                        selectedSection = section
+                                    }
+                                } label: {
+                                    PulseChip(title: section.title, isSelected: selectedSection == section)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 1)
+                    }
+
+                    if selectedSection == .general {
+                    HStack(spacing: 14) {
+                        NavigationLink {
+                            ExerciseAnalyticsListView(exercises: exercisesWithHistory)
+                        } label: {
+                            AnalyticsShortcutCard(title: "Ejercicios", subtitle: "\(exercisesWithHistory.count) con historial", systemImage: "chart.line.uptrend.xyaxis")
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink {
+                            WorkoutHistoryView(sessions: filteredSessions.sorted { $0.date > $1.date })
+                        } label: {
+                            AnalyticsShortcutCard(title: "Historial", subtitle: "\(filteredSessions.count) sesiones", systemImage: "list.clipboard")
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    HStack(spacing: 14) {
+                        MetricCard(title: "Entrenos", value: "\(filteredSessions.count)", subtitle: selectedRange.subtitle, systemImage: "dumbbell")
+                        MetricCard(title: "Volumen", value: "\(Int(FitnessMetrics.totalVolumeKg(for: filteredSessions)))", subtitle: "kg total", systemImage: "bag")
+                    }
+                    }
+
+                    if selectedSection == .load {
+                    HStack(spacing: 14) {
+                        MetricCard(title: "Carga", value: "\(Int(workload.acuteLoad))", subtitle: "7 días", systemImage: "waveform.path.ecg")
+                        MetricCard(title: "Series efectivas", value: "\(effectiveSetCount)", subtitle: "\(Int(effectiveVolume)) kg", systemImage: "checkmark.seal")
+                    }
+
+                    HStack(spacing: 14) {
+                        MetricCard(title: "ACWR", value: String(format: "%.2f", workload.acwr), subtitle: "agudo/crónico", systemImage: "gauge.with.dots.needle.50percent")
+                        MetricCard(title: "Fatiga", value: "\(Int(workload.fatigueScore))", subtitle: "0-100", systemImage: "battery.50")
+                    }
+
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack {
+                                Text("Cardio")
+                                    .font(.headline)
+                                Spacer()
+                                Text("\(filteredCardioLogs.count) registros")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+
+                            if filteredCardioLogs.isEmpty {
+                                PulseEmptyState(
+                                    title: "Sin cardio registrado",
+                                    message: "Registra sesiones desde Perfil para ver duración, distancia e intensidad.",
+                                    systemImage: "figure.run"
+                                )
+                            } else {
+                                HStack(spacing: 14) {
+                                    MetricInline(title: "Tiempo", value: "\(filteredCardioLogs.reduce(0) { $0 + $1.durationMinutes }) min")
+                                    MetricInline(title: "Distancia", value: String(format: "%.1f km", filteredCardioDistance))
+                                    MetricInline(title: "RPE medio", value: averageCardioRPEText)
+                                }
+
+                                Chart(filteredCardioLogs.sorted { $0.date < $1.date }) { log in
+                                    BarMark(
+                                        x: .value("Fecha", log.date, unit: selectedRange.chartUnit),
+                                        y: .value("Minutos", log.durationMinutes)
+                                    )
+                                    .foregroundStyle(PulseTheme.primaryBright)
+                                }
+                                .frame(height: 140)
+                            }
+                        }
+                    }
+
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Distribución de intensidad")
+                                .font(.headline)
+
+                            if intensityDistribution.allSatisfy({ $0.count == 0 }) {
+                                PulseEmptyState(
+                                    title: "Sin RPE registrado",
+                                    message: "Activa RPE en Preferencias Pro y registra series para ver si entrenas demasiado suave o demasiado cerca del fallo.",
+                                    systemImage: "dial.high"
+                                )
+                            } else {
+                                Chart(intensityDistribution) { bucket in
+                                    BarMark(
+                                        x: .value("Rango", bucket.label),
+                                        y: .value("Series", bucket.count)
+                                    )
+                                    .foregroundStyle(PulseTheme.primary)
+                                }
+                                .frame(height: 150)
+                            }
+                        }
+                    }
+                    }
+
+                    if selectedSection == .body, let latestHealth = store.health.latestDailyMetrics.last {
+                        HStack(spacing: 14) {
+                            MetricCard(title: "Pasos", value: "\(Int(latestHealth.steps))", subtitle: "último día", systemImage: "figure.walk")
+                            MetricCard(title: "Kcal activas", value: "\(Int(latestHealth.activeEnergyKcal))", subtitle: "último día", systemImage: "flame")
+                        }
+
+                        PulseCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                Text("Tendencias de Salud").font(.headline)
+                                Chart(store.health.latestDailyMetrics) { metric in
+                                    LineMark(x: .value("Date", metric.date), y: .value("Steps", metric.steps))
+                                        .foregroundStyle(PulseTheme.primary)
+                                    LineMark(x: .value("Date", metric.date), y: .value("Active kcal", metric.activeEnergyKcal))
+                                        .foregroundStyle(PulseTheme.accent)
+                                }
+                                .frame(height: 160)
+                            }
+                        }
+                    }
+
+                    if selectedSection == .general {
+                    PulseCard {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 22) {
+                                Label("Récords personales", systemImage: "trophy")
+                                Text("\(Int(FitnessMetrics.personalRecordWeightKg(for: store.workoutSessions) ?? 0))")
+                                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                                    .foregroundStyle(PulseTheme.primary)
+                            }
+                            Spacer()
+                            Image(systemName: "trophy.fill")
+                                .font(.system(size: 44))
+                                .foregroundStyle(PulseTheme.accent)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    }
+
+                    if selectedSection == .exercises {
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack {
+                                Text("Progreso por ejercicio")
+                                    .font(.headline)
+                                Spacer()
+                                Text("\(exercisesWithHistory.count)")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+
+                            if exercisesWithHistory.isEmpty {
+                                PulseEmptyState(
+                                    title: "Sin historial de ejercicios",
+                                    message: "Registra series durante un entreno para desbloquear gráficas por ejercicio.",
+                                    systemImage: "chart.line.uptrend.xyaxis"
+                                )
+                            } else {
+                                ForEach(exercisesWithHistory.prefix(6)) { exercise in
+                                    NavigationLink {
+                                        ExerciseProgressView(exercise: exercise)
+                                    } label: {
+                                        ExerciseProgressRow(exercise: exercise)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if exercise.id != exercisesWithHistory.prefix(6).last?.id {
+                                        Divider()
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack {
+                                Text("Registro de entrenos")
+                                    .font(.headline)
+                                Spacer()
+                                Text("\(filteredSessions.count)")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+
+                            if filteredSessions.isEmpty {
+                                PulseEmptyState(
+                                    title: "Sin entrenos registrados",
+                                    message: "Empieza y finaliza un entreno para construir el historial.",
+                                    systemImage: "list.clipboard"
+                                )
+                            } else {
+                                ForEach(filteredSessions.sorted { $0.date > $1.date }.prefix(8)) { session in
+                                    NavigationLink {
+                                        WorkoutSessionDetailView(session: session)
+                                    } label: {
+                                        WorkoutLogRow(session: session)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if session.id != filteredSessions.sorted(by: { $0.date > $1.date }).prefix(8).last?.id {
+                                        Divider()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    }
+
+                    if selectedSection == .general {
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack {
+                                Text("Constancia").font(.headline)
+                                Spacer()
+                                Text("\(consistencyTotal) sesiones")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            Chart(consistencyData) { point in
+                                BarMark(
+                                    x: .value("Date", point.date, unit: selectedRange.chartUnit),
+                                    y: .value("Workouts", point.count)
+                                )
+                                .foregroundStyle(PulseTheme.primary)
+                                if point.count > 0 {
+                                    PointMark(
+                                        x: .value("Date", point.date, unit: selectedRange.chartUnit),
+                                        y: .value("Workouts", point.count)
+                                    )
+                                    .foregroundStyle(PulseTheme.accent)
+                                }
+                            }
+                            .frame(height: 160)
+                            .chartYAxis {
+                                AxisMarks(position: .leading, values: .automatic(desiredCount: 3))
+                            }
+                        }
+                    }
+                    }
+
+                    if selectedSection == .exercises {
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack {
+                                Text("Máximo estimado")
+                                    .font(.headline)
+                                Spacer()
+                                Text("\(store.bestEstimatedOneRepMaxKg, specifier: "%.0f") kg")
+                                    .font(.headline)
+                            }
+                            Chart(store.goals) { goal in
+                                BarMark(x: .value("Goal", goal.title), y: .value("Current", goal.current))
+                                    .foregroundStyle(PulseTheme.primary)
+                                RuleMark(y: .value("Target", goal.target))
+                                    .foregroundStyle(PulseTheme.accent)
+                            }
+                            .frame(height: 160)
+                        }
+                    }
+                    }
+
+                    if selectedSection == .body {
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack {
+                                Text("Cuerpo y bienestar").font(.headline)
+                                Spacer()
+                                Text("\(store.displayedWeight.value, specifier: "%.1f") \(store.displayedWeight.unit)")
+                                    .font(.headline)
+                            }
+                            Chart(store.bodyMetrics) { metric in
+                                LineMark(x: .value("Date", metric.date), y: .value("Weight", metric.weightKg))
+                                    .foregroundStyle(PulseTheme.primary)
+                                PointMark(x: .value("Date", metric.date), y: .value("Weight", metric.weightKg))
+                                    .foregroundStyle(PulseTheme.primary)
+                            }
+                            .frame(height: 150)
+                            HStack {
+                                Label("\(store.displayedHeight.value, specifier: "%.0f") \(store.displayedHeight.unit)", systemImage: "ruler")
+                                Spacer()
+                                Text(store.bodyMetrics.last?.source.rawValue ?? "Manual")
+                            }
+                            .foregroundStyle(PulseTheme.secondaryText)
+
+                            if let latest = store.bodyMetrics.last {
+                                HStack(spacing: 14) {
+                                    MetricInline(title: "Sueño", value: latest.sleepHours.map { String(format: "%.1f h", $0) } ?? "-")
+                                    MetricInline(title: "Fatiga", value: latest.fatigue.map { "\($0)/5" } ?? "-")
+                                    MetricInline(title: "Estrés", value: latest.stress.map { "\($0)/5" } ?? "-")
+                                }
+                            }
+                        }
+                    }
+                    }
+
+                    if selectedSection == .muscles {
+                        MuscleMapProgressView(
+                            sessions: store.workoutSessions,
+                            plannedWorkout: store.todaysWorkout,
+                            startDate: selectedRange.startDate,
+                            gender: store.userProfile.muscleMapGender
+                        )
+                    }
+
+                    if selectedSection == .general {
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Insights accionables").font(.headline)
+                            ForEach(Array(insightCards.enumerated()), id: \.element.id) { index, insight in
+                                InsightRow(insight: insight)
+                                if index < insightCards.count - 1 {
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Resumen diario", systemImage: "doc.text.magnifyingglass")
+                                .font(.headline)
+                            Text(store.dailySummary)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+                    }
+                }
+                .padding(20)
+                .padding(.bottom, 112)
+            }
+            .screenBackground()
+            .navigationBarHidden(true)
+        }
+    }
+
+    private var filteredSessions: [WorkoutSession] {
+        store.workoutSessions.filter { $0.date >= selectedRange.startDate }
+    }
+
+    private var filteredCardioLogs: [CardioLog] {
+        store.cardioLogs.filter { $0.date >= selectedRange.startDate }
+    }
+
+    private var workload: AnalyticsEngine.WorkloadSummary {
+        AnalyticsEngine.workloadSummary(sessions: store.workoutSessions, bodyMetrics: store.bodyMetrics)
+    }
+
+    private var effectiveSetCount: Int {
+        filteredSessions.reduce(0) { $0 + AnalyticsEngine.effectiveSets(in: $1).count }
+    }
+
+    private var effectiveVolume: Double {
+        AnalyticsEngine.effectiveVolumeKg(for: filteredSessions)
+    }
+
+    private var filteredCardioDistance: Double {
+        filteredCardioLogs.compactMap(\.distanceKm).reduce(0, +)
+    }
+
+    private var intensityDistribution: [AnalyticsEngine.IntensityBucket] {
+        AnalyticsEngine.intensityDistribution(for: filteredSessions)
+    }
+
+    private var averageCardioRPEText: String {
+        let values = filteredCardioLogs.compactMap(\.rpe)
+        guard !values.isEmpty else { return "-" }
+        return String(format: "%.1f", values.reduce(0, +) / Double(values.count))
+    }
+
+    private var consistencyTotal: Int {
+        consistencyData.reduce(0) { $0 + $1.count }
+    }
+
+    private var muscleVolumePoints: [FitnessMetrics.MuscleVolumePoint] {
+        FitnessMetrics.muscleVolumePoints(for: store.workoutSessions, since: selectedRange.startDate)
+    }
+
+    private var insightCards: [FitnessMetrics.TrainingInsight] {
+        FitnessMetrics.insightCards(for: store.workoutSessions, goals: store.goals, since: selectedRange.startDate)
+    }
+
+    private var exercisesWithHistory: [Exercise] {
+        store.exercises.filter { exercise in
+            !FitnessMetrics.progressPoints(for: exercise, in: store.workoutSessions).isEmpty
+        }
+    }
+
+    private var consistencyData: [ConsistencyPoint] {
+        let calendar = Calendar.current
+        let start = selectedRange.startDate
+        let grouped = Dictionary(grouping: filteredSessions) { session in
+            calendar.startOfDay(for: session.date)
+        }
+
+        return (0..<selectedRange.days).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: start) else {
+                return nil
+            }
+            return ConsistencyPoint(date: date, count: grouped[calendar.startOfDay(for: date)]?.count ?? 0)
+        }
+    }
+}
+
+private struct ExerciseProgressRow: View {
+    let exercise: Exercise
+    @EnvironmentObject private var store: AppStore
+
+    private var points: [FitnessMetrics.ExerciseProgressPoint] {
+        FitnessMetrics.progressPoints(for: exercise, in: store.workoutSessions)
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.headline)
+                .foregroundStyle(PulseTheme.primary)
+                .frame(width: 42, height: 42)
+                .background(PulseTheme.primary.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(exercise.name)
+                    .font(.headline)
+                Text("\(points.count) logged days · \(Int(points.map(\.totalVolumeKg).reduce(0, +))) kg volume")
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+private struct MetricInline: View {
+    let title: LocalizedStringKey
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+            Text(value)
+                .font(.headline.monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private struct AnalyticsShortcutCard: View {
+    let title: LocalizedStringKey
+    let subtitle: String
+    let systemImage: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.headline)
+                .foregroundStyle(PulseTheme.primary)
+                .frame(width: 42, height: 42)
+                .background(PulseTheme.primary.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            Text(title)
+                .font(.headline)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 138, alignment: .leading)
+        .background(PulseTheme.card)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 8)
+    }
+}
+
+struct ExerciseAnalyticsListView: View {
+    let exercises: [Exercise]
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                if exercises.isEmpty {
+                    PulseCard {
+                        PulseEmptyState(
+                            title: "Sin historial de ejercicios",
+                            message: "Finaliza un entreno con series registradas para ver progreso por ejercicio.",
+                            systemImage: "chart.line.uptrend.xyaxis"
+                        )
+                    }
+                } else {
+                    ForEach(exercises) { exercise in
+                        NavigationLink {
+                            ExerciseProgressView(exercise: exercise)
+                        } label: {
+                            PulseCard {
+                                ExerciseProgressRow(exercise: exercise)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(20)
+            .padding(.bottom, 112)
+        }
+        .screenBackground()
+        .navigationTitle("Ejercicios")
+        .navigationBarTitleDisplayMode(.inline)
+        .mainTabBarHidden()
+    }
+}
+
+struct WorkoutHistoryView: View {
+    let sessions: [WorkoutSession]
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                if sessions.isEmpty {
+                    PulseCard {
+                        PulseEmptyState(
+                            title: "Sin entrenos registrados",
+                            message: "Las sesiones completadas aparecerán aquí con series, volumen y notas.",
+                            systemImage: "list.clipboard"
+                        )
+                    }
+                } else {
+                    ForEach(sessions) { session in
+                        NavigationLink {
+                            WorkoutSessionDetailView(session: session)
+                        } label: {
+                            PulseCard {
+                                WorkoutLogRow(session: session)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(20)
+            .padding(.bottom, 112)
+        }
+        .screenBackground()
+        .navigationTitle("Historial")
+        .navigationBarTitleDisplayMode(.inline)
+        .mainTabBarHidden()
+    }
+}
+
+private struct WorkoutLogRow: View {
+    let session: WorkoutSession
+
+    private var exerciseCount: Int {
+        session.exerciseLogs?.count ?? (session.sets.isEmpty ? 0 : 1)
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title3)
+                .foregroundStyle(PulseTheme.primary)
+                .frame(width: 42, height: 42)
+                .background(PulseTheme.primary.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(session.workoutTitle)
+                    .font(.headline)
+                Text("\(session.durationMinutes) min · \(exerciseCount) ejercicios · \(session.date.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+struct WorkoutSessionDetailView: View {
+    let session: WorkoutSession
+
+    private var exerciseLogs: [ExerciseLog] {
+        session.exerciseLogs ?? [ExerciseLog(exercise: SeedData.bench, notes: session.notes ?? "", sets: session.sets)]
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                PulseCard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(session.workoutTitle)
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                        Text(session.date.formatted(date: .complete, time: .shortened))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        HStack(spacing: 10) {
+                            Label("\(session.durationMinutes) min", systemImage: "timer")
+                            Label("\(exerciseLogs.count) ejercicios", systemImage: "list.bullet")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.primary)
+                    }
+                }
+
+                HStack(spacing: 14) {
+                    MetricCard(title: "Volumen", value: "\(Int(FitnessMetrics.totalVolumeKg(for: [session])))", subtitle: "kg", systemImage: "scalemass")
+                    MetricCard(title: "Series", value: "\(FitnessMetrics.completedSets(in: session).count)", subtitle: "completadas", systemImage: "checkmark.circle")
+                }
+
+                PulseCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Ejercicios")
+                            .font(.headline)
+                        ForEach(exerciseLogs) { log in
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(log.exercise.name)
+                                            .font(.headline)
+                                        Text("\(log.sets.count) series · \(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg")
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                    }
+                                    Spacer()
+                                    NavigationLink {
+                                        ExerciseProgressView(exercise: log.exercise)
+                                    } label: {
+                                        Image(systemName: "chart.line.uptrend.xyaxis")
+                                            .foregroundStyle(PulseTheme.primary)
+                                    }
+                                }
+                                ForEach(log.sets) { set in
+                                    HStack {
+                                        Text("Serie \(set.setNumber)")
+                                        Spacer()
+                                        Text("\(set.weightKg, specifier: "%.1f") kg x \(set.reps)")
+                                            .font(.headline.monospacedDigit())
+                                    }
+                                    .font(.subheadline)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                                if !log.notes.isEmpty {
+                                    Text(log.notes)
+                                        .font(.subheadline)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                            }
+                            Divider()
+                        }
+                    }
+                }
+            }
+            .padding(20)
+            .padding(.bottom, 112)
+        }
+        .screenBackground()
+        .navigationTitle("Registro")
+        .navigationBarTitleDisplayMode(.inline)
+        .mainTabBarHidden()
+    }
+}
+
+private enum ProgressSection: String, CaseIterable, Identifiable {
+    case general
+    case exercises
+    case muscles
+    case body
+    case load
+
+    var id: String { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .general: "General"
+        case .exercises: "Ejercicios"
+        case .muscles: "Músculos"
+        case .body: "Cuerpo"
+        case .load: "Carga"
+        }
+    }
+}
+
+private enum ProgressRange: String, CaseIterable, Identifiable {
+    case week
+    case month
+    case year
+
+    var id: String { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .week: "Semana"
+        case .month: "Mes"
+        case .year: "Año"
+        }
+    }
+
+    var subtitle: LocalizedStringKey {
+        switch self {
+        case .week: "Esta semana"
+        case .month: "Este mes"
+        case .year: "Este año"
+        }
+    }
+
+    var days: Int {
+        switch self {
+        case .week: 7
+        case .month: 30
+        case .year: 365
+        }
+    }
+
+    var chartUnit: Calendar.Component {
+        switch self {
+        case .week, .month: .day
+        case .year: .month
+        }
+    }
+
+    var startDate: Date {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        return calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+    }
+}
+
+private struct ConsistencyPoint: Identifiable {
+    let id = UUID()
+    let date: Date
+    let count: Int
+}
+
+private struct MuscleRow: View {
+    let point: FitnessMetrics.MuscleVolumePoint
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(point.muscleGroup)
+                        .font(.title3.weight(.bold))
+                    Text("\(point.completedSets) de 12 series semanales")
+                        .font(.headline.monospacedDigit())
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                Spacer()
+                Text(growthText)
+                    .font(.headline)
+                    .foregroundStyle(point.completedSets >= 4 ? PulseTheme.primaryBright : PulseTheme.secondaryText)
+            }
+
+            HStack(spacing: 14) {
+                MuscleGlyph(muscleGroup: point.muscleGroup, intensity: point.targetProgress)
+                VolumeSegmentBar(completed: min(point.completedSets, 12))
+            }
+
+            HStack {
+                Text(point.recommendedRangeText)
+                Spacer()
+                Text("\(Int(point.totalVolumeKg)) kg")
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(PulseTheme.tertiaryText)
+        }
+        .padding(18)
+        .background(PulseTheme.card)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke(PulseTheme.separator, lineWidth: 1)
+        )
+    }
+
+    private var growthText: String {
+        point.completedSets >= 4 ? "Zona de crecimiento" : "Faltan \(max(4 - point.completedSets, 0))"
+    }
+}
+
+private struct InsightRow: View {
+    let insight: FitnessMetrics.TrainingInsight
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: insight.systemImage)
+                .font(.headline)
+                .foregroundStyle(PulseTheme.primary)
+                .frame(width: 38, height: 38)
+                .background(PulseTheme.primary.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(insight.title)
+                    .font(.headline)
+                Text(insight.message)
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
