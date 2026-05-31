@@ -11,23 +11,19 @@ struct ProgressDashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    HStack {
+                    HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Progreso")
-                                .font(.system(size: 42, weight: .bold, design: .rounded))
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .lineLimit(1)
                             Text(selectedSection == .muscles ? "Series por músculo en los últimos 7 días" : selectedRange.subtitle)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.85)
                         }
                         Spacer()
-                        ZStack {
-                            Circle()
-                                .fill(PulseTheme.primary.opacity(0.12))
-                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                .font(.headline)
-                                .foregroundStyle(PulseTheme.primary)
-                        }
-                        .frame(width: 44, height: 44)
+                        StreakBadge(days: store.streakDays, isSpanish: store.userProfile.preferredLanguage.hasPrefix("es"))
                     }
 
                     Picker("Rango", selection: $selectedRange) {
@@ -71,20 +67,74 @@ struct ProgressDashboardView: View {
                     }
 
                     HStack(spacing: 14) {
-                        MetricCard(title: "Entrenos", value: "\(filteredSessions.count)", subtitle: selectedRange.subtitle, systemImage: "dumbbell")
-                        MetricCard(title: "Volumen", value: "\(Int(FitnessMetrics.totalVolumeKg(for: filteredSessions)))", subtitle: "kg total", systemImage: "bag")
+                        MetricCard(title: "Entrenos", value: "\(filteredSessions.count)", subtitle: selectedRange.subtitle, systemImage: "dumbbell", badgeColor: PulseTheme.primary)
+                        MetricCard(title: "Volumen", value: "\(Int(FitnessMetrics.totalVolumeKg(for: filteredSessions)))", subtitle: "kg total", systemImage: "bag", badgeColor: PulseTheme.primaryBright)
                     }
+
+                    NavigationLink {
+                        OneRepMaxCalculatorView()
+                    } label: {
+                        PulseCard {
+                            HStack(spacing: 14) {
+                                Image(systemName: "calculator.fill")
+                                    .font(.headline)
+                                    .foregroundStyle(PulseTheme.accent)
+                                    .frame(width: 42, height: 42)
+                                    .background(PulseTheme.accent.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                                
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Calculadora 1RM")
+                                        .font(.headline)
+                                    Text("Estima tu fuerza máxima y zonas de carga")
+                                        .font(.subheadline)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        PlateCalculatorView()
+                    } label: {
+                        PulseCard {
+                            HStack(spacing: 14) {
+                                Image(systemName: "circle.grid.3x3.fill")
+                                    .font(.headline)
+                                    .foregroundStyle(PulseTheme.primaryBright)
+                                    .frame(width: 42, height: 42)
+                                    .background(PulseTheme.primaryBright.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                                
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Calculadora de Discos")
+                                        .font(.headline)
+                                    Text("Sabe qué discos cargar en cada lado de la barra")
+                                        .font(.subheadline)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
                     }
 
                     if selectedSection == .load {
                     HStack(spacing: 14) {
-                        MetricCard(title: "Carga", value: "\(Int(workload.acuteLoad))", subtitle: "7 días", systemImage: "waveform.path.ecg")
-                        MetricCard(title: "Series efectivas", value: "\(effectiveSetCount)", subtitle: "\(Int(effectiveVolume)) kg", systemImage: "checkmark.seal")
+                        MetricCard(title: "Carga", value: "\(Int(workload.acuteLoad))", subtitle: "7 días", systemImage: "waveform.path.ecg", badgeColor: PulseTheme.primary)
+                        MetricCard(title: "Series efectivas", value: "\(effectiveSetCount)", subtitle: "\(Int(effectiveVolume)) kg", systemImage: "checkmark.seal", badgeColor: PulseTheme.primaryBright)
                     }
 
                     HStack(spacing: 14) {
-                        MetricCard(title: "ACWR", value: String(format: "%.2f", workload.acwr), subtitle: "agudo/crónico", systemImage: "gauge.with.dots.needle.50percent")
-                        MetricCard(title: "Fatiga", value: "\(Int(workload.fatigueScore))", subtitle: "0-100", systemImage: "battery.50")
+                        MetricCard(title: "ACWR", value: String(format: "%.2f", workload.acwr), subtitle: "agudo/crónico", systemImage: "gauge.with.dots.needle.50percent", badgeColor: PulseTheme.accent)
+                        MetricCard(title: "Fatiga", value: "\(Int(workload.fatigueScore))", subtitle: "0-100", systemImage: "battery.50", badgeColor: PulseTheme.warning)
                     }
 
                     PulseCard {
@@ -150,8 +200,8 @@ struct ProgressDashboardView: View {
 
                     if selectedSection == .body, let latestHealth = store.health.latestDailyMetrics.last {
                         HStack(spacing: 14) {
-                            MetricCard(title: "Pasos", value: "\(Int(latestHealth.steps))", subtitle: "último día", systemImage: "figure.walk")
-                            MetricCard(title: "Kcal activas", value: "\(Int(latestHealth.activeEnergyKcal))", subtitle: "último día", systemImage: "flame")
+                            MetricCard(title: "Pasos", value: "\(Int(latestHealth.steps))", subtitle: "último día", systemImage: "figure.walk", badgeColor: PulseTheme.primary)
+                            MetricCard(title: "Kcal activas", value: "\(Int(latestHealth.activeEnergyKcal))", subtitle: "último día", systemImage: "flame", badgeColor: PulseTheme.accent)
                         }
 
                         PulseCard {
@@ -169,21 +219,26 @@ struct ProgressDashboardView: View {
                     }
 
                     if selectedSection == .general {
-                    PulseCard {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 22) {
-                                Label("Récords personales", systemImage: "trophy")
-                                Text("\(Int(FitnessMetrics.personalRecordWeightKg(for: store.workoutSessions) ?? 0))")
-                                    .font(.system(size: 42, weight: .bold, design: .rounded))
-                                    .foregroundStyle(PulseTheme.primary)
+                    NavigationLink {
+                        PersonalRecordsView()
+                    } label: {
+                        PulseCard {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 22) {
+                                    Label("Récords personales", systemImage: "trophy")
+                                    Text("\(Int(FitnessMetrics.personalRecordWeightKg(for: store.workoutSessions) ?? 0))")
+                                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                                        .foregroundStyle(PulseTheme.primary)
+                                }
+                                Spacer()
+                                Image(systemName: "trophy.fill")
+                                    .font(.system(size: 44))
+                                    .foregroundStyle(PulseTheme.accent)
+                                    .accessibilityHidden(true)
                             }
-                            Spacer()
-                            Image(systemName: "trophy.fill")
-                                .font(.system(size: 44))
-                                .foregroundStyle(PulseTheme.accent)
-                                .accessibilityHidden(true)
                         }
                     }
+                    .buttonStyle(.plain)
                     }
 
                     if selectedSection == .exercises {
@@ -569,155 +624,6 @@ struct ExerciseAnalyticsListView: View {
     }
 }
 
-struct WorkoutHistoryView: View {
-    let sessions: [WorkoutSession]
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                if sessions.isEmpty {
-                    PulseCard {
-                        PulseEmptyState(
-                            title: "Sin entrenos registrados",
-                            message: "Las sesiones completadas aparecerán aquí con series, volumen y notas.",
-                            systemImage: "list.clipboard"
-                        )
-                    }
-                } else {
-                    ForEach(sessions) { session in
-                        NavigationLink {
-                            WorkoutSessionDetailView(session: session)
-                        } label: {
-                            PulseCard {
-                                WorkoutLogRow(session: session)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            .padding(20)
-            .padding(.bottom, 112)
-        }
-        .screenBackground()
-        .navigationTitle("Historial")
-        .navigationBarTitleDisplayMode(.inline)
-        .mainTabBarHidden()
-    }
-}
-
-private struct WorkoutLogRow: View {
-    let session: WorkoutSession
-
-    private var exerciseCount: Int {
-        session.exerciseLogs?.count ?? (session.sets.isEmpty ? 0 : 1)
-    }
-
-    var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.title3)
-                .foregroundStyle(PulseTheme.primary)
-                .frame(width: 42, height: 42)
-                .background(PulseTheme.primary.opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-            VStack(alignment: .leading, spacing: 3) {
-                Text(session.workoutTitle)
-                    .font(.headline)
-                Text("\(session.durationMinutes) min · \(exerciseCount) ejercicios · \(session.date.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.subheadline)
-                    .foregroundStyle(PulseTheme.secondaryText)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .foregroundStyle(PulseTheme.secondaryText)
-        }
-        .padding(.vertical, 8)
-    }
-}
-
-struct WorkoutSessionDetailView: View {
-    let session: WorkoutSession
-
-    private var exerciseLogs: [ExerciseLog] {
-        session.exerciseLogs ?? [ExerciseLog(exercise: SeedData.bench, notes: session.notes ?? "", sets: session.sets)]
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(session.workoutTitle)
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
-                        Text(session.date.formatted(date: .complete, time: .shortened))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                        HStack(spacing: 10) {
-                            Label("\(session.durationMinutes) min", systemImage: "timer")
-                            Label("\(exerciseLogs.count) ejercicios", systemImage: "list.bullet")
-                        }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(PulseTheme.primary)
-                    }
-                }
-
-                HStack(spacing: 14) {
-                    MetricCard(title: "Volumen", value: "\(Int(FitnessMetrics.totalVolumeKg(for: [session])))", subtitle: "kg", systemImage: "scalemass")
-                    MetricCard(title: "Series", value: "\(FitnessMetrics.completedSets(in: session).count)", subtitle: "completadas", systemImage: "checkmark.circle")
-                }
-
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Ejercicios")
-                            .font(.headline)
-                        ForEach(exerciseLogs) { log in
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(log.exercise.name)
-                                            .font(.headline)
-                                        Text("\(log.sets.count) series · \(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg")
-                                            .foregroundStyle(PulseTheme.secondaryText)
-                                    }
-                                    Spacer()
-                                    NavigationLink {
-                                        ExerciseProgressView(exercise: log.exercise)
-                                    } label: {
-                                        Image(systemName: "chart.line.uptrend.xyaxis")
-                                            .foregroundStyle(PulseTheme.primary)
-                                    }
-                                }
-                                ForEach(log.sets) { set in
-                                    HStack {
-                                        Text("Serie \(set.setNumber)")
-                                        Spacer()
-                                        Text("\(set.weightKg, specifier: "%.1f") kg x \(set.reps)")
-                                            .font(.headline.monospacedDigit())
-                                    }
-                                    .font(.subheadline)
-                                    .foregroundStyle(PulseTheme.secondaryText)
-                                }
-                                if !log.notes.isEmpty {
-                                    Text(log.notes)
-                                        .font(.subheadline)
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                }
-                            }
-                            Divider()
-                        }
-                    }
-                }
-            }
-            .padding(20)
-            .padding(.bottom, 112)
-        }
-        .screenBackground()
-        .navigationTitle("Registro")
-        .navigationBarTitleDisplayMode(.inline)
-        .mainTabBarHidden()
-    }
-}
-
 private enum ProgressSection: String, CaseIterable, Identifiable {
     case general
     case exercises
@@ -856,5 +762,56 @@ private struct InsightRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+}
+
+private struct StreakBadge: View {
+    let days: Int
+    var isSpanish: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(
+                        days > 0
+                        ? RadialGradient(colors: [PulseTheme.warning.opacity(0.35), .clear], center: .center, startRadius: 0, endRadius: 18)
+                        : RadialGradient(colors: [.clear, .clear], center: .center, startRadius: 0, endRadius: 18)
+                    )
+                    .frame(width: 32, height: 32)
+                
+                Circle()
+                    .strokeBorder(days > 0 ? PulseTheme.warning.opacity(0.4) : PulseTheme.separator, lineWidth: 1.5)
+                    .frame(width: 26, height: 26)
+                
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(days > 0 ? PulseTheme.warning : PulseTheme.secondaryText)
+            }
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text(isSpanish ? "RACHA" : "STREAK")
+                    .font(.system(size: 9, weight: .black, design: .rounded))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .tracking(1.2)
+                
+                Text("\(days) \(days == 1 ? (isSpanish ? "día" : "day") : (isSpanish ? "días" : "days"))")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(days > 0 ? .white : PulseTheme.secondaryText)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            days > 0
+            ? LinearGradient(colors: [PulseTheme.warning.opacity(0.12), PulseTheme.warning.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            : LinearGradient(colors: [PulseTheme.grouped.opacity(0.4), PulseTheme.grouped.opacity(0.2)], startPoint: .top, endPoint: .bottom)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(days > 0 ? PulseTheme.warning.opacity(0.3) : PulseTheme.separator, lineWidth: 1)
+        )
+        .shadow(color: days > 0 ? PulseTheme.warning.opacity(0.12) : Color.clear, radius: 6, x: 0, y: 2)
     }
 }

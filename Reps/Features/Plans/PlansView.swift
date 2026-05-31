@@ -13,7 +13,7 @@ struct PlansView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Plan")
-                                .font(.system(size: 30, weight: .bold, design: .rounded))
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
                             Text("Crea y ajusta tu rutina")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -373,6 +373,9 @@ private struct PlanPlaylistEditor: View {
     @State private var title = ""
     @State private var urlString = ""
     @State private var notes = ""
+    
+    @State private var showMusicConnector = false
+    @State private var showManualForm = false
 
     var body: some View {
         Section("Música") {
@@ -402,24 +405,72 @@ private struct PlanPlaylistEditor: View {
                 }
             }
 
-            Picker("Servicio", selection: $provider) {
-                ForEach(PlanPlaylist.Provider.allCases) { provider in
-                    Text(providerTitle(provider)).tag(provider)
-                }
-            }
-            TextField("Nombre de la playlist", text: $title)
-            TextField(provider == .spotify ? "https://open.spotify.com/playlist/..." : "https://music.apple.com/...", text: $urlString)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            TextField("Nota opcional: fuerza, cardio, focus...", text: $notes)
-
             Button {
-                addPlaylist()
+                showMusicConnector = true
             } label: {
-                Label("Añadir playlist", systemImage: "plus")
+                Label("Conectar desde Biblioteca", systemImage: "music.note.list")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 46)
+                    .foregroundStyle(.white)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.pink, Color.green],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .shadow(color: Color.black.opacity(0.12), radius: 4, y: 2)
             }
-            .disabled(!canAdd)
+            .buttonStyle(.plain)
+            .padding(.vertical, 6)
+
+            DisclosureGroup(isExpanded: $showManualForm) {
+                VStack(spacing: 12) {
+                    Picker("Servicio", selection: $provider) {
+                        ForEach(PlanPlaylist.Provider.allCases) { provider in
+                            Text(providerTitle(provider)).tag(provider)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.top, 4)
+
+                    TextField("Nombre de la playlist", text: $title)
+                        .textFieldStyle(.roundedBorder)
+                    TextField(provider == .spotify ? "https://open.spotify.com/playlist/..." : "https://music.apple.com/...", text: $urlString)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    TextField("Nota opcional: fuerza, cardio, focus...", text: $notes)
+                        .textFieldStyle(.roundedBorder)
+
+                    Button {
+                        addPlaylist()
+                    } label: {
+                        Label("Añadir playlist manual", systemImage: "plus.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .foregroundStyle(.white)
+                            .background(canAdd ? PulseTheme.primary : PulseTheme.secondaryText.opacity(0.3))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    .disabled(!canAdd)
+                    .buttonStyle(.plain)
+                }
+                .padding(.vertical, 8)
+            } label: {
+                Text("Añadir manualmente por URL")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+        }
+        .sheet(isPresented: $showMusicConnector) {
+            MusicIntegrationSheet { selectedPlaylist in
+                playlists.append(selectedPlaylist)
+            }
         }
     }
 
@@ -1002,40 +1053,97 @@ struct EditPlanView: View {
                         ), in: 0...600, step: 15)
 
                         ForEach(days[dayIndex].exercises.indices, id: \.self) { exerciseIndex in
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    VStack(alignment: .leading) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                // Row 1 — Name & Trash Button
+                                HStack(alignment: .top, spacing: 10) {
+                                    VStack(alignment: .leading, spacing: 3) {
                                         Text(days[dayIndex].exercises[exerciseIndex].exercise.name)
                                             .font(.headline)
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(2)
                                         Text("\(days[dayIndex].exercises[exerciseIndex].exercise.muscleGroup) · \(days[dayIndex].exercises[exerciseIndex].exercise.equipment)")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                            .lineLimit(1)
                                     }
                                     Spacer()
                                     Button(role: .destructive) {
                                         days[dayIndex].exercises.remove(at: exerciseIndex)
                                     } label: {
                                         Image(systemName: "trash")
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(Color.red.opacity(0.8))
+                                            .frame(width: 32, height: 32)
+                                            .background(Color.red.opacity(0.1))
+                                            .clipShape(Circle())
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+
+                                HStack(spacing: 8) {
+                                    // Bookmarks Badge Button
+                                    Button {
+                                        bookmarkTarget = PlanExerciseBookmarkTarget(dayIndex: dayIndex, exerciseIndex: exerciseIndex)
+                                    } label: {
+                                        Label("\(days[dayIndex].exercises[exerciseIndex].mediaBookmarks.count) marcadores", systemImage: "bookmark.fill")
+                                            .font(.caption.weight(.bold))
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 6)
+                                            .background(PulseTheme.primary.opacity(0.12))
+                                            .foregroundStyle(PulseTheme.primary)
+                                            .clipShape(Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+
+                                Divider()
+
+                                // Metrics grid
+                                HStack(spacing: 8) {
+                                    CompactStepper(
+                                        title: "Series",
+                                        value: Binding(
+                                            get: { days[dayIndex].exercises[exerciseIndex].targetSets },
+                                            set: { days[dayIndex].exercises[exerciseIndex].targetSets = $0 }
+                                        ),
+                                        range: 1...10,
+                                        suffix: "",
+                                        step: 1
+                                    )
+
+                                    CompactStepper(
+                                        title: "Descanso",
+                                        value: Binding(
+                                            get: { days[dayIndex].exercises[exerciseIndex].restSeconds },
+                                            set: { days[dayIndex].exercises[exerciseIndex].restSeconds = $0 }
+                                        ),
+                                        range: 0...600,
+                                        suffix: "s",
+                                        step: 15
+                                    )
+
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("Reps")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                        TextField("8-12", text: Binding(
+                                            get: { days[dayIndex].exercises[exerciseIndex].repRange },
+                                            set: { days[dayIndex].exercises[exerciseIndex].repRange = $0 }
+                                        ))
+                                        .font(.headline.weight(.bold).monospacedDigit())
+                                        .multilineTextAlignment(.center)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 40)
+                                        .background(PulseTheme.grouped)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                     }
                                 }
-                                Button {
-                                    bookmarkTarget = PlanExerciseBookmarkTarget(dayIndex: dayIndex, exerciseIndex: exerciseIndex)
-                                } label: {
-                                    Label("\(days[dayIndex].exercises[exerciseIndex].mediaBookmarks.count) marcadores multimedia", systemImage: "bookmark.fill")
-                                }
-                                Stepper("\(days[dayIndex].exercises[exerciseIndex].targetSets) series", value: Binding(
-                                    get: { days[dayIndex].exercises[exerciseIndex].targetSets },
-                                    set: { days[dayIndex].exercises[exerciseIndex].targetSets = $0 }
-                                ), in: 1...10)
-                                Stepper("Descanso entre series: \(days[dayIndex].exercises[exerciseIndex].restSeconds) s", value: Binding(
-                                    get: { days[dayIndex].exercises[exerciseIndex].restSeconds },
-                                    set: { days[dayIndex].exercises[exerciseIndex].restSeconds = $0 }
-                                ), in: 0...600, step: 15)
-                                TextField("Rango de reps", text: Binding(
-                                    get: { days[dayIndex].exercises[exerciseIndex].repRange },
-                                    set: { days[dayIndex].exercises[exerciseIndex].repRange = $0 }
-                                ))
                             }
+                            .padding(14)
+                            .background(PulseTheme.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .listRowInsets(EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10))
+                            .listRowBackground(Color.clear)
                         }
 
                         Menu {
@@ -1366,19 +1474,44 @@ private struct CompactStepper: View {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
-            HStack {
+            
+            HStack(spacing: 2) {
+                Button {
+                    value = max(range.lowerBound, value - step)
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.caption.weight(.bold))
+                        .frame(width: 28, height: 40)
+                        .foregroundStyle(PulseTheme.primary)
+                        .background(PulseTheme.primary.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                
                 Text("\(value)\(suffix)")
-                    .font(.headline.monospacedDigit())
+                    .font(.subheadline.monospacedDigit().weight(.bold))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Spacer()
-                Stepper(title, value: $value, in: range, step: step)
-                    .labelsHidden()
+                    .minimumScaleFactor(0.65)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                
+                Button {
+                    value = min(range.upperBound, value + step)
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.caption.weight(.bold))
+                        .frame(width: 28, height: 40)
+                        .foregroundStyle(PulseTheme.primary)
+                        .background(PulseTheme.primary.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
-            .padding(10)
+            .padding(.horizontal, 2)
             .background(PulseTheme.grouped)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
+        .sensoryFeedback(.selection, trigger: value)
     }
 }
 
@@ -1388,36 +1521,128 @@ private struct EditableWorkoutExerciseRow: View {
     @EnvironmentObject private var store: AppStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Row 1 — identity + delete
             HStack(spacing: 12) {
                 ExerciseMediaThumbnail(exercise: item.exercise, gender: store.userProfile.muscleMapGender)
-                    .frame(width: 62, height: 62)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                VStack(alignment: .leading, spacing: 4) {
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
                     Text(item.exercise.name)
                         .font(.headline)
                         .lineLimit(2)
+                        .minimumScaleFactor(0.8)
                     Text("\(item.exercise.muscleGroup) · \(item.exercise.equipment)")
-                        .font(.subheadline)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
                 }
+
                 Spacer()
+
                 Button(role: .destructive, action: onDelete) {
                     Image(systemName: "trash")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.red.opacity(0.8))
+                        .frame(width: 36, height: 36)
+                        .background(Color.red.opacity(0.10))
+                        .clipShape(Circle())
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Eliminar \(item.exercise.name)")
             }
 
-            HStack(spacing: 10) {
-                CompactStepper(title: "Series", value: $item.targetSets, range: 1...10, suffix: "", step: 1)
-                CompactStepper(title: "Descanso", value: $item.restSeconds, range: 0...600, suffix: "s", step: 15)
+            // Row 2 — metric controls (Series | Descanso | Reps)
+            HStack(spacing: 8) {
+                // Series
+                ExerciseMetricTile(
+                    label: "Series",
+                    value: "\(item.targetSets)",
+                    onDecrement: { item.targetSets = max(1, item.targetSets - 1) },
+                    onIncrement: { item.targetSets = min(10, item.targetSets + 1) }
+                )
+
+                // Descanso
+                ExerciseMetricTile(
+                    label: "Descanso",
+                    value: "\(item.restSeconds)s",
+                    onDecrement: { item.restSeconds = max(0, item.restSeconds - 15) },
+                    onIncrement: { item.restSeconds = min(600, item.restSeconds + 15) }
+                )
+
+                // Rep range (text input tile)
+                VStack(spacing: 4) {
+                    Text("Reps")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+
+                    TextField("8-12", text: $item.repRange)
+                        .font(.headline.weight(.bold).monospacedDigit())
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(PulseTheme.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .keyboardType(.default)
+                        .accessibilityLabel("Rango de repeticiones")
+                }
+                .frame(maxWidth: .infinity)
             }
-            TextField("Rango de reps o tiempo", text: $item.repRange)
-                .textFieldStyle(.roundedBorder)
         }
-        .padding(12)
+        .padding(14)
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private struct ExerciseMetricTile: View {
+    let label: String
+    let value: String
+    let onDecrement: () -> Void
+    let onIncrement: () -> Void
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(label)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+
+            HStack(spacing: 4) {
+                Button(action: onDecrement) {
+                    Image(systemName: "minus")
+                        .font(.subheadline.weight(.bold))
+                        .frame(width: 32, height: 44)
+                        .foregroundStyle(PulseTheme.primary)
+                        .background(PulseTheme.primary.opacity(0.10))
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Reducir \(label)")
+
+                Text(value)
+                    .font(.headline.weight(.bold).monospacedDigit())
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(PulseTheme.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                Button(action: onIncrement) {
+                    Image(systemName: "plus")
+                        .font(.subheadline.weight(.bold))
+                        .frame(width: 32, height: 44)
+                        .foregroundStyle(PulseTheme.primary)
+                        .background(PulseTheme.primary.opacity(0.10))
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Aumentar \(label)")
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .sensoryFeedback(.selection, trigger: value)
     }
 }
 

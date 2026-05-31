@@ -764,10 +764,10 @@ private enum OnboardingSex: String, CaseIterable, Identifiable {
         }
     }
 
-    var profileValue: String {
+    var profileValue: UserProfile.Sex {
         switch self {
-        case .male: "male"
-        case .female: "female"
+        case .male: .male
+        case .female: .female
         }
     }
 }

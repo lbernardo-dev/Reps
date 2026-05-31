@@ -5,6 +5,7 @@ import SwiftData
 final class SwiftDataPersistence {
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
+    private(set) var didFallbackToInMemory: Bool = false
 
     init(inMemory: Bool = false) {
         let schema = Schema([
@@ -33,6 +34,7 @@ final class SwiftDataPersistence {
                 configurations: ModelConfiguration("RepsStore", schema: schema, isStoredInMemoryOnly: inMemory)
             )
         } catch {
+            didFallbackToInMemory = true
             container = try! ModelContainer(
                 for: schema,
                 configurations: ModelConfiguration("RepsFallbackStore", schema: schema, isStoredInMemoryOnly: true)

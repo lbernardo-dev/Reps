@@ -19,14 +19,19 @@ final class AppStore: ObservableObject {
     @Published var health = HealthSyncState() { didSet { save() } }
     @Published var isSyncingExerciseLibrary = false
     @Published var exerciseLibrarySyncMessage: String?
-    @Published var activeWorkoutStatus: ActiveWorkoutStatus?
+    @Published var activeWorkoutStatus: ActiveWorkoutStatus? { didSet { save() } }
+    @Published var activeWorkout: WorkoutDay? { didSet { save() } }
+    @Published var activeWorkoutDrafts: [ExerciseSessionDraft] = [] { didSet { save() } }
+    @Published var isUsingFallbackStorage = false
 
     private let persistence: SwiftDataPersistence
     private var isRestoring = false
     private var hasAttemptedExerciseLibrarySync = false
+    private var saveTask: Task<Void, Never>?
 
     init(persistence: SwiftDataPersistence = SwiftDataPersistence()) {
         self.persistence = persistence
+        self.isUsingFallbackStorage = persistence.didFallbackToInMemory
 
         if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
             restore(snapshot)
@@ -40,6 +45,30 @@ final class AppStore: ObservableObject {
         return scheduledWorkouts.first { calendar.isDateInToday($0.date) }?.workoutDay
             ?? activePlan.days.first
             ?? SeedData.pushDay
+    }
+
+    var streakDays: Int {
+        let calendar = Calendar.current
+        let workoutDays = Set(workoutSessions.map { calendar.startOfDay(for: $0.date) })
+        var date = calendar.startOfDay(for: .now)
+        
+        if !workoutDays.contains(date) {
+            let yesterday = calendar.date(byAdding: .day, value: -1, to: date) ?? date
+            if workoutDays.contains(yesterday) {
+                date = yesterday
+            } else {
+                return 0
+            }
+        }
+        
+        var streak = 0
+        var checkDate = date
+        while workoutDays.contains(checkDate) {
+            streak += 1
+            guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+            checkDate = prev
+        }
+        return streak
     }
 
     var weeklyCompletion: Double {
@@ -78,7 +107,7 @@ final class AppStore: ObservableObject {
 
     var basalMetabolicRate: Double {
         let age = userProfile.dateOfBirth.map { Calendar.current.dateComponents([.year], from: $0, to: .now).year ?? 30 } ?? 30
-        let sexAdjustment = (userProfile.sex ?? "").localizedCaseInsensitiveContains("female") || (userProfile.sex ?? "").localizedCaseInsensitiveContains("mujer") ? -161.0 : 5.0
+        let sexAdjustment = userProfile.sex == .female ? -161.0 : 5.0
         return 10 * currentWeight + 6.25 * currentHeight - 5 * Double(age) + sexAdjustment
     }
 
@@ -120,11 +149,13 @@ final class AppStore: ObservableObject {
 
     func completeOnboarding(profile: UserProfile) {
         userProfile = profile
+        sanitizeAvailableEquipment()
         userProfile.onboardingCompleted = true
     }
 
     func completeOnboarding(result: OnboardingResult) {
         userProfile = result.profile
+        sanitizeAvailableEquipment()
         userProfile.onboardingCompleted = true
         bodyMetrics.append(result.bodyMetric)
         addPlan(result.plan, activate: true)
@@ -179,6 +210,8 @@ final class AppStore: ObservableObject {
     func finishWorkout(_ session: WorkoutSession) {
         workoutSessions.append(session)
         activeWorkoutStatus = nil
+        activeWorkout = nil
+        activeWorkoutDrafts = []
         let calendar = Calendar.current
         if let index = scheduledWorkouts.firstIndex(where: { calendar.isDateInToday($0.date) && $0.workoutDay.title == session.workoutTitle }) {
             scheduledWorkouts[index].status = .completed
@@ -186,15 +219,46 @@ final class AppStore: ObservableObject {
     }
 
     func startActiveWorkout(_ workout: WorkoutDay, elapsedSeconds: Int = 0, pausedSeconds: Int = 0, isPaused: Bool = false) {
+        activeWorkout = workout
+        activeWorkoutDrafts = workout.exercises.map { item in
+            ExerciseSessionDraft(
+                workoutExercise: item,
+                notes: "",
+                sets: (1...max(item.targetSets, 1)).map { setIndex in
+                    SetLog(
+                        setNumber: setIndex,
+                        weightKg: defaultWeight(from: item.previous),
+                        reps: defaultReps(from: item.repRange),
+                        completed: false
+                    )
+                }
+            )
+        }
         activeWorkoutStatus = ActiveWorkoutStatus(
             workoutTitle: workout.title,
             elapsedSeconds: elapsedSeconds,
             pausedSeconds: pausedSeconds,
             completedSets: 0,
-            totalSets: workout.exercises.reduce(0) { $0 + max($1.targetSets, 1) },
+            totalSets: activeWorkoutDrafts.flatMap(\.sets).count,
             volumeKg: 0,
             isPaused: isPaused
         )
+    }
+
+    private func defaultWeight(from previous: String) -> Double {
+        let normalized = previous.replacingOccurrences(of: ",", with: ".")
+        let number = normalized
+            .split { character in
+                !(character.isNumber || character == ".")
+            }
+            .compactMap { Double($0) }
+            .first
+        return number ?? 0
+    }
+
+    private func defaultReps(from repRange: String) -> Int {
+        let digits = repRange.split { !$0.isNumber }.compactMap { Int($0) }
+        return digits.first ?? 8
     }
 
     func updateActiveWorkout(elapsedSeconds: Int, pausedSeconds: Int, completedSets: Int, totalSets: Int, volumeKg: Int, isPaused: Bool) {
@@ -216,6 +280,8 @@ final class AppStore: ObservableObject {
 
     func clearActiveWorkout() {
         activeWorkoutStatus = nil
+        activeWorkout = nil
+        activeWorkoutDrafts = []
     }
 
     func addPlan(_ plan: WorkoutPlan, activate: Bool) {
@@ -462,12 +528,13 @@ final class AppStore: ObservableObject {
 
     func exportWorkoutShareImageURL(session: WorkoutSession? = nil) throws -> URL {
         let selected = session ?? workoutSessions.sorted { $0.date > $1.date }.first
-        let title = selected?.workoutTitle ?? "Reps Workout"
-        let duration = selected?.durationMinutes ?? 0
-        let volume = selected.map { Int(FitnessMetrics.totalVolumeKg(for: [$0])) } ?? 0
-        let sets = selected.map { FitnessMetrics.completedSets(in: $0).count } ?? 0
         let url = exportURL(fileName: "reps-share-\(Self.exportDateStamp()).png")
-        let image = WorkoutShareImageRenderer.render(title: title, duration: duration, volume: volume, sets: sets)
+        let image: UIImage
+        if let sel = selected {
+            image = WorkoutShareImageRenderer.render(session: sel)
+        } else {
+            image = WorkoutShareImageRenderer.render(title: "Reps Workout", duration: 0, volume: 0, sets: 0)
+        }
         guard let data = image.pngData() else {
             throw CocoaError(.fileWriteUnknown)
         }
@@ -502,7 +569,16 @@ final class AppStore: ObservableObject {
             return
         }
 
-        persistence.save(currentSnapshot)
+        saveTask?.cancel()
+        saveTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: 500_000_000) // 500ms debounce
+                guard !Task.isCancelled else { return }
+                persistence.save(currentSnapshot)
+            } catch {
+                // Cancelled or slept error
+            }
+        }
     }
 
     private func exportURL(fileName: String) -> URL {
@@ -532,8 +608,32 @@ final class AppStore: ObservableObject {
             gymPasses: gymPasses,
             gymVisits: gymVisits,
             goals: goals,
-            health: health
+            health: health,
+            activeWorkout: activeWorkout,
+            activeWorkoutDrafts: activeWorkoutDrafts
         )
+    }
+
+    func sanitizeAvailableEquipment() {
+        let mapped = userProfile.availableEquipment.map { eq in
+            switch eq.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "barra", "barbell": return "Barbell"
+            case "mancuernas", "mancuerna", "dumbbell", "dumbbells": return "Dumbbells"
+            case "kettlebell", "kettlebells", "pesa rusa": return "Kettlebell"
+            case "bandas", "banda", "resistance band": return "Resistance Band"
+            case "poleas", "polea", "cable": return "Cable"
+            case "maquinas", "maquina", "máquinas", "máquina", "machine", "machines": return "Machine"
+            case "banco", "bench": return "Bench"
+            case "rack": return "Rack"
+            case "dominadas", "pullup bar": return "Pullup Bar"
+            case "cardio", "cardio machine": return "Cardio Machine"
+            default: return eq
+            }
+        }
+        let unique = Array(Set(mapped)).sorted()
+        if unique != userProfile.availableEquipment {
+            userProfile.availableEquipment = unique
+        }
     }
 
     private func restore(_ snapshot: AppSnapshot) {
@@ -552,6 +652,11 @@ final class AppStore: ObservableObject {
         gymVisits = snapshot.gymVisits
         goals = snapshot.goals
         health = snapshot.health
+        activeWorkout = snapshot.activeWorkout
+        activeWorkoutDrafts = snapshot.activeWorkoutDrafts ?? []
+        
+        sanitizeAvailableEquipment()
+        
         isRestoring = false
         persistence.save(currentSnapshot)
     }
@@ -582,187 +687,6 @@ final class AppStore: ObservableObject {
     }
 }
 
-private struct CSVExporter {
-    let snapshot: AppSnapshot
-
-    func makeCSV() -> String {
-        [
-            section("exercises", rows: exerciseRows),
-            section("workout_sessions", rows: sessionRows),
-            section("sets", rows: setRows),
-            section("cardio_logs", rows: cardioRows),
-            section("body_metrics", rows: bodyRows),
-            section("progress_photos", rows: progressPhotoRows),
-            section("gym_passes", rows: gymPassRows),
-            section("gym_visits", rows: gymVisitRows),
-            section("goals", rows: goalRows)
-        ]
-        .joined(separator: "\n\n")
-    }
-
-    private var exerciseRows: [[String]] {
-        [["id", "name", "muscle_group", "equipment", "type", "difficulty", "environment", "source"]] +
-        snapshot.exercises.map {
-            [
-                $0.id.uuidString,
-                $0.name,
-                $0.muscleGroup,
-                $0.equipment,
-                $0.exerciseType.rawValue,
-                $0.difficulty.rawValue,
-                $0.environment.rawValue,
-                $0.sourceName ?? "manual"
-            ]
-        }
-    }
-
-    private var sessionRows: [[String]] {
-        [["id", "title", "date", "duration_min", "location", "context", "session_rpe", "volume_kg", "notes"]] +
-        snapshot.workoutSessions.map {
-            [
-                $0.id.uuidString,
-                $0.workoutTitle,
-                Self.format($0.date),
-                "\($0.durationMinutes)",
-                $0.location.rawValue,
-                $0.contextTag.rawValue,
-                Self.value($0.sessionRPE),
-                Self.value(FitnessMetrics.totalVolumeKg(for: [$0])),
-                $0.notes ?? ""
-            ]
-        }
-    }
-
-    private var setRows: [[String]] {
-        let header = [["session_id", "exercise", "set_number", "type", "weight_kg", "reps", "rpe", "rir", "tempo", "rest_seconds", "pr", "notes"]]
-        let rows = snapshot.workoutSessions.flatMap { session in
-            (session.exerciseLogs ?? [ExerciseLog(exercise: SeedData.bench, notes: session.notes ?? "", sets: session.sets)]).flatMap { log in
-                log.sets.map { set in
-                    let rir = set.rir.map(String.init) ?? ""
-                    let rest = set.previousRestSeconds.map(String.init) ?? ""
-                    let pr = set.isPersonalRecord ? "true" : "false"
-                    let notes = set.notes ?? ""
-                    return [
-                        session.id.uuidString,
-                        log.exercise.name,
-                        String(set.setNumber),
-                        set.setType.rawValue,
-                        Self.value(set.weightKg),
-                        String(set.reps),
-                        Self.value(set.rpe),
-                        rir,
-                        set.tempo ?? "",
-                        rest,
-                        pr,
-                        notes
-                    ] as [String]
-                }
-            }
-        }
-        return header + rows
-    }
-
-    private var cardioRows: [[String]] {
-        [["id", "activity", "date", "duration_min", "distance_km", "avg_hr", "max_hr", "calories", "rpe", "notes"]] +
-        snapshot.cardioLogs.map {
-            [
-                $0.id.uuidString,
-                $0.activityType.rawValue,
-                Self.format($0.date),
-                "\($0.durationMinutes)",
-                Self.value($0.distanceKm),
-                Self.value($0.averageHeartRate),
-                Self.value($0.maxHeartRate),
-                Self.value($0.estimatedCalories),
-                Self.value($0.rpe),
-                $0.notes ?? ""
-            ]
-        }
-    }
-
-    private var bodyRows: [[String]] {
-        [["id", "date", "weight_kg", "height_cm", "body_fat", "waist_cm", "sleep_hours", "sleep_quality", "fatigue", "stress", "soreness", "source"]] +
-        snapshot.bodyMetrics.map {
-            [
-                $0.id.uuidString,
-                Self.format($0.date),
-                Self.value($0.weightKg),
-                Self.value($0.heightCm),
-                Self.value($0.bodyFatPercentage),
-                Self.value($0.waistCm),
-                Self.value($0.sleepHours),
-                $0.sleepQuality.map(String.init) ?? "",
-                $0.fatigue.map(String.init) ?? "",
-                $0.stress.map(String.init) ?? "",
-                $0.sorenessNotes ?? "",
-                $0.source.rawValue
-            ]
-        }
-    }
-
-    private var progressPhotoRows: [[String]] {
-        [["id", "date", "weight_kg", "note", "image_bytes"]] +
-        snapshot.progressPhotos.map {
-            [
-                $0.id.uuidString,
-                Self.format($0.date),
-                Self.value($0.weightKg),
-                $0.note ?? "",
-                "\($0.imageData.count)"
-            ]
-        }
-    }
-
-    private var gymPassRows: [[String]] {
-        [["id", "gym", "membership_id", "code_type", "notes"]] +
-        snapshot.gymPasses.map {
-            [$0.id.uuidString, $0.gymName, $0.membershipID, $0.codeType.rawValue, $0.notes ?? ""]
-        }
-    }
-
-    private var gymVisitRows: [[String]] {
-        [["id", "gym", "date", "location_note", "workout"]] +
-        snapshot.gymVisits.map {
-            [$0.id.uuidString, $0.gymName, Self.format($0.date), $0.locationNote ?? "", $0.workoutTitle ?? ""]
-        }
-    }
-
-    private var goalRows: [[String]] {
-        [["id", "kind", "title", "current", "target", "unit", "deadline"]] +
-        snapshot.goals.map {
-            [
-                $0.id.uuidString,
-                $0.kind.rawValue,
-                $0.title,
-                Self.value($0.current),
-                Self.value($0.target),
-                $0.unit,
-                $0.deadline.map(Self.format) ?? ""
-            ]
-        }
-    }
-
-    private func section(_ name: String, rows: [[String]]) -> String {
-        (["# \(name)"] + rows.map { $0.map(Self.escape).joined(separator: ",") }).joined(separator: "\n")
-    }
-
-    private static func escape(_ value: String) -> String {
-        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
-        if escaped.contains(",") || escaped.contains("\n") || escaped.contains("\"") {
-            return "\"\(escaped)\""
-        }
-        return escaped
-    }
-
-    private static func format(_ date: Date) -> String {
-        ISO8601DateFormatter().string(from: date)
-    }
-
-    private static func value(_ value: Double?) -> String {
-        value.map { String(format: "%.2f", $0) } ?? ""
-    }
-}
-
 enum ProductFeature: String, CaseIterable, Identifiable {
     case unlimitedLogging
     case exerciseLibrary
@@ -784,134 +708,6 @@ enum ProductAccess {
         case .advancedAnalytics, .configurableProgression, .automaticBackups, .shareCards:
             return proEnabled
         }
-    }
-}
-
-private struct CSVImporter {
-    let csv: String
-
-    func cardioLogs() -> [CardioLog] {
-        rows(in: "cardio_logs").compactMap { row in
-            guard row.count >= 10,
-                  let activity = CardioLog.ActivityType(rawValue: row[1]),
-                  let date = Self.date(row[2]),
-                  let duration = Int(row[3]) else {
-                return nil
-            }
-            return CardioLog(
-                activityType: activity,
-                date: date,
-                durationMinutes: duration,
-                distanceKm: Self.double(row[4]),
-                averageHeartRate: Self.double(row[5]),
-                maxHeartRate: Self.double(row[6]),
-                estimatedCalories: Self.double(row[7]),
-                rpe: Self.double(row[8]),
-                notes: row[9].isEmpty ? nil : row[9]
-            )
-        }
-    }
-
-    func bodyMetrics() -> [BodyMetric] {
-        rows(in: "body_metrics").compactMap { row in
-            guard row.count >= 12,
-                  let date = Self.date(row[1]),
-                  let weight = Self.double(row[2]),
-                  let height = Self.double(row[3]) else {
-                return nil
-            }
-            return BodyMetric(
-                date: date,
-                weightKg: weight,
-                heightCm: height,
-                bodyFatPercentage: Self.double(row[4]),
-                waistCm: Self.double(row[5]),
-                sleepHours: Self.double(row[6]),
-                sleepQuality: Int(row[7]),
-                fatigue: Int(row[8]),
-                stress: Int(row[9]),
-                sorenessNotes: row[10].isEmpty ? nil : row[10],
-                source: BodyMetric.Source(rawValue: row[11]) ?? .manual
-            )
-        }
-    }
-
-    private func rows(in sectionName: String) -> [[String]] {
-        let lines = csv.components(separatedBy: .newlines)
-        guard let start = lines.firstIndex(where: { $0 == "# \(sectionName)" }) else {
-            return []
-        }
-
-        return lines.dropFirst(start + 2)
-            .prefix { !$0.hasPrefix("# ") && !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            .map(Self.parseLine)
-    }
-
-    private static func parseLine(_ line: String) -> [String] {
-        var values: [String] = []
-        var current = ""
-        var quoted = false
-        for character in line {
-            if character == "\"" {
-                quoted.toggle()
-            } else if character == "," && !quoted {
-                values.append(current)
-                current = ""
-            } else {
-                current.append(character)
-            }
-        }
-        values.append(current)
-        return values.map { $0.replacingOccurrences(of: "\"\"", with: "\"") }
-    }
-
-    private static func date(_ value: String) -> Date? {
-        ISO8601DateFormatter().date(from: value)
-    }
-
-    private static func double(_ value: String) -> Double? {
-        Double(value.replacingOccurrences(of: ",", with: "."))
-    }
-}
-
-private enum WorkoutShareImageRenderer {
-    static func render(title: String, duration: Int, volume: Int, sets: Int) -> UIImage {
-        let size = CGSize(width: 1080, height: 1350)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        return renderer.image { context in
-            UIColor(red: 0.05, green: 0.05, blue: 0.07, alpha: 1).setFill()
-            context.fill(CGRect(origin: .zero, size: size))
-
-            let accent = UIColor(red: 0.52, green: 0.14, blue: 0.86, alpha: 1)
-            accent.setFill()
-            UIBezierPath(roundedRect: CGRect(x: 72, y: 92, width: 936, height: 1166), cornerRadius: 42).fill()
-
-            UIColor.white.setFill()
-            UIBezierPath(roundedRect: CGRect(x: 96, y: 116, width: 888, height: 1118), cornerRadius: 34).fill()
-
-            draw("Reps", at: CGPoint(x: 140, y: 170), size: 54, weight: .heavy, color: accent)
-            draw(title, at: CGPoint(x: 140, y: 300), size: 76, weight: .bold, color: .black)
-            draw("Entreno completado", at: CGPoint(x: 140, y: 250), size: 32, weight: .semibold, color: .darkGray)
-
-            drawMetric(title: "Duración", value: "\(duration) min", x: 140, y: 520)
-            drawMetric(title: "Series", value: "\(sets)", x: 560, y: 520)
-            drawMetric(title: "Volumen", value: "\(volume) kg", x: 140, y: 760)
-
-            draw("Sin peso corporal, fotos ni datos sensibles.", at: CGPoint(x: 140, y: 1080), size: 30, weight: .medium, color: .darkGray)
-        }
-    }
-
-    private static func drawMetric(title: String, value: String, x: CGFloat, y: CGFloat) {
-        draw(title, at: CGPoint(x: x, y: y), size: 30, weight: .semibold, color: .darkGray)
-        draw(value, at: CGPoint(x: x, y: y + 44), size: 64, weight: .bold, color: .black)
-    }
-
-    private static func draw(_ text: String, at point: CGPoint, size: CGFloat, weight: UIFont.Weight, color: UIColor) {
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: size, weight: weight),
-            .foregroundColor: color
-        ]
-        text.draw(at: point, withAttributes: attributes)
     }
 }
 

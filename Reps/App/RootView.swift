@@ -3,6 +3,14 @@ import SwiftUI
 struct RootView: View {
     @EnvironmentObject private var store: AppStore
 
+    private var preferredColorScheme: ColorScheme? {
+        switch store.userProfile.activeThemeMode {
+        case .dark: return .dark
+        case .light: return .light
+        case .system: return nil
+        }
+    }
+
     var body: some View {
         Group {
             if store.userProfile.onboardingCompleted {
@@ -11,6 +19,15 @@ struct RootView: View {
                 WelcomeView()
             }
         }
+        .alert("Error de Almacenamiento", isPresented: Binding(
+            get: { store.isUsingFallbackStorage },
+            set: { store.isUsingFallbackStorage = $0 }
+        )) {
+            Button("Aceptar", role: .cancel) {}
+        } message: {
+            Text("Hubo un problema al cargar tus datos guardados. La aplicación está en modo temporal y no guardará los datos permanentemente.")
+        }
+        .preferredColorScheme(preferredColorScheme)
     }
 }
 
@@ -26,12 +43,7 @@ struct MainTabView: View {
     @State private var profileResetID = UUID()
 
     private var freeWorkout: WorkoutDay {
-        WorkoutDay(
-            title: "Entrenamiento libre",
-            subtitle: "Añade ejercicios durante la sesión",
-            durationMinutes: 45,
-            exercises: []
-        )
+        WorkoutDay.freeWorkout
     }
 
     var body: some View {
@@ -108,7 +120,6 @@ struct MainTabView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func select(_ tab: AppTab) {
@@ -169,11 +180,11 @@ private enum AppTab: CaseIterable {
 
     var title: LocalizedStringKey {
         switch self {
-        case .today: "Entreno"
-        case .calendar: "Agenda"
-        case .plans: "Programas"
-        case .progress: "Progreso"
-        case .profile: "Perfil"
+        case .today: "Workout"
+        case .calendar: "Calendar"
+        case .plans: "Plans"
+        case .progress: "Progress"
+        case .profile: "Profile"
         }
     }
 
@@ -208,19 +219,19 @@ private enum QuickAction: String, CaseIterable, Identifiable {
 
     var title: LocalizedStringKey {
         switch self {
-        case .freeWorkout: "Entrenar"
-        case .scheduleWorkout: "Programar"
-        case .createPlan: "Crear plan"
-        case .customExercise: "Ejercicio"
+        case .freeWorkout: "Train"
+        case .scheduleWorkout: "Schedule"
+        case .createPlan: "Create Plan"
+        case .customExercise: "Exercise"
         }
     }
 
     var subtitle: LocalizedStringKey {
         switch self {
-        case .freeWorkout: "Libre"
-        case .scheduleWorkout: "Fecha"
-        case .createPlan: "Rutina"
-        case .customExercise: "Propio"
+        case .freeWorkout: "Free"
+        case .scheduleWorkout: "Date"
+        case .createPlan: "Routine"
+        case .customExercise: "Custom"
         }
     }
 
@@ -315,22 +326,36 @@ private struct FloatingTabBar: View {
     let isQuickMenuExpanded: Bool
     let onQuickActionTap: () -> Void
     let onSelect: (AppTab) -> Void
+    
+    @Namespace private var animationNamespace
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(AppTab.allCases, id: \.self) { tab in
                 Button {
+                    HapticService.selection()
                     onSelect(tab)
                 } label: {
                     VStack(spacing: 4) {
                         Image(systemName: selectedTab == tab ? tab.selectedSystemImage : tab.systemImage)
                             .font(.headline)
+                            .foregroundStyle(selectedTab == tab ? PulseTheme.primaryBright : PulseTheme.secondaryText)
                         Text(tab.title)
-                            .font(.caption2.weight(.semibold))
+                            .font(.system(size: 10, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.76)
+                            .foregroundStyle(selectedTab == tab ? .white : PulseTheme.secondaryText)
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .foregroundStyle(selectedTab == tab ? .white : PulseTheme.secondaryText)
+                    .background {
+                        if selectedTab == tab {
+                            Capsule()
+                                .fill(PulseTheme.primary.opacity(0.18))
+                                .matchedGeometryEffect(id: "activeTabPill", in: animationNamespace)
+                                .transition(.asymmetric(insertion: .identity, removal: .identity))
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(tab.title)

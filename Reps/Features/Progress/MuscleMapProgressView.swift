@@ -40,13 +40,22 @@ struct MuscleMapProgressView: View {
                 .foregroundStyle(PulseTheme.secondaryText)
                 .frame(maxWidth: .infinity, alignment: .center)
 
-            InteractiveBodyHeatmap(
-                loads: loads,
-                gender: gender,
-                selectedSegment: $selectedSegment
+            VStack {
+                InteractiveBodyHeatmap(
+                    loads: loads,
+                    gender: gender,
+                    selectedSegment: $selectedSegment
+                )
+                .frame(height: 350)
+                .padding(.vertical, 12)
+            }
+            .background(Color.white.opacity(0.015))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Color.white.opacity(0.05), lineWidth: 1)
             )
-            .frame(height: 390)
-            .padding(.top, 2)
+            .padding(.horizontal, 4)
 
             modeControl
 
@@ -93,24 +102,32 @@ struct MuscleMapProgressView: View {
     }
 
     private var modeControl: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             ForEach(MuscleMapMode.allCases) { mode in
                 Button {
-                    withAnimation(.snappy(duration: 0.2)) {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
                         selectedMode = mode
                     }
                 } label: {
                     Text(mode.title)
-                        .font(.caption.weight(.bold))
-                        .padding(.horizontal, 12)
-                        .frame(height: 30)
-                        .foregroundStyle(selectedMode == mode ? .black : PulseTheme.secondaryText)
-                        .background(selectedMode == mode ? .white : PulseTheme.grouped.opacity(0.75))
+                        .font(.system(size: 13, weight: .bold))
+                        .padding(.horizontal, 16)
+                        .frame(height: 34)
+                        .foregroundStyle(selectedMode == mode ? .black : Color.white.opacity(0.7))
+                        .background(
+                            selectedMode == mode ? .white : Color.white.opacity(0.05)
+                        )
+                        .overlay(
+                            Capsule()
+                                .stroke(selectedMode == mode ? .white : Color.white.opacity(0.08), lineWidth: 1)
+                        )
                         .clipShape(Capsule())
+                        .shadow(color: selectedMode == mode ? .white.opacity(0.15) : Color.clear, radius: 4, x: 0, y: 1)
                 }
                 .buttonStyle(.plain)
             }
         }
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
@@ -119,24 +136,29 @@ struct MuscleMapProgressView: View {
         if let selectedSegment {
             HStack(spacing: 8) {
                 Circle()
-                    .fill(PulseTheme.primary)
-                    .frame(width: 7, height: 7)
+                    .fill(PulseTheme.primaryBright)
+                    .frame(width: 6, height: 6)
+                    .shadow(color: PulseTheme.primaryBright, radius: 2)
                 Text(selectedSegment.title)
+                    .font(.system(size: 12, weight: .bold))
                 Button {
-                    withAnimation(.snappy(duration: 0.2)) {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
                         self.selectedSegment = nil
                     }
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.caption.weight(.bold))
+                        .font(.system(size: 10, weight: .black))
                 }
                 .buttonStyle(.plain)
             }
-            .font(.caption.weight(.bold))
-            .foregroundStyle(PulseTheme.secondaryText)
+            .foregroundStyle(.white)
             .padding(.horizontal, 12)
             .frame(height: 30)
-            .background(PulseTheme.grouped.opacity(0.7))
+            .background(Color.white.opacity(0.08))
+            .overlay(
+                Capsule()
+                    .stroke(PulseTheme.primaryBright.opacity(0.4), lineWidth: 1)
+            )
             .clipShape(Capsule())
         }
     }
@@ -146,7 +168,7 @@ struct MuscleMapProgressView: View {
             HStack(spacing: 8) {
                 ForEach(MuscleRegionFilter.allCases) { filter in
                     Button {
-                        withAnimation(.snappy(duration: 0.2)) {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
                             selectedFilter = filter
                         }
                     } label: {
@@ -166,13 +188,20 @@ private struct QuietFilterChip: View {
 
     var body: some View {
         Text(title)
-            .font(.caption.weight(.bold))
+            .font(.system(size: 13, weight: .bold))
             .lineLimit(1)
-            .padding(.horizontal, 11)
-            .frame(height: 30)
-            .foregroundStyle(isSelected ? .black : PulseTheme.secondaryText)
-            .background(isSelected ? .white : PulseTheme.grouped.opacity(0.7))
+            .padding(.horizontal, 14)
+            .frame(height: 32)
+            .foregroundStyle(isSelected ? .black : Color.white.opacity(0.7))
+            .background(
+                isSelected ? PulseTheme.primaryBright : Color.white.opacity(0.05)
+            )
+            .overlay(
+                Capsule()
+                    .stroke(isSelected ? PulseTheme.primaryBright : Color.white.opacity(0.08), lineWidth: 1)
+            )
             .clipShape(Capsule())
+            .shadow(color: isSelected ? PulseTheme.primaryBright.opacity(0.3) : Color.clear, radius: 4, x: 0, y: 1)
     }
 }
 
@@ -237,64 +266,101 @@ private struct MuscleLoadCard: View {
     var isSelected = false
     var showsAnalysisHint = false
 
+    private var isSpanish: Bool {
+        Locale.current.language.languageCode?.identifier.hasPrefix("es") ?? true
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                MuscleAnatomyThumbnail(segment: load.segment, intensity: load.intensity, gender: gender)
-                    .frame(width: 58, height: 58)
+            HStack(alignment: .top, spacing: 14) {
+                MuscleAnatomyThumbnail(segment: load.segment, intensity: load.intensity, gender: gender, size: 58)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(isSelected ? PulseTheme.primaryBright : Color.white.opacity(0.06), lineWidth: 1)
+                    )
 
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(load.segment.title)
-                        .font(.headline.weight(.bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.76)
-                    Text("\(load.displaySets) de 12 series semanales")
-                        .font(.subheadline.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .lineLimit(2)
+                        .font(.system(size: 17, weight: .black))
+                        .foregroundStyle(.white)
+                    
+                    HStack(spacing: 6) {
+                        Text("\(load.displaySets)")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundStyle(load.zoneColor)
+                        Text("/")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(Color.white.opacity(0.3))
+                        Text("12 \(isSpanish ? "semanales" : "weekly")")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    
                     if load.predictedSets > 0 {
-                        Text("+\(load.predictedSets) previstas en el próximo entreno")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(PulseTheme.primaryBright)
+                        HStack(spacing: 4) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 10))
+                            Text("+\(load.predictedSets) \(isSpanish ? "previstas" : "predicted")")
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundStyle(PulseTheme.primaryBright)
+                        .padding(.top, 2)
                     }
                 }
 
                 Spacer()
 
-                Text(load.compactZoneTitle)
-                    .font(.caption.weight(.bold))
-                    .multilineTextAlignment(.trailing)
+                // Premium Zone Badge
+                Text(load.compactZoneTitle.uppercased())
+                    .font(.system(size: 10, weight: .black))
+                    .tracking(1)
                     .foregroundStyle(load.zoneColor)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .padding(.horizontal, 9)
-                    .frame(height: 28)
-                    .background(load.zoneColor.opacity(0.14), in: Capsule())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        load.zoneColor.opacity(0.12)
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(load.zoneColor.opacity(0.3), lineWidth: 1)
+                    )
+                    .clipShape(Capsule())
             }
 
             RepsProgressiveSegmentBar(value: load.totalSets)
 
             HStack {
                 Text(load.rangeText)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(PulseTheme.tertiaryText)
                 Spacer()
                 Text("\(Int(load.totalVolumeKg)) kg")
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white)
             }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(PulseTheme.tertiaryText)
 
             if showsAnalysisHint {
-                Label("Ver frecuencia, ejercicios directos e indirectos", systemImage: "chart.xyaxis.line")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(PulseTheme.primary)
+                HStack(spacing: 6) {
+                    Image(systemName: "chart.xyaxis.line")
+                        .font(.system(size: 11, weight: .bold))
+                    Text(isSpanish ? "Ver frecuencia y contribuciones" : "View frequency & contributions")
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundStyle(PulseTheme.primaryBright)
+                .padding(.top, 2)
             }
         }
-        .padding(14)
-        .background(isSelected ? PulseTheme.elevated : PulseTheme.card)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                .stroke(isSelected ? PulseTheme.primary : PulseTheme.separator, lineWidth: isSelected ? 1.4 : 1)
+        .padding(16)
+        .background(
+            isSelected ? Color.white.opacity(0.04) : Color.white.opacity(0.01)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(isSelected ? PulseTheme.primaryBright.opacity(0.8) : Color.white.opacity(0.05), lineWidth: isSelected ? 1.8 : 1)
+        )
+        .shadow(color: isSelected ? PulseTheme.primaryBright.opacity(0.08) : Color.clear, radius: 10, x: 0, y: 4)
     }
 }
 
@@ -412,24 +478,36 @@ private struct MuscleWeeklyVolumeCard: View {
     let gender: BodyGender
 
     var body: some View {
-        PulseCard {
+        VStack(spacing: 14) {
             HStack(alignment: .center, spacing: 16) {
-                MuscleAnatomyThumbnail(segment: segment, intensity: load.intensity, gender: gender)
-                    .frame(width: 64, height: 64)
+                MuscleAnatomyThumbnail(segment: segment, intensity: load.intensity, gender: gender, size: 64)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                    )
 
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("\(load.displaySets) de 12 series semanales")
-                            .font(.title3.weight(.bold).monospacedDigit())
-                        Spacer()
-                        Text(load.setsToGrowthZoneText)
-                            .font(.headline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    RepsProgressiveSegmentBar(value: load.totalSets)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("\(load.displaySets) de 12 series semanales")
+                        .font(.system(size: 18, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                    
+                    Text(load.setsToGrowthZoneText)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(load.zoneColor)
                 }
+                Spacer()
             }
+            
+            RepsProgressiveSegmentBar(value: load.totalSets)
         }
+        .padding(16)
+        .background(Color.white.opacity(0.02))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.white.opacity(0.05), lineWidth: 1)
+        )
     }
 }
 
@@ -596,13 +674,14 @@ private struct MuscleAnatomyThumbnail: View {
     let segment: MuscleSegment
     let intensity: Double
     let gender: BodyGender
+    var size: CGFloat = 58
 
     var body: some View {
         BodyView(gender: gender, side: segment.preferredSide, style: .repsThumbnail)
             .heatmap(thumbnailData, configuration: .repsVolume)
-            .frame(width: 70, height: 70)
-            .background(PulseTheme.grouped)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .frame(width: size, height: size)
+            .background(Color.black.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
@@ -619,28 +698,29 @@ private struct RepsProgressiveSegmentBar: View {
     private let segmentCount = 12
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             ForEach(0..<segmentCount, id: \.self) { index in
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(fillColor(for: index))
-                    .frame(height: 28)
+                let isActive = Double(index) < value
+                let color = fillColor(for: index)
+                
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(isActive ? color : Color.white.opacity(0.08))
+                    .frame(height: 7)
+                    .shadow(color: isActive ? color.opacity(0.3) : Color.clear, radius: 2, x: 0, y: 0)
             }
         }
         .accessibilityLabel("\(Int(value.rounded())) de 12 series semanales")
     }
 
     private func fillColor(for index: Int) -> Color {
-        let zoneColor: Color
         switch index {
         case 0..<4:
-            zoneColor = PulseTheme.primary
+            return PulseTheme.primary
         case 4..<10:
-            zoneColor = PulseTheme.primaryBright
+            return PulseTheme.primaryBright
         default:
-            zoneColor = PulseTheme.accent
+            return PulseTheme.accent
         }
-
-        return Double(index) < value ? zoneColor : zoneColor.opacity(0.16)
     }
 }
 
@@ -982,25 +1062,25 @@ private enum MuscleLoadCalculator {
 
 extension BodyViewStyle {
     static let repsDark = BodyViewStyle(
-        defaultFillColor: Color.white.opacity(0.16),
-        strokeColor: Color.black.opacity(0.55),
-        strokeWidth: 0.65,
+        defaultFillColor: Color.white.opacity(0.06),
+        strokeColor: Color.white.opacity(0.20),
+        strokeWidth: 0.6,
         selectionColor: PulseTheme.primary,
         selectionStrokeColor: .white,
-        selectionStrokeWidth: 1.8,
-        headColor: Color.white.opacity(0.22),
-        hairColor: Color.white.opacity(0.10)
+        selectionStrokeWidth: 1.5,
+        headColor: Color.white.opacity(0.08),
+        hairColor: Color.white.opacity(0.05)
     )
 
     static let repsThumbnail = BodyViewStyle(
-        defaultFillColor: Color.white.opacity(0.18),
-        strokeColor: Color.black.opacity(0.55),
-        strokeWidth: 0.8,
+        defaultFillColor: Color.white.opacity(0.08),
+        strokeColor: Color.white.opacity(0.20),
+        strokeWidth: 0.6,
         selectionColor: PulseTheme.primary,
         selectionStrokeColor: PulseTheme.primary,
         selectionStrokeWidth: 1,
-        headColor: Color.white.opacity(0.22),
-        hairColor: Color.white.opacity(0.10)
+        headColor: Color.white.opacity(0.10),
+        hairColor: Color.white.opacity(0.05)
     )
 }
 

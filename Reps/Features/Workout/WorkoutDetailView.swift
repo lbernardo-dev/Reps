@@ -10,7 +10,7 @@ struct WorkoutDetailView: View {
     }
 
     private var equipmentSummary: [String] {
-        Array(Set(workout.exercises.map(\.exercise.equipment))).sorted().prefix(5).map(localizedEquipment)
+        Array(Set(workout.exercises.map(\.exercise.equipment))).sorted().prefix(5).map { RepsText.equipment($0, language: store.userProfile.preferredLanguage) }
     }
 
     var body: some View {
@@ -19,7 +19,7 @@ struct WorkoutDetailView: View {
                 dayStrip
                 heroCard
                 exerciseListCard
-                Text("El entrenamiento se ajustará en función de tu rendimiento.")
+                Text("The workout will adjust based on your performance.")
                     .font(.headline)
                     .foregroundStyle(PulseTheme.tertiaryText)
                     .multilineTextAlignment(.center)
@@ -38,7 +38,7 @@ struct WorkoutDetailView: View {
             NavigationLink {
                 ActiveWorkoutView(workout: workout)
             } label: {
-                Label("Iniciar entrenamiento", systemImage: "play.fill")
+                Label("Start Workout", systemImage: "play.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
@@ -66,7 +66,10 @@ struct WorkoutDetailView: View {
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
-                ForEach(["Día 2", "Día 3", "Día 4"], id: \.self) { title in
+                let otherDays = store.userProfile.preferredLanguage.hasPrefix("es")
+                    ? ["Día 2", "Día 3", "Día 4"]
+                    : ["Day 2", "Day 3", "Day 4"]
+                ForEach(otherDays, id: \.self) { title in
                     Text(title)
                         .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundStyle(PulseTheme.tertiaryText)
@@ -79,11 +82,13 @@ struct WorkoutDetailView: View {
     private var heroCard: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Entrenamiento de hoy")
+                Text("Today's Workout")
                     .font(.title2.weight(.bold))
                 HStack(spacing: 18) {
-                    Label("\(workout.exercises.count) ejercicios", systemImage: "figure.strengthtraining.traditional")
-                    Label("\(workout.durationMinutes) minutos", systemImage: "timer")
+                    let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
+                    Label("\(workout.exercises.count) \(exercisesWord)", systemImage: "figure.strengthtraining.traditional")
+                    let minutesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "minutos" : "minutes"
+                    Label("\(workout.durationMinutes) \(minutesWord)", systemImage: "timer")
                 }
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
@@ -109,22 +114,22 @@ struct WorkoutDetailView: View {
 
     private var summaryGrid: some View {
         HStack(spacing: 12) {
-            WorkoutStatTile(title: "Ejercicios", value: "\(workout.exercises.count)", icon: "list.bullet.rectangle")
-            WorkoutStatTile(title: "Series", value: "\(totalTargetSets)", icon: "checklist")
-            WorkoutStatTile(title: "Descanso", value: "\(averageRest)s", icon: "hourglass")
+            WorkoutStatTile(title: "Exercises", value: "\(workout.exercises.count)", icon: "list.bullet.rectangle")
+            WorkoutStatTile(title: "Sets", value: "\(totalTargetSets)", icon: "checklist")
+            WorkoutStatTile(title: "Rest", value: "\(averageRest)s", icon: "hourglass")
         }
     }
 
     private var preparationCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
-                Label("Preparación", systemImage: "figure.strengthtraining.traditional")
+                Label("Preparation", systemImage: "figure.strengthtraining.traditional")
                     .font(.headline)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(equipmentSummary, id: \.self) { equipment in
-                            Label(equipment, systemImage: equipmentIcon(equipment))
+                            Label(equipment, systemImage: RepsText.equipmentIcon(equipment))
                                 .font(.caption.weight(.bold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
@@ -136,9 +141,9 @@ struct WorkoutDetailView: View {
                 }
 
                 HStack(spacing: 10) {
-                    Label("Fotos de sesión", systemImage: "camera.fill")
-                    Label("Notas", systemImage: "note.text")
-                    Label("Audio/dictado", systemImage: "mic.fill")
+                    Label("Session Photos", systemImage: "camera.fill")
+                    Label("Notes", systemImage: "note.text")
+                    Label("Audio/Dictation", systemImage: "mic.fill")
                 }
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
@@ -196,7 +201,8 @@ private struct WorkoutExercisePreviewRow: View {
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.82)
-                Text("\(item.targetSets) series de \(item.repRange)")
+                let setsOfWord = language.hasPrefix("es") ? "series de" : "sets of"
+                Text("\(item.targetSets) \(setsOfWord) \(item.repRange)")
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(2)
@@ -303,38 +309,4 @@ private struct ExerciseChip: View {
     }
 }
 
-private func localizedMuscle(_ value: String) -> String {
-    switch value.lowercased() {
-    case "chest": "Pecho"
-    case "shoulders": "Hombros"
-    case "back": "Espalda"
-    case "legs": "Piernas"
-    case "arms": "Brazos"
-    case "core": "Core"
-    default: value
-    }
-}
-
-private func localizedEquipment(_ value: String) -> String {
-    switch value.lowercased() {
-    case "barbell": "Barra"
-    case "bodyweight": "Peso corporal"
-    case "cable": "Polea"
-    case "dumbbell", "dumbbells": "Mancuernas"
-    case "kettlebell", "kettlebells": "Kettlebell"
-    case "machine", "machines": "Máquina"
-    case "resistance band": "Banda"
-    case "other": "Otro"
-    default: value
-    }
-}
-
-private func equipmentIcon(_ value: String) -> String {
-    switch value.lowercased() {
-    case "máquina", "machine": "rectangle.3.group.bubble.left"
-    case "mancuernas", "dumbbell", "dumbbells": "dumbbell.fill"
-    case "barra", "barbell": "figure.strengthtraining.traditional"
-    case "banda", "resistance band": "point.3.connected.trianglepath.dotted"
-    default: "checkmark.seal"
-    }
-}
+// Centralized mapping helpers are now located in RepsText (PulseTheme.swift)

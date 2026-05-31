@@ -30,7 +30,7 @@ final class UserProfileRecord {
         self.id = id
         displayName = profile.displayName
         email = profile.email
-        sex = profile.sex
+        sex = profile.sex?.rawValue
         dateOfBirth = profile.dateOfBirth
         avatarImageData = profile.avatarImageData
         preferredLanguage = profile.preferredLanguage
@@ -55,7 +55,7 @@ final class UserProfileRecord {
         UserProfile(
             displayName: displayName,
             email: email,
-            sex: sex,
+            sex: sex.flatMap(UserProfile.Sex.init(rawValue:)),
             dateOfBirth: dateOfBirth,
             avatarImageData: avatarImageData,
             preferredLanguage: preferredLanguage,

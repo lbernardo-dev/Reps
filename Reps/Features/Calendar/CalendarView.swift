@@ -12,12 +12,15 @@ struct CalendarView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     HStack {
+                        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Calendario")
-                                .font(.system(size: 30, weight: .bold, design: .rounded))
-                            Text("Planifica, revisa carga y salta a la sesión correcta")
+                            Text(isSpanish ? "Calendario" : "Calendar")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                            Text(isSpanish ? "Planifica, revisa la carga y ve al grano" : "Plan, review load, and jump to the correct session")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.85)
                         }
                         Spacer()
                         Button {
@@ -48,7 +51,9 @@ struct CalendarView: View {
                     .foregroundStyle(PulseTheme.primary)
 
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 14) {
-                        let weekdays = ["L", "M", "X", "J", "V", "S", "D"]
+                        let weekdays = store.userProfile.preferredLanguage.hasPrefix("es")
+                            ? ["L", "M", "X", "J", "V", "S", "D"]
+                            : ["M", "T", "W", "T", "F", "S", "S"]
                         ForEach(weekdays.indices, id: \.self) { index in
                             Text(weekdays[index])
                                 .font(.caption.weight(.semibold))
@@ -97,7 +102,7 @@ struct CalendarView: View {
                             let daySessions = loggedWorkouts(on: selectedDate)
                             let plannedSessions = scheduledWorkouts(on: selectedDate)
                             if !plannedSessions.isEmpty {
-                                Text("Programado")
+                                Text("Scheduled")
                                     .font(.caption.weight(.bold))
                                     .foregroundStyle(PulseTheme.accent)
                                 ForEach(plannedSessions) { scheduled in
@@ -114,8 +119,10 @@ struct CalendarView: View {
                             }
                             if !daySessions.isEmpty {
                                 HStack(spacing: 12) {
-                                    CalendarSummaryPill(title: "\(daySessions.count)", subtitle: "sesiones", systemImage: "checkmark.circle")
-                                    CalendarSummaryPill(title: "\(dayExerciseCount(on: selectedDate))", subtitle: "ejercicios", systemImage: "dumbbell")
+                                    let sessionsWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "sesiones" : "sessions"
+                                    let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
+                                    CalendarSummaryPill(title: "\(daySessions.count)", subtitle: LocalizedStringKey(sessionsWord), systemImage: "checkmark.circle")
+                                    CalendarSummaryPill(title: "\(dayExerciseCount(on: selectedDate))", subtitle: LocalizedStringKey(exercisesWord), systemImage: "dumbbell")
                                     CalendarSummaryPill(title: "\(Int(FitnessMetrics.totalVolumeKg(for: daySessions)))", subtitle: "kg", systemImage: "scalemass")
                                 }
                             }
@@ -126,7 +133,8 @@ struct CalendarView: View {
                                     HStack {
                                         VStack(alignment: .leading) {
                                             Text(session.workoutTitle).font(.title3.weight(.bold))
-                                            Text("\(session.durationMinutes) min · \(exerciseCount(for: session)) ejercicios")
+                                            let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
+                                            Text("\(session.durationMinutes) min · \(exerciseCount(for: session)) \(exercisesWord)")
                                                 .foregroundStyle(PulseTheme.secondaryText)
                                         }
                                         Spacer()
@@ -139,14 +147,16 @@ struct CalendarView: View {
                                 ForEach(exerciseLogs(for: session)) { log in
                                     VStack(alignment: .leading, spacing: 6) {
                                         HStack {
-                                            Text(log.exercise.name)
+                                            Text(RepsText.exerciseName(log.exercise.name, language: store.userProfile.preferredLanguage))
                                                 .font(.headline)
                                             Spacer()
-                                            Text("\(log.sets.count) series")
+                                            let setsWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "series" : "sets"
+                                            Text("\(log.sets.count) \(setsWord)")
                                                 .font(.subheadline.weight(.semibold))
                                                 .foregroundStyle(PulseTheme.primary)
                                         }
-                                        Text("\(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg volumen")
+                                        let volumeWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "volumen" : "volume"
+                                        Text("\(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg \(volumeWord)")
                                             .font(.subheadline)
                                             .foregroundStyle(PulseTheme.secondaryText)
                                     }
@@ -160,8 +170,8 @@ struct CalendarView: View {
                                     EmptyView()
                                 } else {
                                 PulseEmptyState(
-                                    title: "Sin actividad registrada",
-                                    message: "Programa una sesión o empieza un entreno libre para este día.",
+                                    title: "No activity recorded",
+                                    message: "Schedule a session or start a free workout for this day.",
                                     systemImage: "calendar.badge.clock"
                                 )
                                 }
@@ -184,7 +194,7 @@ struct CalendarView: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Label("Esta semana", systemImage: "calendar")
+                    Label("This Week", systemImage: "calendar")
                         .font(.headline)
                     Spacer()
                     Text("\(weekSessions.count)/\(store.activePlan.daysPerWeek)")
@@ -192,14 +202,15 @@ struct CalendarView: View {
                         .foregroundStyle(PulseTheme.primary)
                 }
                 HStack(spacing: 10) {
-                    CalendarSummaryPill(title: "\(weekScheduled.count)", subtitle: "programadas", systemImage: "calendar.badge.clock")
+                    let scheduledWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "programadas" : "scheduled"
+                    CalendarSummaryPill(title: "\(weekScheduled.count)", subtitle: LocalizedStringKey(scheduledWord), systemImage: "calendar.badge.clock")
                     CalendarSummaryPill(title: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg", systemImage: "scalemass")
                     CalendarSummaryPill(title: "\(weekSessions.reduce(0) { $0 + $1.durationMinutes })", subtitle: "min", systemImage: "timer")
                 }
                 Button {
                     showSchedule = true
                 } label: {
-                    Label("Programar sesión", systemImage: "calendar.badge.plus")
+                    Label("Schedule Session", systemImage: "calendar.badge.plus")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)

@@ -1694,7 +1694,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Entrenamiento"
+            "value": "Entreno"
           }
         }
       }
@@ -2332,6 +2332,512 @@
           "stringUnit": {
             "state": "translated",
             "value": "Día de entrenamiento"
+          }
+        }
+      }
+    },
+    "Train": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenar"
+          }
+        }
+      }
+    },
+    "Free": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Libre"
+          }
+        }
+      }
+    },
+    "Routine": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutina"
+          }
+        }
+      }
+    },
+    "Custom": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Propio"
+          }
+        }
+      }
+    },
+    "Training Hub": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Centro de entrenamiento"
+          }
+        }
+      }
+    },
+    "Workout Paused": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento pausado"
+          }
+        }
+      }
+    },
+    "Workout In Progress": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento en progreso"
+          }
+        }
+      }
+    },
+    "Resume": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanudar"
+          }
+        }
+      }
+    },
+    "Pause": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar"
+          }
+        }
+      }
+    },
+    "Stop": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detener"
+          }
+        }
+      }
+    },
+    "Choose Next Move": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige el siguiente movimiento"
+          }
+        }
+      }
+    },
+    "You can log a free workout, schedule a session, or continue your active plan.": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puedes registrar libre, programar una sesión o continuar tu plan activo."
+          }
+        }
+      }
+    },
+    "TODAY'S SESSION": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SESIÓN DE HOY"
+          }
+        }
+      }
+    },
+    "NO SESSION FIXED": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SIN SESIÓN FIJADA"
+          }
+        }
+      }
+    },
+    "Free Workout": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenar libre"
+          }
+        }
+      }
+    },
+    "Start": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar"
+          }
+        }
+      }
+    },
+    "1RM": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1RM"
+          }
+        }
+      }
+    },
+    "sessions": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sesiones"
+          }
+        }
+      }
+    },
+    "kg this week": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kg esta semana"
+          }
+        }
+      }
+    },
+    "days in a row": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "días seguidos"
+          }
+        }
+      }
+    },
+    "best estimate": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mejor estimado"
+          }
+        }
+      }
+    },
+    "Today's Insight": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insight de hoy"
+          }
+        }
+      }
+    },
+    "Log Workouts to Activate Insights": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra entrenos para activar insights"
+          }
+        }
+      }
+    },
+    "Complete a session with sets and reps to unlock practical signals.": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completa una sesión con series y repeticiones para desbloquear señales prácticas."
+          }
+        }
+      }
+    },
+    "Last Workout": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Último entreno"
+          }
+        }
+      }
+    },
+    "No Workouts": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin entrenos"
+          }
+        }
+      }
+    },
+    "steps today": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pasos hoy"
+          }
+        }
+      }
+    },
+    "Smart Shortcuts": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accesos de valor"
+          }
+        }
+      }
+    },
+    "charts & insights": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gráficas e insights"
+          }
+        }
+      }
+    },
+    "editable routine": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rutina editable"
+          }
+        }
+      }
+    },
+    "Visual References": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Referencias visuales"
+          }
+        }
+      }
+    },
+    "View All": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver todo"
+          }
+        }
+      }
+    },
+    "Plan, review load, and jump to the correct session": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planifica, revisa carga y salta a la sesión correcta"
+          }
+        }
+      }
+    },
+    "Scheduled": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Programado"
+          }
+        }
+      }
+    },
+    "No activity recorded": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin actividad registrada"
+          }
+        }
+      }
+    },
+    "Schedule a session or start a free workout for this day.": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Programa una sesión o empieza un entreno libre para este día."
+          }
+        }
+      }
+    },
+    "Schedule Session": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Programar sesión"
+          }
+        }
+      }
+    },
+    "The workout will adjust based on your performance.": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El entrenamiento se ajustará en función de tu rendimiento."
+          }
+        }
+      }
+    },
+    "Day 2": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Día 2"
+          }
+        }
+      }
+    },
+    "Day 3": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Día 3"
+          }
+        }
+      }
+    },
+    "Day 4": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Día 4"
+          }
+        }
+      }
+    },
+    "Today's Workout": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento de hoy"
+          }
+        }
+      }
+    },
+    "Preparation": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparación"
+          }
+        }
+      }
+    },
+    "Session Photos": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotos de sesión"
+          }
+        }
+      }
+    },
+    "Audio/Dictation": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio/dictado"
+          }
+        }
+      }
+    },
+    "sets of": {
+      "extractionState": "stale",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "series de"
           }
         }
       }

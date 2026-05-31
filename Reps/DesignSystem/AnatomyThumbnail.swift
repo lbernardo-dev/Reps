@@ -207,15 +207,7 @@ private enum ExerciseAnatomyGroup {
 
 extension UserProfile {
     var muscleMapGender: BodyGender {
-        let value = sex?
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .lowercased() ?? ""
-
-        if value.contains("female") || value.contains("mujer") || value.contains("femenino") {
-            return .female
-        }
-
-        return .male
+        sex == .female ? .female : .male
     }
 }
 

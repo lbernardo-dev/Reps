@@ -35,9 +35,23 @@ struct UserProfile: Codable {
         var id: String { rawValue }
     }
 
+    enum Sex: String, CaseIterable, Codable, Identifiable {
+        case male = "male"
+        case female = "female"
+        case other = "other"
+        var id: String { rawValue }
+    }
+
+    enum ThemeMode: String, CaseIterable, Codable, Identifiable {
+        case dark = "Oscuro"
+        case light = "Claro"
+        case system = "Sistema"
+        var id: String { rawValue }
+    }
+
     var displayName: String?
     var email: String?
-    var sex: String?
+    var sex: Sex?
     var dateOfBirth: Date?
     var avatarImageData: Data?
     var preferredLanguage = "es"
@@ -56,6 +70,11 @@ struct UserProfile: Codable {
     var autoProgressionEnabled = false
     var remindersEnabled = false
     var onboardingCompleted = false
+    var themeMode: ThemeMode?
+    
+    var activeThemeMode: ThemeMode {
+        themeMode ?? .dark
+    }
 }
 
 struct ProgressPhoto: Codable, Identifiable, Hashable {
@@ -215,6 +234,19 @@ struct WorkoutDay: Codable, Identifiable, Hashable {
     var exercises: [WorkoutExercise]
     var sessionType: SessionType = .strength
     var restBetweenExercisesSeconds: Int = 120
+}
+
+extension WorkoutDay {
+    static var freeWorkout: WorkoutDay {
+        WorkoutDay(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID(),
+            title: "Entrenamiento libre",
+            subtitle: "Añade ejercicios durante la sesión",
+            durationMinutes: 45,
+            exercises: [],
+            sessionType: .free
+        )
+    }
 }
 
 struct PlanPlaylist: Codable, Identifiable, Hashable {
@@ -462,3 +494,12 @@ struct HealthSyncState: Codable {
     var message: String?
     var latestDailyMetrics: [DailyHealthMetric] = []
 }
+
+struct ExerciseSessionDraft: Codable, Equatable, Hashable {
+    var workoutExercise: WorkoutExercise
+    var notes: String
+    var voiceNote: String = ""
+    var sets: [SetLog]
+    var mediaAttachments: [WorkoutMediaAttachment] = []
+}
+

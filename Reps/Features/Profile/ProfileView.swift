@@ -31,18 +31,20 @@ struct ProfileView: View {
             ScrollView {
                 VStack(spacing: 18) {
                     HStack {
-                        Text("Perfil")
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
+                        Text(isSpanish ? "Perfil" : "Profile")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
                         Spacer()
-                        Image(systemName: "line.3.horizontal")
-                            .font(.headline)
-                            .frame(width: 44, height: 44)
-                            .foregroundStyle(.primary)
-                            .background(.white)
-                            .clipShape(Circle())
+                        
+                        NavigationLink {
+                            ProfileDetailView()
+                        } label: {
+                            let avatarData = store.userProfile.avatarImageData
+                            AvatarMiniView(imageData: avatarData, size: 40)
+                        }
+                        .buttonStyle(.plain)
                     }
 
-                    profileHeader
                     bodyMetricsCard
                     bodyIndexCard
                     progressPhotoCard
@@ -119,29 +121,7 @@ struct ProfileView: View {
         }
     }
 
-    private var profileHeader: some View {
-        PulseCard {
-            HStack(spacing: 16) {
-                let avatarData = store.userProfile.avatarImageData
-                PhotosPicker(selection: $avatarPickerItem, matching: .images) {
-                    AvatarPickerLabel(imageData: avatarData)
-                }
-                .buttonStyle(.plain)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(store.activePlan.name)
-                        .font(.title3.bold())
-                    Text("\(store.userProfile.mainGoal.displayNameText) · \(store.userProfile.experience.displayNameText)")
-                        .font(.subheadline)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                    Text("\(store.userProfile.weeklyTrainingDays) días de entreno por semana")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.primary)
-                }
-                Spacer()
-            }
-        }
-    }
 
     private var bodyMetricsCard: some View {
         PulseCard {
@@ -367,6 +347,19 @@ struct ProfileView: View {
                 Picker("Distancia", selection: $store.userProfile.distanceUnit) {
                     ForEach(UserProfile.DistanceUnit.allCases) { unit in
                         Text(unit.rawValue).tag(unit)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Picker("Tema", selection: Binding(
+                    get: { store.userProfile.activeThemeMode },
+                    set: { mode in
+                        store.userProfile.themeMode = mode
+                        HapticService.selection()
+                    }
+                )) {
+                    ForEach(UserProfile.ThemeMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -1129,13 +1122,44 @@ struct ProgressPhotoEditorView: View {
     @State private var note = ""
     @State private var photoItem: PhotosPickerItem?
     @State private var imageData: Data?
+    @State private var showCamera = false
+    @State private var showPermissionDenied = false
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Foto") {
-                    PhotosPicker(selection: $photoItem, matching: .images) {
-                        Label("Elegir o cambiar foto", systemImage: "photo")
+                    HStack(spacing: 12) {
+                        if CameraPicker.isAvailable {
+                            Button {
+                                Task {
+                                    let granted = await PermissionService.shared.requestCamera()
+                                    if granted {
+                                        showCamera = true
+                                    } else {
+                                        showPermissionDenied = true
+                                    }
+                                }
+                            } label: {
+                                Label("Tomar foto", systemImage: "camera.fill")
+                            }
+                        } else {
+                            #if targetEnvironment(simulator)
+                            Button {
+                                if let image = UIImage(systemName: "figure.strengthtraining.traditional"),
+                                   let data = image.jpegData(compressionQuality: 0.72) {
+                                    imageData = data
+                                    HapticService.notification(.success)
+                                }
+                            } label: {
+                                Label("Simular foto", systemImage: "camera.badge.ellipsis")
+                            }
+                            #endif
+                        }
+
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Label("Elegir de galería", systemImage: "photo")
+                        }
                     }
                     if let imageData, let image = UIImage(data: imageData) {
                         Image(uiImage: image)
@@ -1167,6 +1191,22 @@ struct ProgressPhotoEditorView: View {
                     Button("Guardar") { save() }
                         .disabled(imageData == nil)
                 }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPicker { image in
+                    if let compressed = image.jpegData(compressionQuality: 0.72) {
+                        imageData = compressed
+                    }
+                }
+                .ignoresSafeArea()
+            }
+            .alert("Permiso necesario", isPresented: $showPermissionDenied) {
+                Button("Abrir Ajustes") {
+                    PermissionService.shared.openSettings()
+                }
+                Button("Cancelar", role: .cancel) {}
+            } message: {
+                Text(PermissionService.shared.deniedMessage ?? "La cámara está bloqueada. Actívala en Ajustes → Reps.")
             }
         }
     }
@@ -1487,7 +1527,7 @@ struct BodyWellnessEditorView: View {
 struct ProPreferencesView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: AppStore
-    private let equipmentOptions = ["Barra", "Mancuernas", "Kettlebell", "Bandas", "Poleas", "Máquinas", "Banco", "Rack", "Dominadas", "Cardio"]
+    private let equipmentOptions = ["Barbell", "Dumbbells", "Kettlebell", "Resistance Band", "Cable", "Machine", "Bench", "Rack", "Pullup Bar", "Cardio Machine"]
 
     var body: some View {
         NavigationStack {
@@ -1503,7 +1543,7 @@ struct ProPreferencesView: View {
 
                 Section("Equipamiento disponible") {
                     ForEach(equipmentOptions, id: \.self) { item in
-                        Toggle(item, isOn: Binding(
+                        Toggle(RepsText.equipment(item, language: store.userProfile.preferredLanguage), isOn: Binding(
                             get: { store.userProfile.availableEquipment.contains(item) },
                             set: { enabled in
                                 if enabled {
@@ -1524,6 +1564,9 @@ struct ProPreferencesView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("OK") { dismiss() }
                 }
+            }
+            .onAppear {
+                store.sanitizeAvailableEquipment()
             }
         }
     }
@@ -1580,4 +1623,30 @@ private func decimal(_ text: String) -> Double? {
     let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
     guard !normalized.isEmpty else { return nil }
     return Double(normalized)
+}
+
+private struct AvatarMiniView: View {
+    let imageData: Data?
+    var size: CGFloat = 76
+
+    var body: some View {
+        Group {
+            if let imageData, let image = UIImage(data: imageData) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                ZStack {
+                    Circle()
+                        .fill(PulseTheme.primary.opacity(0.12))
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: size * 0.58))
+                        .foregroundStyle(PulseTheme.primary)
+                }
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+    }
 }

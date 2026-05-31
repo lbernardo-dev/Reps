@@ -21,7 +21,6 @@ struct ActiveWorkoutView: View {
     @State private var restSeconds = 0
     @State private var finishedSession: WorkoutSession?
     @State private var selectedExerciseIndex = 0
-    @State private var exerciseDrafts: [ExerciseSessionDraft]
     @State private var showAdvancedFields = false
     @State private var lastSetCompletedAtSeconds: Int?
     @State private var hasAppliedProgression = false
@@ -35,6 +34,16 @@ struct ActiveWorkoutView: View {
     @State private var sessionPhotoItems: [PhotosPickerItem] = []
     @State private var exercisePhotoItems: [PhotosPickerItem] = []
     @State private var sessionMediaAttachments: [WorkoutMediaAttachment] = []
+    @State private var showPermissionDenied = false
+    @State private var permissionDeniedMessage = ""
+    @State private var showExerciseNotes = false
+    @State private var showSessionFeedback = false
+    @State private var showProPreferences = false
+
+    private var exerciseDrafts: [ExerciseSessionDraft] {
+        get { store.activeWorkoutDrafts }
+        nonmutating set { store.activeWorkoutDrafts = newValue }
+    }
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let origin: WorkoutSession.Origin
@@ -42,7 +51,6 @@ struct ActiveWorkoutView: View {
     init(workout: WorkoutDay, origin: WorkoutSession.Origin = .routine) {
         self.workout = workout
         self.origin = origin
-        _exerciseDrafts = State(initialValue: Self.makeDrafts(for: workout))
     }
 
     private var completedSets: Int {
@@ -143,6 +151,12 @@ struct ActiveWorkoutView: View {
             applyAutoProgressionIfNeeded()
             if store.activeWorkoutStatus == nil {
                 store.startActiveWorkout(workout, elapsedSeconds: elapsedSeconds, pausedSeconds: pausedSeconds, isPaused: isPaused)
+            } else if store.activeWorkout == nil {
+                store.activeWorkout = workout
+                store.activeWorkoutDrafts = Self.makeDrafts(for: workout)
+            } else if store.activeWorkout?.id != workout.id {
+                store.clearActiveWorkout()
+                store.startActiveWorkout(workout, elapsedSeconds: 0, pausedSeconds: 0, isPaused: false)
             }
             if isRouteCandidate {
                 routeTracker.requestAuthorization()
@@ -170,8 +184,19 @@ struct ActiveWorkoutView: View {
                 replacementExerciseIndex = nil
             }
         }
+        .sheet(isPresented: $showProPreferences) {
+            ProPreferencesView()
+        }
         .sensoryFeedback(.success, trigger: completedSets)
         .mainTabBarHidden()
+        .alert("Permiso necesario", isPresented: $showPermissionDenied) {
+            Button("Abrir Ajustes") {
+                PermissionService.shared.openSettings()
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text(permissionDeniedMessage)
+        }
         .onDisappear {
             routeTracker.stop()
             _ = audioRecorder.stopRecording(note: nil)
@@ -221,33 +246,24 @@ struct ActiveWorkoutView: View {
     }
 
     private var workoutHeader: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Button {
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.title3.weight(.bold))
-                    .frame(width: 48, height: 48)
+                    .font(.body.weight(.bold))
+                    .frame(width: 44, height: 44)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .background(PulseTheme.grouped)
                     .clipShape(Circle())
             }
             .accessibilityLabel("Volver")
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(RepsText.workoutTitle(workout.title, language: store.userProfile.preferredLanguage))
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.72)
-                Label(timeString(elapsedSeconds), systemImage: "timer")
-                    .font(.title2.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(PulseTheme.secondaryText)
-                Text("Añadir nota del entrenamiento")
-                    .font(.headline)
-                    .foregroundStyle(PulseTheme.tertiaryText)
-            }
-
-            Spacer(minLength: 4)
+            Text(RepsText.workoutTitle(workout.title, language: store.userProfile.preferredLanguage))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
                 withAnimation(.snappy(duration: 0.2)) {
@@ -255,11 +271,17 @@ struct ActiveWorkoutView: View {
                 }
             } label: {
                 Image(systemName: isPaused ? "play.fill" : "pause.fill")
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(isPaused ? PulseTheme.primary : .white)
+                    .font(.body.weight(.bold))
                     .frame(width: 44, height: 44)
-                    .background(isPaused ? PulseTheme.primary.opacity(0.12) : PulseTheme.warning)
+                    .foregroundStyle(isPaused ? PulseTheme.primary : PulseTheme.warning)
+                    .background(isPaused ? PulseTheme.primary.opacity(0.12) : PulseTheme.warning.opacity(0.15))
                     .clipShape(Circle())
+                    .overlay(
+                        Circle().stroke(
+                            isPaused ? PulseTheme.primary.opacity(0.3) : PulseTheme.warning.opacity(0.4),
+                            lineWidth: 1.5
+                        )
+                    )
             }
             .accessibilityLabel(isPaused ? "Reanudar entrenamiento" : "Pausar entrenamiento")
 
@@ -269,9 +291,9 @@ struct ActiveWorkoutView: View {
                 Text("Finalizar")
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(.white)
-                    .frame(width: 84, height: 44)
+                    .frame(width: 90, height: 44)
                     .background(PulseTheme.destructive)
-                    .clipShape(Capsule())
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
         }
         .padding(.top, 2)
@@ -289,13 +311,26 @@ struct ActiveWorkoutView: View {
         }
         let allSets = exerciseDrafts.flatMap(\.sets)
         let sessionAttachments = sessionMediaAttachments + voiceAttachments(from: sessionVoiceNote)
+        let sessionLocation: WorkoutSession.Location
+        if origin == .free {
+            switch store.userProfile.trainingLocation {
+            case .home: sessionLocation = .home
+            default: sessionLocation = .gym
+            }
+        } else {
+            switch store.activePlan.location {
+            case .home: sessionLocation = .home
+            default: sessionLocation = .gym
+            }
+        }
+
         let session = WorkoutSession(
             workoutTitle: workout.title,
             date: .now,
             startedAt: Date().addingTimeInterval(TimeInterval(-elapsedSeconds)),
             endedAt: .now,
             origin: origin,
-            location: workout.subtitle.localizedCaseInsensitiveContains("home") ? .home : .gym,
+            location: sessionLocation,
             contextTag: .normal,
             durationMinutes: max(elapsedSeconds / 60, 1),
             sets: allSets,
@@ -325,48 +360,105 @@ struct ActiveWorkoutView: View {
 
     private var sessionProgressCard: some View {
         PulseCard {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                        Text(isPaused ? "SESIÓN PAUSADA" : "SESIÓN ACTIVA")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(PulseTheme.primary)
-                        Text("\(completedSets) de \(totalSets) series")
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
-                            .monospacedDigit()
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Label(timeString(elapsedSeconds), systemImage: "timer")
-                            .font(.headline.monospacedDigit())
-                        if pausedSeconds > 0 {
-                            Text("Pausa \(timeString(pausedSeconds))")
-                                .font(.caption.monospacedDigit())
+            VStack(spacing: 16) {
+                HStack(alignment: .center, spacing: 16) {
+                    // Circular progress ring
+                    ZStack {
+                        Circle()
+                            .stroke(PulseTheme.grouped, lineWidth: 6)
+                        Circle()
+                            .trim(from: 0, to: setCompletion)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [PulseTheme.primary, PulseTheme.primaryBright],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                            .animation(.snappy(duration: 0.35), value: setCompletion)
+                        VStack(spacing: 0) {
+                            Text("\(completedSets)")
+                                .font(.system(size: 20, weight: .black, design: .rounded).monospacedDigit())
+                                .foregroundStyle(PulseTheme.primaryBright)
+                            Text("/\(totalSets)")
+                                .font(.caption2.weight(.bold).monospacedDigit())
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
-                        Text("\(totalVolume) kg volumen")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
                     }
+                    .frame(width: 68, height: 68)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(isPaused ? "SESIÓN PAUSADA" : "SESIÓN ACTIVA")
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .tracking(1.6)
+                            .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.primary)
+                        Text(timeString(elapsedSeconds))
+                            .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
+                        HStack(spacing: 6) {
+                            Text("\(totalVolume) kg volumen")
+                            if pausedSeconds > 0 {
+                                Text("· pausa \(timeString(pausedSeconds))")
+                            }
+                        }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    Spacer()
                 }
 
-                ProgressView(value: setCompletion)
-                    .tint(PulseTheme.primaryBright)
-                    .scaleEffect(x: 1, y: 1.2, anchor: .center)
-                    .animation(.snappy(duration: 0.25), value: setCompletion)
+                // Thicker gradient progress bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(PulseTheme.grouped)
+                            .frame(height: 8)
+                        Capsule()
+                            .fill(LinearGradient(
+                                colors: [PulseTheme.primary, PulseTheme.primaryBright],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ))
+                            .frame(width: max(geo.size.width * setCompletion, setCompletion > 0 ? 16 : 0), height: 8)
+                            .animation(.snappy(duration: 0.35), value: setCompletion)
+                    }
+                }
+                .frame(height: 8)
 
+                // CTA with gradient + bounce feedback
                 Button {
                     completeNextAvailableSet()
-                } label: {
-                    Label(nextLoggingTitle, systemImage: "checkmark.circle.fill")
-                        .font(.headline)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.72)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .foregroundStyle(.white)
-                        .background(PulseTheme.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                 } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: completedSets == totalSets ? "checkmark.circle.fill" : "arrow.right.circle.fill")
+                            .font(.title3.weight(.bold))
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(completedSets == totalSets ? "Completado" : "Siguiente serie")
+                                .font(.headline.weight(.bold))
+                            if completedSets < totalSets {
+                                Text(nextLoggingTitle)
+                                    .font(.caption.weight(.semibold))
+                                    .opacity(0.78)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.68)
+                            }
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 18)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .foregroundStyle(.white)
+                    .background(
+                        LinearGradient(
+                            colors: [PulseTheme.primary, PulseTheme.primaryBright],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    .shadow(color: PulseTheme.primary.opacity(0.35), radius: 8, x: 0, y: 4)
                 }
                 .disabled(completedSets == totalSets)
                 .opacity(completedSets == totalSets ? 0.55 : 1)
@@ -379,6 +471,11 @@ struct ActiveWorkoutView: View {
             HStack(spacing: 10) {
                 ForEach(exerciseDrafts.indices, id: \.self) { index in
                     let draft = exerciseDrafts[index]
+                    let isActive = selectedExerciseIndex == index
+                    let completedCount = draft.sets.filter(\.completed).count
+                    let totalCount = draft.sets.count
+                    let ratio: Double = totalCount > 0 ? Double(completedCount) / Double(totalCount) : 0
+
                     Button {
                         withAnimation(.snappy(duration: 0.22)) {
                             selectedExerciseIndex = index
@@ -390,73 +487,145 @@ struct ActiveWorkoutView: View {
                                 gender: store.userProfile.muscleMapGender,
                                 fallbackSize: .caption.weight(.bold)
                             )
-                                .frame(width: 42, height: 42)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            VStack(alignment: .leading, spacing: 4) {
+                            .frame(width: 40, height: 40)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .overlay(alignment: .topTrailing) {
+                                ZStack {
+                                    Circle()
+                                        .fill(isActive ? PulseTheme.primary : PulseTheme.card)
+                                        .frame(width: 18, height: 18)
+                                    Circle()
+                                        .trim(from: 0, to: ratio)
+                                        .stroke(PulseTheme.primaryBright, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                                        .rotationEffect(.degrees(-90))
+                                        .frame(width: 14, height: 14)
+                                }
+                                .offset(x: 6, y: -6)
+                            }
+
+                            VStack(alignment: .leading, spacing: 3) {
                                 Text("\(index + 1). \(RepsText.exerciseName(draft.workoutExercise.exercise.name, language: store.userProfile.preferredLanguage))")
                                     .font(.subheadline.weight(.bold))
                                     .lineLimit(1)
-                                    .minimumScaleFactor(0.72)
-                                Text("\(draft.sets.filter(\.completed).count)/\(draft.sets.count) series")
-                                    .font(.caption)
+                                    .minimumScaleFactor(0.68)
+                                Text("\(completedCount)/\(totalCount) series")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(isActive ? .white.opacity(0.75) : PulseTheme.secondaryText)
                             }
                         }
-                        .foregroundStyle(selectedExerciseIndex == index ? .white : .primary)
+                        .foregroundStyle(isActive ? .white : .primary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 10)
-                        .frame(width: 190, alignment: .leading)
-                        .background(selectedExerciseIndex == index ? PulseTheme.primary : PulseTheme.card)
+                        .frame(width: 180, alignment: .leading)
+                        .background(isActive ? PulseTheme.primary : PulseTheme.card)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                                .stroke(isActive ? PulseTheme.primaryBright.opacity(0.6) : Color.white.opacity(0.04), lineWidth: 1.5)
+                        )
+                        .shadow(color: isActive ? PulseTheme.primary.opacity(0.3) : .clear, radius: 8, x: 0, y: 4)
                     }
                     .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 2)
+            .padding(.vertical, 4)
         }
     }
 
     private var restCard: some View {
         PulseCard {
-            HStack(spacing: 18) {
-                Image(systemName: "hourglass")
-                    .font(.title2)
-                    .foregroundStyle(.white)
-                    .frame(width: 50, height: 50)
-                    .background(lastSetCompletedAtSeconds == nil ? PulseTheme.secondaryText : (restSeconds == 0 ? PulseTheme.primary : PulseTheme.accent))
-                    .clipShape(Circle())
-                VStack(alignment: .leading) {
-                    Text(currentRestLabel)
-                        .font(.headline.weight(.bold))
-                        .lineLimit(2)
-                    if lastSetCompletedAtSeconds == nil {
-                        Text("Empieza al completar una serie")
-                            .font(.caption.weight(.semibold))
+            if lastSetCompletedAtSeconds == nil {
+                // Inactive — compact placeholder
+                HStack(spacing: 14) {
+                    Image(systemName: "hourglass")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(PulseTheme.tertiaryText)
+                        .frame(width: 44, height: 44)
+                        .background(PulseTheme.grouped)
+                        .clipShape(Circle())
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Descanso")
+                            .font(.headline.weight(.bold))
+                        Text("Completa una serie para activar")
+                            .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
-                    } else {
-                        Text(timeString(restSeconds))
-                            .font(.system(size: 24, weight: .bold, design: .rounded).monospacedDigit())
-                            .foregroundStyle(restSeconds == 0 ? PulseTheme.primary : PulseTheme.accent)
                     }
+                    Spacer()
                 }
-                Spacer()
-                VStack(spacing: 8) {
-                    Button(restSeconds == 0 ? "Reiniciar" : "Saltar") {
-                        restSeconds = restSeconds == 0 ? currentRestDuration : 0
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(PulseTheme.grouped)
-                    .clipShape(Capsule())
-                    .disabled(lastSetCompletedAtSeconds == nil)
-                    .opacity(lastSetCompletedAtSeconds == nil ? 0.45 : 1)
-                    .accessibilityLabel(restSeconds == 0 ? "Reiniciar descanso" : "Saltar descanso")
+            } else {
+                // Active countdown ring
+                let restProgress: Double = currentRestDuration > 0 ? Double(restSeconds) / Double(currentRestDuration) : 0
+                let ringColor: Color = restSeconds > 30 ? PulseTheme.primaryBright : (restSeconds > 0 ? PulseTheme.warning : Color.red)
 
-                    Stepper("", value: $restSeconds, in: 0...600, step: 15)
-                        .labelsHidden()
-                        .tint(PulseTheme.accent)
-                        .disabled(lastSetCompletedAtSeconds == nil)
-                        .opacity(lastSetCompletedAtSeconds == nil ? 0.45 : 1)
+                HStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .stroke(PulseTheme.grouped, lineWidth: 7)
+                        Circle()
+                            .trim(from: 0, to: restProgress)
+                            .stroke(ringColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .animation(.linear(duration: 1), value: restSeconds)
+                        VStack(spacing: 1) {
+                            Text(timeString(restSeconds))
+                                .font(.system(size: 18, weight: .black, design: .rounded).monospacedDigit())
+                                .foregroundStyle(ringColor)
+                                .animation(.none, value: restSeconds)
+                            Text(restSeconds == 0 ? "¡Listo!" : "desc.")
+                                .font(.system(size: 9, weight: .bold, design: .rounded))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+                    .frame(width: 78, height: 78)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(restSeconds == 0 ? "Listo para continuar" : "Descansando")
+                            .font(.headline.weight(.bold))
+
+                        HStack(spacing: 8) {
+                            Button {
+                                withAnimation(.snappy(duration: 0.18)) {
+                                    restSeconds = max(0, restSeconds - 15)
+                                }
+                            } label: {
+                                Text("−15s")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 38)
+                                    .foregroundStyle(PulseTheme.primary)
+                                    .background(PulseTheme.primary.opacity(0.10))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+                            .accessibilityLabel("Reducir descanso 15 segundos")
+
+                            Button {
+                                withAnimation(.snappy(duration: 0.18)) {
+                                    restSeconds = min(600, restSeconds + 15)
+                                }
+                            } label: {
+                                Text("+15s")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 38)
+                                    .foregroundStyle(PulseTheme.primary)
+                                    .background(PulseTheme.primary.opacity(0.10))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+                            .accessibilityLabel("Ampliar descanso 15 segundos")
+
+                            Button(restSeconds == 0 ? "Reiniciar" : "Saltar") {
+                                restSeconds = restSeconds == 0 ? currentRestDuration : 0
+                            }
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .background(PulseTheme.grouped)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .accessibilityLabel(restSeconds == 0 ? "Reiniciar descanso" : "Saltar descanso")
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
         }
@@ -623,15 +792,6 @@ struct ActiveWorkoutView: View {
                     ExerciseBookmarkStrip(bookmarks: selectedMediaBookmarks)
                 }
 
-                HStack {
-                    Text("Serie").frame(width: 42, alignment: .leading)
-                    Text("Peso").frame(maxWidth: .infinity)
-                    Text("Reps").frame(maxWidth: .infinity)
-                    Image(systemName: "checkmark").frame(width: 48)
-                }
-                .font(.subheadline)
-                .foregroundStyle(PulseTheme.secondaryText)
-
                 if exerciseDrafts.indices.contains(selectedExerciseIndex) {
                     ForEach(exerciseDrafts[selectedExerciseIndex].sets.indices, id: \.self) { setIndex in
                         SetRow(set: Binding(
@@ -644,104 +804,124 @@ struct ActiveWorkoutView: View {
                     }
                 }
 
-                DisclosureGroup(isExpanded: $showAdvancedFields) {
-                    if exerciseDrafts.indices.contains(selectedExerciseIndex) {
-                        VStack(spacing: 10) {
-                            ForEach(exerciseDrafts[selectedExerciseIndex].sets.indices, id: \.self) { setIndex in
-                                AdvancedSetFields(set: Binding(
-                                    get: { exerciseDrafts[selectedExerciseIndex].sets[setIndex] },
-                                    set: { exerciseDrafts[selectedExerciseIndex].sets[setIndex] = $0 }
-                                ), showSetType: store.userProfile.showSetType, showRPE: store.userProfile.showRPE, showRIR: store.userProfile.showRIR, showTempo: store.userProfile.showTempo)
-                            }
-                        }
-                        .padding(.top, 8)
-                    }
-                } label: {
-                    Label("Campos Pro", systemImage: "slider.horizontal.3")
-                        .font(.headline)
-                        .foregroundStyle(PulseTheme.primary)
-                }
-                .opacity(hasVisibleAdvancedFields ? 1 : 0.55)
-                .disabled(!hasVisibleAdvancedFields)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Notas", systemImage: "note.text")
-                        .font(.headline)
-                    TextField("Sensaciones del ejercicio", text: Binding(
-                        get: { selectedDraft?.notes ?? "" },
-                        set: { newValue in
-                            guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return }
-                            exerciseDrafts[selectedExerciseIndex].notes = newValue
-                        }
-                    ), axis: .vertical)
-                        .lineLimit(2...4)
-                        .padding(12)
-                        .background(PulseTheme.grouped)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                    TextField("Dictado o nota de audio", text: Binding(
-                        get: { selectedDraft?.voiceNote ?? "" },
-                        set: { newValue in
-                            guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return }
-                            exerciseDrafts[selectedExerciseIndex].voiceNote = newValue
-                        }
-                    ), axis: .vertical)
-                        .lineLimit(1...3)
-                        .padding(12)
-                        .background(PulseTheme.grouped)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                    HStack(spacing: 10) {
-                        Button {
-                            if audioRecorder.isRecording {
-                                if let attachment = audioRecorder.stopRecording(note: selectedDraft?.voiceNote) {
-                                    exerciseDrafts[selectedExerciseIndex].mediaAttachments.append(attachment)
+                if hasVisibleAdvancedFields {
+                    DisclosureGroup(isExpanded: $showAdvancedFields) {
+                        if exerciseDrafts.indices.contains(selectedExerciseIndex) {
+                            VStack(spacing: 10) {
+                                ForEach(exerciseDrafts[selectedExerciseIndex].sets.indices, id: \.self) { setIndex in
+                                    AdvancedSetFields(set: Binding(
+                                        get: { exerciseDrafts[selectedExerciseIndex].sets[setIndex] },
+                                        set: { exerciseDrafts[selectedExerciseIndex].sets[setIndex] = $0 }
+                                    ), showSetType: store.userProfile.showSetType, showRPE: store.userProfile.showRPE, showRIR: store.userProfile.showRIR, showTempo: store.userProfile.showTempo)
                                 }
-                            } else {
-                                audioRecorder.startRecording()
                             }
-                        } label: {
-                            Label(audioRecorder.isRecording ? "Guardar audio" : "Grabar audio", systemImage: audioRecorder.isRecording ? "stop.fill" : "mic.fill")
-                                .font(.subheadline.weight(.bold))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 46)
-                                .foregroundStyle(audioRecorder.isRecording ? .white : PulseTheme.primary)
-                                .background(audioRecorder.isRecording ? Color.red : PulseTheme.primary.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            .padding(.top, 8)
                         }
-
-                        if audioRecorder.isRecording {
-                            Text(timeString(Int(audioRecorder.elapsedSeconds)))
-                                .font(.subheadline.monospacedDigit().weight(.bold))
-                                .foregroundStyle(.red)
-                                .frame(width: 72, height: 46)
-                                .background(Color.red.opacity(0.10))
-                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                        }
+                    } label: {
+                        Label("Campos Pro", systemImage: "slider.horizontal.3")
+                            .font(.headline)
+                            .foregroundStyle(PulseTheme.primary)
                     }
-
-                    HStack(spacing: 10) {
-                        PhotosPicker(selection: $exercisePhotoItems, maxSelectionCount: 6, matching: .images) {
-                            Label("Fotos del ejercicio", systemImage: "camera.fill")
-                                .font(.subheadline.weight(.bold))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 46)
+                } else {
+                    Button {
+                        showProPreferences = true
+                    } label: {
+                        HStack {
+                            Label("Campos Pro", systemImage: "slider.horizontal.3")
+                                .font(.headline)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Spacer()
+                            Text("Activar")
+                                .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(PulseTheme.primary)
-                                .background(PulseTheme.primary.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(PulseTheme.secondaryText)
                         }
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                }
 
-                        Label("\(selectedDraft?.mediaAttachments.filter { $0.kind == .image }.count ?? 0)", systemImage: "photo.on.rectangle")
-                            .font(.subheadline.weight(.bold))
-                            .frame(width: 72, height: 46)
-                            .foregroundStyle(PulseTheme.secondaryText)
+                DisclosureGroup(isExpanded: $showExerciseNotes) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        TextField("Sensaciones del ejercicio", text: Binding(
+                            get: { selectedDraft?.notes ?? "" },
+                            set: { newValue in
+                                guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return }
+                                exerciseDrafts[selectedExerciseIndex].notes = newValue
+                            }
+                        ), axis: .vertical)
+                            .lineLimit(2...4)
+                            .padding(12)
                             .background(PulseTheme.grouped)
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
 
-                    if let attachments = selectedDraft?.mediaAttachments, !attachments.isEmpty {
-                        AttachmentPreviewStrip(attachments: attachments)
+                        HStack(spacing: 10) {
+                            Button {
+                                Task {
+                                    if audioRecorder.isRecording {
+                                        if let attachment = audioRecorder.stopRecording(note: selectedDraft?.voiceNote) {
+                                            exerciseDrafts[selectedExerciseIndex].mediaAttachments.append(attachment)
+                                        }
+                                    } else {
+                                        let granted = await PermissionService.shared.requestMicrophone()
+                                        if granted {
+                                            audioRecorder.startRecording()
+                                        } else {
+                                            permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actiúva en Ajustes → Reps."
+                                            showPermissionDenied = true
+                                        }
+                                    }
+                                }
+                            } label: {
+                                Label(audioRecorder.isRecording ? "Guardar audio" : "Grabar audio", systemImage: audioRecorder.isRecording ? "stop.fill" : "mic.fill")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 46)
+                                    .foregroundStyle(audioRecorder.isRecording ? .white : PulseTheme.primary)
+                                    .background(audioRecorder.isRecording ? Color.red : PulseTheme.primary.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            }
+
+                            if audioRecorder.isRecording {
+                                Text(timeString(Int(audioRecorder.elapsedSeconds)))
+                                    .font(.subheadline.monospacedDigit().weight(.bold))
+                                    .foregroundStyle(.red)
+                                    .frame(width: 72, height: 46)
+                                    .background(Color.red.opacity(0.10))
+                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            }
+
+                            MediaSourceMenu(
+                                maxSelectionCount: 6,
+                                photoPickerItems: $exercisePhotoItems,
+                                onCameraCapture: { image in
+                                    guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+                                          let data = image.jpegData(compressionQuality: 0.82) else { return }
+                                    exerciseDrafts[selectedExerciseIndex].mediaAttachments.append(
+                                        WorkoutMediaAttachment(kind: .image, data: data)
+                                    )
+                                }
+                            ) {
+                                Image(systemName: "camera.fill")
+                                    .font(.headline)
+                                    .frame(width: 46, height: 46)
+                                    .foregroundStyle(PulseTheme.primary)
+                                    .background(PulseTheme.primary.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            }
+                        }
+
+                        if let attachments = selectedDraft?.mediaAttachments, !attachments.isEmpty {
+                            AttachmentPreviewStrip(attachments: attachments)
+                        }
                     }
+                    .padding(.top, 10)
+                } label: {
+                    Label("Notas y media", systemImage: "note.text")
+                        .font(.headline)
+                        .foregroundStyle(PulseTheme.primary)
                 }
 
                 Button {
@@ -821,84 +1001,118 @@ struct ActiveWorkoutView: View {
 
     private var sessionFeedbackCard: some View {
         PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                Label("Cierre de sesión", systemImage: "waveform.path.ecg")
-                    .font(.headline)
-
-                HStack(spacing: 10) {
-                    InlineStepper(
-                        value: $sessionRPE,
-                        range: 1...10,
-                        step: 0.5,
-                        formatter: { "RPE \(String(format: "%.1f", $0))" }
-                    )
-                    InlineStepper(
-                        value: $energyBefore,
-                        range: 1...5,
-                        step: 1,
-                        formatter: { "Antes \(Int($0))/5" }
-                    )
-                }
-
-                InlineStepper(
-                    value: $energyAfter,
-                    range: 1...5,
-                    step: 1,
-                    formatter: { "Después \(Int($0))/5" }
-                )
-
-                TextField("Notas globales, molestias o contexto", text: $sessionNotes, axis: .vertical)
-                    .lineLimit(2...4)
-                    .padding(12)
-                    .background(PulseTheme.grouped)
-                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                TextField("Dictado o nota de audio de la sesión", text: $sessionVoiceNote, axis: .vertical)
-                    .lineLimit(1...3)
-                    .padding(12)
-                    .background(PulseTheme.grouped)
-                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                Button {
-                    if audioRecorder.isRecording {
-                        if let attachment = audioRecorder.stopRecording(note: sessionVoiceNote) {
-                            sessionMediaAttachments.append(attachment)
+            DisclosureGroup(isExpanded: $showSessionFeedback) {
+                VStack(alignment: .leading, spacing: 14) {
+                    // Spacious vertical list for RPE + energy
+                    VStack(spacing: 18) {
+                        HStack {
+                            Label("Esfuerzo (RPE)", systemImage: "flame.fill")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Spacer()
+                            InlineStepper(
+                                value: $sessionRPE,
+                                range: 1...10,
+                                step: 0.5,
+                                formatter: { String(format: "%.1f", $0) }
+                            )
+                            .frame(width: 156)
                         }
-                    } else {
-                        audioRecorder.startRecording()
-                    }
-                } label: {
-                    Label(audioRecorder.isRecording ? "Guardar nota de audio" : "Grabar nota de audio", systemImage: audioRecorder.isRecording ? "stop.fill" : "mic.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .foregroundStyle(audioRecorder.isRecording ? .white : PulseTheme.primary)
-                        .background(audioRecorder.isRecording ? Color.red : PulseTheme.primary.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
 
-                HStack(spacing: 10) {
-                    PhotosPicker(selection: $sessionPhotoItems, maxSelectionCount: 8, matching: .images) {
-                        Label("Añadir fotos", systemImage: "photo.badge.plus")
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .foregroundStyle(PulseTheme.primary)
-                            .background(PulseTheme.primary.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
+                        Divider()
 
-                    Label("\(sessionMediaAttachments.filter { $0.kind == .image }.count)", systemImage: "camera.metering.matrix")
-                        .font(.subheadline.weight(.bold))
-                        .frame(width: 72, height: 46)
-                        .foregroundStyle(PulseTheme.secondaryText)
+                        HStack {
+                            Label("Energía antes", systemImage: "battery.50")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Spacer()
+                            InlineStepper(
+                                value: $energyBefore,
+                                range: 1...5,
+                                step: 1,
+                                formatter: { "\(Int($0))/5" }
+                            )
+                            .frame(width: 156)
+                        }
+
+                        Divider()
+
+                        HStack {
+                            Label("Energía después", systemImage: "battery.100")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Spacer()
+                            InlineStepper(
+                                value: $energyAfter,
+                                range: 1...5,
+                                step: 1,
+                                formatter: { "\(Int($0))/5" }
+                            )
+                            .frame(width: 156)
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    TextField("Notas globales, molestias o contexto", text: $sessionNotes, axis: .vertical)
+                        .lineLimit(2...4)
+                        .padding(12)
                         .background(PulseTheme.grouped)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
 
-                if !sessionMediaAttachments.isEmpty {
-                    AttachmentPreviewStrip(attachments: sessionMediaAttachments)
+                    HStack(spacing: 10) {
+                        Button {
+                            Task {
+                                if audioRecorder.isRecording {
+                                    if let attachment = audioRecorder.stopRecording(note: sessionVoiceNote) {
+                                        sessionMediaAttachments.append(attachment)
+                                    }
+                                } else {
+                                    let granted = await PermissionService.shared.requestMicrophone()
+                                    if granted {
+                                        audioRecorder.startRecording()
+                                    } else {
+                                        permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actiúva en Ajustes → Reps."
+                                        showPermissionDenied = true
+                                    }
+                                }
+                            }
+                        } label: {
+                            Label(audioRecorder.isRecording ? "Guardar nota de audio" : "Grabar nota de audio", systemImage: audioRecorder.isRecording ? "stop.fill" : "mic.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .foregroundStyle(audioRecorder.isRecording ? .white : PulseTheme.primary)
+                                .background(audioRecorder.isRecording ? Color.red : PulseTheme.primary.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+
+                        MediaSourceMenu(
+                            maxSelectionCount: 8,
+                            photoPickerItems: $sessionPhotoItems,
+                            onCameraCapture: { image in
+                                guard let data = image.jpegData(compressionQuality: 0.82) else { return }
+                                sessionMediaAttachments.append(
+                                    WorkoutMediaAttachment(kind: .image, data: data)
+                                )
+                            }
+                        ) {
+                            Label("\(sessionMediaAttachments.filter { $0.kind == .image }.count)", systemImage: "photo.badge.plus")
+                                .font(.headline)
+                                .frame(width: 72, height: 48)
+                                .foregroundStyle(PulseTheme.primary)
+                                .background(PulseTheme.primary.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                    }
+
+                    if !sessionMediaAttachments.isEmpty {
+                        AttachmentPreviewStrip(attachments: sessionMediaAttachments)
+                    }
                 }
+                .padding(.top, 12)
+            } label: {
+                Label("Cierre de sesión", systemImage: "waveform.path.ecg")
+                    .font(.headline)
             }
         }
     }
@@ -1278,14 +1492,6 @@ struct ActiveWorkoutView: View {
         let digits = repRange.split { !$0.isNumber }.compactMap { Int($0) }
         return digits.first ?? 8
     }
-}
-
-private struct ExerciseSessionDraft {
-    var workoutExercise: WorkoutExercise
-    var notes: String
-    var voiceNote: String = ""
-    var sets: [SetLog]
-    var mediaAttachments: [WorkoutMediaAttachment] = []
 }
 
 private struct ExerciseReplacementTarget: Identifiable {
@@ -1781,12 +1987,8 @@ private final class WorkoutAudioRecorder: NSObject, ObservableObject, AVAudioRec
     private var timer: Timer?
 
     func startRecording() {
-        AVAudioApplication.requestRecordPermission { [weak self] allowed in
-            guard allowed else { return }
-            Task { @MainActor in
-                self?.beginRecording()
-            }
-        }
+        // Permission is already checked by callers via PermissionService.
+        beginRecording()
     }
 
     func stopRecording(note: String?) -> WorkoutMediaAttachment? {
@@ -1948,34 +2150,69 @@ private struct WorkoutSummaryView: View {
     let session: WorkoutSession
     let onDone: () -> Void
 
+    @State private var isShowingShareSheet = false
+    @State private var generatedImage: UIImage?
+    @State private var isImageSaved = false
+
     private var completedSets: [SetLog] {
         FitnessMetrics.completedSets(in: session)
     }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Entreno completado")
-                            .font(.title.bold())
-                        Text(session.workoutTitle)
-                            .font(.headline)
-                            .foregroundStyle(PulseTheme.secondaryText)
+            VStack(spacing: 20) {
+                // Retro Thermal Receipt Card
+                WorkoutReceiptView(session: session)
+                    .padding(.horizontal, 4)
+                
+                // Share and Save Buttons (High Contrast Premium styling)
+                HStack(spacing: 12) {
+                    Button {
+                        generatedImage = WorkoutShareImageRenderer.render(session: session)
+                        isShowingShareSheet = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("Compartir")
+                        }
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(PulseTheme.primaryBright)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        let img = WorkoutShareImageRenderer.render(session: session)
+                        UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil)
+                        withAnimation {
+                            isImageSaved = true
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            isImageSaved = false
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: isImageSaved ? "checkmark" : "square.and.arrow.down")
+                            Text(isImageSaved ? "Guardado" : "Guardar Foto")
+                        }
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
                 }
-
-                HStack(spacing: 14) {
-                    MetricCard(title: "Duración", value: "\(session.durationMinutes)", subtitle: "minutos", systemImage: "timer")
-                    MetricCard(title: "Series", value: "\(completedSets.count)", subtitle: "completadas", systemImage: "checkmark.circle")
-                }
-
+                .padding(.horizontal, 4)
+                
+                // Additional standard information cards below
                 PulseCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Volumen").font(.headline)
-                        Text("\(Int(FitnessMetrics.totalVolumeKg(for: [session]))) kg")
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
-                            .foregroundStyle(PulseTheme.primary)
+                        Text("Detalles adicionales").font(.headline)
                         if !session.mediaAttachments.isEmpty {
                             AttachmentPreviewStrip(attachments: session.mediaAttachments)
                         }
@@ -1983,37 +2220,38 @@ private struct WorkoutSummaryView: View {
                             Divider()
                             Text(notes)
                                 .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                    }
-                }
-
-                if let logs = session.exerciseLogs, logs.contains(where: { !$0.mediaAttachments.isEmpty }) {
-                    PulseCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Evidencia por ejercicio")
-                                .font(.headline)
-                            ForEach(logs.filter { !$0.mediaAttachments.isEmpty }) { log in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(log.exercise.name)
-                                        .font(.subheadline.weight(.bold))
-                                    AttachmentPreviewStrip(attachments: log.mediaAttachments)
-                                }
-                            }
+                        } else {
+                            Text("Sin notas de entrenamiento adicionales.")
+                                .font(.subheadline)
+                                .foregroundStyle(PulseTheme.tertiaryText)
                         }
                     }
                 }
             }
             .padding(16)
-            .padding(.bottom, 80)
+            .padding(.bottom, 24)
         }
         .screenBackground()
-        .safeAreaInset(edge: .bottom) {
-            PrimaryButton("Listo") {
+        .overlay(alignment: .topTrailing) {
+            Button {
                 onDone()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .frame(width: 32, height: 32)
+                    .background(PulseTheme.elevated)
+                    .clipShape(Circle())
             }
-            .padding(20)
-            .padding(.bottom, 8)
-            .background(.ultraThinMaterial)
+            .buttonStyle(.plain)
+            .padding(.top, 14)
+            .padding(.trailing, 16)
+            .accessibilityLabel("Cerrar resumen")
+        }
+        .sheet(isPresented: $isShowingShareSheet) {
+            if let image = generatedImage {
+                ActivityViewController(activityItems: [image])
+            }
         }
     }
 }
@@ -2023,53 +2261,93 @@ private struct SetRow: View {
     let onCompletionChanged: (Bool) -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text("\(set.setNumber)")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(set.completed ? .black : PulseTheme.secondaryText)
-                .frame(width: 34, height: 34)
-                .background(set.completed ? PulseTheme.primaryBright : PulseTheme.elevated)
-                .clipShape(Circle())
-
-            InlineStepper(
-                value: $set.weightKg,
-                range: 0...400,
-                step: 2.5,
-                formatter: { String(format: "%.1f", $0) }
-            )
-            .frame(minWidth: 0, maxWidth: .infinity)
-
-            InlineStepper(
-                value: Binding(
-                    get: { Double(set.reps) },
-                    set: { set.reps = Int($0) }
-                ),
-                range: 0...100,
-                step: 1,
-                formatter: { String(Int($0)) }
-            )
-            .frame(minWidth: 0, maxWidth: .infinity)
-
-            Button {
-                withAnimation(.snappy(duration: 0.22)) {
-                    set.completed.toggle()
-                    onCompletionChanged(set.completed)
-                }
-            } label: {
-                Image(systemName: set.isPersonalRecord ? "trophy.fill" : (set.completed ? "checkmark.circle.fill" : "circle"))
-                    .font(.headline.weight(.bold))
+        VStack(spacing: 0) {
+            // Row 1 — set number + column labels + completion button
+            HStack(spacing: 8) {
+                // Set number badge
+                Text("\(set.setNumber)")
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(set.completed ? .black : PulseTheme.secondaryText)
-                    .frame(width: 40, height: 40)
-                    .background(set.isPersonalRecord ? PulseTheme.accent : (set.completed ? PulseTheme.primaryBright : PulseTheme.elevated))
+                    .frame(width: 32, height: 32)
+                    .background(set.completed ? PulseTheme.primaryBright : PulseTheme.elevated)
                     .clipShape(Circle())
+                    .scaleEffect(set.completed ? 1.08 : 1.0)
+                    .animation(.spring(response: 0.25), value: set.completed)
+
+                // Column labels
+                Text("Peso kg")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .frame(maxWidth: .infinity)
+
+                Text("Reps")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .frame(maxWidth: .infinity)
+
+                // Spacer to align with checkmark below
+                Color.clear.frame(width: 44, height: 1)
             }
-            .accessibilityLabel(set.completed ? "Marcar serie \(set.setNumber) incompleta" : "Marcar serie \(set.setNumber) completa")
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 4)
+
+            // Row 2 — steppers + completion button
+            HStack(spacing: 8) {
+                // Alignment spacer matching the set number badge
+                Color.clear.frame(width: 32, height: 1)
+
+                InlineStepper(
+                    value: $set.weightKg,
+                    range: 0...400,
+                    step: 2.5,
+                    formatter: { String(format: "%.1f", $0) }
+                )
+                .frame(maxWidth: .infinity)
+
+                InlineStepper(
+                    value: Binding(
+                        get: { Double(set.reps) },
+                        set: { set.reps = Int($0) }
+                    ),
+                    range: 0...100,
+                    step: 1,
+                    formatter: { String(Int($0)) }
+                )
+                .frame(maxWidth: .infinity)
+
+                // Completion / PR button
+                Button {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
+                        set.completed.toggle()
+                        onCompletionChanged(set.completed)
+                    }
+                } label: {
+                    Image(systemName: set.isPersonalRecord ? "trophy.fill" : (set.completed ? "checkmark.circle.fill" : "circle"))
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(set.completed ? .black : PulseTheme.secondaryText)
+                        .frame(width: 44, height: 44)
+                        .background(set.isPersonalRecord ? PulseTheme.accent : (set.completed ? PulseTheme.primaryBright : PulseTheme.elevated))
+                        .clipShape(Circle())
+                        .scaleEffect(set.completed ? 1.12 : 1.0)
+                        .shadow(color: set.completed ? PulseTheme.primaryBright.opacity(0.45) : Color.clear, radius: 5, x: 0, y: 2)
+                        .animation(.spring(response: 0.25), value: set.completed)
+                }
+                .accessibilityLabel(set.completed ? "Marcar serie \(set.setNumber) incompleta" : "Marcar serie \(set.setNumber) completa")
+            }
+            .padding(.horizontal, 8)
+            .padding(.bottom, 10)
         }
-        .padding(10)
-        .background(set.completed ? PulseTheme.primaryBright.opacity(0.22) : PulseTheme.grouped)
+        .background(set.completed ? PulseTheme.primaryBright.opacity(0.15) : PulseTheme.grouped)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(set.completed ? PulseTheme.primaryBright.opacity(0.45) : Color.white.opacity(0.04), lineWidth: 1.5)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .animation(.easeInOut(duration: 0.18), value: set.completed)
     }
 }
+
 
 private struct AdvancedSetFields: View {
     @Binding var set: SetLog
@@ -2181,34 +2459,41 @@ private struct InlineStepper: View {
     let formatter: (Double) -> String
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             Button {
                 value = max(range.lowerBound, value - step)
             } label: {
                 Image(systemName: "minus")
+                    .font(.title3.weight(.bold))
+                    .frame(width: 46, height: 46)
+                    .foregroundStyle(PulseTheme.primary)
+                    .background(PulseTheme.primary.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .accessibilityLabel("Bajar valor")
 
             Text(formatter(value))
-                .font(.subheadline.monospacedDigit().weight(.bold))
+                .font(.title3.monospacedDigit().weight(.bold))
                 .lineLimit(1)
-                .minimumScaleFactor(0.68)
-                .frame(minWidth: 34)
+                .minimumScaleFactor(0.62)
+                .frame(minWidth: 48, maxWidth: .infinity)
+                .frame(height: 46)
+                .background(PulseTheme.grouped)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             Button {
                 value = min(range.upperBound, value + step)
             } label: {
                 Image(systemName: "plus")
+                    .font(.title3.weight(.bold))
+                    .frame(width: 46, height: 46)
+                    .foregroundStyle(PulseTheme.primary)
+                    .background(PulseTheme.primary.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .accessibilityLabel("Subir valor")
         }
         .buttonStyle(.plain)
-        .foregroundStyle(PulseTheme.primary)
-        .font(.subheadline.weight(.bold))
-        .padding(.horizontal, 5)
-        .frame(maxWidth: .infinity)
-        .frame(height: 40)
-        .background(PulseTheme.grouped)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .sensoryFeedback(.selection, trigger: value)
     }
 }

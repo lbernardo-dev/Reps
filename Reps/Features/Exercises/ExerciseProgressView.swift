@@ -186,13 +186,13 @@ struct ExerciseProgressView: View {
                 }
             } else {
                 HStack(spacing: 14) {
-                    MetricCard(title: "Mejor peso", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass")
-                    MetricCard(title: "1RM estimada", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt")
+                    MetricCard(title: "Mejor peso", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primary)
+                    MetricCard(title: "1RM estimada", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt", badgeColor: PulseTheme.accent)
                 }
 
                 HStack(spacing: 14) {
-                    MetricCard(title: "Sobrecarga", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: "cambio 1RM", systemImage: "arrow.up.right")
-                    MetricCard(title: "Volumen medio", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg/sesión", systemImage: "chart.bar")
+                    MetricCard(title: "Sobrecarga", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: "cambio 1RM", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
+                    MetricCard(title: "Volumen medio", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg/sesión", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
                 }
 
                 Picker("Métrica", selection: $metric) {
@@ -376,7 +376,7 @@ struct ExerciseProgressView: View {
     }
 }
 
-private struct ExerciseMuscleInfoPanel: View {
+struct ExerciseMuscleInfoPanel: View {
     let exercise: Exercise
     let gender: BodyGender
 
@@ -407,7 +407,7 @@ private struct ExerciseMuscleInfoPanel: View {
     }
 }
 
-private struct ExerciseMuscleTargetRow: View {
+struct ExerciseMuscleTargetRow: View {
     let title: String
     let subtitle: String
     let exercise: Exercise
@@ -429,7 +429,7 @@ private struct ExerciseMuscleTargetRow: View {
     }
 }
 
-private struct ResistanceCurveCard: View {
+struct ResistanceCurveCard: View {
     let profile: ResistanceCurveProfile
 
     var body: some View {
@@ -476,7 +476,7 @@ private struct ResistanceCurveCard: View {
     }
 }
 
-private struct ResistanceCurveProfile {
+struct ResistanceCurveProfile {
     enum Phase: String, CaseIterable {
         case stretch = "ESTIRAMIENTO"
         case middle = "MEDIO"
@@ -524,7 +524,7 @@ private struct ResistanceCurveProfile {
     }
 }
 
-private struct FatigueRatingCard: View {
+struct FatigueRatingCard: View {
     let score: Int
     let description: String
 

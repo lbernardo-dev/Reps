@@ -6,14 +6,35 @@ enum PulseTheme {
     static let primaryBright = Color(red: 0.33, green: 0.86, blue: 0.32)
     static let accent = Color(red: 1.0, green: 0.80, blue: 0.14)
     static let destructive = Color(red: 0.93, green: 0.24, blue: 0.22)
-    static let warning = Color(red: 1.0, green: 0.80, blue: 0.14)
-    static let background = Color.black
-    static let card = Color(red: 0.08, green: 0.08, blue: 0.09)
-    static let grouped = Color(red: 0.15, green: 0.15, blue: 0.17)
-    static let elevated = Color(red: 0.19, green: 0.19, blue: 0.21)
-    static let secondaryText = Color(red: 0.60, green: 0.60, blue: 0.65)
-    static let tertiaryText = Color(red: 0.38, green: 0.38, blue: 0.42)
-    static let separator = Color.white.opacity(0.08)
+    static let warning = Color(red: 1.0, green: 0.60, blue: 0.14)
+
+    static let background = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .light ? UIColor(red: 0.95, green: 0.96, blue: 0.98, alpha: 1.0) : .black
+    })
+    
+    static let card = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .light ? .white : UIColor(red: 0.08, green: 0.08, blue: 0.09, alpha: 1.0)
+    })
+    
+    static let grouped = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .light ? UIColor(red: 0.91, green: 0.91, blue: 0.94, alpha: 1.0) : UIColor(red: 0.15, green: 0.15, blue: 0.17, alpha: 1.0)
+    })
+    
+    static let elevated = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .light ? UIColor(red: 0.86, green: 0.86, blue: 0.89, alpha: 1.0) : UIColor(red: 0.19, green: 0.19, blue: 0.21, alpha: 1.0)
+    })
+    
+    static let secondaryText = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .light ? UIColor(red: 0.40, green: 0.40, blue: 0.45, alpha: 1.0) : UIColor(red: 0.60, green: 0.60, blue: 0.65, alpha: 1.0)
+    })
+    
+    static let tertiaryText = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .light ? UIColor(red: 0.60, green: 0.60, blue: 0.65, alpha: 1.0) : UIColor(red: 0.38, green: 0.38, blue: 0.42, alpha: 1.0)
+    })
+    
+    static let separator = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .light ? UIColor.black.withAlphaComponent(0.06) : UIColor.white.withAlphaComponent(0.08)
+    })
 
     static let compactRadius: CGFloat = 14
     static let cardRadius: CGFloat = 26
@@ -95,7 +116,40 @@ enum RepsText {
         case "machine", "machines": "Máquina"
         case "other": "Otro"
         case "resistance band": "Banda elástica"
+        case "bench": "Banco"
+        case "rack": "Rack"
+        case "pullup bar": "Dominadas"
+        case "cardio": "Cardio"
         default: value
+        }
+    }
+
+    static func equipmentIcon(_ value: String) -> String {
+        switch normalized(value) {
+        case "barbell", "barra":
+            return "figure.strengthtraining.traditional"
+        case "dumbbell", "dumbbells", "mancuerna", "mancuernas":
+            return "dumbbell.fill"
+        case "kettlebell", "kettlebells", "pesa rusa":
+            return "kettlebell.fill"
+        case "resistance band", "banda", "bandas":
+            return "point.3.connected.trianglepath.dotted"
+        case "cable", "polea", "poleas":
+            return "point.3.connected.trianglepath.dotted"
+        case "machine", "machines", "maquina", "maquinas":
+            return "rectangle.3.group.bubble.left"
+        case "cardio machine", "cardio", "maquina de cardio":
+            return "figure.run"
+        case "bodyweight", "body only", "peso corporal":
+            return "figure.walk"
+        case "bench", "banco":
+            return "table.lounge"
+        case "rack":
+            return "square.split.3x3"
+        case "pullup bar", "dominadas":
+            return "figure.pull.ups"
+        default:
+            return "checkmark.seal"
         }
     }
 
@@ -107,6 +161,18 @@ enum RepsText {
         case "leg day": "Día de pierna"
         case "home full body a": "Full body casa A"
         case "home full body b": "Full body casa B"
+        default: value
+        }
+    }
+
+    static func localizedWorkoutSubtitle(_ value: String, language: String) -> String {
+        guard language.hasPrefix("es") else { return value }
+        return switch normalized(value) {
+        case "upper body & core", "upper body and core": "Tren superior y core"
+        case "back & biceps", "back and biceps": "Espalda y bíceps"
+        case "lower body": "Tren inferior"
+        case "dumbbells, bands & bodyweight", "dumbbells, bands and bodyweight": "Mancuernas, bandas y peso corporal"
+        case "limited equipment strength": "Fuerza con equipamiento limitado"
         default: value
         }
     }
@@ -129,8 +195,8 @@ struct PulseCard<Content: View>: View {
 
     var body: some View {
         content
+            .frame(maxWidth: .infinity, maxHeight: minHeight != nil ? .infinity : nil, alignment: .leading)
             .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
             .frame(minHeight: minHeight, alignment: .leading)
             .background(PulseTheme.card)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
@@ -296,23 +362,32 @@ struct MetricCard: View {
     let value: String
     let subtitle: LocalizedStringKey
     let systemImage: String
+    var badgeColor: Color = PulseTheme.primary
 
     var body: some View {
         PulseCard(minHeight: 136) {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 6) {
-                    Image(systemName: systemImage)
+                HStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(badgeColor.opacity(0.12))
+                            .frame(width: 28, height: 28)
+                        
+                        Image(systemName: systemImage)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(badgeColor)
+                    }
                     Text(title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(2)
                         .minimumScaleFactor(0.82)
                 }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(PulseTheme.secondaryText)
                 Text(value)
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(badgeColor)
                 Text(subtitle)
                     .font(.subheadline)
                     .lineLimit(2)
@@ -401,7 +476,6 @@ struct ExerciseMediaThumbnail: View {
 extension View {
     func screenBackground() -> some View {
         background(PulseTheme.background.ignoresSafeArea())
-            .preferredColorScheme(.dark)
     }
 
     func mainTabBarHidden(_ hidden: Bool = true) -> some View {

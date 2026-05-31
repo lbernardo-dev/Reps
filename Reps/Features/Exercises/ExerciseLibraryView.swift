@@ -1,6 +1,7 @@
 import PhotosUI
 import MuscleMap
 import SwiftUI
+import Charts
 
 struct ExerciseLibraryView: View {
     @Environment(\.dismiss) private var dismiss
@@ -623,11 +624,78 @@ private enum ExerciseInstructionParser {
 struct ExerciseDetailView: View {
     @EnvironmentObject private var store: AppStore
     let exercise: Exercise
+    
+    @State private var selectedTab: ExerciseTab = .instructions
     @State private var showAddToPlan = false
     @State private var showSchedule = false
     @State private var feedbackMessage: String?
     @State private var customImageItem: PhotosPickerItem?
+    @State private var showCamera = false
+    @State private var showPermissionDenied = false
     @State private var showBookmarkEditor = false
+
+    // History and progress state
+    @State private var metric = ProgressMetric.weight
+    @State private var selectedHistoryRange = ExerciseHistoryRange.sixMonths
+
+    private enum ExerciseTab: String, CaseIterable, Identifiable {
+        case instructions = "Instrucciones"
+        case info = "Información"
+        case history = "Historial"
+        var id: String { rawValue }
+        
+        func localizedTitle(isSpanish: Bool) -> String {
+            switch self {
+            case .instructions: return isSpanish ? "Instrucciones" : "Instructions"
+            case .info: return isSpanish ? "Información" : "Info"
+            case .history: return isSpanish ? "Historial" : "History"
+            }
+        }
+    }
+
+    private enum ProgressMetric: String, CaseIterable, Identifiable {
+        case weight = "Peso"
+        case reps = "Reps"
+        case volume = "Volumen"
+        case oneRepMax = "1RM"
+        case sets = "Series"
+        var id: String { rawValue }
+        
+        func localizedTitle(isSpanish: Bool) -> String {
+            guard isSpanish else {
+                switch self {
+                case .weight: return "Weight"
+                case .reps: return "Reps"
+                case .volume: return "Volume"
+                case .oneRepMax: return "1RM"
+                case .sets: return "Sets"
+                }
+            }
+            return rawValue
+        }
+    }
+
+    private enum ExerciseHistoryRange: String, CaseIterable, Identifiable {
+        case week = "1S"
+        case month = "1M"
+        case threeMonths = "3M"
+        case sixMonths = "6M"
+        case year = "12M"
+        case max = "MAX"
+        var id: String { rawValue }
+
+        var startDate: Date {
+            let calendar = Calendar.current
+            switch self {
+            case .week: return calendar.date(byAdding: .day, value: -7, to: .now) ?? .distantPast
+            case .month: return calendar.date(byAdding: .month, value: -1, to: .now) ?? .distantPast
+            case .threeMonths: return calendar.date(byAdding: .month, value: -3, to: .now) ?? .distantPast
+            case .sixMonths: return calendar.date(byAdding: .month, value: -6, to: .now) ?? .distantPast
+            case .year: return calendar.date(byAdding: .year, value: -1, to: .now) ?? .distantPast
+            case .max: return .distantPast
+            }
+        }
+    }
 
     private var instructionSteps: [String] {
         ExerciseInstructionParser.steps(from: exercise.instructions)
@@ -637,192 +705,87 @@ struct ExerciseDetailView: View {
         store.userProfile.preferredLanguage.hasPrefix("es")
     }
 
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                ExerciseHeroMedia(exercise: exercise)
+    private var points: [FitnessMetrics.ExerciseProgressPoint] {
+        FitnessMetrics.progressPoints(for: exercise, in: store.workoutSessions)
+    }
 
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Personalización").font(.headline)
-                        HStack(spacing: 10) {
-                            PhotosPicker(selection: $customImageItem, matching: .images) {
-                                Label("Cambiar imagen", systemImage: "photo.badge.plus")
-                                    .font(.subheadline.weight(.bold))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 46)
-                                    .foregroundStyle(PulseTheme.primary)
-                                    .background(PulseTheme.primary.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                            }
+    private var rangedPoints: [FitnessMetrics.ExerciseProgressPoint] {
+        points.filter { $0.date >= selectedHistoryRange.startDate }
+    }
+    
+    private var fatigueScore: Int {
+        let text = "\(exercise.name) \(exercise.muscleGroup) \(exercise.equipment)".lowercased()
+        var score = 1
+        if text.contains("barbell") || text.contains("barra") { score += 1 }
+        if text.contains("squat") || text.contains("deadlift") || text.contains("press") || text.contains("row") { score += 1 }
+        if text.contains("legs") || text.contains("back") || text.contains("full") { score += 1 }
+        return min(score, 4)
+    }
 
-                            Button {
-                                showBookmarkEditor = true
-                            } label: {
-                                Label("Marcadores", systemImage: "bookmark.fill")
-                                    .font(.subheadline.weight(.bold))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 46)
-                                    .foregroundStyle(PulseTheme.primary)
-                                    .background(PulseTheme.primary.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                            }
-                        }
-
-                        if exercise.customImageData != nil {
-                            Label("Imagen propia guardada offline", systemImage: "checkmark.seal.fill")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.primary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(exercise.name)
-                            .font(.largeTitle.bold())
-                            .lineLimit(3)
-                            .minimumScaleFactor(0.74)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        Text("\(ExerciseTextLocalizer.muscle(exercise.muscleGroup, language: store.userProfile.preferredLanguage)) · \(ExerciseTextLocalizer.equipment(exercise.equipment, language: store.userProfile.preferredLanguage))")
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                        ExerciseMetadataChips(exercise: exercise)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(ui(en: "Use this exercise", es: "Usar este ejercicio")).font(.headline)
-                        Label(trackingLabel, systemImage: "chart.bar.fill")
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                        HStack(spacing: 10) {
-                            Button {
-                                showAddToPlan = true
-                            } label: {
-                                ExerciseActionButton(title: ui(en: "Add to plan", es: "Añadir a plan"), systemImage: "plus.rectangle.on.rectangle")
-                            }
-                            .buttonStyle(.plain)
-
-                            Button {
-                                showSchedule = true
-                            } label: {
-                                ExerciseActionButton(title: ui(en: "Schedule", es: "Programar"), systemImage: "calendar.badge.plus")
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        if let feedbackMessage {
-                            Text(feedbackMessage)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.primary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text(ui(en: "Instructions", es: "Instrucciones")).font(.headline)
-                        if instructionSteps.isEmpty {
-                            Text(ui(en: "This exercise does not include detailed instructions yet.", es: "Este ejercicio todavía no incluye instrucciones detalladas."))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                                .fixedSize(horizontal: false, vertical: true)
-                        } else {
-                            ForEach(Array(instructionSteps.enumerated()), id: \.offset) { index, step in
-                                InstructionStepRow(index: index + 1, text: step)
-                            }
-                        }
-                        if !exercise.commonMistakes.isEmpty {
-                            Divider()
-                            Text(ui(en: "Avoid", es: "Evita")).font(.headline)
-                            ForEach(exercise.commonMistakes, id: \.self) { mistake in
-                                Label(mistake, systemImage: "exclamationmark.triangle")
-                                    .font(.subheadline)
-                                    .foregroundStyle(PulseTheme.secondaryText)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(ui(en: "Reference", es: "Referencia")).font(.headline)
-                        if let notes = exercise.notes, !notes.isEmpty {
-                            Text(notes)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        if let mediaURL = exercise.mediaURL, !mediaURL.isEmpty {
-                            Divider()
-                            Label(ui(en: "Execution reference image", es: "Imagen de referencia"), systemImage: "photo")
-                                .font(.subheadline)
-                                .foregroundStyle(PulseTheme.primary)
-                                .lineLimit(2)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(mediaURL)
-                                .font(.caption)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                                .lineLimit(2)
-                                .truncationMode(.middle)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        if !exercise.mediaBookmarks.isEmpty {
-                            Divider()
-                            Text("Marcadores multimedia").font(.headline)
-                            ForEach(exercise.mediaBookmarks) { bookmark in
-                                Link(destination: URL(string: bookmark.urlString) ?? URL(string: "https://www.youtube.com")!) {
-                                    HStack {
-                                        Image(systemName: bookmark.source == .instagram ? "camera.fill" : "play.rectangle.fill")
-                                            .foregroundStyle(PulseTheme.primary)
-                                        VStack(alignment: .leading) {
-                                            Text(bookmark.title)
-                                                .font(.subheadline.weight(.bold))
-                                                .foregroundStyle(.primary)
-                                            if let timestamp = bookmark.timestampSeconds {
-                                                Text("\(timestamp / 60):\(String(format: "%02d", timestamp % 60))")
-                                                    .font(.caption)
-                                                    .foregroundStyle(PulseTheme.secondaryText)
-                                            }
-                                        }
-                                        Spacer()
-                                        Image(systemName: "arrow.up.forward")
-                                            .font(.caption.weight(.bold))
-                                            .foregroundStyle(PulseTheme.secondaryText)
-                                    }
-                                    .padding(10)
-                                    .background(PulseTheme.grouped)
-                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                                }
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                NavigationLink {
-                    ExerciseProgressView(exercise: exercise)
-                } label: {
-                    Label(ui(en: "View progress", es: "Ver progreso"), systemImage: "chart.line.uptrend.xyaxis")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .foregroundStyle(.white)
-                        .background(PulseTheme.primary)
-                        .clipShape(Capsule())
-                }
+    private var fatigueDescription: String {
+        guard isSpanish else {
+            switch fatigueScore {
+            case 1: return "Low fatigue: stable or local movement, easy to recover from."
+            case 2: return "Moderate fatigue: requires technical control but generally manageable."
+            case 3: return "High fatigue: multi-joint or high loads, manage volume carefully."
+            default: return "Very high fatigue: compound unstable movement with heavy stabilizer demands."
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        switch fatigueScore {
+        case 1: return "Baja fatiga: movimiento local o estable, fácil de recuperar."
+        case 2: return "Fatiga moderada: requiere control técnico pero suele ser recuperable."
+        case 3: return "Alta fatiga: varias articulaciones o cargas altas, conviene gestionar volumen."
+        default: return "Fatiga muy alta: compuesto inestable con varios grupos musculares y alta demanda de estabilización."
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // High-Contrast custom tab bar with active spring underlines
+            VStack(spacing: 0) {
+                HStack(spacing: 0) {
+                    ForEach(ExerciseTab.allCases) { tab in
+                        Button {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
+                                selectedTab = tab
+                            }
+                        } label: {
+                            VStack(spacing: 12) {
+                                Text(tab.localizedTitle(isSpanish: isSpanish))
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundStyle(selectedTab == tab ? PulseTheme.primaryBright : PulseTheme.secondaryText)
+                                    .frame(maxWidth: .infinity)
+                                
+                                Rectangle()
+                                    .fill(selectedTab == tab ? PulseTheme.primaryBright : Color.clear)
+                                    .frame(height: 3.5)
+                                    .cornerRadius(2)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, 12)
+                .background(PulseTheme.card)
+                
+                Divider()
+                    .overlay(Color.white.opacity(0.08))
+            }
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    switch selectedTab {
+                    case .instructions:
+                        instructionsTabContent
+                    case .info:
+                        infoTabContent
+                    case .history:
+                        historyTabContent
+                    }
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .screenBackground()
         .navigationTitle(ui(en: "Exercise", es: "Ejercicio"))
@@ -855,6 +818,323 @@ struct ExerciseDetailView: View {
         }
     }
 
+    // --- TAB CONTENTS ---
+
+    private var instructionsTabContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            ExerciseHeroMedia(exercise: exercise)
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(exercise.name)
+                        .font(.largeTitle.bold())
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.74)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("\(ExerciseTextLocalizer.muscle(exercise.muscleGroup, language: store.userProfile.preferredLanguage)) · \(ExerciseTextLocalizer.equipment(exercise.equipment, language: store.userProfile.preferredLanguage))")
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ExerciseMetadataChips(exercise: exercise)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(ui(en: "Use this exercise", es: "Usar este ejercicio")).font(.headline)
+                    Label(trackingLabel, systemImage: "chart.bar.fill")
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 10) {
+                        Button {
+                            showAddToPlan = true
+                        } label: {
+                            ExerciseActionButton(title: ui(en: "Add to plan", es: "Añadir a plan"), systemImage: "plus.rectangle.on.rectangle")
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            showSchedule = true
+                        } label: {
+                            ExerciseActionButton(title: ui(en: "Schedule", es: "Programar"), systemImage: "calendar.badge.plus")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if let feedbackMessage {
+                        Text(feedbackMessage)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.primary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Personalización").font(.headline)
+                    HStack(spacing: 10) {
+                        Menu {
+                            if CameraPicker.isAvailable {
+                                Button {
+                                    Task {
+                                        let granted = await PermissionService.shared.requestCamera()
+                                        if granted {
+                                            showCamera = true
+                                        } else {
+                                            showPermissionDenied = true
+                                        }
+                                    }
+                                } label: {
+                                    Label("Tomar foto", systemImage: "camera.fill")
+                                }
+                            }
+
+                            PhotosPicker(selection: $customImageItem, matching: .images) {
+                                Label("Elegir de galería", systemImage: "photo.on.rectangle")
+                            }
+                        } label: {
+                            Label("Cambiar imagen", systemImage: "photo.badge.plus")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 46)
+                                .foregroundStyle(PulseTheme.primary)
+                                .background(PulseTheme.primary.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+
+                        Button {
+                            showBookmarkEditor = true
+                        } label: {
+                            Label("Marcadores", systemImage: "bookmark.fill")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 46)
+                                .foregroundStyle(PulseTheme.primary)
+                                .background(PulseTheme.primary.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                    }
+
+                    if exercise.customImageData != nil {
+                        Label("Imagen propia guardada offline", systemImage: "checkmark.seal.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.primary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(ui(en: "Instructions", es: "Instrucciones")).font(.headline)
+                    if instructionSteps.isEmpty {
+                        Text(ui(en: "This exercise does not include detailed instructions yet.", es: "Este ejercicio todavía no incluye instrucciones detalladas."))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        ForEach(Array(instructionSteps.enumerated()), id: \.offset) { index, step in
+                            InstructionStepRow(index: index + 1, text: step)
+                        }
+                    }
+                    if !exercise.commonMistakes.isEmpty {
+                        Divider()
+                        Text(ui(en: "Avoid", es: "Evita")).font(.headline)
+                        ForEach(exercise.commonMistakes, id: \.self) { mistake in
+                            Label(mistake, systemImage: "exclamationmark.triangle")
+                                .font(.subheadline)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(ui(en: "Reference", es: "Referencia")).font(.headline)
+                    if let notes = exercise.notes, !notes.isEmpty {
+                        Text(notes)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if let mediaURL = exercise.mediaURL, !mediaURL.isEmpty {
+                        Divider()
+                        Label(ui(en: "Execution reference image", es: "Imagen de referencia"), systemImage: "photo")
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.primary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(mediaURL)
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(2)
+                            .truncationMode(.middle)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if !exercise.mediaBookmarks.isEmpty {
+                        Divider()
+                        Text("Marcadores multimedia").font(.headline)
+                        ForEach(exercise.mediaBookmarks) { bookmark in
+                            Link(destination: URL(string: bookmark.urlString) ?? URL(string: "https://www.youtube.com")!) {
+                                HStack {
+                                    Image(systemName: bookmark.source == .instagram ? "camera.fill" : "play.rectangle.fill")
+                                        .foregroundStyle(PulseTheme.primary)
+                                    VStack(alignment: .leading) {
+                                        Text(bookmark.title)
+                                            .font(.subheadline.weight(.bold))
+                                            .foregroundStyle(.primary)
+                                        if let timestamp = bookmark.timestampSeconds {
+                                            Text("\(timestamp / 60):\(String(format: "%02d", timestamp % 60))")
+                                                .font(.caption)
+                                                .foregroundStyle(PulseTheme.secondaryText)
+                                        }
+                                    }
+                                    Spacer()
+                                    Image(systemName: "arrow.up.forward")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                                .padding(10)
+                                .background(PulseTheme.grouped)
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private var infoTabContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(ui(en: "Anatomy Map", es: "Mapa Anatómico"))
+                .font(.title3.bold())
+            
+            ExerciseMuscleInfoPanel(exercise: exercise, gender: store.userProfile.muscleMapGender)
+            
+            Text(ui(en: "Muscles Worked", es: "Músculos Trabajados"))
+                .font(.headline)
+            
+            PulseCard {
+                VStack(spacing: 0) {
+                    ExerciseMuscleTargetRow(
+                        title: localizedMuscle(exercise.muscleGroup),
+                        subtitle: isSpanish ? "1 serie de trabajo directo" : "1 direct work set",
+                        exercise: exercise,
+                        gender: store.userProfile.muscleMapGender
+                    )
+                    if !exercise.secondaryMuscles.isEmpty {
+                        Divider()
+                        ForEach(exercise.secondaryMuscles, id: \.self) { muscle in
+                            ExerciseMuscleTargetRow(
+                                title: localizedMuscle(muscle),
+                                subtitle: isSpanish ? "0,35 series indirectas" : "0.35 indirect work set",
+                                exercise: exercise,
+                                gender: store.userProfile.muscleMapGender
+                            )
+                            if muscle != exercise.secondaryMuscles.last {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
+            
+            ResistanceCurveCard(profile: ResistanceCurveProfile(exercise: exercise))
+            
+            FatigueRatingCard(score: fatigueScore, description: fatigueDescription)
+        }
+    }
+
+    private var historyTabContent: some View {
+        VStack(spacing: 20) {
+            if rangedPoints.isEmpty {
+                PulseCard {
+                    PulseEmptyState(
+                        title: isSpanish ? "Ejercicio todavía no realizado" : "Exercise not performed yet",
+                        message: isSpanish ? "Cuando completes series de este ejercicio aparecerán aquí sus tendencias de peso, volumen, repeticiones y 1RM." : "Once you log sets for this exercise, your performance trends will appear here.",
+                        systemImage: "chart.line.uptrend.xyaxis"
+                    )
+                }
+            } else {
+                HStack(spacing: 14) {
+                    MetricCard(title: isSpanish ? "Mejor peso" : "Best weight", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primary)
+                    MetricCard(title: isSpanish ? "1RM estimada" : "Estimated 1RM", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt", badgeColor: PulseTheme.accent)
+                }
+
+                HStack(spacing: 14) {
+                    MetricCard(title: isSpanish ? "Sobrecarga" : "Overload", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: isSpanish ? "cambio 1RM" : "1RM delta", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
+                    MetricCard(title: isSpanish ? "Volumen medio" : "Avg Volume", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg/sesión", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
+                }
+
+                Picker("Rango", selection: $selectedHistoryRange) {
+                    ForEach(ExerciseHistoryRange.allCases) { range in
+                        Text(range.rawValue).tag(range)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Picker("Métrica", selection: $metric) {
+                    ForEach(ProgressMetric.allCases) { metric in
+                        Text(metric.localizedTitle(isSpanish: isSpanish)).tag(metric)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                PulseCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text(isSpanish ? "Actividad" : "Activity").font(.headline)
+                        Chart(rangedPoints) { point in
+                            LineMark(
+                                x: .value("Fecha", point.date),
+                                y: .value(metric.localizedTitle(isSpanish: isSpanish), value(for: point))
+                            )
+                            .foregroundStyle(PulseTheme.primary)
+                            PointMark(
+                                x: .value("Fecha", point.date),
+                                y: .value(metric.localizedTitle(isSpanish: isSpanish), value(for: point))
+                            )
+                            .foregroundStyle(PulseTheme.accent)
+                        }
+                        .frame(height: 220)
+                    }
+                }
+
+                PulseCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(isSpanish ? "Sesiones recientes" : "Recent sessions").font(.headline)
+                        ForEach(rangedPoints.reversed()) { point in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(point.workoutTitle).font(.headline)
+                                    Text(point.date, style: .date)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text("\(Int(value(for: point))) \(metric.localizedTitle(isSpanish: isSpanish))")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            if point.id != rangedPoints.reversed().last?.id {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // --- METRIC AND TRANSLATION HELPERS ---
+
     private var trackingLabel: String {
         let spanish = store.userProfile.preferredLanguage.hasPrefix("es")
         return switch exercise.trackingType {
@@ -866,6 +1146,38 @@ struct ExerciseDetailView: View {
 
     private func ui(en: String, es: String) -> String {
         isSpanish ? es : en
+    }
+
+    private func value(for point: FitnessMetrics.ExerciseProgressPoint) -> Double {
+        switch metric {
+        case .weight:
+            return point.maxWeightKg
+        case .reps:
+            return Double(point.maxReps)
+        case .volume:
+            return point.totalVolumeKg
+        case .oneRepMax:
+            return point.estimatedOneRepMaxKg
+        case .sets:
+            return Double(point.completedSets)
+        }
+    }
+
+    private func localizedMuscle(_ value: String) -> String {
+        guard store.userProfile.preferredLanguage.hasPrefix("es") else { return value }
+        return switch value.trimmingCharacters(in: .whitespacesAndNewlines).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).lowercased() {
+        case "arms": "Brazos"
+        case "back": "Espalda"
+        case "cardio": "Cardio"
+        case "chest": "Pecho"
+        case "core", "abdominals": "Core"
+        case "full body": "Cuerpo completo"
+        case "glutes": "Glúteos"
+        case "legs": "Piernas"
+        case "neck": "Cuello"
+        case "shoulders": "Hombros"
+        default: value
+        }
     }
 }
 
