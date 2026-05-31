@@ -770,48 +770,60 @@ private struct StreakBadge: View {
     var isSpanish: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             ZStack {
                 Circle()
                     .fill(
                         days > 0
-                        ? RadialGradient(colors: [PulseTheme.warning.opacity(0.35), .clear], center: .center, startRadius: 0, endRadius: 18)
-                        : RadialGradient(colors: [.clear, .clear], center: .center, startRadius: 0, endRadius: 18)
+                        ? RadialGradient(colors: [PulseTheme.warning.opacity(0.35), .clear], center: .center, startRadius: 0, endRadius: 22)
+                        : RadialGradient(colors: [.clear, .clear], center: .center, startRadius: 0, endRadius: 22)
                     )
-                    .frame(width: 32, height: 32)
+                    .frame(width: 42, height: 42)
                 
                 Circle()
-                    .strokeBorder(days > 0 ? PulseTheme.warning.opacity(0.4) : PulseTheme.separator, lineWidth: 1.5)
-                    .frame(width: 26, height: 26)
+                    .strokeBorder(days > 0 ? PulseTheme.warning.opacity(0.4) : PulseTheme.separator, lineWidth: 2)
+                    .frame(width: 32, height: 32)
                 
                 Image(systemName: "flame.fill")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(days > 0 ? PulseTheme.warning : PulseTheme.secondaryText)
             }
             
             VStack(alignment: .leading, spacing: 1) {
                 Text(isSpanish ? "RACHA" : "STREAK")
-                    .font(.system(size: 9, weight: .black, design: .rounded))
+                    .font(.system(size: 10, weight: .black, design: .rounded))
                     .foregroundStyle(PulseTheme.secondaryText)
-                    .tracking(1.2)
+                    .tracking(1.4)
                 
-                Text("\(days) \(days == 1 ? (isSpanish ? "día" : "day") : (isSpanish ? "días" : "days"))")
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                Text("\(formattedDays) \(days == 1 ? (isSpanish ? "día" : "day") : (isSpanish ? "días" : "days"))")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundStyle(days > 0 ? .white : PulseTheme.secondaryText)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
         .background(
             days > 0
             ? LinearGradient(colors: [PulseTheme.warning.opacity(0.12), PulseTheme.warning.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing)
             : LinearGradient(colors: [PulseTheme.grouped.opacity(0.4), PulseTheme.grouped.opacity(0.2)], startPoint: .top, endPoint: .bottom)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(days > 0 ? PulseTheme.warning.opacity(0.3) : PulseTheme.separator, lineWidth: 1)
         )
-        .shadow(color: days > 0 ? PulseTheme.warning.opacity(0.12) : Color.clear, radius: 6, x: 0, y: 2)
+        .shadow(color: days > 0 ? PulseTheme.warning.opacity(0.12) : Color.clear, radius: 8, x: 0, y: 3)
+    }
+
+    private var formattedDays: String {
+        if days >= 1000 {
+            let kValue = Double(days) / 1000.0
+            if kValue.truncatingRemainder(dividingBy: 1.0) == 0 {
+                return String(format: "%.0fK", kValue)
+            } else {
+                return String(format: "%.1fK", kValue)
+            }
+        }
+        return "\(days)"
     }
 }
