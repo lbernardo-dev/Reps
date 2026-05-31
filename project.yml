@@ -25,6 +25,8 @@ targets:
         UILaunchScreen: {}
         NSHealthShareUsageDescription: Reps uses Apple Health to read your body weight and height so your fitness progress stays up to date.
         NSHealthUpdateUsageDescription: Reps can save your body weight and height entries to Apple Health when you choose to sync them.
+        NSAppleMusicUsageDescription: Reps necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos.
+        NSLocationWhenInUseUsageDescription: Reps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.
         UIApplicationSupportsIndirectInputEvents: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

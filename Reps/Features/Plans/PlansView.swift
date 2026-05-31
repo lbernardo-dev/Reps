@@ -369,12 +369,12 @@ private struct PlaylistProviderBadge: View {
 
 private struct PlanPlaylistEditor: View {
     @Binding var playlists: [PlanPlaylist]
+    @Binding var showMusicConnector: Bool
     @State private var provider: PlanPlaylist.Provider = .spotify
     @State private var title = ""
     @State private var urlString = ""
     @State private var notes = ""
     
-    @State private var showMusicConnector = false
     @State private var showManualForm = false
 
     var body: some View {
@@ -465,11 +465,6 @@ private struct PlanPlaylistEditor: View {
                 Text("Añadir manualmente por URL")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
-            }
-        }
-        .sheet(isPresented: $showMusicConnector) {
-            MusicIntegrationSheet { selectedPlaylist in
-                playlists.append(selectedPlaylist)
             }
         }
     }
@@ -693,6 +688,7 @@ struct CreatePlanView: View {
     ]
     @State private var playlists: [PlanPlaylist] = []
     @State private var pickerTargetDay: Int?
+    @State private var showMusicConnector = false
 
     var body: some View {
         NavigationStack {
@@ -755,6 +751,11 @@ struct CreatePlanView: View {
                 PlanExercisePickerSheet(exercises: store.exercises) { exercise in
                     addExercise(exercise, to: target.index)
                     pickerTargetDay = nil
+                }
+            }
+            .sheet(isPresented: $showMusicConnector) {
+                MusicIntegrationSheet { selectedPlaylist in
+                    playlists.append(selectedPlaylist)
                 }
             }
         }
@@ -867,7 +868,7 @@ struct CreatePlanView: View {
 
     private var musicReviewStep: some View {
         VStack(spacing: 16) {
-            PlanPlaylistEditor(playlists: $playlists)
+            PlanPlaylistEditor(playlists: $playlists, showMusicConnector: $showMusicConnector)
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Resumen").font(.headline)
@@ -1001,6 +1002,7 @@ struct EditPlanView: View {
     @State private var days: [WorkoutDay]
     @State private var playlists: [PlanPlaylist]
     @State private var bookmarkTarget: PlanExerciseBookmarkTarget?
+    @State private var showMusicConnector = false
 
     init(plan: WorkoutPlan) {
         self.plan = plan
@@ -1031,7 +1033,7 @@ struct EditPlanView: View {
                     Stepper("\(totalWeeks) semanas", value: $totalWeeks, in: max(currentWeek, 1)...24)
                 }
 
-                PlanPlaylistEditor(playlists: $playlists)
+                PlanPlaylistEditor(playlists: $playlists, showMusicConnector: $showMusicConnector)
 
                 ForEach(days.indices, id: \.self) { dayIndex in
                     Section("Entrenamiento \(dayIndex + 1)") {
@@ -1212,6 +1214,11 @@ struct EditPlanView: View {
                     }
                 ))
             }
+            .sheet(isPresented: $showMusicConnector) {
+                MusicIntegrationSheet { selectedPlaylist in
+                    playlists.append(selectedPlaylist)
+                }
+            }
         }
     }
 
@@ -1257,6 +1264,7 @@ struct LegacyCreatePlanView: View {
     @State private var workoutTitle = "Full body"
     @State private var selectedExerciseIDs = Set<Exercise.ID>()
     @State private var playlists: [PlanPlaylist] = []
+    @State private var showMusicConnector = false
 
     var body: some View {
         NavigationStack {
@@ -1276,7 +1284,7 @@ struct LegacyCreatePlanView: View {
                     Toggle("Activar al guardar", isOn: $activateImmediately)
                 }
 
-                PlanPlaylistEditor(playlists: $playlists)
+                PlanPlaylistEditor(playlists: $playlists, showMusicConnector: $showMusicConnector)
 
                 Section("Entrenamiento") {
                     TextField("Titulo del entrenamiento", text: $workoutTitle)
@@ -1318,6 +1326,11 @@ struct LegacyCreatePlanView: View {
                         save()
                     }
                     .disabled(planName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .sheet(isPresented: $showMusicConnector) {
+                MusicIntegrationSheet { selectedPlaylist in
+                    playlists.append(selectedPlaylist)
                 }
             }
         }
