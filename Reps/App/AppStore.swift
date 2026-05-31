@@ -315,6 +315,10 @@ final class AppStore: ObservableObject {
             plans[index] = activePlan
         }
         activePlan = plan
+        
+        // Clear all non-completed scheduled workouts so they don't override the new plan
+        scheduledWorkouts.removeAll { $0.status == .scheduled }
+        
         if let index = plans.firstIndex(where: { $0.id == plan.id }) {
             plans[index] = plan
         }

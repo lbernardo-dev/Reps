@@ -779,6 +779,26 @@ struct ActiveWorkoutView: View {
                         } label: {
                             Label("Sustituir", systemImage: "arrow.triangle.2.circlepath")
                         }
+
+                        Divider()
+
+                        Button(role: .destructive) {
+                            if exerciseDrafts.count > 1 {
+                                withAnimation(.snappy(duration: 0.24)) {
+                                    exerciseDrafts.remove(at: selectedExerciseIndex)
+                                    selectedExerciseIndex = max(0, min(selectedExerciseIndex, exerciseDrafts.count - 1))
+                                    publishActiveWorkoutStatus()
+                                }
+                            } else {
+                                withAnimation(.snappy(duration: 0.24)) {
+                                    exerciseDrafts.removeAll()
+                                    selectedExerciseIndex = 0
+                                    publishActiveWorkoutStatus()
+                                }
+                            }
+                        } label: {
+                            Label("Quitar de la sesión", systemImage: "trash")
+                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .font(.title3)

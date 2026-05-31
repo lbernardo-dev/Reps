@@ -308,14 +308,32 @@ struct TodayView: View {
                         
                         if !store.activePlan.days.isEmpty {
                             Menu {
-                                ForEach(store.activePlan.days) { day in
-                                    Button {
-                                        customSelectedWorkoutDay = day
-                                    } label: {
-                                        HStack {
-                                            Text(RepsText.workoutTitle(day.title, language: store.userProfile.preferredLanguage))
-                                            if day.id == focusWorkout.id {
-                                                Image(systemName: "checkmark")
+                                Section(header: Text(isSpanish ? "Cambiar día" : "Change day")) {
+                                    ForEach(store.activePlan.days) { day in
+                                        Button {
+                                            customSelectedWorkoutDay = day
+                                        } label: {
+                                            HStack {
+                                                Text(RepsText.workoutTitle(day.title, language: store.userProfile.preferredLanguage))
+                                                if day.id == focusWorkout.id {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                Section(header: Text(isSpanish ? "Cambiar plan" : "Change plan")) {
+                                    ForEach(store.plans) { plan in
+                                        Button {
+                                            store.activatePlan(plan)
+                                            customSelectedWorkoutDay = nil
+                                        } label: {
+                                            HStack {
+                                                Text(plan.name)
+                                                if plan.id == store.activePlan.id {
+                                                    Image(systemName: "checkmark")
+                                                }
                                             }
                                         }
                                     }
