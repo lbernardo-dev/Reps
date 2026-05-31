@@ -304,6 +304,7 @@ final class AppStore: ObservableObject {
     func addPlan(_ plan: WorkoutPlan, activate: Bool) {
         plans.append(plan)
         if activate {
+            scheduledWorkouts.removeAll { $0.status == .scheduled }
             activePlan = plan
             generateSchedule(for: plan)
         }
@@ -323,6 +324,46 @@ final class AppStore: ObservableObject {
             plans[index] = plan
         }
         generateSchedule(for: plan)
+    }
+
+    func selectWorkoutDayForToday(_ day: WorkoutDay) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        
+        // 1. Remove all scheduled/incomplete workouts for today
+        scheduledWorkouts.removeAll { calendar.isDate($0.date, inSameDayAs: today) }
+        
+        // 2. Add the selected day as scheduled for today
+        let scheduled = ScheduledWorkout(date: Date(), workoutDay: day, status: .scheduled)
+        scheduledWorkouts.append(scheduled)
+        
+        // 3. Align active plan's day index if this day is part of it
+        if let index = activePlan.days.firstIndex(where: { $0.id == day.id }) {
+            activePlan.activeDayIndex = index
+            if let planIndex = plans.firstIndex(where: { $0.id == activePlan.id }) {
+                plans[planIndex] = activePlan
+            }
+        }
+        
+        save()
+    }
+
+    func restoreSuggestedWorkoutForToday() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        
+        // Remove scheduled workouts for today
+        scheduledWorkouts.removeAll { calendar.isDate($0.date, inSameDayAs: today) }
+        
+        // Re-generate schedule for today (meaning the active plan's current day will be scheduled)
+        if !activePlan.days.isEmpty {
+            let index = activePlan.activeDayIndex % activePlan.days.count
+            let day = activePlan.days[index]
+            let scheduled = ScheduledWorkout(date: Date(), workoutDay: day, status: .scheduled)
+            scheduledWorkouts.append(scheduled)
+        }
+        
+        save()
     }
 
     func updatePlan(_ plan: WorkoutPlan) {
@@ -580,12 +621,14 @@ final class AppStore: ObservableObject {
         let today = calendar.startOfDay(for: .now)
         let days = plan.days.isEmpty ? [SeedData.pushDay] : plan.days
         let count = min(plan.daysPerWeek, max(days.count, 1))
+        let startDayIndex = plan.activeDayIndex
 
         let generated = (0..<count).compactMap { offset -> ScheduledWorkout? in
             guard let date = calendar.date(byAdding: .day, value: offset * 2, to: today) else {
                 return nil
             }
-            return ScheduledWorkout(date: date, workoutDay: days[offset % days.count], status: .scheduled)
+            let dayIndex = (startDayIndex + offset) % days.count
+            return ScheduledWorkout(date: date, workoutDay: days[dayIndex], status: .scheduled)
         }
 
         scheduledWorkouts = scheduledWorkouts.filter { !calendar.isDate($0.date, equalTo: today, toGranularity: .weekOfYear) || $0.status == .completed }

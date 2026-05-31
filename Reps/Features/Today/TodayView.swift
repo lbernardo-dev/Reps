@@ -5,7 +5,6 @@ struct TodayView: View {
     @EnvironmentObject private var store: AppStore
     @State private var showScheduleWorkout = false
     @State private var showCreatePlan = false
-    @State private var customSelectedWorkoutDay: WorkoutDay? = nil
 
     private var freeWorkout: WorkoutDay {
         WorkoutDay.freeWorkout
@@ -16,10 +15,7 @@ struct TodayView: View {
     }
 
     private var focusWorkout: WorkoutDay {
-        if let custom = customSelectedWorkoutDay {
-            return custom
-        }
-        return todaysScheduledWorkout?.workoutDay ?? store.todaysWorkout
+        todaysScheduledWorkout?.workoutDay ?? store.todaysWorkout
     }
 
     private var weekStart: Date {
@@ -118,12 +114,6 @@ struct TodayView: View {
             .navigationBarHidden(true)
             .sheet(isPresented: $showScheduleWorkout) {
                 ScheduleWorkoutView()
-            }
-            .sheet(isPresented: $showCreatePlan) {
-                CreatePlanView()
-            }
-            .onChange(of: store.activePlan.id) {
-                customSelectedWorkoutDay = nil
             }
         }
     }
@@ -290,7 +280,7 @@ struct TodayView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(todaysScheduledWorkout == nil && customSelectedWorkoutDay == nil ? "NO SESSION FIXED" : "TODAY'S SESSION")
+                    Text(todaysScheduledWorkout == nil ? "NO SESSION FIXED" : "TODAY'S SESSION")
                         .font(.system(size: 11, weight: .black, design: .rounded))
                         .tracking(1.5)
                         .foregroundStyle(.white)
@@ -301,7 +291,7 @@ struct TodayView: View {
                         .padding(.bottom, 2)
                     
                     HStack(alignment: .center, spacing: 6) {
-                        Text(todaysScheduledWorkout == nil && customSelectedWorkoutDay == nil ? "Choose Next Move" : RepsText.workoutTitle(focusWorkout.title, language: store.userProfile.preferredLanguage))
+                        Text(todaysScheduledWorkout == nil ? "Choose Next Move" : RepsText.workoutTitle(focusWorkout.title, language: store.userProfile.preferredLanguage))
                             .font(.system(size: 26, weight: .bold, design: .rounded))
                             .lineLimit(2)
                             .minimumScaleFactor(0.72)
@@ -311,7 +301,7 @@ struct TodayView: View {
                                 Section(header: Text(isSpanish ? "Cambiar día" : "Change day")) {
                                     ForEach(store.activePlan.days) { day in
                                         Button {
-                                            customSelectedWorkoutDay = day
+                                            store.selectWorkoutDayForToday(day)
                                         } label: {
                                             HStack {
                                                 Text(RepsText.workoutTitle(day.title, language: store.userProfile.preferredLanguage))
@@ -327,7 +317,6 @@ struct TodayView: View {
                                     ForEach(store.plans) { plan in
                                         Button {
                                             store.activatePlan(plan)
-                                            customSelectedWorkoutDay = nil
                                         } label: {
                                             HStack {
                                                 Text(plan.name)
@@ -339,10 +328,11 @@ struct TodayView: View {
                                     }
                                 }
                                 
-                                if customSelectedWorkoutDay != nil {
+                                let suggestedDay = store.activePlan.days[store.activePlan.activeDayIndex % store.activePlan.days.count]
+                                if focusWorkout.id != suggestedDay.id {
                                     Divider()
                                     Button(role: .destructive) {
-                                        customSelectedWorkoutDay = nil
+                                        store.restoreSuggestedWorkoutForToday()
                                     } label: {
                                         Text(isSpanish ? "Restaurar sugerido" : "Restore suggested")
                                     }
@@ -355,7 +345,7 @@ struct TodayView: View {
                         }
                     }
                     
-                    Text(todaysScheduledWorkout == nil && customSelectedWorkoutDay == nil ? "You can log a free workout, schedule a session, or continue your active plan." : RepsText.localizedWorkoutSubtitle(focusWorkout.subtitle, language: store.userProfile.preferredLanguage))
+                    Text(todaysScheduledWorkout == nil ? "You can log a free workout, schedule a session, or continue your active plan." : RepsText.localizedWorkoutSubtitle(focusWorkout.subtitle, language: store.userProfile.preferredLanguage))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.84))
                         .fixedSize(horizontal: false, vertical: true)

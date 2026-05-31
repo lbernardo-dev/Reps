@@ -780,6 +780,16 @@ struct ActiveWorkoutView: View {
                             Label("Sustituir", systemImage: "arrow.triangle.2.circlepath")
                         }
 
+                        Button {
+                            if selectedExerciseIndex < exerciseDrafts.count - 1 {
+                                withAnimation(.snappy) {
+                                    selectedExerciseIndex += 1
+                                }
+                            }
+                        } label: {
+                            Label("Saltar ejercicio", systemImage: "forward.end")
+                        }
+
                         Divider()
 
                         Button(role: .destructive) {
