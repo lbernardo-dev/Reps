@@ -697,8 +697,12 @@ struct ExerciseDetailView: View {
         }
     }
 
+    private var currentExercise: Exercise {
+        store.exercises.first(where: { $0.id == exercise.id }) ?? exercise
+    }
+
     private var instructionSteps: [String] {
-        ExerciseInstructionParser.steps(from: exercise.instructions)
+        ExerciseInstructionParser.steps(from: currentExercise.instructions)
     }
 
     private var isSpanish: Bool {
@@ -706,7 +710,7 @@ struct ExerciseDetailView: View {
     }
 
     private var points: [FitnessMetrics.ExerciseProgressPoint] {
-        FitnessMetrics.progressPoints(for: exercise, in: store.workoutSessions)
+        FitnessMetrics.progressPoints(for: currentExercise, in: store.workoutSessions)
     }
 
     private var rangedPoints: [FitnessMetrics.ExerciseProgressPoint] {
@@ -714,7 +718,7 @@ struct ExerciseDetailView: View {
     }
     
     private var fatigueScore: Int {
-        let text = "\(exercise.name) \(exercise.muscleGroup) \(exercise.equipment)".lowercased()
+        let text = "\(currentExercise.name) \(currentExercise.muscleGroup) \(currentExercise.equipment)".lowercased()
         var score = 1
         if text.contains("barbell") || text.contains("barra") { score += 1 }
         if text.contains("squat") || text.contains("deadlift") || text.contains("press") || text.contains("row") { score += 1 }
@@ -792,29 +796,47 @@ struct ExerciseDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
         .sheet(isPresented: $showAddToPlan) {
-            AddExerciseToPlanView(exercise: exercise) {
+            AddExerciseToPlanView(exercise: currentExercise) {
                 feedbackMessage = String(localized: "Exercise added to the active plan.")
             }
             .environmentObject(store)
         }
         .sheet(isPresented: $showSchedule) {
-            ScheduleExerciseView(exercise: exercise) {
+            ScheduleExerciseView(exercise: currentExercise) {
                 feedbackMessage = String(localized: "Exercise scheduled.")
             }
             .environmentObject(store)
         }
         .sheet(isPresented: $showBookmarkEditor) {
-            ExerciseBookmarkEditor(exercise: exercise)
+            ExerciseBookmarkEditor(exercise: currentExercise)
                 .environmentObject(store)
         }
         .onChange(of: customImageItem) { _, item in
             Task {
                 guard let data = try? await item?.loadTransferable(type: Data.self) else { return }
-                var updated = exercise
+                var updated = currentExercise
                 updated.customImageData = data
                 store.updateExercise(updated)
                 customImageItem = nil
             }
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker { image in
+                if let data = image.jpegData(compressionQuality: 0.8) {
+                    var updated = currentExercise
+                    updated.customImageData = data
+                    store.updateExercise(updated)
+                }
+            }
+            .ignoresSafeArea()
+        }
+        .alert("Permiso denegado", isPresented: $showPermissionDenied) {
+            Button("Abrir Ajustes") {
+                PermissionService.shared.openSettings()
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text(PermissionService.shared.deniedMessage ?? "El acceso a la cámara está bloqueado. Actívalo en Ajustes.")
         }
     }
 
@@ -822,21 +844,21 @@ struct ExerciseDetailView: View {
 
     private var instructionsTabContent: some View {
         VStack(alignment: .leading, spacing: 20) {
-            ExerciseHeroMedia(exercise: exercise)
+            ExerciseHeroMedia(exercise: currentExercise)
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(exercise.name)
+                    Text(currentExercise.name)
                         .font(.largeTitle.bold())
                         .lineLimit(3)
                         .minimumScaleFactor(0.74)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("\(ExerciseTextLocalizer.muscle(exercise.muscleGroup, language: store.userProfile.preferredLanguage)) · \(ExerciseTextLocalizer.equipment(exercise.equipment, language: store.userProfile.preferredLanguage))")
+                    Text("\(ExerciseTextLocalizer.muscle(currentExercise.muscleGroup, language: store.userProfile.preferredLanguage)) · \(ExerciseTextLocalizer.equipment(currentExercise.equipment, language: store.userProfile.preferredLanguage))")
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                    ExerciseMetadataChips(exercise: exercise)
+                    ExerciseMetadataChips(exercise: currentExercise)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -890,10 +912,35 @@ struct ExerciseDetailView: View {
                                 } label: {
                                     Label("Tomar foto", systemImage: "camera.fill")
                                 }
+                            } else {
+                                #if targetEnvironment(simulator)
+                                Button {
+                                    if let image = UIImage(systemName: "figure.strengthtraining.traditional") {
+                                        if let data = image.jpegData(compressionQuality: 0.8) {
+                                            var updated = currentExercise
+                                            updated.customImageData = data
+                                            store.updateExercise(updated)
+                                        }
+                                        HapticService.notification(.success)
+                                    }
+                                } label: {
+                                    Label("Simular foto", systemImage: "camera.badge.ellipsis")
+                                }
+                                #endif
                             }
 
                             PhotosPicker(selection: $customImageItem, matching: .images) {
                                 Label("Elegir de galería", systemImage: "photo.on.rectangle")
+                            }
+
+                            if currentExercise.customImageData != nil {
+                                Button(role: .destructive) {
+                                    var updated = currentExercise
+                                    updated.customImageData = nil
+                                    store.updateExercise(updated)
+                                } label: {
+                                    Label("Eliminar foto propia", systemImage: "trash")
+                                }
                             }
                         } label: {
                             Label("Cambiar imagen", systemImage: "photo.badge.plus")
@@ -918,7 +965,7 @@ struct ExerciseDetailView: View {
                         }
                     }
 
-                    if exercise.customImageData != nil {
+                    if currentExercise.customImageData != nil {
                         Label("Imagen propia guardada offline", systemImage: "checkmark.seal.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.primary)
@@ -939,10 +986,10 @@ struct ExerciseDetailView: View {
                             InstructionStepRow(index: index + 1, text: step)
                         }
                     }
-                    if !exercise.commonMistakes.isEmpty {
+                    if !currentExercise.commonMistakes.isEmpty {
                         Divider()
                         Text(ui(en: "Avoid", es: "Evita")).font(.headline)
-                        ForEach(exercise.commonMistakes, id: \.self) { mistake in
+                        ForEach(currentExercise.commonMistakes, id: \.self) { mistake in
                             Label(mistake, systemImage: "exclamationmark.triangle")
                                 .font(.subheadline)
                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -956,13 +1003,13 @@ struct ExerciseDetailView: View {
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(ui(en: "Reference", es: "Referencia")).font(.headline)
-                    if let notes = exercise.notes, !notes.isEmpty {
+                    if let notes = currentExercise.notes, !notes.isEmpty {
                         Text(notes)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    if let mediaURL = exercise.mediaURL, !mediaURL.isEmpty {
+                    if let mediaURL = currentExercise.mediaURL, !mediaURL.isEmpty {
                         Divider()
                         Label(ui(en: "Execution reference image", es: "Imagen de referencia"), systemImage: "photo")
                             .font(.subheadline)
@@ -977,10 +1024,10 @@ struct ExerciseDetailView: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    if !exercise.mediaBookmarks.isEmpty {
+                    if !currentExercise.mediaBookmarks.isEmpty {
                         Divider()
                         Text("Marcadores multimedia").font(.headline)
-                        ForEach(exercise.mediaBookmarks) { bookmark in
+                        ForEach(currentExercise.mediaBookmarks) { bookmark in
                             Link(destination: URL(string: bookmark.urlString) ?? URL(string: "https://www.youtube.com")!) {
                                 HStack {
                                     Image(systemName: bookmark.source == .instagram ? "camera.fill" : "play.rectangle.fill")
@@ -1017,7 +1064,7 @@ struct ExerciseDetailView: View {
             Text(ui(en: "Anatomy Map", es: "Mapa Anatómico"))
                 .font(.title3.bold())
             
-            ExerciseMuscleInfoPanel(exercise: exercise, gender: store.userProfile.muscleMapGender)
+            ExerciseMuscleInfoPanel(exercise: currentExercise, gender: store.userProfile.muscleMapGender)
             
             Text(ui(en: "Muscles Worked", es: "Músculos Trabajados"))
                 .font(.headline)
@@ -1025,21 +1072,21 @@ struct ExerciseDetailView: View {
             PulseCard {
                 VStack(spacing: 0) {
                     ExerciseMuscleTargetRow(
-                        title: localizedMuscle(exercise.muscleGroup),
+                        title: localizedMuscle(currentExercise.muscleGroup),
                         subtitle: isSpanish ? "1 serie de trabajo directo" : "1 direct work set",
-                        exercise: exercise,
+                        exercise: currentExercise,
                         gender: store.userProfile.muscleMapGender
                     )
-                    if !exercise.secondaryMuscles.isEmpty {
+                    if !currentExercise.secondaryMuscles.isEmpty {
                         Divider()
-                        ForEach(exercise.secondaryMuscles, id: \.self) { muscle in
+                        ForEach(currentExercise.secondaryMuscles, id: \.self) { muscle in
                             ExerciseMuscleTargetRow(
                                 title: localizedMuscle(muscle),
                                 subtitle: isSpanish ? "0,35 series indirectas" : "0.35 indirect work set",
-                                exercise: exercise,
+                                exercise: currentExercise,
                                 gender: store.userProfile.muscleMapGender
                             )
-                            if muscle != exercise.secondaryMuscles.last {
+                            if muscle != currentExercise.secondaryMuscles.last {
                                 Divider()
                             }
                         }
@@ -1047,7 +1094,7 @@ struct ExerciseDetailView: View {
                 }
             }
             
-            ResistanceCurveCard(profile: ResistanceCurveProfile(exercise: exercise))
+            ResistanceCurveCard(profile: ResistanceCurveProfile(exercise: currentExercise))
             
             FatigueRatingCard(score: fatigueScore, description: fatigueDescription)
         }
@@ -1137,7 +1184,7 @@ struct ExerciseDetailView: View {
 
     private var trackingLabel: String {
         let spanish = store.userProfile.preferredLanguage.hasPrefix("es")
-        return switch exercise.trackingType {
+        return switch currentExercise.trackingType {
         case .weightReps: spanish ? "Peso y repeticiones" : "Weight and reps"
         case .repsOnly: spanish ? "Solo repeticiones" : "Reps only"
         case .duration: spanish ? "Duración" : "Duration"
@@ -1191,8 +1238,9 @@ private struct ExerciseThumbnail: View {
     }
 }
 
-private struct ExerciseHeroMedia: View {
+struct ExerciseHeroMedia: View {
     let exercise: Exercise
+    var height: CGFloat = 320
 
     var body: some View {
         GeometryReader { proxy in
@@ -1251,7 +1299,7 @@ private struct ExerciseHeroMedia: View {
             .clipped()
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 320)
+        .frame(height: height)
         .accessibilityLabel("Imagen grande de referencia de \(exercise.name)")
     }
 
@@ -1273,7 +1321,7 @@ private struct ExerciseHeroMedia: View {
     }
 }
 
-private struct ExerciseReferenceImage: View {
+struct ExerciseReferenceImage: View {
     let url: URL
     let size: CGSize
 

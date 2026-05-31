@@ -18,6 +18,7 @@ struct AppSnapshot: Codable {
     var health: HealthSyncState
     var activeWorkout: WorkoutDay? = nil
     var activeWorkoutDrafts: [ExerciseSessionDraft]? = nil
+    var activeWorkoutStatus: ActiveWorkoutStatus? = nil
 
     init(
         userProfile: UserProfile,
@@ -36,6 +37,7 @@ struct AppSnapshot: Codable {
         health: HealthSyncState,
         activeWorkout: WorkoutDay? = nil,
         activeWorkoutDrafts: [ExerciseSessionDraft]? = nil,
+        activeWorkoutStatus: ActiveWorkoutStatus? = nil,
         snapshotVersion: Int = 1
     ) {
         self.snapshotVersion = snapshotVersion
@@ -55,6 +57,7 @@ struct AppSnapshot: Codable {
         self.health = health
         self.activeWorkout = activeWorkout
         self.activeWorkoutDrafts = activeWorkoutDrafts
+        self.activeWorkoutStatus = activeWorkoutStatus
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -75,6 +78,7 @@ struct AppSnapshot: Codable {
         case health
         case activeWorkout
         case activeWorkoutDrafts
+        case activeWorkoutStatus
     }
 
     init(from decoder: Decoder) throws {
@@ -96,6 +100,7 @@ struct AppSnapshot: Codable {
         health = try container.decode(HealthSyncState.self, forKey: .health)
         activeWorkout = try container.decodeIfPresent(WorkoutDay.self, forKey: .activeWorkout)
         activeWorkoutDrafts = try container.decodeIfPresent([ExerciseSessionDraft].self, forKey: .activeWorkoutDrafts)
+        activeWorkoutStatus = try container.decodeIfPresent(ActiveWorkoutStatus.self, forKey: .activeWorkoutStatus)
     }
 }
 
@@ -117,7 +122,8 @@ extension AppSnapshot {
             goals: SeedData.goals,
             health: HealthSyncState(),
             activeWorkout: nil,
-            activeWorkoutDrafts: nil
+            activeWorkoutDrafts: nil,
+            activeWorkoutStatus: nil
         )
     }
 }

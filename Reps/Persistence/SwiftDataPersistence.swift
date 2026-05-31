@@ -52,6 +52,10 @@ final class SwiftDataPersistence {
 
         let activePlan = plans.first(where: \.isActive)?.domain ?? plans.first?.domain ?? SeedData.pushPullLegsPlan
 
+        let activeWorkoutStatus = profile.activeWorkoutStatusData.flatMap { try? JSONDecoder().decode(ActiveWorkoutStatus.self, from: $0) }
+        let activeWorkout = profile.activeWorkoutData.flatMap { try? JSONDecoder().decode(WorkoutDay.self, from: $0) }
+        let activeWorkoutDrafts = profile.activeWorkoutDraftsData.flatMap { try? JSONDecoder().decode([ExerciseSessionDraft].self, from: $0) }
+
         return AppSnapshot(
             userProfile: profile.domain,
             activePlan: activePlan,
@@ -66,14 +70,22 @@ final class SwiftDataPersistence {
             gymPasses: fetch(GymPassRecord.self).map(\.domain),
             gymVisits: fetch(GymVisitRecord.self).map(\.domain),
             goals: fetch(GoalRecord.self).map(\.domain),
-            health: fetch(HealthSyncRecord.self).first?.domain ?? HealthSyncState()
+            health: fetch(HealthSyncRecord.self).first?.domain ?? HealthSyncState(),
+            activeWorkout: activeWorkout,
+            activeWorkoutDrafts: activeWorkoutDrafts,
+            activeWorkoutStatus: activeWorkoutStatus
         )
     }
 
     func save(_ snapshot: AppSnapshot) {
         clearStore()
 
-        context.insert(UserProfileRecord(profile: snapshot.userProfile))
+        let profileRecord = UserProfileRecord(profile: snapshot.userProfile)
+        profileRecord.activeWorkoutStatusData = try? JSONEncoder().encode(snapshot.activeWorkoutStatus)
+        profileRecord.activeWorkoutData = try? JSONEncoder().encode(snapshot.activeWorkout)
+        profileRecord.activeWorkoutDraftsData = try? JSONEncoder().encode(snapshot.activeWorkoutDrafts)
+
+        context.insert(profileRecord)
         context.insert(HealthSyncRecord(health: snapshot.health))
 
         snapshot.exercises

@@ -328,7 +328,9 @@ struct TodayView: View {
                                     }
                                 }
                                 
-                                let suggestedDay = store.activePlan.days[store.activePlan.activeDayIndex % store.activePlan.days.count]
+                                let count = store.activePlan.days.count
+                                let index = ((store.activePlan.activeDayIndex % count) + count) % count
+                                let suggestedDay = store.activePlan.days[index]
                                 if focusWorkout.id != suggestedDay.id {
                                     Divider()
                                     Button(role: .destructive) {
@@ -342,6 +344,7 @@ struct TodayView: View {
                                     .font(.system(size: 20, weight: .semibold))
                                     .foregroundStyle(.white.opacity(0.8))
                             }
+                            .layoutPriority(1)
                         }
                     }
                     
@@ -350,7 +353,7 @@ struct TodayView: View {
                         .foregroundStyle(.white.opacity(0.84))
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer()
+                Spacer(minLength: 12)
                 WorkoutImageStack(
                     exercises: focusPreviewExercises,
                     gender: store.userProfile.muscleMapGender,

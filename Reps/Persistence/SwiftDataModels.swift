@@ -25,6 +25,9 @@ final class UserProfileRecord {
     var autoProgressionEnabled: Bool?
     var remindersEnabled: Bool
     var onboardingCompleted: Bool
+    var activeWorkoutStatusData: Data?
+    var activeWorkoutData: Data?
+    var activeWorkoutDraftsData: Data?
 
     init(profile: UserProfile, id: String = "current") {
         self.id = id

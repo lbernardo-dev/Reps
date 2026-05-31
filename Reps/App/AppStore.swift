@@ -46,7 +46,8 @@ final class AppStore: ObservableObject {
             return scheduled.workoutDay
         }
         if !activePlan.days.isEmpty {
-            let index = activePlan.activeDayIndex % activePlan.days.count
+            let count = activePlan.days.count
+            let index = ((activePlan.activeDayIndex % count) + count) % count
             return activePlan.days[index]
         }
         return SeedData.pushDay
@@ -77,7 +78,10 @@ final class AppStore: ObservableObject {
     }
 
     var weeklyCompletion: Double {
-        FitnessMetrics.weeklyCompletion(completedWorkouts: workoutSessions.count, plannedWorkouts: activePlan.daysPerWeek)
+        let calendar = Calendar.current
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now.addingTimeInterval(-604_800)
+        let completedThisWeek = workoutSessions.filter { $0.date >= weekStart }.count
+        return FitnessMetrics.weeklyCompletion(completedWorkouts: completedThisWeek, plannedWorkouts: activePlan.daysPerWeek)
     }
 
     var currentWeight: Double {
@@ -220,9 +224,11 @@ final class AppStore: ObservableObject {
         
         // Advance progress of the current plan's correct day if completed
         if !activePlan.days.isEmpty {
-            let currentDay = activePlan.days[activePlan.activeDayIndex % activePlan.days.count]
+            let count = activePlan.days.count
+            let index = ((activePlan.activeDayIndex % count) + count) % count
+            let currentDay = activePlan.days[index]
             if session.workoutTitle == currentDay.title {
-                activePlan.activeDayIndex = (activePlan.activeDayIndex + 1) % activePlan.days.count
+                activePlan.activeDayIndex = ((activePlan.activeDayIndex + 1) % count + count) % count
                 if let index = plans.firstIndex(where: { $0.id == activePlan.id }) {
                     plans[index] = activePlan
                 }
@@ -357,7 +363,8 @@ final class AppStore: ObservableObject {
         
         // Re-generate schedule for today (meaning the active plan's current day will be scheduled)
         if !activePlan.days.isEmpty {
-            let index = activePlan.activeDayIndex % activePlan.days.count
+            let count = activePlan.days.count
+            let index = ((activePlan.activeDayIndex % count) + count) % count
             let day = activePlan.days[index]
             let scheduled = ScheduledWorkout(date: Date(), workoutDay: day, status: .scheduled)
             scheduledWorkouts.append(scheduled)
@@ -725,6 +732,7 @@ final class AppStore: ObservableObject {
         health = snapshot.health
         activeWorkout = snapshot.activeWorkout
         activeWorkoutDrafts = snapshot.activeWorkoutDrafts ?? []
+        activeWorkoutStatus = snapshot.activeWorkoutStatus
         
         sanitizeAvailableEquipment()
         

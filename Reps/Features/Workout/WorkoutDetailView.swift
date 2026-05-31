@@ -4,26 +4,48 @@ import SwiftUI
 struct WorkoutDetailView: View {
     @EnvironmentObject private var store: AppStore
     let workout: WorkoutDay
+    
+    @State private var selectedWorkout: WorkoutDay
+    @Namespace private var animation
+
+    init(workout: WorkoutDay) {
+        self.workout = workout
+        self._selectedWorkout = State(initialValue: workout)
+    }
 
     private var totalTargetSets: Int {
-        workout.exercises.reduce(0) { $0 + $1.targetSets }
+        selectedWorkout.exercises.reduce(0) { $0 + $1.targetSets }
     }
 
     private var equipmentSummary: [String] {
-        Array(Set(workout.exercises.map(\.exercise.equipment))).sorted().prefix(5).map { RepsText.equipment($0, language: store.userProfile.preferredLanguage) }
+        Array(Set(selectedWorkout.exercises.map(\.exercise.equipment))).sorted().prefix(5).map { RepsText.equipment($0, language: store.userProfile.preferredLanguage) }
+    }
+
+    private var parentPlan: WorkoutPlan? {
+        if store.activePlan.days.contains(where: { $0.id == workout.id }) {
+            return store.activePlan
+        }
+        return store.plans.first { plan in
+            plan.days.contains(where: { $0.id == workout.id })
+        }
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                dayStrip
+            VStack(alignment: .leading, spacing: 20) {
+                headerSection
                 heroCard
                 exerciseListCard
-                Text("The workout will adjust based on your performance.")
-                    .font(.headline)
+                
+                let adjustWord = store.userProfile.preferredLanguage.hasPrefix("es")
+                    ? "El entrenamiento se adaptará según tu rendimiento."
+                    : "The workout will adjust based on your performance."
+                Text(adjustWord)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PulseTheme.tertiaryText)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
+                
                 preparationCard
             }
             .padding(20)
@@ -34,11 +56,15 @@ struct WorkoutDetailView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
+        .onChange(of: workout) { _, newWorkout in
+            selectedWorkout = newWorkout
+        }
         .safeAreaInset(edge: .bottom) {
+            let startWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Iniciar entrenamiento" : "Start Workout"
             NavigationLink {
-                ActiveWorkoutView(workout: workout)
+                ActiveWorkoutView(workout: selectedWorkout)
             } label: {
-                Label("Start Workout", systemImage: "play.fill")
+                Label(startWord, systemImage: "play.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
@@ -58,72 +84,114 @@ struct WorkoutDetailView: View {
         }
     }
 
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let plan = parentPlan {
+                Text(plan.name.uppercased())
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(PulseTheme.primaryBright)
+                    .tracking(1.5)
+            }
+            dayStrip
+        }
+    }
+
     private var dayStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 28) {
-                Text(RepsText.workoutTitle(workout.title, language: store.userProfile.preferredLanguage))
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-                let otherDays = store.userProfile.preferredLanguage.hasPrefix("es")
-                    ? ["Día 2", "Día 3", "Día 4"]
-                    : ["Day 2", "Day 3", "Day 4"]
-                ForEach(otherDays, id: \.self) { title in
-                    Text(title)
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundStyle(PulseTheme.tertiaryText)
+        let days = parentPlan?.days ?? [workout]
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(days) { day in
+                    let isSelected = day.id == selectedWorkout.id
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            selectedWorkout = day
+                        }
+                    } label: {
+                        Text(RepsText.workoutTitle(day.title, language: store.userProfile.preferredLanguage))
+                            .font(.system(size: 14, weight: .bold))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .foregroundStyle(isSelected ? .black : PulseTheme.secondaryText)
+                            .background {
+                                if isSelected {
+                                    Capsule()
+                                        .fill(.white)
+                                        .matchedGeometryEffect(id: "activeDayTab", in: animation)
+                                } else {
+                                    Capsule()
+                                        .fill(PulseTheme.grouped.opacity(0.6))
+                                }
+                            }
+                            .overlay(
+                                Capsule()
+                                    .stroke(isSelected ? .clear : PulseTheme.separator.opacity(0.4), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal, 2)
             .padding(.vertical, 4)
         }
     }
 
     private var heroCard: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Today's Workout")
-                    .font(.title2.weight(.bold))
-                HStack(spacing: 18) {
-                    let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
-                    Label("\(workout.exercises.count) \(exercisesWord)", systemImage: "figure.strengthtraining.traditional")
-                    let minutesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "minutos" : "minutes"
-                    Label("\(workout.durationMinutes) \(minutesWord)", systemImage: "timer")
-                }
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(PulseTheme.secondaryText)
-
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                let todayWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Entrenamiento de hoy" : "Today's Workout"
+                Text(todayWord)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white)
+                
+                let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
+                let minutesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "minutos" : "minutes"
+                
                 HStack(spacing: 8) {
-                    ForEach(equipmentSummary.prefix(3), id: \.self) { equipment in
-                        Text(equipment)
-                            .font(.caption.weight(.bold))
-                            .lineLimit(1)
-                            .padding(.horizontal, 10)
-                            .frame(height: 30)
-                            .background(PulseTheme.grouped, in: Capsule())
+                    Label("\(selectedWorkout.exercises.count) \(exercisesWord)", systemImage: "figure.strengthtraining.traditional")
+                    Text("•")
+                        .foregroundStyle(PulseTheme.tertiaryText)
+                    Label("\(selectedWorkout.durationMinutes) \(minutesWord)", systemImage: "timer")
+                }
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(PulseTheme.secondaryText)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(equipmentSummary, id: \.self) { equipment in
+                            Text(equipment)
+                                .font(.system(size: 11, weight: .bold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(PulseTheme.grouped, in: Capsule())
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
                     }
                 }
             }
-
+            
             Spacer(minLength: 8)
-
-            WorkoutMusclePreview(exercises: workout.exercises.map(\.exercise), gender: store.userProfile.muscleMapGender)
-                .frame(width: 120, height: 120)
+            
+            WorkoutMusclePreview(exercises: selectedWorkout.exercises.map(\.exercise), gender: store.userProfile.muscleMapGender)
+                .frame(width: 96, height: 96)
         }
-    }
-
-    private var summaryGrid: some View {
-        HStack(spacing: 12) {
-            WorkoutStatTile(title: "Exercises", value: "\(workout.exercises.count)", icon: "list.bullet.rectangle")
-            WorkoutStatTile(title: "Sets", value: "\(totalTargetSets)", icon: "checklist")
-            WorkoutStatTile(title: "Rest", value: "\(averageRest)s", icon: "hourglass")
-        }
+        .padding(16)
+        .background(PulseTheme.card)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke(PulseTheme.separator, lineWidth: 1)
+        )
     }
 
     private var preparationCard: some View {
-        PulseCard {
+        let prepWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Preparación" : "Preparation"
+        let photoWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Fotos de sesión" : "Session Photos"
+        let notesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Notas" : "Notes"
+        let audioWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Audio/Dictado" : "Audio/Dictation"
+        
+        return PulseCard {
             VStack(alignment: .leading, spacing: 14) {
-                Label("Preparation", systemImage: "figure.strengthtraining.traditional")
+                Label(prepWord, systemImage: "figure.strengthtraining.traditional")
                     .font(.headline)
 
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -141,9 +209,9 @@ struct WorkoutDetailView: View {
                 }
 
                 HStack(spacing: 10) {
-                    Label("Session Photos", systemImage: "camera.fill")
-                    Label("Notes", systemImage: "note.text")
-                    Label("Audio/Dictation", systemImage: "mic.fill")
+                    Label(photoWord, systemImage: "camera.fill")
+                    Label(notesWord, systemImage: "note.text")
+                    Label(audioWord, systemImage: "mic.fill")
                 }
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
@@ -156,7 +224,7 @@ struct WorkoutDetailView: View {
     private var exerciseListCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, item in
+                ForEach(Array(selectedWorkout.exercises.enumerated()), id: \.element.id) { index, item in
                     NavigationLink {
                         ExerciseProgressView(exercise: item.exercise)
                     } label: {
@@ -169,7 +237,7 @@ struct WorkoutDetailView: View {
                     }
                     .buttonStyle(.plain)
 
-                    if item.id != workout.exercises.last?.id {
+                    if item.id != selectedWorkout.exercises.last?.id {
                         Divider()
                     }
                 }
@@ -178,8 +246,8 @@ struct WorkoutDetailView: View {
     }
 
     private var averageRest: Int {
-        guard !workout.exercises.isEmpty else { return 90 }
-        return workout.exercises.reduce(0) { $0 + $1.restSeconds } / workout.exercises.count
+        guard !selectedWorkout.exercises.isEmpty else { return 90 }
+        return selectedWorkout.exercises.reduce(0) { $0 + $1.restSeconds } / selectedWorkout.exercises.count
     }
 }
 

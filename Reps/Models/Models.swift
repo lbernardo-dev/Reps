@@ -399,7 +399,7 @@ struct WorkoutSession: Codable, Identifiable {
     var pausedDurationSeconds: Int = 0
 }
 
-struct ActiveWorkoutStatus: Identifiable, Equatable {
+struct ActiveWorkoutStatus: Identifiable, Equatable, Codable {
     var id = UUID()
     var workoutTitle: String
     var startedAt: Date = .now

@@ -149,14 +149,20 @@ struct ActiveWorkoutView: View {
         }
         .onAppear {
             applyAutoProgressionIfNeeded()
-            if store.activeWorkoutStatus == nil {
-                store.startActiveWorkout(workout, elapsedSeconds: elapsedSeconds, pausedSeconds: pausedSeconds, isPaused: isPaused)
-            } else if store.activeWorkout == nil {
-                store.activeWorkout = workout
-                store.activeWorkoutDrafts = Self.makeDrafts(for: workout)
-            } else if store.activeWorkout?.id != workout.id {
-                store.clearActiveWorkout()
-                store.startActiveWorkout(workout, elapsedSeconds: 0, pausedSeconds: 0, isPaused: false)
+            if let status = store.activeWorkoutStatus, store.activeWorkout?.id == workout.id {
+                elapsedSeconds = status.elapsedSeconds
+                pausedSeconds = status.pausedSeconds
+                isPaused = status.isPaused
+            } else {
+                if store.activeWorkoutStatus == nil {
+                    store.startActiveWorkout(workout, elapsedSeconds: elapsedSeconds, pausedSeconds: pausedSeconds, isPaused: isPaused)
+                } else if store.activeWorkout == nil {
+                    store.activeWorkout = workout
+                    store.activeWorkoutDrafts = Self.makeDrafts(for: workout)
+                } else if store.activeWorkout?.id != workout.id {
+                    store.clearActiveWorkout()
+                    store.startActiveWorkout(workout, elapsedSeconds: 0, pausedSeconds: 0, isPaused: false)
+                }
             }
             if isRouteCandidate {
                 routeTracker.requestAuthorization()
@@ -737,7 +743,8 @@ struct ActiveWorkoutView: View {
     }
 
     private var exerciseCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .top, spacing: 14) {
                     if let exercise = selectedDraft?.workoutExercise.exercise {
                         ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender)
@@ -823,10 +830,23 @@ struct ActiveWorkoutView: View {
                 }
 
                 if exerciseDrafts.indices.contains(selectedExerciseIndex) {
-                    ForEach(exerciseDrafts[selectedExerciseIndex].sets.indices, id: \.self) { setIndex in
+                    let sets = exerciseDrafts.indices.contains(selectedExerciseIndex) ? exerciseDrafts[selectedExerciseIndex].sets : []
+                    ForEach(sets.indices, id: \.self) { setIndex in
                         SetRow(set: Binding(
-                            get: { exerciseDrafts[selectedExerciseIndex].sets[setIndex] },
-                            set: { exerciseDrafts[selectedExerciseIndex].sets[setIndex] = $0 }
+                            get: {
+                                guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+                                      exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
+                                    return SetLog(setNumber: setIndex + 1, weightKg: 0, reps: 0, completed: false)
+                                }
+                                return exerciseDrafts[selectedExerciseIndex].sets[setIndex]
+                            },
+                            set: { newValue in
+                                guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+                                      exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
+                                    return
+                                }
+                                exerciseDrafts[selectedExerciseIndex].sets[setIndex] = newValue
+                            }
                         )) { completed in
                             guard completed else { return }
                             handleSetCompleted(exerciseIndex: selectedExerciseIndex, setIndex: setIndex)
@@ -837,11 +857,24 @@ struct ActiveWorkoutView: View {
                 if hasVisibleAdvancedFields {
                     DisclosureGroup(isExpanded: $showAdvancedFields) {
                         if exerciseDrafts.indices.contains(selectedExerciseIndex) {
+                            let sets = exerciseDrafts.indices.contains(selectedExerciseIndex) ? exerciseDrafts[selectedExerciseIndex].sets : []
                             VStack(spacing: 10) {
-                                ForEach(exerciseDrafts[selectedExerciseIndex].sets.indices, id: \.self) { setIndex in
+                                ForEach(sets.indices, id: \.self) { setIndex in
                                     AdvancedSetFields(set: Binding(
-                                        get: { exerciseDrafts[selectedExerciseIndex].sets[setIndex] },
-                                        set: { exerciseDrafts[selectedExerciseIndex].sets[setIndex] = $0 }
+                                        get: {
+                                            guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+                                                  exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
+                                                return SetLog(setNumber: setIndex + 1, weightKg: 0, reps: 0, completed: false)
+                                            }
+                                            return exerciseDrafts[selectedExerciseIndex].sets[setIndex]
+                                        },
+                                        set: { newValue in
+                                            guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+                                                  exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
+                                                return
+                                            }
+                                            exerciseDrafts[selectedExerciseIndex].sets[setIndex] = newValue
+                                        }
                                     ), showSetType: store.userProfile.showSetType, showRPE: store.userProfile.showRPE, showRIR: store.userProfile.showRIR, showTempo: store.userProfile.showTempo)
                                 }
                             }
@@ -891,7 +924,8 @@ struct ActiveWorkoutView: View {
                             Button {
                                 Task {
                                     if audioRecorder.isRecording {
-                                        if let attachment = audioRecorder.stopRecording(note: selectedDraft?.voiceNote) {
+                                        if let attachment = audioRecorder.stopRecording(note: selectedDraft?.voiceNote),
+                                           exerciseDrafts.indices.contains(selectedExerciseIndex) {
                                             exerciseDrafts[selectedExerciseIndex].mediaAttachments.append(attachment)
                                         }
                                     } else {
@@ -967,15 +1001,8 @@ struct ActiveWorkoutView: View {
                                 .stroke(PulseTheme.primary.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
                         )
                 }
+            }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(PulseTheme.card)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                .stroke(PulseTheme.separator, lineWidth: 1)
-        )
     }
 
     private var nextExerciseCard: some View {
@@ -1405,6 +1432,7 @@ struct ActiveWorkoutView: View {
             restSeconds = exerciseDrafts[exerciseIndex].workoutExercise.restSeconds
             exerciseDrafts[exerciseIndex].sets[nextIndex].weightKg = completedSet.weightKg
             exerciseDrafts[exerciseIndex].sets[nextIndex].reps = completedSet.reps
+            publishActiveWorkoutStatus()
             return
         }
 
@@ -1415,6 +1443,7 @@ struct ActiveWorkoutView: View {
         } else {
             restSeconds = 0
         }
+        publishActiveWorkoutStatus()
     }
 
     private func applyAutoProgressionIfNeeded() {
@@ -2293,12 +2322,12 @@ private struct SetRow: View {
     var body: some View {
         VStack(spacing: 0) {
             // Row 1 — set number + column labels + completion button
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 // Set number badge
                 Text("\(set.setNumber)")
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(set.completed ? .black : PulseTheme.secondaryText)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 28, height: 28)
                     .background(set.completed ? PulseTheme.primaryBright : PulseTheme.elevated)
                     .clipShape(Circle())
                     .scaleEffect(set.completed ? 1.08 : 1.0)
@@ -2316,16 +2345,16 @@ private struct SetRow: View {
                     .frame(maxWidth: .infinity)
 
                 // Spacer to align with checkmark below
-                Color.clear.frame(width: 44, height: 1)
+                Color.clear.frame(width: 38, height: 1)
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 10)
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
             .padding(.bottom, 4)
 
             // Row 2 — steppers + completion button
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 // Alignment spacer matching the set number badge
-                Color.clear.frame(width: 32, height: 1)
+                Color.clear.frame(width: 28, height: 1)
 
                 InlineStepper(
                     value: $set.weightKg,
@@ -2356,7 +2385,7 @@ private struct SetRow: View {
                     Image(systemName: set.isPersonalRecord ? "trophy.fill" : (set.completed ? "checkmark.circle.fill" : "circle"))
                         .font(.headline.weight(.bold))
                         .foregroundStyle(set.completed ? .black : PulseTheme.secondaryText)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 38, height: 38)
                         .background(set.isPersonalRecord ? PulseTheme.accent : (set.completed ? PulseTheme.primaryBright : PulseTheme.elevated))
                         .clipShape(Circle())
                         .scaleEffect(set.completed ? 1.12 : 1.0)
@@ -2365,8 +2394,8 @@ private struct SetRow: View {
                 }
                 .accessibilityLabel(set.completed ? "Marcar serie \(set.setNumber) incompleta" : "Marcar serie \(set.setNumber) completa")
             }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 10)
+            .padding(.horizontal, 6)
+            .padding(.bottom, 8)
         }
         .background(set.completed ? PulseTheme.primaryBright.opacity(0.15) : PulseTheme.grouped)
         .overlay(
@@ -2489,37 +2518,37 @@ private struct InlineStepper: View {
     let formatter: (Double) -> String
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 3) {
             Button {
                 value = max(range.lowerBound, value - step)
             } label: {
                 Image(systemName: "minus")
-                    .font(.title3.weight(.bold))
-                    .frame(width: 46, height: 46)
+                    .font(.subheadline.weight(.bold))
+                    .frame(width: 36, height: 36)
                     .foregroundStyle(PulseTheme.primary)
                     .background(PulseTheme.primary.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             .accessibilityLabel("Bajar valor")
 
             Text(formatter(value))
-                .font(.title3.monospacedDigit().weight(.bold))
+                .font(.subheadline.monospacedDigit().weight(.bold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.62)
-                .frame(minWidth: 48, maxWidth: .infinity)
-                .frame(height: 46)
+                .frame(minWidth: 36, maxWidth: .infinity)
+                .frame(height: 36)
                 .background(PulseTheme.grouped)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             Button {
                 value = min(range.upperBound, value + step)
             } label: {
                 Image(systemName: "plus")
-                    .font(.title3.weight(.bold))
-                    .frame(width: 46, height: 46)
+                    .font(.subheadline.weight(.bold))
+                    .frame(width: 36, height: 36)
                     .foregroundStyle(PulseTheme.primary)
                     .background(PulseTheme.primary.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             .accessibilityLabel("Subir valor")
         }
