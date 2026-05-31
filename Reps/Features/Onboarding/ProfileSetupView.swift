@@ -11,6 +11,13 @@ struct ProfileSetupView: View {
     @State private var sessionLengthMinutes: Int? = 60
     @State private var focusMuscles: Set<String> = []
     @State private var generationPulse = false
+    @State private var selectedConsistencyIndex = 0
+    @State private var generationProgress: Double = 0.0
+    @State private var generationStatusText: String = "Analizando métricas base..."
+    @State private var isGenerationComplete = false
+    @State private var hasTargetEvent = false
+    @State private var targetEventName = ""
+    @State private var targetEventDate = Calendar.current.date(byAdding: .weekOfYear, value: 8, to: .now) ?? .now
 
     var onFinish: (OnboardingResult) -> Void
 
@@ -25,6 +32,14 @@ struct ProfileSetupView: View {
         configured.sex = selectedSex?.profileValue
         configured.dateOfBirth = Calendar.current.date(byAdding: .year, value: -age, to: .now)
         configured.availableEquipment = configuredEquipment
+        
+        if hasTargetEvent {
+            configured.targetEventName = targetEventName.isEmpty ? "Evento" : targetEventName
+            configured.targetEventDate = targetEventDate
+        } else {
+            configured.targetEventName = nil
+            configured.targetEventDate = nil
+        }
 
         return OnboardingPlanBuilder.makePlan(
             profile: configured,
@@ -65,6 +80,7 @@ struct ProfileSetupView: View {
                 withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                     generationPulse = true
                 }
+                startPlanGenerationSimulation()
             }
         }
     }
@@ -205,18 +221,103 @@ struct ProfileSetupView: View {
                     DoubleMetricStepper(title: "Peso", value: $weightKg, range: 35...180, step: 0.5, unit: "kg")
                 }
             }
+
+            metricsRecommendationView
+        }
+    }
+
+    private var metricsRecommendationView: some View {
+        let bmi = weightKg / ((heightCm / 100) * (heightCm / 100))
+        let title: String
+        let description: String
+        let tag: String
+        let iconName: String
+        let iconColor: Color
+
+        if bmi < 18.5 {
+            title = "Foco sugerido: Ganar Masa Muscular"
+            description = "Tu peso actual es bajo para tu altura. Te sugerimos priorizar entrenamientos de fuerza orientados a hipertrofia muscular (tanto en casa con mancuernas como en gimnasio) acompañados de una buena alimentación."
+            tag = "Hipertrofia"
+            iconName = "scalemass.fill"
+            iconColor = PulseTheme.primary
+        } else if bmi < 25.0 {
+            title = "Foco sugerido: Tonificación y Fuerza"
+            description = "Te encuentras en un rango de peso saludable. Tu plan se centrará en la recomposición corporal, mejorando tu fuerza y definición muscular en casa o en el gimnasio."
+            tag = "Recomposición"
+            iconName = "figure.strengthtraining.traditional"
+            iconColor = PulseTheme.primaryBright
+        } else if bmi < 30.0 {
+            title = "Foco sugerido: Pérdida de Grasa"
+            description = "Tu peso actual indica sobrepeso. Te sugerimos rutinas que combinen entrenamientos de fuerza de intensidad moderada-alta para mantener el músculo mientras pierdes grasa."
+            tag = "Déficit Calórico"
+            iconName = "flame.fill"
+            iconColor = PulseTheme.warning
+        } else {
+            title = "Foco sugerido: Salud y Resistencia"
+            description = "Te sugerimos rutinas con ejercicios de bajo impacto (peso corporal o máquinas de cardio en el gimnasio) para cuidar tus articulaciones mientras mejoras tu salud metabólica."
+            tag = "Bajo Impacto"
+            iconName = "heart.text.square.fill"
+            iconColor = PulseTheme.destructive
+        }
+
+        return PulseCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: iconName)
+                        .foregroundStyle(iconColor)
+                        .font(.title3.bold())
+                    Text("Análisis de Composición")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                    Spacer()
+                    Text("IMC: \(bmi, specifier: "%.1f")")
+                        .font(.caption.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(iconColor.opacity(0.12))
+                        .foregroundStyle(iconColor)
+                        .clipShape(Capsule())
+                }
+
+                Text(title)
+                    .font(.headline)
+
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack {
+                    Text("Recomendación:")
+                        .font(.caption.bold())
+                        .foregroundStyle(PulseTheme.secondaryText)
+                    Text(tag)
+                        .font(.caption.bold())
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .padding(.top, 4)
+            }
         }
     }
 
     private var goalStep: some View {
-        optionStep(
-            title: "Cual es tu objetivo principal?",
-            subtitle: "Esto cambia repeticiones, descansos y foco del plan generado.",
-            options: UserProfile.MainGoal.allCases,
-            selection: $profile.mainGoal,
-            titleForOption: \.rawValue,
-            iconForOption: icon(for:)
-        )
+        VStack(alignment: .leading, spacing: 20) {
+            optionStep(
+                title: "Cual es tu objetivo principal?",
+                subtitle: "Esto cambia repeticiones, descansos y foco del plan generado.",
+                options: UserProfile.MainGoal.allCases,
+                selection: $profile.mainGoal,
+                titleForOption: \.rawValue,
+                iconForOption: icon(for:)
+            )
+            
+            targetEventCard
+        }
     }
 
     private var trainingStep: some View {
@@ -254,11 +355,11 @@ struct ProfileSetupView: View {
                     Text("Duracion por sesion")
                         .font(.headline)
                     HStack(spacing: 8) {
-                        ForEach([30, 45, 60, 75], id: \.self) { minutes in
+                        ForEach([30, 45, 60, 75, 90], id: \.self) { minutes in
                             Button {
                                 sessionLengthMinutes = minutes
                             } label: {
-                                Text("\(minutes)m")
+                                Text(minutes == 90 ? "90m+" : "\(minutes)m")
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 46)
@@ -276,17 +377,42 @@ struct ProfileSetupView: View {
         }
     }
 
+    private var areAllEquipmentSelected: Bool {
+        let current = configuredEquipment
+        return equipmentOptions.allSatisfy { current.contains($0) }
+    }
+
+    private func toggleAllEquipment() {
+        if areAllEquipmentSelected {
+            profile.availableEquipment = []
+        } else {
+            profile.availableEquipment = equipmentOptions
+        }
+    }
+
     private var equipmentStep: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Equipo disponible")
-                    .font(.headline)
+                HStack {
+                    Text("Equipo disponible")
+                        .font(.headline)
+                    Spacer()
+                    Button {
+                        toggleAllEquipment()
+                    } label: {
+                        Text(areAllEquipmentSelected ? "Desmarcar todos" : "Marcar todos")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.primary)
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 ForEach(equipmentOptions, id: \.self) { equipment in
                     Button {
                         toggleEquipment(equipment)
                     } label: {
                         HStack {
-                            Text(equipment)
+                            Text(RepsText.equipment(equipment, language: "es"))
                                 .font(.headline)
                             Spacer()
                             Image(systemName: configuredEquipment.contains(equipment) ? "checkmark.circle.fill" : "circle")
@@ -304,11 +430,23 @@ struct ProfileSetupView: View {
         }
     }
 
+    private var areAllMusclesSelected: Bool {
+        focusMuscles.count == focusOptions.count
+    }
+
+    private func toggleAllMuscles() {
+        if areAllMusclesSelected {
+            focusMuscles.removeAll()
+        } else {
+            focusMuscles = Set(focusOptions.map { $0.key })
+        }
+    }
+
     private var focusStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
                 title: "Quieres priorizar algun musculo?",
-                subtitle: "Escoge hasta dos zonas. El cuerpo seleccionado guia la decision."
+                subtitle: "Escoge las zonas que quieras priorizar o selecciona todas."
             )
 
             OnboardingBodyPair(gender: selectedGender, selectedMuscles: selectedFocusMuscles) { muscle in
@@ -316,9 +454,22 @@ struct ProfileSetupView: View {
                     toggleFocus(focus)
                 }
             }
-            .frame(height: 390)
+            .frame(height: 440)
 
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 10)], spacing: 10) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
+                Button {
+                    toggleAllMuscles()
+                } label: {
+                    Text("Todos")
+                        .font(.caption.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 34)
+                        .foregroundStyle(areAllMusclesSelected ? .black : PulseTheme.secondaryText)
+                        .background(areAllMusclesSelected ? PulseTheme.primaryBright : PulseTheme.grouped)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+
                 ForEach(focusOptions, id: \.key) { option in
                     Button {
                         toggleFocus(option.key)
@@ -337,34 +488,105 @@ struct ProfileSetupView: View {
         }
     }
 
-    private var generatingStep: some View {
-        VStack(alignment: .center, spacing: 24) {
-            OnboardingTitle(
-                title: "Generando tu plan base",
-                subtitle: "El mapa muestra la distribucion muscular prevista."
-            )
-
-            ZStack {
-                OnboardingBodyPair(gender: selectedGender, heatmap: generationHeatmap)
-                    .frame(height: 440)
-                    .scaleEffect(generationPulse ? 1.03 : 0.98)
-                    .opacity(generationPulse ? 1 : 0.78)
-                VStack {
-                    Spacer()
-                    Text("\(generatedPlan.days.count) dias listos")
-                        .font(.caption.weight(.bold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
+    private func startPlanGenerationSimulation() {
+        generationProgress = 0.0
+        isGenerationComplete = false
+        generationStatusText = "Analizando tus métricas corporales..."
+        
+        let steps: [(delay: Double, progress: Double, text: String)] = [
+            (0.8, 0.3, "Evaluando equipamiento disponible..."),
+            (1.6, 0.6, "Priorizando grupos musculares seleccionados..."),
+            (2.4, 0.85, "Calculando volumen y series óptimas..."),
+            (3.2, 1.0, "¡Plan personalizado construido!")
+        ]
+        
+        for step in steps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + step.delay) {
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    self.generationProgress = step.progress
+                    self.generationStatusText = step.text
+                    if step.progress >= 1.0 {
+                        self.isGenerationComplete = true
+                    }
                 }
             }
-            .frame(maxWidth: .infinity)
+        }
+    }
 
-            HStack(spacing: 8) {
-                GenerationPill(title: "Series", value: "\(weeklySetTotal)")
-                GenerationPill(title: "Descanso", value: "\(generatedPlan.days.first?.restBetweenExercisesSeconds ?? 120)s")
-                GenerationPill(title: "Semanas", value: "\(generatedPlan.totalWeeks)")
+    private var generatingStep: some View {
+        VStack(alignment: .center, spacing: 28) {
+            if !isGenerationComplete {
+                VStack(spacing: 30) {
+                    Spacer()
+                    
+                    ZStack {
+                        Circle()
+                            .stroke(PulseTheme.separator, lineWidth: 6)
+                            .frame(width: 120, height: 120)
+                        
+                        Circle()
+                            .trim(from: 0.0, to: CGFloat(generationProgress))
+                            .stroke(
+                                LinearGradient(
+                                    colors: [PulseTheme.primary, PulseTheme.primaryBright],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                            )
+                            .frame(width: 120, height: 120)
+                            .rotationEffect(Angle(degrees: -90))
+                        
+                        Text("\(Int(generationProgress * 100))%")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.bottom, 20)
+                    
+                    VStack(spacing: 8) {
+                        Text("Construyendo tu plan")
+                            .font(.title2.bold())
+                        Text(generationStatusText)
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .multilineTextAlignment(.center)
+                            .frame(height: 40)
+                    }
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, minHeight: 450)
+            } else {
+                VStack(alignment: .center, spacing: 24) {
+                    OnboardingTitle(
+                        title: "¡Tu plan base está listo!",
+                        subtitle: "El mapa muestra la distribución muscular prevista según tu foco."
+                    )
+
+                    ZStack {
+                        OnboardingBodyPair(gender: selectedGender, heatmap: generationHeatmap)
+                            .frame(height: 480)
+                            .scaleEffect(generationPulse ? 1.03 : 0.98)
+                            .opacity(generationPulse ? 1 : 0.78)
+                        VStack {
+                            Spacer()
+                            Text("\(generatedPlan.days.count) dias listos")
+                                .font(.caption.weight(.bold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    HStack(spacing: 8) {
+                        GenerationPill(title: "Series", value: "\(weeklySetTotal)")
+                        GenerationPill(title: "Descanso", value: "\(generatedPlan.days.first?.restBetweenExercisesSeconds ?? 120)s")
+                        GenerationPill(title: "Semanas", value: "\(generatedPlan.totalWeeks)")
+                    }
+                }
+                .transition(.opacity.combined(with: .scale))
             }
         }
     }
@@ -418,9 +640,36 @@ struct ProfileSetupView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Pronostico de evolucion muscular")
                     .font(.headline)
-                Text("Estimacion basada en el volumen semanal del plan generado.")
+                Text("Estimacion basada en el volumen semanal del plan generado y tu constancia.")
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
+
+                Text("Nivel de constancia estimado:")
+                    .font(.subheadline.bold())
+                
+                HStack(spacing: 8) {
+                    ForEach(0..<3) { index in
+                        let title: String = switch index {
+                        case 0: "Alta (90-100%)"
+                        case 1: "Media (70-90%)"
+                        default: "Baja (<70%)"
+                        }
+                        
+                        Button {
+                            selectedConsistencyIndex = index
+                        } label: {
+                            Text(title)
+                                .font(.caption.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .foregroundStyle(selectedConsistencyIndex == index ? .black : PulseTheme.secondaryText)
+                                .background(selectedConsistencyIndex == index ? .white : PulseTheme.grouped)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.bottom, 4)
 
                 OnboardingForecastChart(points: forecastPoints)
                     .frame(height: 160)
@@ -435,6 +684,34 @@ struct ProfileSetupView: View {
                             .foregroundStyle(row.color)
                     }
                 }
+
+                Divider()
+                    .padding(.vertical, 4)
+
+                // Disclaimer box
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(PulseTheme.warning)
+                        .font(.body)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Nota Importante (Alimentación)")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                        Text("Este pronóstico estima el estímulo del entrenamiento. Recuerda que los resultados reales de ganancia de masa muscular o pérdida de grasa dependen críticamente de tu alimentación y descanso.")
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(14)
+                .background(PulseTheme.warning.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(PulseTheme.warning.opacity(0.24), lineWidth: 1)
+                )
             }
         }
     }
@@ -443,17 +720,21 @@ struct ProfileSetupView: View {
         VStack(alignment: .leading, spacing: 22) {
             Text("Reps Pro")
                 .font(.system(size: 46, weight: .bold, design: .rounded))
-            Text("Mantén el plan adaptandose a tu progreso real.")
+            Text("Mantén el plan adaptándote a tu progreso real.")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
 
             PulseCard {
                 VStack(spacing: 18) {
-                    PaywallBenefit(icon: "sparkles", title: "Ajustes automaticos", subtitle: "Series, repeticiones y descansos cambian segun rendimiento.")
+                    PaywallBenefit(icon: "sparkles", title: "Ajustes inteligentes por IA", subtitle: "Analiza tu fatiga y adapta series, repeticiones y cargas sesión a sesión automáticamente.")
                     Divider()
-                    PaywallBenefit(icon: "figure.strengthtraining.traditional", title: "Mapa muscular avanzado", subtitle: "Predicciones por zona y alertas de desequilibrio.")
+                    PaywallBenefit(icon: "figure.strengthtraining.traditional", title: "Mapa muscular y fatiga 3D", subtitle: "Visualiza desequilibrios musculares y fatiga acumulada en tiempo real por zona.")
                     Divider()
-                    PaywallBenefit(icon: "chart.line.uptrend.xyaxis", title: "Pronosticos y reportes", subtitle: "Evolucion semanal, volumen, adherencia y exportacion.")
+                    PaywallBenefit(icon: "chart.line.uptrend.xyaxis", title: "Estimaciones de fuerza (1RM)", subtitle: "Calcula tu progresión y fuerza estimada sin necesidad de llegar al fallo.")
+                    Divider()
+                    PaywallBenefit(icon: "music.note.list", title: "Música integrada (Spotify y Apple Music)", subtitle: "Controla tus playlists favoritas directamente desde la vista de entrenamiento.")
+                    Divider()
+                    PaywallBenefit(icon: "doc.text.magnifyingglass", title: "Historial ilimitado y exportación", subtitle: "Acceso completo a métricas históricas, exportación a CSV y análisis detallados.")
                 }
             }
 
@@ -564,7 +845,13 @@ struct ProfileSetupView: View {
     }
 
     private var canMoveForward: Bool {
-        step != .sex || selectedSex != nil
+        if step == .sex {
+            return selectedSex != nil
+        }
+        if step == .generating {
+            return isGenerationComplete
+        }
+        return true
     }
 
     private var primaryButtonTitle: String {
@@ -595,6 +882,14 @@ struct ProfileSetupView: View {
         configured.dateOfBirth = Calendar.current.date(byAdding: .year, value: -age, to: .now)
         configured.availableEquipment = configuredEquipment
         configured.onboardingCompleted = true
+        
+        if hasTargetEvent {
+            configured.targetEventName = targetEventName.isEmpty ? "Evento" : targetEventName
+            configured.targetEventDate = targetEventDate
+        } else {
+            configured.targetEventName = nil
+            configured.targetEventDate = nil
+        }
 
         let metric = bodyMetric
         let plan = OnboardingPlanBuilder.makePlan(
@@ -622,7 +917,7 @@ struct ProfileSetupView: View {
     private func toggleFocus(_ muscle: String) {
         if focusMuscles.contains(muscle) {
             focusMuscles.remove(muscle)
-        } else if focusMuscles.count < 2 {
+        } else {
             focusMuscles.insert(muscle)
         }
     }
@@ -640,21 +935,120 @@ struct ProfileSetupView: View {
         generatedPlan.days.flatMap(\.exercises).reduce(0) { $0 + $1.targetSets }
     }
 
+    private var consistencyFactor: Double {
+        switch selectedConsistencyIndex {
+        case 0: return 1.0  // Alta
+        case 1: return 0.7  // Media
+        default: return 0.4 // Baja
+        }
+    }
+
     private var forecastPoints: [Double] {
         let base = Double(max(weeklySetTotal, 1))
+        let factor = consistencyFactor
         return (0..<8).map { week in
-            let multiplier = 1 + (Double(week) * 0.08)
+            let multiplier = 1 + (Double(week) * 0.08 * factor)
             return min(100, base * multiplier)
         }
     }
 
     private var forecastRows: [(name: String, detail: String, color: Color)] {
         let total = weeklySetTotal
+        let factor = consistencyFactor
+        let week1Sets = Int(Double(total) * factor)
+        let week4Diff = Int(Double(max(2, total / 6)) * factor)
         return [
-            ("Semana 1", "\(total) series productivas", PulseTheme.primary),
-            ("Semana 4", "+\(max(2, total / 6)) series ajustadas", PulseTheme.primaryBright),
-            ("Semana 8", "deload o nuevo bloque", PulseTheme.accent)
+            ("Semana 1", "\(week1Sets) series productivas estimadas", PulseTheme.primary),
+            ("Semana 4", "+\(week4Diff) series ajustadas", PulseTheme.primaryBright),
+            ("Semana 8", factor > 0.6 ? "Evolución óptima (deload o nuevo bloque)" : "Evolución moderada (continuar bloque)", PulseTheme.accent)
         ]
+    }
+
+    private var targetEventCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Toggle(isOn: $hasTargetEvent) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "calendar.badge.clock")
+                            .foregroundStyle(PulseTheme.primary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("¿Tienes un evento objetivo?")
+                                .font(.headline)
+                            Text("Ponerte en forma para una fecha específica.")
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+                }
+                
+                if hasTargetEvent {
+                    Divider()
+                    
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Nombre del evento")
+                            .font(.caption.bold())
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        TextField("Ej. Boda, Vacaciones, Maratón", text: $targetEventName)
+                            .textFieldStyle(.roundedBorder)
+                        
+                        DatePicker(
+                            "Fecha del evento",
+                            selection: $targetEventDate,
+                            in: Date.now...,
+                            displayedComponents: .date
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        
+                        if let advice = targetEventAdvice {
+                            Text(advice.text)
+                                .font(.caption)
+                                .foregroundStyle(advice.color)
+                                .padding(10)
+                                .background(advice.color.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .padding(.top, 4)
+                        }
+                    }
+                    .transition(.opacity)
+                }
+            }
+        }
+    }
+
+    private struct EventAdvice {
+        let text: String
+        let color: Color
+        let weeks: Int
+    }
+
+    private var targetEventAdvice: EventAdvice? {
+        guard hasTargetEvent else { return nil }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date.now)
+        let end = calendar.startOfDay(for: targetEventDate)
+        let components = calendar.dateComponents([.day], from: start, to: end)
+        let days = components.day ?? 0
+        let weeks = max(1, days / 7)
+        
+        if weeks < 6 {
+            return EventAdvice(
+                text: "Faltan \(weeks) semanas. Un ciclo óptimo suele requerir 8-12 semanas para ver adaptaciones importantes de fuerza o masa muscular, pero adaptaremos tu plan a corto plazo para maximizar resultados antes de tu evento.",
+                color: PulseTheme.warning,
+                weeks: weeks
+            )
+        } else if weeks <= 12 {
+            return EventAdvice(
+                text: "Faltan \(weeks) semanas. ¡Excelente! Tienes el tiempo perfecto para completar un ciclo completo de entrenamiento progresivo con adaptaciones notables.",
+                color: PulseTheme.primaryBright,
+                weeks: weeks
+            )
+        } else {
+            return EventAdvice(
+                text: "Faltan \(weeks) semanas. Dado que el plazo es largo (\(weeks) semanas), te sugerimos hacer un bloque de fuerza/hipertrofia de 8 a 12 semanas y luego un plan de mantenimiento o definición secundario para llegar en tu mejor forma.",
+                color: PulseTheme.primary,
+                weeks: weeks
+            )
+        }
     }
 
     private func muscles(for group: String) -> [Muscle] {
@@ -689,7 +1083,7 @@ struct ProfileSetupView: View {
     }
 
     private var equipmentOptions: [String] {
-        ["Barbell", "Dumbbells", "Resistance Band", "Bodyweight", "Kettlebell", "Cardio Machine"]
+        ["Barbell", "Dumbbells", "Resistance Band", "Bodyweight", "Kettlebell", "Cardio Machine", "Cable", "Machine", "Bench", "Pullup Bar"]
     }
 
     private var focusOptions: [(key: String, title: String)] {
@@ -902,11 +1296,13 @@ private struct OnboardingBodyPair: View {
 
     var body: some View {
         GeometryReader { proxy in
-            HStack(spacing: -36) {
+            HStack(spacing: -16) {
+                Spacer()
                 bodyView(side: .front)
-                    .frame(width: proxy.size.width * 0.60, height: proxy.size.height)
+                    .frame(width: proxy.size.width * 0.46, height: proxy.size.height)
                 bodyView(side: .back)
-                    .frame(width: proxy.size.width * 0.60, height: proxy.size.height)
+                    .frame(width: proxy.size.width * 0.46, height: proxy.size.height)
+                Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -970,6 +1366,8 @@ private struct PaywallBenefit: View {
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            
+            Spacer()
         }
     }
 }

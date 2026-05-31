@@ -1511,23 +1511,6 @@ private struct ScheduleExerciseView: View {
     }
 }
 
-private extension Exercise {
-    var mediaAssetURL: URL? {
-        guard let mediaURL,
-              !mediaURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return nil
-        }
-
-        if let url = URL(string: mediaURL) {
-            return url
-        }
-
-        return mediaURL
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
-            .flatMap(URL.init(string:))
-    }
-}
-
 private struct ExerciseBookmarkEditor: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: AppStore
@@ -1539,6 +1522,8 @@ private struct ExerciseBookmarkEditor: View {
     @State private var urlString = ""
     @State private var minutes = 0
     @State private var seconds = 0
+    @State private var durationMinutes = 0
+    @State private var durationSeconds = 0
     @State private var note = ""
 
     init(exercise: Exercise) {
@@ -1571,10 +1556,17 @@ private struct ExerciseBookmarkEditor: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
-                            if let timestamp = bookmark.timestampSeconds {
-                                Text("Marcador \(timestamp / 60):\(String(format: "%02d", timestamp % 60))")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(PulseTheme.primary)
+                            HStack(spacing: 12) {
+                                if let timestamp = bookmark.timestampSeconds {
+                                    Text("Marcador \(timestamp / 60):\(String(format: "%02d", timestamp % 60))")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.primary)
+                                }
+                                if let duration = bookmark.playbackDurationSeconds {
+                                    Text("Duración \(duration / 60)m \(duration % 60)s")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
                             }
                         }
                     }
@@ -1591,8 +1583,21 @@ private struct ExerciseBookmarkEditor: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    
+                    Text("Punto de inicio en video")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
                     Stepper("Min \(minutes)", value: $minutes, in: 0...240)
                     Stepper("Seg \(seconds)", value: $seconds, in: 0...59)
+                    
+                    Text("Duración de reproducción")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                    Stepper("Min Duración \(durationMinutes)", value: $durationMinutes, in: 0...60)
+                    Stepper("Seg Duración \(durationSeconds)", value: $durationSeconds, in: 0...59)
+                    
                     TextField("Nota: técnica, setup, error a evitar...", text: $note, axis: .vertical)
                         .lineLimit(2...4)
                     Button {
@@ -1627,12 +1632,14 @@ private struct ExerciseBookmarkEditor: View {
     }
 
     private func addBookmark() {
+        let totalDuration = durationMinutes * 60 + durationSeconds
         bookmarks.append(
             ExerciseMediaBookmark(
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 source: source,
                 urlString: urlString.trimmingCharacters(in: .whitespacesAndNewlines),
                 timestampSeconds: minutes == 0 && seconds == 0 ? nil : minutes * 60 + seconds,
+                playbackDurationSeconds: totalDuration > 0 ? totalDuration : nil,
                 note: note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : note
             )
         )
@@ -1640,6 +1647,8 @@ private struct ExerciseBookmarkEditor: View {
         urlString = ""
         minutes = 0
         seconds = 0
+        durationMinutes = 0
+        durationSeconds = 0
         note = ""
     }
 

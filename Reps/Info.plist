@@ -20,12 +20,12 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Reps necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Reps uses Apple Health to read your body weight and height so your fitness progress stays up to date.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Reps can save your body weight and height entries to Apple Health when you choose to sync them.</string>
-	<key>NSAppleMusicUsageDescription</key>
-	<string>Reps necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Reps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
@@ -35,6 +35,7 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
 </dict>
 </plist>

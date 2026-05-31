@@ -71,6 +71,8 @@ struct UserProfile: Codable {
     var remindersEnabled = false
     var onboardingCompleted = false
     var themeMode: ThemeMode?
+    var targetEventName: String?
+    var targetEventDate: Date?
     
     var activeThemeMode: ThemeMode {
         themeMode ?? .dark
@@ -164,6 +166,23 @@ struct Exercise: Codable, Identifiable, Hashable {
     var sourceURL: String?
 }
 
+extension Exercise {
+    var mediaAssetURL: URL? {
+        guard let mediaURL,
+              !mediaURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+
+        if let url = URL(string: mediaURL) {
+            return url
+        }
+
+        return mediaURL
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+            .flatMap(URL.init(string:))
+    }
+}
+
 struct ExerciseMediaBookmark: Codable, Identifiable, Hashable {
     enum Source: String, Codable, CaseIterable, Identifiable {
         case youtube
@@ -179,6 +198,7 @@ struct ExerciseMediaBookmark: Codable, Identifiable, Hashable {
     var source: Source
     var urlString: String
     var timestampSeconds: Int?
+    var playbackDurationSeconds: Int?
     var note: String?
     var createdAt: Date = .now
 }
@@ -275,6 +295,8 @@ struct WorkoutPlan: Codable, Identifiable {
     var days: [WorkoutDay]
     var playlists: [PlanPlaylist] = []
     var currentDayIndex: Int? = 0
+    var targetEventName: String? = nil
+    var targetEventDate: Date? = nil
 
     var activeDayIndex: Int {
         get { currentDayIndex ?? 0 }

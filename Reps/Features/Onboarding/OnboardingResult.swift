@@ -25,14 +25,28 @@ enum OnboardingPlanBuilder {
             focusMuscles: focusMuscles
         )
 
+        var weeks = 8
+        if let eventDate = profile.targetEventDate {
+            let daysDiff = Calendar.current.dateComponents([.day], from: .now, to: eventDate).day ?? 0
+            if daysDiff > 0 {
+                weeks = max(3, min(24, daysDiff / 7))
+            }
+        }
+
+        let planName = profile.targetEventName != nil && !profile.targetEventName!.isEmpty
+            ? "Plan para \(profile.targetEventName!)"
+            : "Plan base adaptado"
+
         return WorkoutPlan(
-            name: "Plan base adaptado",
+            name: planName,
             location: profile.trainingLocation,
             daysPerWeek: dayCount,
             currentWeek: 1,
-            totalWeeks: 8,
+            totalWeeks: weeks,
             completion: 0,
-            days: days
+            days: days,
+            targetEventName: profile.targetEventName,
+            targetEventDate: profile.targetEventDate
         )
     }
 

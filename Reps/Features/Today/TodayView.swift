@@ -473,6 +473,79 @@ struct TodayView: View {
                     .tint(PulseTheme.primaryBright)
                     .scaleEffect(x: 1, y: 1.25, anchor: .center)
 
+                if let eventName = store.activePlan.targetEventName,
+                   let eventDate = store.activePlan.targetEventDate {
+                    let calendar = Calendar.current
+                    let start = calendar.startOfDay(for: .now)
+                    let end = calendar.startOfDay(for: eventDate)
+                    let daysDiff = calendar.dateComponents([.day], from: start, to: end).day ?? 0
+                    let weeks = max(0, daysDiff / 7)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "calendar.badge.clock")
+                                .foregroundStyle(PulseTheme.primary)
+                            Text(isSpanish ? "Objetivo: \(eventName)" : "Target: \(eventName)")
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            if daysDiff > 0 {
+                                Text(isSpanish ? "Faltan \(daysDiff) días (\(weeks) sem)" : "\(daysDiff) days left (\(weeks) wk)")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(PulseTheme.primaryBright)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(PulseTheme.primaryBright.opacity(0.12))
+                                    .clipShape(Capsule())
+                            } else if daysDiff == 0 {
+                                Text(isSpanish ? "¡Hoy es el día!" : "Today is the day!")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(PulseTheme.accent)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(PulseTheme.accent.opacity(0.12))
+                                    .clipShape(Capsule())
+                            } else {
+                                Text(isSpanish ? "Completado" : "Completed")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(PulseTheme.grouped)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        
+                        let adviceText: String = {
+                            if daysDiff < 0 {
+                                return isSpanish 
+                                    ? "¡Llegó el día de tu evento! Esperamos que hayas alcanzado tus objetivos."
+                                    : "The event day has arrived! We hope you achieved your goals."
+                            } else if weeks < 6 {
+                                return isSpanish
+                                    ? "Plazo corto. Sugerimos maximizar intensidad ahora y evitar fatiga excesiva justo antes de tu evento. Considera extender tu plan más adelante."
+                                    : "Short target. We suggest maximizing intensity now and avoiding excessive fatigue just before your event. Consider extending your plan later."
+                            } else if weeks <= 12 {
+                                return isSpanish
+                                    ? "¡Plazo óptimo! Tienes el tiempo perfecto para completar un ciclo completo de entrenamiento y llegar en tu mejor forma."
+                                    : "Optimal timeline! You have the perfect amount of time to complete a full training block and arrive in peak shape."
+                            } else {
+                                return isSpanish
+                                    ? "Plazo largo. Te sugerimos realizar un bloque de fuerza/hipertrofia de 8-12 semanas y luego un plan de mantenimiento o definición secundario para afinar detalles."
+                                    : "Long timeline. We suggest completing an 8-12 week strength/hypertrophy block, followed by a secondary definition/maintenance cycle."
+                            }
+                        }()
+                        
+                        Text(adviceText)
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .padding(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(PulseTheme.grouped)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    .padding(.top, 4)
+                }
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(store.activePlan.days) { day in
@@ -955,7 +1028,27 @@ private struct ExerciseCardImage: View {
 
     var body: some View {
         ZStack {
-            fallback
+            if let data = exercise.customImageData,
+               let image = UIImage(data: data) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else if let url = exercise.mediaAssetURL {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure, .empty:
+                        fallback
+                    @unknown default:
+                        fallback
+                    }
+                }
+            } else {
+                fallback
+            }
         }
         .background(PulseTheme.grouped)
         .clipped()

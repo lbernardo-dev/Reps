@@ -1533,6 +1533,25 @@ struct ProPreferencesView: View {
         NavigationStack {
             Form {
                 Section("Logging avanzado") {
+                    Toggle("Marcar todos", isOn: Binding(
+                        get: {
+                            store.userProfile.showRPE &&
+                            store.userProfile.showRIR &&
+                            store.userProfile.showSetType &&
+                            store.userProfile.showTempo &&
+                            store.userProfile.autoProgressionEnabled
+                        },
+                        set: { selectAll in
+                            store.userProfile.showRPE = selectAll
+                            store.userProfile.showRIR = selectAll
+                            store.userProfile.showSetType = selectAll
+                            store.userProfile.showTempo = selectAll
+                            store.userProfile.autoProgressionEnabled = selectAll
+                        }
+                    ))
+                    .font(.headline)
+                    .foregroundStyle(PulseTheme.primary)
+
                     Toggle("Mostrar RPE", isOn: $store.userProfile.showRPE)
                     Toggle("Mostrar RIR", isOn: $store.userProfile.showRIR)
                     Toggle("Mostrar tipo de serie", isOn: $store.userProfile.showSetType)
@@ -1542,6 +1561,27 @@ struct ProPreferencesView: View {
                 }
 
                 Section("Equipamiento disponible") {
+                    Toggle("Marcar todos", isOn: Binding(
+                        get: {
+                            equipmentOptions.allSatisfy { store.userProfile.availableEquipment.contains($0) }
+                        },
+                        set: { selectAll in
+                            if selectAll {
+                                for option in equipmentOptions {
+                                    if !store.userProfile.availableEquipment.contains(option) {
+                                        store.userProfile.availableEquipment.append(option)
+                                    }
+                                }
+                            } else {
+                                for option in equipmentOptions {
+                                    store.userProfile.availableEquipment.removeAll { $0 == option }
+                                }
+                            }
+                        }
+                    ))
+                    .font(.headline)
+                    .foregroundStyle(PulseTheme.primary)
+
                     ForEach(equipmentOptions, id: \.self) { item in
                         Toggle(RepsText.equipment(item, language: store.userProfile.preferredLanguage), isOn: Binding(
                             get: { store.userProfile.availableEquipment.contains(item) },

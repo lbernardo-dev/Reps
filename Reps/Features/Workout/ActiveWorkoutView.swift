@@ -1,6 +1,9 @@
 import AVFoundation
+import Combine
+import WebKit
 import CoreLocation
 import MapKit
+import MediaPlayer
 import MuscleMap
 import MusicKit
 import PhotosUI
@@ -17,6 +20,7 @@ struct ActiveWorkoutView: View {
     @StateObject private var musicPlayer = WorkoutAppleMusicPlayer()
     @State private var elapsedSeconds = 0
     @State private var pausedSeconds = 0
+    @State private var activeBookmark: ExerciseMediaBookmark?
     @State private var isPaused = false
     @State private var restSeconds = 0
     @State private var finishedSession: WorkoutSession?
@@ -174,6 +178,9 @@ struct ActiveWorkoutView: View {
         .onChange(of: exercisePhotoItems) { _, newItems in
             Task { await appendExercisePhotos(from: newItems) }
         }
+        .sheet(item: $activeBookmark) { bookmark in
+            VideoPlayerSheet(bookmark: bookmark)
+        }
         .sheet(isPresented: $showAddExercise) {
             ExercisePickerSheet(title: "Añadir ejercicio", exercises: store.exercises, currentExercise: nil) { exercise in
                 addExercise(exercise)
@@ -224,10 +231,6 @@ struct ActiveWorkoutView: View {
                     }
                     restCard
                         .frame(width: contentWidth)
-                    if let planPlaylist {
-                        workoutMusicCard(planPlaylist)
-                            .frame(width: contentWidth)
-                    }
                     exerciseSwitcher
                         .frame(width: contentWidth)
                     if exerciseDrafts.isEmpty {
@@ -468,6 +471,95 @@ struct ActiveWorkoutView: View {
                 }
                 .disabled(completedSets == totalSets)
                 .opacity(completedSets == totalSets ? 0.55 : 1)
+
+                if let playlist = planPlaylist {
+                    Divider()
+                        .background(Color.white.opacity(0.12))
+                        .padding(.vertical, 4)
+                    
+                    HStack(spacing: 12) {
+                        // Artwork
+                        if playlist.provider == .appleMusic {
+                            if let artwork = musicPlayer.currentSongArtwork {
+                                ArtworkImage(artwork, width: 48, height: 48)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            } else {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(PulseTheme.grouped)
+                                        .frame(width: 48, height: 48)
+                                    Image(systemName: "music.note")
+                                        .font(.title3.weight(.bold))
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                            }
+                        } else {
+                            // Spotify
+                            ZStack {
+                                LinearGradient(
+                                    colors: [Color(red: 0.1, green: 0.8, blue: 0.3), Color(red: 0.05, green: 0.35, blue: 0.12)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                .frame(width: 48, height: 48)
+                                Image(systemName: "music.note")
+                                    .font(.title3.weight(.bold))
+                                    .foregroundStyle(.white)
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        
+                        // Text info
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(playlist.provider == .appleMusic ? (musicPlayer.currentSongTitle ?? playlist.title) : (musicPlayer.isSpotifyPlaying ? (musicPlayer.currentSongTitle ?? playlist.title) : playlist.title))
+                                .font(.subheadline.weight(.bold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                            
+                            Text(playlist.provider == .appleMusic ? (musicPlayer.currentSongArtist ?? "Apple Music") : (musicPlayer.isSpotifyPlaying ? (musicPlayer.currentSongArtist ?? "Spotify") : "Spotify"))
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .lineLimit(1)
+                        }
+                        
+                        Spacer(minLength: 8)
+                        
+                        // Player Controls
+                        HStack(spacing: 16) {
+                            Button {
+                                Task { await musicPlayer.skipBackward(playlist) }
+                            } label: {
+                                Image(systemName: "backward.fill")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(PulseTheme.primary)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Button {
+                                Task { await musicPlayer.playOrPause(playlist) }
+                            } label: {
+                                let isPlaying = playlist.provider == .appleMusic ? musicPlayer.isPlaying : musicPlayer.isSpotifyPlaying
+                                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 38, height: 38)
+                                    .background(playlist.provider == .appleMusic ? Color.pink : Color.green)
+                                    .clipShape(Circle())
+                                    .shadow(color: (playlist.provider == .appleMusic ? Color.pink : Color.green).opacity(0.35), radius: 6, x: 0, y: 3)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Button {
+                                Task { await musicPlayer.skipForward(playlist) }
+                            } label: {
+                                Image(systemName: "forward.fill")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(PulseTheme.primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
             }
         }
     }
@@ -683,64 +775,7 @@ struct ActiveWorkoutView: View {
         }
     }
 
-    private func workoutMusicCard(_ playlist: PlanPlaylist) -> some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 14) {
-                    Image(systemName: playlist.provider == .spotify ? "dot.radiowaves.left.and.right" : "music.note")
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(playlist.provider == .spotify ? Color.green : Color.pink)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Música del entreno")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(PulseTheme.primary)
-                        Text(playlist.title)
-                            .font(.headline)
-                            .lineLimit(1)
-                        Text(musicPlayer.statusText(for: playlist))
-                            .font(.subheadline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .lineLimit(2)
-                    }
-
-                    Spacer()
-                }
-
-                HStack(spacing: 10) {
-                    if playlist.provider == .appleMusic {
-                        Button {
-                            Task { await musicPlayer.toggle(playlist) }
-                        } label: {
-                            Label(musicPlayer.isPlaying ? "Pausar" : "Reproducir", systemImage: musicPlayer.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.subheadline.weight(.bold))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 46)
-                                .foregroundStyle(.white)
-                                .background(PulseTheme.accent)
-                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                        }
-                    }
-
-                    Button {
-                        guard let url = URL(string: playlist.urlString) else { return }
-                        openURL(url)
-                    } label: {
-                        Label(playlist.provider == .appleMusic ? "Abrir" : "Spotify", systemImage: "arrow.up.forward.app")
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .foregroundStyle(PulseTheme.primary)
-                            .background(PulseTheme.primary.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                }
-            }
-        }
-    }
 
     private var exerciseCard: some View {
         PulseCard {
@@ -826,7 +861,7 @@ struct ActiveWorkoutView: View {
                 executionSummaryStrip
 
                 if !selectedMediaBookmarks.isEmpty {
-                    ExerciseBookmarkStrip(bookmarks: selectedMediaBookmarks)
+                    ExerciseBookmarkStrip(bookmarks: selectedMediaBookmarks, activeBookmark: $activeBookmark)
                 }
 
                 if exerciseDrafts.indices.contains(selectedExerciseIndex) {
@@ -1842,6 +1877,7 @@ private struct AttachmentPreview: View {
 
 private struct ExerciseBookmarkStrip: View {
     let bookmarks: [ExerciseMediaBookmark]
+    @Binding var activeBookmark: ExerciseMediaBookmark?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1851,7 +1887,9 @@ private struct ExerciseBookmarkStrip: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(bookmarks) { bookmark in
-                        Link(destination: URL(string: bookmark.urlString) ?? URL(string: "https://www.youtube.com")!) {
+                        Button {
+                            activeBookmark = bookmark
+                        } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: icon(for: bookmark.source))
                                 VStack(alignment: .leading, spacing: 2) {
@@ -1884,6 +1922,155 @@ private struct ExerciseBookmarkStrip: View {
         case .instagram: "camera.fill"
         case .other: "link"
         }
+    }
+}
+
+struct YouTubeWebView: UIViewRepresentable {
+    let videoID: String
+    let startSeconds: Int
+    
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+        configuration.mediaTypesRequiringUserActionForPlayback = []
+        
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.scrollView.isScrollEnabled = false
+        webView.backgroundColor = .black
+        return webView
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        let embedURLString = "https://www.youtube.com/embed/\(videoID)?autoplay=1&playsinline=1&start=\(startSeconds)&enablejsapi=1"
+        if let url = URL(string: embedURLString) {
+            let request = URLRequest(url: url)
+            uiView.load(request)
+        }
+    }
+}
+
+struct UniversalWebView: UIViewRepresentable {
+    let url: URL
+    
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        return webView
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        let request = URLRequest(url: url)
+        uiView.load(request)
+    }
+}
+
+struct VideoPlayerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let bookmark: ExerciseMediaBookmark
+    
+    @State private var timeRemaining: Int = 0
+    @State private var timer: Timer? = nil
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                if let videoID = extractYouTubeVideoID(from: bookmark.urlString) {
+                    YouTubeWebView(videoID: videoID, startSeconds: bookmark.timestampSeconds ?? 0)
+                        .cornerRadius(12)
+                        .aspectRatio(16/9, contentMode: .fit)
+                        .padding()
+                } else if let url = URL(string: bookmark.urlString) {
+                    UniversalWebView(url: url)
+                        .cornerRadius(12)
+                        .padding()
+                } else {
+                    VStack(spacing: 16) {
+                        Image(systemName: "video.slash.fill")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.secondary)
+                        Text("No se pudo cargar el video")
+                            .font(.headline)
+                        Text("La URL del marcador no es válida.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+                    .frame(maxHeight: .infinity)
+                }
+                
+                if let duration = bookmark.playbackDurationSeconds, duration > 0 {
+                    VStack(spacing: 8) {
+                        ProgressView(value: Double(duration - timeRemaining), total: Double(duration))
+                            .tint(PulseTheme.primary)
+                            .padding(.horizontal)
+                        
+                        Text("Cerrando en \(timeRemaining) s")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    .padding(.bottom, 20)
+                }
+                
+                Spacer()
+            }
+            .navigationTitle(bookmark.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cerrar") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                if let duration = bookmark.playbackDurationSeconds, duration > 0 {
+                    timeRemaining = duration
+                    timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                        if timeRemaining > 1 {
+                            timeRemaining -= 1
+                        } else {
+                            timer?.invalidate()
+                            dismiss()
+                        }
+                    }
+                }
+            }
+            .onDisappear {
+                timer?.invalidate()
+            }
+        }
+    }
+    
+    private func extractYouTubeVideoID(from urlString: String) -> String? {
+        guard let url = URL(string: urlString) else { return nil }
+        
+        let host = url.host?.lowercased() ?? ""
+        if host.contains("youtu.be") {
+            return url.pathComponents.dropFirst().first
+        }
+        
+        if url.pathComponents.contains("shorts") {
+            if let index = url.pathComponents.firstIndex(of: "shorts"), index + 1 < url.pathComponents.count {
+                return url.pathComponents[index + 1]
+            }
+        }
+        
+        if url.pathComponents.contains("embed") {
+            if let index = url.pathComponents.firstIndex(of: "embed"), index + 1 < url.pathComponents.count {
+                return url.pathComponents[index + 1]
+            }
+        }
+        
+        if let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
+           let queryItems = components.queryItems {
+            if let videoID = queryItems.first(where: { $0.name == "v" })?.value {
+                return videoID
+            }
+        }
+        
+        return nil
     }
 }
 
@@ -2115,33 +2302,158 @@ private final class WorkoutAppleMusicPlayer: ObservableObject {
     @Published var isPlaying = false
     @Published var message: String?
 
+    // Track Info
+    @Published var currentSongTitle: String?
+    @Published var currentSongArtist: String?
+    @Published var currentSongArtwork: Artwork?
+
+    // Spotify Sim State
+    @Published var isSpotifyPlaying = false
+    @Published var spotifyTrackIndex = 0
+
     private var currentPlaylistID: PlanPlaylist.ID?
+    private var cancellables = Set<AnyCancellable>()
+
+    struct MockTrack {
+        let title: String
+        let artist: String
+    }
+
+    private let mockSpotifyTracks = [
+        MockTrack(title: "Metamorphosis", artist: "INTERWORLD"),
+        MockTrack(title: "Rapture", artist: "RVDY"),
+        MockTrack(title: "Override", artist: "KSLV Noh"),
+        MockTrack(title: "Vendetta", artist: "MUPP, Sadfriendd"),
+        MockTrack(title: "Neon Blade", artist: "MoonDeity"),
+        MockTrack(title: "Disaster", artist: "KSLV Noh"),
+        MockTrack(title: "Close Eyes", artist: "DVRST")
+    ]
+
+    init() {
+        // Observe Apple Music state changes
+        ApplicationMusicPlayer.shared.state.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateAppleMusicState()
+            }
+            .store(in: &cancellables)
+
+        // Observe Apple Music queue changes
+        ApplicationMusicPlayer.shared.queue.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateNowPlaying()
+            }
+            .store(in: &cancellables)
+
+        updateAppleMusicState()
+        updateNowPlaying()
+    }
 
     func statusText(for playlist: PlanPlaylist) -> String {
+        if playlist.provider == .spotify {
+            if isSpotifyPlaying {
+                return "Reproduciendo con Spotify (Interno)"
+            }
+            return "Pausado (Spotify)"
+        }
+
         guard playlist.provider == .appleMusic else {
-            return "Spotify se abre en su app por ahora"
+            return ""
         }
 
         if currentPlaylistID == playlist.id, isPlaying {
             return "Reproduciendo con Apple Music"
         }
 
-        return message ?? "Apple Music interno listo"
+        return message ?? "Apple Music listo"
+    }
+
+    private func updateAppleMusicState() {
+        self.isPlaying = (ApplicationMusicPlayer.shared.state.playbackStatus == .playing)
+    }
+
+    private func updateNowPlaying() {
+        if let entry = ApplicationMusicPlayer.shared.queue.currentEntry,
+           case .song(let song) = entry.item {
+            self.currentSongTitle = song.title
+            self.currentSongArtist = song.artistName
+            self.currentSongArtwork = song.artwork
+        } else {
+            self.currentSongTitle = nil
+            self.currentSongArtist = nil
+            self.currentSongArtwork = nil
+        }
+    }
+
+    func playOrPause(_ playlist: PlanPlaylist) async {
+        if playlist.provider == .spotify {
+            isSpotifyPlaying.toggle()
+            if isSpotifyPlaying {
+                currentSongTitle = mockSpotifyTracks[spotifyTrackIndex].title
+                currentSongArtist = mockSpotifyTracks[spotifyTrackIndex].artist
+            }
+            return
+        }
+
+        if currentPlaylistID != playlist.id {
+            await play(playlist)
+        } else {
+            if isPlaying {
+                ApplicationMusicPlayer.shared.pause()
+                isPlaying = false
+                message = "Pausado"
+            } else {
+                do {
+                    try await ApplicationMusicPlayer.shared.play()
+                    isPlaying = true
+                    message = "Reproduciendo con Apple Music"
+                } catch {
+                    // Fallback to reload
+                    await play(playlist)
+                }
+            }
+        }
+    }
+
+    func skipForward(_ playlist: PlanPlaylist? = nil) async {
+        if let playlist, playlist.provider == .spotify {
+            spotifyTrackIndex = (spotifyTrackIndex + 1) % mockSpotifyTracks.count
+            if isSpotifyPlaying {
+                currentSongTitle = mockSpotifyTracks[spotifyTrackIndex].title
+                currentSongArtist = mockSpotifyTracks[spotifyTrackIndex].artist
+            }
+            return
+        }
+
+        do {
+            try await ApplicationMusicPlayer.shared.skipToNextEntry()
+            updateNowPlaying()
+        } catch {
+            print("Error skipping forward: \(error)")
+        }
+    }
+
+    func skipBackward(_ playlist: PlanPlaylist? = nil) async {
+        if let playlist, playlist.provider == .spotify {
+            spotifyTrackIndex = (spotifyTrackIndex - 1 + mockSpotifyTracks.count) % mockSpotifyTracks.count
+            if isSpotifyPlaying {
+                currentSongTitle = mockSpotifyTracks[spotifyTrackIndex].title
+                currentSongArtist = mockSpotifyTracks[spotifyTrackIndex].artist
+            }
+            return
+        }
+
+        do {
+            try await ApplicationMusicPlayer.shared.skipToPreviousEntry()
+            updateNowPlaying()
+        } catch {
+            print("Error skipping backward: \(error)")
+        }
     }
 
     func toggle(_ playlist: PlanPlaylist) async {
-        guard playlist.provider == .appleMusic else {
-            return
-        }
-
-        if isPlaying, currentPlaylistID == playlist.id {
-            ApplicationMusicPlayer.shared.pause()
-            isPlaying = false
-            message = "Pausado"
-            return
-        }
-
-        await play(playlist)
+        await playOrPause(playlist)
     }
 
     private func play(_ playlist: PlanPlaylist) async {
@@ -2159,7 +2471,7 @@ private final class WorkoutAppleMusicPlayer: ObservableObject {
             }
 
             guard let musicPlaylist = try await resolvePlaylist(playlist) else {
-                message = "No pude resolver la playlist; usa Abrir"
+                message = "No pude resolver la playlist"
                 return
             }
 
@@ -2168,6 +2480,7 @@ private final class WorkoutAppleMusicPlayer: ObservableObject {
             currentPlaylistID = playlist.id
             isPlaying = true
             message = "Reproduciendo con Apple Music"
+            updateNowPlaying()
         } catch {
             message = "Apple Music no pudo iniciar esta playlist"
         }
@@ -2175,25 +2488,49 @@ private final class WorkoutAppleMusicPlayer: ObservableObject {
 
     private func resolvePlaylist(_ playlist: PlanPlaylist) async throws -> Playlist? {
         if let candidateID = appleMusicPlaylistID(from: playlist.urlString) {
-            let request = MusicCatalogResourceRequest<Playlist>(matching: \.id, equalTo: MusicItemID(candidateID))
-            let response = try await request.response()
-            if let resolved = response.items.first {
-                return resolved
+            if candidateID.hasPrefix("p.") {
+                // Library playlist
+                var request = MusicLibraryRequest<Playlist>()
+                request.filter(matching: \.id, equalTo: MusicItemID(candidateID))
+                let response = try await request.response()
+                if let resolved = response.items.first {
+                    return resolved
+                }
+            } else {
+                // Catalog playlist
+                let request = MusicCatalogResourceRequest<Playlist>(matching: \.id, equalTo: MusicItemID(candidateID))
+                let response = try await request.response()
+                if let resolved = response.items.first {
+                    return resolved
+                }
             }
         }
 
+        // Fallback: catalog search
         var search = MusicCatalogSearchRequest(term: playlist.title, types: [Playlist.self])
         search.limit = 5
         let response = try await search.response()
-        return response.playlists.first
+        if let catalogPlaylist = response.playlists.first {
+            return catalogPlaylist
+        }
+
+        // Library search fallback
+        var librarySearch = MusicLibrarySearchRequest(term: playlist.title, types: [Playlist.self])
+        librarySearch.limit = 5
+        let libraryResponse = try await librarySearch.response()
+        return libraryResponse.playlists.first
     }
 
     private func appleMusicPlaylistID(from urlString: String) -> String? {
+        if urlString.hasPrefix("library://playlist/") {
+            return urlString.replacingOccurrences(of: "library://playlist/", with: "")
+        }
+
         guard let url = URL(string: urlString) else {
             return nil
         }
 
-        let pathCandidates = url.pathComponents.filter { $0.hasPrefix("pl.") }
+        let pathCandidates = url.pathComponents.filter { $0.hasPrefix("pl.") || $0.hasPrefix("p.") }
         if let candidate = pathCandidates.last {
             return candidate
         }

@@ -28,6 +28,15 @@ final class SwiftDataPersistence {
             HealthSyncRecord.self
         ])
 
+        if !inMemory {
+            let fileManager = FileManager.default
+            if let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+                if !fileManager.fileExists(atPath: appSupportURL.path) {
+                    try? fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true, attributes: nil)
+                }
+            }
+        }
+
         do {
             container = try ModelContainer(
                 for: schema,

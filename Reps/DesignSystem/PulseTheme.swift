@@ -453,6 +453,19 @@ struct ExerciseMediaThumbnail: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
+            } else if let url = exercise.mediaAssetURL {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure, .empty:
+                        fallback
+                    @unknown default:
+                        fallback
+                    }
+                }
             } else {
                 fallback
             }

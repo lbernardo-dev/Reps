@@ -108,6 +108,15 @@ struct PlansView: View {
                                 Text("\(Int(store.activePlan.completion * 100))% completado")
                             }
                             .foregroundStyle(PulseTheme.secondaryText)
+
+                            if let targetEventName = store.activePlan.targetEventName,
+                               let targetEventDate = store.activePlan.targetEventDate {
+                                Divider()
+                                PlanTargetEventSummary(
+                                    eventName: targetEventName,
+                                    eventDate: targetEventDate
+                                )
+                            }
                         }
                     }
 
@@ -223,6 +232,73 @@ private struct LibraryShortcut: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 116, alignment: .leading)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private struct PlanTargetEventSummary: View {
+    let eventName: String
+    let eventDate: Date
+
+    private var eventState: (days: Int, weeks: Int) {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: .now)
+        let end = calendar.startOfDay(for: eventDate)
+        let days = calendar.dateComponents([.day], from: start, to: end).day ?? 0
+        return (days, max(0, days / 7))
+    }
+
+    private var statusText: String {
+        let state = eventState
+        if state.days > 0 {
+            return "Faltan \(state.days) dias (\(state.weeks) sem)"
+        }
+        if state.days == 0 {
+            return "Hoy"
+        }
+        return "Completado"
+    }
+
+    private var adviceText: String {
+        let state = eventState
+        if state.days <= 0 {
+            return "Evento alcanzado. Revisa resultados y prepara el siguiente bloque con el estado actual."
+        }
+        if state.weeks < 6 {
+            return "Plazo corto: prioriza consistencia e intensidad controlada. Considera extender el plan 4 semanas despues del evento."
+        }
+        if state.weeks <= 12 {
+            return "Plazo optimo: estas dentro de una ventana ideal para completar un bloque progresivo."
+        }
+        return "Plazo largo: completa un bloque de fuerza/hipertrofia de 8-12 semanas y reserva un bloque final de mantenimiento o definicion."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar.badge.clock")
+                    .foregroundStyle(PulseTheme.primary)
+                Text("Objetivo: \(eventName)")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                Spacer()
+                Text(statusText)
+                    .font(.caption.bold())
+                    .foregroundStyle(PulseTheme.primaryBright)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(PulseTheme.primaryBright.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+
+            Text(adviceText)
+                .font(.caption)
+                .foregroundStyle(PulseTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
@@ -514,6 +590,8 @@ private struct PlanExerciseBookmarkEditor: View {
     @State private var urlString = ""
     @State private var minutes = 0
     @State private var seconds = 0
+    @State private var durationMinutes = 0
+    @State private var durationSeconds = 0
     @State private var note = ""
 
     var body: some View {
@@ -541,10 +619,17 @@ private struct PlanExerciseBookmarkEditor: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
-                            if let timestamp = bookmark.timestampSeconds {
-                                Text("Marcador \(timestamp / 60):\(String(format: "%02d", timestamp % 60))")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(PulseTheme.primary)
+                            HStack(spacing: 12) {
+                                if let timestamp = bookmark.timestampSeconds {
+                                    Text("Marcador \(timestamp / 60):\(String(format: "%02d", timestamp % 60))")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.primary)
+                                }
+                                if let duration = bookmark.playbackDurationSeconds {
+                                    Text("Duración \(duration / 60)m \(duration % 60)s")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
                             }
                         }
                     }
@@ -561,8 +646,21 @@ private struct PlanExerciseBookmarkEditor: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    
+                    Text("Punto de inicio en video")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
                     Stepper("Min \(minutes)", value: $minutes, in: 0...240)
                     Stepper("Seg \(seconds)", value: $seconds, in: 0...59)
+                    
+                    Text("Duración de reproducción")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                    Stepper("Min Duración \(durationMinutes)", value: $durationMinutes, in: 0...60)
+                    Stepper("Seg Duración \(durationSeconds)", value: $durationSeconds, in: 0...59)
+                    
                     TextField("Nota", text: $note, axis: .vertical)
                         .lineLimit(2...4)
                     Button {
@@ -589,12 +687,14 @@ private struct PlanExerciseBookmarkEditor: View {
     }
 
     private func add() {
+        let totalDuration = durationMinutes * 60 + durationSeconds
         bookmarks.append(
             ExerciseMediaBookmark(
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 source: source,
                 urlString: urlString.trimmingCharacters(in: .whitespacesAndNewlines),
                 timestampSeconds: minutes == 0 && seconds == 0 ? nil : minutes * 60 + seconds,
+                playbackDurationSeconds: totalDuration > 0 ? totalDuration : nil,
                 note: note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : note
             )
         )
@@ -602,6 +702,8 @@ private struct PlanExerciseBookmarkEditor: View {
         urlString = ""
         minutes = 0
         seconds = 0
+        durationMinutes = 0
+        durationSeconds = 0
         note = ""
     }
 }
@@ -689,6 +791,9 @@ struct CreatePlanView: View {
     @State private var playlists: [PlanPlaylist] = []
     @State private var pickerTargetDay: Int?
     @State private var showMusicConnector = false
+    @State private var hasTargetEvent = false
+    @State private var targetEventName = ""
+    @State private var targetEventDate = Calendar.current.date(byAdding: .weekOfYear, value: 8, to: .now) ?? .now
 
     var body: some View {
         NavigationStack {
@@ -797,9 +902,73 @@ struct CreatePlanView: View {
                 }
             }
 
+            PulseCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    Toggle(isOn: $hasTargetEvent) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "calendar.badge.clock")
+                                .foregroundStyle(PulseTheme.primary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("¿Tienes un evento objetivo?")
+                                    .font(.headline)
+                                Text("Adaptar duración según fecha límite.")
+                                    .font(.caption)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                        }
+                    }
+
+                    if hasTargetEvent {
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Nombre del evento")
+                                .font(.caption.bold())
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            TextField("Ej. Boda, Vacaciones, Maratón", text: $targetEventName)
+                                .textFieldStyle(.roundedBorder)
+
+                            DatePicker(
+                                "Fecha del evento",
+                                selection: $targetEventDate,
+                                in: Date.now...,
+                                displayedComponents: .date
+                            )
+                            .font(.subheadline.weight(.semibold))
+
+                            if let advice = targetEventAdvice {
+                                Text(advice.text)
+                                    .font(.caption)
+                                    .foregroundStyle(advice.color)
+                                    .padding(10)
+                                    .background(advice.color.opacity(0.08))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .padding(.top, 4)
+                            }
+                        }
+                        .transition(.opacity)
+                    }
+                }
+            }
+
             HStack(spacing: 12) {
                 WizardMetricStepper(title: "Días/sem", value: $daysPerWeek, range: 1...7)
                 WizardMetricStepper(title: "Semanas", value: $totalWeeks, range: 1...24)
+            }
+        }
+        .onChange(of: targetEventDate) { _, _ in
+            updateWeeksFromEventDate()
+        }
+        .onChange(of: hasTargetEvent) { _, active in
+            if active {
+                updateWeeksFromEventDate()
+            } else {
+                totalWeeks = 8
+            }
+        }
+        .onChange(of: targetEventName) { _, newName in
+            if !newName.isEmpty && planName.isEmpty {
+                planName = "Plan para \(newName)"
             }
         }
     }
@@ -953,7 +1122,9 @@ struct CreatePlanView: View {
             totalWeeks: totalWeeks,
             completion: 0,
             days: preparedDays,
-            playlists: playlists
+            playlists: playlists,
+            targetEventName: hasTargetEvent ? (targetEventName.isEmpty ? "Evento" : targetEventName) : nil,
+            targetEventDate: hasTargetEvent ? targetEventDate : nil
         )
         store.addPlan(plan, activate: activateImmediately)
         dismiss()
@@ -986,7 +1157,48 @@ struct CreatePlanView: View {
         case .both: "Casa y gimnasio"
         }
     }
+
+    private struct EventAdvice {
+        let text: String
+        let color: Color
+        let weeks: Int
+    }
+
+    private var targetEventAdvice: EventAdvice? {
+        guard hasTargetEvent else { return nil }
+        let days = Calendar.current.dateComponents([.day], from: .now, to: targetEventDate).day ?? 0
+        let weeks = max(1, days / 7)
+        
+        if weeks < 6 {
+            return EventAdvice(
+                text: "Faltan \(weeks) semanas. Duración corta: te sugerimos maximizar el rendimiento actual de inmediato. El plan se ha ajustado a \(weeks) semanas.",
+                color: PulseTheme.warning,
+                weeks: weeks
+            )
+        } else if weeks <= 12 {
+            return EventAdvice(
+                text: "Faltan \(weeks) semanas. ¡Duración óptima para progresar! El plan se ha ajustado a \(weeks) semanas.",
+                color: PulseTheme.primaryBright,
+                weeks: weeks
+            )
+        } else {
+            return EventAdvice(
+                text: "Faltan \(weeks) semanas. Duración larga: te sugerimos realizar un bloque de 8 a 12 semanas y luego un plan de mantenimiento/definición secundario de \(weeks - 8) semanas.",
+                color: PulseTheme.primary,
+                weeks: weeks
+            )
+        }
+    }
+
+    private func updateWeeksFromEventDate() {
+        guard hasTargetEvent else { return }
+        let days = Calendar.current.dateComponents([.day], from: .now, to: targetEventDate).day ?? 0
+        if days > 0 {
+            totalWeeks = max(3, min(24, days / 7))
+        }
+    }
 }
+
 
 struct EditPlanView: View {
     @Environment(\.dismiss) private var dismiss
@@ -1144,26 +1356,40 @@ struct EditPlanView: View {
                             .padding(14)
                             .background(PulseTheme.card)
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .listRowInsets(EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10))
+                            .listRowInsets(EditPlanLayout.cardRowInsets)
                             .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
 
-                        Menu {
-                            ForEach(store.exercises) { exercise in
-                                Button(exercise.name) {
-                                    days[dayIndex].exercises.append(WorkoutExercise(exercise: exercise, targetSets: 3, repRange: defaultRepRange(for: exercise), previous: "-", restSeconds: 90))
+                        VStack(spacing: 0) {
+                            Menu {
+                                ForEach(store.exercises) { exercise in
+                                    Button(exercise.name) {
+                                        days[dayIndex].exercises.append(WorkoutExercise(exercise: exercise, targetSets: 3, repRange: defaultRepRange(for: exercise), previous: "-", restSeconds: 90))
+                                    }
                                 }
+                            } label: {
+                                PlanEditorActionRow(title: "Anadir ejercicio", systemImage: "plus", color: PulseTheme.primary)
                             }
-                        } label: {
-                            Label("Anadir ejercicio", systemImage: "plus")
-                        }
+                            .buttonStyle(.plain)
 
-                        Button(role: .destructive) {
-                            days.remove(at: dayIndex)
-                        } label: {
-                            Label("Eliminar dia", systemImage: "trash")
+                            Divider()
+                                .padding(.leading, EditPlanLayout.actionDividerLeading)
+
+                            Button(role: .destructive) {
+                                days.remove(at: dayIndex)
+                            } label: {
+                                PlanEditorActionRow(title: "Eliminar dia", systemImage: "trash", color: .red)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(days.count == 1)
                         }
-                        .disabled(days.count == 1)
+                        .padding(.horizontal, EditPlanLayout.cardPadding)
+                        .background(PulseTheme.grouped)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        .listRowInsets(EditPlanLayout.cardRowInsets)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
                 }
 
@@ -1249,6 +1475,34 @@ struct EditPlanView: View {
         case .home: "Casa"
         case .both: "Casa y gimnasio"
         }
+    }
+}
+
+private enum EditPlanLayout {
+    static let cardPadding: CGFloat = 14
+    static let cardRowInsets = EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0)
+    static let actionDividerLeading: CGFloat = 56
+}
+
+private struct PlanEditorActionRow: View {
+    let title: String
+    let systemImage: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 18) {
+            Image(systemName: systemImage)
+                .font(.title2.weight(.medium))
+                .frame(width: 38, height: 52)
+
+            Text(title)
+                .font(.headline.weight(.regular))
+
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(color)
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }
 

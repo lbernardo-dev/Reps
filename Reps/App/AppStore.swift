@@ -38,6 +38,10 @@ final class AppStore: ObservableObject {
         } else {
             persistence.save(currentSnapshot)
         }
+
+        Task {
+            await syncOpenExerciseLibraryIfNeeded()
+        }
     }
 
     var todaysWorkout: WorkoutDay {
@@ -506,6 +510,7 @@ final class AppStore: ObservableObject {
         }
 
         hasAttemptedExerciseLibrarySync = true
+        await syncOpenExerciseLibrary()
     }
 
     func syncOpenExerciseLibrary() async {
@@ -519,14 +524,47 @@ final class AppStore: ObservableObject {
         do {
             let remoteExercises = try await OpenExerciseLibraryClient().fetchExercises()
             let mappedExercises = remoteExercises.compactMap(\.domainExercise)
-            let existingNames = Set(exercises.map { $0.name.normalizedExerciseKey })
-            let newExercises = mappedExercises.filter { !existingNames.contains($0.name.normalizedExerciseKey) }
+            
+            // Build key map for faster search and updates
+            var existingExercisesByKey: [String: Int] = [:]
+            for (index, exercise) in exercises.enumerated() {
+                existingExercisesByKey[exercise.name.normalizedExerciseKey] = index
+            }
 
-            if newExercises.isEmpty {
+            var mergedCount = 0
+            var addedCount = 0
+
+            for remoteExercise in mappedExercises {
+                let key = remoteExercise.name.normalizedExerciseKey
+                if let index = existingExercisesByKey[key] {
+                    var modified = false
+                    // If instructions or mediaURL are empty on existing (such as Seed exercises), complete them.
+                    if exercises[index].mediaURL == nil || exercises[index].mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+                        exercises[index].mediaURL = remoteExercise.mediaURL
+                        modified = true
+                    }
+                    if exercises[index].instructions == nil || exercises[index].instructions?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+                        exercises[index].instructions = remoteExercise.instructions
+                        modified = true
+                    }
+                    if exercises[index].videoURL == nil || exercises[index].videoURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+                        exercises[index].videoURL = remoteExercise.videoURL
+                        modified = true
+                    }
+                    if modified {
+                        mergedCount += 1
+                    }
+                } else {
+                    exercises.append(remoteExercise)
+                    addedCount += 1
+                    existingExercisesByKey[key] = exercises.count - 1
+                }
+            }
+
+            if addedCount == 0 && mergedCount == 0 {
                 exerciseLibrarySyncMessage = String(localized: "La biblioteca de ejercicios está actualizada.")
             } else {
-                exercises.append(contentsOf: newExercises)
-                exerciseLibrarySyncMessage = String(localized: "Added \(newExercises.count) open exercise records.")
+                exerciseLibrarySyncMessage = String(localized: "Biblioteca actualizada: \(addedCount) nuevos, \(mergedCount) completados.")
             }
         } catch {
             exerciseLibrarySyncMessage = String(localized: "No se pudo actualizar la biblioteca. El catálogo offline sigue disponible.")

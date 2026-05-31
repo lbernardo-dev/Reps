@@ -28,6 +28,8 @@ final class UserProfileRecord {
     var activeWorkoutStatusData: Data?
     var activeWorkoutData: Data?
     var activeWorkoutDraftsData: Data?
+    var targetEventName: String?
+    var targetEventDate: Date?
 
     init(profile: UserProfile, id: String = "current") {
         self.id = id
@@ -52,6 +54,8 @@ final class UserProfileRecord {
         autoProgressionEnabled = profile.autoProgressionEnabled
         remindersEnabled = profile.remindersEnabled
         onboardingCompleted = profile.onboardingCompleted
+        targetEventName = profile.targetEventName
+        targetEventDate = profile.targetEventDate
     }
 
     var domain: UserProfile {
@@ -76,7 +80,10 @@ final class UserProfileRecord {
             weightIncrementKg: weightIncrementKg ?? 2.5,
             autoProgressionEnabled: autoProgressionEnabled ?? false,
             remindersEnabled: remindersEnabled,
-            onboardingCompleted: onboardingCompleted
+            onboardingCompleted: onboardingCompleted,
+            themeMode: nil,
+            targetEventName: targetEventName,
+            targetEventDate: targetEventDate
         )
     }
 }
@@ -322,6 +329,8 @@ final class WorkoutPlanRecord {
     var completion: Double
     var isActive: Bool
     var playlistsData: Data?
+    var targetEventName: String?
+    var targetEventDate: Date?
     @Relationship(deleteRule: .cascade) var days: [WorkoutDayRecord]
 
     init(plan: WorkoutPlan, isActive: Bool) {
@@ -335,6 +344,8 @@ final class WorkoutPlanRecord {
         self.isActive = isActive
         playlistsData = encodePlanPlaylists(plan.playlists)
         days = plan.days.map(WorkoutDayRecord.init)
+        targetEventName = plan.targetEventName
+        targetEventDate = plan.targetEventDate
     }
 
     var domain: WorkoutPlan {
@@ -347,7 +358,9 @@ final class WorkoutPlanRecord {
             totalWeeks: totalWeeks,
             completion: completion,
             days: days.map(\.domain),
-            playlists: decodePlanPlaylists(playlistsData)
+            playlists: decodePlanPlaylists(playlistsData),
+            targetEventName: targetEventName,
+            targetEventDate: targetEventDate
         )
     }
 }
