@@ -274,6 +274,12 @@ struct WorkoutPlan: Codable, Identifiable {
     var completion: Double
     var days: [WorkoutDay]
     var playlists: [PlanPlaylist] = []
+    var currentDayIndex: Int? = 0
+
+    var activeDayIndex: Int {
+        get { currentDayIndex ?? 0 }
+        set { currentDayIndex = newValue }
+    }
 }
 
 struct ScheduledWorkout: Codable, Identifiable {

@@ -5,6 +5,7 @@ struct TodayView: View {
     @EnvironmentObject private var store: AppStore
     @State private var showScheduleWorkout = false
     @State private var showCreatePlan = false
+    @State private var customSelectedWorkoutDay: WorkoutDay? = nil
 
     private var freeWorkout: WorkoutDay {
         WorkoutDay.freeWorkout
@@ -15,7 +16,10 @@ struct TodayView: View {
     }
 
     private var focusWorkout: WorkoutDay {
-        todaysScheduledWorkout?.workoutDay ?? store.todaysWorkout
+        if let custom = customSelectedWorkoutDay {
+            return custom
+        }
+        return todaysScheduledWorkout?.workoutDay ?? store.todaysWorkout
     }
 
     private var weekStart: Date {
@@ -117,6 +121,9 @@ struct TodayView: View {
             }
             .sheet(isPresented: $showCreatePlan) {
                 CreatePlanView()
+            }
+            .onChange(of: store.activePlan.id) {
+                customSelectedWorkoutDay = nil
             }
         }
     }
@@ -283,7 +290,7 @@ struct TodayView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(todaysScheduledWorkout == nil ? "NO SESSION FIXED" : "TODAY'S SESSION")
+                    Text(todaysScheduledWorkout == nil && customSelectedWorkoutDay == nil ? "NO SESSION FIXED" : "TODAY'S SESSION")
                         .font(.system(size: 11, weight: .black, design: .rounded))
                         .tracking(1.5)
                         .foregroundStyle(.white)
@@ -292,11 +299,45 @@ struct TodayView: View {
                         .background(.white.opacity(0.18))
                         .clipShape(Capsule())
                         .padding(.bottom, 2)
-                    Text(todaysScheduledWorkout == nil ? "Choose Next Move" : RepsText.workoutTitle(focusWorkout.title, language: store.userProfile.preferredLanguage))
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.72)
-                    Text(todaysScheduledWorkout == nil ? "You can log a free workout, schedule a session, or continue your active plan." : RepsText.localizedWorkoutSubtitle(focusWorkout.subtitle, language: store.userProfile.preferredLanguage))
+                    
+                    HStack(alignment: .center, spacing: 6) {
+                        Text(todaysScheduledWorkout == nil && customSelectedWorkoutDay == nil ? "Choose Next Move" : RepsText.workoutTitle(focusWorkout.title, language: store.userProfile.preferredLanguage))
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.72)
+                        
+                        if !store.activePlan.days.isEmpty {
+                            Menu {
+                                ForEach(store.activePlan.days) { day in
+                                    Button {
+                                        customSelectedWorkoutDay = day
+                                    } label: {
+                                        HStack {
+                                            Text(RepsText.workoutTitle(day.title, language: store.userProfile.preferredLanguage))
+                                            if day.id == focusWorkout.id {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                if customSelectedWorkoutDay != nil {
+                                    Divider()
+                                    Button(role: .destructive) {
+                                        customSelectedWorkoutDay = nil
+                                    } label: {
+                                        Text(isSpanish ? "Restaurar sugerido" : "Restore suggested")
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "chevron.down.circle.fill")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.8))
+                            }
+                        }
+                    }
+                    
+                    Text(todaysScheduledWorkout == nil && customSelectedWorkoutDay == nil ? "You can log a free workout, schedule a session, or continue your active plan." : RepsText.localizedWorkoutSubtitle(focusWorkout.subtitle, language: store.userProfile.preferredLanguage))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.84))
                         .fixedSize(horizontal: false, vertical: true)

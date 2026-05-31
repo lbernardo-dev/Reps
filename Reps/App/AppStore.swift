@@ -42,9 +42,14 @@ final class AppStore: ObservableObject {
 
     var todaysWorkout: WorkoutDay {
         let calendar = Calendar.current
-        return scheduledWorkouts.first { calendar.isDateInToday($0.date) }?.workoutDay
-            ?? activePlan.days.first
-            ?? SeedData.pushDay
+        if let scheduled = scheduledWorkouts.first(where: { calendar.isDateInToday($0.date) }) {
+            return scheduled.workoutDay
+        }
+        if !activePlan.days.isEmpty {
+            let index = activePlan.activeDayIndex % activePlan.days.count
+            return activePlan.days[index]
+        }
+        return SeedData.pushDay
     }
 
     var streakDays: Int {
@@ -212,6 +217,18 @@ final class AppStore: ObservableObject {
         activeWorkoutStatus = nil
         activeWorkout = nil
         activeWorkoutDrafts = []
+        
+        // Advance progress of the current plan's correct day if completed
+        if !activePlan.days.isEmpty {
+            let currentDay = activePlan.days[activePlan.activeDayIndex % activePlan.days.count]
+            if session.workoutTitle == currentDay.title {
+                activePlan.activeDayIndex = (activePlan.activeDayIndex + 1) % activePlan.days.count
+                if let index = plans.firstIndex(where: { $0.id == activePlan.id }) {
+                    plans[index] = activePlan
+                }
+            }
+        }
+        
         let calendar = Calendar.current
         if let index = scheduledWorkouts.firstIndex(where: { calendar.isDateInToday($0.date) && $0.workoutDay.title == session.workoutTitle }) {
             scheduledWorkouts[index].status = .completed
@@ -293,7 +310,14 @@ final class AppStore: ObservableObject {
     }
 
     func activatePlan(_ plan: WorkoutPlan) {
+        // Save current activePlan progress to plans list first
+        if let index = plans.firstIndex(where: { $0.id == activePlan.id }) {
+            plans[index] = activePlan
+        }
         activePlan = plan
+        if let index = plans.firstIndex(where: { $0.id == plan.id }) {
+            plans[index] = plan
+        }
         generateSchedule(for: plan)
     }
 
