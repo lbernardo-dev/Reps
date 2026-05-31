@@ -138,7 +138,7 @@ struct TodayView: View {
 
             ReadinessBadge(
                 level: batteryStatus.level,
-                title: isSpanish ? "batería" : "battery",
+                title: isSpanish ? "energía" : "battery",
                 color: batteryColor
             )
         }
@@ -434,7 +434,7 @@ struct TodayView: View {
             HomeMetricTile(title: "Week", value: "\(completedThisWeek)/\(store.activePlan.daysPerWeek)", subtitle: "sessions", systemImage: "calendar", color: PulseTheme.primary)
             HomeMetricTile(title: "Volume", value: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg this week", systemImage: "scalemass", color: PulseTheme.primaryBright)
             HomeMetricTile(title: "Streak", value: "\(streakDays)", subtitle: "days in a row", systemImage: "flame", color: PulseTheme.accent)
-            HomeMetricTile(title: "Battery", value: "\(batteryStatus.level)%", subtitle: LocalizedStringKey(batteryStatus.title), systemImage: batteryStatus.systemImage, color: batteryColor)
+            HomeMetricTile(title: isSpanish ? "Batería de entreno" : "Battery", value: "\(batteryStatus.level)%", subtitle: LocalizedStringKey(batteryStatus.title), systemImage: batteryStatus.systemImage, color: batteryColor)
         }
     }
 
@@ -442,7 +442,7 @@ struct TodayView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 WellnessWidget(
-                    title: isSpanish ? "Batería" : "Battery",
+                    title: isSpanish ? "Batería de entreno" : "Battery",
                     value: "\(batteryStatus.level)%",
                     subtitle: batteryStatus.suggestion,
                     systemImage: batteryStatus.systemImage,

@@ -84,7 +84,7 @@ private struct RepsWorkoutWidgetView: View {
                 }
 
                 ProgressView(value: entry.snapshot.progress)
-                    .tint(.green)
+                    .progressViewStyle(RepsProgressStyle(tintColor: .green))
 
                 HStack {
                     Label(entry.snapshot.elapsedText, systemImage: "timer")

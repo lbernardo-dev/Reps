@@ -45,7 +45,7 @@ struct RepsWorkoutLiveActivity: Widget {
                     .foregroundStyle(snapshot.isPaused ? .orange : .green)
             }
             ProgressView(value: snapshot.progress)
-                .tint(.green)
+                .progressViewStyle(RepsProgressStyle(tintColor: .green))
             if let exerciseName = snapshot.exerciseName {
                 HStack {
                     Label(exerciseName, systemImage: "dumbbell.fill")
@@ -68,5 +68,24 @@ struct RepsWorkoutLiveActivity: Widget {
             .font(.caption.weight(.semibold))
         }
         .padding()
+    }
+}
+
+struct RepsProgressStyle: ProgressViewStyle {
+    var tintColor: Color = .green
+
+    func makeBody(configuration: Configuration) -> some View {
+        let fraction = configuration.fractionCompleted ?? 0.0
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.white.opacity(0.18))
+                    .frame(height: 6)
+                Capsule()
+                    .fill(tintColor)
+                    .frame(width: geo.size.width * CGFloat(fraction), height: 6)
+            }
+        }
+        .frame(height: 6)
     }
 }

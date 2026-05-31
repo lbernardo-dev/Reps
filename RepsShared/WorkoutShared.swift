@@ -4,6 +4,11 @@ import Foundation
 import ActivityKit
 #endif
 
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
+
+
 enum RepsAppGroup {
     static let identifier = "group.com.romerosoft.repsfitness"
 }
@@ -146,7 +151,13 @@ enum SharedWorkoutStore {
             return
         }
         defaults.set(data, forKey: key)
+        #if canImport(WidgetKit)
+        #if !os(watchOS)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
+        #endif
     }
+
 }
 
 #if canImport(ActivityKit)

@@ -1207,11 +1207,34 @@ struct ProgressPhotoEditorView: View {
                         }
 
                         PhotosPicker(selection: $photoItem, matching: .images) {
-                            ProgressPhotoSourceActionLabel(
-                                title: "Elegir de galería",
-                                subtitle: "Fotos",
-                                systemImage: "photo.on.rectangle"
-                            )
+                            HStack(spacing: 14) {
+                                Image(systemName: "photo.on.rectangle")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(PulseTheme.primary)
+                                    .frame(width: 42, height: 42)
+                                    .background(PulseTheme.primary.opacity(0.14))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Elegir de galería")
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                    Text("Fotos")
+                                        .font(.subheadline)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+
+                                Spacer(minLength: 12)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(PulseTheme.tertiaryText)
+                            }
+                            .padding(.horizontal, 14)
+                            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+                            .background(PulseTheme.elevated)
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                         }
                         .buttonStyle(.plain)
                     }

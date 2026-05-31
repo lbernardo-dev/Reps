@@ -1285,11 +1285,14 @@ final class RepsWorkoutLiveActivityController: @unchecked Sendable {
 
         Task {
             if snapshot.hasActiveWorkout {
-                if let activity = Activity<RepsWorkoutActivityAttributes>.activities.first {
-                    await activity.update(ActivityContent(
-                        state: RepsWorkoutActivityAttributes.ContentState(snapshot: snapshot),
-                        staleDate: Date().addingTimeInterval(60)
-                    ))
+                let activities = Activity<RepsWorkoutActivityAttributes>.activities
+                if !activities.isEmpty {
+                    for activity in activities {
+                        await activity.update(ActivityContent(
+                            state: RepsWorkoutActivityAttributes.ContentState(snapshot: snapshot),
+                            staleDate: Date().addingTimeInterval(60)
+                        ))
+                    }
                 } else {
                     let attributes = RepsWorkoutActivityAttributes(workoutTitle: snapshot.workoutTitle)
                     let content = ActivityContent(

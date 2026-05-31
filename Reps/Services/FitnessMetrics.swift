@@ -284,25 +284,25 @@ enum FitnessMetrics {
         switch level {
         case 0..<30:
             state = .critical
-            title = "Batería crítica"
+            title = "Batería de entreno crítica"
             message = "La fatiga acumulada supera tu recuperación reciente."
             suggestion = "Cambia a descanso, movilidad o descarga. Si entrenas, reduce volumen 40% y evita RPE 9-10."
             systemImage = "battery.25percent"
         case 30..<55:
             state = .low
-            title = "Batería baja"
+            title = "Batería de entreno baja"
             message = "Puedes entrenar, pero el margen para progresar es limitado."
             suggestion = "Mantén RPE 6-7, descansa 2-3 min entre series duras y recorta accesorios."
             systemImage = "battery.50percent"
         case 55..<80:
             state = .steady
-            title = "Batería estable"
+            title = "Batería de entreno estable"
             message = "La carga y la recuperación están razonablemente equilibradas."
             suggestion = "Entrena según plan y respeta los descansos completos en ejercicios principales."
             systemImage = "battery.75percent"
         default:
             state = .charged
-            title = "Batería cargada"
+            title = "Batería de entreno cargada"
             message = "Buen margen para una sesión productiva."
             suggestion = "Puedes progresar si la técnica se mantiene y el RPE objetivo encaja."
             systemImage = "battery.100percent"

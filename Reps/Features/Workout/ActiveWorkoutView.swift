@@ -704,7 +704,7 @@ struct ActiveWorkoutView: View {
                     .frame(width: 58, height: 58)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("BATERÍA")
+                        Text("BATERÍA DE ENTRENO")
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.5)
                             .foregroundStyle(batteryColor)

@@ -329,7 +329,6 @@ final class HealthKitService: ObservableObject {
 
         let samples = try await descriptor.result(for: healthStore)
         let asleepValues: Set<Int> = [
-            HKCategoryValueSleepAnalysis.asleep.rawValue,
             HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
             HKCategoryValueSleepAnalysis.asleepCore.rawValue,
             HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
