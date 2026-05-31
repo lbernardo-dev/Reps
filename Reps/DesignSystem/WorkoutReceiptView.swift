@@ -30,8 +30,12 @@ struct WorkoutReceiptView: View {
         Int(FitnessMetrics.totalVolumeKg(for: [session]))
     }
     
+    private var completedLogs: [ExerciseLog] {
+        FitnessMetrics.completedExerciseLogs(in: session)
+    }
+
     private var exercises: [Exercise] {
-        session.exerciseLogs?.map(\.exercise) ?? []
+        completedLogs.map(\.exercise)
     }
     
     private var musclesTrained: [Muscle] {
@@ -92,27 +96,24 @@ struct WorkoutReceiptView: View {
             
             // Exercise rows in Receipt format
             VStack(alignment: .leading, spacing: 6) {
-                if let logs = session.exerciseLogs, !logs.isEmpty {
-                    ForEach(logs) { log in
+                if !completedLogs.isEmpty {
+                    ForEach(completedLogs) { log in
                         let name = RepsText.exerciseName(log.exercise.name, language: isSpanish ? "es" : "en")
-                        let completed = log.sets.filter(\.completed).count
-                        if completed > 0 {
-                            HStack(alignment: .bottom, spacing: 2) {
-                                Text(receiptTrim(name, maxChars: 24))
-                                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                                
-                                Text(String(repeating: ".", count: max(2, 30 - name.count)))
-                                    .font(.system(size: 11, design: .monospaced))
-                                    .foregroundStyle(Color.black.opacity(0.35))
-                                    .lineLimit(1)
-                                
-                                Spacer(minLength: 2)
-                                
-                                Text("\(completed) \(isSpanish ? "SERIES" : "SETS")")
-                                    .font(.system(size: 13, weight: .bold, design: .monospaced))
-                            }
-                            .foregroundStyle(Color.black.opacity(0.85))
+                        HStack(alignment: .bottom, spacing: 2) {
+                            Text(receiptTrim(name, maxChars: 24))
+                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+
+                            Text(String(repeating: ".", count: max(2, 30 - name.count)))
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(Color.black.opacity(0.35))
+                                .lineLimit(1)
+
+                            Spacer(minLength: 2)
+
+                            Text("\(log.sets.count) \(isSpanish ? "SERIES" : "SETS")")
+                                .font(.system(size: 13, weight: .bold, design: .monospaced))
                         }
+                        .foregroundStyle(Color.black.opacity(0.85))
                     }
                 } else {
                     Text(isSpanish ? "NINGÚN EJERCICIO COMPLETADO" : "NO EXERCISES COMPLETED")

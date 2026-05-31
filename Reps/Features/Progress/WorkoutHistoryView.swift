@@ -182,7 +182,7 @@ struct WorkoutLogRow: View {
     let session: WorkoutSession
 
     private var exerciseCount: Int {
-        session.exerciseLogs?.count ?? (session.sets.isEmpty ? 0 : 1)
+        FitnessMetrics.completedExerciseLogs(in: session).count
     }
 
     var body: some View {
@@ -221,7 +221,7 @@ struct WorkoutSessionDetailView: View {
     @State private var shareImage: UIImage?
 
     private var exerciseLogs: [ExerciseLog] {
-        session.exerciseLogs ?? [ExerciseLog(exercise: SeedData.bench, notes: session.notes ?? "", sets: session.sets)]
+        FitnessMetrics.completedExerciseLogs(in: session)
     }
 
     var body: some View {

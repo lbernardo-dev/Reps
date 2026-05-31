@@ -13,6 +13,8 @@ struct MusicIntegrationSheet: View {
     // Apple Music local states
     @State private var isAppleMusicAuthorized = false
     @State private var isCheckingAppleMusic = false
+    @State private var isLoadingAppleMusicLibrary = false
+    @State private var isSearchingCatalog = false
     @State private var appleMusicPlaylists: [Playlist] = []
     @State private var searchedCatalogPlaylists: [Playlist] = []
     @State private var searchTask: Task<Void, Never>? = nil
@@ -240,11 +242,17 @@ struct MusicIntegrationSheet: View {
                             }
                             .buttonStyle(.plain)
                         }
-                    } else if searchText.isEmpty {
-                        Text("Cargando tu biblioteca...")
-                            .font(.caption)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .padding(.horizontal, 2)
+                    } else if searchText.isEmpty, isLoadingAppleMusicLibrary {
+                        RepsLoadingView(
+                            messages: [
+                                "Cargando tu biblioteca...",
+                                "Ordenando playlists...",
+                                "Preparando música de entrenamiento..."
+                            ],
+                            progress: nil,
+                            layout: .compact
+                        )
+                        .padding(.top, 4)
                     }
                 }
                 
@@ -255,8 +263,19 @@ struct MusicIntegrationSheet: View {
                         .padding(.horizontal, 2)
                         .padding(.top, 8)
                     
-                    if searchedCatalogPlaylists.isEmpty {
-                        Text("Buscando en Apple Music...")
+                    if searchedCatalogPlaylists.isEmpty, isSearchingCatalog {
+                        RepsLoadingView(
+                            messages: [
+                                "Buscando en Apple Music...",
+                                "Filtrando playlists útiles...",
+                                "Preparando resultados..."
+                            ],
+                            progress: nil,
+                            layout: .compact
+                        )
+                        .padding(.top, 4)
+                    } else if searchedCatalogPlaylists.isEmpty {
+                        Text("Sin resultados para esta búsqueda.")
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .padding(.horizontal, 2)
@@ -492,18 +511,16 @@ struct MusicIntegrationSheet: View {
     // MARK: - Logic Helpers
     
     private func checkAppleMusicAuthorization() {
-        Task {
-            let status = await MusicAuthorization.request()
-            await MainActor.run {
-                isAppleMusicAuthorized = (status == .authorized)
-                if isAppleMusicAuthorized {
-                    loadLibraryPlaylists()
-                }
-            }
+        let status = MusicAuthorization.currentStatus
+        isAppleMusicAuthorized = (status == .authorized)
+        if isAppleMusicAuthorized {
+            loadLibraryPlaylists()
         }
     }
-    
+
     private func requestAppleMusicPermission() {
+        guard !isCheckingAppleMusic else { return }
+
         isCheckingAppleMusic = true
         Task {
             let status = await MusicAuthorization.request()
@@ -518,14 +535,19 @@ struct MusicIntegrationSheet: View {
     }
     
     private func loadLibraryPlaylists() {
+        isLoadingAppleMusicLibrary = true
         Task {
             do {
                 let request = MusicLibraryRequest<Playlist>()
                 let response = try await request.response()
                 await MainActor.run {
                     self.appleMusicPlaylists = Array(response.items)
+                    self.isLoadingAppleMusicLibrary = false
                 }
             } catch {
+                await MainActor.run {
+                    self.isLoadingAppleMusicLibrary = false
+                }
                 print("Error loading library playlists: \(error)")
             }
         }
@@ -535,8 +557,11 @@ struct MusicIntegrationSheet: View {
         searchTask?.cancel()
         guard !query.isEmpty else {
             searchedCatalogPlaylists = []
+            isSearchingCatalog = false
             return
         }
+
+        isSearchingCatalog = true
         
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000)
@@ -551,8 +576,12 @@ struct MusicIntegrationSheet: View {
                 
                 await MainActor.run {
                     self.searchedCatalogPlaylists = Array(response.playlists)
+                    self.isSearchingCatalog = false
                 }
             } catch {
+                await MainActor.run {
+                    self.isSearchingCatalog = false
+                }
                 print("Error searching catalog playlists: \(error)")
             }
         }

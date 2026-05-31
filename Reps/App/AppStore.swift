@@ -1,5 +1,7 @@
+import ActivityKit
 import Foundation
 import UIKit
+import WatchConnectivity
 
 @MainActor
 final class AppStore: ObservableObject {
@@ -19,7 +21,15 @@ final class AppStore: ObservableObject {
     @Published var health = HealthSyncState() { didSet { save() } }
     @Published var isSyncingExerciseLibrary = false
     @Published var exerciseLibrarySyncMessage: String?
-    @Published var activeWorkoutStatus: ActiveWorkoutStatus? { didSet { save() } }
+    @Published var activeWorkoutStatus: ActiveWorkoutStatus? {
+        didSet {
+            save()
+            let snapshot = sharedWorkoutSnapshot()
+            SharedWorkoutStore.save(snapshot)
+            WatchSyncService.shared.publish(snapshot: snapshot)
+            RepsWorkoutLiveActivityController.shared.sync(snapshot)
+        }
+    }
     @Published var activeWorkout: WorkoutDay? { didSet { save() } }
     @Published var activeWorkoutDrafts: [ExerciseSessionDraft] = [] { didSet { save() } }
     @Published var isUsingFallbackStorage = false
@@ -32,6 +42,10 @@ final class AppStore: ObservableObject {
     init(persistence: SwiftDataPersistence = SwiftDataPersistence()) {
         self.persistence = persistence
         self.isUsingFallbackStorage = persistence.didFallbackToInMemory
+        WatchSyncService.shared.configure { [weak self] command in
+            self?.handleWatchCommand(command)
+        }
+        SharedWorkoutStore.save(sharedWorkoutSnapshot())
 
         if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
             restore(snapshot)
@@ -160,6 +174,20 @@ final class AppStore: ObservableObject {
         return "\(workoutText). \(healthText)."
     }
 
+    var trainingBattery: FitnessMetrics.TrainingBatteryStatus {
+        FitnessMetrics.trainingBatteryStatus(
+            sessions: workoutSessions,
+            scheduledWorkouts: scheduledWorkouts,
+            activePlan: activePlan,
+            bodyMetrics: bodyMetrics,
+            health: health
+        )
+    }
+
+    func projectedBattery(after workout: WorkoutDay) -> Int {
+        FitnessMetrics.projectedBatteryLevel(after: workout, from: trainingBattery.level)
+    }
+
     func completeOnboarding(profile: UserProfile) {
         userProfile = profile
         sanitizeAvailableEquipment()
@@ -243,6 +271,16 @@ final class AppStore: ObservableObject {
         if let index = scheduledWorkouts.firstIndex(where: { calendar.isDateInToday($0.date) && $0.workoutDay.title == session.workoutTitle }) {
             scheduledWorkouts[index].status = .completed
         }
+
+        let battery = trainingBattery
+        if userProfile.remindersEnabled, battery.level < 55 {
+            Task {
+                try? await NotificationService.scheduleBatteryRecoverySuggestion(
+                    level: battery.level,
+                    suggestion: battery.suggestion
+                )
+            }
+        }
     }
 
     func startActiveWorkout(_ workout: WorkoutDay, elapsedSeconds: Int = 0, pausedSeconds: Int = 0, isPaused: Bool = false) {
@@ -262,7 +300,9 @@ final class AppStore: ObservableObject {
             )
         }
         activeWorkoutStatus = ActiveWorkoutStatus(
+            planTitle: activePlan.name,
             workoutTitle: workout.title,
+            sessionTitle: workout.subtitle,
             elapsedSeconds: elapsedSeconds,
             pausedSeconds: pausedSeconds,
             completedSets: 0,
@@ -288,14 +328,60 @@ final class AppStore: ObservableObject {
         return digits.first ?? 8
     }
 
-    func updateActiveWorkout(elapsedSeconds: Int, pausedSeconds: Int, completedSets: Int, totalSets: Int, volumeKg: Int, isPaused: Bool) {
+    func updateActiveWorkout(
+        elapsedSeconds: Int,
+        pausedSeconds: Int,
+        completedSets: Int,
+        totalSets: Int,
+        volumeKg: Int,
+        isPaused: Bool,
+        exerciseName: String? = nil,
+        exerciseIndex: Int? = nil,
+        totalExercises: Int? = nil,
+        currentExerciseCompletedSets: Int? = nil,
+        currentExerciseTotalSets: Int? = nil,
+        currentSetWeightKg: Double? = nil,
+        currentSetReps: Int? = nil,
+        restSeconds: Int? = nil,
+        restDurationSeconds: Int? = nil,
+        estimatedRemainingSeconds: Int? = nil,
+        waterLiters: Double? = nil,
+        musicTitle: String? = nil,
+        musicArtist: String? = nil,
+        isMusicPlaying: Bool? = nil,
+        nextExerciseName: String? = nil,
+        exerciseHistorySummary: String? = nil,
+        gymPass: GymPass? = nil
+    ) {
         guard var status = activeWorkoutStatus else { return }
+        status.planTitle = activePlan.name
+        status.sessionTitle = activeWorkout?.subtitle
         status.elapsedSeconds = elapsedSeconds
         status.pausedSeconds = pausedSeconds
         status.completedSets = completedSets
         status.totalSets = totalSets
         status.volumeKg = volumeKg
         status.isPaused = isPaused
+        status.exerciseName = exerciseName
+        status.exerciseIndex = exerciseIndex
+        status.totalExercises = totalExercises
+        status.currentExerciseCompletedSets = currentExerciseCompletedSets
+        status.currentExerciseTotalSets = currentExerciseTotalSets
+        status.currentSetWeightKg = currentSetWeightKg
+        status.currentSetReps = currentSetReps
+        status.restSeconds = restSeconds
+        status.restDurationSeconds = restDurationSeconds
+        status.estimatedRemainingSeconds = estimatedRemainingSeconds
+        status.waterLiters = waterLiters
+        status.musicTitle = musicTitle
+        status.musicArtist = musicArtist
+        status.isMusicPlaying = isMusicPlaying
+        status.nextExerciseName = nextExerciseName
+        status.exerciseHistorySummary = exerciseHistorySummary
+        status.gymPassName = gymPass?.gymName
+        status.gymMembershipID = gymPass?.membershipID
+        status.gymCodeValue = gymPass?.codeValue
+        status.gymCodeType = gymPass?.codeType.rawValue
         activeWorkoutStatus = status
     }
 
@@ -309,6 +395,97 @@ final class AppStore: ObservableObject {
         activeWorkoutStatus = nil
         activeWorkout = nil
         activeWorkoutDrafts = []
+    }
+
+    private func handleWatchCommand(_ command: WatchCommand) {
+        switch command {
+        case .pause:
+            setActiveWorkoutPaused(true)
+        case .resume:
+            setActiveWorkoutPaused(false)
+        case .stop:
+            clearActiveWorkout()
+        case .musicToggle, .musicNext, .musicPrevious, .completeSet, .nextExercise, .previousExercise, .addWater, .voiceNote:
+            NotificationCenter.default.post(name: command.notificationName, object: nil)
+        }
+    }
+
+    private func sharedWorkoutSnapshot() -> SharedWorkoutSnapshot {
+        guard let status = activeWorkoutStatus else {
+            return SharedWorkoutSnapshot(
+                hasActiveWorkout: false,
+                planTitle: activePlan.name,
+                workoutTitle: "Reps",
+                sessionTitle: nil,
+                elapsedSeconds: 0,
+                pausedSeconds: 0,
+                completedSets: 0,
+                totalSets: 0,
+                volumeKg: 0,
+                isPaused: false,
+                exerciseName: nil,
+                exerciseIndex: nil,
+                totalExercises: nil,
+                currentExerciseCompletedSets: nil,
+                currentExerciseTotalSets: nil,
+                currentSetWeightKg: nil,
+                currentSetReps: nil,
+                restSeconds: nil,
+                restDurationSeconds: nil,
+                estimatedRemainingSeconds: nil,
+                waterLiters: todayHealthMetric?.waterLiters,
+                musicTitle: nil,
+                musicArtist: nil,
+                isMusicPlaying: nil,
+                nextExerciseName: nil,
+                exerciseHistorySummary: nil,
+                gymPassName: gymPasses.first?.gymName,
+                gymMembershipID: gymPasses.first?.membershipID,
+                gymCodeValue: gymPasses.first?.codeValue,
+                gymCodeType: gymPasses.first?.codeType.rawValue,
+                heartRate: todayHealthMetric?.restingHeartRate,
+                activeEnergyKcal: todayHealthMetric?.activeEnergyKcal,
+                summary: dailySummary,
+                updatedAt: .now
+            )
+        }
+
+        return SharedWorkoutSnapshot(
+            hasActiveWorkout: true,
+            planTitle: status.planTitle ?? activePlan.name,
+            workoutTitle: status.workoutTitle,
+            sessionTitle: status.sessionTitle,
+            elapsedSeconds: status.elapsedSeconds,
+            pausedSeconds: status.pausedSeconds,
+            completedSets: status.completedSets,
+            totalSets: status.totalSets,
+            volumeKg: status.volumeKg,
+            isPaused: status.isPaused,
+            exerciseName: status.exerciseName,
+            exerciseIndex: status.exerciseIndex,
+            totalExercises: status.totalExercises,
+            currentExerciseCompletedSets: status.currentExerciseCompletedSets,
+            currentExerciseTotalSets: status.currentExerciseTotalSets,
+            currentSetWeightKg: status.currentSetWeightKg,
+            currentSetReps: status.currentSetReps,
+            restSeconds: status.restSeconds,
+            restDurationSeconds: status.restDurationSeconds,
+            estimatedRemainingSeconds: status.estimatedRemainingSeconds,
+            waterLiters: status.waterLiters ?? todayHealthMetric?.waterLiters,
+            musicTitle: status.musicTitle,
+            musicArtist: status.musicArtist,
+            isMusicPlaying: status.isMusicPlaying,
+            nextExerciseName: status.nextExerciseName,
+            exerciseHistorySummary: status.exerciseHistorySummary,
+            gymPassName: status.gymPassName ?? gymPasses.first?.gymName,
+            gymMembershipID: status.gymMembershipID ?? gymPasses.first?.membershipID,
+            gymCodeValue: status.gymCodeValue ?? gymPasses.first?.codeValue,
+            gymCodeType: status.gymCodeType ?? gymPasses.first?.codeType.rawValue,
+            heartRate: todayHealthMetric?.restingHeartRate,
+            activeEnergyKcal: todayHealthMetric?.activeEnergyKcal,
+            summary: dailySummary,
+            updatedAt: .now
+        )
     }
 
     func addPlan(_ plan: WorkoutPlan, activate: Bool) {
@@ -608,14 +785,15 @@ final class AppStore: ObservableObject {
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(currentSnapshot)
         let url = exportURL(fileName: "reps-backup-\(Self.exportDateStamp()).json")
-        try data.write(to: url, options: .atomic)
+        try writeProtected(data, to: url)
         return url
     }
 
     func exportCSVURL() throws -> URL {
         let csv = CSVExporter(snapshot: currentSnapshot).makeCSV()
         let url = exportURL(fileName: "reps-export-\(Self.exportDateStamp()).csv")
-        try csv.write(to: url, atomically: true, encoding: .utf8)
+        let data = Data(csv.utf8)
+        try writeProtected(data, to: url)
         return url
     }
 
@@ -652,7 +830,7 @@ final class AppStore: ObservableObject {
         guard let data = image.pngData() else {
             throw CocoaError(.fileWriteUnknown)
         }
-        try data.write(to: url, options: .atomic)
+        try writeProtected(data, to: url)
         return url
     }
 
@@ -703,6 +881,10 @@ final class AppStore: ObservableObject {
         return directory.appendingPathComponent(fileName)
     }
 
+    private func writeProtected(_ data: Data, to url: URL) throws {
+        try data.write(to: url, options: [.atomic, .completeFileProtection])
+    }
+
     private static func exportDateStamp() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd-HHmm"
@@ -726,7 +908,8 @@ final class AppStore: ObservableObject {
             goals: goals,
             health: health,
             activeWorkout: activeWorkout,
-            activeWorkoutDrafts: activeWorkoutDrafts
+            activeWorkoutDrafts: activeWorkoutDrafts,
+            activeWorkoutStatus: activeWorkoutStatus
         )
     }
 
@@ -982,6 +1165,152 @@ private struct OpenExerciseRecord: Decodable {
                 word.prefix(1).uppercased() + word.dropFirst().lowercased()
             }
             .joined(separator: " ")
+    }
+}
+
+final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
+    static let shared = WatchSyncService()
+    private var commandHandler: (@MainActor @Sendable (WatchCommand) -> Void)?
+
+    private override init() {
+        super.init()
+    }
+
+    func configure(commandHandler: (@MainActor @Sendable (WatchCommand) -> Void)? = nil) {
+        self.commandHandler = commandHandler
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.delegate == nil else { return }
+        session.delegate = self
+        session.activate()
+    }
+
+    func publish(snapshot: SharedWorkoutSnapshot) {
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+
+        var context: [String: Any] = [
+            "summary": snapshot.summary,
+            "updatedAt": snapshot.updatedAt.timeIntervalSince1970,
+            "hasActiveWorkout": snapshot.hasActiveWorkout,
+            "workoutTitle": snapshot.workoutTitle,
+            "elapsedSeconds": snapshot.elapsedSeconds,
+            "pausedSeconds": snapshot.pausedSeconds,
+            "completedSets": snapshot.completedSets,
+            "totalSets": snapshot.totalSets,
+            "volumeKg": snapshot.volumeKg,
+            "isPaused": snapshot.isPaused
+        ]
+        context["planTitle"] = snapshot.planTitle
+        context["sessionTitle"] = snapshot.sessionTitle
+        context["exerciseName"] = snapshot.exerciseName
+        context["exerciseIndex"] = snapshot.exerciseIndex
+        context["totalExercises"] = snapshot.totalExercises
+        context["currentExerciseCompletedSets"] = snapshot.currentExerciseCompletedSets
+        context["currentExerciseTotalSets"] = snapshot.currentExerciseTotalSets
+        context["currentSetWeightKg"] = snapshot.currentSetWeightKg
+        context["currentSetReps"] = snapshot.currentSetReps
+        context["restSeconds"] = snapshot.restSeconds
+        context["restDurationSeconds"] = snapshot.restDurationSeconds
+        context["estimatedRemainingSeconds"] = snapshot.estimatedRemainingSeconds
+        context["waterLiters"] = snapshot.waterLiters
+        context["musicTitle"] = snapshot.musicTitle
+        context["musicArtist"] = snapshot.musicArtist
+        context["isMusicPlaying"] = snapshot.isMusicPlaying
+        context["nextExerciseName"] = snapshot.nextExerciseName
+        context["exerciseHistorySummary"] = snapshot.exerciseHistorySummary
+        context["gymPassName"] = snapshot.gymPassName
+        context["gymMembershipID"] = snapshot.gymMembershipID
+        context["gymCodeValue"] = snapshot.gymCodeValue
+        context["gymCodeType"] = snapshot.gymCodeType
+        if let heartRate = snapshot.heartRate {
+            context["heartRate"] = heartRate
+        }
+        if let activeEnergyKcal = snapshot.activeEnergyKcal {
+            context["activeEnergyKcal"] = activeEnergyKcal
+        }
+
+        try? session.updateApplicationContext(context)
+        if session.isReachable {
+            session.sendMessage(context, replyHandler: nil)
+        }
+    }
+
+    func session(
+        _ session: WCSession,
+        activationDidCompleteWith activationState: WCSessionActivationState,
+        error: Error?
+    ) {}
+
+    func sessionDidBecomeInactive(_ session: WCSession) {}
+
+    func sessionDidDeactivate(_ session: WCSession) {
+        session.activate()
+    }
+
+    func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        handle(message)
+        replyHandler(["received": true])
+    }
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        handle(message)
+    }
+
+    private func handle(_ message: [String: Any]) {
+        guard let rawCommand = message["command"] as? String,
+              let command = WatchCommand(rawValue: rawCommand) else {
+            return
+        }
+
+        let handler = commandHandler
+        Task { @MainActor in
+            handler?(command)
+        }
+    }
+}
+
+final class RepsWorkoutLiveActivityController: @unchecked Sendable {
+    static let shared = RepsWorkoutLiveActivityController()
+
+    private init() {}
+
+    func sync(_ snapshot: SharedWorkoutSnapshot) {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+
+        Task {
+            if snapshot.hasActiveWorkout {
+                if let activity = Activity<RepsWorkoutActivityAttributes>.activities.first {
+                    await activity.update(ActivityContent(
+                        state: RepsWorkoutActivityAttributes.ContentState(snapshot: snapshot),
+                        staleDate: Date().addingTimeInterval(60)
+                    ))
+                } else {
+                    let attributes = RepsWorkoutActivityAttributes(workoutTitle: snapshot.workoutTitle)
+                    let content = ActivityContent(
+                        state: RepsWorkoutActivityAttributes.ContentState(snapshot: snapshot),
+                        staleDate: Date().addingTimeInterval(60)
+                    )
+                    _ = try? Activity<RepsWorkoutActivityAttributes>.request(
+                        attributes: attributes,
+                        content: content,
+                        pushType: nil
+                    )
+                }
+            } else {
+                for activity in Activity<RepsWorkoutActivityAttributes>.activities {
+                    await activity.end(ActivityContent(
+                        state: RepsWorkoutActivityAttributes.ContentState(snapshot: snapshot),
+                        staleDate: nil
+                    ), dismissalPolicy: .after(Date().addingTimeInterval(30)))
+                }
+            }
+        }
     }
 }
 

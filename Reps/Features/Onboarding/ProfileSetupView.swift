@@ -66,7 +66,7 @@ struct ProfileSetupView: View {
                     stepContent
                 }
                 .padding(20)
-                .padding(.bottom, 116)
+                .padding(.bottom, step == .generating && isGenerationComplete ? 190 : 116)
             }
         }
         .screenBackground()
@@ -391,42 +391,277 @@ struct ProfileSetupView: View {
     }
 
     private var equipmentStep: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("Equipo disponible")
-                        .font(.headline)
+                        .font(.title3.weight(.bold))
+                    Text("Marca todo lo que puedes usar con comodidad. Cuanto más preciso sea, mejor ajustaremos ejercicios, variantes y progresión.")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 12)
+                Button {
+                    toggleAllEquipment()
+                } label: {
+                    Text(areAllEquipmentSelected ? "Desmarcar" : "Marcar todo")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(PulseTheme.primary)
+                        .lineLimit(1)
+                }
+                .buttonStyle(.plain)
+            }
+
+            equipmentSummary
+
+            ForEach(EquipmentCategory.allCases) { category in
+                EquipmentCategorySection(
+                    category: category,
+                    options: equipmentCatalog.filter { $0.category == category },
+                    selectedValues: Set(configuredEquipment),
+                    onToggle: toggleEquipment,
+                    onToggleCategory: { toggleEquipmentCategory(category) }
+                )
+            }
+        }
+    }
+
+    private var equipmentSummary: some View {
+        let selected = configuredEquipment.count
+        let total = equipmentOptions.count
+
+        return HStack(spacing: 10) {
+            Label("\(selected)/\(total)", systemImage: "checklist.checked")
+            Divider()
+                .frame(height: 18)
+            Label(equipmentCoverageLabel, systemImage: equipmentCoverageIcon)
+            Spacer(minLength: 0)
+        }
+        .font(.caption.weight(.bold))
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .accessibilityLabel("Equipamiento seleccionado: \(selected) de \(total). \(equipmentCoverageLabel)")
+    }
+
+    private var equipmentCoverageLabel: String {
+        let selected = Set(configuredEquipment)
+        if selected.contains("Barbell") && selected.contains("Cable") && selected.contains("Machine") {
+            return "Gimnasio completo"
+        }
+        if selected.contains("Dumbbells") && selected.contains("Resistance Band") && selected.contains("Bodyweight") {
+            return "Casa bien equipada"
+        }
+        if selected.contains("Bodyweight") && selected.count <= 2 {
+            return "Minimalista"
+        }
+        return "Mixto"
+    }
+
+    private var equipmentCoverageIcon: String {
+        switch equipmentCoverageLabel {
+        case "Gimnasio completo": "building.2.fill"
+        case "Casa bien equipada": "house.fill"
+        case "Minimalista": "figure.strengthtraining.functional"
+        default: "arrow.triangle.2.circlepath"
+        }
+    }
+
+    private func toggleEquipmentCategory(_ category: EquipmentCategory) {
+        if profile.availableEquipment.isEmpty {
+            profile.availableEquipment = configuredEquipment
+        }
+
+        let categoryValues = equipmentCatalog
+            .filter { $0.category == category }
+            .map(\.value)
+        let selected = Set(profile.availableEquipment)
+
+        if categoryValues.allSatisfy(selected.contains) {
+            profile.availableEquipment.removeAll { categoryValues.contains($0) }
+        } else {
+            for value in categoryValues where !profile.availableEquipment.contains(value) {
+                profile.availableEquipment.append(value)
+            }
+        }
+    }
+
+    private var equipmentCatalog: [EquipmentOption] {
+        [
+            EquipmentOption(value: "Barbell", category: .freeWeights, title: "Barra olímpica", subtitle: "Sentadilla, press, peso muerto y básicos pesados.", icon: "figure.strengthtraining.traditional", tint: PulseTheme.primary),
+            EquipmentOption(value: "EZ Bar", category: .freeWeights, title: "Barra Z", subtitle: "Curl, extensiones y trabajo de brazos con agarre cómodo.", icon: "waveform.path.ecg", tint: PulseTheme.primary),
+            EquipmentOption(value: "Dumbbells", category: .freeWeights, title: "Mancuernas", subtitle: "Press, remos, zancadas y accesorios unilaterales.", icon: "dumbbell.fill", tint: PulseTheme.primaryBright),
+            EquipmentOption(value: "Kettlebell", category: .freeWeights, title: "Kettlebell", subtitle: "Swings, goblet squat, carries y potencia de cadera.", icon: "kettlebell.fill", tint: PulseTheme.warning),
+            EquipmentOption(value: "Bodyweight", category: .bodyweight, title: "Peso corporal", subtitle: "Flexiones, core, movilidad y progresiones sin material.", icon: "figure.strengthtraining.functional", tint: PulseTheme.primaryBright),
+            EquipmentOption(value: "Resistance Band", category: .bodyweight, title: "Bandas elásticas", subtitle: "Activación, tirones, face pulls y asistencia.", icon: "point.3.connected.trianglepath.dotted", tint: PulseTheme.accent),
+            EquipmentOption(value: "Suspension Trainer", category: .bodyweight, title: "TRX / suspensión", subtitle: "Remos, press, bisagras y core con ángulo ajustable.", icon: "figure.core.training", tint: PulseTheme.accent),
+            EquipmentOption(value: "Bench", category: .bodyweight, title: "Banco", subtitle: "Press inclinado, step-ups, hip thrust y apoyo técnico.", icon: "table.furniture", tint: PulseTheme.primary),
+            EquipmentOption(value: "Pullup Bar", category: .bodyweight, title: "Barra de dominadas", subtitle: "Dominadas, hangs, elevaciones de piernas y tirones.", icon: "figure.pull.ups", tint: PulseTheme.primaryBright),
+            EquipmentOption(value: "Cable", category: .machines, title: "Poleas", subtitle: "Jalones, remos, cruces, tríceps y tensión constante.", icon: "point.3.connected.trianglepath.dotted", tint: PulseTheme.primary),
+            EquipmentOption(value: "Machine", category: .machines, title: "Máquinas guiadas", subtitle: "Press, extensión, curl femoral y patrones estables.", icon: "rectangle.3.group.bubble.left", tint: PulseTheme.primary),
+            EquipmentOption(value: "Smith Machine", category: .machines, title: "Multipower / Smith", subtitle: "Sentadillas, presses y gemelos con trayectoria guiada.", icon: "square.grid.3x3.middle.filled", tint: PulseTheme.warning),
+            EquipmentOption(value: "Leg Press", category: .machines, title: "Prensa de piernas", subtitle: "Volumen pesado de pierna con menor demanda técnica.", icon: "figure.strengthtraining.traditional", tint: PulseTheme.warning),
+            EquipmentOption(value: "Rack", category: .machines, title: "Rack / jaula", subtitle: "Soportes, barras de seguridad, dominadas y básicos pesados.", icon: "square.split.3x3", tint: PulseTheme.primary),
+            EquipmentOption(value: "Cardio Machine", category: .conditioning, title: "Cardio", subtitle: "Cinta, bici, remo, elíptica o bicicleta de aire.", icon: "figure.run", tint: PulseTheme.destructive),
+            EquipmentOption(value: "Medicine Ball", category: .conditioning, title: "Balón medicinal", subtitle: "Lanzamientos, rotaciones, potencia y acondicionamiento.", icon: "circle.hexagongrid.fill", tint: PulseTheme.accent)
+        ]
+    }
+
+    private var equipmentOptions: [String] {
+        equipmentCatalog.map(\.value)
+    }
+
+    private enum EquipmentCategory: String, CaseIterable, Identifiable {
+        case freeWeights
+        case bodyweight
+        case machines
+        case conditioning
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .freeWeights: "Fuerza libre"
+            case .bodyweight: "Casa y accesorios"
+            case .machines: "Gimnasio avanzado"
+            case .conditioning: "Cardio y potencia"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .freeWeights: "Carga progresiva, básicos y accesorios."
+            case .bodyweight: "Material portátil, soporte y calistenia."
+            case .machines: "Poleas, estaciones guiadas y estructuras."
+            case .conditioning: "Trabajo energético, intervalos y explosividad."
+            }
+        }
+    }
+
+    private struct EquipmentOption: Identifiable {
+        var id: String { value }
+        let value: String
+        let category: EquipmentCategory
+        let title: String
+        let subtitle: String
+        let icon: String
+        let tint: Color
+    }
+
+    private struct EquipmentCategorySection: View {
+        let category: EquipmentCategory
+        let options: [EquipmentOption]
+        let selectedValues: Set<String>
+        let onToggle: (String) -> Void
+        let onToggleCategory: () -> Void
+
+        private var selectedCount: Int {
+            options.filter { selectedValues.contains($0.value) }.count
+        }
+
+        private var isFullySelected: Bool {
+            selectedCount == options.count
+        }
+
+        private var columns: [GridItem] {
+            [GridItem(.adaptive(minimum: 152), spacing: 10, alignment: .top)]
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(category.title)
+                            .font(.headline)
+                        Text(category.subtitle)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
                     Spacer()
                     Button {
-                        toggleAllEquipment()
+                        onToggleCategory()
                     } label: {
-                        Text(areAllEquipmentSelected ? "Desmarcar todos" : "Marcar todos")
-                            .font(.subheadline.weight(.semibold))
+                        Text(isFullySelected ? "Quitar" : "Todo")
+                            .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.primary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(PulseTheme.grouped)
+                            .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                 }
 
-                ForEach(equipmentOptions, id: \.self) { equipment in
-                    Button {
-                        toggleEquipment(equipment)
-                    } label: {
-                        HStack {
-                            Text(RepsText.equipment(equipment, language: "es"))
-                                .font(.headline)
-                            Spacer()
-                            Image(systemName: configuredEquipment.contains(equipment) ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(configuredEquipment.contains(equipment) ? PulseTheme.primaryBright : PulseTheme.secondaryText)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-
-                    if equipment != equipmentOptions.last {
-                        Divider()
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+                    ForEach(options) { option in
+                        EquipmentOptionCard(
+                            option: option,
+                            isSelected: selectedValues.contains(option.value),
+                            action: { onToggle(option.value) }
+                        )
                     }
                 }
             }
+            .padding(14)
+            .background(PulseTheme.card)
+            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                    .stroke(PulseTheme.separator, lineWidth: 1)
+            )
+        }
+    }
+
+    private struct EquipmentOptionCard: View {
+        let option: EquipmentOption
+        let isSelected: Bool
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top) {
+                        Image(systemName: option.icon)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(isSelected ? .black : option.tint)
+                            .frame(width: 34, height: 34)
+                            .background(isSelected ? option.tint : option.tint.opacity(0.16))
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        Spacer()
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(isSelected ? PulseTheme.primaryBright : PulseTheme.tertiaryText)
+                    }
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(option.title)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(option.subtitle)
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
+                .padding(12)
+                .background(isSelected ? PulseTheme.elevated : PulseTheme.grouped)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(isSelected ? option.tint.opacity(0.7) : PulseTheme.separator, lineWidth: isSelected ? 1.5 : 1)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(option.title)
+            .accessibilityValue(isSelected ? "Seleccionado" : "No seleccionado")
         }
     }
 
@@ -454,7 +689,7 @@ struct ProfileSetupView: View {
                     toggleFocus(focus)
                 }
             }
-            .frame(height: 440)
+            .frame(height: 520)
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
                 Button {
@@ -516,45 +751,12 @@ struct ProfileSetupView: View {
     private var generatingStep: some View {
         VStack(alignment: .center, spacing: 28) {
             if !isGenerationComplete {
-                VStack(spacing: 30) {
-                    Spacer()
-                    
-                    ZStack {
-                        Circle()
-                            .stroke(PulseTheme.separator, lineWidth: 6)
-                            .frame(width: 120, height: 120)
-                        
-                        Circle()
-                            .trim(from: 0.0, to: CGFloat(generationProgress))
-                            .stroke(
-                                LinearGradient(
-                                    colors: [PulseTheme.primary, PulseTheme.primaryBright],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                            )
-                            .frame(width: 120, height: 120)
-                            .rotationEffect(Angle(degrees: -90))
-                        
-                        Text("\(Int(generationProgress * 100))%")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                    }
-                    .padding(.bottom, 20)
-                    
-                    VStack(spacing: 8) {
-                        Text("Construyendo tu plan")
-                            .font(.title2.bold())
-                        Text(generationStatusText)
-                            .font(.subheadline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .multilineTextAlignment(.center)
-                            .frame(height: 40)
-                    }
-                    
-                    Spacer()
-                }
+                RepsLoadingView(
+                    messages: [generationStatusText],
+                    progress: generationProgress,
+                    layout: .panel
+                )
+                .padding(.top, 44)
                 .frame(maxWidth: .infinity, minHeight: 450)
             } else {
                 VStack(alignment: .center, spacing: 24) {
@@ -585,8 +787,55 @@ struct ProfileSetupView: View {
                         GenerationPill(title: "Descanso", value: "\(generatedPlan.days.first?.restBetweenExercisesSeconds ?? 120)s")
                         GenerationPill(title: "Semanas", value: "\(generatedPlan.totalWeeks)")
                     }
+
+                    suggestedPlanSummary
+                    forecastStep
                 }
                 .transition(.opacity.combined(with: .scale))
+            }
+        }
+    }
+
+    private var suggestedPlanSummary: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Plan sugerido")
+                            .font(.headline)
+                        Text("\(generatedPlan.daysPerWeek) dias/semana durante \(generatedPlan.totalWeeks) semanas")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    Spacer()
+                    Image(systemName: "sparkles")
+                        .font(.headline)
+                        .foregroundStyle(.black)
+                        .frame(width: 34, height: 34)
+                        .background(PulseTheme.accent)
+                        .clipShape(Circle())
+                }
+
+                ForEach(generatedPlan.days.prefix(3)) { day in
+                    HStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(PulseTheme.primaryBright)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(day.title)
+                                .font(.subheadline.weight(.bold))
+                            Text("\(day.exercises.count) ejercicios - \(day.durationMinutes) min")
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+                    }
+                }
+
+                if generatedPlan.days.count > 3 {
+                    Text("+\(generatedPlan.days.count - 3) dias adicionales incluidos")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.primary)
+                }
             }
         }
     }
@@ -807,37 +1056,89 @@ struct ProfileSetupView: View {
     }
 
     private var bottomBar: some View {
-        HStack(spacing: 12) {
-            if stepIndex > 0 {
-                Button {
-                    moveBackward()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.headline)
-                        .frame(width: 52, height: 52)
-                        .foregroundStyle(.primary)
-                        .background(PulseTheme.grouped)
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-            }
+        Group {
+            if step == .generating && isGenerationComplete {
+                VStack(spacing: 10) {
+                    Button {
+                        moveForward()
+                    } label: {
+                        Text("Aceptar plan sugerido")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 58)
+                            .foregroundStyle(.black)
+                            .background(.white)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
 
-            Button {
-                moveForward()
-            } label: {
-                Text(primaryButtonTitle)
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 58)
-                    .foregroundStyle(.black)
-                    .background(canMoveForward ? .white : PulseTheme.elevated)
-                    .clipShape(Capsule())
+                    Button {
+                        restartPlanningFromScratch()
+                    } label: {
+                        Text("Rechazar y empezar desde 0")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .foregroundStyle(.primary)
+                            .background(PulseTheme.grouped)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                HStack(spacing: 12) {
+                    if stepIndex > 0 {
+                        Button {
+                            moveBackward()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.headline)
+                                .frame(width: 52, height: 52)
+                                .foregroundStyle(.primary)
+                                .background(PulseTheme.grouped)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Button {
+                        moveForward()
+                    } label: {
+                        Text(primaryButtonTitle)
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 58)
+                            .foregroundStyle(.black)
+                            .background(canMoveForward ? .white : PulseTheme.elevated)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canMoveForward)
+                }
             }
-            .buttonStyle(.plain)
-            .disabled(!canMoveForward)
         }
         .padding(20)
         .background(.ultraThinMaterial)
+    }
+
+    private func restartPlanningFromScratch() {
+        withAnimation(.snappy(duration: 0.25)) {
+            profile = UserProfile()
+            selectedSex = nil
+            age = 32
+            heightCm = 178.0
+            weightKg = 78.0
+            sessionLengthMinutes = 60
+            focusMuscles = []
+            selectedConsistencyIndex = 0
+            generationProgress = 0.0
+            generationStatusText = "Analizando métricas base..."
+            isGenerationComplete = false
+            hasTargetEvent = false
+            targetEventName = ""
+            targetEventDate = Calendar.current.date(byAdding: .weekOfYear, value: 8, to: .now) ?? .now
+            step = .sex
+        }
     }
 
     private var stepIndex: Int {
@@ -1082,10 +1383,6 @@ struct ProfileSetupView: View {
         }
     }
 
-    private var equipmentOptions: [String] {
-        ["Barbell", "Dumbbells", "Resistance Band", "Bodyweight", "Kettlebell", "Cardio Machine", "Cable", "Machine", "Bench", "Pullup Bar"]
-    }
-
     private var focusOptions: [(key: String, title: String)] {
         [
             ("Chest", "Pecho"),
@@ -1296,12 +1593,12 @@ private struct OnboardingBodyPair: View {
 
     var body: some View {
         GeometryReader { proxy in
-            HStack(spacing: -16) {
+            HStack(spacing: -28) {
                 Spacer()
                 bodyView(side: .front)
-                    .frame(width: proxy.size.width * 0.46, height: proxy.size.height)
+                    .frame(width: proxy.size.width * 0.52, height: proxy.size.height)
                 bodyView(side: .back)
-                    .frame(width: proxy.size.width * 0.46, height: proxy.size.height)
+                    .frame(width: proxy.size.width * 0.52, height: proxy.size.height)
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

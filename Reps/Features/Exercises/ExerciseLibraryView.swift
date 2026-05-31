@@ -169,7 +169,21 @@ struct ExerciseLibraryView: View {
             .navigationTitle(ui(en: "Exercise Library", es: "Biblioteca de ejercicios"))
             .listStyle(.insetGrouped)
             .safeAreaInset(edge: .bottom) {
-                if let message = store.exerciseLibrarySyncMessage {
+                if store.isSyncingExerciseLibrary {
+                    RepsLoadingView(
+                        messages: [
+                            ui(en: "Updating exercise library...", es: "Actualizando biblioteca de ejercicios..."),
+                            ui(en: "Completing media and instructions...", es: "Completando medios e instrucciones..."),
+                            ui(en: "Keeping your catalog ready...", es: "Preparando tu catálogo...")
+                        ],
+                        progress: nil,
+                        layout: .compact,
+                        showsPercentage: false
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
+                } else if let message = store.exerciseLibrarySyncMessage {
                     Text(message)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)

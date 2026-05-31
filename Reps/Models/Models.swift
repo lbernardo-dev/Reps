@@ -423,7 +423,9 @@ struct WorkoutSession: Codable, Identifiable {
 
 struct ActiveWorkoutStatus: Identifiable, Equatable, Codable {
     var id = UUID()
+    var planTitle: String?
     var workoutTitle: String
+    var sessionTitle: String?
     var startedAt: Date = .now
     var elapsedSeconds: Int = 0
     var pausedSeconds: Int = 0
@@ -431,6 +433,26 @@ struct ActiveWorkoutStatus: Identifiable, Equatable, Codable {
     var totalSets: Int = 0
     var volumeKg: Int = 0
     var isPaused = false
+    var exerciseName: String?
+    var exerciseIndex: Int?
+    var totalExercises: Int?
+    var currentExerciseCompletedSets: Int?
+    var currentExerciseTotalSets: Int?
+    var currentSetWeightKg: Double?
+    var currentSetReps: Int?
+    var restSeconds: Int?
+    var restDurationSeconds: Int?
+    var estimatedRemainingSeconds: Int?
+    var waterLiters: Double?
+    var musicTitle: String?
+    var musicArtist: String?
+    var isMusicPlaying: Bool?
+    var nextExerciseName: String?
+    var exerciseHistorySummary: String?
+    var gymPassName: String?
+    var gymMembershipID: String?
+    var gymCodeValue: String?
+    var gymCodeType: String?
 }
 
 struct Goal: Codable, Identifiable {
@@ -474,6 +496,8 @@ struct BodyMetric: Codable, Identifiable {
     var sleepQuality: Int?
     var fatigue: Int?
     var stress: Int?
+    var waterLiters: Double?
+    var dietaryEnergyKcal: Double?
     var sorenessNotes: String?
     var source: Source
 }
@@ -513,6 +537,9 @@ struct DailyHealthMetric: Codable, Identifiable, Hashable {
     var activeEnergyKcal: Double
     var dietaryEnergyKcal: Double
     var waterLiters: Double
+    var exerciseMinutes: Double?
+    var restingHeartRate: Double?
+    var heartRateVariabilityMS: Double?
 }
 
 struct HealthSyncState: Codable {
@@ -523,6 +550,17 @@ struct HealthSyncState: Codable {
     var latestDailyMetrics: [DailyHealthMetric] = []
 }
 
+struct BodyWellnessDefaults {
+    var bodyFatPercentage: Double?
+    var waistCm: Double?
+    var sleepHours: Double?
+    var waterLiters: Double?
+    var dietaryEnergyKcal: Double?
+    var sleepQuality: Int?
+    var fatigue: Int?
+    var stress: Int?
+}
+
 struct ExerciseSessionDraft: Codable, Equatable, Hashable {
     var workoutExercise: WorkoutExercise
     var notes: String
@@ -530,4 +568,3 @@ struct ExerciseSessionDraft: Codable, Equatable, Hashable {
     var sets: [SetLog]
     var mediaAttachments: [WorkoutMediaAttachment] = []
 }
-

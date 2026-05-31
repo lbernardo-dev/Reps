@@ -357,6 +357,7 @@ private struct PlanMusicCard: View {
     let plan: WorkoutPlan
     let onEdit: () -> Void
     @Environment(\.openURL) private var openURL
+    @StateObject private var musicPlayer = WorkoutAppleMusicPlayer.shared
 
     private var primaryPlaylist: PlanPlaylist? {
         plan.playlists.first
@@ -384,21 +385,22 @@ private struct PlanMusicCard: View {
                             Text(primaryPlaylist.title)
                                 .font(.headline)
                                 .lineLimit(1)
-                            Text(providerTitle(primaryPlaylist.provider))
+                            Text(statusTitle(for: primaryPlaylist))
                                 .font(.subheadline)
                                 .foregroundStyle(PulseTheme.secondaryText)
+                                .lineLimit(1)
                         }
                         Spacer()
                         Button {
-                            openPlaylist(primaryPlaylist)
+                            playPlaylist(primaryPlaylist)
                         } label: {
-                            Image(systemName: "play.fill")
+                            Image(systemName: playButtonIcon(for: primaryPlaylist))
                                 .foregroundStyle(.white)
                                 .frame(width: 44, height: 44)
-                                .background(PulseTheme.accent)
+                                .background(primaryPlaylist.provider == .appleMusic ? Color.pink : PulseTheme.accent)
                                 .clipShape(Circle())
                         }
-                        .accessibilityLabel("Abrir playlist")
+                        .accessibilityLabel(primaryPlaylist.provider == .appleMusic ? "Reproducir en Reps" : "Abrir playlist")
                     }
 
                     if plan.playlists.count > 1 {
@@ -424,8 +426,25 @@ private struct PlanMusicCard: View {
         }
     }
 
-    private func openPlaylist(_ playlist: PlanPlaylist) {
-        guard let url = URL(string: playlist.urlString) else { return }
+    private func statusTitle(for playlist: PlanPlaylist) -> String {
+        playlist.provider == .appleMusic ? musicPlayer.statusText(for: playlist) : providerTitle(playlist.provider)
+    }
+
+    private func playButtonIcon(for playlist: PlanPlaylist) -> String {
+        playlist.provider == .appleMusic && musicPlayer.isPlaying(playlist) ? "pause.fill" : "play.fill"
+    }
+
+    private func playPlaylist(_ playlist: PlanPlaylist) {
+        if playlist.provider == .appleMusic {
+            Task {
+                await musicPlayer.playOrPause(playlist)
+            }
+            return
+        }
+
+        guard let url = URL(string: playlist.urlString) else {
+            return
+        }
         openURL(url)
     }
 }

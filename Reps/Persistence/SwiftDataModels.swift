@@ -528,6 +528,8 @@ final class BodyMetricRecord {
     var sleepQuality: Int?
     var fatigue: Int?
     var stress: Int?
+    var waterLiters: Double?
+    var dietaryEnergyKcal: Double?
     var sorenessNotes: String?
     var source: String
 
@@ -548,6 +550,8 @@ final class BodyMetricRecord {
         sleepQuality = metric.sleepQuality
         fatigue = metric.fatigue
         stress = metric.stress
+        waterLiters = metric.waterLiters
+        dietaryEnergyKcal = metric.dietaryEnergyKcal
         sorenessNotes = metric.sorenessNotes
         source = metric.source.rawValue
     }
@@ -570,6 +574,8 @@ final class BodyMetricRecord {
             sleepQuality: sleepQuality,
             fatigue: fatigue,
             stress: stress,
+            waterLiters: waterLiters,
+            dietaryEnergyKcal: dietaryEnergyKcal,
             sorenessNotes: sorenessNotes,
             source: BodyMetric.Source(rawValue: source) ?? .manual
         )

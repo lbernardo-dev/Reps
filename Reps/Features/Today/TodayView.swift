@@ -42,18 +42,21 @@ struct TodayView: View {
         store.bodyMetrics.sorted { $0.date > $1.date }.first
     }
 
-    private var readinessScore: Int {
-        var score = 76
-        if let sleep = latestMetric?.sleepHours {
-            score += sleep >= 7 ? 10 : -8
+    private var batteryStatus: FitnessMetrics.TrainingBatteryStatus {
+        store.trainingBattery
+    }
+
+    private var batteryColor: Color {
+        switch batteryStatus.state {
+        case .charged:
+            return PulseTheme.primaryBright
+        case .steady:
+            return PulseTheme.primary
+        case .low:
+            return PulseTheme.warning
+        case .critical:
+            return PulseTheme.destructive
         }
-        if let fatigue = latestMetric?.fatigue {
-            score -= max(0, fatigue - 2) * 6
-        }
-        if let stress = latestMetric?.stress {
-            score -= max(0, stress - 2) * 5
-        }
-        return min(max(score, 35), 96)
     }
 
     private var coachInsight: FitnessMetrics.TrainingInsight {
@@ -100,6 +103,7 @@ struct TodayView: View {
                     header
                     focusHero
                     weeklyCommandGrid
+                    wellnessWidgets
                     coachingCard
                     planPreview
                     progressAndRecovery
@@ -111,7 +115,7 @@ struct TodayView: View {
                 .padding(.bottom, 120)
             }
             .screenBackground()
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showScheduleWorkout) {
                 ScheduleWorkoutView()
             }
@@ -132,7 +136,11 @@ struct TodayView: View {
 
             Spacer()
 
-            ReadinessBadge(score: readinessScore, title: isSpanish ? "estado" : "readiness")
+            ReadinessBadge(
+                level: batteryStatus.level,
+                title: isSpanish ? "batería" : "battery",
+                color: batteryColor
+            )
         }
     }
 
@@ -426,7 +434,46 @@ struct TodayView: View {
             HomeMetricTile(title: "Week", value: "\(completedThisWeek)/\(store.activePlan.daysPerWeek)", subtitle: "sessions", systemImage: "calendar", color: PulseTheme.primary)
             HomeMetricTile(title: "Volume", value: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg this week", systemImage: "scalemass", color: PulseTheme.primaryBright)
             HomeMetricTile(title: "Streak", value: "\(streakDays)", subtitle: "days in a row", systemImage: "flame", color: PulseTheme.accent)
-            HomeMetricTile(title: "1RM", value: "\(Int(store.bestEstimatedOneRepMaxKg))", subtitle: "best estimate", systemImage: "trophy", color: PulseTheme.warning)
+            HomeMetricTile(title: "Battery", value: "\(batteryStatus.level)%", subtitle: LocalizedStringKey(batteryStatus.title), systemImage: batteryStatus.systemImage, color: batteryColor)
+        }
+    }
+
+    private var wellnessWidgets: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                WellnessWidget(
+                    title: isSpanish ? "Batería" : "Battery",
+                    value: "\(batteryStatus.level)%",
+                    subtitle: batteryStatus.suggestion,
+                    systemImage: batteryStatus.systemImage,
+                    color: batteryColor
+                )
+
+                WellnessWidget(
+                    title: isSpanish ? "Ejercicio" : "Exercise",
+                    value: store.todayHealthMetric.map { "\(Int($0.exerciseMinutes ?? 0)) min" } ?? "--",
+                    subtitle: "Apple Watch / Health",
+                    systemImage: "applewatch",
+                    color: PulseTheme.primaryBright
+                )
+
+                WellnessWidget(
+                    title: isSpanish ? "Hidratación" : "Hydration",
+                    value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
+                    subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en Reps", $0) } ?? (isSpanish ? "Sin registro local" : "No local log"),
+                    systemImage: "drop.fill",
+                    color: .cyan
+                )
+
+                WellnessWidget(
+                    title: "HRV",
+                    value: store.todayHealthMetric?.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--",
+                    subtitle: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? (isSpanish ? "Sin pulso de reposo" : "No resting HR"),
+                    systemImage: "waveform.path.ecg",
+                    color: PulseTheme.accent
+                )
+            }
+            .padding(.vertical, 2)
         }
     }
 
@@ -434,20 +481,20 @@ struct TodayView: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: coachInsight.systemImage)
+                    Image(systemName: batteryStatus.level < 55 ? batteryStatus.systemImage : coachInsight.systemImage)
                         .font(.headline.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 42, height: 42)
-                        .background(PulseTheme.primary)
+                        .background(batteryStatus.level < 55 ? batteryColor : PulseTheme.primary)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Today's Insight")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(batteryStatus.level < 55 ? batteryColor : PulseTheme.primary)
                             .textCase(.uppercase)
-                        Text(coachInsight.title)
+                        Text(batteryStatus.level < 55 ? batteryStatus.title : coachInsight.title)
                             .font(.headline)
-                        Text(coachInsight.message)
+                        Text(batteryStatus.level < 55 ? batteryStatus.suggestion : coachInsight.message)
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -770,27 +817,27 @@ private struct StatPill: View {
 }
 
 private struct ReadinessBadge: View {
-    let score: Int
+    let level: Int
     let title: String
-
-    private var color: Color {
-        score >= 70 ? PulseTheme.primaryBright : PulseTheme.accent
-    }
+    let color: Color
 
     var body: some View {
         ZStack {
             Circle()
                 .stroke(PulseTheme.grouped, lineWidth: 6)
             Circle()
-                .trim(from: 0, to: CGFloat(score) / 100)
+                .trim(from: 0, to: CGFloat(level) / 100)
                 .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-            VStack(spacing: 1) {
-                Text("\(score)")
-                    .font(.title3.bold().monospacedDigit())
+            VStack(spacing: 0) {
+                Text("\(level)%")
+                    .font(.system(size: 20, weight: .bold, design: .rounded).monospacedDigit())
+                    .minimumScaleFactor(0.8)
                     .foregroundStyle(color)
                 Text(title)
                     .font(.caption2.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
         }
@@ -799,7 +846,7 @@ private struct ReadinessBadge: View {
         .background(PulseTheme.card)
         .clipShape(Circle())
         .shadow(color: .black.opacity(0.05), radius: 12, x: 0, y: 6)
-        .accessibilityLabel("\(title) \(score)")
+        .accessibilityLabel("\(title) \(level)%")
     }
 }
 
@@ -869,6 +916,51 @@ private struct HomeMetricTile: View {
                     .lineLimit(1)
             }
         }
+    }
+}
+
+private struct WellnessWidget: View {
+    let title: String
+    let value: String
+    let subtitle: String
+    let systemImage: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(color)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                Text(title)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
+            }
+
+            Text(value)
+                .font(.system(size: 25, weight: .bold, design: .rounded))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+
+            Text(subtitle)
+                .font(.caption)
+                .foregroundStyle(PulseTheme.secondaryText)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(width: 166, height: 126, alignment: .topLeading)
+        .padding(14)
+        .background(PulseTheme.card)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke(PulseTheme.separator, lineWidth: 1)
+        )
     }
 }
 

@@ -41,6 +41,27 @@ enum FitnessMetrics {
         let systemImage: String
     }
 
+    struct TrainingBatteryStatus: Equatable {
+        enum State: String {
+            case charged
+            case steady
+            case low
+            case critical
+        }
+
+        let level: Int
+        let fatigueLoad: Double
+        let recoveryCredit: Double
+        let todayLoad: Double
+        let weeklyLoad: Double
+        let planPressure: Double
+        let state: State
+        let title: String
+        let message: String
+        let suggestion: String
+        let systemImage: String
+    }
+
     static func totalVolumeKg(for sessions: [WorkoutSession]) -> Double {
         sessions.reduce(0) { partial, session in
             partial + completedSets(in: session).reduce(0) { setTotal, set in
@@ -116,6 +137,27 @@ enum FitnessMetrics {
         return session.sets.filter(\.completed)
     }
 
+    static func completedExerciseLogs(in session: WorkoutSession) -> [ExerciseLog] {
+        if let exerciseLogs = session.exerciseLogs, !exerciseLogs.isEmpty {
+            return exerciseLogs.compactMap { log in
+                let completedSets = log.sets.filter(\.completed)
+                guard !completedSets.isEmpty else {
+                    return nil
+                }
+
+                var completedLog = log
+                completedLog.sets = completedSets
+                return completedLog
+            }
+        }
+
+        let completedSets = session.sets.filter(\.completed)
+        guard !completedSets.isEmpty else {
+            return []
+        }
+        return [ExerciseLog(exercise: SeedData.bench, notes: session.notes ?? "", sets: completedSets)]
+    }
+
     static func progressiveOverloadDelta(for points: [ExerciseProgressPoint]) -> Double {
         guard let first = points.first, let last = points.last else {
             return 0
@@ -129,12 +171,11 @@ enum FitnessMetrics {
 
         sessions
             .filter { $0.date >= startDate }
-            .flatMap { $0.exerciseLogs ?? [] }
+            .flatMap(completedExerciseLogs)
             .forEach { log in
-                let completedSets = log.sets.filter(\.completed)
-                let volume = completedSets.reduce(0) { $0 + ($1.weightKg * Double($1.reps)) }
+                let volume = log.sets.reduce(0) { $0 + ($1.weightKg * Double($1.reps)) }
                 let current = buckets[log.exercise.muscleGroup] ?? (sets: 0, volume: 0)
-                buckets[log.exercise.muscleGroup] = (current.sets + completedSets.count, current.volume + volume)
+                buckets[log.exercise.muscleGroup] = (current.sets + log.sets.count, current.volume + volume)
             }
 
         return buckets.map { muscleGroup, values in
@@ -198,6 +239,212 @@ enum FitnessMetrics {
         }
 
         return Array(insights.prefix(3))
+    }
+
+    static func trainingBatteryStatus(
+        sessions: [WorkoutSession],
+        scheduledWorkouts: [ScheduledWorkout],
+        activePlan: WorkoutPlan,
+        bodyMetrics: [BodyMetric],
+        health: HealthSyncState,
+        now: Date = .now
+    ) -> TrainingBatteryStatus {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: now)
+        let weekStart = calendar.date(byAdding: .day, value: -7, to: now) ?? now
+        let recentSessions = sessions.filter { $0.date >= calendar.date(byAdding: .day, value: -10, to: now) ?? now }
+        let todaySessions = sessions.filter { calendar.isDate($0.date, inSameDayAs: today) }
+
+        let decayedFatigue = recentSessions.reduce(0.0) { total, session in
+            let ageHours = max(now.timeIntervalSince(session.date) / 3_600, 0)
+            let decay = pow(0.72, ageHours / 24)
+            return total + sessionBatteryCost(session) * decay
+        }
+
+        let todayLoad = todaySessions.reduce(0) { $0 + sessionBatteryCost($1) }
+        let weeklyLoad = sessions
+            .filter { $0.date >= weekStart && $0.date <= now }
+            .reduce(0) { $0 + sessionBatteryCost($1) }
+        let planPressure = planBatteryPressure(activePlan, scheduledWorkouts: scheduledWorkouts, now: now)
+        let recoveryCredit = recoveryCredit(
+            sessions: sessions,
+            bodyMetrics: bodyMetrics,
+            health: health,
+            now: now
+        )
+        let wellnessPenalty = wellnessPenalty(bodyMetrics: bodyMetrics, health: health, now: now)
+        let fatigueLoad = decayedFatigue + planPressure + wellnessPenalty
+        let level = Int(clamp(100 - fatigueLoad + recoveryCredit, lower: 5, upper: 100).rounded())
+        let state: TrainingBatteryStatus.State
+        let title: String
+        let message: String
+        let suggestion: String
+        let systemImage: String
+
+        switch level {
+        case 0..<30:
+            state = .critical
+            title = "Batería crítica"
+            message = "La fatiga acumulada supera tu recuperación reciente."
+            suggestion = "Cambia a descanso, movilidad o descarga. Si entrenas, reduce volumen 40% y evita RPE 9-10."
+            systemImage = "battery.25percent"
+        case 30..<55:
+            state = .low
+            title = "Batería baja"
+            message = "Puedes entrenar, pero el margen para progresar es limitado."
+            suggestion = "Mantén RPE 6-7, descansa 2-3 min entre series duras y recorta accesorios."
+            systemImage = "battery.50percent"
+        case 55..<80:
+            state = .steady
+            title = "Batería estable"
+            message = "La carga y la recuperación están razonablemente equilibradas."
+            suggestion = "Entrena según plan y respeta los descansos completos en ejercicios principales."
+            systemImage = "battery.75percent"
+        default:
+            state = .charged
+            title = "Batería cargada"
+            message = "Buen margen para una sesión productiva."
+            suggestion = "Puedes progresar si la técnica se mantiene y el RPE objetivo encaja."
+            systemImage = "battery.100percent"
+        }
+
+        return TrainingBatteryStatus(
+            level: level,
+            fatigueLoad: fatigueLoad,
+            recoveryCredit: recoveryCredit,
+            todayLoad: todayLoad,
+            weeklyLoad: weeklyLoad,
+            planPressure: planPressure,
+            state: state,
+            title: title,
+            message: message,
+            suggestion: suggestion,
+            systemImage: systemImage
+        )
+    }
+
+    static func projectedBatteryLevel(after workout: WorkoutDay, from currentLevel: Int) -> Int {
+        let plannedCost = workoutBatteryCost(workout)
+        return Int(clamp(Double(currentLevel) - plannedCost, lower: 5, upper: 100).rounded())
+    }
+
+    static func workoutBatteryCost(_ workout: WorkoutDay) -> Double {
+        let plannedSets = workout.exercises.reduce(0) { $0 + max($1.targetSets, 1) }
+        let hardExerciseFactor = workout.exercises.reduce(0.0) { total, item in
+            let priority: Double = item.priority == .primary ? 1.35 : (item.priority == .accessory ? 0.85 : 1.0)
+            let type: Double
+            switch item.exercise.exerciseType {
+            case .hiit: type = 1.35
+            case .cardio: type = 0.9
+            case .mobility, .stretching: type = 0.35
+            case .strength: type = 1.0
+            }
+            let restRelief = item.restSeconds >= 150 ? -0.35 : (item.restSeconds < 75 ? 0.45 : 0)
+            return total + (Double(max(item.targetSets, 1)) * max(priority * type + restRelief, 0.25))
+        }
+        let durationCost = Double(workout.durationMinutes) / 9
+        let exerciseRestCredit = Double(max(workout.exercises.count - 1, 0)) * (workout.restBetweenExercisesSeconds >= 120 ? 0.35 : -0.2)
+        return clamp(durationCost + hardExerciseFactor + Double(plannedSets) * 0.55 - exerciseRestCredit, lower: 4, upper: 42)
+    }
+
+    static func sessionBatteryCost(_ session: WorkoutSession) -> Double {
+        let completed = completedSets(in: session)
+        let rpe = session.sessionRPE ?? averageSetRPE(for: completed) ?? 6.5
+        let effective = completed.filter { $0.setType != .warmUp }.count
+        let volumeCost = min(totalVolumeKg(for: [session]) / 650, 18)
+        let durationCost = Double(session.durationMinutes) / 8
+        let setCost = Double(effective) * 0.95
+        let intensityCost = max(rpe - 6, 0) * 3.2
+        let energyCost = Double(max((session.energyBefore ?? 3) - (session.energyAfter ?? 3), 0)) * 3.5
+        let restAdjustment = restAdjustment(for: completed)
+        let pauseRecovery = min(Double(session.pausedDurationSeconds) / 180, 3)
+        return clamp(durationCost + setCost + volumeCost + intensityCost + energyCost + restAdjustment - pauseRecovery, lower: 3, upper: 46)
+    }
+
+    private static func planBatteryPressure(_ plan: WorkoutPlan, scheduledWorkouts: [ScheduledWorkout], now: Date) -> Double {
+        let calendar = Calendar.current
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+        let upcoming = scheduledWorkouts.filter { workout in
+            workout.status == .scheduled
+                && workout.date >= weekStart
+                && workout.date <= (calendar.date(byAdding: .day, value: 7, to: weekStart) ?? now)
+        }
+        let plannedDays = upcoming.isEmpty ? plan.days : upcoming.map(\.workoutDay)
+        guard !plannedDays.isEmpty else {
+            return 0
+        }
+
+        let averageCost = plannedDays.reduce(0) { $0 + workoutBatteryCost($1) } / Double(plannedDays.count)
+        let frequencyPressure = max(Double(plan.daysPerWeek - 3), 0) * 1.8
+        return clamp((averageCost / 10) + frequencyPressure, lower: 0, upper: 16)
+    }
+
+    private static func recoveryCredit(
+        sessions: [WorkoutSession],
+        bodyMetrics: [BodyMetric],
+        health: HealthSyncState,
+        now: Date
+    ) -> Double {
+        let calendar = Calendar.current
+        let lastSession = sessions.sorted { $0.date > $1.date }.first
+        let restDays: Int
+        if let lastSession {
+            restDays = max(calendar.dateComponents([.day], from: calendar.startOfDay(for: lastSession.date), to: calendar.startOfDay(for: now)).day ?? 0, 0)
+        } else {
+            restDays = 2
+        }
+
+        let latestMetric = bodyMetrics.sorted { $0.date > $1.date }.first
+        let sleepCredit = latestMetric?.sleepHours.map { clamp(($0 - 6) * 4, lower: -8, upper: 8) } ?? 0
+        let fatigueCredit = latestMetric?.fatigue.map { clamp(Double(3 - $0) * 3, lower: -8, upper: 6) } ?? 0
+        let hrvCredit = health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.heartRateVariabilityMS.map { hrv in
+            clamp((hrv - 45) / 8, lower: -5, upper: 6)
+        } ?? 0
+
+        return clamp(Double(restDays) * 11 + sleepCredit + fatigueCredit + hrvCredit, lower: -12, upper: 36)
+    }
+
+    private static func wellnessPenalty(bodyMetrics: [BodyMetric], health: HealthSyncState, now: Date) -> Double {
+        let latestMetric = bodyMetrics.sorted { $0.date > $1.date }.first
+        let fatigue = Double(max((latestMetric?.fatigue ?? 3) - 3, 0)) * 5
+        let stress = Double(max((latestMetric?.stress ?? 3) - 3, 0)) * 4
+        let sleep = max(0, 6.5 - (latestMetric?.sleepHours ?? 7)) * 5
+        let activeEnergy = health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.activeEnergyKcal ?? 0
+        let activityPenalty = activeEnergy > 900 ? 5.0 : 0.0
+        return fatigue + stress + sleep + activityPenalty
+    }
+
+    private static func averageSetRPE(for sets: [SetLog]) -> Double? {
+        let values = sets.compactMap(\.rpe)
+        guard !values.isEmpty else {
+            return nil
+        }
+
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    private static func restAdjustment(for sets: [SetLog]) -> Double {
+        let rests = sets.compactMap(\.previousRestSeconds)
+        guard !rests.isEmpty else {
+            return 0
+        }
+
+        return rests.reduce(0.0) { total, rest in
+            switch rest {
+            case 0..<45:
+                return total + 1.5
+            case 45..<90:
+                return total + 0.65
+            case 150...:
+                return total - 0.45
+            default:
+                return total
+            }
+        }
+    }
+
+    private static func clamp(_ value: Double, lower: Double, upper: Double) -> Double {
+        min(max(value, lower), upper)
     }
 }
 

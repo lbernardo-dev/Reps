@@ -56,6 +56,18 @@ enum NotificationService {
         try await UNUserNotificationCenter.current().add(request)
     }
 
+    static func scheduleBatteryRecoverySuggestion(level: Int, suggestion: String) async throws {
+        let content = UNMutableNotificationContent()
+        content.title = "Batería de entrenamiento al \(level)%"
+        content.body = suggestion
+        content.sound = .default
+        content.threadIdentifier = "training-battery"
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 45 * 60, repeats: false)
+        let request = UNNotificationRequest(identifier: "battery-recovery-suggestion", content: content, trigger: trigger)
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
     static func clearWorkoutReminders() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }

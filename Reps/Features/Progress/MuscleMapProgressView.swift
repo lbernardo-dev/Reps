@@ -932,11 +932,10 @@ private enum MuscleLoadCalculator {
 
         sessions
             .filter { $0.date >= startDate }
-            .flatMap { $0.exerciseLogs ?? [] }
+            .flatMap(FitnessMetrics.completedExerciseLogs)
             .forEach { log in
-                let completedSets = log.sets.filter(\.completed)
-                let setCount = Double(completedSets.count)
-                let totalVolume = completedSets.reduce(0) { $0 + ($1.weightKg * Double($1.reps)) }
+                let setCount = Double(log.sets.count)
+                let totalVolume = log.sets.reduce(0) { $0 + ($1.weightKg * Double($1.reps)) }
                 apply(exercise: log.exercise, sets: setCount, volume: totalVolume, into: &actualSets, volumeBuckets: &volume)
             }
 

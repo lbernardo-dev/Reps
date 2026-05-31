@@ -43,6 +43,33 @@ struct RepsTests {
         #expect(FitnessMetrics.totalVolumeKg(for: [session]) == 1_080)
     }
 
+    @Test func completedExerciseLogsExcludePlannedExercises() {
+        let session = WorkoutSession(
+            workoutTitle: "Push",
+            date: .now,
+            durationMinutes: 45,
+            sets: [
+                SetLog(setNumber: 1, weightKg: 100, reps: 5, completed: true),
+                SetLog(setNumber: 2, weightKg: 100, reps: 5, completed: false)
+            ],
+            exerciseLogs: [
+                ExerciseLog(exercise: SeedData.bench, notes: "", sets: [
+                    SetLog(setNumber: 1, weightKg: 60, reps: 10, completed: true),
+                    SetLog(setNumber: 2, weightKg: 60, reps: 8, completed: false)
+                ]),
+                ExerciseLog(exercise: SeedData.squat, notes: "", sets: [
+                    SetLog(setNumber: 1, weightKg: 100, reps: 5, completed: false)
+                ])
+            ]
+        )
+
+        let logs = FitnessMetrics.completedExerciseLogs(in: session)
+
+        #expect(logs.map(\.exercise.name) == [SeedData.bench.name])
+        #expect(logs.flatMap(\.sets).count == 1)
+        #expect(logs.flatMap(\.sets).allSatisfy { $0.completed })
+    }
+
     @Test func estimatedOneRepMaxUsesEpleyFormula() {
         let estimate = FitnessMetrics.estimatedOneRepMax(weightKg: 100, reps: 5)
         #expect(abs(estimate - 116.666) < 0.01)
@@ -78,6 +105,57 @@ struct RepsTests {
         let distribution = AnalyticsEngine.intensityDistribution(for: [session])
 
         #expect(distribution.map(\.count) == [1, 1, 1, 1])
+    }
+
+    @Test func trainingBatteryDropsWithHighFatigueAndRecoversWithRest() {
+        let calendar = Calendar.current
+        let hardSession = WorkoutSession(
+            workoutTitle: "Legs",
+            date: .now,
+            durationMinutes: 80,
+            sets: [
+                SetLog(setNumber: 1, weightKg: 120, reps: 6, completed: true, rpe: 9, previousRestSeconds: 45),
+                SetLog(setNumber: 2, weightKg: 120, reps: 5, completed: true, rpe: 9.5, previousRestSeconds: 50),
+                SetLog(setNumber: 3, weightKg: 110, reps: 8, completed: true, rpe: 9, previousRestSeconds: 60),
+                SetLog(setNumber: 4, weightKg: 100, reps: 10, completed: true, rpe: 8.5, previousRestSeconds: 70)
+            ],
+            sessionRPE: 9,
+            energyBefore: 4,
+            energyAfter: 2
+        )
+        let lowBattery = FitnessMetrics.trainingBatteryStatus(
+            sessions: [hardSession],
+            scheduledWorkouts: [],
+            activePlan: SeedData.pushPullLegsPlan,
+            bodyMetrics: [BodyMetric(date: .now, weightKg: 80, heightCm: 178, sleepHours: 5.5, fatigue: 5, stress: 4, source: .manual)],
+            health: HealthSyncState()
+        )
+        let restedBattery = FitnessMetrics.trainingBatteryStatus(
+            sessions: [WorkoutSession(workoutTitle: "Push", date: calendar.date(byAdding: .day, value: -3, to: .now) ?? .now, durationMinutes: 45, sets: [])],
+            scheduledWorkouts: [],
+            activePlan: SeedData.pushPullLegsPlan,
+            bodyMetrics: [BodyMetric(date: .now, weightKg: 80, heightCm: 178, sleepHours: 8, fatigue: 1, stress: 1, source: .manual)],
+            health: HealthSyncState()
+        )
+
+        #expect(lowBattery.level < restedBattery.level)
+        #expect(lowBattery.fatigueLoad > restedBattery.fatigueLoad)
+    }
+
+    @Test func projectedBatteryUsesRoutineVolumeAndRest() {
+        var shortRest = SeedData.pushDay
+        var longRest = SeedData.pushDay
+        for index in shortRest.exercises.indices {
+            shortRest.exercises[index].restSeconds = 45
+        }
+        for index in longRest.exercises.indices {
+            longRest.exercises[index].restSeconds = 180
+        }
+
+        let shortRestProjection = FitnessMetrics.projectedBatteryLevel(after: shortRest, from: 80)
+        let longRestProjection = FitnessMetrics.projectedBatteryLevel(after: longRest, from: 80)
+
+        #expect(shortRestProjection < longRestProjection)
     }
 
     @Test func progressionEngineSuggestsIncreaseAfterSuccess() {
@@ -193,6 +271,16 @@ struct RepsTests {
         snapshot.progressPhotos = [
             ProgressPhoto(date: .now, imageData: Data([4, 5, 6]), weightKg: 82.4, note: "Front relaxed")
         ]
+        snapshot.bodyMetrics = [
+            BodyMetric(
+                date: .now,
+                weightKg: 82.4,
+                heightCm: 180,
+                waterLiters: 2.3,
+                dietaryEnergyKcal: 2_450,
+                source: .manual
+            )
+        ]
         snapshot.gymPasses = [
             GymPass(gymName: "Test Gym", membershipID: "A-100", codeValue: "A-100", codeType: .qr)
         ]
@@ -232,6 +320,8 @@ struct RepsTests {
 
         let loaded = persistence.loadSnapshot()
         #expect(loaded?.userProfile.avatarImageData == Data([1, 2, 3]))
+        #expect(loaded?.bodyMetrics.first?.waterLiters == 2.3)
+        #expect(loaded?.bodyMetrics.first?.dietaryEnergyKcal == 2_450)
         #expect(loaded?.progressPhotos.first?.imageData == Data([4, 5, 6]))
         #expect(loaded?.progressPhotos.first?.weightKg == 82.4)
         #expect(loaded?.gymPasses.first?.codeType == .qr)
@@ -247,6 +337,7 @@ struct RepsTests {
     @Test @MainActor func exportsCSVAndImportsBackup() throws {
         let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
         store.addCardioLog(CardioLog(activityType: .rowing, date: .now, durationMinutes: 12, distanceKm: 2.1))
+        store.saveBodyMetric(BodyMetric(date: .now, weightKg: 80, heightCm: 178, waterLiters: 2.1, dietaryEnergyKcal: 2_300, source: .manual))
         store.addProgressPhoto(ProgressPhoto(date: .now, imageData: Data([7, 8]), weightKg: 80, note: "Side"))
         store.addGymPass(GymPass(gymName: "Test Gym", membershipID: "B-200", codeValue: "B-200", codeType: .barcode))
         store.addGymVisit(GymVisit(gymName: "Test Gym", date: .now, locationNote: "North", workoutTitle: "Pull"))
@@ -258,6 +349,9 @@ struct RepsTests {
         #expect(csv.contains("# progress_photos"))
         #expect(csv.contains("# gym_passes"))
         #expect(csv.contains("# gym_visits"))
+        #expect(csv.contains("water_liters"))
+        #expect(csv.contains("2.1"))
+        #expect(csv.contains("2300.0"))
         #expect(csv.contains("rowing"))
         #expect(csv.contains("Test Gym"))
 
@@ -272,6 +366,7 @@ struct RepsTests {
         let imported = AppStore(persistence: SwiftDataPersistence(inMemory: true))
         try imported.importCSV(from: csvURL)
         #expect(imported.cardioLogs.contains { $0.activityType == .rowing && $0.durationMinutes == 12 })
+        #expect(imported.bodyMetrics.contains { $0.waterLiters == 2.1 && $0.dietaryEnergyKcal == 2_300 })
     }
 
     @Test @MainActor func resetAllDataReturnsToOnboardingSeed() {

@@ -9,24 +9,47 @@ final class HealthKitService: ObservableObject {
         HKHealthStore.isHealthDataAvailable()
     }
 
+    var hasWriteAuthorization: Bool {
+        guard isAvailable else { return false }
+        return writableTypes.contains {
+            healthStore.authorizationStatus(for: $0) == .sharingAuthorized
+        }
+    }
+
     func requestAuthorization() async throws {
         guard isAvailable else { throw HealthKitError.unavailable }
 
-        let bodyMass = HKQuantityType(.bodyMass)
-        let height = HKQuantityType(.height)
-        let readTypes: Set<HKObjectType> = [
-            bodyMass,
-            height,
+        try await healthStore.requestAuthorization(toShare: writableTypes, read: readableTypes)
+        await enableBackgroundDelivery()
+    }
+
+    private var writableTypes: Set<HKSampleType> {
+        [
+            HKQuantityType(.bodyMass),
+            HKQuantityType(.height),
+            HKQuantityType(.dietaryEnergyConsumed),
+            HKQuantityType(.dietaryWater),
+            HKWorkoutType.workoutType()
+        ]
+    }
+
+    private var readableTypes: Set<HKObjectType> {
+        [
+            HKQuantityType(.bodyMass),
+            HKQuantityType(.height),
+            HKQuantityType(.bodyFatPercentage),
+            HKQuantityType(.waistCircumference),
             HKQuantityType(.stepCount),
             HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.appleExerciseTime),
             HKQuantityType(.dietaryEnergyConsumed),
             HKQuantityType(.dietaryWater),
             HKQuantityType(.heartRate),
+            HKQuantityType(.restingHeartRate),
+            HKQuantityType(.heartRateVariabilitySDNN),
+            HKCategoryType(.sleepAnalysis),
             HKWorkoutType.workoutType()
         ]
-        let shareTypes: Set<HKSampleType> = [bodyMass, height, HKWorkoutType.workoutType()]
-
-        try await healthStore.requestAuthorization(toShare: shareTypes, read: readTypes)
     }
 
     func fetchLatestBodyMetrics() async throws -> (weightKg: Double?, heightCm: Double?) {
@@ -38,16 +61,111 @@ final class HealthKitService: ObservableObject {
         return (weight, height)
     }
 
+    func fetchBodyWellnessDefaults(for date: Date = .now) async throws -> BodyWellnessDefaults {
+        guard isAvailable else { throw HealthKitError.unavailable }
+
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? date
+
+        let bodyFat = try await latestQuantity(
+            for: HKQuantityType(.bodyFatPercentage),
+            unit: .percent()
+        ).map { $0 * 100 }
+        let waist = try await latestQuantity(
+            for: HKQuantityType(.waistCircumference),
+            unit: .meterUnit(with: .centi)
+        )
+        let sleepHours = try await sleepHours(from: startOfDay, to: endOfDay)
+        let water = try await cumulativeValue(
+            for: HKQuantityType(.dietaryWater),
+            unit: .liter(),
+            from: startOfDay,
+            to: endOfDay
+        )
+        let dietaryEnergy = try await cumulativeValue(
+            for: HKQuantityType(.dietaryEnergyConsumed),
+            unit: .kilocalorie(),
+            from: startOfDay,
+            to: endOfDay
+        )
+        let activeEnergy = try await cumulativeValue(
+            for: HKQuantityType(.activeEnergyBurned),
+            unit: .kilocalorie(),
+            from: startOfDay,
+            to: endOfDay
+        )
+        let exerciseMinutes = try await cumulativeValue(
+            for: HKQuantityType(.appleExerciseTime),
+            unit: .minute(),
+            from: startOfDay,
+            to: endOfDay
+        )
+        let restingHeartRate = try await averageValue(
+            for: HKQuantityType(.restingHeartRate),
+            unit: HKUnit.count().unitDivided(by: .minute()),
+            from: startOfDay,
+            to: endOfDay
+        )
+        let heartRateVariability = try await averageValue(
+            for: HKQuantityType(.heartRateVariabilitySDNN),
+            unit: .secondUnit(with: .milli),
+            from: startOfDay,
+            to: endOfDay
+        )
+
+        return BodyWellnessDefaults(
+            bodyFatPercentage: bodyFat,
+            waistCm: waist,
+            sleepHours: sleepHours,
+            waterLiters: positive(water),
+            dietaryEnergyKcal: positive(dietaryEnergy),
+            sleepQuality: Self.estimatedSleepQuality(
+                sleepHours: sleepHours,
+                heartRateVariabilityMS: heartRateVariability
+            ),
+            fatigue: Self.estimatedFatigue(
+                sleepHours: sleepHours,
+                activeEnergyKcal: activeEnergy,
+                exerciseMinutes: exerciseMinutes,
+                restingHeartRate: restingHeartRate,
+                heartRateVariabilityMS: heartRateVariability
+            ),
+            stress: Self.estimatedStress(
+                sleepHours: sleepHours,
+                restingHeartRate: restingHeartRate,
+                heartRateVariabilityMS: heartRateVariability
+            )
+        )
+    }
+
     func fetchDailyMetrics(days: Int = 30) async throws -> [DailyHealthMetric] {
         guard isAvailable else { throw HealthKitError.unavailable }
 
         let steps = try await dailyCumulativeValues(for: HKQuantityType(.stepCount), unit: .count(), days: days)
         let activeEnergy = try await dailyCumulativeValues(for: HKQuantityType(.activeEnergyBurned), unit: .kilocalorie(), days: days)
+        let exerciseMinutes = try await dailyCumulativeValues(for: HKQuantityType(.appleExerciseTime), unit: .minute(), days: days)
         let dietaryEnergy = try await dailyCumulativeValues(for: HKQuantityType(.dietaryEnergyConsumed), unit: .kilocalorie(), days: days)
         let water = try await dailyCumulativeValues(for: HKQuantityType(.dietaryWater), unit: .liter(), days: days)
+        let restingHeartRate = try await dailyAverageValues(
+            for: HKQuantityType(.restingHeartRate),
+            unit: HKUnit.count().unitDivided(by: .minute()),
+            days: days
+        )
+        let heartRateVariability = try await dailyAverageValues(
+            for: HKQuantityType(.heartRateVariabilitySDNN),
+            unit: .secondUnit(with: .milli),
+            days: days
+        )
 
         let calendar = Calendar.current
-        let dates = Set(steps.keys).union(activeEnergy.keys).union(dietaryEnergy.keys).union(water.keys)
+        let dates = Set(steps.keys)
+            .union(activeEnergy.keys)
+            .union(exerciseMinutes.keys)
+            .union(dietaryEnergy.keys)
+            .union(water.keys)
+            .union(restingHeartRate.keys)
+            .union(heartRateVariability.keys)
 
         return dates.sorted().map { date in
             DailyHealthMetric(
@@ -55,7 +173,10 @@ final class HealthKitService: ObservableObject {
                 steps: steps[calendar.startOfDay(for: date)] ?? 0,
                 activeEnergyKcal: activeEnergy[calendar.startOfDay(for: date)] ?? 0,
                 dietaryEnergyKcal: dietaryEnergy[calendar.startOfDay(for: date)] ?? 0,
-                waterLiters: water[calendar.startOfDay(for: date)] ?? 0
+                waterLiters: water[calendar.startOfDay(for: date)] ?? 0,
+                exerciseMinutes: exerciseMinutes[calendar.startOfDay(for: date)],
+                restingHeartRate: restingHeartRate[calendar.startOfDay(for: date)],
+                heartRateVariabilityMS: heartRateVariability[calendar.startOfDay(for: date)]
             )
         }
     }
@@ -78,6 +199,31 @@ final class HealthKitService: ObservableObject {
         )
 
         try await healthStore.save([weightSample, heightSample])
+    }
+
+    func saveDailyNutrition(waterLiters: Double?, dietaryEnergyKcal: Double?, date: Date = .now) async throws {
+        guard isAvailable else { throw HealthKitError.unavailable }
+
+        var samples: [HKSample] = []
+        if let waterLiters, waterLiters > 0 {
+            samples.append(HKQuantitySample(
+                type: HKQuantityType(.dietaryWater),
+                quantity: HKQuantity(unit: .liter(), doubleValue: waterLiters),
+                start: date,
+                end: date
+            ))
+        }
+        if let dietaryEnergyKcal, dietaryEnergyKcal > 0 {
+            samples.append(HKQuantitySample(
+                type: HKQuantityType(.dietaryEnergyConsumed),
+                quantity: HKQuantity(unit: .kilocalorie(), doubleValue: dietaryEnergyKcal),
+                start: date,
+                end: date
+            ))
+        }
+
+        guard !samples.isEmpty else { return }
+        try await healthStore.save(samples)
     }
 
     func fetchRecentCardioLogs(days: Int = 90) async throws -> [CardioLog] {
@@ -156,6 +302,116 @@ final class HealthKitService: ObservableObject {
         return samples.first?.quantity.doubleValue(for: unit)
     }
 
+    private func cumulativeValue(for type: HKQuantityType, unit: HKUnit, from startDate: Date, to endDate: Date) async throws -> Double? {
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let samplePredicate = HKSamplePredicate.quantitySample(type: type, predicate: predicate)
+        let descriptor = HKStatisticsQueryDescriptor(predicate: samplePredicate, options: .cumulativeSum)
+        let statistics = try await descriptor.result(for: healthStore)
+        return statistics?.sumQuantity()?.doubleValue(for: unit)
+    }
+
+    private func averageValue(for type: HKQuantityType, unit: HKUnit, from startDate: Date, to endDate: Date) async throws -> Double? {
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let samplePredicate = HKSamplePredicate.quantitySample(type: type, predicate: predicate)
+        let descriptor = HKStatisticsQueryDescriptor(predicate: samplePredicate, options: .discreteAverage)
+        let statistics = try await descriptor.result(for: healthStore)
+        return statistics?.averageQuantity()?.doubleValue(for: unit)
+    }
+
+    private func sleepHours(from startDate: Date, to endDate: Date) async throws -> Double? {
+        let sleepType = HKCategoryType(.sleepAnalysis)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.categorySample(type: sleepType, predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .forward)],
+            limit: HKObjectQueryNoLimit
+        )
+
+        let samples = try await descriptor.result(for: healthStore)
+        let asleepValues: Set<Int> = [
+            HKCategoryValueSleepAnalysis.asleep.rawValue,
+            HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
+            HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+            HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+            HKCategoryValueSleepAnalysis.asleepREM.rawValue
+        ]
+        let seconds = samples.reduce(0) { total, sample in
+            guard asleepValues.contains(sample.value) else { return total }
+            return total + sample.endDate.timeIntervalSince(sample.startDate)
+        }
+
+        guard seconds > 0 else { return nil }
+        return seconds / 3600
+    }
+
+    private static func estimatedSleepQuality(sleepHours: Double?, heartRateVariabilityMS: Double?) -> Int? {
+        guard sleepHours != nil || heartRateVariabilityMS != nil else { return nil }
+
+        var score = 3
+        if let sleepHours {
+            if sleepHours >= 8 { score += 2 }
+            else if sleepHours >= 7 { score += 1 }
+            else if sleepHours < 5.5 { score -= 2 }
+            else if sleepHours < 6.5 { score -= 1 }
+        }
+        if let heartRateVariabilityMS {
+            if heartRateVariabilityMS >= 70 { score += 1 }
+            else if heartRateVariabilityMS < 35 { score -= 1 }
+        }
+
+        return clamped(score)
+    }
+
+    private static func estimatedFatigue(
+        sleepHours: Double?,
+        activeEnergyKcal: Double?,
+        exerciseMinutes: Double?,
+        restingHeartRate: Double?,
+        heartRateVariabilityMS: Double?
+    ) -> Int? {
+        guard sleepHours != nil || activeEnergyKcal != nil || exerciseMinutes != nil || restingHeartRate != nil || heartRateVariabilityMS != nil else {
+            return nil
+        }
+
+        var score = 3
+        if let sleepHours, sleepHours < 6 { score += 1 }
+        if let activeEnergyKcal, activeEnergyKcal > 700 { score += 1 }
+        if let exerciseMinutes, exerciseMinutes > 75 { score += 1 }
+        if let restingHeartRate, restingHeartRate > 75 { score += 1 }
+        if let heartRateVariabilityMS, heartRateVariabilityMS < 35 { score += 1 }
+        if let sleepHours, sleepHours >= 8 { score -= 1 }
+        if let heartRateVariabilityMS, heartRateVariabilityMS >= 70 { score -= 1 }
+
+        return clamped(score)
+    }
+
+    private static func estimatedStress(
+        sleepHours: Double?,
+        restingHeartRate: Double?,
+        heartRateVariabilityMS: Double?
+    ) -> Int? {
+        guard sleepHours != nil || restingHeartRate != nil || heartRateVariabilityMS != nil else { return nil }
+
+        var score = 3
+        if let sleepHours, sleepHours < 6 { score += 1 }
+        if let restingHeartRate, restingHeartRate > 75 { score += 1 }
+        if let heartRateVariabilityMS, heartRateVariabilityMS < 35 { score += 1 }
+        if let sleepHours, sleepHours >= 7.5 { score -= 1 }
+        if let restingHeartRate, restingHeartRate < 58 { score -= 1 }
+        if let heartRateVariabilityMS, heartRateVariabilityMS >= 70 { score -= 1 }
+
+        return clamped(score)
+    }
+
+    private static func clamped(_ value: Int) -> Int {
+        min(max(value, 1), 5)
+    }
+
+    private func positive(_ value: Double?) -> Double? {
+        guard let value, value > 0 else { return nil }
+        return value
+    }
+
     private func dailyCumulativeValues(for type: HKQuantityType, unit: HKUnit, days: Int) async throws -> [Date: Double] {
         let calendar = Calendar.current
         let endDate = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now)
@@ -178,6 +434,41 @@ final class HealthKitService: ObservableObject {
         }
 
         return values
+    }
+
+    private func dailyAverageValues(for type: HKQuantityType, unit: HKUnit, days: Int) async throws -> [Date: Double] {
+        let calendar = Calendar.current
+        let endDate = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now)
+        let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) ?? endDate
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let samplePredicate = HKSamplePredicate.quantitySample(type: type, predicate: predicate)
+
+        let descriptor = HKStatisticsCollectionQueryDescriptor(
+            predicate: samplePredicate,
+            options: .discreteAverage,
+            anchorDate: endDate,
+            intervalComponents: DateComponents(day: 1)
+        )
+
+        let collection = try await descriptor.result(for: healthStore)
+        var values: [Date: Double] = [:]
+
+        collection.enumerateStatistics(from: startDate, to: endDate) { statistics, _ in
+            if let average = statistics.averageQuantity()?.doubleValue(for: unit) {
+                values[calendar.startOfDay(for: statistics.startDate)] = average
+            }
+        }
+
+        return values
+    }
+
+    private func enableBackgroundDelivery() async {
+        guard isAvailable else { return }
+
+        for case let type as HKQuantityType in readableTypes {
+            try? await healthStore.enableBackgroundDelivery(for: type, frequency: .hourly)
+        }
+        try? await healthStore.enableBackgroundDelivery(for: HKWorkoutType.workoutType(), frequency: .immediate)
     }
 
     private func heartRateSummary(for workout: HKWorkout) async throws -> (average: Double?, max: Double?) {

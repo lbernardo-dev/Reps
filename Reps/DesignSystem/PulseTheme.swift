@@ -112,12 +112,17 @@ enum RepsText {
         case "cable": "Polea"
         case "cardio machine": "Máquina de cardio"
         case "dumbbell", "dumbbells": "Mancuernas"
+        case "ez bar", "e-z curl bar": "Barra Z"
         case "kettlebell", "kettlebells": "Kettlebell"
+        case "leg press": "Prensa de piernas"
         case "machine", "machines": "Máquina"
+        case "medicine ball": "Balón medicinal"
         case "other": "Otro"
         case "resistance band": "Banda elástica"
         case "bench": "Banco"
         case "rack": "Rack"
+        case "smith machine": "Multipower / Smith"
+        case "suspension trainer": "TRX / suspensión"
         case "pullup bar": "Dominadas"
         case "cardio": "Cardio"
         default: value
@@ -128,22 +133,32 @@ enum RepsText {
         switch normalized(value) {
         case "barbell", "barra":
             return "figure.strengthtraining.traditional"
+        case "ez bar", "e-z curl bar", "barra z":
+            return "waveform.path.ecg"
         case "dumbbell", "dumbbells", "mancuerna", "mancuernas":
             return "dumbbell.fill"
         case "kettlebell", "kettlebells", "pesa rusa":
             return "kettlebell.fill"
         case "resistance band", "banda", "bandas":
             return "point.3.connected.trianglepath.dotted"
+        case "suspension trainer", "trx":
+            return "figure.core.training"
         case "cable", "polea", "poleas":
             return "point.3.connected.trianglepath.dotted"
         case "machine", "machines", "maquina", "maquinas":
             return "rectangle.3.group.bubble.left"
+        case "smith machine", "multipower":
+            return "square.grid.3x3.middle.filled"
+        case "leg press", "prensa de piernas":
+            return "figure.strengthtraining.traditional"
         case "cardio machine", "cardio", "maquina de cardio":
             return "figure.run"
+        case "medicine ball", "balon medicinal", "balón medicinal":
+            return "circle.hexagongrid.fill"
         case "bodyweight", "body only", "peso corporal":
             return "figure.walk"
         case "bench", "banco":
-            return "table.lounge"
+            return "table.furniture"
         case "rack":
             return "square.split.3x3"
         case "pullup bar", "dominadas":
@@ -441,10 +456,21 @@ struct VolumeSegmentBar: View {
     }
 }
 
-struct ExerciseMediaThumbnail: View {
+struct ExerciseMediaThumbnail: View, Equatable {
     let exercise: Exercise
     var gender: BodyGender = .male
     var fallbackSize: Font = .title3.weight(.bold)
+
+    nonisolated static func == (lhs: ExerciseMediaThumbnail, rhs: ExerciseMediaThumbnail) -> Bool {
+        lhs.exercise.id == rhs.exercise.id
+            && lhs.exercise.name == rhs.exercise.name
+            && lhs.exercise.muscleGroup == rhs.exercise.muscleGroup
+            && lhs.exercise.secondaryMuscles == rhs.exercise.secondaryMuscles
+            && lhs.exercise.tags == rhs.exercise.tags
+            && lhs.exercise.mediaURL == rhs.exercise.mediaURL
+            && lhs.exercise.customImageData == rhs.exercise.customImageData
+            && lhs.gender == rhs.gender
+    }
 
     var body: some View {
         ZStack {

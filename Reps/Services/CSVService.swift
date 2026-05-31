@@ -99,7 +99,7 @@ struct CSVExporter {
     }
 
     private var bodyRows: [[String]] {
-        [["id", "date", "weight_kg", "height_cm", "body_fat", "waist_cm", "sleep_hours", "sleep_quality", "fatigue", "stress", "soreness", "source"]] +
+        [["id", "date", "weight_kg", "height_cm", "body_fat", "waist_cm", "sleep_hours", "sleep_quality", "fatigue", "stress", "soreness", "source", "water_liters", "dietary_energy_kcal"]] +
         snapshot.bodyMetrics.map {
             [
                 $0.id.uuidString,
@@ -113,7 +113,9 @@ struct CSVExporter {
                 $0.fatigue.map(String.init) ?? "",
                 $0.stress.map(String.init) ?? "",
                 $0.sorenessNotes ?? "",
-                $0.source.rawValue
+                $0.source.rawValue,
+                Self.value($0.waterLiters),
+                Self.value($0.dietaryEnergyKcal)
             ]
         }
     }
@@ -224,6 +226,8 @@ struct CSVImporter {
                 sleepQuality: Int(row[7]),
                 fatigue: Int(row[8]),
                 stress: Int(row[9]),
+                waterLiters: row.count > 12 ? Self.double(row[12]) : nil,
+                dietaryEnergyKcal: row.count > 13 ? Self.double(row[13]) : nil,
                 sorenessNotes: row[10].isEmpty ? nil : row[10],
                 source: BodyMetric.Source(rawValue: row[11]) ?? .manual
             )

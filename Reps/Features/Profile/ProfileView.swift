@@ -57,7 +57,7 @@ struct ProfileView: View {
                 .padding(.bottom, 112)
             }
             .screenBackground()
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .onAppear {
                 weightText = String(format: "%.1f", store.displayedWeight.value)
                 heightText = String(format: "%.0f", store.displayedHeight.value)
@@ -307,6 +307,15 @@ struct ProfileView: View {
                     }
                     .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.primaryBright))
                     .disabled(!store.health.isAvailable || !store.health.isAuthorized || store.workoutSessions.isEmpty)
+                }
+
+                if let metric = store.todayHealthMetric {
+                    LazyVGrid(columns: profileToolColumns, spacing: 10) {
+                        HealthMiniMetric(title: "Pasos", value: "\(Int(metric.steps))", systemImage: "figure.walk")
+                        HealthMiniMetric(title: "Ejercicio", value: "\(Int(metric.exerciseMinutes ?? 0)) min", systemImage: "figure.strengthtraining.traditional")
+                        HealthMiniMetric(title: "Reposo", value: metric.restingHeartRate.map { "\(Int($0)) lpm" } ?? "--", systemImage: "heart")
+                        HealthMiniMetric(title: "HRV", value: metric.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--", systemImage: "waveform.path.ecg")
+                    }
                 }
 
                 if store.health.isAuthorized {
@@ -585,7 +594,7 @@ struct ProfileView: View {
     private func connectHealth() async {
         do {
             try await healthKit.requestAuthorization()
-            store.health.isAuthorized = true
+            store.health.isAuthorized = healthKit.hasWriteAuthorization
             store.health.lastSyncDate = .now
             let metrics = try await healthKit.fetchLatestBodyMetrics()
             if metrics.weightKg != nil || metrics.heightCm != nil {
@@ -620,8 +629,15 @@ struct ProfileView: View {
     private func saveToHealth() async {
         do {
             try await healthKit.saveBodyMetrics(weightKg: store.currentWeight, heightCm: store.currentHeight)
+            if let latestMetric = store.bodyMetrics.sorted(by: { $0.date > $1.date }).first {
+                try await healthKit.saveDailyNutrition(
+                    waterLiters: latestMetric.waterLiters,
+                    dietaryEnergyKcal: latestMetric.dietaryEnergyKcal,
+                    date: latestMetric.date
+                )
+            }
             store.health.lastSyncDate = .now
-            store.health.message = String(localized: "Peso y altura guardados en Apple Health.")
+            store.health.message = String(localized: "Peso, altura, hidratación y energía guardados en Apple Health cuando hay datos disponibles.")
         } catch {
             store.health.message = error.localizedDescription
         }
@@ -842,6 +858,37 @@ private struct ProfileMetric: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private struct HealthMiniMetric: View {
+    let title: LocalizedStringKey
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.bold))
+                .frame(width: 30, height: 30)
+                .foregroundStyle(PulseTheme.primary)
+                .background(PulseTheme.primary.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Text(value)
+                    .font(.subheadline.weight(.bold).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
@@ -1124,25 +1171,22 @@ struct ProgressPhotoEditorView: View {
     @State private var imageData: Data?
     @State private var showCamera = false
     @State private var showPermissionDenied = false
+    @State private var permissionDeniedMessage = ""
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Foto") {
-                    HStack(spacing: 12) {
+                    VStack(spacing: 10) {
                         if CameraPicker.isAvailable {
-                            Button {
-                                Task {
-                                    let granted = await PermissionService.shared.requestCamera()
-                                    if granted {
-                                        showCamera = true
-                                    } else {
-                                        showPermissionDenied = true
-                                    }
-                                }
-                            } label: {
-                                Label("Tomar foto", systemImage: "camera.fill")
+                            Button(action: requestCameraAndOpen) {
+                                ProgressPhotoSourceActionLabel(
+                                    title: "Tomar foto",
+                                    subtitle: "Cámara",
+                                    systemImage: "camera.fill"
+                                )
                             }
+                            .buttonStyle(.plain)
                         } else {
                             #if targetEnvironment(simulator)
                             Button {
@@ -1152,15 +1196,26 @@ struct ProgressPhotoEditorView: View {
                                     HapticService.notification(.success)
                                 }
                             } label: {
-                                Label("Simular foto", systemImage: "camera.badge.ellipsis")
+                                ProgressPhotoSourceActionLabel(
+                                    title: "Simular foto",
+                                    subtitle: "Vista previa del simulador",
+                                    systemImage: "camera.badge.ellipsis"
+                                )
                             }
+                            .buttonStyle(.plain)
                             #endif
                         }
 
                         PhotosPicker(selection: $photoItem, matching: .images) {
-                            Label("Elegir de galería", systemImage: "photo")
+                            ProgressPhotoSourceActionLabel(
+                                title: "Elegir de galería",
+                                subtitle: "Fotos",
+                                systemImage: "photo.on.rectangle"
+                            )
                         }
+                        .buttonStyle(.plain)
                     }
+
                     if let imageData, let image = UIImage(data: imageData) {
                         Image(uiImage: image)
                             .resizable()
@@ -1168,6 +1223,9 @@ struct ProgressPhotoEditorView: View {
                             .frame(height: 220)
                             .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            .accessibilityLabel("Foto seleccionada")
+                    } else {
+                        ProgressPhotoEmptyPreview()
                     }
                 }
 
@@ -1206,7 +1264,19 @@ struct ProgressPhotoEditorView: View {
                 }
                 Button("Cancelar", role: .cancel) {}
             } message: {
-                Text(PermissionService.shared.deniedMessage ?? "La cámara está bloqueada. Actívala en Ajustes → Reps.")
+                Text(permissionDeniedMessage)
+            }
+        }
+    }
+
+    private func requestCameraAndOpen() {
+        Task {
+            let granted = await PermissionService.shared.requestCamera()
+            if granted {
+                showCamera = true
+            } else {
+                permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "La cámara está bloqueada. Actívala en Ajustes → Reps."
+                showPermissionDenied = true
             }
         }
     }
@@ -1224,6 +1294,65 @@ struct ProgressPhotoEditorView: View {
         guard let imageData else { return }
         store.addProgressPhoto(ProgressPhoto(date: date, imageData: imageData, weightKg: store.currentWeight, note: note.isEmpty ? nil : note))
         dismiss()
+    }
+}
+
+private struct ProgressPhotoSourceActionLabel: View {
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(PulseTheme.primary)
+                .frame(width: 42, height: 42)
+                .background(PulseTheme.primary.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+
+            Spacer(minLength: 12)
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(PulseTheme.tertiaryText)
+        }
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+        .background(PulseTheme.elevated)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private struct ProgressPhotoEmptyPreview: View {
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "photo.badge.plus")
+                .font(.system(size: 34, weight: .semibold))
+                .foregroundStyle(PulseTheme.primary)
+            Text("Sin foto seleccionada")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 168)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke(PulseTheme.separator, lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -1428,6 +1557,7 @@ struct CardioLogEditorView: View {
 struct BodyWellnessEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: AppStore
+    @StateObject private var healthKit = HealthKitService()
 
     @State private var date = Date()
     @State private var weight = ""
@@ -1442,7 +1572,10 @@ struct BodyWellnessEditorView: View {
     @State private var sleepQuality = 3
     @State private var fatigue = 3
     @State private var stress = 3
+    @State private var water = ""
+    @State private var dietaryEnergy = ""
     @State private var soreness = ""
+    @State private var healthDefaultsMessage: String?
 
     init(initialWeightKg: Double, initialHeightCm: Double) {
         _weight = State(initialValue: String(format: "%.1f", initialWeightKg))
@@ -1462,6 +1595,14 @@ struct BodyWellnessEditorView: View {
                         .keyboardType(.decimalPad)
                 }
 
+                if let healthDefaultsMessage {
+                    Section("Apple Health") {
+                        Text(healthDefaultsMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 Section("Medidas") {
                     TextField("Cintura (cm)", text: $waist)
                         .keyboardType(.decimalPad)
@@ -1478,6 +1619,10 @@ struct BodyWellnessEditorView: View {
                 Section("Bienestar") {
                     TextField("Sueño (horas)", text: $sleep)
                         .keyboardType(.decimalPad)
+                    TextField("Agua (L)", text: $water)
+                        .keyboardType(.decimalPad)
+                    TextField("Energía ingerida (kcal)", text: $dietaryEnergy)
+                        .keyboardType(.decimalPad)
                     Stepper("Calidad sueño: \(sleepQuality)/5", value: $sleepQuality, in: 1...5)
                     Stepper("Fatiga: \(fatigue)/5", value: $fatigue, in: 1...5)
                     Stepper("Estrés: \(stress)/5", value: $stress, in: 1...5)
@@ -1487,6 +1632,12 @@ struct BodyWellnessEditorView: View {
             }
             .navigationTitle("Cuerpo y bienestar")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                await loadHealthDefaults()
+            }
+            .onChange(of: date) { _, _ in
+                Task { await loadHealthDefaults() }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancelar") { dismiss() }
@@ -1497,6 +1648,41 @@ struct BodyWellnessEditorView: View {
                 }
             }
         }
+    }
+
+    private func loadHealthDefaults() async {
+        guard healthKit.isAvailable, store.health.isAuthorized else { return }
+
+        do {
+            let defaults = try await healthKit.fetchBodyWellnessDefaults(for: date)
+            applyHealthDefaults(defaults)
+            healthDefaultsMessage = "Valores sugeridos desde Apple Health. Puedes editarlos antes de guardar."
+        } catch {
+            healthDefaultsMessage = error.localizedDescription
+        }
+    }
+
+    private func applyHealthDefaults(_ defaults: BodyWellnessDefaults) {
+        fill(&bodyFat, with: defaults.bodyFatPercentage, format: "%.1f")
+        fill(&waist, with: defaults.waistCm, format: "%.1f")
+        fill(&sleep, with: defaults.sleepHours, format: "%.1f")
+        fill(&water, with: defaults.waterLiters, format: "%.2f")
+        fill(&dietaryEnergy, with: defaults.dietaryEnergyKcal, format: "%.0f")
+
+        if sleepQuality == 3, let suggested = defaults.sleepQuality {
+            sleepQuality = suggested
+        }
+        if fatigue == 3, let suggested = defaults.fatigue {
+            fatigue = suggested
+        }
+        if stress == 3, let suggested = defaults.stress {
+            stress = suggested
+        }
+    }
+
+    private func fill(_ text: inout String, with value: Double?, format: String) {
+        guard text.isEmpty, let value else { return }
+        text = String(format: format, value)
     }
 
     private func save() {
@@ -1517,6 +1703,8 @@ struct BodyWellnessEditorView: View {
             sleepQuality: sleepQuality,
             fatigue: fatigue,
             stress: stress,
+            waterLiters: decimal(water),
+            dietaryEnergyKcal: decimal(dietaryEnergy),
             sorenessNotes: soreness.isEmpty ? nil : soreness,
             source: .manual
         ))

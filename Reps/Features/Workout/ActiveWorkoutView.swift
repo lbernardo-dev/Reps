@@ -1,5 +1,6 @@
 import AVFoundation
 import Combine
+import CoreImage
 import WebKit
 import CoreLocation
 import MapKit
@@ -17,7 +18,7 @@ struct ActiveWorkoutView: View {
 
     @StateObject private var routeTracker = WorkoutRouteTracker()
     @StateObject private var audioRecorder = WorkoutAudioRecorder()
-    @StateObject private var musicPlayer = WorkoutAppleMusicPlayer()
+    @StateObject private var musicPlayer = WorkoutAppleMusicPlayer.shared
     @State private var elapsedSeconds = 0
     @State private var pausedSeconds = 0
     @State private var activeBookmark: ExerciseMediaBookmark?
@@ -33,6 +34,7 @@ struct ActiveWorkoutView: View {
     @State private var sessionRPE = 7.0
     @State private var energyBefore = 3.0
     @State private var energyAfter = 3.0
+    @State private var waterLiters = 0.0
     @State private var sessionNotes = ""
     @State private var sessionVoiceNote = ""
     @State private var sessionPhotoItems: [PhotosPickerItem] = []
@@ -43,6 +45,7 @@ struct ActiveWorkoutView: View {
     @State private var showExerciseNotes = false
     @State private var showSessionFeedback = false
     @State private var showProPreferences = false
+    @State private var lastStatusPublishSecond = -1
 
     private var exerciseDrafts: [ExerciseSessionDraft] {
         get { store.activeWorkoutDrafts }
@@ -114,6 +117,53 @@ struct ActiveWorkoutView: View {
         selectedDraft?.workoutExercise.restSeconds ?? 90
     }
 
+    private var currentBattery: FitnessMetrics.TrainingBatteryStatus {
+        store.trainingBattery
+    }
+
+    private var projectedBatteryLevel: Int {
+        store.projectedBattery(after: workout)
+    }
+
+    private var batteryColor: Color {
+        switch currentBattery.state {
+        case .charged:
+            return PulseTheme.primaryBright
+        case .steady:
+            return PulseTheme.primary
+        case .low:
+            return PulseTheme.warning
+        case .critical:
+            return PulseTheme.destructive
+        }
+    }
+
+    private var estimatedRemainingSeconds: Int {
+        if setCompletion > 0 {
+            let projected = Int(Double(elapsedSeconds) / max(setCompletion, 0.01))
+            return max(projected - elapsedSeconds, 0)
+        }
+        return max((workout.durationMinutes * 60) - elapsedSeconds, 0)
+    }
+
+    private var currentWorkingSet: SetLog? {
+        selectedDraft?.sets.first(where: { !$0.completed }) ?? selectedDraft?.sets.last
+    }
+
+    private var selectedExerciseHistorySummary: String? {
+        guard let exercise = selectedDraft?.workoutExercise.exercise else { return nil }
+        let recent = recentSets(for: exercise).prefix(3)
+        guard !recent.isEmpty else { return nil }
+        if let best = recent.max(by: { ($0.weightKg * Double($0.reps)) < ($1.weightKg * Double($1.reps)) }) {
+            return "Histórico: \(Int(best.weightKg)) kg x \(best.reps)"
+        }
+        return nil
+    }
+
+    private var selectedGymPass: GymPass? {
+        store.gymPasses.first
+    }
+
     private var currentRestLabel: LocalizedStringKey {
         guard lastSetCompletedAtSeconds != nil else {
             return "Descanso pendiente"
@@ -149,7 +199,7 @@ struct ActiveWorkoutView: View {
                 elapsedSeconds += 1
                 restSeconds = max(restSeconds - 1, 0)
             }
-            publishActiveWorkoutStatus()
+            publishActiveWorkoutStatusIfNeeded()
         }
         .onAppear {
             applyAutoProgressionIfNeeded()
@@ -202,6 +252,34 @@ struct ActiveWorkoutView: View {
         }
         .sensoryFeedback(.success, trigger: completedSets)
         .mainTabBarHidden()
+        .onReceive(NotificationCenter.default.publisher(for: WatchCommand.musicToggle.notificationName)) { _ in
+            guard let playlist = planPlaylist else { return }
+            Task { await musicPlayer.playOrPause(playlist) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WatchCommand.musicNext.notificationName)) { _ in
+            Task { await musicPlayer.skipForward(planPlaylist) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WatchCommand.musicPrevious.notificationName)) { _ in
+            Task { await musicPlayer.skipBackward(planPlaylist) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WatchCommand.completeSet.notificationName)) { _ in
+            completeNextAvailableSet()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WatchCommand.nextExercise.notificationName)) { _ in
+            moveExercise(by: 1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WatchCommand.previousExercise.notificationName)) { _ in
+            moveExercise(by: -1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WatchCommand.addWater.notificationName)) { _ in
+            addWater()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WatchCommand.voiceNote.notificationName)) { _ in
+            toggleSessionVoiceNoteFromWatch()
+        }
+        .onChange(of: selectedExerciseIndex) { _, _ in
+            publishActiveWorkoutStatus()
+        }
         .alert("Permiso necesario", isPresented: $showPermissionDenied) {
             Button("Abrir Ajustes") {
                 PermissionService.shared.openSettings()
@@ -220,10 +298,12 @@ struct ActiveWorkoutView: View {
         GeometryReader { proxy in
             let contentWidth = max(proxy.size.width - 40, 0)
             ScrollView {
-                VStack(spacing: 18) {
+                LazyVStack(spacing: 18) {
                     workoutHeader
                         .frame(width: contentWidth)
                     sessionProgressCard
+                        .frame(width: contentWidth)
+                    batteryCard
                         .frame(width: contentWidth)
                     if isRouteCandidate {
                         routeTrackingCard
@@ -240,6 +320,8 @@ struct ActiveWorkoutView: View {
                         exerciseCard
                             .frame(width: contentWidth)
                     }
+                    sessionControlCenterCard
+                        .frame(width: contentWidth)
                     sessionFeedbackCard
                         .frame(width: contentWidth)
                     nextExerciseCard
@@ -276,7 +358,7 @@ struct ActiveWorkoutView: View {
 
             Button {
                 withAnimation(.snappy(duration: 0.2)) {
-                    isPaused.toggle()
+                    setWorkoutPaused(!isPaused)
                 }
             } label: {
                 Image(systemName: isPaused ? "play.fill" : "pause.fill")
@@ -309,16 +391,21 @@ struct ActiveWorkoutView: View {
     }
 
     private func finishWorkout() {
-        let logs = exerciseDrafts.map { draft in
+        let logs = exerciseDrafts.compactMap { draft -> ExerciseLog? in
+            let completedSets = draft.sets.filter(\.completed)
+            guard !completedSets.isEmpty else {
+                return nil
+            }
+
             let attachments = draft.mediaAttachments + voiceAttachments(from: draft.voiceNote)
             return ExerciseLog(
                 exercise: draft.workoutExercise.exercise,
                 notes: draft.notes,
-                sets: draft.sets.filter(\.completed),
+                sets: completedSets,
                 mediaAttachments: attachments
             )
         }
-        let allSets = exerciseDrafts.flatMap(\.sets)
+        let allSets = logs.flatMap(\.sets)
         let sessionAttachments = sessionMediaAttachments + voiceAttachments(from: sessionVoiceNote)
         let sessionLocation: WorkoutSession.Location
         if origin == .free {
@@ -357,14 +444,49 @@ struct ActiveWorkoutView: View {
     }
 
     private func publishActiveWorkoutStatus() {
+        let currentSet = currentWorkingSet
+        let playlist = planPlaylist
         store.updateActiveWorkout(
             elapsedSeconds: elapsedSeconds,
             pausedSeconds: pausedSeconds,
             completedSets: completedSets,
             totalSets: totalSets,
             volumeKg: totalVolume,
-            isPaused: isPaused
+            isPaused: isPaused,
+            exerciseName: selectedDraft.map { RepsText.exerciseName($0.workoutExercise.exercise.name, language: store.userProfile.preferredLanguage) },
+            exerciseIndex: exerciseDrafts.isEmpty ? nil : selectedExerciseIndex + 1,
+            totalExercises: exerciseDrafts.count,
+            currentExerciseCompletedSets: selectedDraft?.sets.filter(\.completed).count,
+            currentExerciseTotalSets: selectedDraft?.sets.count,
+            currentSetWeightKg: currentSet?.weightKg,
+            currentSetReps: currentSet?.reps,
+            restSeconds: restSeconds,
+            restDurationSeconds: currentRestDuration,
+            estimatedRemainingSeconds: estimatedRemainingSeconds,
+            waterLiters: waterLiters,
+            musicTitle: musicPlayer.currentSongTitle ?? playlist?.title,
+            musicArtist: musicPlayer.currentSongArtist ?? playlist?.provider.rawValue.capitalized,
+            isMusicPlaying: playlist.map { $0.provider == .appleMusic ? musicPlayer.isPlaying : musicPlayer.isSpotifyPlaying },
+            nextExerciseName: nextExerciseTitle,
+            exerciseHistorySummary: selectedExerciseHistorySummary,
+            gymPass: selectedGymPass
         )
+    }
+
+    private func publishActiveWorkoutStatusIfNeeded() {
+        let currentSecond = elapsedSeconds + pausedSeconds
+        guard currentSecond == 0 || currentSecond - lastStatusPublishSecond >= 5 else {
+            return
+        }
+
+        lastStatusPublishSecond = currentSecond
+        publishActiveWorkoutStatus()
+    }
+
+    private func setWorkoutPaused(_ paused: Bool) {
+        isPaused = paused
+        lastStatusPublishSecond = elapsedSeconds + pausedSeconds
+        publishActiveWorkoutStatus()
     }
 
     private var sessionProgressCard: some View {
@@ -516,7 +638,7 @@ struct ActiveWorkoutView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
                             
-                            Text(playlist.provider == .appleMusic ? (musicPlayer.currentSongArtist ?? "Apple Music") : (musicPlayer.isSpotifyPlaying ? (musicPlayer.currentSongArtist ?? "Spotify") : "Spotify"))
+                            Text(playlist.provider == .appleMusic ? (musicPlayer.currentSongArtist ?? musicPlayer.statusText(for: playlist)) : (musicPlayer.isSpotifyPlaying ? (musicPlayer.currentSongArtist ?? "Spotify") : "Spotify"))
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .lineLimit(1)
@@ -564,6 +686,49 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    private var batteryCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .center, spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .stroke(PulseTheme.grouped, lineWidth: 7)
+                        Circle()
+                            .trim(from: 0, to: Double(currentBattery.level) / 100)
+                            .stroke(batteryColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        Image(systemName: currentBattery.systemImage)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(batteryColor)
+                    }
+                    .frame(width: 58, height: 58)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("BATERÍA")
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .tracking(1.5)
+                            .foregroundStyle(batteryColor)
+                        Text("\(currentBattery.level)% ahora · \(projectedBatteryLevel)% al terminar")
+                            .font(.headline.weight(.bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                        Text(currentBattery.suggestion)
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                }
+
+                HStack(spacing: 10) {
+                    BatteryMicroMetric(title: "Fatiga", value: "\(Int(currentBattery.fatigueLoad.rounded()))", systemImage: "bolt.slash", color: PulseTheme.destructive)
+                    BatteryMicroMetric(title: "Recarga", value: "+\(Int(currentBattery.recoveryCredit.rounded()))", systemImage: "bed.double", color: PulseTheme.primaryBright)
+                    BatteryMicroMetric(title: "Plan", value: "\(Int(currentBattery.planPressure.rounded()))", systemImage: "calendar", color: PulseTheme.warning)
+                }
+            }
+        }
+    }
+
     private var exerciseSwitcher: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
@@ -585,6 +750,7 @@ struct ActiveWorkoutView: View {
                                 gender: store.userProfile.muscleMapGender,
                                 fallbackSize: .caption.weight(.bold)
                             )
+                            .equatable()
                             .frame(width: 40, height: 40)
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .overlay(alignment: .topTrailing) {
@@ -680,6 +846,10 @@ struct ActiveWorkoutView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(restSeconds == 0 ? "Listo para continuar" : "Descansando")
                             .font(.headline.weight(.bold))
+                        Text(restSeconds == 0 ? "La batería deja de recargar cuando saltas el descanso." : "Completar el descanso reduce la fatiga de la siguiente serie.")
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         HStack(spacing: 8) {
                             Button {
@@ -783,6 +953,7 @@ struct ActiveWorkoutView: View {
                 HStack(alignment: .top, spacing: 14) {
                     if let exercise = selectedDraft?.workoutExercise.exercise {
                         ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender)
+                            .equatable()
                             .frame(width: 92, height: 104)
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
@@ -1071,6 +1242,75 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    private var sessionControlCenterCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Label("Central de sesión", systemImage: "applewatch.radiowaves.left.and.right")
+                        .font(.headline)
+                    Spacer()
+                    Label("Sync Watch", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.primary)
+                }
+
+                HStack(spacing: 10) {
+                    MiniSessionPill(title: "Restante", value: timeString(estimatedRemainingSeconds), icon: "hourglass")
+                    MiniSessionPill(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill")
+                    MiniSessionPill(title: "Kcal", value: store.todayHealthMetric.map { "\(Int($0.activeEnergyKcal))" } ?? "--", icon: "flame.fill")
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        moveExercise(by: -1)
+                    } label: {
+                        Image(systemName: "chevron.backward")
+                            .font(.headline.weight(.bold))
+                            .frame(width: 48, height: 48)
+                            .foregroundStyle(PulseTheme.primary)
+                            .background(PulseTheme.primary.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .disabled(selectedExerciseIndex == 0)
+
+                    Button {
+                        addWater()
+                    } label: {
+                        Label("+250 ml", systemImage: "waterbottle.fill")
+                            .font(.headline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .foregroundStyle(.white)
+                            .background(PulseTheme.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+
+                    Button {
+                        moveExercise(by: 1)
+                    } label: {
+                        Image(systemName: "chevron.forward")
+                            .font(.headline.weight(.bold))
+                            .frame(width: 48, height: 48)
+                            .foregroundStyle(PulseTheme.primary)
+                            .background(PulseTheme.primary.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .disabled(exerciseDrafts.isEmpty || selectedExerciseIndex >= exerciseDrafts.count - 1)
+                }
+
+                if let selectedExerciseHistorySummary {
+                    Label(selectedExerciseHistorySummary, systemImage: "clock.arrow.circlepath")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+
+                if let pass = selectedGymPass {
+                    ActiveGymPassCard(pass: pass)
+                }
+            }
+        }
+    }
+
     private var executionSummaryStrip: some View {
         HStack(spacing: 10) {
             MiniSessionPill(
@@ -1309,6 +1549,40 @@ struct ActiveWorkoutView: View {
             selectedExerciseIndex = next.exerciseIndex
             exerciseDrafts[next.exerciseIndex].sets[next.setIndex].completed = true
             handleSetCompleted(exerciseIndex: next.exerciseIndex, setIndex: next.setIndex)
+        }
+    }
+
+    private func moveExercise(by offset: Int) {
+        guard !exerciseDrafts.isEmpty else { return }
+        withAnimation(.snappy(duration: 0.2)) {
+            selectedExerciseIndex = min(max(selectedExerciseIndex + offset, 0), exerciseDrafts.count - 1)
+        }
+    }
+
+    private func addWater() {
+        withAnimation(.snappy(duration: 0.18)) {
+            waterLiters = min(waterLiters + 0.25, 8)
+        }
+        publishActiveWorkoutStatus()
+    }
+
+    private func toggleSessionVoiceNoteFromWatch() {
+        showSessionFeedback = true
+        Task {
+            if audioRecorder.isRecording {
+                if let attachment = audioRecorder.stopRecording(note: sessionVoiceNote) {
+                    sessionMediaAttachments.append(attachment)
+                }
+                publishActiveWorkoutStatus()
+            } else {
+                let granted = await PermissionService.shared.requestMicrophone()
+                if granted {
+                    audioRecorder.startRecording()
+                } else {
+                    permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actívalo en Ajustes → Reps."
+                    showPermissionDenied = true
+                }
+            }
         }
     }
 
@@ -1821,6 +2095,63 @@ private struct MiniSessionPill: View {
     }
 }
 
+private struct ActiveGymPassCard: View {
+    let pass: GymPass
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ActiveCodePreview(value: pass.codeValue, type: pass.codeType)
+                .frame(width: 84, height: 84)
+                .background(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Tarjeta gym", systemImage: pass.codeType == .qr ? "qrcode" : "barcode")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(PulseTheme.primary)
+                Text(pass.gymName)
+                    .font(.headline)
+                    .lineLimit(1)
+                Text(pass.membershipID)
+                    .font(.subheadline.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
+            }
+            Spacer()
+        }
+        .padding(10)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private struct ActiveCodePreview: View {
+    let value: String
+    let type: GymPass.CodeType
+
+    var body: some View {
+        if let image = generatedImage {
+            Image(uiImage: image)
+                .interpolation(.none)
+                .resizable()
+                .scaledToFit()
+                .padding(8)
+        } else {
+            Image(systemName: type == .qr ? "qrcode" : "barcode")
+                .font(.largeTitle)
+                .foregroundStyle(.black)
+        }
+    }
+
+    private var generatedImage: UIImage? {
+        let filterName = type == .qr ? "CIQRCodeGenerator" : "CICode128BarcodeGenerator"
+        guard let filter = CIFilter(name: filterName) else { return nil }
+        filter.setValue(Data(value.utf8), forKey: "inputMessage")
+        guard let output = filter.outputImage else { return nil }
+        return UIImage(ciImage: output.transformed(by: CGAffineTransform(scaleX: 8, y: 8)))
+    }
+}
+
 private struct AttachmentPreviewStrip: View {
     let attachments: [WorkoutMediaAttachment]
 
@@ -2028,11 +2359,13 @@ struct VideoPlayerSheet: View {
                 if let duration = bookmark.playbackDurationSeconds, duration > 0 {
                     timeRemaining = duration
                     timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-                        if timeRemaining > 1 {
-                            timeRemaining -= 1
-                        } else {
-                            timer?.invalidate()
-                            dismiss()
+                        Task { @MainActor in
+                            if timeRemaining > 1 {
+                                timeRemaining -= 1
+                            } else {
+                                timer?.invalidate()
+                                dismiss()
+                            }
                         }
                     }
                 }
@@ -2139,6 +2472,7 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
     private let manager = CLLocationManager()
     private var lastLocation: CLLocation?
     private var totalDistanceMeters: CLLocationDistance = 0
+    private var shouldStartAfterAuthorization = false
 
     override init() {
         super.init()
@@ -2173,15 +2507,23 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
     }
 
     func start() {
-        requestAuthorization()
-        guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
+        if authorizationStatus == .notDetermined {
+            shouldStartAfterAuthorization = true
+            requestAuthorization()
             return
         }
+
+        guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
+            shouldStartAfterAuthorization = false
+            return
+        }
+        shouldStartAfterAuthorization = false
         isTracking = true
         manager.startUpdatingLocation()
     }
 
     func stop() {
+        shouldStartAfterAuthorization = false
         isTracking = false
         manager.stopUpdatingLocation()
     }
@@ -2198,6 +2540,12 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
         let status = manager.authorizationStatus
         Task { @MainActor in
             authorizationStatus = status
+            if shouldStartAfterAuthorization,
+               status == .authorizedWhenInUse || status == .authorizedAlways {
+                start()
+            } else if status == .denied || status == .restricted {
+                shouldStartAfterAuthorization = false
+            }
         }
     }
 
@@ -2297,248 +2645,33 @@ private final class WorkoutAudioRecorder: NSObject, ObservableObject, AVAudioRec
     }
 }
 
-@MainActor
-private final class WorkoutAppleMusicPlayer: ObservableObject {
-    @Published var isPlaying = false
-    @Published var message: String?
+private struct BatteryMicroMetric: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let color: Color
 
-    // Track Info
-    @Published var currentSongTitle: String?
-    @Published var currentSongArtist: String?
-    @Published var currentSongArtwork: Artwork?
-
-    // Spotify Sim State
-    @Published var isSpotifyPlaying = false
-    @Published var spotifyTrackIndex = 0
-
-    private var currentPlaylistID: PlanPlaylist.ID?
-    private var cancellables = Set<AnyCancellable>()
-
-    struct MockTrack {
-        let title: String
-        let artist: String
-    }
-
-    private let mockSpotifyTracks = [
-        MockTrack(title: "Metamorphosis", artist: "INTERWORLD"),
-        MockTrack(title: "Rapture", artist: "RVDY"),
-        MockTrack(title: "Override", artist: "KSLV Noh"),
-        MockTrack(title: "Vendetta", artist: "MUPP, Sadfriendd"),
-        MockTrack(title: "Neon Blade", artist: "MoonDeity"),
-        MockTrack(title: "Disaster", artist: "KSLV Noh"),
-        MockTrack(title: "Close Eyes", artist: "DVRST")
-    ]
-
-    init() {
-        // Observe Apple Music state changes
-        ApplicationMusicPlayer.shared.state.objectWillChange
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateAppleMusicState()
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(color)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.subheadline.weight(.bold).monospacedDigit())
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
             }
-            .store(in: &cancellables)
-
-        // Observe Apple Music queue changes
-        ApplicationMusicPlayer.shared.queue.objectWillChange
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateNowPlaying()
-            }
-            .store(in: &cancellables)
-
-        updateAppleMusicState()
-        updateNowPlaying()
-    }
-
-    func statusText(for playlist: PlanPlaylist) -> String {
-        if playlist.provider == .spotify {
-            if isSpotifyPlaying {
-                return "Reproduciendo con Spotify (Interno)"
-            }
-            return "Pausado (Spotify)"
+            Spacer(minLength: 0)
         }
-
-        guard playlist.provider == .appleMusic else {
-            return ""
-        }
-
-        if currentPlaylistID == playlist.id, isPlaying {
-            return "Reproduciendo con Apple Music"
-        }
-
-        return message ?? "Apple Music listo"
-    }
-
-    private func updateAppleMusicState() {
-        self.isPlaying = (ApplicationMusicPlayer.shared.state.playbackStatus == .playing)
-    }
-
-    private func updateNowPlaying() {
-        if let entry = ApplicationMusicPlayer.shared.queue.currentEntry,
-           case .song(let song) = entry.item {
-            self.currentSongTitle = song.title
-            self.currentSongArtist = song.artistName
-            self.currentSongArtwork = song.artwork
-        } else {
-            self.currentSongTitle = nil
-            self.currentSongArtist = nil
-            self.currentSongArtwork = nil
-        }
-    }
-
-    func playOrPause(_ playlist: PlanPlaylist) async {
-        if playlist.provider == .spotify {
-            isSpotifyPlaying.toggle()
-            if isSpotifyPlaying {
-                currentSongTitle = mockSpotifyTracks[spotifyTrackIndex].title
-                currentSongArtist = mockSpotifyTracks[spotifyTrackIndex].artist
-            }
-            return
-        }
-
-        if currentPlaylistID != playlist.id {
-            await play(playlist)
-        } else {
-            if isPlaying {
-                ApplicationMusicPlayer.shared.pause()
-                isPlaying = false
-                message = "Pausado"
-            } else {
-                do {
-                    try await ApplicationMusicPlayer.shared.play()
-                    isPlaying = true
-                    message = "Reproduciendo con Apple Music"
-                } catch {
-                    // Fallback to reload
-                    await play(playlist)
-                }
-            }
-        }
-    }
-
-    func skipForward(_ playlist: PlanPlaylist? = nil) async {
-        if let playlist, playlist.provider == .spotify {
-            spotifyTrackIndex = (spotifyTrackIndex + 1) % mockSpotifyTracks.count
-            if isSpotifyPlaying {
-                currentSongTitle = mockSpotifyTracks[spotifyTrackIndex].title
-                currentSongArtist = mockSpotifyTracks[spotifyTrackIndex].artist
-            }
-            return
-        }
-
-        do {
-            try await ApplicationMusicPlayer.shared.skipToNextEntry()
-            updateNowPlaying()
-        } catch {
-            print("Error skipping forward: \(error)")
-        }
-    }
-
-    func skipBackward(_ playlist: PlanPlaylist? = nil) async {
-        if let playlist, playlist.provider == .spotify {
-            spotifyTrackIndex = (spotifyTrackIndex - 1 + mockSpotifyTracks.count) % mockSpotifyTracks.count
-            if isSpotifyPlaying {
-                currentSongTitle = mockSpotifyTracks[spotifyTrackIndex].title
-                currentSongArtist = mockSpotifyTracks[spotifyTrackIndex].artist
-            }
-            return
-        }
-
-        do {
-            try await ApplicationMusicPlayer.shared.skipToPreviousEntry()
-            updateNowPlaying()
-        } catch {
-            print("Error skipping backward: \(error)")
-        }
-    }
-
-    func toggle(_ playlist: PlanPlaylist) async {
-        await playOrPause(playlist)
-    }
-
-    private func play(_ playlist: PlanPlaylist) async {
-        let authorization = await MusicAuthorization.request()
-        guard authorization == .authorized else {
-            message = "Autoriza Apple Music para reproducir aquí"
-            return
-        }
-
-        do {
-            let subscription = try await MusicSubscription.current
-            guard subscription.canPlayCatalogContent else {
-                message = "Necesitas una suscripción activa de Apple Music"
-                return
-            }
-
-            guard let musicPlaylist = try await resolvePlaylist(playlist) else {
-                message = "No pude resolver la playlist"
-                return
-            }
-
-            ApplicationMusicPlayer.shared.queue = [musicPlaylist]
-            try await ApplicationMusicPlayer.shared.play()
-            currentPlaylistID = playlist.id
-            isPlaying = true
-            message = "Reproduciendo con Apple Music"
-            updateNowPlaying()
-        } catch {
-            message = "Apple Music no pudo iniciar esta playlist"
-        }
-    }
-
-    private func resolvePlaylist(_ playlist: PlanPlaylist) async throws -> Playlist? {
-        if let candidateID = appleMusicPlaylistID(from: playlist.urlString) {
-            if candidateID.hasPrefix("p.") {
-                // Library playlist
-                var request = MusicLibraryRequest<Playlist>()
-                request.filter(matching: \.id, equalTo: MusicItemID(candidateID))
-                let response = try await request.response()
-                if let resolved = response.items.first {
-                    return resolved
-                }
-            } else {
-                // Catalog playlist
-                let request = MusicCatalogResourceRequest<Playlist>(matching: \.id, equalTo: MusicItemID(candidateID))
-                let response = try await request.response()
-                if let resolved = response.items.first {
-                    return resolved
-                }
-            }
-        }
-
-        // Fallback: catalog search
-        var search = MusicCatalogSearchRequest(term: playlist.title, types: [Playlist.self])
-        search.limit = 5
-        let response = try await search.response()
-        if let catalogPlaylist = response.playlists.first {
-            return catalogPlaylist
-        }
-
-        // Library search fallback
-        var librarySearch = MusicLibrarySearchRequest(term: playlist.title, types: [Playlist.self])
-        librarySearch.limit = 5
-        let libraryResponse = try await librarySearch.response()
-        return libraryResponse.playlists.first
-    }
-
-    private func appleMusicPlaylistID(from urlString: String) -> String? {
-        if urlString.hasPrefix("library://playlist/") {
-            return urlString.replacingOccurrences(of: "library://playlist/", with: "")
-        }
-
-        guard let url = URL(string: urlString) else {
-            return nil
-        }
-
-        let pathCandidates = url.pathComponents.filter { $0.hasPrefix("pl.") || $0.hasPrefix("p.") }
-        if let candidate = pathCandidates.last {
-            return candidate
-        }
-
-        return URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?
-            .first(where: { $0.name == "i" || $0.name == "id" })?
-            .value
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 52)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
 

@@ -269,21 +269,11 @@ struct CalendarView: View {
     }
 
     private func exerciseCount(for session: WorkoutSession) -> Int {
-        let logs = session.exerciseLogs ?? []
-        if !logs.isEmpty {
-            return logs.count
-        }
-        return session.sets.isEmpty ? 0 : 1
+        FitnessMetrics.completedExerciseLogs(in: session).count
     }
 
     private func exerciseLogs(for session: WorkoutSession) -> [ExerciseLog] {
-        if let logs = session.exerciseLogs, !logs.isEmpty {
-            return logs
-        }
-        guard !session.sets.isEmpty else {
-            return []
-        }
-        return [ExerciseLog(exercise: SeedData.bench, notes: session.notes ?? "", sets: session.sets)]
+        FitnessMetrics.completedExerciseLogs(in: session)
     }
 
     private func changeMonth(by value: Int) {
