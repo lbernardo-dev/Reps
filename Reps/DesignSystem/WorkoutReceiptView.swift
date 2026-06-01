@@ -159,10 +159,11 @@ struct WorkoutReceiptView: View {
             .padding(.bottom, 10)
         }
         .padding(18)
+        .padding(.bottom, 6)
         .background(Color(red: 0.95, green: 0.94, blue: 0.92))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(SerratedCardShape(cornerRadius: 16, toothWidth: 8, toothHeight: 6))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            SerratedCardShape(cornerRadius: 16, toothWidth: 8, toothHeight: 6)
                 .stroke(Color.black.opacity(0.08), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.12), radius: 14, x: 0, y: 6)
@@ -230,4 +231,57 @@ extension HeatmapColorScale {
         Color(red: 0.05, green: 0.42, blue: 0.94),
         Color(red: 0.05, green: 0.42, blue: 0.94)
     ])
+}
+
+// MARK: - Serrated saw-tooth card shape
+struct SerratedCardShape: Shape {
+    var cornerRadius: CGFloat = 16
+    var toothWidth: CGFloat = 8
+    var toothHeight: CGFloat = 6
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let w = rect.width
+        let h = rect.height
+        
+        // Start at top left corner (after the radius)
+        path.move(to: CGPoint(x: cornerRadius, y: 0))
+        
+        // Top edge
+        path.addLine(to: CGPoint(x: w - cornerRadius, y: 0))
+        
+        // Top right corner
+        path.addArc(tangent1End: CGPoint(x: w, y: 0),
+                    tangent2End: CGPoint(x: w, y: cornerRadius),
+                    radius: cornerRadius)
+        
+        // Right edge down to bottom right (excluding the tooth depth)
+        path.addLine(to: CGPoint(x: w, y: h - toothHeight))
+        
+        // Bottom edge - Serrated teeth going from right (w) to left (0)
+        let numberOfTeeth = max(2, Int(w / toothWidth))
+        let actualToothWidth = w / CGFloat(numberOfTeeth)
+        
+        for i in 0..<numberOfTeeth {
+            let currentX = w - CGFloat(i) * actualToothWidth
+            let nextX = w - CGFloat(i + 1) * actualToothWidth
+            let midX = (currentX + nextX) / 2
+            
+            // Draw tooth peak
+            path.addLine(to: CGPoint(x: midX, y: h))
+            // Draw tooth base
+            path.addLine(to: CGPoint(x: nextX, y: h - toothHeight))
+        }
+        
+        // Left edge up to top left corner
+        path.addLine(to: CGPoint(x: 0, y: cornerRadius))
+        
+        // Top left corner
+        path.addArc(tangent1End: CGPoint(x: 0, y: 0),
+                    tangent2End: CGPoint(x: cornerRadius, y: 0),
+                    radius: cornerRadius)
+        
+        path.closeSubpath()
+        return path
+    }
 }

@@ -11,7 +11,7 @@ struct PlansView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
-                    HStack {
+                    HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Plan")
                                 .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -32,8 +32,8 @@ struct PlansView: View {
                                     .scaledToFill()
                                     .frame(width: 38, height: 38)
                                     .clipShape(Circle())
-                                    .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
-                                    .shadow(color: .black.opacity(0.15), radius: 4)
+                                    .overlay(Circle().stroke(.white, lineWidth: 2))
+                                    .shadow(color: .black.opacity(0.20), radius: 4)
                             } else {
                                 ZStack {
                                     Circle()
@@ -43,9 +43,11 @@ struct PlansView: View {
                                         .font(.system(size: 22))
                                         .foregroundStyle(PulseTheme.primary)
                                 }
-                                .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+                                .overlay(Circle().stroke(.white, lineWidth: 2))
+                                .shadow(color: .black.opacity(0.20), radius: 4)
                             }
                         }
+                        .padding(.top, 4)
                         .buttonStyle(.plain)
                         .accessibilityLabel(isSpanish ? "Perfil" : "Profile")
                     }

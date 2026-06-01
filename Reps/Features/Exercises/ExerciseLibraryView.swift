@@ -195,7 +195,11 @@ struct ExerciseLibraryView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(ui(en: "Close", es: "Cerrar")) { dismiss() }
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

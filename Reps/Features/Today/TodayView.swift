@@ -6,6 +6,9 @@ struct TodayView: View {
     @State private var showScheduleWorkout = false
     @State private var showCreatePlan = false
     @State private var showProfile = false
+    @State private var planToEdit: WorkoutPlan?
+
+    var onSelectTab: ((AppTab) -> Void)? = nil
 
     private var freeWorkout: WorkoutDay {
         WorkoutDay.freeWorkout
@@ -90,6 +93,10 @@ struct TodayView: View {
         store.userProfile.preferredLanguage.hasPrefix("es")
     }
 
+    private var hasActivePlan: Bool {
+        !store.activePlan.days.isEmpty
+    }
+
     private var currentDateTitle: String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: store.userProfile.preferredLanguage)
@@ -120,14 +127,20 @@ struct TodayView: View {
             .sheet(isPresented: $showScheduleWorkout) {
                 ScheduleWorkoutView()
             }
+            .sheet(isPresented: $showCreatePlan) {
+                CreatePlanView()
+            }
             .sheet(isPresented: $showProfile) {
                 ProfileView()
+            }
+            .sheet(item: $planToEdit) { plan in
+                EditPlanView(plan: plan)
             }
         }
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(currentDateTitle)
                     .font(.subheadline.weight(.semibold))
@@ -140,11 +153,17 @@ struct TodayView: View {
 
             Spacer()
 
-            ReadinessBadge(
-                level: batteryStatus.level,
-                title: isSpanish ? "energía" : "battery",
-                color: batteryColor
-            )
+            NavigationLink {
+                TrainingBatteryView()
+            } label: {
+                ReadinessBadge(
+                    level: batteryStatus.level,
+                    title: isSpanish ? "energía" : "battery",
+                    color: batteryColor
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
 
             Button {
                 HapticService.selection()
@@ -157,8 +176,8 @@ struct TodayView: View {
                         .scaledToFill()
                         .frame(width: 38, height: 38)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
-                        .shadow(color: .black.opacity(0.15), radius: 4)
+                        .overlay(Circle().stroke(.white, lineWidth: 2))
+                        .shadow(color: .black.opacity(0.20), radius: 4)
                 } else {
                     ZStack {
                         Circle()
@@ -168,9 +187,11 @@ struct TodayView: View {
                             .font(.system(size: 22))
                             .foregroundStyle(PulseTheme.primary)
                     }
-                    .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+                    .overlay(Circle().stroke(.white, lineWidth: 2))
+                    .shadow(color: .black.opacity(0.20), radius: 4)
                 }
             }
+            .padding(.top, 4)
             .buttonStyle(.plain)
             .accessibilityLabel(isSpanish ? "Perfil" : "Profile")
         }
@@ -315,12 +336,44 @@ struct TodayView: View {
         )
     }
 
-    // MARK: – Idle / pre-session hero (original design, unchanged)
+    // MARK: – Idle / pre-session hero (refined design)
     private var idleHero: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        let hasActivePlanSession = todaysScheduledWorkout != nil || hasActivePlan
+        let badgeText: String = {
+            if todaysScheduledWorkout != nil {
+                return isSpanish ? "SESIÓN PROGRAMADA" : "TODAY'S SESSION"
+            } else if hasActivePlan {
+                return isSpanish ? "SESIÓN SUGERIDA" : "SUGGESTED SESSION"
+            } else {
+                return isSpanish ? "SIN SESIÓN FIJADA" : "NO SESSION FIXED"
+            }
+        }()
+        let titleText: String = {
+            if hasActivePlanSession {
+                return RepsText.workoutTitle(focusWorkout.title, language: store.userProfile.preferredLanguage)
+            } else {
+                return isSpanish ? "Elige tu entrenamiento" : "Choose Next Move"
+            }
+        }()
+        let subtitleText: String = {
+            if hasActivePlanSession {
+                return RepsText.localizedWorkoutSubtitle(focusWorkout.subtitle, language: store.userProfile.preferredLanguage)
+            } else {
+                return isSpanish ? "Registra un entreno libre, planifica una sesión o continúa tu plan activo." : "You can log a free workout, schedule a session, or continue your active plan."
+            }
+        }()
+        let playButtonTitle: String = {
+            if hasActivePlanSession {
+                return isSpanish ? "Empezar" : "Start"
+            } else {
+                return isSpanish ? "Entrenar libre" : "Free Workout"
+            }
+        }()
+
+        return VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(todaysScheduledWorkout == nil ? "NO SESSION FIXED" : "TODAY'S SESSION")
+                    Text(badgeText)
                         .font(.system(size: 11, weight: .black, design: .rounded))
                         .tracking(1.5)
                         .foregroundStyle(.white)
@@ -331,7 +384,7 @@ struct TodayView: View {
                         .padding(.bottom, 2)
                     
                     HStack(alignment: .center, spacing: 6) {
-                        Text(todaysScheduledWorkout == nil ? "Choose Next Move" : RepsText.workoutTitle(focusWorkout.title, language: store.userProfile.preferredLanguage))
+                        Text(titleText)
                             .font(.system(size: 26, weight: .bold, design: .rounded))
                             .lineLimit(2)
                             .minimumScaleFactor(0.72)
@@ -388,7 +441,7 @@ struct TodayView: View {
                         }
                     }
                     
-                    Text(todaysScheduledWorkout == nil ? "You can log a free workout, schedule a session, or continue your active plan." : RepsText.localizedWorkoutSubtitle(focusWorkout.subtitle, language: store.userProfile.preferredLanguage))
+                    Text(subtitleText)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.84))
                         .fixedSize(horizontal: false, vertical: true)
@@ -397,11 +450,11 @@ struct TodayView: View {
                 WorkoutImageStack(
                     exercises: focusPreviewExercises,
                     gender: store.userProfile.muscleMapGender,
-                    fallbackSystemImage: todaysScheduledWorkout == nil ? "sparkles" : "figure.strengthtraining.traditional"
+                    fallbackSystemImage: hasActivePlanSession ? "figure.strengthtraining.traditional" : "sparkles"
                 )
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 HeroPill(title: "\(focusWorkout.durationMinutes) min", systemImage: "timer")
                 let exercisesWord = isSpanish ? "ejercicios" : "exercises"
                 HeroPill(title: "\(focusWorkout.exercises.count) \(exercisesWord)", systemImage: "list.bullet")
@@ -410,11 +463,11 @@ struct TodayView: View {
 
             HStack(spacing: 10) {
                 NavigationLink {
-                    todaysScheduledWorkout == nil
-                        ? ActiveWorkoutView(workout: freeWorkout, origin: .free)
-                        : ActiveWorkoutView(workout: focusWorkout)
+                    hasActivePlanSession
+                        ? ActiveWorkoutView(workout: focusWorkout)
+                        : ActiveWorkoutView(workout: freeWorkout, origin: .free)
                 } label: {
-                    Label(todaysScheduledWorkout == nil ? "Free Workout" : "Start", systemImage: "play.fill")
+                    Label(playButtonTitle, systemImage: "play.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
@@ -453,6 +506,22 @@ struct TodayView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
         .shadow(color: PulseTheme.primary.opacity(0.20), radius: 18, x: 0, y: 10)
+        .overlay(alignment: .topTrailing) {
+            if hasActivePlan {
+                Button {
+                    HapticService.selection()
+                    planToEdit = store.activePlan
+                } label: {
+                    Image(systemName: "pencil.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .shadow(color: .black.opacity(0.12), radius: 4)
+                }
+                .buttonStyle(.plain)
+                .padding(14)
+                .accessibilityLabel(isSpanish ? "Editar plan" : "Edit plan")
+            }
+        }
     }
 
     private func timeString(_ seconds: Int) -> String {
@@ -462,24 +531,28 @@ struct TodayView: View {
     }
 
     private var weeklyCommandGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            HomeMetricTile(title: "Week", value: "\(completedThisWeek)/\(store.activePlan.daysPerWeek)", subtitle: "sessions", systemImage: "calendar", color: PulseTheme.primary)
-            HomeMetricTile(title: "Volume", value: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg this week", systemImage: "scalemass", color: PulseTheme.primaryBright)
-            HomeMetricTile(title: "Streak", value: "\(streakDays)", subtitle: "days in a row", systemImage: "flame", color: PulseTheme.accent)
-            HomeMetricTile(title: isSpanish ? "Batería de entreno" : "Battery", value: "\(batteryStatus.level)%", subtitle: LocalizedStringKey(batteryStatus.title), systemImage: batteryStatus.systemImage, color: batteryColor)
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            HomeMetricTile(title: "Week", value: "\(completedThisWeek)/\(store.activePlan.daysPerWeek)", subtitle: isSpanish ? "sesiones" : "sessions", systemImage: "calendar", color: PulseTheme.primary)
+            HomeMetricTile(title: "Volume", value: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: isSpanish ? "kg esta semana" : "kg this week", systemImage: "scalemass", color: PulseTheme.primaryBright)
+            HomeMetricTile(title: "Streak", value: "\(streakDays)", subtitle: isSpanish ? "días seguidos" : "days in a row", systemImage: "flame", color: PulseTheme.accent)
         }
     }
 
     private var wellnessWidgets: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                WellnessWidget(
-                    title: isSpanish ? "Batería de entreno" : "Battery",
-                    value: "\(batteryStatus.level)%",
-                    subtitle: batteryStatus.suggestion,
-                    systemImage: batteryStatus.systemImage,
-                    color: batteryColor
-                )
+                NavigationLink {
+                    TrainingBatteryView()
+                } label: {
+                    WellnessWidget(
+                        title: isSpanish ? "Batería de entreno" : "Battery",
+                        value: "\(batteryStatus.level)%",
+                        subtitle: batteryStatus.suggestion,
+                        systemImage: batteryStatus.systemImage,
+                        color: batteryColor
+                    )
+                }
+                .buttonStyle(.plain)
 
                 WellnessWidget(
                     title: isSpanish ? "Ejercicio" : "Exercise",
@@ -649,11 +722,11 @@ struct TodayView: View {
         HStack(spacing: 12) {
             PulseCard(minHeight: 125) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Last Workout", systemImage: "clock.arrow.circlepath")
+                    Label(isSpanish ? "Último entreno" : "Last Workout", systemImage: "clock.arrow.circlepath")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
                     Spacer(minLength: 0)
-                    Text(lastWorkout.map { RepsText.workoutTitle($0.workoutTitle, language: store.userProfile.preferredLanguage) } ?? "No Workouts")
+                    Text(lastWorkout.map { RepsText.workoutTitle($0.workoutTitle, language: store.userProfile.preferredLanguage) } ?? (isSpanish ? "Sin entrenos" : "No Workouts"))
                         .font(.headline)
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
@@ -666,13 +739,13 @@ struct TodayView: View {
 
             PulseCard(minHeight: 125) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Health", systemImage: "heart.fill")
+                    Label(isSpanish ? "Salud" : "Health", systemImage: "heart.fill")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
                     Spacer(minLength: 0)
                     Text(store.todayHealthMetric.map { "\($0.steps, specifier: "%.0f")" } ?? "--")
                         .font(.title2.bold().monospacedDigit())
-                    Text("steps today")
+                    Text(isSpanish ? "pasos hoy" : "steps today")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
@@ -683,29 +756,46 @@ struct TodayView: View {
 
     private var smartShortcuts: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Smart Shortcuts")
+            Text(isSpanish ? "Accesos directos" : "Smart Shortcuts")
                 .font(.headline)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 NavigationLink {
                     ExerciseLibraryView()
                 } label: {
                     let exercisesCount = store.exercises.count
-                    let sub = store.userProfile.preferredLanguage.hasPrefix("es") ? "\(exercisesCount) ejercicios" : "\(exercisesCount) exercises"
-                    ShortcutTile(title: "Library", subtitle: LocalizedStringKey(sub), systemImage: "photo.stack", color: PulseTheme.primary)
+                    let sub = isSpanish ? "\(exercisesCount) ejercicios" : "\(exercisesCount) exercises"
+                    ShortcutTile(
+                        title: isSpanish ? "Biblioteca" : "Library",
+                        subtitle: LocalizedStringKey(sub),
+                        systemImage: "photo.stack",
+                        color: PulseTheme.primary
+                    )
                 }
                 .buttonStyle(.plain)
 
-                NavigationLink {
-                    ProgressDashboardView()
+                Button {
+                    if let onSelectTab {
+                        onSelectTab(.progress)
+                    }
                 } label: {
-                    ShortcutTile(title: "Progress", subtitle: "charts & insights", systemImage: "chart.line.uptrend.xyaxis", color: PulseTheme.primaryBright)
+                    ShortcutTile(
+                        title: isSpanish ? "Progreso" : "Progress",
+                        subtitle: isSpanish ? "gráficas e insights" : "charts & insights",
+                        systemImage: "chart.line.uptrend.xyaxis",
+                        color: PulseTheme.primaryBright
+                    )
                 }
                 .buttonStyle(.plain)
 
                 Button {
                     showCreatePlan = true
                 } label: {
-                    ShortcutTile(title: "New Plan", subtitle: "editable routine", systemImage: "square.stack.3d.up", color: PulseTheme.accent)
+                    ShortcutTile(
+                        title: isSpanish ? "Nueva rutina" : "New Plan",
+                        subtitle: isSpanish ? "diseño editable" : "editable routine",
+                        systemImage: "square.stack.3d.up",
+                        color: PulseTheme.accent
+                    )
                 }
                 .buttonStyle(.plain)
 
@@ -713,8 +803,13 @@ struct TodayView: View {
                     WorkoutLibraryView()
                 } label: {
                     let templatesCount = store.workoutTemplates.count
-                    let sub = store.userProfile.preferredLanguage.hasPrefix("es") ? "\(templatesCount) plantillas" : "\(templatesCount) templates"
-                    ShortcutTile(title: "Routines", subtitle: LocalizedStringKey(sub), systemImage: "list.clipboard", color: PulseTheme.primary)
+                    let sub = isSpanish ? "\(templatesCount) plantillas" : "\(templatesCount) templates"
+                    ShortcutTile(
+                        title: isSpanish ? "Plantillas" : "Routines",
+                        subtitle: LocalizedStringKey(sub),
+                        systemImage: "list.clipboard",
+                        color: PulseTheme.primary
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -810,18 +905,17 @@ private struct HeroPill: View {
 
     var body: some View {
         Label(title, systemImage: systemImage)
-            .font(.system(size: 13, weight: .bold, design: .rounded))
+            .font(.system(size: 12, weight: .bold, design: .rounded))
             .lineLimit(1)
-            .minimumScaleFactor(0.8)
+            .minimumScaleFactor(0.85)
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity)
-            .background(.white.opacity(0.15))
+            .padding(.vertical, 6)
+            .background(.white.opacity(0.12))
             .overlay(
-                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                    .stroke(.white.opacity(0.15), lineWidth: 1)
+                RoundedRectangle(cornerRadius: PulseTheme.compactRadius - 2, style: .continuous)
+                    .stroke(.white.opacity(0.18), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius - 2, style: .continuous))
     }
 }
 
@@ -856,28 +950,28 @@ private struct ReadinessBadge: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(PulseTheme.grouped, lineWidth: 6)
+                .stroke(PulseTheme.grouped, lineWidth: 4.5)
             Circle()
                 .trim(from: 0, to: CGFloat(level) / 100)
-                .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .stroke(color, style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             VStack(spacing: 0) {
                 Text("\(level)%")
-                    .font(.system(size: 20, weight: .bold, design: .rounded).monospacedDigit())
-                    .minimumScaleFactor(0.8)
+                    .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
+                    .minimumScaleFactor(0.85)
                     .foregroundStyle(color)
                 Text(title)
-                    .font(.caption2.weight(.bold))
+                    .font(.system(size: 8, weight: .bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
         }
-        .frame(width: 76, height: 76)
-        .padding(8)
+        .frame(width: 58, height: 58)
+        .padding(6)
         .background(PulseTheme.card)
         .clipShape(Circle())
-        .shadow(color: .black.opacity(0.05), radius: 12, x: 0, y: 6)
+        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
         .accessibilityLabel("\(title) \(level)%")
     }
 }
@@ -901,8 +995,8 @@ private struct WorkoutImageStack: View {
                     ExerciseCardImage(exercise: exercise, gender: gender)
                         .frame(width: 58, height: 58)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(.white.opacity(0.92), lineWidth: 2))
-                        .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 5)
+                        .overlay(Circle().stroke(.white.opacity(0.95), lineWidth: 1.8))
+                        .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 4)
                         .offset(x: CGFloat(index) * -18, y: CGFloat(index) * 12)
                 }
             }
@@ -920,32 +1014,33 @@ private struct HomeMetricTile: View {
     let color: Color
 
     var body: some View {
-        PulseCard(minHeight: 115) {
+        PulseCard(minHeight: 102, contentPadding: 12) {
             VStack(alignment: .leading, spacing: 0) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: systemImage)
-                        .font(.caption.weight(.bold))
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.white)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 22, height: 22)
                         .background(color)
                         .clipShape(Circle())
                     Text(title)
-                        .font(.caption.weight(.bold))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
                     Spacer(minLength: 0)
                 }
-                Spacer(minLength: 4)
+                Spacer(minLength: 6)
                 Text(value)
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundStyle(color)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(0.8)
                 Spacer(minLength: 2)
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
     }
@@ -1095,43 +1190,77 @@ private struct VisualExerciseCard: View {
     let gender: BodyGender
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Image container (edge-to-edge top)
             ZStack(alignment: .bottomLeading) {
                 ExerciseCardImage(exercise: exercise, gender: gender)
-                    .frame(width: 150, height: 104)
-                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    .frame(width: 156, height: 100)
+                
                 LinearGradient(
-                    colors: [.black.opacity(0), .black.opacity(0.45)],
+                    colors: [.black.opacity(0), .black.opacity(0.40)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                
                 Image(systemName: trackingIcon)
-                    .font(.caption.weight(.bold))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 22, height: 22)
                     .background(PulseTheme.primary)
                     .clipShape(Circle())
-                    .padding(8)
+                    .padding(6)
             }
-
-            Text(RepsText.exerciseName(exercise.name, language: language))
-                .font(.subheadline.weight(.bold))
-                .lineLimit(2)
-                .minimumScaleFactor(0.76)
-                .foregroundStyle(.primary)
-            Text("\(RepsText.muscle(exercise.muscleGroup, language: language)) · \(RepsText.equipment(exercise.equipment, language: language))")
-                .font(.caption)
-                .foregroundStyle(PulseTheme.secondaryText)
+            .frame(width: 156, height: 100)
+            .clipped()
+            
+            // Content padding
+            VStack(alignment: .leading, spacing: 6) {
+                // Title (max 2 lines, fixed height for alignment)
+                Text(RepsText.exerciseName(exercise.name, language: language))
+                    .font(.system(size: 13, weight: .bold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .multilineTextAlignment(.leading)
+                    .foregroundStyle(.primary)
+                    .frame(height: 34, alignment: .topLeading)
+                
+                Spacer(minLength: 0)
+                
+                // Text aligned to footer
+                Text("\(RepsText.muscle(exercise.muscleGroup, language: language)) · \(RepsText.equipment(exercise.equipment, language: language))")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                
+                // Tags aligned to footer (max 1 line)
+                HStack(spacing: 4) {
+                    Text(difficultyLabel)
+                        .font(.system(size: 9, weight: .bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(difficultyColor.opacity(0.12))
+                        .foregroundStyle(difficultyColor)
+                        .clipShape(Capsule())
+                    
+                    Text(environmentLabel)
+                        .font(.system(size: 9, weight: .bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(PulseTheme.grouped)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .clipShape(Capsule())
+                }
                 .lineLimit(1)
-                .minimumScaleFactor(0.72)
+            }
+            .padding(10)
+            .frame(width: 156, height: 114, alignment: .topLeading)
         }
-        .padding(10)
-        .frame(width: 170, height: 190, alignment: .topLeading)
+        .frame(width: 156, height: 214) // Fixed vertical height for ALL cards!
         .background(PulseTheme.card)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius - 4, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius - 4, style: .continuous)
                 .stroke(PulseTheme.separator, lineWidth: 1)
         )
     }
@@ -1144,6 +1273,29 @@ private struct VisualExerciseCard: View {
         }
     }
 
+    private var difficultyLabel: String {
+        switch exercise.difficulty {
+        case .low: return language.hasPrefix("es") ? "Fácil" : "Easy"
+        case .medium: return language.hasPrefix("es") ? "Medio" : "Medium"
+        case .high: return language.hasPrefix("es") ? "Difícil" : "Hard"
+        }
+    }
+
+    private var difficultyColor: Color {
+        switch exercise.difficulty {
+        case .low: return PulseTheme.primaryBright
+        case .medium: return PulseTheme.warning
+        case .high: return PulseTheme.destructive
+        }
+    }
+
+    private var environmentLabel: String {
+        switch exercise.environment {
+        case .home: return language.hasPrefix("es") ? "Casa" : "Home"
+        case .gym: return language.hasPrefix("es") ? "Gym" : "Gym"
+        case .both: return language.hasPrefix("es") ? "Mixto" : "Mixed"
+        }
+    }
 }
 
 private struct ExerciseCardImage: View {

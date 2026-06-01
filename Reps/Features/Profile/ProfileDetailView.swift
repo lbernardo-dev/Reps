@@ -31,7 +31,7 @@ struct ProfileDetailView: View {
                                     .scaledToFill()
                                     .frame(width: 100, height: 100)
                                     .clipShape(Circle())
-                                    .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 2))
+                                    .overlay(Circle().stroke(.white, lineWidth: 2.2))
                                     .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
                             } else {
                                 ZStack {

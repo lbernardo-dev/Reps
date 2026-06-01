@@ -5,6 +5,7 @@ import CoreImage
 import UniformTypeIdentifiers
 
 struct ProfileView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: AppStore
     @StateObject private var healthKit = HealthKitService()
     @State private var weightText = ""
@@ -31,10 +32,24 @@ struct ProfileView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    HStack {
+                    HStack(spacing: 12) {
+                        Button {
+                            HapticService.selection()
+                            dismiss()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 40, height: 40)
+                                .background(Color.white.opacity(0.12))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+
                         let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
                         Text(isSpanish ? "Perfil" : "Profile")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
+                        
                         Spacer()
                         
                         NavigationLink {
@@ -49,7 +64,7 @@ struct ProfileView: View {
                     bodyMetricsCard
                     bodyIndexCard
                     progressPhotoCard
-                    savedShareCardsCard
+                    achievementsCard
                     gymPassesCard
                     healthCard
                     settingsCard
@@ -222,27 +237,68 @@ struct ProfileView: View {
         }
     }
 
-    private var savedShareCardsCard: some View {
+    private var achievementsCard: some View {
         let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
         return PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text(isSpanish ? "Galería de recibos" : "Receipt Gallery")
+                    Text(isSpanish ? "Logros y Recibos" : "Achievements & Tickets")
                         .font(.headline)
                     Spacer()
+                    
+                    NavigationLink {
+                        AchievementsView()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(isSpanish ? "Ver todo" : "View all")
+                                .font(.caption.weight(.bold))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundStyle(PulseTheme.primary)
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 if store.savedShareCards.isEmpty {
                     PulseEmptyState(
-                        title: isSpanish ? "Sin recibos aún" : "No receipts yet",
+                        title: isSpanish ? "Sin logros aún" : "No achievements yet",
                         message: isSpanish 
-                            ? "Tus recibos virtuales de entrenamiento se guardarán aquí automáticamente al finalizar tus sesiones."
-                            : "Your virtual training tickets will be saved here automatically when you complete your sessions.",
-                        systemImage: "doc.text.image"
+                            ? "Completa tus sesiones para registrar logros de Apple Health y guardar tus recibos automáticamente."
+                            : "Complete workouts to track Apple Health achievements and auto-save training tickets here.",
+                        systemImage: "trophy"
                     )
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
+                            NavigationLink {
+                                AchievementsView()
+                            } label: {
+                                VStack(spacing: 6) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(PulseTheme.accent.opacity(0.12))
+                                            .frame(width: 48, height: 48)
+                                        Image(systemName: "trophy.fill")
+                                            .font(.title3)
+                                            .foregroundStyle(PulseTheme.accent)
+                                    }
+                                    .frame(width: 100, height: 160)
+                                    .background(PulseTheme.grouped)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    
+                                    Text(isSpanish ? "Logros" : "Achievements")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                    
+                                    Text(isSpanish ? "VER HITOS" : "VIEW MILESTONES")
+                                        .font(.system(size: 7, weight: .bold))
+                                        .foregroundStyle(PulseTheme.accent)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            
                             ForEach(store.savedShareCards.sorted { $0.date > $1.date }) { card in
                                 Button {
                                     selectedReceiptForPreview = card
@@ -253,9 +309,9 @@ struct ProfileView: View {
                                                 .resizable()
                                                 .aspectRatio(contentMode: .fill)
                                                 .frame(width: 100, height: 160)
-                                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                                .clipShape(SerratedThumbnailShape())
                                                 .overlay(
-                                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                    SerratedThumbnailShape()
                                                         .stroke(Color.white.opacity(0.12), lineWidth: 1)
                                                 )
                                         } else {
@@ -1975,7 +2031,8 @@ private struct AvatarMiniView: View {
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
-        .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+        .overlay(Circle().stroke(.white, lineWidth: 2))
+        .shadow(color: .black.opacity(0.12), radius: 3)
     }
 }
 

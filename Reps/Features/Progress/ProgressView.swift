@@ -11,19 +11,34 @@ struct ProgressDashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
+                    let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Progreso")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                            Text(isSpanish ? "RENDIMIENTO" : "PERFORMANCE")
+                                .font(.system(size: 10, weight: .black, design: .rounded))
+                                .tracking(2.0)
+                                .foregroundStyle(PulseTheme.primary)
+                                .padding(.bottom, 1)
+                            
+                            Text(isSpanish ? "Progreso" : "Progress")
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
                                 .lineLimit(1)
-                            Text(selectedSection == .muscles ? "Series por músculo en los últimos 7 días" : selectedRange.subtitle)
+                            
+                            Text(selectedSection == .muscles ? (isSpanish ? "Series por músculo en los últimos 7 días" : "Sets per muscle in the last 7 days") : selectedRange.subtitle)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .lineLimit(2)
-                                .minimumScaleFactor(0.85)
+                                .minimumScaleFactor(0.82)
                         }
+                        
                         Spacer()
-                        StreakBadge(days: store.streakDays, isSpanish: store.userProfile.preferredLanguage.hasPrefix("es"))
+                        
+                        NavigationLink {
+                            CalendarView()
+                        } label: {
+                            StreakBadge(days: store.streakDays, isSpanish: isSpanish)
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     Picker("Rango", selection: $selectedRange) {
@@ -133,7 +148,7 @@ struct ProgressDashboardView: View {
                     }
 
                     HStack(spacing: 14) {
-                        MetricCard(title: "ACWR", value: String(format: "%.2f", workload.acwr), subtitle: "agudo/crónico", systemImage: "gauge.with.dots.needle.50percent", badgeColor: PulseTheme.accent)
+                        MetricCard(title: "ACWR", value: String(format: "%.2f", workload.acwr), subtitle: "agudo/crónico", systemImage: "gauge.with.needle", badgeColor: PulseTheme.accent)
                         MetricCard(title: "Fatiga", value: "\(Int(workload.fatigueScore))", subtitle: "0-100", systemImage: "battery.50", badgeColor: PulseTheme.warning)
                     }
 

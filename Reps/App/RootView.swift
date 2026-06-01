@@ -50,7 +50,7 @@ struct MainTabView: View {
         ZStack(alignment: .bottom) {
             switch selectedTab {
             case .today:
-                TodayView()
+                TodayView(onSelectTab: { select($0) })
                     .id(todayResetID)
             case .calendar:
                 CalendarView()
@@ -172,7 +172,7 @@ struct MainTabView: View {
     }
 }
 
-private enum AppTab: CaseIterable {
+enum AppTab: CaseIterable {
     case progress
     case today
     case plans

@@ -1,61 +1,81 @@
 import SwiftUI
 
 struct WorkoutLibraryView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: AppStore
     @State private var showCreate = false
     @State private var editingWorkout: WorkoutDay?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Rutinas")
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
-                        Text("Crea, programa y reutiliza tus entrenamientos")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    Spacer()
-                    Button {
-                        showCreate = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 48, height: 48)
-                            .background(PulseTheme.primary)
-                            .clipShape(Circle())
-                            .shadow(color: PulseTheme.primary.opacity(0.24), radius: 12, x: 0, y: 6)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Crear rutina")
+        VStack(spacing: 0) {
+            // Custom Navigation Bar / Toolbar
+            HStack(spacing: 12) {
+                Button {
+                    HapticService.selection()
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 40, height: 40)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
                 }
+                .buttonStyle(.plain)
 
-                if store.workoutTemplates.isEmpty {
-                    PulseCard {
-                        PulseEmptyState(
-                            title: "No hay rutinas",
-                            message: "Crea rutinas con tus ejercicios, notas y material.",
-                            systemImage: "list.clipboard"
-                        )
-                    }
-                } else {
-                    ForEach(store.workoutTemplates) { workout in
+                Text("Rutinas")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                
+                Spacer()
+                
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 40, height: 40)
+                        .background(PulseTheme.primary)
+                        .clipShape(Circle())
+                        .shadow(color: PulseTheme.primary.opacity(0.24), radius: 8, x: 0, y: 4)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Crear rutina")
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("Crea, programa y reutiliza tus entrenamientos")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .padding(.bottom, 2)
+
+                    if store.workoutTemplates.isEmpty {
                         PulseCard {
-                            WorkoutTemplateRow(workout: workout) {
-                                editingWorkout = workout
+                            PulseEmptyState(
+                                title: "No hay rutinas",
+                                message: "Crea rutinas con tus ejercicios, notas y material.",
+                                systemImage: "list.clipboard"
+                            )
+                        }
+                    } else {
+                        ForEach(store.workoutTemplates) { workout in
+                            PulseCard {
+                                WorkoutTemplateRow(workout: workout) {
+                                    editingWorkout = workout
+                                }
                             }
                         }
                     }
                 }
+                .padding(20)
+                .padding(.bottom, 112)
             }
-            .padding(20)
-            .padding(.bottom, 112)
         }
         .screenBackground()
-        .navigationTitle("Rutinas")
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
         .sheet(isPresented: $showCreate) {
             WorkoutEditorView(mode: .create)

@@ -202,16 +202,18 @@ enum RepsText {
 struct PulseCard<Content: View>: View {
     let content: Content
     var minHeight: CGFloat?
+    var contentPadding: CGFloat = 16
 
-    init(minHeight: CGFloat? = nil, @ViewBuilder content: () -> Content) {
+    init(minHeight: CGFloat? = nil, contentPadding: CGFloat = 16, @ViewBuilder content: () -> Content) {
         self.content = content()
         self.minHeight = minHeight
+        self.contentPadding = contentPadding
     }
 
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: minHeight != nil ? .infinity : nil, alignment: .leading)
-            .padding(16)
+            .padding(contentPadding)
             .frame(minHeight: minHeight, alignment: .leading)
             .background(PulseTheme.card)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
