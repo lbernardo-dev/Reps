@@ -74,7 +74,7 @@ struct MuscleMapProgressView: View {
             }
 
             LazyVStack(spacing: 14) {
-                ForEach(filteredLoads) { load in
+                ForEach(filteredLoads.filter { $0.segment != selectedSegment }) { load in
                     Button {
                         withAnimation(.snappy(duration: 0.22)) {
                             if selectedSegment == load.segment {

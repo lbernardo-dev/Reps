@@ -2,8 +2,8 @@
   "images": [
     {
       "filename": "reps-icon-1024.png",
-      "idiom": "universal",
-      "platform": "watchos",
+      "idiom": "watch",
+      "scale": "1x",
       "size": "1024x1024"
     }
   ],
