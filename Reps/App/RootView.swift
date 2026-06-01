@@ -32,6 +32,7 @@ struct RootView: View {
 }
 
 struct MainTabView: View {
+    @EnvironmentObject private var store: AppStore
     @State private var selectedTab: AppTab = .today
     @State private var isTabBarHidden = false
     @State private var isQuickMenuExpanded = false
@@ -111,6 +112,11 @@ struct MainTabView: View {
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .sheet(item: $presentedQuickAction) { action in
             quickActionDestination(action)
+        }
+        .sheet(item: $store.finishedSessionForSummary) { session in
+            WorkoutSummaryView(session: session) {
+                store.finishedSessionForSummary = nil
+            }
         }
         .onPreferenceChange(MainTabBarHiddenPreferenceKey.self) { hidden in
             withAnimation(.snappy(duration: 0.22)) {

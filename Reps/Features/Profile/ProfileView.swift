@@ -25,6 +25,7 @@ struct ProfileView: View {
     @State private var backupExportURL: URL?
     @State private var shareImageURL: URL?
     @State private var avatarPickerItem: PhotosPickerItem?
+    @State private var selectedReceiptForPreview: SavedShareCard? = nil
 
     var body: some View {
         NavigationStack {
@@ -48,6 +49,7 @@ struct ProfileView: View {
                     bodyMetricsCard
                     bodyIndexCard
                     progressPhotoCard
+                    savedShareCardsCard
                     gymPassesCard
                     healthCard
                     settingsCard
@@ -117,6 +119,9 @@ struct ProfileView: View {
             }
             .onChange(of: avatarPickerItem) { _, item in
                 Task { await loadAvatar(from: item) }
+            }
+            .sheet(item: $selectedReceiptForPreview) { card in
+                ReceiptPreviewSheet(card: card)
             }
         }
     }
@@ -215,6 +220,78 @@ struct ProfileView: View {
                 }
             }
         }
+    }
+
+    private var savedShareCardsCard: some View {
+        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
+        return PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text(isSpanish ? "Galería de recibos" : "Receipt Gallery")
+                        .font(.headline)
+                    Spacer()
+                }
+
+                if store.savedShareCards.isEmpty {
+                    PulseEmptyState(
+                        title: isSpanish ? "Sin recibos aún" : "No receipts yet",
+                        message: isSpanish 
+                            ? "Tus recibos virtuales de entrenamiento se guardarán aquí automáticamente al finalizar tus sesiones."
+                            : "Your virtual training tickets will be saved here automatically when you complete your sessions.",
+                        systemImage: "doc.text.image"
+                    )
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(store.savedShareCards.sorted { $0.date > $1.date }) { card in
+                                Button {
+                                    selectedReceiptForPreview = card
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        if let uiImage = UIImage(data: card.imageData) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 100, height: 160)
+                                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                                )
+                                        } else {
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .fill(PulseTheme.grouped)
+                                                .frame(width: 100, height: 160)
+                                        }
+                                        
+                                        Text(card.workoutTitle)
+                                            .font(.caption2.weight(.bold))
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(1)
+                                            .frame(width: 100, alignment: .leading)
+                                        
+                                        Text(receiptDateString(card.date))
+                                            .font(.system(size: 8, weight: .semibold))
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                            .lineLimit(1)
+                                            .frame(width: 100, alignment: .leading)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func receiptDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd MMM yyyy"
+        formatter.locale = Locale(identifier: store.userProfile.preferredLanguage)
+        return formatter.string(from: date).uppercased()
     }
 
     private var gymPassesCard: some View {
@@ -1899,5 +1976,60 @@ private struct AvatarMiniView: View {
         .frame(width: size, height: size)
         .clipShape(Circle())
         .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+    }
+}
+
+private struct ReceiptPreviewSheet: View {
+    let card: SavedShareCard
+    @Environment(\.dismiss) private var dismiss
+    @State private var uiImage: UIImage? = nil
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                if let img = uiImage {
+                    Image(uiImage: img)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity, maxHeight: 520)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(color: Color.black.opacity(0.24), radius: 12, x: 0, y: 6)
+                } else {
+                    ProgressView()
+                        .frame(height: 300)
+                }
+                
+                if let img = uiImage {
+                    ShareLink(item: Image(uiImage: img), preview: SharePreview(card.workoutTitle, image: Image(uiImage: img))) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("Compartir recibo")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(PulseTheme.primaryBright)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .padding(.horizontal, 24)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 24)
+            .screenBackground()
+            .navigationTitle(card.workoutTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cerrar") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .onAppear {
+            uiImage = UIImage(data: card.imageData)
+        }
     }
 }

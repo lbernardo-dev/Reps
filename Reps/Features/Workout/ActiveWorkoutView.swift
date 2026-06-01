@@ -21,6 +21,11 @@ struct ActiveWorkoutView: View {
     @StateObject private var musicPlayer = WorkoutAppleMusicPlayer.shared
     @State private var elapsedSeconds = 0
     @State private var pausedSeconds = 0
+    @State private var startedAt = Date()
+    @State private var lastPausedAt: Date? = nil
+    @State private var basePausedSeconds = 0
+    @State private var hasShownDurationAlert = false
+    @State private var showDurationExhaustedAlert = false
     @State private var activeBookmark: ExerciseMediaBookmark?
     @State private var isPaused = false
     @State private var restSeconds = 0
@@ -191,14 +196,32 @@ struct ActiveWorkoutView: View {
 
             if let globalPaused = store.activeWorkoutStatus?.isPaused, globalPaused != isPaused {
                 isPaused = globalPaused
+                if isPaused {
+                    lastPausedAt = Date()
+                } else {
+                    if let lastPaused = lastPausedAt {
+                        basePausedSeconds += Int(Date().timeIntervalSince(lastPaused))
+                    }
+                    lastPausedAt = nil
+                }
             }
 
             if isPaused {
-                pausedSeconds += 1
+                let currentPauseDuration = lastPausedAt.map { Date().timeIntervalSince($0) } ?? 0
+                pausedSeconds = basePausedSeconds + Int(currentPauseDuration)
             } else {
-                elapsedSeconds += 1
+                pausedSeconds = basePausedSeconds
+                elapsedSeconds = Int(Date().timeIntervalSince(startedAt)) - pausedSeconds
                 restSeconds = max(restSeconds - 1, 0)
             }
+            
+            // Comprobar si se ha agotado el tiempo planificado
+            let targetSeconds = workout.durationMinutes * 60
+            if elapsedSeconds >= targetSeconds, !hasShownDurationAlert {
+                hasShownDurationAlert = true
+                showDurationExhaustedAlert = true
+            }
+            
             publishActiveWorkoutStatusIfNeeded()
         }
         .onAppear {
@@ -207,6 +230,15 @@ struct ActiveWorkoutView: View {
                 elapsedSeconds = status.elapsedSeconds
                 pausedSeconds = status.pausedSeconds
                 isPaused = status.isPaused
+                waterLiters = status.waterLiters ?? 0.0
+                if let exerciseIndex = status.exerciseIndex {
+                    selectedExerciseIndex = max(0, exerciseIndex - 1)
+                }
+                restSeconds = status.restSeconds ?? 0
+                
+                startedAt = status.startedAt
+                lastPausedAt = status.lastPausedAt
+                basePausedSeconds = status.pausedSeconds
             } else {
                 if store.activeWorkoutStatus == nil {
                     store.startActiveWorkout(workout, elapsedSeconds: elapsedSeconds, pausedSeconds: pausedSeconds, isPaused: isPaused)
@@ -217,6 +249,9 @@ struct ActiveWorkoutView: View {
                     store.clearActiveWorkout()
                     store.startActiveWorkout(workout, elapsedSeconds: 0, pausedSeconds: 0, isPaused: false)
                 }
+                startedAt = Date()
+                lastPausedAt = nil
+                basePausedSeconds = 0
             }
             if isRouteCandidate {
                 routeTracker.requestAuthorization()
@@ -287,6 +322,14 @@ struct ActiveWorkoutView: View {
             Button("Cancelar", role: .cancel) {}
         } message: {
             Text(permissionDeniedMessage)
+        }
+        .alert("¿Has terminado?", isPresented: $showDurationExhaustedAlert) {
+            Button("Finalizar entrenamiento", role: .destructive) {
+                finishWorkout()
+            }
+            Button("Continuar", role: .cancel) {}
+        } message: {
+            Text("Has completado el tiempo planificado de tu entrenamiento (\(workout.durationMinutes) min).")
         }
         .onDisappear {
             routeTracker.stop()
@@ -440,7 +483,7 @@ struct ActiveWorkoutView: View {
             pausedDurationSeconds: pausedSeconds
         )
         store.finishWorkout(session)
-        finishedSession = session
+        dismiss()
     }
 
     private func publishActiveWorkoutStatus() {
@@ -485,6 +528,14 @@ struct ActiveWorkoutView: View {
 
     private func setWorkoutPaused(_ paused: Bool) {
         isPaused = paused
+        if paused {
+            lastPausedAt = Date()
+        } else {
+            if let lastPaused = lastPausedAt {
+                basePausedSeconds += Int(Date().timeIntervalSince(lastPaused))
+            }
+            lastPausedAt = nil
+        }
         lastStatusPublishSecond = elapsedSeconds + pausedSeconds
         publishActiveWorkoutStatus()
     }
@@ -2675,7 +2726,7 @@ private struct BatteryMicroMetric: View {
     }
 }
 
-private struct WorkoutSummaryView: View {
+struct WorkoutSummaryView: View {
     let session: WorkoutSession
     let onDone: () -> Void
 

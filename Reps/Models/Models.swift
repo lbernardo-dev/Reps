@@ -419,6 +419,20 @@ struct WorkoutSession: Codable, Identifiable {
     var mediaAttachments: [WorkoutMediaAttachment] = []
     var routePoints: [RoutePoint] = []
     var pausedDurationSeconds: Int = 0
+    
+    // HealthKit sync properties
+    var healthKitUUIDString: String? = nil
+    var isImportedFromHealth: Bool = false
+    var healthKitActivityTypes: [String] = []
+    var averageHeartRate: Double? = nil
+    var maxHeartRate: Double? = nil
+}
+
+struct SavedShareCard: Codable, Identifiable, Hashable {
+    var id = UUID()
+    var date: Date
+    var workoutTitle: String
+    var imageData: Data
 }
 
 struct ActiveWorkoutStatus: Identifiable, Equatable, Codable {
@@ -453,6 +467,7 @@ struct ActiveWorkoutStatus: Identifiable, Equatable, Codable {
     var gymMembershipID: String?
     var gymCodeValue: String?
     var gymCodeType: String?
+    var lastPausedAt: Date? = nil
 }
 
 struct Goal: Codable, Identifiable {

@@ -2,6 +2,7 @@ import ActivityKit
 import Foundation
 import UIKit
 import WatchConnectivity
+import HealthKit
 
 @MainActor
 final class AppStore: ObservableObject {
@@ -21,6 +22,8 @@ final class AppStore: ObservableObject {
     @Published var health = HealthSyncState() { didSet { save() } }
     @Published var isSyncingExerciseLibrary = false
     @Published var exerciseLibrarySyncMessage: String?
+    @Published var savedShareCards: [SavedShareCard] = [] { didSet { save() } }
+    @Published var finishedSessionForSummary: WorkoutSession? = nil
     @Published var activeWorkoutStatus: ActiveWorkoutStatus? {
         didSet {
             save()
@@ -56,6 +59,8 @@ final class AppStore: ObservableObject {
         Task {
             await syncOpenExerciseLibraryIfNeeded()
         }
+        
+        startHealthKitWorkoutObserver()
     }
 
     var todaysWorkout: WorkoutDay {
@@ -250,6 +255,15 @@ final class AppStore: ObservableObject {
 
     func finishWorkout(_ session: WorkoutSession) {
         workoutSessions.append(session)
+        
+        // Render virtual receipt image and auto-save it to our profile gallery
+        let image = WorkoutShareImageRenderer.render(session: session)
+        if let data = image.pngData() {
+            let savedCard = SavedShareCard(date: session.date, workoutTitle: session.workoutTitle, imageData: data)
+            self.savedShareCards.append(savedCard)
+        }
+        
+        self.finishedSessionForSummary = session
         activeWorkoutStatus = nil
         activeWorkout = nil
         activeWorkoutDrafts = []
@@ -388,6 +402,15 @@ final class AppStore: ObservableObject {
     func setActiveWorkoutPaused(_ paused: Bool) {
         guard var status = activeWorkoutStatus else { return }
         status.isPaused = paused
+        if paused {
+            status.lastPausedAt = Date()
+        } else {
+            if let lastPaused = status.lastPausedAt {
+                let duration = Int(Date().timeIntervalSince(lastPaused))
+                status.pausedSeconds += duration
+            }
+            status.lastPausedAt = nil
+        }
         activeWorkoutStatus = status
     }
 
@@ -909,7 +932,8 @@ final class AppStore: ObservableObject {
             health: health,
             activeWorkout: activeWorkout,
             activeWorkoutDrafts: activeWorkoutDrafts,
-            activeWorkoutStatus: activeWorkoutStatus
+            activeWorkoutStatus: activeWorkoutStatus,
+            savedShareCards: savedShareCards
         )
     }
 
@@ -954,11 +978,240 @@ final class AppStore: ObservableObject {
         activeWorkout = snapshot.activeWorkout
         activeWorkoutDrafts = snapshot.activeWorkoutDrafts ?? []
         activeWorkoutStatus = snapshot.activeWorkoutStatus
+        savedShareCards = snapshot.savedShareCards
         
         sanitizeAvailableEquipment()
         
         isRestoring = false
         persistence.save(currentSnapshot)
+    }
+    
+    // MARK: - HealthKit Synchronization & Background Observers
+    
+    private let healthStore = HKHealthStore()
+    
+    private func startHealthKitWorkoutObserver() {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        
+        let workoutType = HKWorkoutType.workoutType()
+        let query = HKObserverQuery(sampleType: workoutType, predicate: nil) { [weak self] _, completionHandler, error in
+            if let error = error {
+                print("Error de observador de HealthKit: \(error.localizedDescription)")
+                completionHandler()
+                return
+            }
+            
+            struct SendableWorkoutCompletion: @unchecked Sendable {
+                let handler: () -> Void
+            }
+            let wrapped = SendableWorkoutCompletion(handler: completionHandler)
+            
+            Task {
+                if let self = self {
+                    await self.syncWorkoutsFromHealthKit()
+                }
+                wrapped.handler()
+            }
+        }
+        healthStore.execute(query)
+        
+        // Habilitar envío en segundo plano
+        healthStore.enableBackgroundDelivery(for: workoutType, frequency: .immediate) { success, error in
+            if let error = error {
+                print("No se pudo habilitar el envío en segundo plano de HealthKit: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func syncWorkoutsFromHealthKit() async {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -7, to: .now) ?? .now
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: .now)
+        
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.workout(predicate)],
+            sortDescriptors: [SortDescriptor(\.endDate, order: .reverse)],
+            limit: 30
+        )
+        
+        do {
+            let workouts = try await descriptor.result(for: healthStore)
+            for workout in workouts {
+                await processHealthKitWorkout(workout)
+            }
+        } catch {
+            print("Error al consultar entrenamientos de HealthKit: \(error.localizedDescription)")
+        }
+    }
+    
+    private func processHealthKitWorkout(_ workout: HKWorkout) async {
+        let uuidString = workout.uuid.uuidString
+        
+        // 1. Evitar duplicados
+        if workoutSessions.contains(where: { $0.healthKitUUIDString == uuidString }) {
+            return
+        }
+        
+        // Obtener datos del pulso
+        let heartRate = await heartRateSummary(for: workout)
+        
+        // Obtener actividades
+        var activities: [String] = []
+        if #available(iOS 16.0, *) {
+            for activity in workout.workoutActivities {
+                activities.append(Self.nameForActivityType(activity.workoutConfiguration.activityType))
+            }
+        }
+        if activities.isEmpty {
+            activities.append(Self.nameForActivityType(workout.workoutActivityType))
+        }
+        let uniqueActivities = Array(Set(activities)).sorted()
+        
+        let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie())
+        
+        // 2. Comprobar si hay un entrenamiento en progreso coincidente para finalizar o mezclar
+        if let activeStatus = activeWorkoutStatus,
+           abs(activeStatus.startedAt.timeIntervalSince(workout.startDate)) < 5400 { // Margen de 1.5 horas
+            
+            // Compilar sesión activa
+            let logs = activeWorkoutDrafts.compactMap { draft -> ExerciseLog? in
+                let completedSets = draft.sets.filter(\.completed)
+                guard !completedSets.isEmpty else { return nil }
+                return ExerciseLog(
+                    exercise: draft.workoutExercise.exercise,
+                    notes: draft.notes,
+                    sets: completedSets,
+                    mediaAttachments: draft.mediaAttachments
+                )
+            }
+            
+            let allSets = logs.flatMap(\.sets)
+            let durationMin = max(Int(workout.duration / 60), 1)
+            
+            let mergedSession = WorkoutSession(
+                workoutTitle: activeStatus.workoutTitle,
+                date: workout.endDate,
+                startedAt: workout.startDate,
+                endedAt: workout.endDate,
+                origin: activeWorkout?.sessionType == .free ? .free : .routine,
+                location: activeWorkout?.sessionType == .free ? (userProfile.trainingLocation == .home ? .home : .gym) : (activePlan.location == .home ? .home : .gym),
+                contextTag: .normal,
+                durationMinutes: durationMin,
+                sets: allSets,
+                notes: String(localized: "Sincronizado y enriquecido con Apple Health."),
+                exerciseLogs: logs,
+                sessionRPE: 7.0,
+                energyBefore: 3,
+                energyAfter: 3,
+                estimatedCalories: calories,
+                mediaAttachments: [],
+                routePoints: [],
+                pausedDurationSeconds: activeStatus.pausedSeconds,
+                healthKitUUIDString: uuidString,
+                isImportedFromHealth: false,
+                healthKitActivityTypes: uniqueActivities,
+                averageHeartRate: heartRate.average,
+                maxHeartRate: heartRate.max
+            )
+            
+            finishWorkout(mergedSession)
+            return
+        }
+        
+        // 3. Comprobar solapamiento con sesiones guardadas existentes para enriquecerlas
+        if let index = workoutSessions.firstIndex(where: {
+            abs($0.date.timeIntervalSince(workout.endDate)) < 3600 && $0.healthKitUUIDString == nil
+        }) {
+            var existing = workoutSessions[index]
+            existing.healthKitUUIDString = uuidString
+            existing.estimatedCalories = calories ?? existing.estimatedCalories
+            existing.averageHeartRate = heartRate.average
+            existing.maxHeartRate = heartRate.max
+            existing.healthKitActivityTypes = uniqueActivities
+            workoutSessions[index] = existing
+            return
+        }
+        
+        // 4. Si no coincide con nada, importar de forma automática e independiente
+        let importedTitle = uniqueActivities.joined(separator: " + ")
+        let importedSession = WorkoutSession(
+            workoutTitle: importedTitle.isEmpty ? "Entrenamiento Apple Health" : importedTitle,
+            date: workout.endDate,
+            startedAt: workout.startDate,
+            endedAt: workout.endDate,
+            origin: .free,
+            location: workout.workoutActivityType == .swimming ? .outdoor : .gym,
+            contextTag: .normal,
+            durationMinutes: max(Int(workout.duration / 60), 1),
+            sets: [],
+            notes: String(localized: "Importado automáticamente de Apple Health."),
+            exerciseLogs: [],
+            sessionRPE: nil,
+            energyBefore: nil,
+            energyAfter: nil,
+            estimatedCalories: calories,
+            mediaAttachments: [],
+            routePoints: [],
+            pausedDurationSeconds: 0,
+            healthKitUUIDString: uuidString,
+            isImportedFromHealth: true,
+            healthKitActivityTypes: uniqueActivities,
+            averageHeartRate: heartRate.average,
+            maxHeartRate: heartRate.max
+        )
+        
+        workoutSessions.append(importedSession)
+        
+        // También generar recibo para la galería de este entreno importado de salud
+        let image = WorkoutShareImageRenderer.render(session: importedSession)
+        if let data = image.pngData() {
+            let savedCard = SavedShareCard(date: importedSession.date, workoutTitle: importedSession.workoutTitle, imageData: data)
+            self.savedShareCards.append(savedCard)
+        }
+    }
+    
+    private func heartRateSummary(for workout: HKWorkout) async -> (average: Double?, max: Double?) {
+        let heartRateType = HKQuantityType(.heartRate)
+        let predicate = HKQuery.predicateForObjects(from: workout)
+        let samplePredicate = HKSamplePredicate.quantitySample(type: heartRateType, predicate: predicate)
+        let descriptor = HKStatisticsQueryDescriptor(
+            predicate: samplePredicate,
+            options: [.discreteAverage, .discreteMax]
+        )
+        
+        do {
+            let statistics = try await descriptor.result(for: healthStore)
+            let unit = HKUnit.count().unitDivided(by: .minute())
+            return (
+                statistics?.averageQuantity()?.doubleValue(for: unit),
+                statistics?.maximumQuantity()?.doubleValue(for: unit)
+            )
+        } catch {
+            return (nil, nil)
+        }
+    }
+    
+    static func nameForActivityType(_ type: HKWorkoutActivityType) -> String {
+        switch type {
+        case .traditionalStrengthTraining: return "Fuerza tradicional"
+        case .functionalStrengthTraining: return "Fuerza funcional"
+        case .coreTraining: return "Core / Abdomen"
+        case .swimming: return "Natación"
+        case .running: return "Carrera"
+        case .walking: return "Caminata"
+        case .cycling: return "Ciclismo"
+        case .yoga: return "Yoga"
+        case .pilates: return "Pilates"
+        case .highIntensityIntervalTraining: return "HIIT"
+        case .flexibility: return "Estiramiento / Flexibilidad"
+        case .crossTraining: return "CrossFit"
+        case .cardioDance: return "Baile"
+        case .elliptical: return "Elíptica"
+        case .rowing: return "Remo"
+        default: return "Otro deporte"
+        }
     }
 
     private static func loadLegacySnapshot() -> AppSnapshot? {
