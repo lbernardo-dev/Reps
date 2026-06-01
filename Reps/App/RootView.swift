@@ -65,16 +65,44 @@ struct MainTabView: View {
 
             if !isTabBarHidden {
                 if isQuickMenuExpanded {
-                    Color.black.opacity(0.82)
-                        .background(.ultraThinMaterial)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                                isQuickMenuExpanded = false
-                            }
+                    // Full Screen Ambient Glow Background
+                    ZStack {
+                        Color.black
+                            .ignoresSafeArea()
+                        
+                        // Soft Cyan ambient wash (top-left)
+                        Circle()
+                            .fill(Color(red: 0.0, green: 0.92, blue: 1.0).opacity(0.08))
+                            .frame(width: 320, height: 320)
+                            .blur(radius: 80)
+                            .offset(x: -160, y: -260)
+                        
+                        // Soft Pink/Magenta ambient wash (top-right)
+                        Circle()
+                            .fill(Color(red: 1.0, green: 0.05, blue: 0.72).opacity(0.08))
+                            .frame(width: 320, height: 320)
+                            .blur(radius: 80)
+                            .offset(x: 160, y: -220)
+                    }
+                    .background(.ultraThinMaterial)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                            isQuickMenuExpanded = false
                         }
-                        .transition(.opacity)
-                        .zIndex(1)
+                    }
+                    .transition(.opacity)
+                    .zIndex(1)
+
+                    VStack {
+                        QuickMenuProgressionChart()
+                            .padding(.top, 10)
+                            .padding(.horizontal, 16)
+                        
+                        Spacer()
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(2)
 
                     QuickActionFan { action in
                         open(action)
