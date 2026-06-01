@@ -48,12 +48,11 @@ final class AppStore: ObservableObject {
         WatchSyncService.shared.configure { [weak self] command in
             self?.handleWatchCommand(command)
         }
-        SharedWorkoutStore.save(sharedWorkoutSnapshot())
-
         if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
             restore(snapshot)
         } else {
             persistence.save(currentSnapshot)
+            SharedWorkoutStore.save(sharedWorkoutSnapshot())
         }
 
         Task {
@@ -61,6 +60,14 @@ final class AppStore: ObservableObject {
         }
         
         startHealthKitWorkoutObserver()
+    }
+
+    /// Immediately writes the latest computed snapshot to shared UserDefaults
+    /// so that all widgets reflect current app state. Call this on foreground / launch.
+    func syncWidgets() {
+        let snapshot = sharedWorkoutSnapshot()
+        SharedWorkoutStore.save(snapshot)
+        WatchSyncService.shared.publish(snapshot: snapshot)
     }
 
     var todaysWorkout: WorkoutDay {
@@ -434,6 +441,11 @@ final class AppStore: ObservableObject {
     }
 
     private func sharedWorkoutSnapshot() -> SharedWorkoutSnapshot {
+        let battery = trainingBattery
+        let streak = streakDays
+        let completion = weeklyCompletion
+        let nextWorkout = todaysWorkout
+
         guard let status = activeWorkoutStatus else {
             return SharedWorkoutSnapshot(
                 hasActiveWorkout: false,
@@ -469,7 +481,17 @@ final class AppStore: ObservableObject {
                 heartRate: todayHealthMetric?.restingHeartRate,
                 activeEnergyKcal: todayHealthMetric?.activeEnergyKcal,
                 summary: dailySummary,
-                updatedAt: .now
+                updatedAt: .now,
+                streakDays: streak,
+                weeklyCompletion: completion,
+                trainingBatteryLevel: battery.level,
+                trainingBatteryState: battery.state.rawValue,
+                trainingBatteryTitle: battery.title,
+                trainingBatterySuggestion: battery.suggestion,
+                trainingBatterySystemImage: battery.systemImage,
+                nextWorkoutDayName: nextWorkout.title,
+                nextWorkoutDayDescription: nextWorkout.subtitle,
+                widgetAccentColorName: userProfile.widgetAccentColorName
             )
         }
 
@@ -507,7 +529,17 @@ final class AppStore: ObservableObject {
             heartRate: todayHealthMetric?.restingHeartRate,
             activeEnergyKcal: todayHealthMetric?.activeEnergyKcal,
             summary: dailySummary,
-            updatedAt: .now
+            updatedAt: .now,
+            streakDays: streak,
+            weeklyCompletion: completion,
+            trainingBatteryLevel: battery.level,
+            trainingBatteryState: battery.state.rawValue,
+            trainingBatteryTitle: battery.title,
+            trainingBatterySuggestion: battery.suggestion,
+            trainingBatterySystemImage: battery.systemImage,
+            nextWorkoutDayName: nextWorkout.title,
+            nextWorkoutDayDescription: nextWorkout.subtitle,
+            widgetAccentColorName: userProfile.widgetAccentColorName
         )
     }
 
@@ -892,6 +924,11 @@ final class AppStore: ObservableObject {
                 try await Task.sleep(nanoseconds: 500_000_000) // 500ms debounce
                 guard !Task.isCancelled else { return }
                 persistence.save(currentSnapshot)
+                
+                // Keep shared widgets & watch in sync with data mutations
+                let snapshot = sharedWorkoutSnapshot()
+                SharedWorkoutStore.save(snapshot)
+                WatchSyncService.shared.publish(snapshot: snapshot)
             } catch {
                 // Cancelled or slept error
             }
@@ -984,6 +1021,11 @@ final class AppStore: ObservableObject {
         
         isRestoring = false
         persistence.save(currentSnapshot)
+        
+        // Keep shared widgets & watch in sync after database restore
+        let widgetSnapshot = sharedWorkoutSnapshot()
+        SharedWorkoutStore.save(widgetSnapshot)
+        WatchSyncService.shared.publish(snapshot: widgetSnapshot)
     }
     
     // MARK: - HealthKit Synchronization & Background Observers

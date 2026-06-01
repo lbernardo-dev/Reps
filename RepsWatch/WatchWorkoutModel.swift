@@ -192,7 +192,17 @@ extension WatchWorkoutModel: WCSessionDelegate {
             heartRate: context["heartRate"] as? Double,
             activeEnergyKcal: context["activeEnergyKcal"] as? Double,
             summary: context["summary"] as? String ?? "",
-            updatedAt: Date(timeIntervalSince1970: context["updatedAt"] as? Double ?? Date().timeIntervalSince1970)
+            updatedAt: Date(timeIntervalSince1970: context["updatedAt"] as? Double ?? Date().timeIntervalSince1970),
+            streakDays: context["streakDays"] as? Int ?? 0,
+            weeklyCompletion: context["weeklyCompletion"] as? Double ?? 0.0,
+            trainingBatteryLevel: context["trainingBatteryLevel"] as? Int ?? 100,
+            trainingBatteryState: context["trainingBatteryState"] as? String ?? "charged",
+            trainingBatteryTitle: context["trainingBatteryTitle"] as? String ?? "Cargada",
+            trainingBatterySuggestion: context["trainingBatterySuggestion"] as? String ?? "",
+            trainingBatterySystemImage: context["trainingBatterySystemImage"] as? String ?? "battery.100percent",
+            nextWorkoutDayName: context["nextWorkoutDayName"] as? String,
+            nextWorkoutDayDescription: context["nextWorkoutDayDescription"] as? String,
+            widgetAccentColorName: context["widgetAccentColorName"] as? String ?? "system"
         )
     }
 

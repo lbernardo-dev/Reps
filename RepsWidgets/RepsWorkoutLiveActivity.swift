@@ -73,13 +73,14 @@ struct RepsWorkoutLiveActivity: Widget {
 
 struct RepsProgressStyle: ProgressViewStyle {
     var tintColor: Color = .green
+    var isDarkBackground: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
         let fraction = configuration.fractionCompleted ?? 0.0
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.white.opacity(0.18))
+                    .fill(isDarkBackground ? Color.white.opacity(0.2) : Color.primary.opacity(0.12))
                     .frame(height: 6)
                 Capsule()
                     .fill(tintColor)

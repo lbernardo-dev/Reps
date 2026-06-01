@@ -5,6 +5,8 @@ import SwiftUI
 struct RepsWidgetsBundle: WidgetBundle {
     var body: some Widget {
         RepsWorkoutWidget()
+        RepsBatteryWidget()
+        RepsStreakWidget()
         RepsWorkoutLiveActivity()
     }
 }

@@ -67,6 +67,19 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
     var summary: String
     var updatedAt: Date
 
+    // New properties for enhanced widgets
+    var streakDays: Int
+    var weeklyCompletion: Double
+    var trainingBatteryLevel: Int
+    var trainingBatteryState: String
+    var trainingBatteryTitle: String
+    var trainingBatterySuggestion: String
+    var trainingBatterySystemImage: String
+    var nextWorkoutDayName: String?
+    var nextWorkoutDayDescription: String?
+    /// Raw WidgetColor name — drives the widget background color
+    var widgetAccentColorName: String
+
     static let empty = SharedWorkoutSnapshot(
         hasActiveWorkout: false,
         planTitle: nil,
@@ -101,7 +114,17 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
         heartRate: nil,
         activeEnergyKcal: nil,
         summary: "Sin entreno activo",
-        updatedAt: .now
+        updatedAt: .now,
+        streakDays: 0,
+        weeklyCompletion: 0.0,
+        trainingBatteryLevel: 100,
+        trainingBatteryState: "charged",
+        trainingBatteryTitle: "Cargada",
+        trainingBatterySuggestion: "Buen momento para entrenar.",
+        trainingBatterySystemImage: "battery.100percent",
+        nextWorkoutDayName: nil,
+        nextWorkoutDayDescription: nil,
+        widgetAccentColorName: "system"
     )
 
     var progress: Double {

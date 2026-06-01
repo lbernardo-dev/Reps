@@ -73,6 +73,8 @@ struct UserProfile: Codable {
     var themeMode: ThemeMode?
     var targetEventName: String?
     var targetEventDate: Date?
+    /// Raw value of WidgetColor — synced to the App Group so all widgets read it
+    var widgetAccentColorName: String = "system"
     
     var activeThemeMode: ThemeMode {
         themeMode ?? .dark

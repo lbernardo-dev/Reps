@@ -1,8 +1,10 @@
 import SwiftUI
+import WidgetKit
 
 @main
 struct RepsApp: App {
     @StateObject private var store = AppStore()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -20,7 +22,19 @@ struct RepsApp: App {
                        store.userProfile.remindersEnabled {
                         _ = await PermissionService.shared.requestNotifications()
                     }
+
+                    // Ensure widgets have fresh data immediately on launch.
+                    store.syncWidgets()
                 }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                // Push a fresh snapshot every time the app comes to foreground
+                // so widgets are always in sync when the user returns to home screen.
+                store.syncWidgets()
+                WidgetCenter.shared.reloadAllTimelines()
+            }
         }
     }
 }
+

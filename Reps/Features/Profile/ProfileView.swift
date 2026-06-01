@@ -506,6 +506,30 @@ struct ProfileView: View {
                 }
                 .pickerStyle(.segmented)
 
+                Picker("Color de Widgets", selection: Binding(
+                    get: { store.userProfile.widgetAccentColorName },
+                    set: { colorName in
+                        store.userProfile.widgetAccentColorName = colorName
+                        store.syncWidgets()
+                        HapticService.selection()
+                    }
+                )) {
+                    let widgetColors = ["system", "blue", "green", "orange", "purple", "red", "yellow"]
+                    let colorTranslations = [
+                        "system": "Sistema",
+                        "blue": "Azul",
+                        "green": "Verde",
+                        "orange": "Naranja",
+                        "purple": "Morado",
+                        "red": "Rojo",
+                        "yellow": "Amarillo"
+                    ]
+                    ForEach(widgetColors, id: \.self) { colorName in
+                        Text(colorTranslations[colorName] ?? colorName.capitalized).tag(colorName)
+                    }
+                }
+                .pickerStyle(.menu)
+
                 Toggle("Recordatorios de entreno", isOn: Binding(
                     get: { store.userProfile.remindersEnabled },
                     set: { enabled in

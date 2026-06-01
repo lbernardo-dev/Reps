@@ -60,6 +60,7 @@ struct QuickMenuProgressionChart: View {
     
     @State private var selectedMetric: ProgressionMetricType = .exercises
     @State private var activeWeek: Int? = nil // Drag gesture active week selection
+    @State private var showProfile = false
     
     private var isSpanish: Bool {
         store.userProfile.preferredLanguage.hasPrefix("es")
@@ -179,6 +180,40 @@ struct QuickMenuProgressionChart: View {
         let margin = (maxVal - minVal) * 0.12
         
         VStack(spacing: 12) {
+            // Upper Row (Avatar)
+            HStack {
+                Spacer()
+                Button {
+                    HapticService.selection()
+                    showProfile = true
+                } label: {
+                    let avatarData = store.userProfile.avatarImageData
+                    if let avatarData, let image = UIImage(data: avatarData) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 38, height: 38)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(.white, lineWidth: 2))
+                            .shadow(color: .black.opacity(0.20), radius: 4)
+                    } else {
+                        ZStack {
+                            Circle()
+                                .fill(PulseTheme.primary.opacity(0.12))
+                                .frame(width: 38, height: 38)
+                            Image(systemName: "person.crop.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundStyle(PulseTheme.primary)
+                        }
+                        .overlay(Circle().stroke(.white, lineWidth: 2))
+                        .shadow(color: .black.opacity(0.20), radius: 4)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isSpanish ? "Perfil" : "Profile")
+            }
+            .padding(.horizontal, 4)
+            
             // Stacked Title Row
             VStack(alignment: .leading, spacing: 3) {
                 Text(isSpanish ? "EVOLUCIÓN TEMPORAL" : "TEMPORAL EVOLUTION")
@@ -418,6 +453,9 @@ struct QuickMenuProgressionChart: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(Color.clear)
+        .sheet(isPresented: $showProfile) {
+            ProfileView()
+        }
     }
     
     // MARK: - Helpers

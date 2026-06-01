@@ -29,6 +29,8 @@ struct ActiveWorkoutView: View {
     @State private var activeBookmark: ExerciseMediaBookmark?
     @State private var isPaused = false
     @State private var restSeconds = 0
+    @State private var restStartedAt: Date? = nil   // ← date-based rest timing
+    @State private var restDuration = 0              // duration when rest started
     @State private var finishedSession: WorkoutSession?
     @State private var selectedExerciseIndex = 0
     @State private var showAdvancedFields = false
@@ -190,55 +192,31 @@ struct ActiveWorkoutView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .onReceive(timer) { _ in
-            guard finishedSession == nil else {
-                return
-            }
-
-            if let globalPaused = store.activeWorkoutStatus?.isPaused, globalPaused != isPaused {
-                isPaused = globalPaused
-                if isPaused {
-                    lastPausedAt = Date()
-                } else {
-                    if let lastPaused = lastPausedAt {
-                        basePausedSeconds += Int(Date().timeIntervalSince(lastPaused))
-                    }
-                    lastPausedAt = nil
-                }
-            }
-
-            if isPaused {
-                let currentPauseDuration = lastPausedAt.map { Date().timeIntervalSince($0) } ?? 0
-                pausedSeconds = basePausedSeconds + Int(currentPauseDuration)
-            } else {
-                pausedSeconds = basePausedSeconds
-                elapsedSeconds = Int(Date().timeIntervalSince(startedAt)) - pausedSeconds
-                restSeconds = max(restSeconds - 1, 0)
-            }
-            
-            // Comprobar si se ha agotado el tiempo planificado
-            let targetSeconds = workout.durationMinutes * 60
-            if elapsedSeconds >= targetSeconds, !hasShownDurationAlert {
-                hasShownDurationAlert = true
-                showDurationExhaustedAlert = true
-            }
-            
-            publishActiveWorkoutStatusIfNeeded()
+            handleTimerTick()
         }
         .onAppear {
             applyAutoProgressionIfNeeded()
             if let status = store.activeWorkoutStatus, store.activeWorkout?.id == workout.id {
                 elapsedSeconds = status.elapsedSeconds
-                pausedSeconds = status.pausedSeconds
-                isPaused = status.isPaused
-                waterLiters = status.waterLiters ?? 0.0
+                pausedSeconds  = status.pausedSeconds
+                isPaused       = status.isPaused
+                waterLiters    = status.waterLiters ?? 0.0
                 if let exerciseIndex = status.exerciseIndex {
                     selectedExerciseIndex = max(0, exerciseIndex - 1)
                 }
-                restSeconds = status.restSeconds ?? 0
-                
-                startedAt = status.startedAt
-                lastPausedAt = status.lastPausedAt
-                basePausedSeconds = status.pausedSeconds
+                // Restore date-based rest state
+                if let savedRest = status.restSeconds, savedRest > 0 {
+                    let dur = status.restDurationSeconds ?? savedRest
+                    restDuration   = dur
+                    restStartedAt  = Date().addingTimeInterval(-Double(dur - savedRest))
+                    restSeconds    = savedRest
+                } else {
+                    restSeconds    = 0
+                    restStartedAt  = nil
+                }
+                startedAt          = status.startedAt
+                lastPausedAt       = status.lastPausedAt
+                basePausedSeconds  = status.pausedSeconds
             } else {
                 if store.activeWorkoutStatus == nil {
                     store.startActiveWorkout(workout, elapsedSeconds: elapsedSeconds, pausedSeconds: pausedSeconds, isPaused: isPaused)
@@ -249,13 +227,15 @@ struct ActiveWorkoutView: View {
                     store.clearActiveWorkout()
                     store.startActiveWorkout(workout, elapsedSeconds: 0, pausedSeconds: 0, isPaused: false)
                 }
-                startedAt = Date()
-                lastPausedAt = nil
+                startedAt         = Date()
+                lastPausedAt      = nil
                 basePausedSeconds = 0
             }
             if isRouteCandidate {
                 routeTracker.requestAuthorization()
             }
+            // Keep the process alive so timers continue with screen off.
+            WorkoutBackgroundKeepAlive.shared.startIfNeeded()
         }
         .onChange(of: sessionPhotoItems) { _, newItems in
             Task { await appendSessionPhotos(from: newItems) }
@@ -334,6 +314,10 @@ struct ActiveWorkoutView: View {
         .onDisappear {
             routeTracker.stop()
             _ = audioRecorder.stopRecording(note: nil)
+            // Only stop the background task if the workout is fully done.
+            if finishedSession != nil {
+                WorkoutBackgroundKeepAlive.shared.stop()
+            }
         }
     }
 
@@ -524,6 +508,49 @@ struct ActiveWorkoutView: View {
 
         lastStatusPublishSecond = currentSecond
         publishActiveWorkoutStatus()
+    }
+
+    private func handleTimerTick() {
+        guard finishedSession == nil else { return }
+
+        if let globalPaused = store.activeWorkoutStatus?.isPaused, globalPaused != isPaused {
+            isPaused = globalPaused
+            if isPaused {
+                lastPausedAt = Date()
+            } else {
+                if let lastPaused = lastPausedAt {
+                    basePausedSeconds += Int(Date().timeIntervalSince(lastPaused))
+                }
+                lastPausedAt = nil
+            }
+        }
+
+        if isPaused {
+            let currentPauseDuration = lastPausedAt.map { Date().timeIntervalSince($0) } ?? 0
+            pausedSeconds = basePausedSeconds + Int(currentPauseDuration)
+        } else {
+            pausedSeconds = basePausedSeconds
+            elapsedSeconds = Int(Date().timeIntervalSince(startedAt)) - pausedSeconds
+
+            // Date-based rest countdown — survives background suspension.
+            if let rsa = restStartedAt {
+                let elapsed = Int(Date().timeIntervalSince(rsa))
+                let remaining = max(restDuration - elapsed, 0)
+                restSeconds = remaining
+                if remaining == 0 {
+                    restStartedAt = nil
+                }
+            }
+        }
+
+        // Comprobar si se ha agotado el tiempo planificado
+        let targetSeconds = workout.durationMinutes * 60
+        if elapsedSeconds >= targetSeconds, !hasShownDurationAlert {
+            hasShownDurationAlert = true
+            showDurationExhaustedAlert = true
+        }
+
+        publishActiveWorkoutStatusIfNeeded()
     }
 
     private func setWorkoutPaused(_ paused: Bool) {
@@ -905,7 +932,13 @@ struct ActiveWorkoutView: View {
                         HStack(spacing: 8) {
                             Button {
                                 withAnimation(.snappy(duration: 0.18)) {
-                                    restSeconds = max(0, restSeconds - 15)
+                                    // Shift anchor forward 15 s so remaining decreases.
+                                    if let rsa = restStartedAt {
+                                        restStartedAt = rsa.addingTimeInterval(-15)
+                                        restSeconds = max(0, restSeconds - 15)
+                                    } else {
+                                        restSeconds = max(0, restSeconds - 15)
+                                    }
                                 }
                             } label: {
                                 Text("−15s")
@@ -920,7 +953,13 @@ struct ActiveWorkoutView: View {
 
                             Button {
                                 withAnimation(.snappy(duration: 0.18)) {
-                                    restSeconds = min(600, restSeconds + 15)
+                                    // Shift anchor backward 15 s so remaining increases.
+                                    if let rsa = restStartedAt {
+                                        restStartedAt = rsa.addingTimeInterval(15)
+                                        restSeconds = min(600, restSeconds + 15)
+                                    } else {
+                                        startRest(duration: 15)
+                                    }
                                 }
                             } label: {
                                 Text("+15s")
@@ -934,7 +973,11 @@ struct ActiveWorkoutView: View {
                             .accessibilityLabel("Ampliar descanso 15 segundos")
 
                             Button(restSeconds == 0 ? "Reiniciar" : "Saltar") {
-                                restSeconds = restSeconds == 0 ? currentRestDuration : 0
+                                if restSeconds == 0 {
+                                    startRest(duration: currentRestDuration)
+                                } else {
+                                    stopRest()
+                                }
                             }
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
@@ -1789,7 +1832,7 @@ struct ActiveWorkoutView: View {
         let nextIndex = setIndex + 1
         if exerciseDrafts[exerciseIndex].sets.indices.contains(nextIndex),
            !exerciseDrafts[exerciseIndex].sets[nextIndex].completed {
-            restSeconds = exerciseDrafts[exerciseIndex].workoutExercise.restSeconds
+            startRest(duration: exerciseDrafts[exerciseIndex].workoutExercise.restSeconds)
             exerciseDrafts[exerciseIndex].sets[nextIndex].weightKg = completedSet.weightKg
             exerciseDrafts[exerciseIndex].sets[nextIndex].reps = completedSet.reps
             publishActiveWorkoutStatus()
@@ -1799,11 +1842,25 @@ struct ActiveWorkoutView: View {
         let nextExerciseIndex = exerciseIndex + 1
         if exerciseDrafts.indices.contains(nextExerciseIndex),
            exerciseDrafts[nextExerciseIndex].sets.contains(where: { !$0.completed }) {
-            restSeconds = workout.restBetweenExercisesSeconds
+            startRest(duration: workout.restBetweenExercisesSeconds)
         } else {
-            restSeconds = 0
+            stopRest()
         }
         publishActiveWorkoutStatus()
+    }
+
+    /// Begins a date-anchored rest countdown so the timer survives background suspension.
+    private func startRest(duration: Int) {
+        guard duration > 0 else { stopRest(); return }
+        restDuration  = duration
+        restStartedAt = Date()
+        restSeconds   = duration
+    }
+
+    private func stopRest() {
+        restSeconds   = 0
+        restStartedAt = nil
+        restDuration  = 0
     }
 
     private func applyAutoProgressionIfNeeded() {
@@ -3075,5 +3132,51 @@ private struct InlineStepper: View {
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: value)
+    }
+}
+
+// MARK: - Background Keep Alive Helper
+
+@MainActor
+final class WorkoutBackgroundKeepAlive {
+    static let shared = WorkoutBackgroundKeepAlive()
+    private init() {}
+
+    private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
+    private var renewalTimer: Timer?
+
+    func startIfNeeded() {
+        guard backgroundTaskID == .invalid else { return }
+        beginTask()
+        scheduleRenewal()
+    }
+
+    func stop() {
+        renewalTimer?.invalidate()
+        renewalTimer = nil
+        endTask()
+    }
+
+    private func beginTask() {
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "WorkoutSession") { [weak self] in
+            self?.endTask()
+        }
+    }
+
+    private func endTask() {
+        guard backgroundTaskID != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTaskID)
+        backgroundTaskID = .invalid
+    }
+
+    private func scheduleRenewal() {
+        renewalTimer?.invalidate()
+        renewalTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor in
+                self.endTask()
+                self.beginTask()
+            }
+        }
     }
 }
