@@ -5,6 +5,7 @@ struct PlansView: View {
     @State private var showCreatePlan = false
     @State private var showExerciseLibrary = false
     @State private var planToEdit: WorkoutPlan?
+    @State private var showProfile = false
 
     var body: some View {
         NavigationStack {
@@ -19,17 +20,34 @@ struct PlansView: View {
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
                         Spacer()
-                        Button { showCreatePlan = true } label: {
-                            Image(systemName: "plus")
-                                .font(.title3.weight(.bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 48, height: 48)
-                                .background(PulseTheme.primary)
-                                .clipShape(Circle())
-                                .shadow(color: PulseTheme.primary.opacity(0.24), radius: 12, x: 0, y: 6)
+                        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
+                        Button {
+                            HapticService.selection()
+                            showProfile = true
+                        } label: {
+                            let avatarData = store.userProfile.avatarImageData
+                            if let avatarData, let image = UIImage(data: avatarData) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 38, height: 38)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+                                    .shadow(color: .black.opacity(0.15), radius: 4)
+                            } else {
+                                ZStack {
+                                    Circle()
+                                        .fill(PulseTheme.primary.opacity(0.12))
+                                        .frame(width: 38, height: 38)
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .font(.system(size: 22))
+                                        .foregroundStyle(PulseTheme.primary)
+                                }
+                                .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+                            }
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Crear plan")
+                        .accessibilityLabel(isSpanish ? "Perfil" : "Profile")
                     }
 
                     PulseCard {
@@ -194,6 +212,9 @@ struct PlansView: View {
             }
             .sheet(isPresented: $showExerciseLibrary) {
                 ExerciseLibraryView()
+            }
+            .sheet(isPresented: $showProfile) {
+                ProfileView()
             }
         }
     }

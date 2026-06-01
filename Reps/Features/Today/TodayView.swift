@@ -5,6 +5,7 @@ struct TodayView: View {
     @EnvironmentObject private var store: AppStore
     @State private var showScheduleWorkout = false
     @State private var showCreatePlan = false
+    @State private var showProfile = false
 
     private var freeWorkout: WorkoutDay {
         WorkoutDay.freeWorkout
@@ -119,11 +120,14 @@ struct TodayView: View {
             .sheet(isPresented: $showScheduleWorkout) {
                 ScheduleWorkoutView()
             }
+            .sheet(isPresented: $showProfile) {
+                ProfileView()
+            }
         }
     }
 
     private var header: some View {
-        HStack(alignment: .center) {
+        HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(currentDateTitle)
                     .font(.subheadline.weight(.semibold))
@@ -141,6 +145,34 @@ struct TodayView: View {
                 title: isSpanish ? "energía" : "battery",
                 color: batteryColor
             )
+
+            Button {
+                HapticService.selection()
+                showProfile = true
+            } label: {
+                let avatarData = store.userProfile.avatarImageData
+                if let avatarData, let image = UIImage(data: avatarData) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 38, height: 38)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+                        .shadow(color: .black.opacity(0.15), radius: 4)
+                } else {
+                    ZStack {
+                        Circle()
+                            .fill(PulseTheme.primary.opacity(0.12))
+                            .frame(width: 38, height: 38)
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundStyle(PulseTheme.primary)
+                    }
+                    .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isSpanish ? "Perfil" : "Profile")
         }
     }
 

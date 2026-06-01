@@ -133,15 +133,15 @@ Estados sugeridos: `[ ]` pendiente, `[~]` en progreso, `[x]` completado, `[!]` b
 
 - [x] T-200 Analizar especificacion funcional avanzada y contrastarla con el estado actual.
 - [x] T-201 Crear matriz de cobertura avanzada en `ADVANCED_SCOPE_AUDIT.md`.
-- [ ] T-202 Corregir backlog MVP para no marcar como completas funciones que solo existen en version basica.
+- [x] T-202 Corregir backlog MVP para no marcar como completas funciones que solo existen en version basica.
 
 ## Fase A1 - Consolidacion UX/localizacion
 
-- [~] T-210 Simplificar navegacion de Plan y bibliotecas.
-- [~] T-211 Eliminar mezcla visible de ingles/espanol en rutas principales.
+- [x] T-210 Simplificar navegacion de Plan y bibliotecas.
+- [x] T-211 Eliminar mezcla visible de ingles/espanol en rutas principales.
 - [ ] T-212 Auditar todas las pantallas con capturas en iPhone pequeno/grande.
 - [ ] T-213 Corregir padding horizontal inconsistente en listas, forms y subflujos.
-- [ ] T-214 Centralizar nombres de tabs, rutas y acciones principales.
+- [x] T-214 Centralizar nombres de tabs, rutas y acciones principales.
 - [ ] T-215 Aislar cadenas restantes en `Localizable.xcstrings`.
 
 ## Fase A2 - Modelo de datos avanzado

@@ -849,7 +849,7 @@ struct ProfileSetupView: View {
 
             ForEach(generatedPlan.days) { day in
                 PulseCard {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 16) {
                         HStack(alignment: .firstTextBaseline) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(day.title)
@@ -860,20 +860,105 @@ struct ProfileSetupView: View {
                             }
                             Spacer()
                         }
+                        
+                        Divider()
+                            .background(PulseTheme.separator)
+                            .padding(.vertical, 2)
 
-                        ForEach(day.exercises) { item in
-                            HStack(alignment: .top, spacing: 12) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(item.priority == .primary ? PulseTheme.primaryBright : PulseTheme.primary)
-                                    .padding(.top, 2)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.exercise.name)
-                                        .font(.headline)
-                                    Text("\(item.targetSets) series x \(item.repRange) - \(item.restSeconds)s entre series")
-                                        .font(.subheadline)
-                                        .foregroundStyle(PulseTheme.secondaryText)
+                        VStack(spacing: 16) {
+                            ForEach(Array(day.exercises.enumerated()), id: \.offset) { index, item in
+                                if index > 0 {
+                                    Divider()
+                                        .background(PulseTheme.separator)
+                                        .padding(.vertical, 2)
                                 }
-                                Spacer()
+                                
+                                HStack(spacing: 16) {
+                                    // Left: Image or Anatomy Map Thumbnail
+                                    ExerciseMediaThumbnail(exercise: item.exercise, gender: selectedGender)
+                                        .frame(width: 76, height: 76)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                .stroke(PulseTheme.separator, lineWidth: 1)
+                                        )
+                                        .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 1.5)
+
+                                    // Right: Info & stats
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        // Name & Priority
+                                        HStack(alignment: .center, spacing: 8) {
+                                            Text(RepsText.exerciseName(item.exercise.name, language: profile.preferredLanguage))
+                                                .font(.headline)
+                                                .foregroundStyle(.white)
+                                                .lineLimit(1)
+                                            
+                                            if item.priority == .primary {
+                                                Text("Foco")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 2)
+                                                    .background(PulseTheme.accent.opacity(0.16))
+                                                    .foregroundStyle(PulseTheme.accent)
+                                                    .clipShape(Capsule())
+                                            }
+                                        }
+
+                                        // Badges for muscles
+                                        HStack(spacing: 6) {
+                                            Text(RepsText.muscle(item.exercise.muscleGroup, language: profile.preferredLanguage))
+                                                .font(.system(size: 11, weight: .bold))
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 3)
+                                                .background(PulseTheme.primary.opacity(0.14))
+                                                .foregroundStyle(PulseTheme.primaryBright)
+                                                .clipShape(Capsule())
+
+                                            ForEach(item.exercise.secondaryMuscles.prefix(2), id: \.self) { secondary in
+                                                Text(RepsText.muscle(secondary, language: profile.preferredLanguage))
+                                                    .font(.system(size: 10, weight: .medium))
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 2)
+                                                    .background(PulseTheme.grouped)
+                                                    .foregroundStyle(PulseTheme.secondaryText)
+                                                    .clipShape(Capsule())
+                                            }
+                                        }
+
+                                        // Technical metrics row
+                                        HStack(spacing: 12) {
+                                            Label {
+                                                Text("\(item.targetSets) series")
+                                                    .font(.caption.weight(.semibold))
+                                            } icon: {
+                                                Image(systemName: "square.stack.3d.up.fill")
+                                                    .font(.caption)
+                                            }
+                                            .foregroundStyle(PulseTheme.secondaryText)
+
+                                            Label {
+                                                Text(item.repRange)
+                                                    .font(.caption.weight(.semibold))
+                                            } icon: {
+                                                Image(systemName: item.exercise.trackingType == .duration ? "clock.fill" : "repeat")
+                                                    .font(.caption)
+                                            }
+                                            .foregroundStyle(PulseTheme.secondaryText)
+
+                                            Label {
+                                                Text("\(item.restSeconds)s")
+                                                    .font(.caption.weight(.semibold))
+                                            } icon: {
+                                                Image(systemName: "timer")
+                                                    .font(.caption)
+                                            }
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                        }
+                                        .padding(.top, 2)
+                                    }
+
+                                    Spacer()
+                                }
                             }
                         }
                     }

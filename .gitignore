@@ -1,0 +1,13 @@
+# Xcode build artifacts
+build/
+DerivedData/
+
+# User-specific Xcode settings
+xcuserdata/
+
+# Swift Package Manager build artifacts
+.build/
+.swiftpm/
+
+# OS-specific files
+.DS_Store

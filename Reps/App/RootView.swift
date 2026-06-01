@@ -41,7 +41,6 @@ struct MainTabView: View {
     @State private var calendarResetID = UUID()
     @State private var plansResetID = UUID()
     @State private var progressResetID = UUID()
-    @State private var profileResetID = UUID()
 
     private var freeWorkout: WorkoutDay {
         WorkoutDay.freeWorkout
@@ -62,14 +61,12 @@ struct MainTabView: View {
             case .progress:
                 ProgressDashboardView()
                     .id(progressResetID)
-            case .profile:
-                ProfileView()
-                    .id(profileResetID)
             }
 
             if !isTabBarHidden {
                 if isQuickMenuExpanded {
-                    Color.black.opacity(0.58)
+                    Color.black.opacity(0.82)
+                        .background(.ultraThinMaterial)
                         .ignoresSafeArea()
                         .onTapGesture {
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
@@ -171,8 +168,6 @@ struct MainTabView: View {
             plansResetID = UUID()
         case .progress:
             progressResetID = UUID()
-        case .profile:
-            profileResetID = UUID()
         }
     }
 }
@@ -182,7 +177,6 @@ private enum AppTab: CaseIterable {
     case today
     case plans
     case calendar
-    case profile
 
     var title: LocalizedStringKey {
         switch self {
@@ -190,7 +184,6 @@ private enum AppTab: CaseIterable {
         case .calendar: "Calendar"
         case .plans: "Plans"
         case .progress: "Progress"
-        case .profile: "Profile"
         }
     }
 
@@ -200,7 +193,6 @@ private enum AppTab: CaseIterable {
         case .calendar: "calendar"
         case .plans: "waterbottle"
         case .progress: "chart.bar.fill"
-        case .profile: "person"
         }
     }
 
@@ -210,7 +202,6 @@ private enum AppTab: CaseIterable {
         case .calendar: "calendar"
         case .plans: "waterbottle.fill"
         case .progress: "chart.bar.fill"
-        case .profile: "person.fill"
         }
     }
 }
@@ -337,7 +328,38 @@ private struct FloatingTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(AppTab.allCases, id: \.self) { tab in
+            ForEach(Array(AppTab.allCases.enumerated()), id: \.element) { index, tab in
+                if index == 2 {
+                    // Quick Action button in the middle
+                    Button {
+                        HapticService.selection()
+                        onQuickActionTap()
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [PulseTheme.primary, PulseTheme.accent],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 48, height: 48)
+                                .shadow(color: PulseTheme.primary.opacity(0.30), radius: 8, x: 0, y: 4)
+
+                            Image(systemName: "plus")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundStyle(.white)
+                                .rotationEffect(.degrees(isQuickMenuExpanded ? 135 : 0))
+                        }
+                        .scaleEffect(isQuickMenuExpanded ? 1.12 : 1.0)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(isQuickMenuExpanded ? "Cerrar menú rápido" : "Abrir menú rápido")
+                }
+                
                 Button {
                     HapticService.selection()
                     onSelect(tab)

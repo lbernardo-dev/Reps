@@ -6,6 +6,7 @@ struct CalendarView: View {
     @State private var showSchedule = false
     @State private var visibleMonth = Date()
     @State private var selectedDate = Date()
+    @State private var showProfile = false
 
     var body: some View {
         NavigationStack {
@@ -24,18 +25,32 @@ struct CalendarView: View {
                         }
                         Spacer()
                         Button {
-                            showSchedule = true
+                            HapticService.selection()
+                            showProfile = true
                         } label: {
-                            Image(systemName: "plus")
-                                .font(.title3.weight(.bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 48, height: 48)
-                                .background(PulseTheme.primary)
-                                .clipShape(Circle())
-                                .shadow(color: PulseTheme.primary.opacity(0.24), radius: 12, x: 0, y: 6)
+                            let avatarData = store.userProfile.avatarImageData
+                            if let avatarData, let image = UIImage(data: avatarData) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 38, height: 38)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+                                    .shadow(color: .black.opacity(0.15), radius: 4)
+                            } else {
+                                ZStack {
+                                    Circle()
+                                        .fill(PulseTheme.primary.opacity(0.12))
+                                        .frame(width: 38, height: 38)
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .font(.system(size: 22))
+                                        .foregroundStyle(PulseTheme.primary)
+                                }
+                                .overlay(Circle().stroke(PulseTheme.separator, lineWidth: 1))
+                            }
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Programar entrenamiento")
+                        .accessibilityLabel(isSpanish ? "Perfil" : "Profile")
                     }
 
                     calendarCommandCard
@@ -186,6 +201,9 @@ struct CalendarView: View {
             .navigationBarHidden(true)
             .sheet(isPresented: $showSchedule) {
                 ScheduleWorkoutView()
+            }
+            .sheet(isPresented: $showProfile) {
+                ProfileView()
             }
         }
     }
