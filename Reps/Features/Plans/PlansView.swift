@@ -176,12 +176,34 @@ struct PlansView: View {
                                 )
                             }
                             ForEach(inactivePlans) { plan in
-                                Button {
-                                    store.activatePlan(plan)
-                                } label: {
-                                    PlanRow(plan: plan)
+                                HStack(spacing: 0) {
+                                    Button {
+                                        store.activatePlan(plan)
+                                    } label: {
+                                        PlanRow(plan: plan)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    Menu {
+                                        Button("Activar") {
+                                            store.activatePlan(plan)
+                                        }
+                                        Button("Editar plan") {
+                                            planToEdit = plan
+                                        }
+                                        Button("Eliminar", role: .destructive) {
+                                            store.deletePlan(plan)
+                                        }
+                                    } label: {
+                                        Image(systemName: "ellipsis")
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                            .frame(width: 44, height: 44)
+                                            .contentShape(Rectangle())
+                                    }
                                 }
-                                .buttonStyle(.plain)
                                 .contextMenu {
                                     Button("Activar") {
                                         store.activatePlan(plan)
@@ -342,8 +364,6 @@ private struct PlanRow: View {
                 Text(plan.name).font(.title3.weight(.bold))
                 Text("\(plan.daysPerWeek) dias/semana").foregroundStyle(PulseTheme.secondaryText)
             }
-            Spacer()
-            Image(systemName: "ellipsis")
         }
         .padding(.vertical, 14)
         .accessibilityElement(children: .combine)

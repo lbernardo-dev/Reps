@@ -136,34 +136,77 @@ struct WorkoutDetailView: View {
     }
 
     private var heroCard: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                let todayWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Entrenamiento de hoy" : "Today's Workout"
+        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
+        let todayWord = isSpanish ? "Entrenamiento de hoy" : "Today's Workout"
+        let exercisesWord = isSpanish ? "ejercicios" : "exercises"
+        let minutesWord = isSpanish ? "minutos" : "minutes"
+        
+        return HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
+                // Header badge
+                HStack(spacing: 6) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(PulseTheme.primaryBright)
+                    Text(isSpanish ? "ACTIVO" : "ACTIVE")
+                        .font(.system(size: 9, weight: .black))
+                        .tracking(0.5)
+                        .foregroundStyle(PulseTheme.primaryBright)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(PulseTheme.primaryBright.opacity(0.12), in: Capsule())
+                
                 Text(todayWord)
-                    .font(.title3.weight(.bold))
+                    .font(.system(size: 21, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
                 
-                let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
-                let minutesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "minutos" : "minutes"
-                
-                HStack(spacing: 8) {
-                    Label("\(selectedWorkout.exercises.count) \(exercisesWord)", systemImage: "figure.strengthtraining.traditional")
-                    Text("•")
-                        .foregroundStyle(PulseTheme.tertiaryText)
-                    Label("\(selectedWorkout.durationMinutes) \(minutesWord)", systemImage: "timer")
+                // Stat capsules
+                HStack(spacing: 10) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "figure.strengthtraining.traditional")
+                            .font(.system(size: 11))
+                            .foregroundStyle(PulseTheme.primary)
+                        Text("\(selectedWorkout.exercises.count) \(exercisesWord)")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.04), in: Capsule())
+                    
+                    HStack(spacing: 5) {
+                        Image(systemName: "timer")
+                            .font(.system(size: 11))
+                            .foregroundStyle(PulseTheme.accent)
+                        Text("\(selectedWorkout.durationMinutes) \(minutesWord)")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.04), in: Capsule())
                 }
-                .font(.footnote.weight(.medium))
-                .foregroundStyle(PulseTheme.secondaryText)
+                .foregroundStyle(.white)
                 
+                // Equipment scroll
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(equipmentSummary, id: \.self) { equipment in
-                            Text(equipment)
-                                .font(.system(size: 11, weight: .bold))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(PulseTheme.grouped, in: Capsule())
-                                .foregroundStyle(PulseTheme.secondaryText)
+                            HStack(spacing: 4) {
+                                Image(systemName: RepsText.equipmentIcon(equipment))
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(PulseTheme.primaryBright)
+                                Text(equipment)
+                                    .font(.system(size: 10, weight: .bold))
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(0.04), in: Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                            )
+                            .foregroundStyle(PulseTheme.secondaryText)
                         }
                     }
                 }
@@ -173,14 +216,36 @@ struct WorkoutDetailView: View {
             
             WorkoutMusclePreview(exercises: selectedWorkout.exercises.map(\.exercise), gender: store.userProfile.muscleMapGender)
                 .frame(width: 96, height: 96)
+                .shadow(color: PulseTheme.primaryBright.opacity(0.12), radius: 8, x: 0, y: 4)
         }
-        .padding(16)
-        .background(PulseTheme.card)
+        .padding(18)
+        .background(
+            LinearGradient(
+                colors: [
+                    PulseTheme.card,
+                    Color(red: 0.10, green: 0.12, blue: 0.10)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                .stroke(PulseTheme.separator, lineWidth: 1)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.08),
+                            PulseTheme.primaryBright.opacity(0.12),
+                            Color.white.opacity(0.03)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.2
+                )
         )
+        .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
     }
 
     private var preparationCard: some View {
@@ -199,6 +264,7 @@ struct WorkoutDetailView: View {
                         ForEach(equipmentSummary, id: \.self) { equipment in
                             Label(equipment, systemImage: RepsText.equipmentIcon(equipment))
                                 .font(.caption.weight(.bold))
+                                .lineLimit(1)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
                                 .background(PulseTheme.grouped)
