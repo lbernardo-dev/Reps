@@ -48,47 +48,87 @@ private struct RepsWorkoutWidgetView: View {
     let entry: RepsWorkoutEntry
 
     var body: some View {
-        let resolvedColor: WidgetColor = {
-            if entry.configuration.accentColor == .system {
-                return WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
-            } else {
-                return entry.configuration.accentColor
-            }
-        }()
+        let resolvedColor = WidgetColor.resolved(
+            appColorName: entry.snapshot.widgetAccentColorName,
+            widgetColor: entry.configuration.accentColor
+        )
         let theme = resolvedColor.theme
 
         switch family {
         case .accessoryCircular:
-            Gauge(value: entry.snapshot.progress) {
-                Image(systemName: entry.snapshot.hasActiveWorkout ? "figure.strengthtraining.traditional" : "dumbbell")
-            } currentValueLabel: {
-                Text("\(entry.snapshot.completedSets)")
+            Group {
+                if entry.snapshot.hasActiveWorkout,
+                   let restEndDate = entry.snapshot.restEndDate {
+                    Gauge(value: entry.snapshot.restProgress) {
+                        Image(systemName: "hourglass")
+                    } currentValueLabel: {
+                        Text(restEndDate, style: .timer)
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .minimumScaleFactor(0.6)
+                    }
+                    .gaugeStyle(.accessoryCircular)
+                } else {
+                    Gauge(value: entry.snapshot.progress) {
+                        Image(systemName: entry.snapshot.hasActiveWorkout ? "figure.strengthtraining.traditional" : "dumbbell")
+                    } currentValueLabel: {
+                        Text("\(entry.snapshot.completedSets)")
+                    }
+                    .gaugeStyle(.accessoryCircular)
+                }
             }
-            .gaugeStyle(.accessoryCircular)
             .widgetURL(URL(string: "reps://workout"))
 
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
-                Text(entry.snapshot.hasActiveWorkout
-                     ? (entry.snapshot.exerciseName ?? entry.snapshot.workoutTitle)
-                     : (entry.snapshot.nextWorkoutDayName ?? "Reps"))
-                    .font(.headline)
+                if entry.snapshot.hasActiveWorkout {
+                    Label(entry.snapshot.stateLabel, systemImage: entry.snapshot.stateSystemImage)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(entry.snapshot.isPaused ? .orange : .primary)
+                        .lineLimit(1)
+                    Text(entry.snapshot.exerciseName ?? entry.snapshot.workoutTitle)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    HStack(spacing: 6) {
+                        if let restEndDate = entry.snapshot.restEndDate {
+                            Label {
+                                Text(restEndDate, style: .timer)
+                            } icon: {
+                                Image(systemName: "hourglass")
+                            }
+                        } else {
+                            Label {
+                                elapsedTimerText()
+                            } icon: {
+                                Image(systemName: "timer")
+                            }
+                        }
+                        Text("\(entry.snapshot.completedSets)/\(entry.snapshot.totalSets)")
+                    }
+                    .font(.caption2.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                Text(entry.snapshot.hasActiveWorkout
-                     ? "\(entry.snapshot.completedSets)/\(entry.snapshot.totalSets) · \(entry.snapshot.elapsedText)"
-                     : (entry.snapshot.nextWorkoutDayDescription ?? "Listo para entrenar"))
-                    .font(.caption)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                } else {
+                    Text(entry.snapshot.nextWorkoutDayName ?? "Sin plan activo")
+                        .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Text(entry.snapshot.nextWorkoutDayDescription ?? "Crea o programa tu primera sesión")
+                        .font(.caption)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
             }
             .widgetURL(URL(string: "reps://workout"))
 
         case .accessoryInline:
-            Text(entry.snapshot.hasActiveWorkout
-                 ? "\(entry.snapshot.workoutTitle) \(entry.snapshot.elapsedText)"
-                 : "Reps: \(entry.snapshot.nextWorkoutDayName ?? "Listo")")
-                .widgetURL(URL(string: "reps://workout"))
+            if entry.snapshot.hasActiveWorkout {
+                elapsedTimerText(prefix: entry.snapshot.workoutTitle)
+                    .widgetURL(URL(string: "reps://workout"))
+            } else {
+                Text("Reps: \(entry.snapshot.nextWorkoutDayName ?? "Sin plan")")
+                    .widgetURL(URL(string: "reps://workout"))
+            }
 
         default:
             Group {
@@ -105,6 +145,51 @@ private struct RepsWorkoutWidgetView: View {
             .widgetURL(URL(string: "reps://workout"))
         }
     }
+
+    @ViewBuilder
+    private func elapsedTimerText(prefix: String? = nil) -> some View {
+        if entry.snapshot.isPaused {
+            Text([prefix, entry.snapshot.elapsedText].compactMap(\.self).joined(separator: " "))
+        } else if let prefix {
+            Text(prefix) + Text(" ") + Text(entry.snapshot.elapsedStartDate, style: .timer)
+        } else {
+            Text(entry.snapshot.elapsedStartDate, style: .timer)
+        }
+    }
+}
+
+private extension SharedWorkoutSnapshot {
+    var stateLabel: String {
+        if restEndDate != nil {
+            return "DESCANSO"
+        }
+        return isPaused ? "PAUSA" : "ACTIVO"
+    }
+
+    var stateSystemImage: String {
+        if restEndDate != nil {
+            return "hourglass"
+        }
+        return isPaused ? "pause.fill" : "figure.strengthtraining.traditional"
+    }
+
+    var currentSetText: String? {
+        guard currentSetWeightKg != nil || currentSetReps != nil else {
+            return nil
+        }
+
+        let weight = currentSetWeightKg.map { value in
+            value.truncatingRemainder(dividingBy: 1) == 0
+                ? "\(Int(value)) kg"
+                : String(format: "%.1f kg", value)
+        }
+        let reps = currentSetReps.map { "\($0) reps" }
+        return [weight, reps].compactMap(\.self).joined(separator: " x ")
+    }
+
+    var hasUpcomingWorkout: Bool {
+        nextWorkoutDayName != nil
+    }
 }
 
 // MARK: - Active Workout View
@@ -115,46 +200,48 @@ private struct ActiveWorkoutView: View {
     let theme: WidgetTheme
 
     var body: some View {
-        let restSeconds = entry.snapshot.restSeconds ?? 0
-        let isResting = restSeconds > 0
-        let restEndDate = entry.snapshot.updatedAt.addingTimeInterval(TimeInterval(restSeconds))
+        let isResting = entry.snapshot.restEndDate != nil
 
         VStack(alignment: .leading, spacing: family == .systemSmall ? 4 : 8) {
             // Header
             HStack(alignment: .center) {
-                Image(systemName: isResting ? "hourglass" : "figure.strengthtraining.traditional")
+                Image(systemName: entry.snapshot.stateSystemImage)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.tint)
-                Spacer()
-                Text(isResting ? "DESCANSO" : (entry.snapshot.isPaused ? "PAUSA" : "ACTIVO"))
+                Text(entry.snapshot.stateLabel)
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(isResting ? theme.foreground : (entry.snapshot.isPaused ? Color.orange : theme.badgeText))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(isResting ? theme.badgeBackground : (entry.snapshot.isPaused ? Color.orange.opacity(0.15) : theme.badgeBackground), in: Capsule())
+                Spacer()
+                Text("\(entry.snapshot.completedSets)/\(entry.snapshot.totalSets)")
+                    .font(.system(size: 8, weight: .black))
+                    .foregroundStyle(theme.badgeText)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(theme.badgeBackground, in: Capsule())
             }
 
-            if isResting && restEndDate > Date() {
+            if let restEndDate = entry.snapshot.restEndDate {
                 Spacer(minLength: 0)
 
                 // Prominent resting countdown timer
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("TIEMPO DE DESCANSO")
-                        .font(.system(size: 8, weight: .black))
-                        .foregroundStyle(theme.secondaryForeground)
-
+                VStack(alignment: .leading, spacing: 3) {
                     Text(restEndDate, style: .timer)
                         .font(.system(size: family == .systemSmall ? 26 : 32, weight: .black, design: .rounded))
                         .foregroundStyle(theme.tint)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
+                    ProgressView(value: entry.snapshot.restProgress)
+                        .progressViewStyle(RepsProgressStyle(tintColor: theme.tint, isDarkBackground: theme.isDarkBackground))
                 }
 
                 Spacer(minLength: 0)
 
                 // Next/Current exercise preview
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("SIGUIENTE:")
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("SIGUIENTE")
                         .font(.system(size: 8, weight: .black))
                         .foregroundStyle(theme.secondaryForeground)
                     Text(entry.snapshot.nextExerciseName ?? entry.snapshot.exerciseName ?? "Siguiente serie")
@@ -162,6 +249,14 @@ private struct ActiveWorkoutView: View {
                         .foregroundStyle(theme.foreground)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
+                }
+
+                if family == .systemMedium {
+                    HStack(spacing: 8) {
+                        metricPill(title: "Sesión", value: timerValueText(), icon: "timer")
+                        metricPill(title: "Volumen", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
+                        metricPill(title: "Restante", value: entry.snapshot.remainingText, icon: "hourglass.bottomhalf.filled")
+                    }
                 }
             } else {
                 // Workout title
@@ -173,11 +268,25 @@ private struct ActiveWorkoutView: View {
 
                 // Current exercise
                 if let exercise = entry.snapshot.exerciseName {
-                    Label(exercise, systemImage: "dumbbell.fill")
-                        .font(.system(size: family == .systemSmall ? 9 : 11, weight: .semibold))
-                        .foregroundStyle(theme.secondaryForeground)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Label(exercise, systemImage: "dumbbell.fill")
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        HStack(spacing: 5) {
+                            if let exerciseIndex = entry.snapshot.exerciseIndex,
+                               let totalExercises = entry.snapshot.totalExercises {
+                                Text("\(exerciseIndex)/\(totalExercises) ejercicios")
+                            }
+                            if let currentSetText = entry.snapshot.currentSetText {
+                                Text(currentSetText)
+                            }
+                        }
+                        .font(.system(size: family == .systemSmall ? 8 : 9, weight: .bold))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .minimumScaleFactor(0.75)
+                    }
+                    .font(.system(size: family == .systemSmall ? 9 : 11, weight: .semibold))
+                    .foregroundStyle(theme.secondaryForeground)
                 }
 
                 // Progress bar
@@ -186,7 +295,15 @@ private struct ActiveWorkoutView: View {
 
                 // Timer row
                 HStack {
-                    Label(entry.snapshot.elapsedText, systemImage: "timer")
+                    Label {
+                        if entry.snapshot.isPaused {
+                            Text(entry.snapshot.elapsedText)
+                        } else {
+                            Text(entry.snapshot.elapsedStartDate, style: .timer)
+                        }
+                    } icon: {
+                        Image(systemName: "timer")
+                    }
                     Spacer()
                     Label("\(entry.snapshot.completedSets)/\(entry.snapshot.totalSets) series", systemImage: "checkmark.circle")
                 }
@@ -196,25 +313,51 @@ private struct ActiveWorkoutView: View {
                 // Medium only: extra stats
                 if family == .systemMedium {
                     Spacer(minLength: 0)
-                    HStack(spacing: 8) {
-                        statPill(value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
-                        statPill(value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
-                        statPill(value: "\(Int(entry.snapshot.activeEnergyKcal ?? 0)) kcal", icon: "flame.fill")
+                    if let current = entry.snapshot.currentExerciseCompletedSets,
+                       let total = entry.snapshot.currentExerciseTotalSets,
+                       total > 0 {
+                        HStack(spacing: 6) {
+                            Text("Ejercicio")
+                            ProgressView(value: Double(current) / Double(total))
+                                .progressViewStyle(RepsProgressStyle(tintColor: theme.tint, isDarkBackground: theme.isDarkBackground))
+                            Text("\(current)/\(total)")
+                        }
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(theme.secondaryForeground)
+                    }
+
+                    HStack(spacing: 6) {
+                        metricPill(title: "Restante", value: entry.snapshot.remainingText, icon: "hourglass")
+                        metricPill(title: "Volumen", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
+                        metricPill(title: "Agua", value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
                     }
                 }
             }
         }
     }
 
-    private func statPill(value: String, icon: String) -> some View {
-        HStack(spacing: 3) {
+    private func timerValueText() -> String {
+        entry.snapshot.isPaused ? entry.snapshot.elapsedText : entry.snapshot.elapsedText
+    }
+
+    private func metricPill(title: String, value: String, icon: String) -> some View {
+        HStack(spacing: 4) {
             Image(systemName: icon)
-            Text(value)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(title)
+                    .font(.system(size: 7, weight: .black))
+                    .foregroundStyle(theme.secondaryForeground)
+                Text(value)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(theme.foreground)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .font(.system(size: 10, weight: .semibold))
         .foregroundStyle(theme.foreground)
-        .padding(.horizontal, 7)
+        .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .background(theme.badgeBackground, in: RoundedRectangle(cornerRadius: 8))
     }
@@ -235,7 +378,7 @@ private struct InactiveWorkoutView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.tint)
                 Spacer()
-                Text("PRÓXIMO")
+                Text(entry.snapshot.hasUpcomingWorkout ? "PRÓXIMO" : "SIN PLAN")
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(theme.badgeText)
                     .padding(.horizontal, 6)
@@ -244,14 +387,14 @@ private struct InactiveWorkoutView: View {
             }
 
             // Next workout title
-            Text(entry.snapshot.nextWorkoutDayName ?? "Entrenamiento")
+            Text(entry.snapshot.nextWorkoutDayName ?? "Sin plan activo")
                 .font(.system(size: family == .systemSmall ? 13 : 15, weight: .bold))
                 .foregroundStyle(theme.foreground)
                 .lineLimit(2)
                 .minimumScaleFactor(0.75)
 
             // Subtitle
-            Text(entry.snapshot.nextWorkoutDayDescription ?? "Sesión programada")
+            Text(entry.snapshot.nextWorkoutDayDescription ?? "Crea una rutina o programa una sesión")
                 .font(.system(size: family == .systemSmall ? 9 : 11, weight: .semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

@@ -24,6 +24,11 @@ public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
         }
     }
 
+    public static func resolved(appColorName: String, widgetColor: WidgetColor) -> WidgetColor {
+        let appColor = WidgetColor.from(name: appColorName)
+        return appColor == .system ? widgetColor : appColor
+    }
+
     public static var typeDisplayRepresentation: TypeDisplayRepresentation {
         TypeDisplayRepresentation(name: "Color de Acento")
     }

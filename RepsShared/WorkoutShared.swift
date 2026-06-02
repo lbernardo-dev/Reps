@@ -136,12 +136,33 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
         Self.durationText(elapsedSeconds)
     }
 
+    var elapsedStartDate: Date {
+        updatedAt.addingTimeInterval(-TimeInterval(elapsedSeconds))
+    }
+
     var remainingText: String {
         Self.durationText(estimatedRemainingSeconds ?? 0)
     }
 
     var restText: String {
         Self.durationText(restSeconds ?? 0)
+    }
+
+    var restEndDate: Date? {
+        guard let restSeconds, restSeconds > 0 else {
+            return nil
+        }
+        return updatedAt.addingTimeInterval(TimeInterval(restSeconds))
+    }
+
+    var restProgress: Double {
+        guard let restSeconds,
+              let restDurationSeconds,
+              restDurationSeconds > 0 else {
+            return 0
+        }
+        let completed = Double(restDurationSeconds - restSeconds) / Double(restDurationSeconds)
+        return min(max(completed, 0), 1)
     }
 
     static func durationText(_ value: Int) -> String {
@@ -168,12 +189,15 @@ enum SharedWorkoutStore {
         return snapshot
     }
 
-    static func save(_ snapshot: SharedWorkoutSnapshot) {
+    static func save(_ snapshot: SharedWorkoutSnapshot, reloadTimelines: Bool = true) {
         guard let defaults = UserDefaults(suiteName: RepsAppGroup.identifier),
               let data = try? JSONEncoder().encode(snapshot) else {
             return
         }
         defaults.set(data, forKey: key)
+        guard reloadTimelines else {
+            return
+        }
         #if canImport(WidgetKit)
         #if !os(watchOS)
         WidgetCenter.shared.reloadAllTimelines()

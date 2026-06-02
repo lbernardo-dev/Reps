@@ -113,7 +113,7 @@ struct TodayView: View {
                     weeklyCommandGrid
                     wellnessWidgets
                     coachingCard
-                    planPreview
+                    planSection
                     progressAndRecovery
                     smartShortcuts
                     visualLibraryStrip
@@ -308,7 +308,7 @@ struct TodayView: View {
 
                 // Stop
                 Button {
-                    store.clearActiveWorkout()
+                    store.finishActiveWorkoutFromSummaryCard()
                 } label: {
                     Image(systemName: "stop.fill")
                         .font(.headline.weight(.bold))
@@ -359,7 +359,7 @@ struct TodayView: View {
             if hasActivePlanSession {
                 return RepsText.localizedWorkoutSubtitle(focusWorkout.subtitle, language: store.userProfile.preferredLanguage)
             } else {
-                return isSpanish ? "Registra un entreno libre, planifica una sesión o continúa tu plan activo." : "You can log a free workout, schedule a session, or continue your active plan."
+                return isSpanish ? "Registra un entreno libre, crea una rutina o programa una sesión cuando estés listo." : "Log a free workout, create a routine, or schedule a session when you are ready."
             }
         }()
         let playButtonTitle: String = {
@@ -532,7 +532,7 @@ struct TodayView: View {
 
     private var weeklyCommandGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            HomeMetricTile(title: "Week", value: "\(completedThisWeek)/\(store.activePlan.daysPerWeek)", subtitle: isSpanish ? "sesiones" : "sessions", systemImage: "calendar", color: PulseTheme.primary)
+            HomeMetricTile(title: "Week", value: hasActivePlan ? "\(completedThisWeek)/\(store.activePlan.daysPerWeek)" : "0", subtitle: isSpanish ? "sesiones" : "sessions", systemImage: "calendar", color: PulseTheme.primary)
             HomeMetricTile(title: "Volume", value: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: isSpanish ? "kg esta semana" : "kg this week", systemImage: "scalemass", color: PulseTheme.primaryBright)
             HomeMetricTile(title: "Streak", value: "\(streakDays)", subtitle: isSpanish ? "días seguidos" : "days in a row", systemImage: "flame", color: PulseTheme.accent)
         }
@@ -604,6 +604,67 @@ struct TodayView: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var planSection: some View {
+        if hasActivePlan {
+            planPreview
+        } else {
+            noPlanCard
+        }
+    }
+
+    private var noPlanCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.headline.weight(.bold))
+                        .frame(width: 42, height: 42)
+                        .foregroundStyle(.white)
+                        .background(PulseTheme.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(isSpanish ? "Sin plan activo" : "No active plan")
+                            .font(.headline)
+                        Text(isSpanish ? "Crea una rutina o programa una sesión cuando estés listo." : "Create a routine or schedule a session when you are ready.")
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        showCreatePlan = true
+                    } label: {
+                        Label(isSpanish ? "Crear plan" : "Create plan", systemImage: "plus")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .foregroundStyle(.black)
+                            .background(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        showScheduleWorkout = true
+                    } label: {
+                        Label(isSpanish ? "Programar" : "Schedule", systemImage: "calendar")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .foregroundStyle(PulseTheme.primary)
+                            .background(PulseTheme.grouped)
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -852,6 +913,10 @@ struct TodayView: View {
     }
 
     private var locationLabel: String {
+        guard hasActivePlan else {
+            return isSpanish ? "libre" : "free"
+        }
+
         if isSpanish {
             return switch store.activePlan.location {
             case .gym: "gimnasio"

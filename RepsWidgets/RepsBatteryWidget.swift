@@ -57,13 +57,10 @@ private struct RepsBatteryWidgetView: View {
     let entry: RepsBatteryEntry
 
     var body: some View {
-        let resolvedColor: WidgetColor = {
-            if entry.configuration.accentColor == .system {
-                return WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
-            } else {
-                return entry.configuration.accentColor
-            }
-        }()
+        let resolvedColor = WidgetColor.resolved(
+            appColorName: entry.snapshot.widgetAccentColorName,
+            widgetColor: entry.configuration.accentColor
+        )
         let theme = resolvedColor.theme
         let level = entry.snapshot.trainingBatteryLevel
         let bColor = batteryColor(for: level)

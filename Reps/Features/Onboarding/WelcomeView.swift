@@ -25,9 +25,14 @@ struct WelcomeView: View {
                     }
                 }
             } else {
-                ProfileSetupView { result in
-                    store.completeOnboarding(result: result)
-                }
+                ProfileSetupView(
+                    onFinish: { result in
+                        store.completeOnboarding(result: result)
+                    },
+                    onSkip: {
+                        store.skipOnboarding()
+                    }
+                )
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
                     removal: .opacity

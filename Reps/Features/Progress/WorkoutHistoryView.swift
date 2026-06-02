@@ -216,6 +216,7 @@ struct WorkoutLogRow: View {
 }
 
 struct WorkoutSessionDetailView: View {
+    @EnvironmentObject private var store: AppStore
     let session: WorkoutSession
     @State private var isShowingShareSheet = false
     @State private var shareImage: UIImage?
@@ -237,6 +238,9 @@ struct WorkoutSessionDetailView: View {
                             Spacer()
                             
                             Button {
+                                guard store.requireFeature(.shareCards, source: .shareCards) else {
+                                    return
+                                }
                                 // Generate a share card for the session
                                 shareImage = WorkoutShareImageRenderer.render(session: session)
                                 isShowingShareSheet = true

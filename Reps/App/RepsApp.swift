@@ -1,10 +1,27 @@
+import Combine
 import SwiftUI
-import WidgetKit
+import UserNotifications
+
+@MainActor
+final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        UNUserNotificationCenter.current().delegate = NotificationRouter.shared
+        return true
+    }
+}
 
 @main
 struct RepsApp: App {
+    @UIApplicationDelegateAdaptor(RepsApplicationDelegate.self) private var appDelegate
     @StateObject private var store = AppStore()
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        TelemetryService.shared.configure()
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -13,28 +30,33 @@ struct RepsApp: App {
                 .environment(\.locale, Locale(identifier: store.userProfile.preferredLanguage))
                 .tint(PulseTheme.primary)
                 .task {
-                    // Refresh cached permission state on each launch.
                     PermissionService.shared.refreshAll()
 
-                    // Request notification permission for returning users who
-                    // have reminders enabled but never granted them.
                     if store.userProfile.onboardingCompleted,
                        store.userProfile.remindersEnabled {
                         _ = await PermissionService.shared.requestNotifications()
+                        store.refreshNotificationSchedule()
                     }
 
-                    // Ensure widgets have fresh data immediately on launch.
                     store.syncWidgets()
+                    TelemetryService.shared.updateUserProperties(store.userProfile)
+                    TelemetryService.shared.log(.appOpen, parameters: [
+                        "onboarding_completed": store.userProfile.onboardingCompleted,
+                        "has_active_plan": !store.activePlan.days.isEmpty,
+                        "session_count": store.workoutSessions.count,
+                        "plan_count": store.plans.count
+                    ])
+                }
+                .onReceive(NotificationRouter.shared.$latestTarget.compactMap { $0 }) { target in
+                    store.handleNotificationTarget(target)
+                    NotificationRouter.shared.consumeLatestTarget()
                 }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
-                // Push a fresh snapshot every time the app comes to foreground
-                // so widgets are always in sync when the user returns to home screen.
                 store.syncWidgets()
-                WidgetCenter.shared.reloadAllTimelines()
+                store.refreshNotificationSchedule()
             }
         }
     }
 }
-

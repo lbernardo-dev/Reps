@@ -100,7 +100,8 @@ struct ActiveWorkoutView: View {
     }
 
     private var hasVisibleAdvancedFields: Bool {
-        store.userProfile.showSetType || store.userProfile.showRPE || store.userProfile.showRIR || store.userProfile.showTempo
+        store.hasFeatureAccess(.configurableProgression) &&
+        (store.userProfile.showSetType || store.userProfile.showRPE || store.userProfile.showRIR || store.userProfile.showTempo)
     }
 
     private var isRouteCandidate: Bool {
@@ -1187,7 +1188,9 @@ struct ActiveWorkoutView: View {
                     }
                 } else {
                     Button {
-                        showProPreferences = true
+                        if store.requireFeature(.configurableProgression, source: .workoutAdvancedFields) {
+                            showProPreferences = true
+                        }
                     } label: {
                         HStack {
                             Label("Campos Pro", systemImage: "slider.horizontal.3")
@@ -1597,7 +1600,8 @@ struct ActiveWorkoutView: View {
     }
 
     private var selectedSuggestionText: String? {
-        guard store.userProfile.autoProgressionEnabled,
+        guard store.hasFeatureAccess(.configurableProgression),
+              store.userProfile.autoProgressionEnabled,
               let selectedDraft else {
             return nil
         }
@@ -1864,7 +1868,9 @@ struct ActiveWorkoutView: View {
     }
 
     private func applyAutoProgressionIfNeeded() {
-        guard store.userProfile.autoProgressionEnabled, !hasAppliedProgression else {
+        guard store.hasFeatureAccess(.configurableProgression),
+              store.userProfile.autoProgressionEnabled,
+              !hasAppliedProgression else {
             return
         }
 
@@ -2784,6 +2790,7 @@ private struct BatteryMicroMetric: View {
 }
 
 struct WorkoutSummaryView: View {
+    @EnvironmentObject private var store: AppStore
     let session: WorkoutSession
     let onDone: () -> Void
 
@@ -2805,6 +2812,9 @@ struct WorkoutSummaryView: View {
                 // Share and Save Buttons (High Contrast Premium styling)
                 HStack(spacing: 12) {
                     Button {
+                        guard store.requireFeature(.shareCards, source: .shareCards) else {
+                            return
+                        }
                         generatedImage = WorkoutShareImageRenderer.render(session: session)
                         isShowingShareSheet = true
                     } label: {
@@ -2822,6 +2832,9 @@ struct WorkoutSummaryView: View {
                     .buttonStyle(.plain)
                     
                     Button {
+                        guard store.requireFeature(.shareCards, source: .shareCards) else {
+                            return
+                        }
                         let img = WorkoutShareImageRenderer.render(session: session)
                         UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil)
                         withAnimation {

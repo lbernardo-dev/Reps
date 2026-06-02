@@ -10,6 +10,7 @@ final class SwiftDataPersistence {
     init(inMemory: Bool = false) {
         let schema = Schema([
             UserProfileRecord.self,
+            MonetizationStateRecord.self,
             ExerciseRecord.self,
             SetLogRecord.self,
             WorkoutExerciseRecord.self,
@@ -23,6 +24,7 @@ final class SwiftDataPersistence {
             BodyMetricRecord.self,
             CardioLogRecord.self,
             ProgressPhotoRecord.self,
+            SavedShareCardRecord.self,
             GymPassRecord.self,
             GymVisitRecord.self,
             HealthSyncRecord.self
@@ -55,11 +57,11 @@ final class SwiftDataPersistence {
         let profiles = fetch(UserProfileRecord.self)
         let plans = fetch(WorkoutPlanRecord.self)
 
-        guard let profile = profiles.first, !plans.isEmpty else {
+        guard let profile = profiles.first else {
             return nil
         }
 
-        let activePlan = plans.first(where: \.isActive)?.domain ?? plans.first?.domain ?? SeedData.pushPullLegsPlan
+        let activePlan = plans.first(where: \.isActive)?.domain ?? plans.first?.domain ?? .empty
 
         let activeWorkoutStatus = profile.activeWorkoutStatusData.flatMap { try? JSONDecoder().decode(ActiveWorkoutStatus.self, from: $0) }
         let activeWorkout = profile.activeWorkoutData.flatMap { try? JSONDecoder().decode(WorkoutDay.self, from: $0) }
@@ -67,6 +69,7 @@ final class SwiftDataPersistence {
 
         return AppSnapshot(
             userProfile: profile.domain,
+            monetization: fetch(MonetizationStateRecord.self).first?.domain ?? MonetizationState(),
             activePlan: activePlan,
             plans: plans.map(\.domain),
             workoutTemplates: fetch(WorkoutTemplateRecord.self).map(\.domain),
@@ -82,7 +85,8 @@ final class SwiftDataPersistence {
             health: fetch(HealthSyncRecord.self).first?.domain ?? HealthSyncState(),
             activeWorkout: activeWorkout,
             activeWorkoutDrafts: activeWorkoutDrafts,
-            activeWorkoutStatus: activeWorkoutStatus
+            activeWorkoutStatus: activeWorkoutStatus,
+            savedShareCards: fetch(SavedShareCardRecord.self).map(\.domain)
         )
     }
 
@@ -95,13 +99,17 @@ final class SwiftDataPersistence {
         profileRecord.activeWorkoutDraftsData = try? JSONEncoder().encode(snapshot.activeWorkoutDrafts)
 
         context.insert(profileRecord)
+        context.insert(MonetizationStateRecord(state: snapshot.monetization))
         context.insert(HealthSyncRecord(health: snapshot.health))
 
         snapshot.exercises
             .map { ExerciseRecord(exercise: $0, isLibraryItem: true) }
             .forEach(context.insert)
         snapshot.plans
-            .map { WorkoutPlanRecord(plan: $0, isActive: $0.id == snapshot.activePlan.id) }
+            .map { plan in
+                let isActive = plan.id == snapshot.activePlan.id
+                return WorkoutPlanRecord(plan: isActive ? snapshot.activePlan : plan, isActive: isActive)
+            }
             .forEach(context.insert)
         snapshot.workoutTemplates.map(WorkoutTemplateRecord.init).forEach(context.insert)
         snapshot.scheduledWorkouts.map(ScheduledWorkoutRecord.init).forEach(context.insert)
@@ -109,6 +117,7 @@ final class SwiftDataPersistence {
         snapshot.cardioLogs.map(CardioLogRecord.init).forEach(context.insert)
         snapshot.bodyMetrics.map(BodyMetricRecord.init).forEach(context.insert)
         snapshot.progressPhotos.map(ProgressPhotoRecord.init).forEach(context.insert)
+        snapshot.savedShareCards.map(SavedShareCardRecord.init).forEach(context.insert)
         snapshot.gymPasses.map(GymPassRecord.init).forEach(context.insert)
         snapshot.gymVisits.map(GymVisitRecord.init).forEach(context.insert)
         snapshot.goals.map(GoalRecord.init).forEach(context.insert)
@@ -118,10 +127,12 @@ final class SwiftDataPersistence {
 
     private func clearStore() {
         deleteAll(HealthSyncRecord.self)
+        deleteAll(MonetizationStateRecord.self)
         deleteAll(UserProfileRecord.self)
         deleteAll(GoalRecord.self)
         deleteAll(GymVisitRecord.self)
         deleteAll(GymPassRecord.self)
+        deleteAll(SavedShareCardRecord.self)
         deleteAll(ProgressPhotoRecord.self)
         deleteAll(BodyMetricRecord.self)
         deleteAll(CardioLogRecord.self)

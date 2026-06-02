@@ -268,8 +268,16 @@ struct RepsTests {
         let persistence = SwiftDataPersistence(inMemory: true)
         var snapshot = AppSnapshot.seed
         snapshot.userProfile.avatarImageData = Data([1, 2, 3])
+        snapshot.userProfile.themeMode = .light
+        snapshot.userProfile.widgetAccentColorName = "green"
+        snapshot.activePlan = SeedData.pushPullLegsPlan
+        snapshot.activePlan.currentDayIndex = 2
+        snapshot.plans = [snapshot.activePlan]
         snapshot.progressPhotos = [
             ProgressPhoto(date: .now, imageData: Data([4, 5, 6]), weightKg: 82.4, note: "Front relaxed")
+        ]
+        snapshot.savedShareCards = [
+            SavedShareCard(date: .now, workoutTitle: "Advanced", imageData: Data([9, 10, 11]))
         ]
         snapshot.bodyMetrics = [
             BodyMetric(
@@ -320,10 +328,15 @@ struct RepsTests {
 
         let loaded = persistence.loadSnapshot()
         #expect(loaded?.userProfile.avatarImageData == Data([1, 2, 3]))
+        #expect(loaded?.userProfile.themeMode == .light)
+        #expect(loaded?.userProfile.widgetAccentColorName == "green")
+        #expect(loaded?.activePlan.currentDayIndex == 2)
         #expect(loaded?.bodyMetrics.first?.waterLiters == 2.3)
         #expect(loaded?.bodyMetrics.first?.dietaryEnergyKcal == 2_450)
         #expect(loaded?.progressPhotos.first?.imageData == Data([4, 5, 6]))
         #expect(loaded?.progressPhotos.first?.weightKg == 82.4)
+        #expect(loaded?.savedShareCards.first?.imageData == Data([9, 10, 11]))
+        #expect(loaded?.savedShareCards.first?.workoutTitle == "Advanced")
         #expect(loaded?.gymPasses.first?.codeType == .qr)
         #expect(loaded?.gymPasses.first?.membershipID == "A-100")
         #expect(loaded?.gymVisits.first?.locationNote == "Downtown")
@@ -394,5 +407,34 @@ struct RepsTests {
         #expect(ProductAccess.isEnabled(.unlimitedLogging))
         #expect(!ProductAccess.isEnabled(.advancedAnalytics))
         #expect(ProductAccess.isEnabled(.advancedAnalytics, proEnabled: true))
+    }
+
+    @Test @MainActor func monetizationStatePersistsThroughSwiftData() {
+        let persistence = SwiftDataPersistence(inMemory: true)
+        var snapshot = AppSnapshot.seed
+        snapshot.monetization.entitlement = .pro
+        snapshot.monetization.status = .active
+        snapshot.monetization.billingCycle = .annual
+        snapshot.monetization.lastPaywallSource = .profileSubscription
+        snapshot.monetization.paywallPresentationCount = 3
+
+        persistence.save(snapshot)
+
+        let loaded = persistence.loadSnapshot()
+        #expect(loaded?.monetization.entitlement == .pro)
+        #expect(loaded?.monetization.status == .active)
+        #expect(loaded?.monetization.billingCycle == .annual)
+        #expect(loaded?.monetization.lastPaywallSource == .profileSubscription)
+        #expect(loaded?.monetization.paywallPresentationCount == 3)
+    }
+
+    @Test @MainActor func requireFeaturePresentsPaywallWhenProFeatureIsLocked() {
+        let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+
+        let unlocked = store.requireFeature(.advancedAnalytics, source: .progressAdvancedAnalytics)
+
+        #expect(!unlocked)
+        #expect(store.activePaywall?.source == .progressAdvancedAnalytics)
+        #expect(store.activePaywall?.feature == .advancedAnalytics)
     }
 }

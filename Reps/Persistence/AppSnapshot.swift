@@ -1,8 +1,9 @@
 import Foundation
 
 struct AppSnapshot: Codable {
-    var snapshotVersion: Int = 1
+    var snapshotVersion: Int = 2
     var userProfile: UserProfile
+    var monetization: MonetizationState
     var activePlan: WorkoutPlan
     var plans: [WorkoutPlan]
     var workoutTemplates: [WorkoutDay]
@@ -23,6 +24,7 @@ struct AppSnapshot: Codable {
 
     init(
         userProfile: UserProfile,
+        monetization: MonetizationState = MonetizationState(),
         activePlan: WorkoutPlan,
         plans: [WorkoutPlan],
         workoutTemplates: [WorkoutDay],
@@ -40,10 +42,11 @@ struct AppSnapshot: Codable {
         activeWorkoutDrafts: [ExerciseSessionDraft]? = nil,
         activeWorkoutStatus: ActiveWorkoutStatus? = nil,
         savedShareCards: [SavedShareCard] = [],
-        snapshotVersion: Int = 1
+        snapshotVersion: Int = 2
     ) {
         self.snapshotVersion = snapshotVersion
         self.userProfile = userProfile
+        self.monetization = monetization
         self.activePlan = activePlan
         self.plans = plans
         self.workoutTemplates = workoutTemplates
@@ -66,6 +69,7 @@ struct AppSnapshot: Codable {
     private enum CodingKeys: String, CodingKey {
         case snapshotVersion
         case userProfile
+        case monetization
         case activePlan
         case plans
         case workoutTemplates
@@ -87,8 +91,9 @@ struct AppSnapshot: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        snapshotVersion = try container.decodeIfPresent(Int.self, forKey: .snapshotVersion) ?? 1
+        snapshotVersion = try container.decodeIfPresent(Int.self, forKey: .snapshotVersion) ?? 2
         userProfile = try container.decode(UserProfile.self, forKey: .userProfile)
+        monetization = try container.decodeIfPresent(MonetizationState.self, forKey: .monetization) ?? MonetizationState()
         activePlan = try container.decode(WorkoutPlan.self, forKey: .activePlan)
         plans = try container.decode([WorkoutPlan].self, forKey: .plans)
         workoutTemplates = try container.decode([WorkoutDay].self, forKey: .workoutTemplates)
@@ -110,21 +115,22 @@ struct AppSnapshot: Codable {
 }
 
 extension AppSnapshot {
-    static var seed: AppSnapshot {
+    static var empty: AppSnapshot {
         AppSnapshot(
             userProfile: UserProfile(),
-            activePlan: SeedData.pushPullLegsPlan,
-            plans: SeedData.defaultPlans,
+            monetization: MonetizationState(),
+            activePlan: .empty,
+            plans: [],
             workoutTemplates: SeedData.workoutTemplates,
             exercises: SeedData.exercises,
-            scheduledWorkouts: SeedData.scheduledWorkouts,
-            workoutSessions: SeedData.sessions,
+            scheduledWorkouts: [],
+            workoutSessions: [],
             cardioLogs: [],
-            bodyMetrics: SeedData.bodyMetrics,
+            bodyMetrics: [],
             progressPhotos: [],
             gymPasses: [],
             gymVisits: [],
-            goals: SeedData.goals,
+            goals: [],
             health: HealthSyncState(),
             activeWorkout: nil,
             activeWorkoutDrafts: nil,
@@ -132,5 +138,8 @@ extension AppSnapshot {
             savedShareCards: []
         )
     }
-}
 
+    static var seed: AppSnapshot {
+        empty
+    }
+}

@@ -27,6 +27,10 @@ struct RootView: View {
         } message: {
             Text("Hubo un problema al cargar tus datos guardados. La aplicación está en modo temporal y no guardará los datos permanentemente.")
         }
+        .sheet(item: $store.activePaywall) { presentation in
+            PaywallView(presentation: presentation)
+                .environmentObject(store)
+        }
         .preferredColorScheme(preferredColorScheme)
     }
 }
@@ -123,6 +127,9 @@ struct MainTabView: View {
                         withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
                             isQuickMenuExpanded.toggle()
                         }
+                        TelemetryService.shared.log(.quickMenuToggled, parameters: [
+                            "expanded": isQuickMenuExpanded
+                        ])
                     }
                 ) { tab in
                     select(tab)
@@ -143,6 +150,18 @@ struct MainTabView: View {
                 store.finishedSessionForSummary = nil
             }
         }
+        .onAppear {
+            TelemetryService.shared.log(.mainTabSelected, parameters: [
+                "tab": selectedTab.telemetryName,
+                "source": "initial"
+            ])
+        }
+        .onChange(of: selectedTab) { _, newTab in
+            TelemetryService.shared.log(.mainTabSelected, parameters: [
+                "tab": newTab.telemetryName,
+                "source": "selection"
+            ])
+        }
         .onPreferenceChange(MainTabBarHiddenPreferenceKey.self) { hidden in
             withAnimation(.snappy(duration: 0.22)) {
                 isTabBarHidden = hidden
@@ -150,6 +169,17 @@ struct MainTabView: View {
                     isQuickMenuExpanded = false
                 }
             }
+        }
+        .onChange(of: store.notificationDestination) { _, destination in
+            guard let destination else {
+                return
+            }
+
+            select(destination.tab)
+            if destination.tab == .calendar {
+                store.calendarFocusedDate = destination.focusDate
+            }
+            store.consumeNotificationDestination()
         }
     }
 
@@ -167,6 +197,9 @@ struct MainTabView: View {
         withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
             isQuickMenuExpanded = false
         }
+        TelemetryService.shared.log(.quickActionOpened, parameters: [
+            "action": action.telemetryName
+        ])
         presentedQuickAction = action
     }
 
@@ -232,6 +265,15 @@ enum AppTab: CaseIterable {
         case .progress: "chart.bar.fill"
         }
     }
+
+    var telemetryName: String {
+        switch self {
+        case .today: "today"
+        case .calendar: "calendar"
+        case .plans: "plans"
+        case .progress: "progress"
+        }
+    }
 }
 
 private enum QuickAction: String, CaseIterable, Identifiable {
@@ -241,6 +283,8 @@ private enum QuickAction: String, CaseIterable, Identifiable {
     case customExercise
 
     var id: String { rawValue }
+
+    var telemetryName: String { rawValue }
 
     var title: LocalizedStringKey {
         switch self {

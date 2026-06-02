@@ -1,6 +1,8 @@
 # Xcode build artifacts
 build/
 DerivedData/
+.asc/artifacts/
+.asc/signing/
 
 # User-specific Xcode settings
 xcuserdata/

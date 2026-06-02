@@ -6,6 +6,7 @@ struct ProgressDashboardView: View {
   @EnvironmentObject private var store: AppStore
   @State private var selectedRange: ProgressRange = .week
   @State private var selectedSection: ProgressSection = .muscles
+  @State private var activeDestination: ProgressDestination?
 
   var body: some View {
     NavigationStack {
@@ -57,8 +58,13 @@ struct ProgressDashboardView: View {
             HStack(spacing: 10) {
               ForEach(ProgressSection.allCases) { section in
                 Button {
-                  withAnimation(.snappy(duration: 0.2)) {
-                    selectedSection = section
+                  if section == .load,
+                     !store.hasFeatureAccess(.advancedAnalytics) {
+                    store.presentPaywall(source: .progressLoad, feature: .advancedAnalytics)
+                  } else {
+                    withAnimation(.snappy(duration: 0.2)) {
+                      selectedSection = section
+                    }
                   }
                 } label: {
                   PulseChip(title: section.title, isSelected: selectedSection == section)
@@ -71,8 +77,10 @@ struct ProgressDashboardView: View {
 
           if selectedSection == .general {
             HStack(spacing: 14) {
-              NavigationLink {
-                ExerciseAnalyticsListView(exercises: exercisesWithHistory)
+              Button {
+                if store.requireFeature(.advancedAnalytics, source: .progressAdvancedAnalytics) {
+                  activeDestination = .exerciseAnalytics
+                }
               } label: {
                 AnalyticsShortcutCard(
                   title: "Ejercicios", subtitle: "\(exercisesWithHistory.count) con historial",
@@ -80,8 +88,10 @@ struct ProgressDashboardView: View {
               }
               .buttonStyle(.plain)
 
-              NavigationLink {
-                WorkoutHistoryView(sessions: filteredSessions.sorted { $0.date > $1.date })
+              Button {
+                if store.requireFeature(.advancedAnalytics, source: .progressAdvancedAnalytics) {
+                  activeDestination = .workoutHistory
+                }
               } label: {
                 AnalyticsShortcutCard(
                   title: "Historial", subtitle: "\(filteredSessions.count) sesiones",
@@ -273,8 +283,10 @@ struct ProgressDashboardView: View {
           }
 
           if selectedSection == .general {
-            NavigationLink {
-              PersonalRecordsView()
+            Button {
+              if store.requireFeature(.advancedAnalytics, source: .progressAdvancedAnalytics) {
+                activeDestination = .personalRecords
+              }
             } label: {
               PulseCard {
                 HStack {
@@ -424,52 +436,26 @@ struct ProgressDashboardView: View {
           }
 
           if selectedSection == .body {
-            PulseCard {
-              VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                  Text("Cuerpo y bienestar").font(.headline)
-                  Spacer()
-                  Text(
-                    "\(store.displayedWeight.value, specifier: "%.1f") \(store.displayedWeight.unit)"
-                  )
-                  .font(.headline)
-                }
-                Chart(store.bodyMetrics) { metric in
-                  LineMark(x: .value("Date", metric.date), y: .value("Weight", metric.weightKg))
-                    .foregroundStyle(PulseTheme.primary)
-                  PointMark(x: .value("Date", metric.date), y: .value("Weight", metric.weightKg))
-                    .foregroundStyle(PulseTheme.primary)
-                }
-                .frame(height: 150)
-                HStack {
-                  Label(
-                    "\(store.displayedHeight.value, specifier: "%.0f") \(store.displayedHeight.unit)",
-                    systemImage: "ruler")
-                  Spacer()
-                  Text(store.bodyMetrics.last?.source.rawValue ?? "Manual")
-                }
-                .foregroundStyle(PulseTheme.secondaryText)
-
-                if let latest = store.bodyMetrics.last {
-                  HStack(spacing: 14) {
-                    MetricInline(
-                      title: "Sueño",
-                      value: latest.sleepHours.map { String(format: "%.1f h", $0) } ?? "-")
-                    MetricInline(title: "Fatiga", value: latest.fatigue.map { "\($0)/5" } ?? "-")
-                    MetricInline(title: "Estrés", value: latest.stress.map { "\($0)/5" } ?? "-")
-                  }
-                }
-              }
-            }
+            bodyProgressCard
           }
 
           if selectedSection == .muscles {
-            MuscleMapProgressView(
-              sessions: store.workoutSessions,
-              plannedWorkout: store.todaysWorkout,
-              startDate: selectedRange.startDate,
-              gender: store.userProfile.muscleMapGender
-            )
+            if store.workoutSessions.isEmpty && store.activePlan.days.isEmpty {
+              PulseCard {
+                PulseEmptyState(
+                  title: "Sin datos musculares",
+                  message: "Crea un plan o finaliza un entreno para ver volumen y distribución por músculo.",
+                  systemImage: "figure.strengthtraining.traditional"
+                )
+              }
+            } else {
+              MuscleMapProgressView(
+                sessions: store.workoutSessions,
+                plannedWorkout: store.todaysWorkout,
+                startDate: selectedRange.startDate,
+                gender: store.userProfile.muscleMapGender
+              )
+            }
           }
 
           if selectedSection == .general {
@@ -553,6 +539,66 @@ struct ProgressDashboardView: View {
   private var exercisesWithHistory: [Exercise] {
     store.exercises.filter { exercise in
       !FitnessMetrics.progressPoints(for: exercise, in: store.workoutSessions).isEmpty
+    }
+  }
+
+  @ViewBuilder
+  private var bodyProgressCard: some View {
+    PulseCard {
+      VStack(alignment: .leading, spacing: 14) {
+        HStack {
+          Text("Cuerpo y bienestar").font(.headline)
+          Spacer()
+          Text(store.hasBodyMetrics ? "\(store.displayedWeight.value, specifier: "%.1f") \(store.displayedWeight.unit)" : "pendiente")
+            .font(.headline)
+            .foregroundStyle(store.hasBodyMetrics ? .primary : PulseTheme.secondaryText)
+        }
+
+        if store.bodyMetrics.isEmpty {
+          PulseEmptyState(
+            title: "Sin métricas corporales",
+            message: "Añade peso, altura o bienestar desde Perfil para ver tendencias.",
+            systemImage: "scalemass"
+          )
+        } else {
+          Chart(store.bodyMetrics) { metric in
+            LineMark(x: .value("Date", metric.date), y: .value("Weight", metric.weightKg))
+              .foregroundStyle(PulseTheme.primary)
+            PointMark(x: .value("Date", metric.date), y: .value("Weight", metric.weightKg))
+              .foregroundStyle(PulseTheme.primary)
+          }
+          .frame(height: 150)
+
+          HStack {
+            Label(
+              "\(store.displayedHeight.value, specifier: "%.0f") \(store.displayedHeight.unit)",
+              systemImage: "ruler")
+            Spacer()
+            Text(store.bodyMetrics.last?.source.rawValue ?? "Manual")
+          }
+          .foregroundStyle(PulseTheme.secondaryText)
+
+          if let latest = store.bodyMetrics.last {
+            HStack(spacing: 14) {
+              MetricInline(
+                title: "Sueño",
+                value: latest.sleepHours.map { String(format: "%.1f h", $0) } ?? "-")
+              MetricInline(title: "Fatiga", value: latest.fatigue.map { "\($0)/5" } ?? "-")
+              MetricInline(title: "Estrés", value: latest.stress.map { "\($0)/5" } ?? "-")
+            }
+          }
+        }
+      }
+      .navigationDestination(item: $activeDestination) { destination in
+        switch destination {
+        case .exerciseAnalytics:
+          ExerciseAnalyticsListView(exercises: exercisesWithHistory)
+        case .workoutHistory:
+          WorkoutHistoryView(sessions: filteredSessions.sorted { $0.date > $1.date })
+        case .personalRecords:
+          PersonalRecordsView()
+        }
+      }
     }
   }
 
@@ -757,6 +803,14 @@ private enum ProgressRange: String, CaseIterable, Identifiable {
     let today = calendar.startOfDay(for: .now)
     return calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
   }
+}
+
+private enum ProgressDestination: String, Identifiable {
+  case exerciseAnalytics
+  case workoutHistory
+  case personalRecords
+
+  var id: String { rawValue }
 }
 
 private struct ConsistencyPoint: Identifiable {

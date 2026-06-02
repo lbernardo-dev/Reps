@@ -1,24 +1,44 @@
 import ActivityKit
 import Foundation
-import UIKit
-import WatchConnectivity
 import HealthKit
+import UIKit
+import UserNotifications
+import WatchConnectivity
 
 @MainActor
 final class AppStore: ObservableObject {
-    @Published var userProfile = UserProfile() { didSet { save() } }
-    @Published var activePlan = SeedData.pushPullLegsPlan { didSet { save() } }
-    @Published var plans: [WorkoutPlan] = SeedData.defaultPlans { didSet { save() } }
+    struct NotificationDestination: Equatable {
+        let tab: AppTab
+        let focusDate: Date?
+        let scheduledWorkoutID: UUID?
+    }
+
+    @Published var userProfile = UserProfile() {
+        didSet {
+            if oldValue.remindersEnabled != userProfile.remindersEnabled {
+                reconcileNotificationStateIfNeeded()
+            }
+            save()
+        }
+    }
+    @Published var monetization = MonetizationState() { didSet { save() } }
+    @Published var activePlan = WorkoutPlan.empty { didSet { save() } }
+    @Published var plans: [WorkoutPlan] = [] { didSet { save() } }
     @Published var workoutTemplates: [WorkoutDay] = SeedData.workoutTemplates { didSet { save() } }
     @Published var exercises: [Exercise] = SeedData.exercises { didSet { save() } }
-    @Published var scheduledWorkouts: [ScheduledWorkout] = SeedData.scheduledWorkouts { didSet { save() } }
-    @Published var workoutSessions: [WorkoutSession] = SeedData.sessions { didSet { save() } }
+    @Published var scheduledWorkouts: [ScheduledWorkout] = [] {
+        didSet {
+            reconcileNotificationStateIfNeeded()
+            save()
+        }
+    }
+    @Published var workoutSessions: [WorkoutSession] = [] { didSet { save() } }
     @Published var cardioLogs: [CardioLog] = [] { didSet { save() } }
-    @Published var bodyMetrics: [BodyMetric] = SeedData.bodyMetrics { didSet { save() } }
+    @Published var bodyMetrics: [BodyMetric] = [] { didSet { save() } }
     @Published var progressPhotos: [ProgressPhoto] = [] { didSet { save() } }
     @Published var gymPasses: [GymPass] = [] { didSet { save() } }
     @Published var gymVisits: [GymVisit] = [] { didSet { save() } }
-    @Published var goals: [Goal] = SeedData.goals { didSet { save() } }
+    @Published var goals: [Goal] = [] { didSet { save() } }
     @Published var health = HealthSyncState() { didSet { save() } }
     @Published var isSyncingExerciseLibrary = false
     @Published var exerciseLibrarySyncMessage: String?
@@ -26,9 +46,10 @@ final class AppStore: ObservableObject {
     @Published var finishedSessionForSummary: WorkoutSession? = nil
     @Published var activeWorkoutStatus: ActiveWorkoutStatus? {
         didSet {
-            save()
+            let shouldReloadWidgets = shouldReloadWidgetTimelines(from: oldValue, to: activeWorkoutStatus)
+            save(reloadWidgetTimelines: shouldReloadWidgets)
             let snapshot = sharedWorkoutSnapshot()
-            SharedWorkoutStore.save(snapshot)
+            SharedWorkoutStore.save(snapshot, reloadTimelines: shouldReloadWidgets)
             WatchSyncService.shared.publish(snapshot: snapshot)
             RepsWorkoutLiveActivityController.shared.sync(snapshot)
         }
@@ -36,11 +57,33 @@ final class AppStore: ObservableObject {
     @Published var activeWorkout: WorkoutDay? { didSet { save() } }
     @Published var activeWorkoutDrafts: [ExerciseSessionDraft] = [] { didSet { save() } }
     @Published var isUsingFallbackStorage = false
+    @Published var notificationDestination: NotificationDestination?
+    @Published var calendarFocusedDate: Date?
+    @Published var activePaywall: PaywallPresentation? {
+        didSet {
+            if let paywall = activePaywall {
+                TelemetryService.shared.log(.paywallPresented, parameters: [
+                    "source": paywall.source.rawValue,
+                    "feature": paywall.feature?.rawValue,
+                    "trigger": paywall.trigger.rawValue
+                ])
+            } else if let previous = oldValue {
+                monetization.lastPaywallDismissDate = .now
+                TelemetryService.shared.log(.paywallDismissed, parameters: [
+                    "source": previous.source.rawValue,
+                    "feature": previous.feature?.rawValue,
+                    "reason": pendingPaywallDismissReason?.rawValue ?? PaywallDismissReason.system.rawValue
+                ])
+                pendingPaywallDismissReason = nil
+            }
+        }
+    }
 
     private let persistence: SwiftDataPersistence
     private var isRestoring = false
     private var hasAttemptedExerciseLibrarySync = false
     private var saveTask: Task<Void, Never>?
+    private var pendingPaywallDismissReason: PaywallDismissReason?
 
     init(persistence: SwiftDataPersistence = SwiftDataPersistence()) {
         self.persistence = persistence
@@ -51,6 +94,7 @@ final class AppStore: ObservableObject {
         if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
             restore(snapshot)
         } else {
+            restore(.empty)
             persistence.save(currentSnapshot)
             SharedWorkoutStore.save(sharedWorkoutSnapshot())
         }
@@ -70,6 +114,33 @@ final class AppStore: ObservableObject {
         WatchSyncService.shared.publish(snapshot: snapshot)
     }
 
+    func refreshNotificationSchedule() {
+        reconcileNotificationStateIfNeeded()
+    }
+
+    func handleNotificationTarget(_ target: NotificationService.NotificationTarget) {
+        switch target.kind {
+        case .workoutReminder, .missedWorkoutCheck:
+            let focusDate = target.scheduledDate ?? .now
+            calendarFocusedDate = focusDate
+            notificationDestination = NotificationDestination(
+                tab: .calendar,
+                focusDate: focusDate,
+                scheduledWorkoutID: target.scheduledWorkoutID
+            )
+        case .dailySummary, .batteryRecoverySuggestion:
+            notificationDestination = NotificationDestination(
+                tab: .today,
+                focusDate: nil,
+                scheduledWorkoutID: nil
+            )
+        }
+    }
+
+    func consumeNotificationDestination() {
+        notificationDestination = nil
+    }
+
     var todaysWorkout: WorkoutDay {
         let calendar = Calendar.current
         if let scheduled = scheduledWorkouts.first(where: { calendar.isDateInToday($0.date) }) {
@@ -80,7 +151,7 @@ final class AppStore: ObservableObject {
             let index = ((activePlan.activeDayIndex % count) + count) % count
             return activePlan.days[index]
         }
-        return SeedData.pushDay
+        return .freeWorkout
     }
 
     var streakDays: Int {
@@ -115,11 +186,15 @@ final class AppStore: ObservableObject {
     }
 
     var currentWeight: Double {
-        bodyMetrics.last?.weightKg ?? 78.5
+        bodyMetrics.sorted { $0.date < $1.date }.last?.weightKg ?? 0
     }
 
     var currentHeight: Double {
-        bodyMetrics.last?.heightCm ?? 178
+        bodyMetrics.sorted { $0.date < $1.date }.last?.heightCm ?? 0
+    }
+
+    var hasBodyMetrics: Bool {
+        bodyMetrics.contains { $0.weightKg > 0 || $0.heightCm > 0 }
     }
 
     var displayedWeight: (value: Double, unit: String) {
@@ -141,10 +216,16 @@ final class AppStore: ObservableObject {
     }
 
     var bodyMassIndex: Double {
-        currentWeight / pow(max(currentHeight, 1) / 100, 2)
+        guard currentWeight > 0, currentHeight > 0 else {
+            return 0
+        }
+        return currentWeight / pow(max(currentHeight, 1) / 100, 2)
     }
 
     var basalMetabolicRate: Double {
+        guard currentWeight > 0, currentHeight > 0 else {
+            return 0
+        }
         let age = userProfile.dateOfBirth.map { Calendar.current.dateComponents([.year], from: $0, to: .now).year ?? 30 } ?? 30
         let sexAdjustment = userProfile.sex == .female ? -161.0 : 5.0
         return 10 * currentWeight + 6.25 * currentHeight - 5 * Double(age) + sexAdjustment
@@ -200,10 +281,102 @@ final class AppStore: ObservableObject {
         FitnessMetrics.projectedBatteryLevel(after: workout, from: trainingBattery.level)
     }
 
+    var hasProAccess: Bool {
+        monetization.hasProAccess
+    }
+
+    func hasFeatureAccess(_ feature: ProductFeature) -> Bool {
+        ProductAccess.isEnabled(feature, proEnabled: hasProAccess)
+    }
+
+    @discardableResult
+    func requireFeature(_ feature: ProductFeature, source: PaywallSource, trigger: PaywallTrigger = .featureGate) -> Bool {
+        let enabled = hasFeatureAccess(feature)
+        guard !enabled else {
+            return true
+        }
+
+        TelemetryService.shared.log(.paywallFeatureGateHit, parameters: [
+            "feature": feature.rawValue,
+            "source": source.rawValue
+        ])
+        presentPaywall(source: source, feature: feature, trigger: trigger)
+        return false
+    }
+
+    func presentPaywall(source: PaywallSource, feature: ProductFeature?, trigger: PaywallTrigger = .manual) {
+        monetization.lastPaywallPresentationDate = .now
+        monetization.lastPaywallSource = source
+        monetization.paywallPresentationCount += 1
+        activePaywall = PaywallPresentation(source: source, feature: feature, trigger: trigger)
+    }
+
+    func dismissPaywall(reason: PaywallDismissReason) {
+        pendingPaywallDismissReason = reason
+        activePaywall = nil
+    }
+
+    func trackPaywallPlanSelection(_ plan: SubscriptionBillingCycle, source: PaywallSource) {
+        TelemetryService.shared.log(.paywallPlanSelected, parameters: [
+            "plan": plan.rawValue,
+            "source": source.rawValue
+        ])
+    }
+
+    func trackPaywallCTA(_ plan: SubscriptionBillingCycle, source: PaywallSource) {
+        TelemetryService.shared.log(.paywallCTASelected, parameters: [
+            "plan": plan.rawValue,
+            "source": source.rawValue
+        ])
+    }
+
+    #if DEBUG
+    func unlockProForDebug(plan: SubscriptionBillingCycle) {
+        monetization.entitlement = .pro
+        monetization.status = .active
+        monetization.billingCycle = plan
+        monetization.provider = .local
+        monetization.lastEntitlementSyncDate = .now
+    }
+
+    func resetProAccessForDebug() {
+        let revenueCatConfigured = monetization.revenueCatConfigured
+        monetization = MonetizationState(revenueCatConfigured: revenueCatConfigured)
+    }
+    #endif
+
     func completeOnboarding(profile: UserProfile) {
         userProfile = profile
         sanitizeAvailableEquipment()
         userProfile.onboardingCompleted = true
+        TelemetryService.shared.updateUserProperties(userProfile)
+        TelemetryService.shared.log(.onboardingCompleted, parameters: [
+            "source": "profile_only",
+            "has_plan": false
+        ])
+    }
+
+    func skipOnboarding() {
+        var profile = UserProfile()
+        profile.onboardingCompleted = true
+        userProfile = profile
+        monetization = MonetizationState(revenueCatConfigured: monetization.revenueCatConfigured)
+        activePlan = .empty
+        plans = []
+        scheduledWorkouts = []
+        workoutSessions = []
+        cardioLogs = []
+        bodyMetrics = []
+        progressPhotos = []
+        gymPasses = []
+        gymVisits = []
+        goals = []
+        savedShareCards = []
+        activeWorkoutStatus = nil
+        activeWorkout = nil
+        activeWorkoutDrafts = []
+        TelemetryService.shared.updateUserProperties(userProfile)
+        TelemetryService.shared.log(.onboardingSkipped)
     }
 
     func completeOnboarding(result: OnboardingResult) {
@@ -212,14 +385,31 @@ final class AppStore: ObservableObject {
         userProfile.onboardingCompleted = true
         bodyMetrics.append(result.bodyMetric)
         addPlan(result.plan, activate: true)
+        TelemetryService.shared.updateUserProperties(userProfile)
+        TelemetryService.shared.log(.onboardingCompleted, parameters: [
+            "source": "profile_setup",
+            "has_plan": true,
+            "days_per_week": result.plan.daysPerWeek,
+            "plan_days": result.plan.days.count
+        ])
     }
 
     func saveBodyMetrics(weightKg: Double, heightCm: Double, source: BodyMetric.Source = .manual) {
         bodyMetrics.append(BodyMetric(date: Date(), weightKg: weightKg, heightCm: heightCm, source: source))
+        TelemetryService.shared.log(.bodyMetricSaved, parameters: [
+            "source": source.rawValue,
+            "has_weight": weightKg > 0,
+            "has_height": heightCm > 0
+        ])
     }
 
     func saveBodyMetric(_ metric: BodyMetric) {
         bodyMetrics.append(metric)
+        TelemetryService.shared.log(.bodyMetricSaved, parameters: [
+            "source": metric.source.rawValue,
+            "has_weight": metric.weightKg > 0,
+            "has_height": metric.heightCm > 0
+        ])
     }
 
     func updateLatestBodyMetrics(weightKg: Double, heightCm: Double) {
@@ -239,10 +429,17 @@ final class AppStore: ObservableObject {
 
     func addProgressPhoto(_ photo: ProgressPhoto) {
         progressPhotos.append(photo)
+        TelemetryService.shared.log(.progressPhotoAdded, parameters: [
+            "has_weight": photo.weightKg != nil,
+            "has_note": photo.note?.isEmpty == false
+        ])
     }
 
     func addGymPass(_ pass: GymPass) {
         gymPasses.append(pass)
+        TelemetryService.shared.log(.gymPassAdded, parameters: [
+            "code_type": pass.codeType.rawValue
+        ])
     }
 
     func addGymVisit(_ visit: GymVisit) {
@@ -251,6 +448,10 @@ final class AppStore: ObservableObject {
 
     func addCardioLog(_ log: CardioLog) {
         cardioLogs.append(log)
+        TelemetryService.shared.log(.cardioLogAdded, parameters: [
+            "activity_type": log.activityType.rawValue,
+            "duration_minutes": log.durationMinutes
+        ])
     }
 
     func importCardioLogs(_ logs: [CardioLog]) -> Int {
@@ -262,6 +463,13 @@ final class AppStore: ObservableObject {
 
     func finishWorkout(_ session: WorkoutSession) {
         workoutSessions.append(session)
+        TelemetryService.shared.log(.workoutFinished, parameters: [
+            "origin": session.origin.rawValue,
+            "location": session.location.rawValue,
+            "duration_minutes": session.durationMinutes,
+            "exercise_count": session.exerciseLogs?.count ?? 0,
+            "set_count": session.sets.count
+        ])
         
         // Render virtual receipt image and auto-save it to our profile gallery
         let image = WorkoutShareImageRenderer.render(session: session)
@@ -304,6 +512,49 @@ final class AppStore: ObservableObject {
         }
     }
 
+    @discardableResult
+    func finishActiveWorkoutFromSummaryCard() -> WorkoutSession? {
+        guard let status = activeWorkoutStatus else {
+            return nil
+        }
+
+        let logs = activeWorkoutDrafts.compactMap { draft -> ExerciseLog? in
+            let completedSets = draft.sets.filter(\.completed)
+            guard !completedSets.isEmpty else {
+                return nil
+            }
+            return ExerciseLog(
+                exercise: draft.workoutExercise.exercise,
+                notes: draft.notes,
+                sets: completedSets,
+                mediaAttachments: draft.mediaAttachments
+            )
+        }
+        let allSets = logs.flatMap(\.sets)
+        let location: WorkoutSession.Location = activePlan.location == .home ? .home : .gym
+        let startedAt = status.startedAt == .distantPast
+            ? Date().addingTimeInterval(TimeInterval(-status.elapsedSeconds))
+            : status.startedAt
+
+        let session = WorkoutSession(
+            workoutTitle: activeWorkout?.title ?? status.workoutTitle,
+            date: .now,
+            startedAt: startedAt,
+            endedAt: .now,
+            origin: .routine,
+            location: location,
+            contextTag: .normal,
+            durationMinutes: max(status.elapsedSeconds / 60, 1),
+            sets: allSets,
+            notes: logs.isEmpty ? nil : logs.map { "\($0.exercise.name): \($0.sets.count) sets" }.joined(separator: "\n"),
+            exerciseLogs: logs,
+            routePoints: [],
+            pausedDurationSeconds: status.pausedSeconds
+        )
+        finishWorkout(session)
+        return session
+    }
+
     func startActiveWorkout(_ workout: WorkoutDay, elapsedSeconds: Int = 0, pausedSeconds: Int = 0, isPaused: Bool = false) {
         activeWorkout = workout
         activeWorkoutDrafts = workout.exercises.map { item in
@@ -321,7 +572,7 @@ final class AppStore: ObservableObject {
             )
         }
         activeWorkoutStatus = ActiveWorkoutStatus(
-            planTitle: activePlan.name,
+            planTitle: activePlan.days.isEmpty ? nil : activePlan.name,
             workoutTitle: workout.title,
             sessionTitle: workout.subtitle,
             elapsedSeconds: elapsedSeconds,
@@ -331,6 +582,11 @@ final class AppStore: ObservableObject {
             volumeKg: 0,
             isPaused: isPaused
         )
+        TelemetryService.shared.log(.workoutStarted, parameters: [
+            "session_type": workout.sessionType.rawValue,
+            "exercise_count": workout.exercises.count,
+            "origin_has_active_plan": activePlan.days.contains { $0.id == workout.id }
+        ])
     }
 
     private func defaultWeight(from previous: String) -> Double {
@@ -434,7 +690,7 @@ final class AppStore: ObservableObject {
         case .resume:
             setActiveWorkoutPaused(false)
         case .stop:
-            clearActiveWorkout()
+            finishActiveWorkoutFromSummaryCard()
         case .musicToggle, .musicNext, .musicPrevious, .completeSet, .nextExercise, .previousExercise, .addWater, .voiceNote:
             NotificationCenter.default.post(name: command.notificationName, object: nil)
         }
@@ -449,7 +705,7 @@ final class AppStore: ObservableObject {
         guard let status = activeWorkoutStatus else {
             return SharedWorkoutSnapshot(
                 hasActiveWorkout: false,
-                planTitle: activePlan.name,
+                planTitle: activePlan.days.isEmpty ? nil : activePlan.name,
                 workoutTitle: "Reps",
                 sessionTitle: nil,
                 elapsedSeconds: 0,
@@ -489,15 +745,15 @@ final class AppStore: ObservableObject {
                 trainingBatteryTitle: battery.title,
                 trainingBatterySuggestion: battery.suggestion,
                 trainingBatterySystemImage: battery.systemImage,
-                nextWorkoutDayName: nextWorkout.title,
-                nextWorkoutDayDescription: nextWorkout.subtitle,
+                nextWorkoutDayName: activePlan.days.isEmpty ? nil : nextWorkout.title,
+                nextWorkoutDayDescription: activePlan.days.isEmpty ? nil : nextWorkout.subtitle,
                 widgetAccentColorName: userProfile.widgetAccentColorName
             )
         }
 
         return SharedWorkoutSnapshot(
             hasActiveWorkout: true,
-            planTitle: status.planTitle ?? activePlan.name,
+            planTitle: status.planTitle ?? (activePlan.days.isEmpty ? nil : activePlan.name),
             workoutTitle: status.workoutTitle,
             sessionTitle: status.sessionTitle,
             elapsedSeconds: status.elapsedSeconds,
@@ -537,14 +793,20 @@ final class AppStore: ObservableObject {
             trainingBatteryTitle: battery.title,
             trainingBatterySuggestion: battery.suggestion,
             trainingBatterySystemImage: battery.systemImage,
-            nextWorkoutDayName: nextWorkout.title,
-            nextWorkoutDayDescription: nextWorkout.subtitle,
+            nextWorkoutDayName: activePlan.days.isEmpty ? nil : nextWorkout.title,
+            nextWorkoutDayDescription: activePlan.days.isEmpty ? nil : nextWorkout.subtitle,
             widgetAccentColorName: userProfile.widgetAccentColorName
         )
     }
 
     func addPlan(_ plan: WorkoutPlan, activate: Bool) {
         plans.append(plan)
+        TelemetryService.shared.log(.planCreated, parameters: [
+            "activate": activate,
+            "days_per_week": plan.daysPerWeek,
+            "plan_days": plan.days.count,
+            "location": plan.location.rawValue
+        ])
         if activate {
             scheduledWorkouts.removeAll { $0.status == .scheduled }
             activePlan = plan
@@ -566,6 +828,11 @@ final class AppStore: ObservableObject {
             plans[index] = plan
         }
         generateSchedule(for: plan)
+        TelemetryService.shared.log(.planActivated, parameters: [
+            "days_per_week": plan.daysPerWeek,
+            "plan_days": plan.days.count,
+            "location": plan.location.rawValue
+        ])
     }
 
     func selectWorkoutDayForToday(_ day: WorkoutDay) {
@@ -578,6 +845,7 @@ final class AppStore: ObservableObject {
         // 2. Add the selected day as scheduled for today
         let scheduled = ScheduledWorkout(date: Date(), workoutDay: day, status: .scheduled)
         scheduledWorkouts.append(scheduled)
+        normalizeScheduledWorkouts()
         
         // 3. Align active plan's day index if this day is part of it
         if let index = activePlan.days.firstIndex(where: { $0.id == day.id }) {
@@ -605,6 +873,8 @@ final class AppStore: ObservableObject {
             let scheduled = ScheduledWorkout(date: Date(), workoutDay: day, status: .scheduled)
             scheduledWorkouts.append(scheduled)
         }
+
+        normalizeScheduledWorkouts()
         
         save()
     }
@@ -699,7 +969,7 @@ final class AppStore: ObservableObject {
     func deletePlan(_ plan: WorkoutPlan) {
         plans.removeAll { $0.id == plan.id }
         if activePlan.id == plan.id {
-            activePlan = plans.first ?? SeedData.pushPullLegsPlan
+            activePlan = plans.first ?? .empty
         }
     }
 
@@ -800,15 +1070,32 @@ final class AppStore: ObservableObject {
             }
         } catch {
             exerciseLibrarySyncMessage = String(localized: "No se pudo actualizar la biblioteca. El catálogo offline sigue disponible.")
+            TelemetryService.shared.record(error, context: "exercise_library_sync")
+            TelemetryService.shared.log(.nonFatalError, parameters: ["context": "exercise_library_sync"])
         }
     }
 
     func addScheduledWorkout(_ workoutDay: WorkoutDay, date: Date) {
         scheduledWorkouts.append(ScheduledWorkout(date: date, workoutDay: workoutDay, status: .scheduled))
+        normalizeScheduledWorkouts()
+        TelemetryService.shared.log(.workoutScheduled, parameters: [
+            "session_type": workoutDay.sessionType.rawValue,
+            "exercise_count": workoutDay.exercises.count,
+            "has_active_plan": !activePlan.days.isEmpty,
+            "scheduled_day_offset": Calendar.current.dateComponents(
+                [.day],
+                from: Calendar.current.startOfDay(for: .now),
+                to: Calendar.current.startOfDay(for: date)
+            ).day ?? 0
+        ])
     }
 
     func addGoal(_ goal: Goal) {
         goals.append(goal)
+        TelemetryService.shared.log(.goalCreated, parameters: [
+            "kind": goal.kind.rawValue,
+            "has_deadline": goal.deadline != nil
+        ])
     }
 
     func createSuggestedPlanForAvailableEquipment() {
@@ -835,41 +1122,75 @@ final class AppStore: ObservableObject {
     }
 
     func exportBackupURL() throws -> URL {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        encoder.dateEncodingStrategy = .iso8601
-        let data = try encoder.encode(currentSnapshot)
-        let url = exportURL(fileName: "reps-backup-\(Self.exportDateStamp()).json")
-        try writeProtected(data, to: url)
-        return url
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.dateEncodingStrategy = .iso8601
+            let data = try encoder.encode(currentSnapshot)
+            let url = exportURL(fileName: "reps-backup-\(Self.exportDateStamp()).json")
+            try writeProtected(data, to: url)
+            TelemetryService.shared.log(.backupExported)
+            return url
+        } catch {
+            TelemetryService.shared.record(error, context: "backup_export")
+            TelemetryService.shared.log(.nonFatalError, parameters: ["context": "backup_export"])
+            throw error
+        }
     }
 
     func exportCSVURL() throws -> URL {
-        let csv = CSVExporter(snapshot: currentSnapshot).makeCSV()
-        let url = exportURL(fileName: "reps-export-\(Self.exportDateStamp()).csv")
-        let data = Data(csv.utf8)
-        try writeProtected(data, to: url)
-        return url
+        do {
+            let csv = CSVExporter(snapshot: currentSnapshot).makeCSV()
+            let url = exportURL(fileName: "reps-export-\(Self.exportDateStamp()).csv")
+            let data = Data(csv.utf8)
+            try writeProtected(data, to: url)
+            TelemetryService.shared.log(.csvExported)
+            return url
+        } catch {
+            TelemetryService.shared.record(error, context: "csv_export")
+            TelemetryService.shared.log(.nonFatalError, parameters: ["context": "csv_export"])
+            throw error
+        }
     }
 
     func importBackup(from url: URL) throws {
-        let data = try Data(contentsOf: url)
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let snapshot = try decoder.decode(AppSnapshot.self, from: data)
-        restore(snapshot)
+        do {
+            let data = try Data(contentsOf: url)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let snapshot = try decoder.decode(AppSnapshot.self, from: data)
+            restore(snapshot)
+            TelemetryService.shared.log(.backupImported, parameters: [
+                "plan_count": snapshot.plans.count,
+                "session_count": snapshot.workoutSessions.count
+            ])
+        } catch {
+            TelemetryService.shared.record(error, context: "backup_import")
+            TelemetryService.shared.log(.nonFatalError, parameters: ["context": "backup_import"])
+            throw error
+        }
     }
 
     func importCSV(from url: URL) throws {
-        let csv = try String(contentsOf: url, encoding: .utf8)
-        let importer = CSVImporter(csv: csv)
-        let importedCardio = importer.cardioLogs()
-        let importedBody = importer.bodyMetrics()
-        if !importedCardio.isEmpty {
-            _ = importCardioLogs(importedCardio)
-        }
-        if !importedBody.isEmpty {
-            bodyMetrics.append(contentsOf: importedBody)
+        do {
+            let csv = try String(contentsOf: url, encoding: .utf8)
+            let importer = CSVImporter(csv: csv)
+            let importedCardio = importer.cardioLogs()
+            let importedBody = importer.bodyMetrics()
+            if !importedCardio.isEmpty {
+                _ = importCardioLogs(importedCardio)
+            }
+            if !importedBody.isEmpty {
+                bodyMetrics.append(contentsOf: importedBody)
+            }
+            TelemetryService.shared.log(.csvImported, parameters: [
+                "cardio_count": importedCardio.count,
+                "body_metric_count": importedBody.count
+            ])
+        } catch {
+            TelemetryService.shared.record(error, context: "csv_import")
+            TelemetryService.shared.log(.nonFatalError, parameters: ["context": "csv_import"])
+            throw error
         }
     }
 
@@ -890,8 +1211,9 @@ final class AppStore: ObservableObject {
     }
 
     func resetAllData() {
-        restore(AppSnapshot.seed)
+        restore(.empty)
         userProfile.onboardingCompleted = false
+        TelemetryService.shared.log(.allDataReset)
     }
 
     private func generateSchedule(for plan: WorkoutPlan) {
@@ -911,9 +1233,57 @@ final class AppStore: ObservableObject {
 
         scheduledWorkouts = scheduledWorkouts.filter { !calendar.isDate($0.date, equalTo: today, toGranularity: .weekOfYear) || $0.status == .completed }
         scheduledWorkouts.append(contentsOf: generated)
+        normalizeScheduledWorkouts()
     }
 
-    private func save() {
+    private func reconcileNotificationStateIfNeeded() {
+        guard !isRestoring else {
+            return
+        }
+
+        let remindersEnabled = userProfile.remindersEnabled
+        let scheduled = scheduledWorkouts
+
+        Task {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            let isAuthorized = settings.authorizationStatus == .authorized
+
+            if !remindersEnabled || !isAuthorized {
+                NotificationService.clearWorkoutReminders()
+                return
+            }
+
+            await NotificationService.reconcileScheduledReminders(
+                for: scheduled,
+                includeDailySummary: true
+            )
+        }
+    }
+
+    private func normalizeScheduledWorkouts() {
+        let normalized = Self.normalizedScheduledWorkouts(scheduledWorkouts)
+        guard normalized.count != scheduledWorkouts.count else {
+            return
+        }
+
+        scheduledWorkouts = normalized
+    }
+
+    private static func normalizedScheduledWorkouts(_ workouts: [ScheduledWorkout]) -> [ScheduledWorkout] {
+        let calendar = Calendar.current
+        var seen = Set<String>()
+
+        return workouts
+            .sorted { $0.date < $1.date }
+            .filter { workout in
+                let day = calendar.dateComponents([.year, .month, .day], from: workout.date)
+                let dayKey = "\(day.year ?? 0)-\(day.month ?? 0)-\(day.day ?? 0)"
+                let workoutKey = "\(dayKey)-\(workout.workoutDay.id.uuidString)-\(workout.status.rawValue)"
+                return seen.insert(workoutKey).inserted
+            }
+    }
+
+    private func save(reloadWidgetTimelines: Bool = true) {
         guard !isRestoring else {
             return
         }
@@ -927,11 +1297,53 @@ final class AppStore: ObservableObject {
                 
                 // Keep shared widgets & watch in sync with data mutations
                 let snapshot = sharedWorkoutSnapshot()
-                SharedWorkoutStore.save(snapshot)
+                SharedWorkoutStore.save(snapshot, reloadTimelines: reloadWidgetTimelines)
                 WatchSyncService.shared.publish(snapshot: snapshot)
             } catch {
                 // Cancelled or slept error
+                if !Task.isCancelled {
+                    TelemetryService.shared.record(error, context: "snapshot_save")
+                    TelemetryService.shared.log(.nonFatalError, parameters: ["context": "snapshot_save"])
+                }
             }
+        }
+    }
+
+    private func shouldReloadWidgetTimelines(
+        from previous: ActiveWorkoutStatus?,
+        to current: ActiveWorkoutStatus?
+    ) -> Bool {
+        switch (previous, current) {
+        case (nil, nil):
+            return false
+        case (nil, _), (_, nil):
+            return true
+        case let (previous?, current?):
+            return previous.workoutTitle != current.workoutTitle
+                || previous.sessionTitle != current.sessionTitle
+                || previous.completedSets != current.completedSets
+                || previous.totalSets != current.totalSets
+                || previous.volumeKg != current.volumeKg
+                || previous.isPaused != current.isPaused
+                || previous.exerciseName != current.exerciseName
+                || previous.exerciseIndex != current.exerciseIndex
+                || previous.totalExercises != current.totalExercises
+                || previous.currentExerciseCompletedSets != current.currentExerciseCompletedSets
+                || previous.currentExerciseTotalSets != current.currentExerciseTotalSets
+                || previous.currentSetWeightKg != current.currentSetWeightKg
+                || previous.currentSetReps != current.currentSetReps
+                || (previous.restSeconds ?? 0 > 0) != (current.restSeconds ?? 0 > 0)
+                || previous.restDurationSeconds != current.restDurationSeconds
+                || previous.waterLiters != current.waterLiters
+                || previous.musicTitle != current.musicTitle
+                || previous.musicArtist != current.musicArtist
+                || previous.isMusicPlaying != current.isMusicPlaying
+                || previous.nextExerciseName != current.nextExerciseName
+                || previous.exerciseHistorySummary != current.exerciseHistorySummary
+                || previous.gymPassName != current.gymPassName
+                || previous.gymMembershipID != current.gymMembershipID
+                || previous.gymCodeValue != current.gymCodeValue
+                || previous.gymCodeType != current.gymCodeType
         }
     }
 
@@ -954,6 +1366,7 @@ final class AppStore: ObservableObject {
     private var currentSnapshot: AppSnapshot {
         AppSnapshot(
             userProfile: userProfile,
+            monetization: monetization,
             activePlan: activePlan,
             plans: plans,
             workoutTemplates: workoutTemplates,
@@ -999,11 +1412,12 @@ final class AppStore: ObservableObject {
     private func restore(_ snapshot: AppSnapshot) {
         isRestoring = true
         userProfile = snapshot.userProfile
+        monetization = snapshot.monetization
         activePlan = snapshot.activePlan
         plans = snapshot.plans
         workoutTemplates = mergeSeedWorkouts(into: snapshot.workoutTemplates.isEmpty ? snapshot.activePlan.days : snapshot.workoutTemplates)
         exercises = mergeSeedExercises(into: snapshot.exercises.isEmpty ? SeedData.exercises : snapshot.exercises)
-        scheduledWorkouts = snapshot.scheduledWorkouts
+        scheduledWorkouts = Self.normalizedScheduledWorkouts(snapshot.scheduledWorkouts)
         workoutSessions = snapshot.workoutSessions
         cardioLogs = snapshot.cardioLogs
         bodyMetrics = snapshot.bodyMetrics
@@ -1061,6 +1475,9 @@ final class AppStore: ObservableObject {
         healthStore.enableBackgroundDelivery(for: workoutType, frequency: .immediate) { success, error in
             if let error = error {
                 print("No se pudo habilitar el envío en segundo plano de HealthKit: \(error.localizedDescription)")
+                Task { @MainActor in
+                    TelemetryService.shared.record(error, context: "healthkit_enable_background_delivery")
+                }
             }
         }
     }
@@ -1085,6 +1502,8 @@ final class AppStore: ObservableObject {
             }
         } catch {
             print("Error al consultar entrenamientos de HealthKit: \(error.localizedDescription)")
+            TelemetryService.shared.record(error, context: "healthkit_sync_workouts")
+            TelemetryService.shared.log(.nonFatalError, parameters: ["context": "healthkit_sync_workouts"])
         }
     }
     
@@ -1279,30 +1698,6 @@ final class AppStore: ObservableObject {
         let existingTitles = Set(storedWorkouts.map { $0.title.lowercased() })
         let missing = SeedData.workoutTemplates.filter { !existingTitles.contains($0.title.lowercased()) }
         return storedWorkouts + missing
-    }
-}
-
-enum ProductFeature: String, CaseIterable, Identifiable {
-    case unlimitedLogging
-    case exerciseLibrary
-    case customRoutines
-    case basicAnalytics
-    case advancedAnalytics
-    case configurableProgression
-    case automaticBackups
-    case shareCards
-
-    var id: String { rawValue }
-}
-
-enum ProductAccess {
-    static func isEnabled(_ feature: ProductFeature, proEnabled: Bool = false) -> Bool {
-        switch feature {
-        case .unlimitedLogging, .exerciseLibrary, .customRoutines, .basicAnalytics:
-            return true
-        case .advancedAnalytics, .configurableProgression, .automaticBackups, .shareCards:
-            return proEnabled
-        }
     }
 }
 

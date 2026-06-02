@@ -25,6 +25,8 @@ final class UserProfileRecord {
     var autoProgressionEnabled: Bool?
     var remindersEnabled: Bool
     var onboardingCompleted: Bool
+    var themeMode: String?
+    var widgetAccentColorName: String?
     var activeWorkoutStatusData: Data?
     var activeWorkoutData: Data?
     var activeWorkoutDraftsData: Data?
@@ -54,6 +56,8 @@ final class UserProfileRecord {
         autoProgressionEnabled = profile.autoProgressionEnabled
         remindersEnabled = profile.remindersEnabled
         onboardingCompleted = profile.onboardingCompleted
+        themeMode = profile.themeMode?.rawValue
+        widgetAccentColorName = profile.widgetAccentColorName
         targetEventName = profile.targetEventName
         targetEventDate = profile.targetEventDate
     }
@@ -81,9 +85,63 @@ final class UserProfileRecord {
             autoProgressionEnabled: autoProgressionEnabled ?? false,
             remindersEnabled: remindersEnabled,
             onboardingCompleted: onboardingCompleted,
-            themeMode: nil,
+            themeMode: themeMode.flatMap(UserProfile.ThemeMode.init(rawValue:)),
             targetEventName: targetEventName,
-            targetEventDate: targetEventDate
+            targetEventDate: targetEventDate,
+            widgetAccentColorName: widgetAccentColorName ?? "system"
+        )
+    }
+}
+
+@Model
+final class MonetizationStateRecord {
+    @Attribute(.unique) var id: String
+    var entitlement: String
+    var status: String
+    var billingCycle: String?
+    var provider: String
+    var trialStartDate: Date?
+    var trialEndDate: Date?
+    var renewsAt: Date?
+    var lastPaywallPresentationDate: Date?
+    var lastPaywallDismissDate: Date?
+    var lastPaywallSource: String?
+    var paywallPresentationCount: Int
+    var lastEntitlementSyncDate: Date?
+    var revenueCatConfigured: Bool
+
+    init(state: MonetizationState, id: String = "current") {
+        self.id = id
+        entitlement = state.entitlement.rawValue
+        status = state.status.rawValue
+        billingCycle = state.billingCycle?.rawValue
+        provider = state.provider.rawValue
+        trialStartDate = state.trialStartDate
+        trialEndDate = state.trialEndDate
+        renewsAt = state.renewsAt
+        lastPaywallPresentationDate = state.lastPaywallPresentationDate
+        lastPaywallDismissDate = state.lastPaywallDismissDate
+        lastPaywallSource = state.lastPaywallSource?.rawValue
+        paywallPresentationCount = state.paywallPresentationCount
+        lastEntitlementSyncDate = state.lastEntitlementSyncDate
+        revenueCatConfigured = state.revenueCatConfigured
+    }
+
+    var domain: MonetizationState {
+        MonetizationState(
+            entitlement: SubscriptionEntitlement(rawValue: entitlement) ?? .free,
+            status: SubscriptionStatus(rawValue: status) ?? .inactive,
+            billingCycle: billingCycle.flatMap(SubscriptionBillingCycle.init(rawValue:)),
+            provider: SubscriptionProvider(rawValue: provider) ?? .local,
+            trialStartDate: trialStartDate,
+            trialEndDate: trialEndDate,
+            renewsAt: renewsAt,
+            lastPaywallPresentationDate: lastPaywallPresentationDate,
+            lastPaywallDismissDate: lastPaywallDismissDate,
+            lastPaywallSource: lastPaywallSource.flatMap(PaywallSource.init(rawValue:)),
+            paywallPresentationCount: paywallPresentationCount,
+            lastEntitlementSyncDate: lastEntitlementSyncDate,
+            revenueCatConfigured: revenueCatConfigured
         )
     }
 }
@@ -329,6 +387,7 @@ final class WorkoutPlanRecord {
     var completion: Double
     var isActive: Bool
     var playlistsData: Data?
+    var currentDayIndex: Int?
     var targetEventName: String?
     var targetEventDate: Date?
     @Relationship(deleteRule: .cascade) var days: [WorkoutDayRecord]
@@ -343,6 +402,7 @@ final class WorkoutPlanRecord {
         completion = plan.completion
         self.isActive = isActive
         playlistsData = encodePlanPlaylists(plan.playlists)
+        currentDayIndex = plan.currentDayIndex
         days = plan.days.map(WorkoutDayRecord.init)
         targetEventName = plan.targetEventName
         targetEventDate = plan.targetEventDate
@@ -359,6 +419,7 @@ final class WorkoutPlanRecord {
             completion: completion,
             days: days.map(\.domain),
             playlists: decodePlanPlaylists(playlistsData),
+            currentDayIndex: currentDayIndex,
             targetEventName: targetEventName,
             targetEventDate: targetEventDate
         )
@@ -651,6 +712,25 @@ final class ProgressPhotoRecord {
 
     var domain: ProgressPhoto {
         ProgressPhoto(id: id, date: date, imageData: imageData, weightKg: weightKg, note: note)
+    }
+}
+
+@Model
+final class SavedShareCardRecord {
+    var id: UUID
+    var date: Date
+    var workoutTitle: String
+    var imageData: Data
+
+    init(card: SavedShareCard) {
+        id = card.id
+        date = card.date
+        workoutTitle = card.workoutTitle
+        imageData = card.imageData
+    }
+
+    var domain: SavedShareCard {
+        SavedShareCard(id: id, date: date, workoutTitle: workoutTitle, imageData: imageData)
     }
 }
 

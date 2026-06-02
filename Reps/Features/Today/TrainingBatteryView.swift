@@ -143,6 +143,9 @@ struct TrainingBatteryView: View {
         if let scheduled = store.scheduledWorkouts.first(where: { calendar.isDate($0.date, inSameDayAs: today) && $0.status == .scheduled }) {
             return scheduled.workoutDay
         }
+        guard !store.activePlan.days.isEmpty else {
+            return nil
+        }
         return store.todaysWorkout
     }
     
@@ -547,7 +550,7 @@ struct TrainingBatteryView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 } else {
-                    Text(isSpanish ? "No hay ningún entrenamiento planificado para hoy en tu plan activo." : "No scheduled workout for today in your active plan.")
+                    Text(isSpanish ? "No hay ninguna sesión planificada para hoy. Crea un plan o programa un entreno para simular su impacto." : "No session planned for today. Create a plan or schedule a workout to simulate its impact.")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                 }

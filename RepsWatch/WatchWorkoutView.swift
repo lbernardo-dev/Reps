@@ -17,73 +17,115 @@ struct WatchWorkoutView: View {
 
     private var workoutPage: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                headerCard
-                exerciseCard
-                metricsGrid
+            if model.snapshot.hasActiveWorkout {
+                VStack(alignment: .leading, spacing: 8) {
+                    headerCard
+                    exerciseCard
+                    metricsGrid
+                }
+                .padding(.horizontal, 6)
+                .padding(.bottom, 10)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    headerCard
+                    inactiveControlsState
+                    WatchInfoCard(icon: "iphone.and.arrow.forward", title: "Sincronización", value: syncText, color: .green)
+                }
+                .padding(.horizontal, 6)
+                .padding(.bottom, 10)
             }
-            .padding(.horizontal, 4)
         }
     }
 
     private var controlsPage: some View {
         ScrollView {
-            VStack(spacing: 12) {
-                Button {
-                    WatchCommandRouter.send(WatchCommand.completeSet.rawValue)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 18, weight: .bold))
-                        Text("Serie hecha")
-                            .font(.system(.headline, design: .rounded).bold())
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(
-                        model.snapshot.hasActiveWorkout ?
-                        LinearGradient(
-                            colors: [Color(red: 0.15, green: 0.68, blue: 0.37), Color(red: 0.18, green: 0.8, blue: 0.44)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ) :
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.08), Color.white.opacity(0.08)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+            if model.snapshot.hasActiveWorkout {
+                VStack(spacing: 12) {
+                    Button {
+                        WatchCommandRouter.send(WatchCommand.completeSet.rawValue)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 18, weight: .bold))
+                            Text("Serie hecha")
+                                .font(.system(.headline, design: .rounded).bold())
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(
+                            LinearGradient(
+                                colors: [Color(red: 0.15, green: 0.68, blue: 0.37), Color(red: 0.18, green: 0.8, blue: 0.44)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .foregroundStyle(model.snapshot.hasActiveWorkout ? .white : .white.opacity(0.3))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(model.snapshot.hasActiveWorkout ? Color.green.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 1)
-                    )
-                    .shadow(color: model.snapshot.hasActiveWorkout ? Color.green.opacity(0.2) : Color.clear, radius: 4, x: 0, y: 2)
-                }
-                .buttonStyle(.plain)
-                .disabled(!model.snapshot.hasActiveWorkout)
-                .opacity(model.snapshot.hasActiveWorkout ? 1.0 : 0.4)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                        )
+                        .shadow(color: Color.green.opacity(0.2), radius: 4, x: 0, y: 2)
+                    }
+                    .buttonStyle(.plain)
 
-                HStack(spacing: 12) {
-                    commandButton(.previousExercise, icon: "chevron.backward", tint: .blue)
-                    commandButton(model.snapshot.isPaused ? .resume : .pause, icon: model.snapshot.isPaused ? "play.fill" : "pause.fill", tint: model.snapshot.isPaused ? .green : .orange)
-                    commandButton(.nextExercise, icon: "chevron.forward", tint: .blue)
-                }
-                .padding(.vertical, 4)
+                    HStack(spacing: 12) {
+                        commandButton(.previousExercise, icon: "chevron.backward", tint: .blue)
+                        commandButton(model.snapshot.isPaused ? .resume : .pause, icon: model.snapshot.isPaused ? "play.fill" : "pause.fill", tint: model.snapshot.isPaused ? .green : .orange)
+                        commandButton(.nextExercise, icon: "chevron.forward", tint: .blue)
+                    }
+                    .padding(.vertical, 4)
 
-                HStack(spacing: 12) {
-                    commandButton(.addWater, icon: "waterbottle.fill", tint: .cyan)
-                    commandButton(.voiceNote, icon: model.snapshot.hasActiveWorkout ? "mic.fill" : "mic.slash", tint: .red)
-                    commandButton(.stop, icon: "stop.fill", tint: .red)
-                }
+                    HStack(spacing: 12) {
+                        commandButton(.addWater, icon: "waterbottle.fill", tint: .cyan)
+                        commandButton(.voiceNote, icon: "mic.fill", tint: .red)
+                        commandButton(.stop, icon: "stop.fill", tint: .red)
+                    }
 
-                if let history = model.snapshot.exerciseHistorySummary {
-                    WatchInfoCard(icon: "clock.arrow.circlepath", title: "Histórico", value: history, color: .green)
+                    if let history = model.snapshot.exerciseHistorySummary {
+                        WatchInfoCard(icon: "clock.arrow.circlepath", title: "Histórico", value: history, color: .green)
+                    }
                 }
+                .padding(.horizontal, 4)
+            } else {
+                inactiveControlsState
             }
-            .padding(.horizontal, 4)
         }
+    }
+
+    private var inactiveControlsState: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(accentColor.opacity(0.12))
+                    .frame(width: 54, height: 54)
+                Image(systemName: "figure.strengthtraining.traditional")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(accentColor)
+            }
+
+            VStack(spacing: 5) {
+                Text("Sin sesión activa")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                Text("Inicia un entreno desde el iPhone para activar los controles del reloj.")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+            }
+
+            WatchInfoCard(
+                icon: "iphone",
+                title: "Requiere sesión",
+                value: "Los botones aparecerán aquí cuando Reps reciba un entreno en curso.",
+                color: accentColor
+            )
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8)
+        .padding(.top, 12)
     }
 
     private var gymAndMusicPage: some View {
@@ -134,58 +176,66 @@ struct WatchWorkoutView: View {
     }
 
     private var headerCard: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(model.snapshot.planTitle?.uppercased() ?? "PLAN DE ENTRENAMIENTO")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color(red: 0.33, green: 0.86, blue: 0.32), .cyan],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .lineLimit(1)
-                
-                Text(model.snapshot.hasActiveWorkout ? model.snapshot.workoutTitle : "Sin sesión activa")
-                    .font(.system(.body, design: .rounded).bold())
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
-                
-                HStack(spacing: 8) {
-                    Label(model.elapsedSeconds > 0 ? elapsedText : model.snapshot.elapsedText, systemImage: "timer")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Label(model.snapshot.remainingText, systemImage: "hourglass")
-                        .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(accentColor)
+                            .frame(width: 6, height: 6)
+                        Text(sessionStateText)
+                            .font(.system(size: 9, weight: .heavy, design: .rounded))
+                            .foregroundStyle(accentColor)
+                            .lineLimit(1)
+                    }
+
+                    Text(model.snapshot.hasActiveWorkout ? model.snapshot.workoutTitle : "Sin sesión activa")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.72)
                 }
-                .font(.system(size: 10, weight: .medium, design: .rounded))
+
+                Spacer(minLength: 4)
+
+                if model.snapshot.hasActiveWorkout {
+                    GlassProgressCircle(progress: model.snapshot.progress, color: accentColor)
+                } else {
+                    ZStack {
+                        Circle()
+                            .fill(.white.opacity(0.05))
+                            .frame(width: 42, height: 42)
+                        Image(systemName: "figure.strengthtraining.traditional")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(accentColor)
+                    }
+                }
             }
-            
-            Spacer()
-            
-            if model.snapshot.hasActiveWorkout {
-                GlassProgressCircle(progress: model.snapshot.progress)
-            } else {
-                ZStack {
-                    Circle()
-                        .fill(.white.opacity(0.04))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "figure.strengthtraining.traditional")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Color(red: 0.33, green: 0.86, blue: 0.32))
-                }
+
+            if let planTitle = model.snapshot.planTitle, !planTitle.isEmpty {
+                Text(planTitle.uppercased())
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundStyle(accentColor)
+                    .lineLimit(1)
+            }
+
+            ProgressView(value: model.snapshot.progress)
+                .progressViewStyle(LinearTintProgressStyle(color: accentColor))
+
+            HStack(spacing: 6) {
+                WatchTimePill(title: "Tiempo", value: liveElapsedText, icon: "timer", color: accentColor)
+                WatchTimePill(title: "Restante", value: model.snapshot.remainingText, icon: "hourglass", color: .orange)
             }
         }
         .watchCard()
     }
 
     private var exerciseCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 9) {
             HStack {
                 Label(exercisePositionText.uppercased(), systemImage: "dumbbell.fill")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color(red: 0.33, green: 0.86, blue: 0.32))
+                    .foregroundStyle(accentColor)
                 Spacer()
                 if model.snapshot.hasActiveWorkout {
                     Text("\(model.snapshot.currentExerciseCompletedSets ?? 0)/\(model.snapshot.currentExerciseTotalSets ?? 0) series")
@@ -195,54 +245,53 @@ struct WatchWorkoutView: View {
             }
             
             Text(model.snapshot.exerciseName ?? "Esperando ejercicio")
-                .font(.system(.body, design: .rounded).bold())
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .lineLimit(2)
-                .minimumScaleFactor(0.85)
-            
-            HStack {
-                Label(currentSetText, systemImage: "scalemass")
-                Spacer()
-                if let rest = model.snapshot.restSeconds, rest > 0 {
-                    Label(model.snapshot.restText, systemImage: "timer.circle")
-                        .foregroundStyle(.orange)
-                } else {
-                    Label("Sin descanso", systemImage: "timer.circle")
-                }
-            }
-            .font(.system(size: 11, weight: .semibold, design: .rounded))
-            .foregroundStyle(.secondary)
+                .minimumScaleFactor(0.78)
+
+            WatchSetRow(value: currentSetText, color: accentColor)
             
             if let rest = model.snapshot.restSeconds, rest > 0 {
-                HStack(spacing: 8) {
-                    Image(systemName: "timer")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.orange)
-                        .symbolEffect(.pulse, options: .repeating)
-                    
-                    Text("Descanso: \(model.snapshot.restText)")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(.orange)
-                    
-                    Spacer()
-                    
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack {
+                        Label("Descanso", systemImage: "hourglass")
+                            .font(.system(size: 10, weight: .heavy, design: .rounded))
+                            .foregroundStyle(.orange)
+                        Spacer()
+                        if let endDate = model.snapshot.restEndDate {
+                            Text(endDate, style: .timer)
+                                .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
+                                .foregroundStyle(.orange)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.65)
+                        } else {
+                            Text(model.snapshot.restText)
+                                .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
+                                .foregroundStyle(.orange)
+                        }
+                    }
+
+                    ProgressView(value: model.snapshot.restProgress)
+                        .progressViewStyle(LinearTintProgressStyle(color: .orange))
+
                     Button {
                         WatchCommandRouter.send(WatchCommand.completeSet.rawValue)
                     } label: {
                         Text("Saltar")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Color.orange.opacity(0.15))
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                            .background(Color.orange.opacity(0.16))
                             .foregroundStyle(.orange)
-                            .clipShape(Capsule())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(8)
-                .background(Color.orange.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding(9)
+                .background(Color.orange.opacity(0.07))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(Color.orange.opacity(0.2), lineWidth: 1)
                 )
                 .transition(.opacity.combined(with: .scale))
@@ -260,11 +309,38 @@ struct WatchWorkoutView: View {
 
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-            WatchMetric(title: "Volumen", value: "\(model.snapshot.volumeKg)", unit: "kg", icon: "chart.bar.fill", color: Color(red: 0.33, green: 0.86, blue: 0.32))
+            WatchMetric(title: "Volumen", value: "\(model.snapshot.volumeKg)", unit: "kg", icon: "chart.bar.fill", color: accentColor)
             WatchMetric(title: "Agua", value: String(format: "%.2f", model.snapshot.waterLiters ?? 0), unit: "L", icon: "waterbottle.fill", color: .cyan)
             WatchMetric(title: "Kcal", value: "\(Int(model.snapshot.activeEnergyKcal ?? model.activeEnergy))", unit: "act.", icon: "flame.fill", color: .orange)
             WatchMetric(title: "Pulso", value: model.heartRate.map { "\(Int($0))" } ?? model.snapshot.heartRate.map { "\(Int($0))" } ?? "--", unit: "lpm", icon: "heart.fill", color: .red)
         }
+    }
+
+    private var accentColor: Color {
+        switch model.snapshot.widgetAccentColorName.lowercased() {
+        case "green":
+            return Color(red: 0.33, green: 0.86, blue: 0.32)
+        case "orange":
+            return Color(red: 1.0, green: 0.60, blue: 0.14)
+        case "purple":
+            return Color(red: 0.52, green: 0.14, blue: 0.86)
+        case "red":
+            return Color(red: 0.93, green: 0.24, blue: 0.22)
+        case "yellow":
+            return Color(red: 1.0, green: 0.80, blue: 0.14)
+        default:
+            return Color(red: 0.23, green: 0.52, blue: 0.96)
+        }
+    }
+
+    private var sessionStateText: String {
+        if !model.snapshot.hasActiveWorkout {
+            return "SIN SESIÓN"
+        }
+        if (model.snapshot.restSeconds ?? 0) > 0 {
+            return "DESCANSO"
+        }
+        return model.snapshot.isPaused ? "PAUSA" : "EN CURSO"
     }
 
     private var exercisePositionText: String {
@@ -278,6 +354,13 @@ struct WatchWorkoutView: View {
         let weight = model.snapshot.currentSetWeightKg.map { "\(Int($0)) kg" } ?? "--"
         let reps = model.snapshot.currentSetReps.map { "\($0) reps" } ?? "--"
         return "\(weight) x \(reps)"
+    }
+
+    private var liveElapsedText: String {
+        if model.snapshot.hasActiveWorkout {
+            return model.snapshot.elapsedText
+        }
+        return elapsedText
     }
 
     private var elapsedText: String {
@@ -330,6 +413,7 @@ struct WatchWorkoutView: View {
 
 struct GlassProgressCircle: View {
     let progress: Double
+    let color: Color
     
     var body: some View {
         ZStack {
@@ -337,20 +421,87 @@ struct GlassProgressCircle: View {
                 .stroke(Color.white.opacity(0.06), lineWidth: 4.5)
             Circle()
                 .trim(from: 0, to: CGFloat(max(0.001, min(progress, 1.0))))
-                .stroke(
-                    LinearGradient(
-                        colors: [Color(red: 0.33, green: 0.86, blue: 0.32), .cyan],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    style: StrokeStyle(lineWidth: 4.5, lineCap: .round)
-                )
+                .stroke(color, style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             
             Text("\(Int(progress * 100))%")
                 .font(.system(size: 11, weight: .bold, design: .rounded))
         }
         .frame(width: 44, height: 44)
+    }
+}
+
+private struct WatchTimePill: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(color)
+                .frame(width: 12)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Text(value)
+                    .font(.system(size: 15, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+                    .allowsTightening(true)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 38, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(.white.opacity(0.045))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+private struct WatchSetRow: View {
+    let value: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "scalemass")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(color)
+            Text(value)
+                .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.86))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .background(.white.opacity(0.045))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct LinearTintProgressStyle: ProgressViewStyle {
+    let color: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.white.opacity(0.08))
+                Capsule()
+                    .fill(color)
+                    .frame(width: max(4, proxy.size.width * CGFloat(configuration.fractionCompleted ?? 0)))
+            }
+        }
+        .frame(height: 5)
     }
 }
 
@@ -362,19 +513,19 @@ private struct WatchMetric: View {
     let color: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(color)
                 Spacer()
             }
             
             Text(value)
-                .font(.system(size: 22, weight: .bold, design: .rounded).monospacedDigit())
+                .font(.system(size: 17, weight: .black, design: .rounded).monospacedDigit())
                 .foregroundStyle(color)
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .minimumScaleFactor(0.6)
             
             Text("\(title) · \(unit)")
                 .font(.system(size: 9, weight: .semibold, design: .rounded))
@@ -424,13 +575,13 @@ private struct WatchInfoCard: View {
 private extension View {
     func watchCard(borderColor: Color = .white.opacity(0.08)) -> some View {
         self
-            .padding(12)
+            .padding(10)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
                     .fill(.white.opacity(0.04))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
                     .stroke(borderColor, lineWidth: 1)
             )
     }

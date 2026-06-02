@@ -306,6 +306,33 @@ struct WorkoutPlan: Codable, Identifiable {
     }
 }
 
+extension WorkoutPlan {
+    static let empty = WorkoutPlan(
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
+        name: "Sin plan activo",
+        location: .gym,
+        daysPerWeek: 0,
+        currentWeek: 0,
+        totalWeeks: 0,
+        completion: 0,
+        days: [],
+        currentDayIndex: 0
+    )
+
+    static var freshEmpty: WorkoutPlan {
+        WorkoutPlan(
+            name: "Sin plan activo",
+            location: .gym,
+            daysPerWeek: 0,
+            currentWeek: 0,
+            totalWeeks: 0,
+            completion: 0,
+            days: [],
+            currentDayIndex: 0
+        )
+    }
+}
+
 struct ScheduledWorkout: Codable, Identifiable {
     enum Status: String, Codable {
         case scheduled = "Scheduled"

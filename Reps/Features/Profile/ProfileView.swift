@@ -3,9 +3,12 @@ import PhotosUI
 import UIKit
 import CoreImage
 import UniformTypeIdentifiers
+import StoreKit
 
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    @Environment(\.requestReview) private var requestReview
     @EnvironmentObject private var store: AppStore
     @StateObject private var healthKit = HealthKitService()
     @State private var weightText = ""
@@ -27,6 +30,7 @@ struct ProfileView: View {
     @State private var shareImageURL: URL?
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var selectedReceiptForPreview: SavedShareCard? = nil
+    @State private var activeSupportSheet: ProfileSupportSheet?
 
     var body: some View {
         NavigationStack {
@@ -68,6 +72,7 @@ struct ProfileView: View {
                     gymPassesCard
                     healthCard
                     settingsCard
+                    supportAndProductCard
                     toolsCard
                 }
                 .padding(20)
@@ -76,13 +81,11 @@ struct ProfileView: View {
             .screenBackground()
             .toolbar(.hidden, for: .navigationBar)
             .onAppear {
-                weightText = String(format: "%.1f", store.displayedWeight.value)
-                heightText = String(format: "%.0f", store.displayedHeight.value)
+                refreshMetricTextFields()
                 store.health.isAvailable = healthKit.isAvailable
             }
             .onChange(of: store.userProfile.units) { _, _ in
-                weightText = String(format: "%.1f", store.displayedWeight.value)
-                heightText = String(format: "%.0f", store.displayedHeight.value)
+                refreshMetricTextFields()
             }
             .sheet(isPresented: $showExerciseLibrary) {
                 ExerciseLibraryView()
@@ -138,6 +141,9 @@ struct ProfileView: View {
             .sheet(item: $selectedReceiptForPreview) { card in
                 ReceiptPreviewSheet(card: card)
             }
+            .sheet(item: $activeSupportSheet) { sheet in
+                supportSheetDestination(sheet)
+            }
         }
     }
 
@@ -151,12 +157,22 @@ struct ProfileView: View {
 
                 HStack(spacing: 12) {
                     Button { showQuickMetricEditor = true } label: {
-                        ProfileMetric(title: "Peso", value: String(format: "%.1f", store.displayedWeight.value), unit: store.displayedWeight.unit, color: PulseTheme.primary)
+                        ProfileMetric(
+                            title: "Peso",
+                            value: store.hasBodyMetrics ? String(format: "%.1f", store.displayedWeight.value) : "--",
+                            unit: store.hasBodyMetrics ? store.displayedWeight.unit : "añadir",
+                            color: PulseTheme.primary
+                        )
                     }
                     .buttonStyle(.plain)
 
                     Button { showQuickMetricEditor = true } label: {
-                        ProfileMetric(title: "Altura", value: String(format: "%.0f", store.displayedHeight.value), unit: store.displayedHeight.unit, color: PulseTheme.primaryBright)
+                        ProfileMetric(
+                            title: "Altura",
+                            value: store.hasBodyMetrics ? String(format: "%.0f", store.displayedHeight.value) : "--",
+                            unit: store.hasBodyMetrics ? store.displayedHeight.unit : "añadir",
+                            color: PulseTheme.primaryBright
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -178,20 +194,38 @@ struct ProfileView: View {
                     Text("Índices corporales")
                         .font(.headline)
                     Spacer()
-                    Text("estimación")
+                    Text(store.hasBodyMetrics ? "estimación" : "pendiente")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
 
-                HStack(spacing: 12) {
-                    ProfileMetric(title: "IMC", value: String(format: "%.1f", store.bodyMassIndex), unit: bmiLabel, color: PulseTheme.accent)
-                    ProfileMetric(title: "Basal", value: "\(Int(store.basalMetabolicRate))", unit: "kcal/día", color: PulseTheme.primary)
-                }
+                if store.hasBodyMetrics {
+                    HStack(spacing: 12) {
+                        ProfileMetric(title: "IMC", value: String(format: "%.1f", store.bodyMassIndex), unit: bmiLabel, color: PulseTheme.accent)
+                        ProfileMetric(title: "Basal", value: "\(Int(store.basalMetabolicRate))", unit: "kcal/día", color: PulseTheme.primary)
+                    }
 
-                VStack(spacing: 10) {
-                    CalorieRow(title: "Déficit", value: store.deficitCalories, subtitle: "perder grasa")
-                    CalorieRow(title: "Recomposición", value: store.recompositionCalories, subtitle: "progreso estable")
-                    CalorieRow(title: "Volumen", value: store.leanBulkCalories, subtitle: "ganancia controlada")
+                    VStack(spacing: 10) {
+                        CalorieRow(title: "Déficit", value: store.deficitCalories, subtitle: "perder grasa")
+                        CalorieRow(title: "Recomposición", value: store.recompositionCalories, subtitle: "progreso estable")
+                        CalorieRow(title: "Volumen", value: store.leanBulkCalories, subtitle: "ganancia controlada")
+                    }
+                } else {
+                    PulseEmptyState(
+                        title: "Añade tus métricas",
+                        message: "Guarda peso y altura para calcular IMC, metabolismo basal y objetivos calóricos.",
+                        systemImage: "scalemass"
+                    )
+
+                    Button {
+                        showQuickMetricEditor = true
+                    } label: {
+                        Label("Añadir métricas", systemImage: "plus")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                    }
+                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.primary))
                 }
             }
         }
@@ -260,7 +294,15 @@ struct ProfileView: View {
                     .buttonStyle(.plain)
                 }
 
-                if store.savedShareCards.isEmpty {
+                if !store.hasFeatureAccess(.shareCards) {
+                    PaywallLockedCard(
+                        title: isSpanish ? "Recibos Pro" : "Pro receipts",
+                        message: isSpanish ? "Desbloquea la galería de recibos, tarjetas compartibles e imágenes resumen desde Reps Pro." : "Unlock the receipt gallery, shareable cards, and workout images with Reps Pro.",
+                        buttonTitle: isSpanish ? "Ver Reps Pro" : "See Reps Pro"
+                    ) {
+                        store.presentPaywall(source: .receiptGallery, feature: .shareCards)
+                    }
+                } else if store.savedShareCards.isEmpty {
                     PulseEmptyState(
                         title: isSpanish ? "Sin logros aún" : "No achievements yet",
                         message: isSpanish 
@@ -544,7 +586,9 @@ struct ProfileView: View {
                 .font(.headline)
 
                 Button {
-                    showProPreferences = true
+                    if store.requireFeature(.configurableProgression, source: .proPreferences) {
+                        showProPreferences = true
+                    }
                 } label: {
                     PulseListRow(title: "Preferencias Pro", subtitle: "RPE/RIR, tipo de serie, tempo y auto-progresión", systemImage: "slider.horizontal.3")
                 }
@@ -629,7 +673,9 @@ struct ProfileView: View {
                         systemImage: "photo.on.rectangle",
                         color: .orange
                     ) {
-                        prepareWorkoutShareImage()
+                        if store.requireFeature(.shareCards, source: .shareCards) {
+                            prepareWorkoutShareImage()
+                        }
                     }
 
                     if let shareImageURL {
@@ -664,7 +710,9 @@ struct ProfileView: View {
                         systemImage: "externaldrive",
                         color: PulseTheme.accent
                     ) {
-                        prepareBackupExport()
+                        if store.requireFeature(.automaticBackups, source: .backupCenter) {
+                            prepareBackupExport()
+                        }
                     }
 
                     if let backupExportURL {
@@ -686,7 +734,9 @@ struct ProfileView: View {
                         systemImage: "arrow.down.doc",
                         color: PulseTheme.primary
                     ) {
-                        showImportBackup = true
+                        if store.requireFeature(.automaticBackups, source: .backupCenter) {
+                            showImportBackup = true
+                        }
                     }
 
                     ProfileToolButton(
@@ -699,6 +749,159 @@ struct ProfileView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var supportAndProductCard: some View {
+        ProfileToolSection(title: "Soporte y producto") {
+            LazyVGrid(columns: profileToolColumns, spacing: 12) {
+                ProfileToolButton(
+                    title: "Valorar app",
+                    subtitle: "Pedir reseña",
+                    systemImage: "star.bubble",
+                    color: PulseTheme.accent
+                ) {
+                    TelemetryService.shared.log(.reviewPromptRequested)
+                    requestReview()
+                }
+
+                ProfileToolButton(
+                    title: "Feedback",
+                    subtitle: "Enviar opinión",
+                    systemImage: "bubble.left.and.text.bubble.right",
+                    color: PulseTheme.primary
+                ) {
+                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.feedback.rawValue])
+                    activeSupportSheet = .feedback
+                }
+
+                ProfileToolButton(
+                    title: "Ayuda",
+                    subtitle: "Preguntas rápidas",
+                    systemImage: "questionmark.circle",
+                    color: PulseTheme.primaryBright
+                ) {
+                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.help.rawValue])
+                    activeSupportSheet = .help
+                }
+
+                ProfileToolButton(
+                    title: "Privacidad",
+                    subtitle: "Datos y permisos",
+                    systemImage: "hand.raised",
+                    color: .purple
+                ) {
+                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.privacy.rawValue])
+                    activeSupportSheet = .privacy
+                }
+
+                ProfileToolButton(
+                    title: "Suscripción",
+                    subtitle: store.monetization.hasProAccess ? store.monetization.statusLabel : "Estado y Pro",
+                    systemImage: "creditcard",
+                    color: .orange
+                ) {
+                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.subscription.rawValue])
+                    activeSupportSheet = .subscription
+                }
+
+                ProfileToolButton(
+                    title: "Roadmap",
+                    subtitle: "Próximas mejoras",
+                    systemImage: "map",
+                    color: .teal
+                ) {
+                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.roadmap.rawValue])
+                    activeSupportSheet = .roadmap
+                }
+
+                ProfileToolButton(
+                    title: "Versión",
+                    subtitle: appVersionText,
+                    systemImage: "info.circle",
+                    color: PulseTheme.secondaryText
+                ) {
+                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.version.rawValue])
+                    activeSupportSheet = .version
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func supportSheetDestination(_ sheet: ProfileSupportSheet) -> some View {
+        switch sheet {
+        case .feedback:
+            FeedbackSheet { message in
+                sendFeedback(message)
+            }
+        case .help:
+            SupportInfoSheet(
+                title: "Ayuda",
+                systemImage: "questionmark.circle",
+                sections: [
+                    SupportInfoSection(title: "Entrenar", rows: [
+                        "Empieza desde Today o desde una rutina programada.",
+                        "Durante el entreno puedes pausar, completar series, añadir notas, fotos y agua.",
+                        "El resumen actualiza progreso, widgets y recibos."
+                    ]),
+                    SupportInfoSection(title: "Datos", rows: [
+                        "El backup JSON guarda una copia completa.",
+                        "El CSV permite exportar sesiones, cardio y métricas corporales.",
+                        "Apple Health se conecta desde Perfil cuando das permiso."
+                    ])
+                ]
+            )
+        case .privacy:
+            SupportInfoSheet(
+                title: "Privacidad",
+                systemImage: "hand.raised",
+                sections: [
+                    SupportInfoSection(title: "Datos locales", rows: [
+                        "Reps guarda tus entrenos, rutinas, métricas, fotos y tarjetas en almacenamiento local.",
+                        "Puedes exportar backup, importar backup y borrar todos los datos desde Perfil."
+                    ]),
+                    SupportInfoSection(title: "Permisos", rows: [
+                        "Apple Health solo se usa si lo conectas.",
+                        "Fotos, cámara, música, notificaciones y ubicación se solicitan solo cuando usas esas funciones.",
+                        "Los widgets leen un resumen mínimo desde el App Group para mostrar progreso y entrenos."
+                    ]),
+                    SupportInfoSection(title: "Pendiente MVP", rows: [
+                        "Añadir política de privacidad pública.",
+                        "Validar Crashlytics y subida de símbolos en build de dispositivo y archive."
+                    ]),
+                    SupportInfoSection(title: "Telemetría preparada", rows: [
+                        "Firebase Analytics y Crashlytics ya están integrados en el proyecto.",
+                        "La app registra eventos mínimos de producto sin nombres, notas, fotos ni datos identificativos."
+                    ])
+                ]
+            )
+        case .subscription:
+            SubscriptionCenterView()
+        case .roadmap:
+            SupportInfoSheet(
+                title: "Roadmap",
+                systemImage: "map",
+                sections: [
+                    SupportInfoSection(title: "Estabilización MVP", rows: [
+                        "Completar persistencia y QA de todos los flujos actuales.",
+                        "Pulir localización, accesibilidad y pantallas pequeñas.",
+                        "Añadir feedback, reseñas, privacidad, versión y soporte."
+                    ]),
+                    SupportInfoSection(title: "Integraciones", rows: [
+                        "RevenueCat para paywall y suscripción.",
+                        "Validación final de Firebase en dispositivo y canal de distribución.",
+                        "Mejora de Apple Health, Watch, widgets y Live Activities."
+                    ]),
+                    SupportInfoSection(title: "Producto", rows: [
+                        "Más insights accionables.",
+                        "Mejor sustitución de ejercicios por equipo.",
+                        "Panel Pro con progresión, fatiga y exportación avanzada."
+                    ])
+                ]
+            )
+        case .version:
+            VersionInfoSheet(appVersionText: appVersionText)
         }
     }
 
@@ -726,6 +929,38 @@ struct ProfileView: View {
         }
     }
 
+    private var appVersionText: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "\(version) (\(build))"
+    }
+
+    private func sendFeedback(_ message: String) {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            store.health.message = "Escribe tu feedback antes de enviarlo."
+            return
+        }
+
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = "support@romerosoft.com"
+        components.queryItems = [
+            URLQueryItem(name: "subject", value: "Feedback Reps \(appVersionText)"),
+            URLQueryItem(name: "body", value: trimmed)
+        ]
+
+        if let url = components.url {
+            TelemetryService.shared.log(.feedbackSent, parameters: [
+                "length_bucket": min(trimmed.count / 100, 9)
+            ])
+            openURL(url)
+            activeSupportSheet = nil
+        } else {
+            store.health.message = "No se pudo preparar el feedback."
+        }
+    }
+
     private func loadAvatar(from item: PhotosPickerItem?) async {
         guard let item,
               let data = try? await item.loadTransferable(type: Data.self),
@@ -748,16 +983,28 @@ struct ProfileView: View {
         store.health.message = String(localized: "Métricas corporales guardadas en Reps.")
     }
 
+    private func refreshMetricTextFields() {
+        if store.hasBodyMetrics {
+            weightText = String(format: "%.1f", store.displayedWeight.value)
+            heightText = String(format: "%.0f", store.displayedHeight.value)
+        } else {
+            weightText = ""
+            heightText = ""
+        }
+    }
+
     private func connectHealth() async {
         do {
             try await healthKit.requestAuthorization()
             store.health.isAuthorized = healthKit.hasWriteAuthorization
             store.health.lastSyncDate = .now
             let metrics = try await healthKit.fetchLatestBodyMetrics()
-            if metrics.weightKg != nil || metrics.heightCm != nil {
+            let resolvedWeight = metrics.weightKg ?? (store.hasBodyMetrics ? store.currentWeight : nil)
+            let resolvedHeight = metrics.heightCm ?? (store.hasBodyMetrics ? store.currentHeight : nil)
+            if let resolvedWeight, let resolvedHeight {
                 store.saveBodyMetrics(
-                    weightKg: metrics.weightKg ?? store.currentWeight,
-                    heightCm: metrics.heightCm ?? store.currentHeight,
+                    weightKg: resolvedWeight,
+                    heightCm: resolvedHeight,
                     source: .appleHealth
                 )
                 let dailyMetrics = try await healthKit.fetchDailyMetrics()
@@ -769,6 +1016,7 @@ struct ProfileView: View {
             }
         } catch {
             store.health.message = error.localizedDescription
+            TelemetryService.shared.record(error, context: "healthkit_connect")
         }
     }
 
@@ -780,11 +1028,16 @@ struct ProfileView: View {
             store.health.message = String(localized: "Cardio importado desde Apple Health: \(imported) registros nuevos.")
         } catch {
             store.health.message = error.localizedDescription
+            TelemetryService.shared.record(error, context: "healthkit_import_cardio")
         }
     }
 
     private func saveToHealth() async {
         do {
+            guard store.hasBodyMetrics else {
+                store.health.message = "Añade peso y altura antes de guardar en Apple Health."
+                return
+            }
             try await healthKit.saveBodyMetrics(weightKg: store.currentWeight, heightCm: store.currentHeight)
             if let latestMetric = store.bodyMetrics.sorted(by: { $0.date > $1.date }).first {
                 try await healthKit.saveDailyNutrition(
@@ -797,6 +1050,7 @@ struct ProfileView: View {
             store.health.message = String(localized: "Peso, altura, hidratación y energía guardados en Apple Health cuando hay datos disponibles.")
         } catch {
             store.health.message = error.localizedDescription
+            TelemetryService.shared.record(error, context: "healthkit_save_body")
         }
     }
 
@@ -811,6 +1065,7 @@ struct ProfileView: View {
             store.health.message = String(localized: "Último entreno guardado en Apple Health.")
         } catch {
             store.health.message = error.localizedDescription
+            TelemetryService.shared.record(error, context: "healthkit_save_workout")
         }
     }
 
@@ -822,14 +1077,11 @@ struct ProfileView: View {
                 return
             }
 
-            for scheduled in store.scheduledWorkouts where scheduled.status == .scheduled {
-                try await NotificationService.scheduleWorkoutReminder(for: scheduled)
-                try await NotificationService.scheduleMissedWorkoutCheck(for: scheduled)
-            }
-            try await NotificationService.scheduleDailySummary()
+            store.refreshNotificationSchedule()
         } catch {
             store.userProfile.remindersEnabled = false
             store.health.message = error.localizedDescription
+            TelemetryService.shared.record(error, context: "notifications_enable_reminders")
         }
     }
 
@@ -839,6 +1091,7 @@ struct ProfileView: View {
             store.health.message = String(localized: "CSV generado. Usa Compartir CSV para enviarlo.")
         } catch {
             store.health.message = error.localizedDescription
+            TelemetryService.shared.record(error, context: "csv_export_prepare")
         }
     }
 
@@ -848,6 +1101,7 @@ struct ProfileView: View {
             store.health.message = String(localized: "Backup generado. Usa Compartir backup para enviarlo.")
         } catch {
             store.health.message = error.localizedDescription
+            TelemetryService.shared.record(error, context: "backup_export_prepare")
         }
     }
 
@@ -857,10 +1111,14 @@ struct ProfileView: View {
             store.health.message = String(localized: "Imagen generada. Usa Compartir imagen para enviarla.")
         } catch {
             store.health.message = String(localized: "No se pudo crear la imagen compartible.")
+            TelemetryService.shared.record(error, context: "share_image_prepare")
         }
     }
 
     private func handleBackupImport(_ result: Result<URL, Error>) {
+        guard store.requireFeature(.automaticBackups, source: .backupCenter) else {
+            return
+        }
         do {
             let url = try result.get()
             let didAccess = url.startAccessingSecurityScopedResource()
@@ -870,11 +1128,11 @@ struct ProfileView: View {
                 }
             }
             try store.importBackup(from: url)
-            weightText = String(format: "%.1f", store.displayedWeight.value)
-            heightText = String(format: "%.0f", store.displayedHeight.value)
+            refreshMetricTextFields()
             store.health.message = String(localized: "Backup importado correctamente.")
         } catch {
             store.health.message = error.localizedDescription
+            TelemetryService.shared.record(error, context: "backup_import_handle")
         }
     }
 
@@ -888,11 +1146,11 @@ struct ProfileView: View {
                 }
             }
             try store.importCSV(from: url)
-            weightText = String(format: "%.1f", store.displayedWeight.value)
-            heightText = String(format: "%.0f", store.displayedHeight.value)
+            refreshMetricTextFields()
             store.health.message = String(localized: "CSV importado correctamente.")
         } catch {
             store.health.message = String(localized: "No se pudo importar el CSV.")
+            TelemetryService.shared.record(error, context: "csv_import_handle")
         }
     }
 }
@@ -992,6 +1250,257 @@ private struct ProfileToolCard: View {
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private enum ProfileSupportSheet: String, Identifiable {
+    case feedback
+    case help
+    case privacy
+    case subscription
+    case roadmap
+    case version
+
+    var id: String { rawValue }
+}
+
+private struct SupportInfoSection: Identifiable {
+    let id = UUID()
+    let title: String
+    let rows: [String]
+}
+
+private struct SupportInfoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let systemImage: String
+    let sections: [SupportInfoSection]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 12) {
+                        Image(systemName: systemImage)
+                            .font(.title2.weight(.bold))
+                            .frame(width: 44, height: 44)
+                            .foregroundStyle(.white)
+                            .background(PulseTheme.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                        Text(title)
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                    }
+
+                    ForEach(sections) { section in
+                        PulseCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text(section.title)
+                                    .font(.headline)
+
+                                VStack(alignment: .leading, spacing: 10) {
+                                    ForEach(section.rows, id: \.self) { row in
+                                        HStack(alignment: .top, spacing: 10) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.subheadline.weight(.bold))
+                                                .foregroundStyle(PulseTheme.primary)
+                                                .padding(.top, 1)
+                                            Text(row)
+                                                .font(.subheadline)
+                                                .foregroundStyle(PulseTheme.secondaryText)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(20)
+                .padding(.bottom, 24)
+            }
+            .screenBackground()
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cerrar") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct FeedbackSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var message = ""
+    let onSend: (String) -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bubble.left.and.text.bubble.right")
+                            .font(.title2.weight(.bold))
+                            .frame(width: 44, height: 44)
+                            .foregroundStyle(.white)
+                            .background(PulseTheme.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Feedback")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                            Text("Cuéntanos qué mejorarías antes del MVP.")
+                                .font(.subheadline)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Mensaje")
+                                .font(.headline)
+
+                            TextEditor(text: $message)
+                                .frame(minHeight: 180)
+                                .scrollContentBackground(.hidden)
+                                .padding(10)
+                                .background(PulseTheme.grouped)
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                                .overlay(alignment: .topLeading) {
+                                    if message.isEmpty {
+                                        Text("Problema, idea, flujo confuso o funcionalidad que falta...")
+                                            .font(.subheadline)
+                                            .foregroundStyle(PulseTheme.tertiaryText)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 18)
+                                            .allowsHitTesting(false)
+                                    }
+                                }
+
+                            Button {
+                                onSend(message)
+                            } label: {
+                                Label("Enviar feedback", systemImage: "paperplane.fill")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 48)
+                                    .foregroundStyle(.black)
+                                    .background(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? PulseTheme.elevated : .white)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                    }
+                }
+                .padding(20)
+            }
+            .screenBackground()
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cerrar") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct VersionInfoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let appVersionText: String
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "info.circle")
+                            .font(.title2.weight(.bold))
+                            .frame(width: 44, height: 44)
+                            .foregroundStyle(.white)
+                            .background(PulseTheme.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                        Text("Versión")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                    }
+
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Build")
+                                .font(.headline)
+
+                            supportRow("Versión: \(appVersionText)")
+                            supportRow("Bundle ID: \(Bundle.main.bundleIdentifier ?? "com.romerosoft.repsfitness")")
+                        }
+                    }
+
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Estado")
+                                .font(.headline)
+
+                            supportRow("MVP en preparación.")
+                            supportRow("Build de auditoría interna.")
+                        }
+                    }
+
+                    #if DEBUG
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Crashlytics")
+                                .font(.headline)
+
+                            Text("Este botón fuerza un crash de prueba para validar Firebase Crashlytics en dispositivo o TestFlight interno.")
+                                .font(.subheadline)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Button(role: .destructive) {
+                                TelemetryService.shared.triggerTestCrash()
+                            } label: {
+                                Label("Enviar crash de prueba", systemImage: "exclamationmark.triangle.fill")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 48)
+                                    .foregroundStyle(.white)
+                                    .background(Color.red)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    #endif
+                }
+                .padding(20)
+                .padding(.bottom, 24)
+            }
+            .screenBackground()
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cerrar") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func supportRow(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(PulseTheme.primary)
+                .padding(.top, 1)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(PulseTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
@@ -1295,8 +1804,13 @@ struct QuickBodyMetricEditorView: View {
             .navigationTitle("Editar cuerpo")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                weight = String(format: "%.1f", store.displayedWeight.value)
-                height = String(format: "%.0f", store.displayedHeight.value)
+                if store.hasBodyMetrics {
+                    weight = String(format: "%.1f", store.displayedWeight.value)
+                    height = String(format: "%.0f", store.displayedHeight.value)
+                } else {
+                    weight = ""
+                    height = ""
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -1411,7 +1925,7 @@ struct ProgressPhotoEditorView: View {
 
                 Section("Contexto") {
                     DatePicker("Fecha", selection: $date, displayedComponents: [.date])
-                    Text("Peso actual: \(store.currentWeight, specifier: "%.1f") kg")
+                    Text(store.hasBodyMetrics ? "Peso actual: \(String(format: "%.1f", store.currentWeight)) kg" : "Peso actual: sin registrar")
                     TextField("Nota", text: $note, axis: .vertical)
                         .lineLimit(2...4)
                 }
@@ -1472,7 +1986,7 @@ struct ProgressPhotoEditorView: View {
 
     private func save() {
         guard let imageData else { return }
-        store.addProgressPhoto(ProgressPhoto(date: date, imageData: imageData, weightKg: store.currentWeight, note: note.isEmpty ? nil : note))
+        store.addProgressPhoto(ProgressPhoto(date: date, imageData: imageData, weightKg: store.hasBodyMetrics ? store.currentWeight : nil, note: note.isEmpty ? nil : note))
         dismiss()
     }
 }
@@ -1899,71 +2413,90 @@ struct ProPreferencesView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Logging avanzado") {
-                    Toggle("Marcar todos", isOn: Binding(
-                        get: {
-                            store.userProfile.showRPE &&
-                            store.userProfile.showRIR &&
-                            store.userProfile.showSetType &&
-                            store.userProfile.showTempo &&
-                            store.userProfile.autoProgressionEnabled
-                        },
-                        set: { selectAll in
-                            store.userProfile.showRPE = selectAll
-                            store.userProfile.showRIR = selectAll
-                            store.userProfile.showSetType = selectAll
-                            store.userProfile.showTempo = selectAll
-                            store.userProfile.autoProgressionEnabled = selectAll
+            Group {
+                if store.hasFeatureAccess(.configurableProgression) {
+                    Form {
+                        Section("Logging avanzado") {
+                            Toggle("Marcar todos", isOn: Binding(
+                                get: {
+                                    store.userProfile.showRPE &&
+                                    store.userProfile.showRIR &&
+                                    store.userProfile.showSetType &&
+                                    store.userProfile.showTempo &&
+                                    store.userProfile.autoProgressionEnabled
+                                },
+                                set: { selectAll in
+                                    store.userProfile.showRPE = selectAll
+                                    store.userProfile.showRIR = selectAll
+                                    store.userProfile.showSetType = selectAll
+                                    store.userProfile.showTempo = selectAll
+                                    store.userProfile.autoProgressionEnabled = selectAll
+                                }
+                            ))
+                            .font(.headline)
+                            .foregroundStyle(PulseTheme.primary)
+
+                            Toggle("Mostrar RPE", isOn: $store.userProfile.showRPE)
+                            Toggle("Mostrar RIR", isOn: $store.userProfile.showRIR)
+                            Toggle("Mostrar tipo de serie", isOn: $store.userProfile.showSetType)
+                            Toggle("Mostrar tempo", isOn: $store.userProfile.showTempo)
+                            Toggle("Auto-progresión", isOn: $store.userProfile.autoProgressionEnabled)
+                            Stepper("Incremento: \(store.userProfile.weightIncrementKg, specifier: "%.1f") kg", value: $store.userProfile.weightIncrementKg, in: 0.5...10, step: 0.5)
                         }
-                    ))
-                    .font(.headline)
-                    .foregroundStyle(PulseTheme.primary)
 
-                    Toggle("Mostrar RPE", isOn: $store.userProfile.showRPE)
-                    Toggle("Mostrar RIR", isOn: $store.userProfile.showRIR)
-                    Toggle("Mostrar tipo de serie", isOn: $store.userProfile.showSetType)
-                    Toggle("Mostrar tempo", isOn: $store.userProfile.showTempo)
-                    Toggle("Auto-progresión", isOn: $store.userProfile.autoProgressionEnabled)
-                    Stepper("Incremento: \(store.userProfile.weightIncrementKg, specifier: "%.1f") kg", value: $store.userProfile.weightIncrementKg, in: 0.5...10, step: 0.5)
-                }
-
-                Section("Equipamiento disponible") {
-                    Toggle("Marcar todos", isOn: Binding(
-                        get: {
-                            equipmentOptions.allSatisfy { store.userProfile.availableEquipment.contains($0) }
-                        },
-                        set: { selectAll in
-                            if selectAll {
-                                for option in equipmentOptions {
-                                    if !store.userProfile.availableEquipment.contains(option) {
-                                        store.userProfile.availableEquipment.append(option)
+                        Section("Equipamiento disponible") {
+                            Toggle("Marcar todos", isOn: Binding(
+                                get: {
+                                    equipmentOptions.allSatisfy { store.userProfile.availableEquipment.contains($0) }
+                                },
+                                set: { selectAll in
+                                    if selectAll {
+                                        for option in equipmentOptions where !store.userProfile.availableEquipment.contains(option) {
+                                            store.userProfile.availableEquipment.append(option)
+                                        }
+                                    } else {
+                                        for option in equipmentOptions {
+                                            store.userProfile.availableEquipment.removeAll { $0 == option }
+                                        }
                                     }
                                 }
-                            } else {
-                                for option in equipmentOptions {
-                                    store.userProfile.availableEquipment.removeAll { $0 == option }
-                                }
+                            ))
+                            .font(.headline)
+                            .foregroundStyle(PulseTheme.primary)
+
+                            ForEach(equipmentOptions, id: \.self) { item in
+                                Toggle(RepsText.equipment(item, language: store.userProfile.preferredLanguage), isOn: Binding(
+                                    get: { store.userProfile.availableEquipment.contains(item) },
+                                    set: { enabled in
+                                        if enabled {
+                                            if !store.userProfile.availableEquipment.contains(item) {
+                                                store.userProfile.availableEquipment.append(item)
+                                            }
+                                        } else {
+                                            store.userProfile.availableEquipment.removeAll { $0 == item }
+                                        }
+                                    }
+                                ))
                             }
                         }
-                    ))
-                    .font(.headline)
-                    .foregroundStyle(PulseTheme.primary)
-
-                    ForEach(equipmentOptions, id: \.self) { item in
-                        Toggle(RepsText.equipment(item, language: store.userProfile.preferredLanguage), isOn: Binding(
-                            get: { store.userProfile.availableEquipment.contains(item) },
-                            set: { enabled in
-                                if enabled {
-                                    if !store.userProfile.availableEquipment.contains(item) {
-                                        store.userProfile.availableEquipment.append(item)
-                                    }
-                                } else {
-                                    store.userProfile.availableEquipment.removeAll { $0 == item }
-                                }
-                            }
-                        ))
                     }
+                } else {
+                    ScrollView {
+                        VStack(spacing: 18) {
+                            PaywallLockedCard(
+                                title: "Preferencias Pro bloqueadas",
+                                message: "Activa Reps Pro para configurar RPE, RIR, tempo, tipo de serie, auto-progresión y tu equipamiento avanzado.",
+                                buttonTitle: "Ver Reps Pro"
+                            ) {
+                                dismiss()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                    store.presentPaywall(source: .proPreferences, feature: .configurableProgression)
+                                }
+                            }
+                        }
+                        .padding(20)
+                    }
+                    .screenBackground()
                 }
             }
             .navigationTitle("Preferencias Pro")

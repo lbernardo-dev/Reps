@@ -48,16 +48,14 @@ private struct RepsStreakWidgetView: View {
     let entry: RepsStreakEntry
 
     var body: some View {
-        let resolvedColor: WidgetColor = {
-            if entry.configuration.accentColor == .system {
-                return WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
-            } else {
-                return entry.configuration.accentColor
-            }
-        }()
+        let resolvedColor = WidgetColor.resolved(
+            appColorName: entry.snapshot.widgetAccentColorName,
+            widgetColor: entry.configuration.accentColor
+        )
         let theme = resolvedColor.theme
         let streak = entry.snapshot.streakDays
         let completion = entry.snapshot.weeklyCompletion
+        let hasPlan = entry.snapshot.nextWorkoutDayName != nil || entry.snapshot.planTitle != nil
 
         switch family {
         case .accessoryCircular:
@@ -80,18 +78,19 @@ private struct RepsStreakWidgetView: View {
                     .font(.caption)
                     .minimumScaleFactor(0.8)
                     .lineLimit(1)
+                    .opacity(hasPlan ? 1 : 0.7)
             }
 
         default:
             if family == .systemSmall {
-                SmallStreakView(entry: entry, theme: theme, streak: streak, completion: completion)
+                SmallStreakView(entry: entry, theme: theme, streak: streak, completion: completion, hasPlan: hasPlan)
                     .padding(14)
                     .containerBackground(for: .widget) {
                         theme.background
                     }
                     .widgetURL(URL(string: "reps://workout"))
             } else {
-                MediumStreakView(entry: entry, theme: theme, streak: streak, completion: completion)
+                MediumStreakView(entry: entry, theme: theme, streak: streak, completion: completion, hasPlan: hasPlan)
                     .padding(14)
                     .containerBackground(for: .widget) {
                         theme.background
@@ -109,6 +108,7 @@ private struct SmallStreakView: View {
     let theme: WidgetTheme
     let streak: Int
     let completion: Double
+    let hasPlan: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -149,7 +149,7 @@ private struct SmallStreakView: View {
             }
             .padding(.vertical, -4)
 
-            Text("COMPLETADOS")
+            Text(hasPlan ? "COMPLETADOS" : "SIN PLAN")
                 .font(.system(size: 8, weight: .black))
                 .foregroundStyle(theme.secondaryForeground)
 
@@ -178,6 +178,7 @@ private struct MediumStreakView: View {
     let theme: WidgetTheme
     let streak: Int
     let completion: Double
+    let hasPlan: Bool
 
     var body: some View {
         HStack(spacing: 14) {
@@ -226,7 +227,7 @@ private struct MediumStreakView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
-                Text(streak > 0 ? "¡Excelente constancia!" : "Empieza tu racha hoy")
+                Text(streak > 0 ? "¡Excelente constancia!" : (hasPlan ? "Empieza tu racha hoy" : "Crea tu primer plan"))
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.foreground)
                     .lineLimit(1)
@@ -234,7 +235,7 @@ private struct MediumStreakView: View {
 
                 Spacer(minLength: 2)
 
-                Text("Has completado el \(Int(completion * 100))% de tus entrenos planificados esta semana.")
+                Text(hasPlan ? "Has completado el \(Int(completion * 100))% de tus entrenos planificados esta semana." : "Cuando tengas un plan activo, aquí verás tu progreso semanal.")
                     .font(.system(size: 10))
                     .foregroundStyle(theme.secondaryForeground)
                     .lineLimit(2)

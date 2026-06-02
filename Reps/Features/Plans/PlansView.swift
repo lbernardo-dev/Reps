@@ -86,81 +86,10 @@ struct PlansView: View {
                         }
                     }
 
-                    SectionHeader(title: "PLAN ACTIVO")
-
-                    PulseCard {
-                        VStack(alignment: .leading, spacing: 18) {
-                            HStack {
-                                PulseChip(title: "En progreso", isSelected: true)
-                                Spacer()
-                                Menu {
-                                    Button("Editar plan") {
-                                        planToEdit = store.activePlan
-                                    }
-                                    Button("Desactivar plan") {
-                                        store.deactivatePlan(store.activePlan)
-                                    }
-                                } label: {
-                                    Image(systemName: "ellipsis")
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                        .frame(width: 44, height: 44)
-                                }
-                                .accessibilityLabel("Acciones del plan")
-                            }
-
-                            Text(store.activePlan.name)
-                                .font(.system(size: 30, weight: .bold, design: .rounded))
-
-                            HStack(spacing: 16) {
-                                Label(locationTitle(store.activePlan.location), systemImage: "dumbbell.fill")
-                                Divider().frame(height: 18)
-                                Label("\(store.activePlan.daysPerWeek) dias/semana", systemImage: "calendar")
-                            }
-                            .foregroundStyle(PulseTheme.secondaryText)
-
-                            ProgressView(value: store.activePlan.completion)
-                                .tint(PulseTheme.primary)
-
-                            HStack {
-                                Text("Semana \(store.activePlan.currentWeek) de \(store.activePlan.totalWeeks)")
-                                Spacer()
-                                Text("\(Int(store.activePlan.completion * 100))% completado")
-                            }
-                            .foregroundStyle(PulseTheme.secondaryText)
-
-                            if let targetEventName = store.activePlan.targetEventName,
-                               let targetEventDate = store.activePlan.targetEventDate {
-                                Divider()
-                                PlanTargetEventSummary(
-                                    eventName: targetEventName,
-                                    eventDate: targetEventDate
-                                )
-                            }
-                        }
-                    }
-
-                    PlanMusicCard(plan: store.activePlan) {
-                        planToEdit = store.activePlan
-                    }
-
-                    SectionHeader(title: "DIAS DE ENTRENAMIENTO")
-
-                    PulseCard {
-                        VStack(spacing: 0) {
-                            ForEach(store.activePlan.days) { day in
-                                NavigationLink {
-                                    WorkoutDetailView(workout: day)
-                                } label: {
-                                    PlanDayRow(day: day)
-                                }
-                                .buttonStyle(.plain)
-
-                                if day.id != store.activePlan.days.last?.id {
-                                    Divider()
-                                }
-                            }
-                        }
+                    if hasActivePlan {
+                        activePlanSection
+                    } else {
+                        emptyPlanSection
                     }
 
                     SectionHeader(title: "TUS PLANES")
@@ -171,7 +100,7 @@ struct PlansView: View {
                             if inactivePlans.isEmpty {
                                 PulseEmptyState(
                                     title: "No hay planes guardados",
-                                    message: "Crea un plan nuevo o edita el activo cuando cambie tu rutina.",
+                                    message: "Crea un plan nuevo o guarda una rutina desde las plantillas.",
                                     systemImage: "square.stack.3d.up"
                                 )
                             }
@@ -248,6 +177,142 @@ struct PlansView: View {
         case .gym: "Gimnasio"
         case .home: "Casa"
         case .both: "Casa y gimnasio"
+        }
+    }
+
+    private var hasActivePlan: Bool {
+        !store.activePlan.days.isEmpty
+    }
+
+    @ViewBuilder
+    private var activePlanSection: some View {
+        SectionHeader(title: "PLAN ACTIVO")
+
+        PulseCard {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    PulseChip(title: "En progreso", isSelected: true)
+                    Spacer()
+                    Menu {
+                        Button("Editar plan") {
+                            planToEdit = store.activePlan
+                        }
+                        Button("Desactivar plan") {
+                            store.deactivatePlan(store.activePlan)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("Acciones del plan")
+                }
+
+                Text(store.activePlan.name)
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+
+                HStack(spacing: 16) {
+                    Label(locationTitle(store.activePlan.location), systemImage: "dumbbell.fill")
+                    Divider().frame(height: 18)
+                    Label("\(store.activePlan.daysPerWeek) días/semana", systemImage: "calendar")
+                }
+                .foregroundStyle(PulseTheme.secondaryText)
+
+                ProgressView(value: store.activePlan.completion)
+                    .tint(PulseTheme.primary)
+
+                HStack {
+                    Text("Semana \(store.activePlan.currentWeek) de \(store.activePlan.totalWeeks)")
+                    Spacer()
+                    Text("\(Int(store.activePlan.completion * 100))% completado")
+                }
+                .foregroundStyle(PulseTheme.secondaryText)
+
+                if let targetEventName = store.activePlan.targetEventName,
+                   let targetEventDate = store.activePlan.targetEventDate {
+                    Divider()
+                    PlanTargetEventSummary(
+                        eventName: targetEventName,
+                        eventDate: targetEventDate
+                    )
+                }
+            }
+        }
+
+        PlanMusicCard(plan: store.activePlan) {
+            planToEdit = store.activePlan
+        }
+
+        SectionHeader(title: "DÍAS DE ENTRENAMIENTO")
+
+        PulseCard {
+            VStack(spacing: 0) {
+                ForEach(store.activePlan.days) { day in
+                    NavigationLink {
+                        WorkoutDetailView(workout: day)
+                    } label: {
+                        PlanDayRow(day: day)
+                    }
+                    .buttonStyle(.plain)
+
+                    if day.id != store.activePlan.days.last?.id {
+                        Divider()
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyPlanSection: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.headline.weight(.bold))
+                        .frame(width: 42, height: 42)
+                        .foregroundStyle(.white)
+                        .background(PulseTheme.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Sin plan activo")
+                            .font(.headline)
+                        Text("Crea tu primera rutina, usa una plantilla o abre la biblioteca para elegir ejercicios.")
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        showCreatePlan = true
+                    } label: {
+                        Label("Crear plan", systemImage: "plus")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .foregroundStyle(.black)
+                            .background(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        WorkoutLibraryView()
+                    } label: {
+                        Label("Ver rutinas", systemImage: "list.clipboard")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .foregroundStyle(PulseTheme.primary)
+                            .background(PulseTheme.grouped)
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 }
@@ -362,7 +427,7 @@ private struct PlanRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
             VStack(alignment: .leading, spacing: 4) {
                 Text(plan.name).font(.title3.weight(.bold))
-                Text("\(plan.daysPerWeek) dias/semana").foregroundStyle(PulseTheme.secondaryText)
+                Text("\(plan.daysPerWeek) días/semana").foregroundStyle(PulseTheme.secondaryText)
             }
         }
         .padding(.vertical, 14)
@@ -1292,7 +1357,7 @@ struct EditPlanView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Informacion basica") {
+                Section("Información básica") {
                     TextField("Nombre del plan", text: $name)
                     Picker("Entorno de entrenamiento", selection: $location) {
                         ForEach(UserProfile.TrainingLocation.allCases) { location in
@@ -1302,7 +1367,7 @@ struct EditPlanView: View {
                 }
 
                 Section("Calendario") {
-                    Stepper("\(daysPerWeek) dias por semana", value: $daysPerWeek, in: 1...7)
+                    Stepper("\(daysPerWeek) días por semana", value: $daysPerWeek, in: 1...7)
                     Stepper("Semana \(currentWeek) de \(totalWeeks)", value: $currentWeek, in: 1...max(totalWeeks, 1))
                     Stepper("\(totalWeeks) semanas", value: $totalWeeks, in: max(currentWeek, 1)...24)
                 }
@@ -1311,11 +1376,11 @@ struct EditPlanView: View {
 
                 ForEach(days.indices, id: \.self) { dayIndex in
                     Section("Entrenamiento \(dayIndex + 1)") {
-                        TextField("Titulo", text: Binding(
+                        TextField("Título", text: Binding(
                             get: { days[dayIndex].title },
                             set: { days[dayIndex].title = $0 }
                         ))
-                        TextField("Subtitulo", text: Binding(
+                        TextField("Subtítulo", text: Binding(
                             get: { days[dayIndex].subtitle },
                             set: { days[dayIndex].subtitle = $0 }
                         ))
@@ -1431,7 +1496,7 @@ struct EditPlanView: View {
                                     }
                                 }
                             } label: {
-                                PlanEditorActionRow(title: "Anadir ejercicio", systemImage: "plus", color: PulseTheme.primary)
+                                PlanEditorActionRow(title: "Añadir ejercicio", systemImage: "plus", color: PulseTheme.primary)
                             }
                             .buttonStyle(.plain)
 
@@ -1441,7 +1506,7 @@ struct EditPlanView: View {
                             Button(role: .destructive) {
                                 days.remove(at: dayIndex)
                             } label: {
-                                PlanEditorActionRow(title: "Eliminar dia", systemImage: "trash", color: .red)
+                                PlanEditorActionRow(title: "Eliminar día", systemImage: "trash", color: .red)
                             }
                             .buttonStyle(.plain)
                             .disabled(days.count == 1)
@@ -1459,7 +1524,7 @@ struct EditPlanView: View {
                     Button {
                         days.append(WorkoutDay(title: "Entrenamiento \(days.count + 1)", subtitle: "Fuerza", durationMinutes: 45, exercises: []))
                     } label: {
-                        Label("Anadir dia", systemImage: "plus")
+                        Label("Añadir día", systemImage: "plus")
                     }
 
                     Menu {
@@ -1469,7 +1534,7 @@ struct EditPlanView: View {
                             }
                         }
                     } label: {
-                        Label("Anadir rutina existente", systemImage: "list.clipboard")
+                        Label("Añadir rutina existente", systemImage: "list.clipboard")
                     }
                 }
             }
@@ -1585,7 +1650,7 @@ struct LegacyCreatePlanView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Informacion basica") {
+                Section("Información básica") {
                     TextField("Nombre del plan", text: $planName)
                     Picker("Entorno de entrenamiento", selection: $location) {
                         ForEach(UserProfile.TrainingLocation.allCases) { location in
@@ -1595,7 +1660,7 @@ struct LegacyCreatePlanView: View {
                 }
 
                 Section("Calendario") {
-                    Stepper("\(daysPerWeek) dias por semana", value: $daysPerWeek, in: 1...7)
+                    Stepper("\(daysPerWeek) días por semana", value: $daysPerWeek, in: 1...7)
                     Stepper("\(totalWeeks) semanas", value: $totalWeeks, in: 1...16)
                     Toggle("Activar al guardar", isOn: $activateImmediately)
                 }
@@ -1603,7 +1668,7 @@ struct LegacyCreatePlanView: View {
                 PlanPlaylistEditor(playlists: $playlists, showMusicConnector: $showMusicConnector)
 
                 Section("Entrenamiento") {
-                    TextField("Titulo del entrenamiento", text: $workoutTitle)
+                    TextField("Título del entrenamiento", text: $workoutTitle)
                     ForEach(store.exercises) { exercise in
                         Button {
                             toggle(exercise)
@@ -1626,7 +1691,7 @@ struct LegacyCreatePlanView: View {
 
                 Section("Vista previa") {
                     PlanPreviewDay(title: "Entrenamiento A", workout: workoutTitle.isEmpty ? "Full body" : workoutTitle, exercises: selectedExerciseIDs.count)
-                    Text("Reps creara \(daysPerWeek) dias editables a partir de esta plantilla.")
+                    Text("Reps creará \(daysPerWeek) días editables a partir de esta plantilla.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

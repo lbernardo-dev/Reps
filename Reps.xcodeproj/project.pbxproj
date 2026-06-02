@@ -37,7 +37,6 @@
 		3D2D711B864AB7E3566E4453 /* WatchWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCEDBC86A7D5517EE1DEEFFE /* WatchWorkoutView.swift */; };
 		485D38B631E3EF7773340D83 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F998B9C72A27863842809A33 /* AppStore.swift */; };
 		4CD65496EEC8073CAFB0BF44 /* PermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD6E9727C891B41CB538DE6 /* PermissionService.swift */; };
-		4D3249494EFCE9A753D701BE /* RepsWidgetConfigurationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542BD8688B577CF24924B7C3 /* RepsWidgetConfigurationIntent.swift */; };
 		4DD5973D7549AC9555F81FA2 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE400159890F89819FDFC36 /* NotificationService.swift */; };
 		537C3D3BB6815D9DD245CD13 /* SwiftDataPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCE094B694B28F560A27A91 /* SwiftDataPersistence.swift */; };
 		571B9B9626B8C28B2BCAD209 /* FitnessMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AE6FC6EDB425205F8F3592B /* FitnessMetrics.swift */; };
@@ -48,6 +47,15 @@
 		67CBF2B94B8586D99C918832 /* WorkoutShareImageRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED3D682D48163582C8B0922B /* WorkoutShareImageRenderer.swift */; };
 		6A4BC19B92F659AFD26F875C /* QuickMenuProgressionChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF4E20BFA43D7C528611005F /* QuickMenuProgressionChart.swift */; };
 		6DF3D84068D927DBA8F82F18 /* RepsWidgetConfigurationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542BD8688B577CF24924B7C3 /* RepsWidgetConfigurationIntent.swift */; };
+		714F5C6A78D94D47A0E8E19B /* TelemetryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 714F5C6978D94D47A0E8E19B /* TelemetryService.swift */; };
+		7A11B221B18A4A90A7B4B441 /* Monetization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11B220B18A4A90A7B4B441 /* Monetization.swift */; };
+		7A11B223B18A4A90A7B4B441 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11B222B18A4A90A7B4B441 /* PaywallView.swift */; };
+		7CEDE3152FCEA0590059DB19 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 7CEDE3142FCEA0590059DB19 /* FirebaseAnalytics */; };
+		7CEDE3172FCEA0590059DB19 /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7CEDE3162FCEA0590059DB19 /* FirebaseAnalyticsCore */; };
+		7CEDE3192FCEA0590059DB19 /* FirebaseAnalyticsIdentitySupport in Frameworks */ = {isa = PBXBuildFile; productRef = 7CEDE3182FCEA0590059DB19 /* FirebaseAnalyticsIdentitySupport */; };
+		7CEDE31B2FCEA0590059DB19 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7CEDE31A2FCEA0590059DB19 /* FirebaseCore */; };
+		7CEDE31D2FCEA0590059DB19 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 7CEDE31C2FCEA0590059DB19 /* FirebaseCrashlytics */; };
+		7CEDE31F2FCEA1750059DB19 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7CEDE31E2FCEA1750059DB19 /* GoogleService-Info.plist */; };
 		87D69B64759C6D1C74B943F7 /* PlansView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95EF4F0FCD797CF0C3006FED /* PlansView.swift */; };
 		8B77A758E15EBD5CCD8D16E2 /* RepsWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFAF43FA22D0DA2672A1E51 /* RepsWidgetsBundle.swift */; };
 		8C747362B6CD2A8E0279E26D /* PlateCalculatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65B11B67EB0B13C847A1331 /* PlateCalculatorView.swift */; };
@@ -56,7 +64,6 @@
 		97DCAC3F27342E2E93CC2058 /* ProfileDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AACCD6E1BE104C3FD7B706C /* ProfileDetailView.swift */; };
 		990133AA0AC6E04F09815E16 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3659C8528135CC1735E2D7BD /* HealthKitService.swift */; };
 		9D6C2CA9B9BC38E180888A76 /* RepsBatteryWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DAAE09638B4291B3E89483 /* RepsBatteryWidget.swift */; };
-		A3472399B3A3FE456881EAB2 /* RepsWidgetConfigurationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542BD8688B577CF24924B7C3 /* RepsWidgetConfigurationIntent.swift */; };
 		AB060AEE9C8DA146B13BE710 /* WorkoutReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75F48E903FC027A25C691AD9 /* WorkoutReceiptView.swift */; };
 		B244444DC91F7901D069A6E7 /* WorkoutShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF2BB82DF974745D5746570F /* WorkoutShared.swift */; };
 		B4C98D41ED857AF09B4C5C97 /* AppSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACEC4BB22C072ED9B0069C1 /* AppSnapshot.swift */; };
@@ -151,10 +158,14 @@
 		5C82B397520A9BD1BF35FC73 /* WatchWorkoutModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutModel.swift; sourceTree = "<group>"; };
 		5DC383781C9E3DFE49567082 /* WatchCommandRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchCommandRouter.swift; sourceTree = "<group>"; };
 		5E1ADC30960DF398B94738B6 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		714F5C6978D94D47A0E8E19B /* TelemetryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryService.swift; sourceTree = "<group>"; };
 		75F48E903FC027A25C691AD9 /* WorkoutReceiptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutReceiptView.swift; sourceTree = "<group>"; };
+		7A11B220B18A4A90A7B4B441 /* Monetization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Monetization.swift; sourceTree = "<group>"; };
+		7A11B222B18A4A90A7B4B441 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		7CEDE31E2FCEA1750059DB19 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		860264EAF0E928C5E69888F7 /* RepsWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = RepsWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		89F73E9CB8B46A571B9DEA48 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		8AD60C6BDD44A63047D0E969 /* Reps.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Reps.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8AD60C6BDD44A63047D0E969 /* Reps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Reps.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8AE6FC6EDB425205F8F3592B /* FitnessMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessMetrics.swift; sourceTree = "<group>"; };
 		8E9A6FDE53836377E8092FFF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9055371D6F3FC5EB8456BF60 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -201,6 +212,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7CEDE3192FCEA0590059DB19 /* FirebaseAnalyticsIdentitySupport in Frameworks */,
+				7CEDE31B2FCEA0590059DB19 /* FirebaseCore in Frameworks */,
+				7CEDE3152FCEA0590059DB19 /* FirebaseAnalytics in Frameworks */,
+				7CEDE31D2FCEA0590059DB19 /* FirebaseCrashlytics in Frameworks */,
+				7CEDE3172FCEA0590059DB19 /* FirebaseAnalyticsCore in Frameworks */,
 				BF702D63C7A54286CF954519 /* MuscleMap in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -230,6 +246,7 @@
 				130E4F75D706852645E5A1F1 /* HapticService.swift */,
 				FBE400159890F89819FDFC36 /* NotificationService.swift */,
 				CCD6E9727C891B41CB538DE6 /* PermissionService.swift */,
+				714F5C6978D94D47A0E8E19B /* TelemetryService.swift */,
 				1B33244C64642C7FC7A82750 /* WorkoutAppleMusicPlayer.swift */,
 				ED3D682D48163582C8B0922B /* WorkoutShareImageRenderer.swift */,
 			);
@@ -251,6 +268,7 @@
 			children = (
 				9568109583769923CE3A03FD /* Calendar */,
 				A6763C91F609D7878FD6B2C9 /* Exercises */,
+				7A11B224B18A4A90A7B4B441 /* Monetization */,
 				9D87489AE4B798C6046A8E64 /* Onboarding */,
 				7D375D96B4159040E81DE6C7 /* Plans */,
 				288DC6DB27BC9A3CA7D562AA /* Profile */,
@@ -294,6 +312,7 @@
 		5D2AA826BBC44B991346427B /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				7A11B220B18A4A90A7B4B441 /* Monetization.swift */,
 				0B97E952AF94341517324563 /* Models.swift */,
 				CE9D2981F0A803B185345B94 /* SeedData.swift */,
 			);
@@ -337,6 +356,14 @@
 				1DCD64ED32F8198042C69E79 /* WorkoutLibraryView.swift */,
 			);
 			path = Workout;
+			sourceTree = "<group>";
+		};
+		7A11B224B18A4A90A7B4B441 /* Monetization */ = {
+			isa = PBXGroup;
+			children = (
+				7A11B222B18A4A90A7B4B441 /* PaywallView.swift */,
+			);
+			path = Monetization;
 			sourceTree = "<group>";
 		};
 		7D375D96B4159040E81DE6C7 /* Plans */ = {
@@ -432,6 +459,7 @@
 		F3102035D775E5E118A819E8 /* Reps */ = {
 			isa = PBXGroup;
 			children = (
+				7CEDE31E2FCEA1750059DB19 /* GoogleService-Info.plist */,
 				89F73E9CB8B46A571B9DEA48 /* Info.plist */,
 				CD3F5EEFFE4D007B55AEC149 /* Reps.entitlements */,
 				574AFA8697AAFF7D05D126D1 /* App */,
@@ -489,6 +517,7 @@
 				A14EB5F286D4C13D24E52965 /* Frameworks */,
 				A9A33D294DBED10EB9511ACD /* Embed Foundation Extensions */,
 				9A32759A7E646D0332430561 /* Embed Watch Content */,
+				71D8F6E72FCEB7A10059DB19 /* Firebase Crashlytics */,
 			);
 			buildRules = (
 			);
@@ -499,6 +528,11 @@
 			name = Reps;
 			packageProductDependencies = (
 				8BF3142C9A82498970AF3638 /* MuscleMap */,
+				7CEDE3142FCEA0590059DB19 /* FirebaseAnalytics */,
+				7CEDE3162FCEA0590059DB19 /* FirebaseAnalyticsCore */,
+				7CEDE3182FCEA0590059DB19 /* FirebaseAnalyticsIdentitySupport */,
+				7CEDE31A2FCEA0590059DB19 /* FirebaseCore */,
+				7CEDE31C2FCEA0590059DB19 /* FirebaseCrashlytics */,
 			);
 			productName = Reps;
 			productReference = 8AD60C6BDD44A63047D0E969 /* Reps.app */;
@@ -551,9 +585,6 @@
 					015FB5945AF5A6B8DE435B43 = {
 						DevelopmentTeam = L2B56644F5;
 					};
-					0416157AB6A2DD4CDDAF81C0 = {
-						DevelopmentTeam = L2B56644F5;
-					};
 					4B274BECDF40555313A5737C = {
 						DevelopmentTeam = L2B56644F5;
 					};
@@ -574,6 +605,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				B796D536650665857BCBB164 /* XCRemoteSwiftPackageReference "MuscleMap" */,
+				7CEDE3132FCEA0590059DB19 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4945D4B84A170BD6F93331D5 /* Products */;
@@ -603,10 +635,39 @@
 			files = (
 				3CAE41B17E3ED1DB65A4C116 /* Assets.xcassets in Resources */,
 				3D10070D4B99F825EADAF29C /* Localizable.xcstrings in Resources */,
+				7CEDE31F2FCEA1750059DB19 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		71D8F6E72FCEB7A10059DB19 /* Firebase Crashlytics */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
+				"$(TARGET_BUILD_DIR)/$(PRODUCT_NAME).debug.dylib",
+			);
+			name = "Firebase Crashlytics";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A07B47471ED65517168DE55B /* Sources */ = {
@@ -635,6 +696,7 @@
 				3D2BBDC31437CC6C56128448 /* HapticService.swift in Sources */,
 				990133AA0AC6E04F09815E16 /* HealthKitService.swift in Sources */,
 				35FAA03EF8B2445CA6A24D09 /* Models.swift in Sources */,
+				7A11B221B18A4A90A7B4B441 /* Monetization.swift in Sources */,
 				07206A45CD3EC170B99BE60C /* MuscleMapProgressView.swift in Sources */,
 				C012EA90348A6BE3DD882FE3 /* MusicIntegrationSheet.swift in Sources */,
 				4DD5973D7549AC9555F81FA2 /* NotificationService.swift in Sources */,
@@ -649,6 +711,7 @@
 				1C113CE663705287C40AE3F9 /* ProfileView.swift in Sources */,
 				12F65CD1C12A32E81565F376 /* ProgressView.swift in Sources */,
 				0B564E591385D7ED6E8EC119 /* PulseTheme.swift in Sources */,
+				7A11B223B18A4A90A7B4B441 /* PaywallView.swift in Sources */,
 				6A4BC19B92F659AFD26F875C /* QuickMenuProgressionChart.swift in Sources */,
 				0837DD9FE86B93DE22FC986A /* RepsApp.swift in Sources */,
 				F16D25D57E7760BCC1E40052 /* RepsLoadingView.swift in Sources */,
@@ -656,6 +719,7 @@
 				14E8046963CD0B8B192BEE1E /* SeedData.swift in Sources */,
 				E2729D508BDEA2AB59601765 /* SwiftDataModels.swift in Sources */,
 				537C3D3BB6815D9DD245CD13 /* SwiftDataPersistence.swift in Sources */,
+				714F5C6A78D94D47A0E8E19B /* TelemetryService.swift in Sources */,
 				15CB0EB913EA694C83854740 /* TodayView.swift in Sources */,
 				DE8849EDABC0F4181011DC88 /* TrainingBatteryView.swift in Sources */,
 				9154E19651ED841295151476 /* WelcomeView.swift in Sources */,
@@ -741,12 +805,18 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = L2B56644F5;
 				INFOPLIST_FILE = Reps/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.romerosoft.repsfitness;
 				SDKROOT = iphoneos;
@@ -788,7 +858,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -854,7 +924,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -905,12 +975,18 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = L2B56644F5;
 				INFOPLIST_FILE = Reps/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.romerosoft.repsfitness;
 				SDKROOT = iphoneos;
@@ -1042,6 +1118,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		7CEDE3132FCEA0590059DB19 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.14.0;
+			};
+		};
 		B796D536650665857BCBB164 /* XCRemoteSwiftPackageReference "MuscleMap" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/melihcolpan/MuscleMap.git";
@@ -1053,6 +1137,31 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		7CEDE3142FCEA0590059DB19 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CEDE3132FCEA0590059DB19 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		7CEDE3162FCEA0590059DB19 /* FirebaseAnalyticsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CEDE3132FCEA0590059DB19 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsCore;
+		};
+		7CEDE3182FCEA0590059DB19 /* FirebaseAnalyticsIdentitySupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CEDE3132FCEA0590059DB19 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsIdentitySupport;
+		};
+		7CEDE31A2FCEA0590059DB19 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CEDE3132FCEA0590059DB19 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		7CEDE31C2FCEA0590059DB19 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CEDE3132FCEA0590059DB19 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
 		8BF3142C9A82498970AF3638 /* MuscleMap */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B796D536650665857BCBB164 /* XCRemoteSwiftPackageReference "MuscleMap" */;

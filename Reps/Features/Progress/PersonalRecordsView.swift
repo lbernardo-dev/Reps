@@ -105,6 +105,7 @@ struct PersonalRecordsView: View {
 }
 
 struct PRCardView: View {
+    @EnvironmentObject private var store: AppStore
     let item: PersonalRecordsView.PersonalRecordItem
     @State private var isShowingShareSheet = false
     @State private var shareImage: UIImage?
@@ -158,6 +159,9 @@ struct PRCardView: View {
                 }
                 
                 Button {
+                    guard store.requireFeature(.shareCards, source: .shareCards) else {
+                        return
+                    }
                     // Generate a share image for this PR
                     shareImage = WorkoutShareImageRenderer.render(
                         title: "Récord Personal: \(item.exercise.name)",

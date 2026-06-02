@@ -2,6 +2,7 @@ import MuscleMap
 import SwiftUI
 
 struct ProfileSetupView: View {
+    @EnvironmentObject private var store: AppStore
     @State private var profile = UserProfile()
     @State private var step: OnboardingStep = .presentation
     @State private var selectedSex: OnboardingSex?
@@ -20,6 +21,7 @@ struct ProfileSetupView: View {
     @State private var targetEventDate = Calendar.current.date(byAdding: .weekOfYear, value: 8, to: .now) ?? .now
 
     var onFinish: (OnboardingResult) -> Void
+    var onSkip: () -> Void = {}
 
     private let steps = OnboardingStep.allCases
 
@@ -66,7 +68,7 @@ struct ProfileSetupView: View {
                     stepContent
                 }
                 .padding(20)
-                .padding(.bottom, step == .generating && isGenerationComplete ? 190 : 116)
+                .padding(.bottom, bottomContentPadding)
             }
         }
         .screenBackground()
@@ -86,22 +88,53 @@ struct ProfileSetupView: View {
     }
 
     private var progressHeader: some View {
-        VStack(spacing: 12) {
-            HStack {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                if stepIndex > 0 {
+                    Button {
+                        moveBackward()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.subheadline.weight(.bold))
+                            .frame(width: 34, height: 34)
+                            .foregroundStyle(.primary)
+                            .background(PulseTheme.grouped)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Retroceder")
+                }
+
                 Text("Reps")
-                    .font(.title2.bold())
-                Spacer()
+                    .font(.headline.weight(.bold))
+
+                Spacer(minLength: 8)
+
                 Text("\(stepIndex + 1)/\(steps.count)")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.caption.weight(.bold).monospacedDigit())
                     .foregroundStyle(PulseTheme.secondaryText)
+
+                Button {
+                    onSkip()
+                } label: {
+                    Text("Saltar")
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 12)
+                        .frame(height: 32)
+                        .foregroundStyle(PulseTheme.primary)
+                        .background(PulseTheme.grouped)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Saltar onboarding")
             }
 
             ProgressView(value: Double(stepIndex + 1), total: Double(steps.count))
                 .tint(step == .paywall ? PulseTheme.accent : PulseTheme.primary)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 16)
-        .padding(.bottom, 12)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
     }
 
     @ViewBuilder
@@ -135,7 +168,7 @@ struct ProfileSetupView: View {
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .lineLimit(4)
                     .minimumScaleFactor(0.75)
-                Text("Reps combina tus metricas, objetivo, equipo y recuperacion para crear una rutina base y convertir cada sesion en datos utiles.")
+                Text("Reps combina tus métricas, objetivo, equipo y recuperación para crear una rutina base y convertir cada sesión en datos útiles.")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -145,8 +178,8 @@ struct ProfileSetupView: View {
                 VStack(spacing: 18) {
                     HStack {
                         OnboardingSignal(title: "Plan", value: "8 semanas", color: PulseTheme.primary)
-                        OnboardingSignal(title: "Progreso", value: "por musculo", color: PulseTheme.primaryBright)
-                        OnboardingSignal(title: "Prediccion", value: "visual", color: PulseTheme.accent)
+                        OnboardingSignal(title: "Progreso", value: "por músculo", color: PulseTheme.primaryBright)
+                        OnboardingSignal(title: "Predicción", value: "visual", color: PulseTheme.accent)
                     }
 
                     HStack(spacing: 8) {
@@ -160,8 +193,8 @@ struct ProfileSetupView: View {
             }
 
             HStack(spacing: 12) {
-                OnboardingBenefit(icon: "figure.strengthtraining.traditional", title: "Rutinas listas", subtitle: "Dias, ejercicios, series y descansos.")
-                OnboardingBenefit(icon: "chart.line.uptrend.xyaxis", title: "Pronosticos", subtitle: "Evolucion muscular esperada.")
+                OnboardingBenefit(icon: "figure.strengthtraining.traditional", title: "Rutinas listas", subtitle: "Días, ejercicios, series y descansos.")
+                OnboardingBenefit(icon: "chart.line.uptrend.xyaxis", title: "Pronósticos", subtitle: "Evolución muscular esperada.")
             }
         }
     }
@@ -169,8 +202,8 @@ struct ProfileSetupView: View {
     private var sexStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "Elige el cuerpo que usara la app",
-                subtitle: "A partir de aqui, los mapas musculares y graficos se muestran solo con este sexo."
+                title: "Elige el cuerpo que usará la app",
+                subtitle: "A partir de aquí, los mapas musculares y gráficos se muestran solo con este sexo."
             )
 
             HStack(spacing: 14) {
@@ -208,13 +241,13 @@ struct ProfileSetupView: View {
     private var metricsStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "Tus metricas base",
+                title: "Tus métricas base",
                 subtitle: "Se usan para estimar cargas iniciales, volumen tolerable y pronosticos."
             )
 
             PulseCard {
                 VStack(spacing: 20) {
-                    MetricStepper(title: "Edad", value: $age, range: 14...85, unit: "anos")
+                    MetricStepper(title: "Edad", value: $age, range: 14...85, unit: "años")
                     Divider()
                     DoubleMetricStepper(title: "Altura", value: $heightCm, range: 130...220, step: 1, unit: "cm")
                     Divider()
@@ -308,11 +341,11 @@ struct ProfileSetupView: View {
     private var goalStep: some View {
         VStack(alignment: .leading, spacing: 20) {
             optionStep(
-                title: "Cual es tu objetivo principal?",
+                title: "¿Cuál es tu objetivo principal?",
                 subtitle: "Esto cambia repeticiones, descansos y foco del plan generado.",
                 options: UserProfile.MainGoal.allCases,
                 selection: $profile.mainGoal,
-                titleForOption: \.rawValue,
+                titleForOption: goalTitle,
                 iconForOption: icon(for:)
             )
             
@@ -323,17 +356,17 @@ struct ProfileSetupView: View {
     private var trainingStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             optionStep(
-                title: "Donde y con que frecuencia entrenas?",
-                subtitle: "Escoge el escenario mas realista. Luego afinamos equipo y duracion.",
+                title: "¿Dónde y con qué frecuencia entrenas?",
+                subtitle: "Escoge el escenario más realista. Luego afinamos equipo y duración.",
                 options: UserProfile.TrainingLocation.allCases,
                 selection: $profile.trainingLocation,
-                titleForOption: \.rawValue,
+                titleForOption: locationTitle,
                 iconForOption: icon(for:)
             )
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("\(profile.weeklyTrainingDays) dias por semana")
+                    Text("\(profile.weeklyTrainingDays) días por semana")
                         .font(.title2.weight(.bold))
                     HStack(spacing: 8) {
                         ForEach(2...6, id: \.self) { day in
@@ -352,7 +385,7 @@ struct ProfileSetupView: View {
                         }
                     }
 
-                    Text("Duracion por sesion")
+                    Text("Duración por sesión")
                         .font(.headline)
                     HStack(spacing: 8) {
                         ForEach([30, 45, 60, 75, 90], id: \.self) { minutes in
@@ -680,7 +713,7 @@ struct ProfileSetupView: View {
     private var focusStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "Quieres priorizar algun musculo?",
+                title: "¿Quieres priorizar algún músculo?",
                 subtitle: "Escoge las zonas que quieras priorizar o selecciona todas."
             )
 
@@ -772,7 +805,7 @@ struct ProfileSetupView: View {
                             .opacity(generationPulse ? 1 : 0.78)
                         VStack {
                             Spacer()
-                            Text("\(generatedPlan.days.count) dias listos")
+                            Text("\(generatedPlan.days.count) días listos")
                                 .font(.caption.weight(.bold))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 7)
@@ -803,7 +836,7 @@ struct ProfileSetupView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Plan sugerido")
                             .font(.headline)
-                        Text("\(generatedPlan.daysPerWeek) dias/semana durante \(generatedPlan.totalWeeks) semanas")
+                        Text("\(generatedPlan.daysPerWeek) días/semana durante \(generatedPlan.totalWeeks) semanas")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -843,8 +876,8 @@ struct ProfileSetupView: View {
     private var planStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "Tu plan esta listo",
-                subtitle: "Incluye dias, ejercicios, descansos entre ejercicios y descansos entre series."
+                title: "Tu plan está listo",
+                subtitle: "Incluye días, ejercicios, descansos entre ejercicios y descansos entre series."
             )
 
             ForEach(generatedPlan.days) { day in
@@ -1099,7 +1132,7 @@ struct ProfileSetupView: View {
         subtitle: LocalizedStringKey,
         options: [Option],
         selection: Binding<Option>,
-        titleForOption: KeyPath<Option, String>,
+        titleForOption: @escaping (Option) -> String,
         iconForOption: @escaping (Option) -> String
     ) -> some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -1118,7 +1151,7 @@ struct ProfileSetupView: View {
                                 .background(selection.wrappedValue == option ? .white : PulseTheme.grouped)
                                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
-                            Text(option[keyPath: titleForOption])
+                            Text(titleForOption(option))
                                 .font(.headline)
                             Spacer()
                             Image(systemName: selection.wrappedValue == option ? "checkmark.circle.fill" : "circle")
@@ -1143,24 +1176,11 @@ struct ProfileSetupView: View {
     private var bottomBar: some View {
         Group {
             if step == .generating && isGenerationComplete {
-                VStack(spacing: 10) {
-                    Button {
-                        moveForward()
-                    } label: {
-                        Text("Aceptar plan sugerido")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 58)
-                            .foregroundStyle(.black)
-                            .background(.white)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-
+                HStack(spacing: 10) {
                     Button {
                         restartPlanningFromScratch()
                     } label: {
-                        Text("Rechazar y empezar desde 0")
+                        Text("Rehacer")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -1169,30 +1189,61 @@ struct ProfileSetupView: View {
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                }
-            } else {
-                HStack(spacing: 12) {
-                    if stepIndex > 0 {
-                        Button {
-                            moveBackward()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.headline)
-                                .frame(width: 52, height: 52)
-                                .foregroundStyle(.primary)
-                                .background(PulseTheme.grouped)
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                    }
 
                     Button {
                         moveForward()
                     } label: {
-                        Text(primaryButtonTitle)
-                            .font(.headline)
+                        Text("Aceptar plan")
+                            .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
-                            .frame(height: 58)
+                            .frame(height: 46)
+                            .foregroundStyle(.black)
+                            .background(.white)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else if step == .plan {
+                HStack(spacing: 10) {
+                    Button {
+                        store.presentPaywall(source: .onboarding, feature: nil, trigger: .onboarding)
+                    } label: {
+                        Text("Ver beneficios Pro")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .foregroundStyle(PulseTheme.primary)
+                            .background(PulseTheme.grouped)
+                            .clipShape(Capsule())
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        finishOnboarding()
+                    } label: {
+                        Text("Empezar con mi plan")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .foregroundStyle(.black)
+                            .background(.white)
+                            .clipShape(Capsule())
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Button {
+                        moveForward()
+                    } label: {
+                        Text(primaryButtonTitle)
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
                             .foregroundStyle(.black)
                             .background(canMoveForward ? .white : PulseTheme.elevated)
                             .clipShape(Capsule())
@@ -1202,8 +1253,19 @@ struct ProfileSetupView: View {
                 }
             }
         }
-        .padding(20)
-        .background(.ultraThinMaterial)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+        .background(.clear)
+    }
+
+    private var bottomContentPadding: CGFloat {
+        switch step {
+        case .generating where isGenerationComplete, .plan:
+            return 76
+        default:
+            return 70
+        }
     }
 
     private func restartPlanningFromScratch() {
@@ -1245,17 +1307,21 @@ struct ProfileSetupView: View {
         case .presentation: "Empezar"
         case .sex, .metrics, .goal, .training, .focus: "Continuar"
         case .generating: "Ver plan generado"
-        case .plan: "Ver Pro"
+        case .plan: "Ver beneficios Pro"
         case .paywall: "Empezar con mi plan"
         }
     }
 
     private func moveForward() {
         guard step != .paywall else {
-            onFinish(makeResult())
+            finishOnboarding()
             return
         }
         step = steps[min(stepIndex + 1, steps.count - 1)]
+    }
+
+    private func finishOnboarding() {
+        onFinish(makeResult())
     }
 
     private func moveBackward() {
@@ -1475,7 +1541,7 @@ struct ProfileSetupView: View {
             ("Shoulders", "Hombros"),
             ("Arms", "Brazos"),
             ("Legs", "Piernas"),
-            ("Glutes", "Gluteos"),
+            ("Glutes", "Glúteos"),
             ("Core", "Core")
         ]
     }
@@ -1486,6 +1552,23 @@ struct ProfileSetupView: View {
         case .loseFat: "flame.fill"
         case .getStronger: "bolt.fill"
         case .stayActive: "figure.walk"
+        }
+    }
+
+    private func goalTitle(_ goal: UserProfile.MainGoal) -> String {
+        switch goal {
+        case .buildMuscle: "Ganar músculo"
+        case .loseFat: "Perder grasa"
+        case .getStronger: "Ganar fuerza"
+        case .stayActive: "Mantenerme activo"
+        }
+    }
+
+    private func locationTitle(_ location: UserProfile.TrainingLocation) -> String {
+        switch location {
+        case .gym: "Gimnasio"
+        case .home: "Casa"
+        case .both: "Casa y gimnasio"
         }
     }
 

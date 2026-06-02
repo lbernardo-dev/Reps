@@ -60,7 +60,7 @@ struct CalendarView: View {
                     HStack {
                         Button { changeMonth(by: -1) } label: { Image(systemName: "chevron.left") }
                         Spacer()
-                        Text(visibleMonth.formatted(.dateTime.month(.wide).year()))
+                        Text(formattedMonth(visibleMonth))
                             .font(.title.bold())
                         Spacer()
                         Button { changeMonth(by: 1) } label: { Image(systemName: "chevron.right") }
@@ -114,7 +114,7 @@ struct CalendarView: View {
 
                     PulseCard {
                         VStack(alignment: .leading, spacing: 14) {
-                            Text(selectedDate.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                            Text(formattedSelectedDate(selectedDate))
                                 .font(.headline)
                             let daySessions = loggedWorkouts(on: selectedDate)
                             let plannedSessions = scheduledWorkouts(on: selectedDate)
@@ -186,11 +186,11 @@ struct CalendarView: View {
                                 if !plannedSessions.isEmpty {
                                     EmptyView()
                                 } else {
-                                PulseEmptyState(
-                                    title: "No activity recorded",
-                                    message: "Schedule a session or start a free workout for this day.",
-                                    systemImage: "calendar.badge.clock"
-                                )
+                                    PulseEmptyState(
+                                        title: store.userProfile.preferredLanguage.hasPrefix("es") ? "Sin actividad registrada" : "No activity recorded",
+                                        message: store.userProfile.preferredLanguage.hasPrefix("es") ? "Programa una sesión o inicia un entreno libre para este día." : "Schedule a session or start a free workout for this day.",
+                                        systemImage: "calendar.badge.clock"
+                                    )
                                 }
                             }
                         }
@@ -208,6 +208,12 @@ struct CalendarView: View {
                 ProfileView()
             }
         }
+        .onAppear {
+            applyFocusedDate(store.calendarFocusedDate)
+        }
+        .onChange(of: store.calendarFocusedDate) { _, newDate in
+            applyFocusedDate(newDate)
+        }
     }
 
     private var calendarCommandCard: some View {
@@ -217,7 +223,7 @@ struct CalendarView: View {
                     Label("This Week", systemImage: "calendar")
                         .font(.headline)
                     Spacer()
-                    Text("\(weekSessions.count)/\(store.activePlan.daysPerWeek)")
+                    Text(store.activePlan.daysPerWeek > 0 ? "\(weekSessions.count)/\(store.activePlan.daysPerWeek)" : "\(weekSessions.count)")
                         .font(.title2.bold())
                         .foregroundStyle(PulseTheme.primary)
                 }
@@ -230,7 +236,7 @@ struct CalendarView: View {
                 Button {
                     showSchedule = true
                 } label: {
-                    Label("Schedule Session", systemImage: "calendar.badge.plus")
+                    Label("Programar sesión", systemImage: "calendar.badge.plus")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
@@ -268,6 +274,20 @@ struct CalendarView: View {
         return Array(repeating: nil, count: leadingBlanks) + days
     }
 
+    private func formattedMonth(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: store.userProfile.preferredLanguage)
+        formatter.dateFormat = "LLLL yyyy"
+        return formatter.string(from: date).capitalized(with: formatter.locale)
+    }
+
+    private func formattedSelectedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: store.userProfile.preferredLanguage)
+        formatter.dateFormat = "EEEE, d MMMM"
+        return formatter.string(from: date).capitalized(with: formatter.locale)
+    }
+
     private func loggedWorkouts(on date: Date) -> [WorkoutSession] {
         let calendar = Calendar.current
         return store.workoutSessions
@@ -300,6 +320,16 @@ struct CalendarView: View {
         let nextMonth = Calendar.current.date(byAdding: .month, value: value, to: visibleMonth) ?? visibleMonth
         visibleMonth = nextMonth
         selectedDate = Calendar.current.dateInterval(of: .month, for: nextMonth)?.start ?? nextMonth
+    }
+
+    private func applyFocusedDate(_ date: Date?) {
+        guard let date else {
+            return
+        }
+
+        visibleMonth = date
+        selectedDate = date
+        store.calendarFocusedDate = nil
     }
 }
 
@@ -376,13 +406,24 @@ struct ScheduleWorkoutView: View {
         store.activePlan.days.first { $0.id == selectedWorkoutID } ?? store.todaysWorkout
     }
 
+    private var hasActivePlan: Bool {
+        !store.activePlan.days.isEmpty
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section("Entreno") {
-                    Picker("Entreno", selection: $selectedWorkoutID) {
-                        ForEach(store.activePlan.days) { workout in
-                            Text(workout.title).tag(Optional(workout.id))
+                    if hasActivePlan {
+                        Picker("Entreno", selection: $selectedWorkoutID) {
+                            ForEach(store.activePlan.days) { workout in
+                                Text(workout.title).tag(Optional(workout.id))
+                            }
+                        }
+                    } else {
+                        LabeledContent("Tipo") {
+                            Text("Entreno libre")
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -394,7 +435,7 @@ struct ScheduleWorkoutView: View {
             .navigationTitle("Programar entreno")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                selectedWorkoutID = store.activePlan.days.first?.id
+                selectedWorkoutID = hasActivePlan ? store.activePlan.days.first?.id : nil
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

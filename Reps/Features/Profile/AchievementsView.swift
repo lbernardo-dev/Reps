@@ -225,7 +225,15 @@ struct AchievementsView: View {
                 .padding(.horizontal, 4)
                 .padding(.bottom, 2)
             
-            if store.savedShareCards.isEmpty {
+            if !store.hasFeatureAccess(.shareCards) {
+                PaywallLockedCard(
+                    title: isSpanish ? "Recibos Pro" : "Pro receipts",
+                    message: isSpanish ? "La galería de recibos y las tarjetas compartibles se desbloquean con Reps Pro." : "Receipt gallery and shareable cards unlock with Reps Pro.",
+                    buttonTitle: isSpanish ? "Ver Reps Pro" : "See Reps Pro"
+                ) {
+                    store.presentPaywall(source: .receiptGallery, feature: .shareCards)
+                }
+            } else if store.savedShareCards.isEmpty {
                 PulseCard {
                     PulseEmptyState(
                         title: isSpanish ? "Sin recibos aún" : "No receipts yet",

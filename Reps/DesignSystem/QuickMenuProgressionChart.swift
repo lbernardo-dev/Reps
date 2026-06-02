@@ -2,10 +2,13 @@ import SwiftUI
 import Charts
 
 struct ProgressionPoint: Identifiable, Hashable {
-    let id = UUID()
     let weekIndex: Int // 1 to 12
     let value: Double
     let type: LineType
+
+    var id: String {
+        "\(type.rawValue)-\(weekIndex)"
+    }
 }
 
 enum LineType: String, CaseIterable, Identifiable {
@@ -66,92 +69,96 @@ struct QuickMenuProgressionChart: View {
         store.userProfile.preferredLanguage.hasPrefix("es")
     }
     
-    // MARK: - Weekly Data Generation
+    // MARK: - Weekly Data
     private func generateChartData() -> [ProgressionPoint] {
-        var points: [ProgressionPoint] = []
-        
         switch selectedMetric {
         case .exercises:
-            // Cumulative weekly training volume (in kg)
-            var baseVolume = 2400.0
-            if !store.workoutSessions.isEmpty {
-                let totalVol = FitnessMetrics.totalVolumeKg(for: store.workoutSessions)
-                baseVolume = max(totalVol / max(Double(store.workoutSessions.count), 1.0) * 3.5, 1800.0)
-            }
-            
-            // Expected Overload (smooth theoretical progression at +2.2% per week)
-            for week in 1...12 {
-                let expVal = baseVolume * pow(1.022, Double(week - 1))
-                points.append(ProgressionPoint(weekIndex: week, value: expVal, type: .expected))
-            }
-            
-            // Planned Overload (follows expected but has overload & deload phases)
-            for week in 1...12 {
-                var factor = pow(1.022, Double(week - 1))
-                if week == 6 {
-                    factor *= 0.92 // planned deload week
-                } else if week == 8 || week == 11 {
-                    factor *= 1.05 // planned peak overload weeks
-                }
-                points.append(ProgressionPoint(weekIndex: week, value: baseVolume * factor, type: .planned))
-            }
-            
-            // Real Volume Logged (up to Week 9 - Current)
-            // Let's create realistic fluctuations based on historical templates
-            let realFluctuations: [Double] = [0.97, 1.03, 1.01, 1.06, 1.09, 0.93, 1.13, 1.16, 1.19]
-            for week in 1...9 {
-                let realVal = baseVolume * realFluctuations[week - 1]
-                points.append(ProgressionPoint(weekIndex: week, value: realVal, type: .real))
-            }
-            
+            return exerciseChartData()
         case .weight:
-            // Body Weight progression (in kg)
-            let currentWeight = store.currentWeight > 10.0 ? store.currentWeight : 78.0
-            let isLoseFat = store.userProfile.mainGoal == .loseFat
-            
-            // Find target goal or default to losing/gaining weight
-            let targetWeight: Double
-            if let weightGoal = store.goals.first(where: { $0.kind == .bodyWeight }) {
-                targetWeight = weightGoal.target
-            } else {
-                targetWeight = isLoseFat ? currentWeight - 5.0 : currentWeight + 3.5
-            }
-            
-            let totalDelta = targetWeight - currentWeight
-            // Start weight 8 weeks ago
-            let startWeight = currentWeight - (totalDelta * 8.0 / 12.0)
-            let weeklyDelta = totalDelta / 12.0
-            
-            // Expected Curve: Smooth exponential curve towards target
-            for week in 1...12 {
-                let pct = Double(week - 1) / 11.0
-                // Exponential decay approach
-                let expVal: Double
-                if isLoseFat {
-                    expVal = startWeight - (startWeight - targetWeight) * (1.0 - pow(0.32, pct))
-                } else {
-                    expVal = startWeight + (targetWeight - startWeight) * (1.0 - pow(0.42, pct))
-                }
-                points.append(ProgressionPoint(weekIndex: week, value: expVal, type: .expected))
-            }
-            
-            // Planned Curve: Target step progression
-            for week in 1...12 {
-                let plannedVal = startWeight + weeklyDelta * Double(week - 1)
-                points.append(ProgressionPoint(weekIndex: week, value: plannedVal, type: .planned))
-            }
-            
-            // Real Curve (Week 1 to Week 9)
-            // Add some typical human daily/weekly weight fluctuation
-            let fluctuations: [Double] = [0.0, 0.2, -0.3, 0.1, -0.2, 0.3, -0.4, 0.0, -0.1]
-            for week in 1...9 {
-                let trendVal = startWeight + (currentWeight - startWeight) * (Double(week - 1) / 8.0)
-                let realVal = trendVal + fluctuations[week - 1]
-                points.append(ProgressionPoint(weekIndex: week, value: realVal, type: .real))
+            return weightChartData()
+        }
+    }
+
+    private func exerciseChartData() -> [ProgressionPoint] {
+        var points: [ProgressionPoint] = []
+
+        let realWeeklyVolume = valuesByWeek(store.workoutSessions) { sessions in
+            sessions.reduce(0.0) { sessionTotal, session in
+                sessionTotal + FitnessMetrics.totalVolumeKg(for: [session])
             }
         }
-        
-        return points
+
+        points += realWeeklyVolume.map { weekIndex, value in
+            ProgressionPoint(weekIndex: weekIndex, value: value, type: .real)
+        }
+
+        return points.sorted { lhs, rhs in
+            lhs.type.rawValue == rhs.type.rawValue ? lhs.weekIndex < rhs.weekIndex : lhs.type.rawValue < rhs.type.rawValue
+        }
+    }
+
+    private func weightChartData() -> [ProgressionPoint] {
+        var points: [ProgressionPoint] = []
+        let metrics = store.bodyMetrics.sorted { $0.date < $1.date }
+
+        let realWeeklyWeight = valuesByWeek(metrics) { metricsInWeek in
+            metricsInWeek.sorted { $0.date < $1.date }.last?.weightKg ?? 0
+        }
+
+        points += realWeeklyWeight.map { weekIndex, value in
+            ProgressionPoint(weekIndex: weekIndex, value: displayWeightValue(value), type: .real)
+        }
+
+        if let goal = store.goals.first(where: { $0.kind == .bodyWeight }),
+           let start = metrics.first?.weightKg {
+            let startWeek = weekIndex(for: metrics.first?.date ?? .now) ?? 1
+            let endWeek = min(max(weekIndex(for: goal.deadline ?? .now) ?? 12, startWeek), 12)
+            let span = max(Double(endWeek - startWeek), 1)
+
+            points += (startWeek...endWeek).map { weekIndex in
+                let progress = Double(weekIndex - startWeek) / span
+                let value = start + ((goal.target - start) * progress)
+                return ProgressionPoint(weekIndex: weekIndex, value: displayWeightValue(value), type: .planned)
+            }
+        }
+
+        return points.sorted { lhs, rhs in
+            lhs.type.rawValue == rhs.type.rawValue ? lhs.weekIndex < rhs.weekIndex : lhs.type.rawValue < rhs.type.rawValue
+        }
+    }
+
+    private func valuesByWeek<T>(_ items: [T], value: ([T]) -> Double) -> [(weekIndex: Int, value: Double)] where T: DatedChartItem {
+        Dictionary(grouping: items.compactMap { item -> (Int, T)? in
+            guard let weekIndex = weekIndex(for: item.chartDate) else { return nil }
+            return (weekIndex, item)
+        }, by: \.0)
+        .compactMap { weekIndex, groupedItems in
+            let weekValue = value(groupedItems.map(\.1))
+            return weekValue > 0 ? (weekIndex, weekValue) : nil
+        }
+        .sorted { $0.weekIndex < $1.weekIndex }
+    }
+
+    private func weekIndex(for date: Date) -> Int? {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        guard let currentWeekStart = calendar.dateInterval(of: .weekOfYear, for: today)?.start,
+              let itemWeekStart = calendar.dateInterval(of: .weekOfYear, for: date)?.start else {
+            return nil
+        }
+
+        let weekOffset = calendar.dateComponents([.weekOfYear], from: itemWeekStart, to: currentWeekStart).weekOfYear ?? 0
+        guard (0...11).contains(weekOffset) else { return nil }
+        return 12 - weekOffset
+    }
+
+    private func displayWeightValue(_ kilograms: Double) -> Double {
+        switch store.userProfile.units {
+        case .metric:
+            kilograms
+        case .imperial:
+            UnitConverter.pounds(fromKilograms: kilograms)
+        }
     }
     
     // MARK: - Computed Properties
@@ -177,7 +184,10 @@ struct QuickMenuProgressionChart: View {
         let allPoints = generateChartData()
         let minVal = allPoints.map(\.value).min() ?? 0.0
         let maxVal = allPoints.map(\.value).max() ?? 100.0
-        let margin = (maxVal - minVal) * 0.12
+        let margin = max((maxVal - minVal) * 0.12, 1.0)
+        let visibleTypes = LineType.allCases.filter { type in
+            allPoints.contains { $0.type == type }
+        }
         
         VStack(spacing: 12) {
             // Upper Row (Avatar)
@@ -235,19 +245,23 @@ struct QuickMenuProgressionChart: View {
                             .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundStyle(LineType.real.color)
                         
-                        Text("•")
-                            .foregroundStyle(.white.opacity(0.2))
-                        
-                        Text("P \(Int(planVal))")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundStyle(LineType.planned.color)
-                        
-                        Text("•")
-                            .foregroundStyle(.white.opacity(0.2))
-                        
-                        Text("E \(Int(expVal))")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundStyle(LineType.expected.color)
+                        if let planVal {
+                            Text("•")
+                                .foregroundStyle(.white.opacity(0.2))
+
+                            Text("P \(Int(planVal))")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundStyle(LineType.planned.color)
+                        }
+
+                        if let expVal {
+                            Text("•")
+                                .foregroundStyle(.white.opacity(0.2))
+
+                            Text("E \(Int(expVal))")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundStyle(LineType.expected.color)
+                        }
                         
                         Text(unitLabel)
                             .font(.system(size: 10, weight: .bold, design: .rounded))
@@ -375,7 +389,7 @@ struct QuickMenuProgressionChart: View {
                     }
                     
                     // 7. Current Week Indicator with Floating Annotation
-                    RuleMark(x: .value("Hoy", 9))
+                    RuleMark(x: .value("Hoy", 12))
                         .foregroundStyle(Color.white.opacity(0.12))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 4]))
                         .annotation(position: .top, alignment: .center) {
@@ -432,20 +446,33 @@ struct QuickMenuProgressionChart: View {
                             )
                     }
                 }
+                if allPoints.isEmpty {
+                    VStack(spacing: 6) {
+                        Image(systemName: selectedMetric == .exercises ? "chart.bar.doc.horizontal" : "scalemass")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.35))
+                        Text(emptyStateText)
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.white.opacity(0.45))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 24)
+                }
             }
             
             // Interactive Drag instructions & Static Legend (ALWAYS visible)
             HStack {
-                Label(isSpanish ? "Desliza para explorar" : "Drag to explore values", systemImage: "hand.tap.fill")
+                Label(allPoints.isEmpty ? dataSourceText : (isSpanish ? "Desliza para explorar" : "Drag to explore values"), systemImage: allPoints.isEmpty ? "lock.shield" : "hand.tap.fill")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
                     .foregroundStyle(.white.opacity(activeWeek != nil ? 0.2 : 0.4))
                 
                 Spacer()
                 
                 HStack(spacing: 10) {
-                    LegendItem(label: LineType.expected.displayName(isSpanish: isSpanish), color: LineType.expected.color)
-                    LegendItem(label: LineType.planned.displayName(isSpanish: isSpanish), color: LineType.planned.color)
-                    LegendItem(label: LineType.real.displayName(isSpanish: isSpanish), color: LineType.real.color)
+                    ForEach(visibleTypes) { type in
+                        LegendItem(label: type.displayName(isSpanish: isSpanish), color: type.color)
+                    }
                 }
             }
             .padding(.horizontal, 4)
@@ -459,12 +486,37 @@ struct QuickMenuProgressionChart: View {
     }
     
     // MARK: - Helpers
-    private func getMetricValuesForWeek(_ week: Int, allPoints: [ProgressionPoint]) -> (expected: Double, planned: Double, real: Double?) {
-        let expected = allPoints.first(where: { $0.weekIndex == week && $0.type == .expected })?.value ?? 0.0
-        let planned = allPoints.first(where: { $0.weekIndex == week && $0.type == .planned })?.value ?? 0.0
+    private func getMetricValuesForWeek(_ week: Int, allPoints: [ProgressionPoint]) -> (expected: Double?, planned: Double?, real: Double?) {
+        let expected = allPoints.first(where: { $0.weekIndex == week && $0.type == .expected })?.value
+        let planned = allPoints.first(where: { $0.weekIndex == week && $0.type == .planned })?.value
         let real = allPoints.first(where: { $0.weekIndex == week && $0.type == .real })?.value
         return (expected, planned, real)
     }
+
+    private var emptyStateText: String {
+        switch selectedMetric {
+        case .exercises:
+            return isSpanish ? "Sin sesiones registradas en las últimas 12 semanas" : "No logged sessions in the last 12 weeks"
+        case .weight:
+            return isSpanish ? "Sin pesos corporales registrados en las últimas 12 semanas" : "No body weights logged in the last 12 weeks"
+        }
+    }
+
+    private var dataSourceText: String {
+        isSpanish ? "Solo datos registrados" : "Logged data only"
+    }
+}
+
+private protocol DatedChartItem {
+    var chartDate: Date { get }
+}
+
+extension WorkoutSession: DatedChartItem {
+    var chartDate: Date { date }
+}
+
+extension BodyMetric: DatedChartItem {
+    var chartDate: Date { date }
 }
 
 private struct LegendItem: View {

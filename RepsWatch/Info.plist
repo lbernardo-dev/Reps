@@ -19,7 +19,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>6</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Reps Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo.</string>
 	<key>NSHealthUpdateUsageDescription</key>
