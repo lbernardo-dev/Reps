@@ -131,7 +131,9 @@ struct TodayView: View {
                 CreatePlanView()
             }
             .sheet(isPresented: $showProfile) {
-                ProfileView()
+                ProfileView {
+                    onSelectTab?(.plans)
+                }
             }
             .sheet(item: $planToEdit) { plan in
                 EditPlanView(plan: plan)
@@ -251,8 +253,13 @@ struct TodayView: View {
 
             // ── Stats row ─────────────────────────────────────────────
             HStack(spacing: 0) {
-                StatPill(value: timeString(status.elapsedSeconds), label: isSpanish ? "tiempo" : "time",
-                         systemImage: "timer")
+                TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                    StatPill(
+                        value: timeString(status.effectiveElapsedSeconds(at: timeline.date)),
+                        label: isSpanish ? "tiempo" : "time",
+                        systemImage: "timer"
+                    )
+                }
                 Divider().frame(height: 32).opacity(0.3).padding(.horizontal, 8)
                 StatPill(value: "\(status.completedSets)/\(status.totalSets)", label: setsWord,
                          systemImage: "checkmark.circle")

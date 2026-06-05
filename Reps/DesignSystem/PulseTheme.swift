@@ -222,11 +222,18 @@ struct PulseCard<Content: View>: View {
     let content: Content
     var minHeight: CGFloat?
     var contentPadding: CGFloat = 16
+    var backgroundColor: Color = PulseTheme.card
 
-    init(minHeight: CGFloat? = nil, contentPadding: CGFloat = 16, @ViewBuilder content: () -> Content) {
+    init(
+        minHeight: CGFloat? = nil,
+        contentPadding: CGFloat = 16,
+        backgroundColor: Color = PulseTheme.card,
+        @ViewBuilder content: () -> Content
+    ) {
         self.content = content()
         self.minHeight = minHeight
         self.contentPadding = contentPadding
+        self.backgroundColor = backgroundColor
     }
 
     var body: some View {
@@ -234,7 +241,7 @@ struct PulseCard<Content: View>: View {
             .frame(maxWidth: .infinity, maxHeight: minHeight != nil ? .infinity : nil, alignment: .leading)
             .padding(contentPadding)
             .frame(minHeight: minHeight, alignment: .leading)
-            .background(PulseTheme.card)
+            .background(backgroundColor)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
@@ -489,14 +496,14 @@ struct ExerciseMediaThumbnail: View, Equatable {
             && lhs.exercise.secondaryMuscles == rhs.exercise.secondaryMuscles
             && lhs.exercise.tags == rhs.exercise.tags
             && lhs.exercise.mediaURL == rhs.exercise.mediaURL
-            && lhs.exercise.customImageData == rhs.exercise.customImageData
+            && Self.customImageFingerprint(for: lhs.exercise.customImageData) == Self.customImageFingerprint(for: rhs.exercise.customImageData)
             && lhs.gender == rhs.gender
     }
 
     var body: some View {
         ZStack {
             if let data = exercise.customImageData,
-               let image = UIImage(data: data) {
+               let image = ExerciseThumbnailImageCache.shared.image(for: data, exerciseID: exercise.id) {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
@@ -523,13 +530,45 @@ struct ExerciseMediaThumbnail: View, Equatable {
 
     private var fallback: some View {
         GeometryReader { proxy in
-            ExerciseAnatomyThumbnail(
-                exercise: exercise,
-                gender: gender,
-                size: max(44, min(proxy.size.width, proxy.size.height))
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            let side = min(proxy.size.width, proxy.size.height)
+            ExerciseAnatomyThumbnail(exercise: exercise, gender: gender, size: max(side, 1))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+    }
+
+    nonisolated private static func customImageFingerprint(for data: Data?) -> CustomImageFingerprint? {
+        data.map(CustomImageFingerprint.init)
+    }
+}
+
+private struct CustomImageFingerprint: Equatable {
+    let count: Int
+    let firstByte: UInt8?
+    let lastByte: UInt8?
+
+    init(data: Data) {
+        count = data.count
+        firstByte = data.first
+        lastByte = data.last
+    }
+}
+
+@MainActor
+private final class ExerciseThumbnailImageCache {
+    static let shared = ExerciseThumbnailImageCache()
+
+    private let cache = NSCache<NSString, UIImage>()
+
+    func image(for data: Data, exerciseID: UUID) -> UIImage? {
+        let key = "\(exerciseID.uuidString)-\(data.count)-\(data.first ?? 0)-\(data.last ?? 0)" as NSString
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
+        guard let image = UIImage(data: data) else {
+            return nil
+        }
+        cache.setObject(image, forKey: key)
+        return image
     }
 }
 

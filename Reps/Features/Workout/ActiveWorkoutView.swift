@@ -59,7 +59,7 @@ struct ActiveWorkoutView: View {
         nonmutating set { store.activeWorkoutDrafts = newValue }
     }
 
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private let timer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
     private let origin: WorkoutSession.Origin
 
     init(workout: WorkoutDay, origin: WorkoutSession.Origin = .routine) {
@@ -198,8 +198,8 @@ struct ActiveWorkoutView: View {
         .onAppear {
             applyAutoProgressionIfNeeded()
             if let status = store.activeWorkoutStatus, store.activeWorkout?.id == workout.id {
-                elapsedSeconds = status.elapsedSeconds
-                pausedSeconds  = status.pausedSeconds
+                elapsedSeconds = status.effectiveElapsedSeconds()
+                pausedSeconds  = status.effectivePausedSeconds()
                 isPaused       = status.isPaused
                 waterLiters    = status.waterLiters ?? 0.0
                 if let exerciseIndex = status.exerciseIndex {
@@ -313,6 +313,11 @@ struct ActiveWorkoutView: View {
             Text("Has completado el tiempo planificado de tu entrenamiento (\(workout.durationMinutes) min).")
         }
         .onDisappear {
+            if finishedSession == nil {
+                elapsedSeconds = elapsedWorkoutSeconds()
+                restSeconds = currentRestRemainingSeconds()
+                publishActiveWorkoutStatus()
+            }
             routeTracker.stop()
             _ = audioRecorder.stopRecording(note: nil)
             // Only stop the background task if the workout is fully done.
@@ -419,6 +424,7 @@ struct ActiveWorkoutView: View {
     }
 
     private func finishWorkout() {
+        elapsedSeconds = elapsedWorkoutSeconds()
         let logs = exerciseDrafts.compactMap { draft -> ExerciseLog? in
             let completedSets = draft.sets.filter(\.completed)
             guard !completedSets.isEmpty else {
@@ -497,16 +503,23 @@ struct ActiveWorkoutView: View {
             isMusicPlaying: playlist.map { $0.provider == .appleMusic ? musicPlayer.isPlaying : musicPlayer.isSpotifyPlaying },
             nextExerciseName: nextExerciseTitle,
             exerciseHistorySummary: selectedExerciseHistorySummary,
-            gymPass: selectedGymPass
+            gymPass: selectedGymPass,
+            lastPausedAt: lastPausedAt
         )
     }
 
-    private func publishActiveWorkoutStatusIfNeeded() {
-        let currentSecond = elapsedSeconds + pausedSeconds
+    private func publishActiveWorkoutStatusIfNeeded(currentElapsedSeconds: Int? = nil) {
+        let currentSecond = (currentElapsedSeconds ?? elapsedSeconds) + pausedSeconds
         guard currentSecond == 0 || currentSecond - lastStatusPublishSecond >= 5 else {
             return
         }
 
+        if let currentElapsedSeconds {
+            elapsedSeconds = currentElapsedSeconds
+        }
+        if restStartedAt != nil {
+            restSeconds = currentRestRemainingSeconds()
+        }
         lastStatusPublishSecond = currentSecond
         publishActiveWorkoutStatus()
     }
@@ -526,19 +539,19 @@ struct ActiveWorkoutView: View {
             }
         }
 
+        let currentElapsed = elapsedWorkoutSeconds()
         if isPaused {
             let currentPauseDuration = lastPausedAt.map { Date().timeIntervalSince($0) } ?? 0
             pausedSeconds = basePausedSeconds + Int(currentPauseDuration)
         } else {
             pausedSeconds = basePausedSeconds
-            elapsedSeconds = Int(Date().timeIntervalSince(startedAt)) - pausedSeconds
 
             // Date-based rest countdown — survives background suspension.
             if let rsa = restStartedAt {
                 let elapsed = Int(Date().timeIntervalSince(rsa))
                 let remaining = max(restDuration - elapsed, 0)
-                restSeconds = remaining
                 if remaining == 0 {
+                    restSeconds = 0
                     restStartedAt = nil
                 }
             }
@@ -546,15 +559,17 @@ struct ActiveWorkoutView: View {
 
         // Comprobar si se ha agotado el tiempo planificado
         let targetSeconds = workout.durationMinutes * 60
-        if elapsedSeconds >= targetSeconds, !hasShownDurationAlert {
+        if currentElapsed >= targetSeconds, !hasShownDurationAlert {
+            elapsedSeconds = currentElapsed
             hasShownDurationAlert = true
             showDurationExhaustedAlert = true
         }
 
-        publishActiveWorkoutStatusIfNeeded()
+        elapsedSeconds = currentElapsed
     }
 
     private func setWorkoutPaused(_ paused: Bool) {
+        elapsedSeconds = elapsedWorkoutSeconds()
         isPaused = paused
         if paused {
             lastPausedAt = Date()
@@ -564,8 +579,21 @@ struct ActiveWorkoutView: View {
             }
             lastPausedAt = nil
         }
+        pausedSeconds = basePausedSeconds
         lastStatusPublishSecond = elapsedSeconds + pausedSeconds
         publishActiveWorkoutStatus()
+    }
+
+    private func elapsedWorkoutSeconds(at date: Date = Date()) -> Int {
+        let effectiveDate = isPaused ? (lastPausedAt ?? date) : date
+        return max(Int(effectiveDate.timeIntervalSince(startedAt)) - basePausedSeconds, 0)
+    }
+
+    private func currentRestRemainingSeconds(at date: Date = Date()) -> Int {
+        guard let restStartedAt else {
+            return restSeconds
+        }
+        return max(restDuration - Int(date.timeIntervalSince(restStartedAt)), 0)
     }
 
     private var sessionProgressCard: some View {
@@ -597,8 +625,13 @@ struct ActiveWorkoutView: View {
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.6)
                             .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.primary)
-                        Text(timeString(elapsedSeconds))
-                            .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
+                        WorkoutElapsedText(
+                            startedAt: startedAt,
+                            basePausedSeconds: basePausedSeconds,
+                            lastPausedAt: lastPausedAt,
+                            isPaused: isPaused,
+                            fallbackElapsedSeconds: elapsedSeconds
+                        )
                         HStack(spacing: 6) {
                             Text("\(totalVolume) kg volumen")
                             if pausedSeconds > 0 {
@@ -881,34 +914,20 @@ struct ActiveWorkoutView: View {
                 }
             } else {
                 // Active countdown ring
-                let restProgress: Double = currentRestDuration > 0 ? Double(restSeconds) / Double(currentRestDuration) : 0
-                let ringColor: Color = restSeconds > 30 ? PulseTheme.primaryBright : (restSeconds > 0 ? PulseTheme.warning : Color.red)
+                let currentRestSeconds = currentRestRemainingSeconds()
 
                 HStack(spacing: 18) {
-                    ZStack {
-                        Circle()
-                            .stroke(PulseTheme.grouped, lineWidth: 7)
-                        Circle()
-                            .trim(from: 0, to: restProgress)
-                            .stroke(ringColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                            .animation(.linear(duration: 1), value: restSeconds)
-                        VStack(spacing: 1) {
-                            Text(timeString(restSeconds))
-                                .font(.system(size: 18, weight: .black, design: .rounded).monospacedDigit())
-                                .foregroundStyle(ringColor)
-                                .animation(.none, value: restSeconds)
-                            Text(restSeconds == 0 ? "¡Listo!" : "desc.")
-                                .font(.system(size: 9, weight: .bold, design: .rounded))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                    }
+                    RestCountdownRing(
+                        restStartedAt: restStartedAt,
+                        restDuration: restDuration,
+                        fallbackRestSeconds: currentRestSeconds
+                    )
                     .frame(width: 78, height: 78)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(restSeconds == 0 ? "Listo para continuar" : "Descansando")
+                        Text(currentRestSeconds == 0 ? "Listo para continuar" : "Descansando")
                             .font(.headline.weight(.bold))
-                        Text(restSeconds == 0 ? "La batería deja de recargar cuando saltas el descanso." : "Completar el descanso reduce la fatiga de la siguiente serie.")
+                        Text(currentRestSeconds == 0 ? "La batería deja de recargar cuando saltas el descanso." : "Completar el descanso reduce la fatiga de la siguiente serie.")
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -916,12 +935,13 @@ struct ActiveWorkoutView: View {
                         HStack(spacing: 8) {
                             Button {
                                 withAnimation(.snappy(duration: 0.18)) {
+                                    let remaining = currentRestRemainingSeconds()
                                     // Shift anchor forward 15 s so remaining decreases.
                                     if let rsa = restStartedAt {
                                         restStartedAt = rsa.addingTimeInterval(-15)
-                                        restSeconds = max(0, restSeconds - 15)
+                                        restSeconds = max(0, remaining - 15)
                                     } else {
-                                        restSeconds = max(0, restSeconds - 15)
+                                        restSeconds = max(0, remaining - 15)
                                     }
                                 }
                             } label: {
@@ -937,10 +957,11 @@ struct ActiveWorkoutView: View {
 
                             Button {
                                 withAnimation(.snappy(duration: 0.18)) {
+                                    let remaining = currentRestRemainingSeconds()
                                     // Shift anchor backward 15 s so remaining increases.
                                     if let rsa = restStartedAt {
                                         restStartedAt = rsa.addingTimeInterval(15)
-                                        restSeconds = min(600, restSeconds + 15)
+                                        restSeconds = min(600, remaining + 15)
                                     } else {
                                         startRest(duration: 15)
                                     }
@@ -956,8 +977,8 @@ struct ActiveWorkoutView: View {
                             }
                             .accessibilityLabel("Ampliar descanso 15 segundos")
 
-                            Button(restSeconds == 0 ? "Reiniciar" : "Saltar") {
-                                if restSeconds == 0 {
+                            Button(currentRestSeconds == 0 ? "Reiniciar" : "Saltar") {
+                                if currentRestRemainingSeconds() == 0 {
                                     startRest(duration: currentRestDuration)
                                 } else {
                                     stopRest()
@@ -968,7 +989,7 @@ struct ActiveWorkoutView: View {
                             .frame(height: 38)
                             .background(PulseTheme.grouped)
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .accessibilityLabel(restSeconds == 0 ? "Reiniciar descanso" : "Saltar descanso")
+                            .accessibilityLabel(currentRestSeconds == 0 ? "Reiniciar descanso" : "Saltar descanso")
                         }
                         .buttonStyle(.plain)
                     }
@@ -1808,6 +1829,7 @@ struct ActiveWorkoutView: View {
             return
         }
 
+        elapsedSeconds = elapsedWorkoutSeconds()
         if let lastSetCompletedAtSeconds {
             exerciseDrafts[exerciseIndex].sets[setIndex].previousRestSeconds = max(elapsedSeconds - lastSetCompletedAtSeconds, 0)
         }
@@ -2886,6 +2908,86 @@ struct WorkoutSummaryView: View {
                 ActivityViewController(activityItems: [image])
             }
         }
+    }
+}
+
+private struct WorkoutElapsedText: View, Equatable {
+    let startedAt: Date
+    let basePausedSeconds: Int
+    let lastPausedAt: Date?
+    let isPaused: Bool
+    let fallbackElapsedSeconds: Int
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { timeline in
+            Text(timeString(elapsedSeconds(at: timeline.date)))
+                .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
+        }
+    }
+
+    private func elapsedSeconds(at date: Date) -> Int {
+        guard startedAt.timeIntervalSince1970 > 0 else {
+            return fallbackElapsedSeconds
+        }
+
+        let effectiveDate = isPaused ? (lastPausedAt ?? date) : date
+        return max(Int(effectiveDate.timeIntervalSince(startedAt)) - basePausedSeconds, 0)
+    }
+
+    private func timeString(_ seconds: Int) -> String {
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        let secs = seconds % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, secs)
+        }
+        return String(format: "%02d:%02d", minutes, secs)
+    }
+}
+
+private struct RestCountdownRing: View, Equatable {
+    let restStartedAt: Date?
+    let restDuration: Int
+    let fallbackRestSeconds: Int
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { timeline in
+            let seconds = remainingSeconds(at: timeline.date)
+            let progress = restDuration > 0 ? Double(seconds) / Double(restDuration) : 0
+            let ringColor: Color = seconds > 30 ? PulseTheme.primaryBright : (seconds > 0 ? PulseTheme.warning : Color.red)
+
+            ZStack {
+                Circle()
+                    .stroke(PulseTheme.grouped, lineWidth: 7)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(ringColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 1), value: seconds)
+                VStack(spacing: 1) {
+                    Text(timeString(seconds))
+                        .font(.system(size: 18, weight: .black, design: .rounded).monospacedDigit())
+                        .foregroundStyle(ringColor)
+                        .animation(.none, value: seconds)
+                    Text(seconds == 0 ? "¡Listo!" : "desc.")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+        }
+    }
+
+    private func remainingSeconds(at date: Date) -> Int {
+        guard let restStartedAt else {
+            return fallbackRestSeconds
+        }
+        return max(restDuration - Int(date.timeIntervalSince(restStartedAt)), 0)
+    }
+
+    private func timeString(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        let secs = seconds % 60
+        return String(format: "%02d:%02d", minutes, secs)
     }
 }
 

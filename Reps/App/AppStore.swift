@@ -695,6 +695,8 @@ final class AppStore: ObservableObject {
         guard let status = activeWorkoutStatus else {
             return nil
         }
+        let elapsedSeconds = status.effectiveElapsedSeconds()
+        let pausedSeconds = status.effectivePausedSeconds()
 
         let logs = activeWorkoutDrafts.compactMap { draft -> ExerciseLog? in
             let completedSets = draft.sets.filter(\.completed)
@@ -711,7 +713,7 @@ final class AppStore: ObservableObject {
         let allSets = logs.flatMap(\.sets)
         let location: WorkoutSession.Location = activePlan.location == .home ? .home : .gym
         let startedAt = status.startedAt == .distantPast
-            ? Date().addingTimeInterval(TimeInterval(-status.elapsedSeconds))
+            ? Date().addingTimeInterval(TimeInterval(-elapsedSeconds))
             : status.startedAt
 
         let session = WorkoutSession(
@@ -722,12 +724,12 @@ final class AppStore: ObservableObject {
             origin: .routine,
             location: location,
             contextTag: .normal,
-            durationMinutes: max(status.elapsedSeconds / 60, 1),
+            durationMinutes: max(elapsedSeconds / 60, 1),
             sets: allSets,
             notes: logs.isEmpty ? nil : logs.map { "\($0.exercise.name): \($0.sets.count) sets" }.joined(separator: "\n"),
             exerciseLogs: logs,
             routePoints: [],
-            pausedDurationSeconds: status.pausedSeconds
+            pausedDurationSeconds: pausedSeconds
         )
         finishWorkout(session)
         return session
@@ -806,7 +808,8 @@ final class AppStore: ObservableObject {
         isMusicPlaying: Bool? = nil,
         nextExerciseName: String? = nil,
         exerciseHistorySummary: String? = nil,
-        gymPass: GymPass? = nil
+        gymPass: GymPass? = nil,
+        lastPausedAt: Date? = nil
     ) {
         guard var status = activeWorkoutStatus else { return }
         status.planTitle = activePlan.name
@@ -837,6 +840,7 @@ final class AppStore: ObservableObject {
         status.gymMembershipID = gymPass?.membershipID
         status.gymCodeValue = gymPass?.codeValue
         status.gymCodeType = gymPass?.codeType.rawValue
+        status.lastPausedAt = lastPausedAt
         activeWorkoutStatus = status
     }
 
@@ -929,13 +933,15 @@ final class AppStore: ObservableObject {
             )
         }
 
+        let elapsedSeconds = status.effectiveElapsedSeconds()
+        let pausedSeconds = status.effectivePausedSeconds()
         return SharedWorkoutSnapshot(
             hasActiveWorkout: true,
             planTitle: status.planTitle ?? (activePlan.days.isEmpty ? nil : activePlan.name),
             workoutTitle: status.workoutTitle,
             sessionTitle: status.sessionTitle,
-            elapsedSeconds: status.elapsedSeconds,
-            pausedSeconds: status.pausedSeconds,
+            elapsedSeconds: elapsedSeconds,
+            pausedSeconds: pausedSeconds,
             completedSets: status.completedSets,
             totalSets: status.totalSets,
             volumeKg: status.volumeKg,
@@ -1276,17 +1282,21 @@ final class AppStore: ObservableObject {
         ])
     }
 
-    func createSuggestedPlanForAvailableEquipment() {
-        let equipment = Set(userProfile.availableEquipment.map { $0.lowercased() })
+    @discardableResult
+    func createSuggestedPlanForAvailableEquipment() -> WorkoutPlan {
+        sanitizeAvailableEquipment()
+        let equipment = Set(userProfile.availableEquipment.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() })
         let prefersHome = userProfile.trainingLocation == .home
             || equipment.contains("dumbbells")
-            || equipment.contains("resistance bands")
+            || equipment.contains("resistance band")
             || equipment.contains("bodyweight")
         let template = prefersHome ? SeedData.homeStrengthPlan : SeedData.pushPullLegsPlan
         var suggested = template
         suggested.id = UUID()
         suggested.name = prefersHome ? "Casa según mi equipo" : "Gimnasio recomendado"
         addPlan(suggested, activate: true)
+        health.message = String(localized: "Rutina creada: \(suggested.name). Está activa en Planes.")
+        return suggested
     }
 
     func disconnectHealth() {

@@ -10,6 +10,19 @@ struct RepsTests {
         #expect(completion <= 1)
     }
 
+    @Test @MainActor func suggestedPlanUsesNormalizedResistanceBandEquipment() {
+        let store = AppStore()
+        store.userProfile.trainingLocation = .gym
+        store.userProfile.availableEquipment = ["Resistance Band"]
+
+        let plan = store.createSuggestedPlanForAvailableEquipment()
+
+        #expect(plan.name == "Casa según mi equipo")
+        #expect(store.activePlan.id == plan.id)
+        #expect(store.plans.contains { $0.id == plan.id })
+        #expect(store.health.message == "Rutina creada: Casa según mi equipo. Está activa en Planes.")
+    }
+
     @Test func totalVolumeUsesCompletedSetsOnly() {
         let session = WorkoutSession(
             workoutTitle: "Push",

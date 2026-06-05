@@ -497,6 +497,24 @@ struct ActiveWorkoutStatus: Identifiable, Equatable, Codable {
     var gymCodeValue: String?
     var gymCodeType: String?
     var lastPausedAt: Date? = nil
+
+    func effectivePausedSeconds(at date: Date = .now) -> Int {
+        guard isPaused, let lastPausedAt else {
+            return pausedSeconds
+        }
+
+        return pausedSeconds + max(Int(date.timeIntervalSince(lastPausedAt)), 0)
+    }
+
+    func effectiveElapsedSeconds(at date: Date = .now) -> Int {
+        guard startedAt.timeIntervalSince1970 > 0 else {
+            return elapsedSeconds
+        }
+
+        let effectiveDate = isPaused ? (lastPausedAt ?? date) : date
+        let derivedElapsed = Int(effectiveDate.timeIntervalSince(startedAt)) - pausedSeconds
+        return max(derivedElapsed, elapsedSeconds, 0)
+    }
 }
 
 struct Goal: Codable, Identifiable {

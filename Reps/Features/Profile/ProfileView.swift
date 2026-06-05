@@ -10,6 +10,7 @@ struct ProfileView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.requestReview) private var requestReview
     @EnvironmentObject private var store: AppStore
+    var onOpenPlans: (() -> Void)?
     @StateObject private var healthKit = HealthKitService()
     @State private var weightText = ""
     @State private var heightText = ""
@@ -22,6 +23,7 @@ struct ProfileView: View {
     @State private var shareImageURL: URL?
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var localPaywall: PaywallPresentation?
+    @State private var suggestedPlanConfirmation: SuggestedPlanConfirmation?
 
     var body: some View {
         NavigationStack {
@@ -101,6 +103,27 @@ struct ProfileView: View {
             }
             .onChange(of: avatarPickerItem) { _, item in
                 Task { await loadAvatar(from: item) }
+            }
+            .alert(item: $suggestedPlanConfirmation) { confirmation in
+                if onOpenPlans == nil {
+                    Alert(
+                        title: Text("Rutina creada"),
+                        message: Text("\(confirmation.name) está activa con \(confirmation.daysPerWeek) días por semana."),
+                        dismissButton: .default(Text("OK"))
+                    )
+                } else {
+                    Alert(
+                        title: Text("Rutina creada"),
+                        message: Text("\(confirmation.name) está activa con \(confirmation.daysPerWeek) días por semana."),
+                        primaryButton: .default(Text("Ver planes")) {
+                            dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                onOpenPlans?()
+                            }
+                        },
+                        secondaryButton: .cancel(Text("Seguir"))
+                    )
+                }
             }
             .fullScreenCover(item: $localPaywall) { presentation in
                 PaywallView(presentation: presentation) { reason in
@@ -603,7 +626,7 @@ struct ProfileView: View {
                         systemImage: "wand.and.sparkles",
                         color: PulseTheme.primaryBright
                     ) {
-                        store.createSuggestedPlanForAvailableEquipment()
+                        createSuggestedEquipmentPlan()
                     }
                 }
             }
@@ -954,6 +977,12 @@ struct ProfileView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             localPaywall = presentation
         }
+    }
+
+    private func createSuggestedEquipmentPlan() {
+        let plan = store.createSuggestedPlanForAvailableEquipment()
+        HapticService.notification(.success)
+        suggestedPlanConfirmation = SuggestedPlanConfirmation(plan: plan)
     }
 
     private func sendFeedback(_ message: String) {
@@ -1322,6 +1351,18 @@ private struct SupportInfoSection: Identifiable {
     let rows: [String]
 }
 
+private struct SuggestedPlanConfirmation: Identifiable {
+    let id: UUID
+    let name: String
+    let daysPerWeek: Int
+
+    init(plan: WorkoutPlan) {
+        id = plan.id
+        name = plan.name
+        daysPerWeek = plan.daysPerWeek
+    }
+}
+
 private struct SupportInfoSheet: View {
     @Environment(\.dismiss) private var dismiss
     let title: String
@@ -1345,7 +1386,7 @@ private struct SupportInfoSheet: View {
                     }
 
                     ForEach(sections) { section in
-                        PulseCard {
+                        PulseCard(backgroundColor: PulseTheme.grouped) {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text(section.title)
                                     .font(.headline)
@@ -1371,7 +1412,7 @@ private struct SupportInfoSheet: View {
                 .padding(20)
                 .padding(.bottom, 24)
             }
-            .screenBackground()
+            .profileSupportSheetBackground()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Cerrar") {
@@ -1409,7 +1450,7 @@ private struct FeedbackSheet: View {
                         }
                     }
 
-                    PulseCard {
+                    PulseCard(backgroundColor: PulseTheme.grouped) {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Mensaje")
                                 .font(.headline)
@@ -1418,7 +1459,7 @@ private struct FeedbackSheet: View {
                                 .frame(minHeight: 180)
                                 .scrollContentBackground(.hidden)
                                 .padding(10)
-                                .background(PulseTheme.grouped)
+                                .background(PulseTheme.elevated)
                                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                                 .overlay(alignment: .topLeading) {
                                     if message.isEmpty {
@@ -1449,7 +1490,7 @@ private struct FeedbackSheet: View {
                 }
                 .padding(20)
             }
-            .screenBackground()
+            .profileSupportSheetBackground()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Cerrar") {
@@ -1481,7 +1522,7 @@ private struct VersionInfoSheet: View {
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                     }
 
-                    PulseCard {
+                    PulseCard(backgroundColor: PulseTheme.grouped) {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Build")
                                 .font(.headline)
@@ -1492,7 +1533,7 @@ private struct VersionInfoSheet: View {
                     }
 
                     #if DEBUG
-                    PulseCard {
+                    PulseCard(backgroundColor: PulseTheme.grouped) {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Crashlytics")
                                 .font(.headline)
@@ -1521,7 +1562,7 @@ private struct VersionInfoSheet: View {
                 .padding(20)
                 .padding(.bottom, 24)
             }
-            .screenBackground()
+            .profileSupportSheetBackground()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Cerrar") {
@@ -1543,6 +1584,13 @@ private struct VersionInfoSheet: View {
                 .foregroundStyle(PulseTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+private extension View {
+    func profileSupportSheetBackground() -> some View {
+        background(PulseTheme.card.ignoresSafeArea())
+            .presentationBackground(PulseTheme.card)
     }
 }
 

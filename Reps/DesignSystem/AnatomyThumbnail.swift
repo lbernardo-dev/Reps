@@ -1,36 +1,66 @@
 import MuscleMap
 import SwiftUI
+import UIKit
 
 struct ExerciseAnatomyThumbnail: View {
     let exercise: Exercise
-    var gender: BodyGender = .male
-    var size: CGFloat = 72
+    let gender: BodyGender
+    let size: CGFloat
+    private let descriptor: ExerciseAnatomyDescriptor
+    @State private var renderedImage: UIImage?
 
-    private var descriptor: ExerciseAnatomyDescriptor {
-        ExerciseAnatomyDescriptor(exercise: exercise)
+    init(exercise: Exercise, gender: BodyGender = .male, size: CGFloat = 72) {
+        self.exercise = exercise
+        self.gender = gender
+        self.size = size
+        self.descriptor = ExerciseAnatomyDescriptor(exercise: exercise)
     }
 
     var body: some View {
         Group {
             if descriptor.muscles.isEmpty {
                 cardioFallback
+            } else if let image = renderedImage ?? AnatomyThumbnailImageCache.shared.image(for: cacheKey) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(3)
             } else {
                 AnatomyThumbnailCanvas(
                     gender: gender,
                     primarySide: descriptor.region.side,
+                    region: descriptor.region,
                     muscles: descriptor.muscles,
                     minimumIntensity: 0.62
                 )
             }
         }
         .frame(width: size, height: size)
-        .background(PulseTheme.grouped)
+        .background(anatomyThumbnailBackground)
         .clipShape(RoundedRectangle(cornerRadius: min(18, size * 0.22), style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: min(18, size * 0.22), style: .continuous)
-                .stroke(PulseTheme.separator, lineWidth: 1)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
         )
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("Musculos trabajados por \(exercise.name)")
+        .onAppear {
+            guard renderedImage == nil, !descriptor.muscles.isEmpty else { return }
+            renderedImage = AnatomyThumbnailImageCache.shared.render(
+                key: cacheKey,
+                gender: gender,
+                primarySide: descriptor.region.side,
+                region: descriptor.region,
+                muscles: descriptor.muscles,
+                size: size,
+                minimumIntensity: 0.62
+            )
+        }
+    }
+
+    private var cacheKey: String {
+        let musclesKey = descriptor.muscles.map { String(describing: $0) }.joined(separator: "-")
+        return "v2-\(exercise.id.uuidString)-\(gender)-\(Int(size.rounded()))-\(descriptor.region.side)-\(musclesKey)"
     }
 
     private var cardioFallback: some View {
@@ -56,11 +86,12 @@ struct MuscleGroupAnatomyThumbnail: View {
         AnatomyThumbnailCanvas(
             gender: gender,
             primarySide: descriptor.region.side,
+            region: descriptor.region,
             muscles: descriptor.muscles,
             minimumIntensity: max(0.35, min(intensity, 1))
         )
         .frame(width: size, height: size)
-        .background(PulseTheme.grouped)
+        .background(anatomyThumbnailBackground)
         .clipShape(RoundedRectangle(cornerRadius: min(16, size * 0.25), style: .continuous))
         .accessibilityHidden(true)
     }
@@ -69,27 +100,83 @@ struct MuscleGroupAnatomyThumbnail: View {
 private struct AnatomyThumbnailCanvas: View {
     let gender: BodyGender
     let primarySide: BodySide
+    let region: AnatomyRegion
     let muscles: [Muscle]
     var minimumIntensity: Double = 0.55
 
     var body: some View {
-        HStack(spacing: 0) {
-            BodyView(gender: gender, side: primarySide, style: .thumbnailAnatomy)
-                .heatmap(heatmap, configuration: .thumbnailAnatomy)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(false)
-            BodyView(gender: gender, side: primarySide == .front ? .back : .front, style: .thumbnailAnatomy)
-                .heatmap(heatmap, configuration: .thumbnailAnatomy)
-                .opacity(0.42)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(false)
+        GeometryReader { proxy in
+            HStack(spacing: 0) {
+                BodyView(gender: gender, side: primarySide, style: .thumbnailAnatomy)
+                    .heatmap(heatmap, configuration: .thumbnailAnatomy)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                BodyView(gender: gender, side: primarySide == .front ? .back : .front, style: .thumbnailAnatomy)
+                    .heatmap(heatmap, configuration: .thumbnailAnatomy)
+                    .opacity(0.42)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            .scaleEffect(effectiveScale, anchor: region.anchor)
+            .offset(x: proxy.size.width * region.offset.width, y: proxy.size.height * region.offset.height)
         }
-        .padding(6)
+        .padding(3)
         .clipped()
+        .accessibilityHidden(true)
+    }
+
+    private var effectiveScale: CGFloat {
+        min(max(region.scale, 1.18), 1.82)
     }
 
     private var heatmap: [MuscleIntensity] {
         muscles.map { MuscleIntensity(muscle: $0, intensity: minimumIntensity) }
+    }
+}
+
+@MainActor
+private final class AnatomyThumbnailImageCache {
+    static let shared = AnatomyThumbnailImageCache()
+
+    private let cache = NSCache<NSString, UIImage>()
+
+    func image(for key: String) -> UIImage? {
+        cache.object(forKey: key as NSString)
+    }
+
+    func render(
+        key: String,
+        gender: BodyGender,
+        primarySide: BodySide,
+        region: AnatomyRegion,
+        muscles: [Muscle],
+        size: CGFloat,
+        minimumIntensity: Double
+    ) -> UIImage? {
+        let nsKey = key as NSString
+        if let image = cache.object(forKey: nsKey) {
+            return image
+        }
+
+        let content = AnatomyThumbnailCanvas(
+            gender: gender,
+            primarySide: primarySide,
+            region: region,
+            muscles: muscles,
+            minimumIntensity: minimumIntensity
+        )
+        .frame(width: size, height: size)
+        .background(anatomyThumbnailBackground)
+
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = UIScreen.main.scale
+        guard let image = renderer.uiImage else {
+            return nil
+        }
+        cache.setObject(image, forKey: nsKey)
+        return image
     }
 }
 
@@ -283,14 +370,14 @@ extension UserProfile {
 
 private extension BodyViewStyle {
     static let thumbnailAnatomy = BodyViewStyle(
-        defaultFillColor: Color.white.opacity(0.13),
-        strokeColor: Color.black.opacity(0.58),
-        strokeWidth: 0.8,
-        selectionColor: PulseTheme.primary,
-        selectionStrokeColor: PulseTheme.primary,
-        selectionStrokeWidth: 1,
-        headColor: Color.white.opacity(0.18),
-        hairColor: Color.white.opacity(0.08)
+        defaultFillColor: Color.white.opacity(0.22),
+        strokeColor: Color.white.opacity(0.24),
+        strokeWidth: 0.7,
+        selectionColor: PulseTheme.primaryBright,
+        selectionStrokeColor: PulseTheme.primaryBright,
+        selectionStrokeWidth: 1.1,
+        headColor: Color.white.opacity(0.26),
+        hairColor: Color.white.opacity(0.16)
     )
 }
 
@@ -311,4 +398,15 @@ private extension HeatmapColorScale {
         PulseTheme.primaryBright,
         PulseTheme.accent
     ])
+}
+
+private var anatomyThumbnailBackground: some ShapeStyle {
+    LinearGradient(
+        colors: [
+            Color(red: 0.19, green: 0.20, blue: 0.23),
+            Color(red: 0.10, green: 0.11, blue: 0.13)
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
 }
