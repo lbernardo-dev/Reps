@@ -2,10 +2,15 @@ import MuscleMap
 import SwiftUI
 
 enum PulseTheme {
-    static let primary = Color(red: 0.22, green: 0.76, blue: 0.35)
-    static let primaryBright = Color(red: 0.48, green: 0.88, blue: 0.58)
-    static let accent = Color(red: 0.28, green: 0.86, blue: 0.38)
-    static let accentMuted = Color(red: 0.08, green: 0.24, blue: 0.14)
+    static let primary = Color(red: 0.14, green: 0.35, blue: 0.88)
+    static let primaryBright = Color(red: 0.00, green: 0.68, blue: 0.82)
+    static let accent = Color(red: 1.00, green: 0.39, blue: 0.18)
+    static let recovery = Color(red: 0.18, green: 0.72, blue: 0.38)
+    static let accentMuted = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .light
+            ? UIColor(red: 1.00, green: 0.90, blue: 0.84, alpha: 1.0)
+            : UIColor(red: 0.26, green: 0.10, blue: 0.05, alpha: 1.0)
+    })
     static let destructive = Color(red: 0.93, green: 0.24, blue: 0.22)
     static let warning = Color(red: 1.0, green: 0.60, blue: 0.14)
 

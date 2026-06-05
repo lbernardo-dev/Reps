@@ -53,7 +53,7 @@ struct TodayView: View {
     private var batteryColor: Color {
         switch batteryStatus.state {
         case .charged:
-            return PulseTheme.accent
+            return PulseTheme.recovery
         case .steady:
             return PulseTheme.primary
         case .low:

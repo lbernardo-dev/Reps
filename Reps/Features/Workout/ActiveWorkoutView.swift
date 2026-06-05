@@ -136,7 +136,7 @@ struct ActiveWorkoutView: View {
     private var batteryColor: Color {
         switch currentBattery.state {
         case .charged:
-            return PulseTheme.accent
+            return PulseTheme.recovery
         case .steady:
             return PulseTheme.primary
         case .low:
