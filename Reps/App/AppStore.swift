@@ -1,6 +1,7 @@
 import ActivityKit
 import Foundation
 import HealthKit
+import StoreKit
 import UIKit
 import UserNotifications
 import WatchConnectivity
@@ -22,6 +23,9 @@ final class AppStore: ObservableObject {
         }
     }
     @Published var monetization = MonetizationState() { didSet { save() } }
+    @Published private(set) var storeKitProducts: [Product] = []
+    @Published private(set) var isLoadingStoreKitProducts = false
+    @Published private(set) var storeKitErrorMessage: String?
     @Published var activePlan = WorkoutPlan.empty { didSet { save() } }
     @Published var plans: [WorkoutPlan] = [] { didSet { save() } }
     @Published var workoutTemplates: [WorkoutDay] = SeedData.workoutTemplates { didSet { save() } }
@@ -61,13 +65,7 @@ final class AppStore: ObservableObject {
     @Published var calendarFocusedDate: Date?
     @Published var activePaywall: PaywallPresentation? {
         didSet {
-            if let paywall = activePaywall {
-                TelemetryService.shared.log(.paywallPresented, parameters: [
-                    "source": paywall.source.rawValue,
-                    "feature": paywall.feature?.rawValue,
-                    "trigger": paywall.trigger.rawValue
-                ])
-            } else if let previous = oldValue {
+            if activePaywall == nil, let previous = oldValue {
                 monetization.lastPaywallDismissDate = .now
                 TelemetryService.shared.log(.paywallDismissed, parameters: [
                     "source": previous.source.rawValue,
@@ -84,6 +82,7 @@ final class AppStore: ObservableObject {
     private var hasAttemptedExerciseLibrarySync = false
     private var saveTask: Task<Void, Never>?
     private var pendingPaywallDismissReason: PaywallDismissReason?
+    private var transactionUpdatesTask: Task<Void, Never>?
 
     init(persistence: SwiftDataPersistence = SwiftDataPersistence()) {
         self.persistence = persistence
@@ -100,17 +99,27 @@ final class AppStore: ObservableObject {
         }
 
         Task {
+            await refreshStoreKitProducts()
+            await refreshStoreKitEntitlements()
             await syncOpenExerciseLibraryIfNeeded()
         }
         
+        transactionUpdatesTask = Task { [weak self] in
+            await self?.listenForStoreKitTransactions()
+        }
+
         startHealthKitWorkoutObserver()
+    }
+
+    deinit {
+        transactionUpdatesTask?.cancel()
     }
 
     /// Immediately writes the latest computed snapshot to shared UserDefaults
     /// so that all widgets reflect current app state. Call this on foreground / launch.
     func syncWidgets() {
         let snapshot = sharedWorkoutSnapshot()
-        SharedWorkoutStore.save(snapshot)
+        SharedWorkoutStore.save(snapshot, forceReload: true)
         WatchSyncService.shared.publish(snapshot: snapshot)
     }
 
@@ -305,15 +314,34 @@ final class AppStore: ObservableObject {
     }
 
     func presentPaywall(source: PaywallSource, feature: ProductFeature?, trigger: PaywallTrigger = .manual) {
+        activePaywall = makePaywallPresentation(source: source, feature: feature, trigger: trigger)
+    }
+
+    func makePaywallPresentation(source: PaywallSource, feature: ProductFeature?, trigger: PaywallTrigger = .manual) -> PaywallPresentation {
         monetization.lastPaywallPresentationDate = .now
         monetization.lastPaywallSource = source
         monetization.paywallPresentationCount += 1
-        activePaywall = PaywallPresentation(source: source, feature: feature, trigger: trigger)
+        let presentation = PaywallPresentation(source: source, feature: feature, trigger: trigger)
+        TelemetryService.shared.log(.paywallPresented, parameters: [
+            "source": presentation.source.rawValue,
+            "feature": presentation.feature?.rawValue,
+            "trigger": presentation.trigger.rawValue
+        ])
+        return presentation
     }
 
     func dismissPaywall(reason: PaywallDismissReason) {
         pendingPaywallDismissReason = reason
         activePaywall = nil
+    }
+
+    func trackPaywallDismissal(_ presentation: PaywallPresentation, reason: PaywallDismissReason) {
+        monetization.lastPaywallDismissDate = .now
+        TelemetryService.shared.log(.paywallDismissed, parameters: [
+            "source": presentation.source.rawValue,
+            "feature": presentation.feature?.rawValue,
+            "reason": reason.rawValue
+        ])
     }
 
     func trackPaywallPlanSelection(_ plan: SubscriptionBillingCycle, source: PaywallSource) {
@@ -328,6 +356,156 @@ final class AppStore: ObservableObject {
             "plan": plan.rawValue,
             "source": source.rawValue
         ])
+    }
+
+    func refreshStoreKitProducts() async {
+        guard !isLoadingStoreKitProducts else {
+            return
+        }
+
+        isLoadingStoreKitProducts = true
+        defer { isLoadingStoreKitProducts = false }
+
+        do {
+            let products = try await Product.products(for: StoreKitProductID.allProductIDs)
+            storeKitProducts = products.sorted { lhs, rhs in
+                storeKitSortIndex(for: lhs.id) < storeKitSortIndex(for: rhs.id)
+            }
+            storeKitErrorMessage = nil
+            monetization.revenueCatConfigured = false
+        } catch {
+            storeKitErrorMessage = error.localizedDescription
+        }
+    }
+
+    func storeKitProduct(for cycle: SubscriptionBillingCycle) -> Product? {
+        storeKitProducts.first { product in
+            StoreKitProductID(rawValue: product.id)?.billingCycle == cycle
+        }
+    }
+
+    @discardableResult
+    func purchaseStoreKitProduct(_ product: Product) async -> Bool {
+        do {
+            let result = try await product.purchase()
+            switch result {
+            case .success(let verification):
+                let transaction = try checkVerified(verification)
+                await applyStoreKitEntitlement(from: transaction)
+                await transaction.finish()
+                await refreshStoreKitEntitlements()
+                return true
+            case .userCancelled, .pending:
+                return false
+            @unknown default:
+                return false
+            }
+        } catch {
+            storeKitErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func restoreStoreKitPurchases() async -> Bool {
+        do {
+            try await StoreKit.AppStore.sync()
+            return await refreshStoreKitEntitlements()
+        } catch {
+            storeKitErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func presentStoreKitCodeRedemption() {
+        SKPaymentQueue.default().presentCodeRedemptionSheet()
+    }
+
+    @discardableResult
+    func refreshStoreKitEntitlements() async -> Bool {
+        var latestTransaction: Transaction?
+
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result,
+                  transaction.revocationDate == nil,
+                  StoreKitProductID(rawValue: transaction.productID) != nil else {
+                continue
+            }
+
+            if let current = latestTransaction {
+                let currentDate = current.expirationDate ?? current.purchaseDate
+                let nextDate = transaction.expirationDate ?? transaction.purchaseDate
+                if nextDate > currentDate {
+                    latestTransaction = transaction
+                }
+            } else {
+                latestTransaction = transaction
+            }
+        }
+
+        guard let latestTransaction else {
+            if monetization.provider == .storeKit {
+                monetization.entitlement = .free
+                monetization.status = .inactive
+                monetization.billingCycle = nil
+                monetization.renewsAt = nil
+                monetization.lastEntitlementSyncDate = .now
+            }
+            return false
+        }
+
+        await applyStoreKitEntitlement(from: latestTransaction)
+        return true
+    }
+
+    private func listenForStoreKitTransactions() async {
+        for await result in Transaction.updates {
+            guard !Task.isCancelled else {
+                return
+            }
+
+            guard case .verified(let transaction) = result,
+                  StoreKitProductID(rawValue: transaction.productID) != nil else {
+                continue
+            }
+
+            await applyStoreKitEntitlement(from: transaction)
+            await transaction.finish()
+        }
+    }
+
+    private func applyStoreKitEntitlement(from transaction: Transaction) async {
+        guard transaction.revocationDate == nil,
+              let productID = StoreKitProductID(rawValue: transaction.productID) else {
+            await refreshStoreKitEntitlements()
+            return
+        }
+
+        monetization.entitlement = .pro
+        monetization.status = .active
+        monetization.billingCycle = productID.billingCycle
+        monetization.provider = .storeKit
+        monetization.renewsAt = transaction.expirationDate
+        monetization.lastEntitlementSyncDate = .now
+    }
+
+    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+        switch result {
+        case .verified(let value):
+            return value
+        case .unverified(_, let error):
+            throw error
+        }
+    }
+
+    private func storeKitSortIndex(for productID: String) -> Int {
+        switch StoreKitProductID(rawValue: productID) {
+        case .weekly: return 0
+        case .monthly: return 1
+        case .annual: return 2
+        case .lifetime: return 3
+        case nil: return Int.max
+        }
     }
 
     #if DEBUG
@@ -1827,13 +2005,22 @@ private struct OpenExerciseRecord: Decodable {
 
     private static func displayMuscleGroup(_ rawValue: String) -> String {
         switch rawValue.lowercased() {
-        case "abdominals": return "Core"
-        case "adductors", "abductors", "calves", "hamstrings", "quadriceps": return "Legs"
+        case "abdominals": return "Abs"
+        case "adductors": return "Adductors"
+        case "abductors": return "Abductors"
+        case "calves": return "Calves"
+        case "hamstrings": return "Hamstrings"
+        case "quadriceps": return "Quadriceps"
         case "glutes": return "Glutes"
-        case "lats", "middle back", "lower back", "traps": return "Back"
+        case "lats": return "Lats"
+        case "middle back": return "Upper Back"
+        case "lower back": return "Lower Back"
+        case "traps": return "Traps"
         case "chest": return "Chest"
         case "shoulders": return "Shoulders"
-        case "biceps", "triceps", "forearms": return "Arms"
+        case "biceps": return "Biceps"
+        case "triceps": return "Triceps"
+        case "forearms": return "Forearms"
         default: return displayName(rawValue)
         }
     }
@@ -1920,6 +2107,16 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
         if let activeEnergyKcal = snapshot.activeEnergyKcal {
             context["activeEnergyKcal"] = activeEnergyKcal
         }
+        context["streakDays"] = snapshot.streakDays
+        context["weeklyCompletion"] = snapshot.weeklyCompletion
+        context["trainingBatteryLevel"] = snapshot.trainingBatteryLevel
+        context["trainingBatteryState"] = snapshot.trainingBatteryState
+        context["trainingBatteryTitle"] = snapshot.trainingBatteryTitle
+        context["trainingBatterySuggestion"] = snapshot.trainingBatterySuggestion
+        context["trainingBatterySystemImage"] = snapshot.trainingBatterySystemImage
+        context["nextWorkoutDayName"] = snapshot.nextWorkoutDayName
+        context["nextWorkoutDayDescription"] = snapshot.nextWorkoutDayDescription
+        context["widgetAccentColorName"] = snapshot.widgetAccentColorName
 
         try? session.updateApplicationContext(context)
         if session.isReachable {
@@ -1965,30 +2162,34 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
     }
 }
 
-final class RepsWorkoutLiveActivityController: @unchecked Sendable {
+@MainActor
+final class RepsWorkoutLiveActivityController {
     static let shared = RepsWorkoutLiveActivityController()
+
+    private var lastSignature: LiveActivitySnapshotSignature?
 
     private init() {}
 
     func sync(_ snapshot: SharedWorkoutSnapshot) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let signature = LiveActivitySnapshotSignature(snapshot: snapshot)
+        guard signature != lastSignature else { return }
+        lastSignature = signature
 
         Task {
             if snapshot.hasActiveWorkout {
                 let activities = Activity<RepsWorkoutActivityAttributes>.activities
+                let content = ActivityContent(
+                    state: RepsWorkoutActivityAttributes.ContentState(snapshot: snapshot),
+                    staleDate: snapshot.liveActivityStaleDate,
+                    relevanceScore: 75
+                )
                 if !activities.isEmpty {
                     for activity in activities {
-                        await activity.update(ActivityContent(
-                            state: RepsWorkoutActivityAttributes.ContentState(snapshot: snapshot),
-                            staleDate: Date().addingTimeInterval(60)
-                        ))
+                        await activity.update(content)
                     }
                 } else {
                     let attributes = RepsWorkoutActivityAttributes(workoutTitle: snapshot.workoutTitle)
-                    let content = ActivityContent(
-                        state: RepsWorkoutActivityAttributes.ContentState(snapshot: snapshot),
-                        staleDate: Date().addingTimeInterval(60)
-                    )
                     _ = try? Activity<RepsWorkoutActivityAttributes>.request(
                         attributes: attributes,
                         content: content,
@@ -2004,6 +2205,47 @@ final class RepsWorkoutLiveActivityController: @unchecked Sendable {
                 }
             }
         }
+    }
+}
+
+private struct LiveActivitySnapshotSignature: Equatable {
+    let hasActiveWorkout: Bool
+    let workoutTitle: String
+    let exerciseName: String?
+    let nextExerciseName: String?
+    let completedSets: Int
+    let totalSets: Int
+    let volumeKg: Int
+    let isPaused: Bool
+    let elapsedStartBucket: Int
+    let restEndBucket: Int?
+    let restDurationSeconds: Int?
+    let estimatedRemainingSeconds: Int?
+    let widgetAccentColorName: String
+
+    init(snapshot: SharedWorkoutSnapshot) {
+        hasActiveWorkout = snapshot.hasActiveWorkout
+        workoutTitle = snapshot.workoutTitle
+        exerciseName = snapshot.exerciseName
+        nextExerciseName = snapshot.nextExerciseName
+        completedSets = snapshot.completedSets
+        totalSets = snapshot.totalSets
+        volumeKg = snapshot.volumeKg
+        isPaused = snapshot.isPaused
+        elapsedStartBucket = Int(snapshot.elapsedStartDate.timeIntervalSince1970.rounded())
+        restEndBucket = snapshot.restEndDate.map { Int($0.timeIntervalSince1970.rounded()) }
+        restDurationSeconds = snapshot.restDurationSeconds
+        estimatedRemainingSeconds = snapshot.estimatedRemainingSeconds
+        widgetAccentColorName = snapshot.widgetAccentColorName
+    }
+}
+
+private extension SharedWorkoutSnapshot {
+    var liveActivityStaleDate: Date {
+        if let restEndDate {
+            return restEndDate.addingTimeInterval(90)
+        }
+        return Date().addingTimeInterval(isPaused ? 900 : 300)
     }
 }
 

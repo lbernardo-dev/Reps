@@ -5,7 +5,7 @@ import AppIntents
 struct RepsWorkoutEntry: TimelineEntry {
     let date: Date
     let snapshot: SharedWorkoutSnapshot
-    let configuration: RepsWidgetConfigurationIntent
+    let configuredBackgroundColor: WidgetColor
 }
 
 struct RepsWorkoutProvider: AppIntentTimelineProvider {
@@ -13,17 +13,16 @@ struct RepsWorkoutProvider: AppIntentTimelineProvider {
     typealias Intent = RepsWidgetConfigurationIntent
 
     func placeholder(in context: Context) -> RepsWorkoutEntry {
-        RepsWorkoutEntry(date: .now, snapshot: .empty, configuration: RepsWidgetConfigurationIntent())
+        RepsWorkoutEntry(date: .now, snapshot: .empty, configuredBackgroundColor: .system)
     }
 
     func snapshot(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> RepsWorkoutEntry {
-        RepsWorkoutEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuration: configuration)
+        RepsWorkoutEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
     }
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsWorkoutEntry> {
-        let entry = RepsWorkoutEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuration: configuration)
-        let next = Calendar.current.date(byAdding: .minute, value: 15, to: .now) ?? .now.addingTimeInterval(900)
-        return Timeline(entries: [entry], policy: .after(next))
+        let entry = RepsWorkoutEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
+        return Timeline(entries: [entry], policy: .atEnd)
     }
 }
 
@@ -38,6 +37,22 @@ struct RepsWorkoutWidget: Widget {
         .description("Entreno activo, progreso, calorías y estado físico.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
         .contentMarginsDisabled()
+        .containerBackgroundRemovable(false)
+    }
+}
+
+extension View {
+    func repsWidgetBackground(_ color: WidgetColor) -> some View {
+        ZStack {
+            ContainerRelativeShape()
+                .fill(color.widgetBackgroundFill)
+            self
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .containerBackground(for: .widget) {
+            ContainerRelativeShape()
+                .fill(color.widgetBackgroundFill)
+        }
     }
 }
 
@@ -48,11 +63,12 @@ private struct RepsWorkoutWidgetView: View {
     let entry: RepsWorkoutEntry
 
     var body: some View {
-        let resolvedColor = WidgetColor.resolved(
+        let contentColor = WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
+        let backgroundColor = WidgetColor.resolved(
             appColorName: entry.snapshot.widgetAccentColorName,
-            widgetColor: entry.configuration.accentColor
+            widgetBackgroundColor: entry.configuredBackgroundColor
         )
-        let theme = resolvedColor.theme
+        let theme = contentColor.theme
 
         switch family {
         case .accessoryCircular:
@@ -139,9 +155,7 @@ private struct RepsWorkoutWidgetView: View {
                 }
             }
             .padding(14)
-            .containerBackground(for: .widget) {
-                theme.background
-            }
+            .repsWidgetBackground(backgroundColor)
             .widgetURL(URL(string: "reps://workout"))
         }
     }
@@ -202,6 +216,9 @@ private struct ActiveWorkoutView: View {
     var body: some View {
         let isResting = entry.snapshot.restEndDate != nil
 
+        if family == .systemMedium {
+            mediumActiveBody(isResting: isResting)
+        } else {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 4 : 8) {
             // Header
             HStack(alignment: .center) {
@@ -334,6 +351,121 @@ private struct ActiveWorkoutView: View {
                 }
             }
         }
+        }
+    }
+
+    private func mediumActiveBody(isResting: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .center, spacing: 8) {
+                Image(systemName: entry.snapshot.stateSystemImage)
+                    .font(.system(size: 15, weight: .black))
+                    .foregroundStyle(theme.tint)
+                    .frame(width: 24, height: 24)
+                    .background(theme.badgeBackground, in: Circle())
+
+                Text(entry.snapshot.stateLabel)
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundStyle(isResting ? theme.foreground : (entry.snapshot.isPaused ? Color.orange : theme.badgeText))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(isResting ? theme.badgeBackground : (entry.snapshot.isPaused ? Color.orange.opacity(0.15) : theme.badgeBackground), in: Capsule())
+
+                Spacer(minLength: 0)
+
+                compactMetric(icon: "checkmark.circle.fill", value: "\(entry.snapshot.completedSets)/\(entry.snapshot.totalSets)")
+            }
+
+            Text(entry.snapshot.workoutTitle)
+                .font(.system(size: 16, weight: .black, design: .rounded))
+                .foregroundStyle(theme.foreground)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            if let restEndDate = entry.snapshot.restEndDate {
+                HStack(alignment: .lastTextBaseline, spacing: 8) {
+                    Text(restEndDate, style: .timer)
+                        .font(.system(size: 26, weight: .black, design: .rounded))
+                        .foregroundStyle(theme.tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Text(entry.snapshot.nextExerciseName ?? entry.snapshot.exerciseName ?? "Siguiente serie")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(theme.secondaryForeground)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+
+                ProgressView(value: entry.snapshot.restProgress)
+                    .progressViewStyle(RepsProgressStyle(tintColor: theme.tint, isDarkBackground: theme.isDarkBackground))
+            } else {
+                HStack(alignment: .center, spacing: 8) {
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(theme.secondaryForeground)
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(entry.snapshot.exerciseName ?? "Ejercicio actual")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(theme.secondaryForeground)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+
+                        Text(currentExerciseDetailText)
+                            .font(.system(size: 9, weight: .black))
+                            .foregroundStyle(theme.secondaryForeground.opacity(0.85))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    if entry.snapshot.isPaused {
+                        Text(entry.snapshot.elapsedText)
+                            .font(.system(size: 15, weight: .black, design: .rounded))
+                            .foregroundStyle(theme.foreground)
+                    } else {
+                        Text(entry.snapshot.elapsedStartDate, style: .timer)
+                            .font(.system(size: 15, weight: .black, design: .rounded))
+                            .foregroundStyle(theme.foreground)
+                    }
+                }
+
+                ProgressView(value: entry.snapshot.progress)
+                    .progressViewStyle(RepsProgressStyle(tintColor: theme.tint, isDarkBackground: theme.isDarkBackground))
+            }
+
+            HStack(spacing: 6) {
+                metricPill(title: "Restante", value: entry.snapshot.remainingText, icon: "hourglass")
+                metricPill(title: "Volumen", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
+                metricPill(title: "Agua", value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
+            }
+        }
+    }
+
+    private var currentExerciseDetailText: String {
+        let exerciseProgress: String? = {
+            guard let index = entry.snapshot.exerciseIndex,
+                  let total = entry.snapshot.totalExercises else {
+                return nil
+            }
+            return "\(index)/\(total) ejercicios"
+        }()
+
+        return [exerciseProgress, entry.snapshot.currentSetText]
+            .compactMap(\.self)
+            .joined(separator: " · ")
+    }
+
+    private func compactMetric(icon: String, value: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+            Text(value)
+        }
+        .font(.system(size: 11, weight: .black, design: .rounded))
+        .foregroundStyle(theme.badgeText)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(theme.badgeBackground, in: Capsule())
     }
 
     private func timerValueText() -> String {
@@ -406,8 +538,8 @@ private struct InactiveWorkoutView: View {
             if family == .systemMedium {
                 HStack(spacing: 8) {
                     statPill(value: "\(entry.snapshot.streakDays) días", icon: "flame.fill", color: .orange)
-                    statPill(value: "\(entry.snapshot.trainingBatteryLevel)%", icon: "battery.100percent", color: .green)
-                    statPill(value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill", color: .blue)
+                    statPill(value: "\(entry.snapshot.trainingBatteryLevel)%", icon: "battery.100percent", color: theme.tint)
+                    statPill(value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill", color: theme.secondaryForeground)
                 }
             } else {
                 HStack(spacing: 3) {

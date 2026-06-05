@@ -6,8 +6,9 @@ struct WatchWorkoutView: View {
     var body: some View {
         NavigationStack {
             TabView {
-                workoutPage
+                summaryPage
                 controlsPage
+                timersPage
                 gymAndMusicPage
             }
             .tabViewStyle(.verticalPage)
@@ -15,19 +16,20 @@ struct WatchWorkoutView: View {
         }
     }
 
-    private var workoutPage: some View {
+    private var summaryPage: some View {
         ScrollView {
             if model.snapshot.hasActiveWorkout {
-                VStack(alignment: .leading, spacing: 8) {
-                    headerCard
+                VStack(alignment: .leading, spacing: 9) {
+                    liveHeroCard
+                    evolutionCard
                     exerciseCard
-                    metricsGrid
                 }
                 .padding(.horizontal, 6)
                 .padding(.bottom, 10)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    headerCard
+                    liveHeroCard
+                    evolutionCard
                     inactiveControlsState
                     WatchInfoCard(icon: "iphone.and.arrow.forward", title: "Sincronización", value: syncText, color: .green)
                 }
@@ -85,10 +87,36 @@ struct WatchWorkoutView: View {
                     if let history = model.snapshot.exerciseHistorySummary {
                         WatchInfoCard(icon: "clock.arrow.circlepath", title: "Histórico", value: history, color: .green)
                     }
+
+                    if let next = model.snapshot.nextExerciseName {
+                        WatchInfoCard(icon: "arrow.forward.circle.fill", title: "Siguiente", value: next, color: .blue)
+                    }
                 }
                 .padding(.horizontal, 4)
             } else {
                 inactiveControlsState
+            }
+        }
+    }
+
+    private var timersPage: some View {
+        ScrollView {
+            if model.snapshot.hasActiveWorkout {
+                VStack(alignment: .leading, spacing: 9) {
+                    timersHeader
+                    restTimerCard
+                    metricsGrid
+                    WatchInfoCard(icon: "arrow.left.arrow.right", title: "Ejercicios", value: exerciseFlowText, color: .blue)
+                }
+                .padding(.horizontal, 6)
+                .padding(.bottom, 10)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    WatchInfoCard(icon: "timer", title: "Timers", value: "Los cronómetros de sesión, descanso y volumen aparecen al iniciar un entreno.", color: accentColor)
+                    metricsGrid
+                }
+                .padding(.horizontal, 6)
+                .padding(.bottom, 10)
             }
         }
     }
@@ -131,6 +159,24 @@ struct WatchWorkoutView: View {
     private var gymAndMusicPage: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
+                if let history = model.snapshot.exerciseHistorySummary {
+                    WatchInfoCard(
+                        icon: "clock.arrow.circlepath",
+                        title: "Ejercicio anterior",
+                        value: history,
+                        color: .green
+                    )
+                }
+
+                if let next = model.snapshot.nextExerciseName {
+                    WatchInfoCard(
+                        icon: "arrow.forward.circle.fill",
+                        title: "Ejercicio siguiente",
+                        value: next,
+                        color: .blue
+                    )
+                }
+
                 if let title = model.snapshot.musicTitle {
                     WatchInfoCard(
                         icon: model.snapshot.isMusicPlaying == true ? "music.note" : "music.note.list",
@@ -175,7 +221,7 @@ struct WatchWorkoutView: View {
         }
     }
 
-    private var headerCard: some View {
+    private var liveHeroCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 5) {
@@ -228,6 +274,44 @@ struct WatchWorkoutView: View {
             }
         }
         .watchCard()
+    }
+
+    private var evolutionCard: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                Label("Evolución", systemImage: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(accentColor)
+                Spacer()
+                Text("\(Int(model.snapshot.weeklyCompletion * 100))% semana")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(alignment: .center, spacing: 10) {
+                WatchMiniRing(
+                    value: model.snapshot.weeklyCompletion,
+                    label: "\(model.snapshot.streakDays)",
+                    caption: model.snapshot.streakDays == 1 ? "día" : "días",
+                    color: .orange
+                )
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("\(model.snapshot.trainingBatteryLevel)% \(model.snapshot.trainingBatteryTitle)", systemImage: model.snapshot.trainingBatterySystemImage)
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(batteryColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+
+                    Text(model.snapshot.trainingBatterySuggestion.isEmpty ? model.snapshot.summary : model.snapshot.trainingBatterySuggestion)
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.86)
+                }
+            }
+        }
+        .watchCard(borderColor: accentColor.opacity(0.14))
     }
 
     private var exerciseCard: some View {
@@ -307,6 +391,71 @@ struct WatchWorkoutView: View {
         .watchCard()
     }
 
+    private var timersHeader: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                Label("Timers", systemImage: "timer")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(accentColor)
+                Spacer()
+                Text(sessionStateText)
+                    .font(.system(size: 9, weight: .black, design: .rounded))
+                    .foregroundStyle(accentColor)
+            }
+
+            HStack(spacing: 6) {
+                WatchTimePill(title: "Sesión", value: liveElapsedText, icon: "stopwatch.fill", color: accentColor)
+                WatchTimePill(title: "Queda", value: model.snapshot.remainingText, icon: "hourglass.bottomhalf.filled", color: .orange)
+            }
+
+            HStack(spacing: 6) {
+                WatchTimePill(title: "Agua", value: String(format: "%.2f L", model.snapshot.waterLiters ?? 0), icon: "waterbottle.fill", color: .cyan)
+                WatchTimePill(title: "Pausa", value: SharedWorkoutSnapshot.durationText(model.snapshot.pausedSeconds), icon: "pause.circle.fill", color: .yellow)
+            }
+        }
+        .watchCard()
+    }
+
+    @ViewBuilder
+    private var restTimerCard: some View {
+        if let rest = model.snapshot.restSeconds, rest > 0 {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Label("Descanso activo", systemImage: "hourglass")
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.orange)
+                    Spacer()
+                    Text(model.snapshot.restText)
+                        .font(.system(size: 22, weight: .black, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+
+                ProgressView(value: model.snapshot.restProgress)
+                    .progressViewStyle(LinearTintProgressStyle(color: .orange))
+
+                HStack(spacing: 8) {
+                    WatchTimePill(title: "Total", value: SharedWorkoutSnapshot.durationText(model.snapshot.restDurationSeconds ?? 0), icon: "clock", color: .orange)
+                    Button {
+                        WatchCommandRouter.send(WatchCommand.completeSet.rawValue)
+                    } label: {
+                        Image(systemName: "forward.end.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.orange)
+                            .frame(width: 44, height: 44)
+                            .background(Color.orange.opacity(0.13))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .watchCard(borderColor: Color.orange.opacity(0.22))
+        } else {
+            WatchInfoCard(icon: "hourglass", title: "Descanso", value: "Sin descanso activo. Completa una serie para iniciar el siguiente timer.", color: .orange)
+        }
+    }
+
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
             WatchMetric(title: "Volumen", value: "\(model.snapshot.volumeKg)", unit: "kg", icon: "chart.bar.fill", color: accentColor)
@@ -331,6 +480,14 @@ struct WatchWorkoutView: View {
         default:
             return Color(red: 0.23, green: 0.52, blue: 0.96)
         }
+    }
+
+    private var batteryColor: Color {
+        let level = model.snapshot.trainingBatteryLevel
+        if level >= 75 { return Color(red: 0.33, green: 0.86, blue: 0.32) }
+        if level >= 40 { return Color(red: 1.0, green: 0.80, blue: 0.14) }
+        if level >= 20 { return Color(red: 1.0, green: 0.60, blue: 0.14) }
+        return Color(red: 0.93, green: 0.24, blue: 0.22)
     }
 
     private var sessionStateText: String {
@@ -371,6 +528,13 @@ struct WatchWorkoutView: View {
         model.snapshot.hasActiveWorkout ? "Tiempo real u offline\n\(model.snapshot.updatedAt.formatted(date: .omitted, time: .shortened))" : model.snapshot.summary
     }
 
+    private var exerciseFlowText: String {
+        let previous = model.snapshot.exerciseHistorySummary.map { "Anterior: \($0)" }
+        let current = model.snapshot.exerciseName.map { "Actual: \($0)" }
+        let next = model.snapshot.nextExerciseName.map { "Siguiente: \($0)" }
+        return [previous, current, next].compactMap(\.self).joined(separator: "\n")
+    }
+
     private func commandButton(_ command: WatchCommand, icon: String, tint: Color) -> some View {
         let isEnabled = model.snapshot.hasActiveWorkout || command == .resume
         return Button {
@@ -408,6 +572,36 @@ struct WatchWorkoutView: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct WatchMiniRing: View {
+    let value: Double
+    let label: String
+    let caption: String
+    let color: Color
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.08), lineWidth: 5)
+            Circle()
+                .trim(from: 0, to: CGFloat(max(0.001, min(value, 1))))
+                .stroke(color, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+
+            VStack(spacing: 0) {
+                Text(label)
+                    .font(.system(size: 16, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                Text(caption)
+                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .frame(width: 54, height: 54)
     }
 }
 

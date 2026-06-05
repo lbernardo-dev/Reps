@@ -31,6 +31,7 @@ struct ProfileView: View {
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var selectedReceiptForPreview: SavedShareCard? = nil
     @State private var activeSupportSheet: ProfileSupportSheet?
+    @State private var localPaywall: PaywallPresentation?
 
     var body: some View {
         NavigationStack {
@@ -143,6 +144,13 @@ struct ProfileView: View {
             }
             .sheet(item: $activeSupportSheet) { sheet in
                 supportSheetDestination(sheet)
+            }
+            .fullScreenCover(item: $localPaywall) { presentation in
+                PaywallView(presentation: presentation) { reason in
+                    store.trackPaywallDismissal(presentation, reason: reason)
+                    localPaywall = nil
+                }
+                .environmentObject(store)
             }
         }
     }
@@ -300,7 +308,7 @@ struct ProfileView: View {
                         message: isSpanish ? "Desbloquea la galería de recibos, tarjetas compartibles e imágenes resumen desde Reps Pro." : "Unlock the receipt gallery, shareable cards, and workout images with Reps Pro.",
                         buttonTitle: isSpanish ? "Ver Reps Pro" : "See Reps Pro"
                     ) {
-                        store.presentPaywall(source: .receiptGallery, feature: .shareCards)
+                        localPaywall = store.makePaywallPresentation(source: .receiptGallery, feature: .shareCards)
                     }
                 } else if store.savedShareCards.isEmpty {
                     PulseEmptyState(
@@ -889,7 +897,7 @@ struct ProfileView: View {
                         "Añadir feedback, reseñas, privacidad, versión y soporte."
                     ]),
                     SupportInfoSection(title: "Integraciones", rows: [
-                        "RevenueCat para paywall y suscripción.",
+                        "StoreKit directo para paywall, suscripciones, lifetime y restauración de licencias.",
                         "Validación final de Firebase en dispositivo y canal de distribución.",
                         "Mejora de Apple Health, Watch, widgets y Live Activities."
                     ]),
@@ -944,7 +952,7 @@ struct ProfileView: View {
 
         var components = URLComponents()
         components.scheme = "mailto"
-        components.path = "support@romerosoft.com"
+        components.path = "support@romerodev.com"
         components.queryItems = [
             URLQueryItem(name: "subject", value: "Feedback Reps \(appVersionText)"),
             URLQueryItem(name: "body", value: trimmed)
@@ -1435,7 +1443,7 @@ private struct VersionInfoSheet: View {
                                 .font(.headline)
 
                             supportRow("Versión: \(appVersionText)")
-                            supportRow("Bundle ID: \(Bundle.main.bundleIdentifier ?? "com.romerosoft.repsfitness")")
+                            supportRow("Bundle ID: \(Bundle.main.bundleIdentifier ?? "com.romerodev.repsfitness")")
                         }
                     }
 

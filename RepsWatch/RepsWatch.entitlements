@@ -6,7 +6,7 @@
 	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.romerosoft.repsfitness</string>
+		<string>group.com.romerodev.repsfitness</string>
 	</array>
 </dict>
 </plist>

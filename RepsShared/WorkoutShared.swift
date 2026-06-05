@@ -10,7 +10,7 @@ import WidgetKit
 
 
 enum RepsAppGroup {
-    static let identifier = "group.com.romerosoft.repsfitness"
+    static let identifier = "group.com.romerodev.repsfitness"
 }
 
 enum WatchCommand: String, Sendable {
@@ -179,6 +179,13 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
 
 enum SharedWorkoutStore {
     private static let key = "activeWorkoutSnapshot"
+    private static let lastTimelineReloadKey = "activeWorkoutSnapshot.lastTimelineReload"
+    private static let widgetKinds = [
+        "RepsWorkoutWidget",
+        "RepsBatteryWidget",
+        "RepsStreakWidget"
+    ]
+    private static let minimumTimelineReloadInterval: TimeInterval = 3
 
     static func load() -> SharedWorkoutSnapshot {
         guard let defaults = UserDefaults(suiteName: RepsAppGroup.identifier),
@@ -189,7 +196,7 @@ enum SharedWorkoutStore {
         return snapshot
     }
 
-    static func save(_ snapshot: SharedWorkoutSnapshot, reloadTimelines: Bool = true) {
+    static func save(_ snapshot: SharedWorkoutSnapshot, reloadTimelines: Bool = true, forceReload: Bool = false) {
         guard let defaults = UserDefaults(suiteName: RepsAppGroup.identifier),
               let data = try? JSONEncoder().encode(snapshot) else {
             return
@@ -200,7 +207,15 @@ enum SharedWorkoutStore {
         }
         #if canImport(WidgetKit)
         #if !os(watchOS)
-        WidgetCenter.shared.reloadAllTimelines()
+        let now = Date()
+        let lastReload = Date(timeIntervalSince1970: defaults.double(forKey: lastTimelineReloadKey))
+        guard forceReload || now.timeIntervalSince(lastReload) >= minimumTimelineReloadInterval else {
+            return
+        }
+        defaults.set(now.timeIntervalSince1970, forKey: lastTimelineReloadKey)
+        widgetKinds.forEach { kind in
+            WidgetCenter.shared.reloadTimelines(ofKind: kind)
+        }
         #endif
         #endif
     }

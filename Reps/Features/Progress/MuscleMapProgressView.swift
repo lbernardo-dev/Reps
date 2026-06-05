@@ -115,14 +115,14 @@ struct MuscleMapProgressView: View {
                         .frame(height: 34)
                         .foregroundStyle(selectedMode == mode ? .black : Color.white.opacity(0.7))
                         .background(
-                            selectedMode == mode ? .white : Color.white.opacity(0.05)
+                            selectedMode == mode ? PulseTheme.accent : Color.white.opacity(0.05)
                         )
                         .overlay(
                             Capsule()
-                                .stroke(selectedMode == mode ? .white : Color.white.opacity(0.08), lineWidth: 1)
+                                .stroke(selectedMode == mode ? PulseTheme.accent : Color.white.opacity(0.08), lineWidth: 1)
                         )
                         .clipShape(Capsule())
-                        .shadow(color: selectedMode == mode ? .white.opacity(0.15) : Color.clear, radius: 4, x: 0, y: 1)
+                        .shadow(color: selectedMode == mode ? PulseTheme.accent.opacity(0.2) : Color.clear, radius: 4, x: 0, y: 1)
                 }
                 .buttonStyle(.plain)
             }
@@ -461,7 +461,7 @@ private struct MuscleSegmentDetailSheet: View {
                         .font(.headline)
                         .frame(width: 142, height: 58)
                         .foregroundStyle(.black)
-                        .background(.white)
+                        .background(PulseTheme.accent)
                         .clipShape(Capsule())
                 }
                 .padding(.bottom, 16)

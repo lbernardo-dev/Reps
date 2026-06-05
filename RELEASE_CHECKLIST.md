@@ -2,7 +2,7 @@
 
 ## Build
 
-- [ ] Confirm bundle id is `com.romerosoft.repsfitness`.
+- [ ] Confirm bundle id is `com.romerodev.repsfitness`.
 - [ ] Set Apple development team.
 - [ ] Build Debug on latest iPhone simulator.
 - [ ] Build Release on generic iOS device.

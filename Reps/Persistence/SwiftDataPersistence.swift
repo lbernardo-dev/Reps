@@ -3,6 +3,8 @@ import SwiftData
 
 @MainActor
 final class SwiftDataPersistence {
+    private static let appGroupIdentifier = "group.com.romerodev.repsfitness"
+
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
     private(set) var didFallbackToInMemory: Bool = false
@@ -30,19 +32,17 @@ final class SwiftDataPersistence {
             HealthSyncRecord.self
         ])
 
-        if !inMemory {
-            let fileManager = FileManager.default
-            if let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
-                if !fileManager.fileExists(atPath: appSupportURL.path) {
-                    try? fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true, attributes: nil)
-                }
-            }
-        }
-
         do {
+            let configuration: ModelConfiguration
+            if inMemory {
+                configuration = ModelConfiguration("RepsStore", schema: schema, isStoredInMemoryOnly: true)
+            } else {
+                configuration = try Self.persistentConfiguration(schema: schema)
+            }
+
             container = try ModelContainer(
                 for: schema,
-                configurations: ModelConfiguration("RepsStore", schema: schema, isStoredInMemoryOnly: inMemory)
+                configurations: configuration
             )
         } catch {
             didFallbackToInMemory = true
@@ -51,6 +51,31 @@ final class SwiftDataPersistence {
                 configurations: ModelConfiguration("RepsFallbackStore", schema: schema, isStoredInMemoryOnly: true)
             )
         }
+    }
+
+    private static func persistentConfiguration(schema: Schema) throws -> ModelConfiguration {
+        let fileManager = FileManager.default
+        let applicationSupportURL: URL
+        if let appGroupURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) {
+            applicationSupportURL = appGroupURL
+                .appendingPathComponent("Library", isDirectory: true)
+                .appendingPathComponent("Application Support", isDirectory: true)
+        } else {
+            applicationSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+                ?? fileManager.temporaryDirectory
+        }
+
+        try fileManager.createDirectory(
+            at: applicationSupportURL,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+
+        return ModelConfiguration(
+            "RepsStore",
+            schema: schema,
+            url: applicationSupportURL.appendingPathComponent("RepsStore.store")
+        )
     }
 
     func loadSnapshot() -> AppSnapshot? {

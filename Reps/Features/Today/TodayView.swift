@@ -53,7 +53,7 @@ struct TodayView: View {
     private var batteryColor: Color {
         switch batteryStatus.state {
         case .charged:
-            return PulseTheme.primaryBright
+            return PulseTheme.accent
         case .steady:
             return PulseTheme.primary
         case .low:
@@ -212,8 +212,8 @@ struct TodayView: View {
         let setsWord = isSpanish ? "series" : "sets"
         let progress: Double = status.totalSets > 0 ? Double(status.completedSets) / Double(status.totalSets) : 0
         let activeGradient: [Color] = isPaused
-            ? [Color(red: 0.80, green: 0.50, blue: 0.00), PulseTheme.warning, Color(red: 0.95, green: 0.65, blue: 0.10)]
-            : [PulseTheme.primary, Color(red: 0.48, green: 0.38, blue: 0.92), PulseTheme.accent]
+            ? [PulseTheme.card, Color(red: 0.24, green: 0.15, blue: 0.03)]
+            : [PulseTheme.card, PulseTheme.accentMuted]
 
         return VStack(alignment: .leading, spacing: 18) {
 
@@ -223,15 +223,15 @@ struct TodayView: View {
                 // Progress ring
                 ZStack {
                     Circle()
-                        .stroke(.white.opacity(0.22), lineWidth: 5)
+                        .stroke(PulseTheme.separator, lineWidth: 5)
                     Circle()
                         .trim(from: 0, to: progress)
-                        .stroke(.white, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .stroke(isPaused ? PulseTheme.warning : PulseTheme.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .animation(.easeOut(duration: 0.4), value: progress)
                     Image(systemName: isPaused ? "pause.fill" : "figure.strengthtraining.traditional")
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.accent)
                 }
                 .frame(width: 54, height: 54)
 
@@ -239,7 +239,7 @@ struct TodayView: View {
                     Text(isPaused ? "PAUSED" : "IN PROGRESS")
                         .font(.system(size: 10, weight: .black, design: .rounded))
                         .tracking(1.8)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.accent)
                     Text(RepsText.workoutTitle(status.workoutTitle, language: store.userProfile.preferredLanguage))
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .lineLimit(1)
@@ -260,13 +260,13 @@ struct TodayView: View {
                 StatPill(value: "\(status.volumeKg) kg", label: isSpanish ? "volumen" : "volume",
                          systemImage: "scalemass")
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(.primary)
 
             // ── Compact progress bar ──────────────────────────────────
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.20)).frame(height: 6)
-                    Capsule().fill(.white)
+                    Capsule().fill(PulseTheme.grouped).frame(height: 6)
+                    Capsule().fill(isPaused ? PulseTheme.warning : PulseTheme.accent)
                         .frame(width: geo.size.width * progress, height: 6)
                         .animation(.easeOut(duration: 0.4), value: progress)
                 }
@@ -283,8 +283,8 @@ struct TodayView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.primary)
-                        .background(.white)
+                        .foregroundStyle(.black)
+                        .background(isPaused ? PulseTheme.warning : PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -296,12 +296,12 @@ struct TodayView: View {
                     Image(systemName: isPaused ? "play.fill" : "pause.fill")
                         .font(.headline.weight(.bold))
                         .frame(width: 48, height: 48)
-                        .foregroundStyle(.white)
-                        .background(.white.opacity(0.20))
+                        .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.accent)
+                        .background(PulseTheme.grouped)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                .stroke(.white.opacity(0.30), lineWidth: 1)
+                                .stroke(PulseTheme.separator, lineWidth: 1)
                         )
                 }
                 .accessibilityLabel(isPaused ? "Resume workout" : "Pause workout")
@@ -321,7 +321,7 @@ struct TodayView: View {
             }
         }
         .padding(18)
-        .foregroundStyle(.white)
+        .foregroundStyle(.primary)
         .background(
             LinearGradient(
                 colors: activeGradient,
@@ -330,8 +330,12 @@ struct TodayView: View {
             )
         )
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke((isPaused ? PulseTheme.warning : PulseTheme.accent).opacity(0.28), lineWidth: 1)
+        )
         .shadow(
-            color: (isPaused ? PulseTheme.warning : PulseTheme.primary).opacity(0.28),
+            color: (isPaused ? PulseTheme.warning : PulseTheme.accent).opacity(0.14),
             radius: 20, x: 0, y: 10
         )
     }
@@ -472,7 +476,7 @@ struct TodayView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
                         .foregroundStyle(.black)
-                        .background(.white)
+                        .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -498,14 +502,18 @@ struct TodayView: View {
         .padding(18)
         .foregroundStyle(.white)
         .background(
-            LinearGradient(
-                colors: [PulseTheme.primary, Color(red: 0.48, green: 0.38, blue: 0.92), PulseTheme.accent],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+                LinearGradient(
+                    colors: [PulseTheme.accentMuted, PulseTheme.card],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
         )
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-        .shadow(color: PulseTheme.primary.opacity(0.20), radius: 18, x: 0, y: 10)
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke(PulseTheme.accent.opacity(0.25), lineWidth: 1)
+        )
+        .shadow(color: PulseTheme.accent.opacity(0.12), radius: 18, x: 0, y: 10)
         .overlay(alignment: .topTrailing) {
             if hasActivePlan {
                 Button {
@@ -567,7 +575,7 @@ struct TodayView: View {
                     value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
                     subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en Reps", $0) } ?? (isSpanish ? "Sin registro local" : "No local log"),
                     systemImage: "drop.fill",
-                    color: .cyan
+                    color: PulseTheme.primaryBright
                 )
 
                 WellnessWidget(
@@ -648,7 +656,7 @@ struct TodayView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
                             .foregroundStyle(.black)
-                            .background(.white)
+                            .background(PulseTheme.accent)
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
@@ -683,7 +691,7 @@ struct TodayView: View {
                 }
 
                 ProgressView(value: store.activePlan.completion)
-                    .tint(PulseTheme.primaryBright)
+                    .tint(PulseTheme.accent)
                     .scaleEffect(x: 1, y: 1.25, anchor: .center)
 
                 if let eventName = store.activePlan.targetEventName,

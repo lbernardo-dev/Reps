@@ -2,9 +2,10 @@ import MuscleMap
 import SwiftUI
 
 enum PulseTheme {
-    static let primary = Color(red: 0.23, green: 0.52, blue: 0.96)
-    static let primaryBright = Color(red: 0.33, green: 0.86, blue: 0.32)
-    static let accent = Color(red: 1.0, green: 0.80, blue: 0.14)
+    static let primary = Color(red: 0.22, green: 0.76, blue: 0.35)
+    static let primaryBright = Color(red: 0.48, green: 0.88, blue: 0.58)
+    static let accent = Color(red: 0.28, green: 0.86, blue: 0.38)
+    static let accentMuted = Color(red: 0.08, green: 0.24, blue: 0.14)
     static let destructive = Color(red: 0.93, green: 0.24, blue: 0.22)
     static let warning = Color(red: 1.0, green: 0.60, blue: 0.14)
 
@@ -92,14 +93,27 @@ enum RepsText {
         return switch normalized(value) {
         case "arms": "Brazos"
         case "back": "Espalda"
+        case "biceps": "Bíceps"
         case "cardio": "Cardio"
         case "chest": "Pecho"
         case "core", "abdominals": "Core"
+        case "abs": "Abdominales"
+        case "adductors": "Aductores"
+        case "abductors": "Abductores"
+        case "calves": "Gemelos"
+        case "forearms": "Antebrazos"
         case "full body": "Cuerpo completo"
         case "glutes": "Glúteos"
+        case "hamstrings": "Isquios"
+        case "lats": "Dorsales"
         case "legs": "Piernas"
+        case "lower back": "Lumbar"
         case "neck": "Cuello"
+        case "quadriceps": "Cuádriceps"
         case "shoulders": "Hombros"
+        case "traps": "Trapecios"
+        case "triceps": "Tríceps"
+        case "upper back": "Espalda alta"
         default: value
         }
     }
@@ -249,7 +263,7 @@ struct PrimaryButton: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(.black)
-        .background(.white)
+        .background(PulseTheme.accent)
         .clipShape(Capsule())
     }
 }
@@ -349,7 +363,7 @@ struct PulseChip: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .foregroundStyle(isSelected ? .black : PulseTheme.secondaryText)
-            .background(isSelected ? .white : PulseTheme.grouped)
+            .background(isSelected ? PulseTheme.accent : PulseTheme.grouped)
             .clipShape(Capsule())
     }
 }

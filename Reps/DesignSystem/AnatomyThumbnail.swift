@@ -98,14 +98,17 @@ struct ExerciseAnatomyDescriptor {
     let region: AnatomyRegion
 
     init(exercise: Exercise) {
-        self.init(muscleGroup: exercise.muscleGroup, secondaryMuscles: exercise.secondaryMuscles + exercise.tags + [exercise.name])
+        self.init(
+            muscleGroup: exercise.muscleGroup,
+            secondaryMuscles: exercise.secondaryMuscles + exercise.tags + [exercise.name, exercise.instructions ?? ""]
+        )
     }
 
     init(muscleGroup: String, secondaryMuscles: [String]) {
         let text = ([muscleGroup] + secondaryMuscles).joined(separator: " ").lowercased()
-        let group = ExerciseAnatomyGroup(text: text)
-        muscles = group.muscles
-        region = group.region
+        let focus = ExerciseAnatomyFocus(text: text)
+        muscles = focus.muscles
+        region = focus.region
     }
 }
 
@@ -116,39 +119,80 @@ struct AnatomyRegion {
     let offset: CGSize
 }
 
-private enum ExerciseAnatomyGroup {
+private enum ExerciseAnatomyFocus {
     case upperBody
     case chest
+    case chestUpper
+    case chestLower
     case back
+    case lats
+    case traps
+    case lowerBack
     case shoulders
-    case arms
+    case biceps
+    case triceps
+    case forearms
     case legs
+    case quadriceps
+    case hamstrings
+    case calves
+    case adductors
+    case hipFlexors
     case glutes
     case core
+    case obliques
     case fullBody
     case cardio
 
     init(text: String) {
         if text.contains("cardio") || text.contains("run") || text.contains("bike") || text.contains("rower") {
             self = .cardio
-        } else if text.contains("upper") || text.contains("superior") || text.contains("torso") {
+        } else if text.contains("upper body") || text.contains("superior") || text.contains("torso") {
             self = .upperBody
         } else if text.contains("full") {
             self = .fullBody
+        } else if text.contains("tricep") || text.contains("pushdown") || text.contains("skullcrusher") || text.contains("skull crusher") {
+            self = .triceps
+        } else if text.contains("forearm") || text.contains("wrist") {
+            self = .forearms
+        } else if text.contains("leg curl") || text.contains("hamstring curl") || text.contains("hamstring") || text.contains("romanian") || text.contains("stiff-leg") {
+            self = .hamstrings
+        } else if text.contains("leg extension") || text.contains("quad") {
+            self = .quadriceps
+        } else if text.contains("calf") {
+            self = .calves
+        } else if text.contains("adductor") || text.contains("abductor") {
+            self = .adductors
+        } else if text.contains("hip flexor") || text.contains("psoas") {
+            self = .hipFlexors
         } else if text.contains("glute") || text.contains("hip thrust") {
             self = .glutes
-        } else if text.contains("leg") || text.contains("quad") || text.contains("hamstring") || text.contains("calf") || text.contains("squat") || text.contains("lunge") {
-            self = .legs
-        } else if text.contains("core") || text.contains("ab") || text.contains("plank") || text.contains("climber") {
+        } else if text.contains("oblique") || text.contains("twist") || text.contains("side plank") {
+            self = .obliques
+        } else if text.contains("core") || text.contains("ab") || text.contains("crunch") || text.contains("sit-up") || text.contains("plank") || text.contains("climber") {
             self = .core
-        } else if text.contains("arm") || text.contains("bicep") || text.contains("tricep") || text.contains("curl") || text.contains("extension") {
-            self = .arms
+        } else if text.contains("bicep") || text.contains("curl") {
+            self = .biceps
         } else if text.contains("shoulder") || text.contains("delt") || text.contains("overhead") || text.contains("face pull") {
             self = .shoulders
-        } else if text.contains("back") || text.contains("lat") || text.contains("row") || text.contains("pull") || text.contains("deadlift") {
+        } else if text.contains("lower back") || text.contains("lumbar") || text.contains("hyperextension") || text.contains("back extension") {
+            self = .lowerBack
+        } else if text.contains("trap") || text.contains("shrug") {
+            self = .traps
+        } else if text.contains("lat") || text.contains("pulldown") || text.contains("pull-up") || text.contains("pullup") {
+            self = .lats
+        } else if text.contains("back") || text.contains("row") || text.contains("pull") || text.contains("deadlift") {
             self = .back
+        } else if text.contains("upper chest") || text.contains("incline") {
+            self = .chestUpper
+        } else if text.contains("lower chest") || text.contains("decline") {
+            self = .chestLower
         } else if text.contains("chest") || text.contains("press") || text.contains("push") {
             self = .chest
+        } else if text.contains("leg") || text.contains("squat") || text.contains("lunge") {
+            self = .legs
+        } else if text.contains("arm") {
+            self = .upperBody
         } else {
             self = .fullBody
         }
@@ -160,18 +204,44 @@ private enum ExerciseAnatomyGroup {
             [.chest, .upperChest, .upperBack, .deltoids, .frontDeltoid, .rearDeltoid, .triceps, .biceps, .abs]
         case .chest:
             [.chest, .upperChest, .lowerChest, .frontDeltoid, .triceps]
+        case .chestUpper:
+            [.upperChest, .frontDeltoid, .triceps]
+        case .chestLower:
+            [.lowerChest, .triceps]
         case .back:
             [.upperBack, .rhomboids, .trapezius, .lowerBack, .biceps]
+        case .lats:
+            [.upperBack, .rhomboids, .biceps]
+        case .traps:
+            [.trapezius, .upperTrapezius, .lowerTrapezius]
+        case .lowerBack:
+            [.lowerBack]
         case .shoulders:
             [.deltoids, .frontDeltoid, .rearDeltoid, .rotatorCuff, .upperTrapezius]
-        case .arms:
-            [.biceps, .triceps, .forearm]
+        case .biceps:
+            [.biceps]
+        case .triceps:
+            [.triceps]
+        case .forearms:
+            [.forearm]
         case .legs:
             [.quadriceps, .innerQuad, .outerQuad, .hamstring, .calves, .adductors]
+        case .quadriceps:
+            [.quadriceps, .innerQuad, .outerQuad]
+        case .hamstrings:
+            [.hamstring, .gluteal]
+        case .calves:
+            [.calves, .tibialis]
+        case .adductors:
+            [.adductors]
+        case .hipFlexors:
+            [.hipFlexors]
         case .glutes:
             [.gluteal, .hamstring]
         case .core:
             [.abs, .upperAbs, .lowerAbs, .obliques, .serratus]
+        case .obliques:
+            [.obliques, .serratus]
         case .fullBody:
             [.chest, .upperBack, .deltoids, .quadriceps, .gluteal, .abs]
         case .cardio:
@@ -183,19 +253,19 @@ private enum ExerciseAnatomyGroup {
         switch self {
         case .upperBody:
             AnatomyRegion(side: .front, scale: 2.05, anchor: .center, offset: CGSize(width: 0, height: 0.22))
-        case .chest:
+        case .chest, .chestUpper, .chestLower:
             AnatomyRegion(side: .front, scale: 2.55, anchor: .center, offset: CGSize(width: 0, height: 0.29))
-        case .back:
+        case .back, .lats, .traps, .lowerBack:
             AnatomyRegion(side: .back, scale: 2.45, anchor: .center, offset: CGSize(width: 0, height: 0.25))
         case .shoulders:
             AnatomyRegion(side: .front, scale: 2.50, anchor: .center, offset: CGSize(width: 0, height: 0.28))
-        case .arms:
+        case .biceps, .triceps, .forearms:
             AnatomyRegion(side: .front, scale: 2.15, anchor: .center, offset: CGSize(width: 0, height: 0.12))
-        case .legs:
+        case .legs, .quadriceps, .hamstrings, .calves, .adductors, .hipFlexors:
             AnatomyRegion(side: .front, scale: 1.90, anchor: .bottom, offset: CGSize(width: 0, height: -0.08))
         case .glutes:
             AnatomyRegion(side: .back, scale: 2.05, anchor: .bottom, offset: CGSize(width: 0, height: -0.24))
-        case .core:
+        case .core, .obliques:
             AnatomyRegion(side: .front, scale: 2.20, anchor: .center, offset: CGSize(width: 0, height: -0.03))
         case .fullBody:
             AnatomyRegion(side: .front, scale: 1.55, anchor: .center, offset: CGSize(width: 0, height: 0))

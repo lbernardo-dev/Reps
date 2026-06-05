@@ -1372,7 +1372,7 @@ struct ExerciseReferenceImage: View {
                     .frame(width: size.width, height: size.height)
             case .empty:
                 ProgressView()
-                    .tint(PulseTheme.primary)
+                    .tint(PulseTheme.accent)
                     .frame(width: size.width, height: size.height)
             @unknown default:
                 ExerciseHeroFallback()

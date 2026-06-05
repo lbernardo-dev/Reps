@@ -32,11 +32,11 @@ enum LineType: String, CaseIterable, Identifiable {
     var color: Color {
         switch self {
         case .expected:
-            return Color(red: 0.0, green: 0.92, blue: 1.0) // Vibrant Neon Cyan
+            return PulseTheme.primaryBright
         case .planned:
-            return Color(red: 1.0, green: 0.05, blue: 0.72) // Vibrant Neon Pink/Magenta (pops on dark background)
+            return PulseTheme.accent
         case .real:
-            return Color(red: 0.22, green: 1.0, blue: 0.08) // Vibrant Neon Lime/Green
+            return Color(red: 0.62, green: 1.0, blue: 0.42)
         }
     }
 }
@@ -458,6 +458,7 @@ struct QuickMenuProgressionChart: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 24)
+                    .offset(y: -24)
                 }
             }
             

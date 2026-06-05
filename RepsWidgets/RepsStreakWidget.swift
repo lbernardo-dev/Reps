@@ -5,7 +5,7 @@ import AppIntents
 struct RepsStreakEntry: TimelineEntry {
     let date: Date
     let snapshot: SharedWorkoutSnapshot
-    let configuration: RepsWidgetConfigurationIntent
+    let configuredBackgroundColor: WidgetColor
 }
 
 struct RepsStreakProvider: AppIntentTimelineProvider {
@@ -13,17 +13,16 @@ struct RepsStreakProvider: AppIntentTimelineProvider {
     typealias Intent = RepsWidgetConfigurationIntent
 
     func placeholder(in context: Context) -> RepsStreakEntry {
-        RepsStreakEntry(date: .now, snapshot: .empty, configuration: RepsWidgetConfigurationIntent())
+        RepsStreakEntry(date: .now, snapshot: .empty, configuredBackgroundColor: .system)
     }
 
     func snapshot(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> RepsStreakEntry {
-        RepsStreakEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuration: configuration)
+        RepsStreakEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
     }
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsStreakEntry> {
-        let entry = RepsStreakEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuration: configuration)
-        let next = Calendar.current.date(byAdding: .minute, value: 15, to: .now) ?? .now.addingTimeInterval(900)
-        return Timeline(entries: [entry], policy: .after(next))
+        let entry = RepsStreakEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
+        return Timeline(entries: [entry], policy: .atEnd)
     }
 }
 
@@ -36,8 +35,9 @@ struct RepsStreakWidget: Widget {
         }
         .configurationDisplayName("Racha y Consistencia")
         .description("Días de racha seguidos y progreso semanal de entrenamientos.")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular])
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
         .contentMarginsDisabled()
+        .containerBackgroundRemovable(false)
     }
 }
 
@@ -48,11 +48,12 @@ private struct RepsStreakWidgetView: View {
     let entry: RepsStreakEntry
 
     var body: some View {
-        let resolvedColor = WidgetColor.resolved(
+        let contentColor = WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
+        let backgroundColor = WidgetColor.resolved(
             appColorName: entry.snapshot.widgetAccentColorName,
-            widgetColor: entry.configuration.accentColor
+            widgetBackgroundColor: entry.configuredBackgroundColor
         )
-        let theme = resolvedColor.theme
+        let theme = contentColor.theme
         let streak = entry.snapshot.streakDays
         let completion = entry.snapshot.weeklyCompletion
         let hasPlan = entry.snapshot.nextWorkoutDayName != nil || entry.snapshot.planTitle != nil
@@ -81,20 +82,20 @@ private struct RepsStreakWidgetView: View {
                     .opacity(hasPlan ? 1 : 0.7)
             }
 
+        case .accessoryInline:
+            Text("Reps \(streak) días · \(Int(completion * 100))% semana")
+                .widgetURL(URL(string: "reps://workout"))
+
         default:
             if family == .systemSmall {
                 SmallStreakView(entry: entry, theme: theme, streak: streak, completion: completion, hasPlan: hasPlan)
                     .padding(14)
-                    .containerBackground(for: .widget) {
-                        theme.background
-                    }
+                    .repsWidgetBackground(backgroundColor)
                     .widgetURL(URL(string: "reps://workout"))
             } else {
                 MediumStreakView(entry: entry, theme: theme, streak: streak, completion: completion, hasPlan: hasPlan)
                     .padding(14)
-                    .containerBackground(for: .widget) {
-                        theme.background
-                    }
+                    .repsWidgetBackground(backgroundColor)
                     .widgetURL(URL(string: "reps://workout"))
             }
         }

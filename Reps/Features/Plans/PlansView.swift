@@ -220,7 +220,7 @@ struct PlansView: View {
                 .foregroundStyle(PulseTheme.secondaryText)
 
                 ProgressView(value: store.activePlan.completion)
-                    .tint(PulseTheme.primary)
+                    .tint(PulseTheme.accent)
 
                 HStack {
                     Text("Semana \(store.activePlan.currentWeek) de \(store.activePlan.totalWeeks)")
@@ -294,7 +294,7 @@ struct PlansView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
                             .foregroundStyle(.black)
-                            .background(.white)
+                            .background(PulseTheme.accent)
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)

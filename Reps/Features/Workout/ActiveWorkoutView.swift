@@ -136,7 +136,7 @@ struct ActiveWorkoutView: View {
     private var batteryColor: Color {
         switch currentBattery.state {
         case .charged:
-            return PulseTheme.primaryBright
+            return PulseTheme.accent
         case .steady:
             return PulseTheme.primary
         case .low:
@@ -578,20 +578,13 @@ struct ActiveWorkoutView: View {
                             .stroke(PulseTheme.grouped, lineWidth: 6)
                         Circle()
                             .trim(from: 0, to: setCompletion)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [PulseTheme.primary, PulseTheme.primaryBright],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                            )
+                            .stroke(PulseTheme.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                             .rotationEffect(.degrees(-90))
                             .animation(.snappy(duration: 0.35), value: setCompletion)
                         VStack(spacing: 0) {
                             Text("\(completedSets)")
                                 .font(.system(size: 20, weight: .black, design: .rounded).monospacedDigit())
-                                .foregroundStyle(PulseTheme.primaryBright)
+                                .foregroundStyle(PulseTheme.accent)
                             Text("/\(totalSets)")
                                 .font(.caption2.weight(.bold).monospacedDigit())
                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -625,11 +618,7 @@ struct ActiveWorkoutView: View {
                             .fill(PulseTheme.grouped)
                             .frame(height: 8)
                         Capsule()
-                            .fill(LinearGradient(
-                                colors: [PulseTheme.primary, PulseTheme.primaryBright],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ))
+                            .fill(PulseTheme.accent)
                             .frame(width: max(geo.size.width * setCompletion, setCompletion > 0 ? 16 : 0), height: 8)
                             .animation(.snappy(duration: 0.35), value: setCompletion)
                     }
@@ -659,16 +648,10 @@ struct ActiveWorkoutView: View {
                     .padding(.horizontal, 18)
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
-                    .foregroundStyle(.white)
-                    .background(
-                        LinearGradient(
-                            colors: [PulseTheme.primary, PulseTheme.primaryBright],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .foregroundStyle(.black)
+                    .background(PulseTheme.accent)
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    .shadow(color: PulseTheme.primary.opacity(0.35), radius: 8, x: 0, y: 4)
+                    .shadow(color: PulseTheme.accent.opacity(0.22), radius: 8, x: 0, y: 4)
                 }
                 .disabled(completedSets == totalSets)
                 .opacity(completedSets == totalSets ? 0.55 : 1)
@@ -801,7 +784,7 @@ struct ActiveWorkoutView: View {
 
                 HStack(spacing: 10) {
                     BatteryMicroMetric(title: "Fatiga", value: "\(Int(currentBattery.fatigueLoad.rounded()))", systemImage: "bolt.slash", color: PulseTheme.destructive)
-                    BatteryMicroMetric(title: "Recarga", value: "+\(Int(currentBattery.recoveryCredit.rounded()))", systemImage: "bed.double", color: PulseTheme.primaryBright)
+                    BatteryMicroMetric(title: "Recarga", value: "+\(Int(currentBattery.recoveryCredit.rounded()))", systemImage: "bed.double", color: PulseTheme.accent)
                     BatteryMicroMetric(title: "Plan", value: "\(Int(currentBattery.planPressure.rounded()))", systemImage: "calendar", color: PulseTheme.warning)
                 }
             }
@@ -835,11 +818,11 @@ struct ActiveWorkoutView: View {
                             .overlay(alignment: .topTrailing) {
                                 ZStack {
                                     Circle()
-                                        .fill(isActive ? PulseTheme.primary : PulseTheme.card)
+                                        .fill(isActive ? PulseTheme.accentMuted : PulseTheme.card)
                                         .frame(width: 18, height: 18)
                                     Circle()
                                         .trim(from: 0, to: ratio)
-                                        .stroke(PulseTheme.primaryBright, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                                        .stroke(isActive ? PulseTheme.accent : PulseTheme.primaryBright, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                                         .rotationEffect(.degrees(-90))
                                         .frame(width: 14, height: 14)
                                 }
@@ -853,20 +836,20 @@ struct ActiveWorkoutView: View {
                                     .minimumScaleFactor(0.68)
                                 Text("\(completedCount)/\(totalCount) series")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(isActive ? .white.opacity(0.75) : PulseTheme.secondaryText)
+                                    .foregroundStyle(PulseTheme.secondaryText)
                             }
                         }
-                        .foregroundStyle(isActive ? .white : .primary)
+                        .foregroundStyle(.primary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 10)
                         .frame(width: 180, alignment: .leading)
-                        .background(isActive ? PulseTheme.primary : PulseTheme.card)
+                        .background(isActive ? PulseTheme.accentMuted : PulseTheme.card)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                .stroke(isActive ? PulseTheme.primaryBright.opacity(0.6) : Color.white.opacity(0.04), lineWidth: 1.5)
+                                .stroke(isActive ? PulseTheme.accent.opacity(0.55) : Color.white.opacity(0.04), lineWidth: 1.5)
                         )
-                        .shadow(color: isActive ? PulseTheme.primary.opacity(0.3) : .clear, radius: 8, x: 0, y: 4)
+                        .shadow(color: isActive ? PulseTheme.accent.opacity(0.14) : .clear, radius: 8, x: 0, y: 4)
                     }
                     .buttonStyle(.plain)
                 }
@@ -2448,7 +2431,7 @@ struct VideoPlayerSheet: View {
                 if let duration = bookmark.playbackDurationSeconds, duration > 0 {
                     VStack(spacing: 8) {
                         ProgressView(value: Double(duration - timeRemaining), total: Double(duration))
-                            .tint(PulseTheme.primary)
+                            .tint(PulseTheme.accent)
                             .padding(.horizontal)
                         
                         Text("Cerrando en \(timeRemaining) s")
@@ -2823,10 +2806,10 @@ struct WorkoutSummaryView: View {
                             Text("Compartir")
                         }
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.black)
+                        .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(PulseTheme.primaryBright)
+                        .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .buttonStyle(.plain)
@@ -2849,7 +2832,7 @@ struct WorkoutSummaryView: View {
                             Text(isImageSaved ? "Guardado" : "Guardar Foto")
                         }
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(Color.white.opacity(0.12))
@@ -2919,7 +2902,7 @@ private struct SetRow: View {
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(set.completed ? .black : PulseTheme.secondaryText)
                     .frame(width: 28, height: 28)
-                    .background(set.completed ? PulseTheme.primaryBright : PulseTheme.elevated)
+                    .background(set.completed ? PulseTheme.accent : PulseTheme.elevated)
                     .clipShape(Circle())
                     .scaleEffect(set.completed ? 1.08 : 1.0)
                     .animation(.spring(response: 0.25), value: set.completed)
@@ -2977,10 +2960,10 @@ private struct SetRow: View {
                         .font(.headline.weight(.bold))
                         .foregroundStyle(set.completed ? .black : PulseTheme.secondaryText)
                         .frame(width: 38, height: 38)
-                        .background(set.isPersonalRecord ? PulseTheme.accent : (set.completed ? PulseTheme.primaryBright : PulseTheme.elevated))
+                        .background(set.isPersonalRecord ? PulseTheme.accent : (set.completed ? PulseTheme.accent : PulseTheme.elevated))
                         .clipShape(Circle())
                         .scaleEffect(set.completed ? 1.12 : 1.0)
-                        .shadow(color: set.completed ? PulseTheme.primaryBright.opacity(0.45) : Color.clear, radius: 5, x: 0, y: 2)
+                        .shadow(color: set.completed ? PulseTheme.accent.opacity(0.28) : Color.clear, radius: 5, x: 0, y: 2)
                         .animation(.spring(response: 0.25), value: set.completed)
                 }
                 .accessibilityLabel(set.completed ? "Marcar serie \(set.setNumber) incompleta" : "Marcar serie \(set.setNumber) completa")
@@ -2988,10 +2971,10 @@ private struct SetRow: View {
             .padding(.horizontal, 6)
             .padding(.bottom, 8)
         }
-        .background(set.completed ? PulseTheme.primaryBright.opacity(0.15) : PulseTheme.grouped)
+        .background(set.completed ? PulseTheme.accent.opacity(0.10) : PulseTheme.grouped)
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(set.completed ? PulseTheme.primaryBright.opacity(0.45) : Color.white.opacity(0.04), lineWidth: 1.5)
+                .stroke(set.completed ? PulseTheme.accent.opacity(0.35) : Color.white.opacity(0.04), lineWidth: 1.5)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .animation(.easeInOut(duration: 0.18), value: set.completed)

@@ -27,6 +27,7 @@ struct AchievementsView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var selectedReceiptForPreview: SavedShareCard? = nil
+    @State private var localPaywall: PaywallPresentation?
     
     private var isSpanish: Bool {
         store.userProfile.preferredLanguage.hasPrefix("es")
@@ -91,7 +92,7 @@ struct AchievementsView: View {
                 descEN: "Log a cardiovascular session longer than 45 minutes or sync 3 cardio workouts.",
                 descES: "Registra una sesión cardiovascular de más de 45 min o sincroniza 3 entrenos de cardio.",
                 systemImage: "figure.run",
-                color: .cyan,
+                color: PulseTheme.primaryBright,
                 isCompleted: enduranceHero,
                 progressValue: Double(min(cardioCount, 3)),
                 progressTarget: 3.0
@@ -142,6 +143,13 @@ struct AchievementsView: View {
         .toolbar(.hidden, for: .navigationBar)
         .sheet(item: $selectedReceiptForPreview) { card in
             LocalReceiptPreviewSheet(card: card, isSpanish: isSpanish)
+        }
+        .fullScreenCover(item: $localPaywall) { presentation in
+            PaywallView(presentation: presentation) { reason in
+                store.trackPaywallDismissal(presentation, reason: reason)
+                localPaywall = nil
+            }
+            .environmentObject(store)
         }
     }
     
@@ -231,7 +239,7 @@ struct AchievementsView: View {
                     message: isSpanish ? "La galería de recibos y las tarjetas compartibles se desbloquean con Reps Pro." : "Receipt gallery and shareable cards unlock with Reps Pro.",
                     buttonTitle: isSpanish ? "Ver Reps Pro" : "See Reps Pro"
                 ) {
-                    store.presentPaywall(source: .receiptGallery, feature: .shareCards)
+                    localPaywall = store.makePaywallPresentation(source: .receiptGallery, feature: .shareCards)
                 }
             } else if store.savedShareCards.isEmpty {
                 PulseCard {
@@ -411,7 +419,7 @@ private struct LocalReceiptPreviewSheet: View {
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(.white)
+                        .background(PulseTheme.accent)
                         .clipShape(Capsule())
                         .padding(.horizontal, 24)
                     }

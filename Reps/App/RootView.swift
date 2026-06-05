@@ -27,7 +27,7 @@ struct RootView: View {
         } message: {
             Text("Hubo un problema al cargar tus datos guardados. La aplicación está en modo temporal y no guardará los datos permanentemente.")
         }
-        .sheet(item: $store.activePaywall) { presentation in
+        .fullScreenCover(item: $store.activePaywall) { presentation in
             PaywallView(presentation: presentation)
                 .environmentObject(store)
         }
@@ -74,16 +74,14 @@ struct MainTabView: View {
                         Color.black
                             .ignoresSafeArea()
                         
-                        // Soft Cyan ambient wash (top-left)
                         Circle()
-                            .fill(Color(red: 0.0, green: 0.92, blue: 1.0).opacity(0.08))
+                            .fill(PulseTheme.accent.opacity(0.07))
                             .frame(width: 320, height: 320)
                             .blur(radius: 80)
                             .offset(x: -160, y: -260)
                         
-                        // Soft Pink/Magenta ambient wash (top-right)
                         Circle()
-                            .fill(Color(red: 1.0, green: 0.05, blue: 0.72).opacity(0.08))
+                            .fill(PulseTheme.primaryBright.opacity(0.05))
                             .frame(width: 320, height: 320)
                             .blur(radius: 80)
                             .offset(x: 160, y: -220)
@@ -184,13 +182,14 @@ struct MainTabView: View {
     }
 
     private func select(_ tab: AppTab) {
-        withAnimation(.snappy(duration: 0.22)) {
+        withAnimation(.snappy(duration: 0.18)) {
             isQuickMenuExpanded = false
-            if tab == selectedTab {
-                reset(tab)
-            }
-            selectedTab = tab
         }
+
+        if tab == selectedTab {
+            reset(tab)
+        }
+        selectedTab = tab
     }
 
     private func open(_ action: QuickAction) {
@@ -252,7 +251,7 @@ enum AppTab: CaseIterable {
         switch self {
         case .today: "dumbbell"
         case .calendar: "calendar"
-        case .plans: "waterbottle"
+        case .plans: "rectangle.stack"
         case .progress: "chart.bar.fill"
         }
     }
@@ -261,7 +260,7 @@ enum AppTab: CaseIterable {
         switch self {
         case .today: "dumbbell.fill"
         case .calendar: "calendar"
-        case .plans: "waterbottle.fill"
+        case .plans: "rectangle.stack.fill"
         case .progress: "chart.bar.fill"
         }
     }
@@ -402,7 +401,6 @@ private struct FloatingTabBar: View {
         HStack(spacing: 0) {
             ForEach(Array(AppTab.allCases.enumerated()), id: \.element) { index, tab in
                 if index == 2 {
-                    // Quick Action button in the middle
                     Button {
                         HapticService.selection()
                         onQuickActionTap()
@@ -411,24 +409,33 @@ private struct FloatingTabBar: View {
                             Circle()
                                 .fill(
                                     LinearGradient(
-                                        colors: [PulseTheme.primary, PulseTheme.accent],
+                                        colors: [
+                                            PulseTheme.accent,
+                                            PulseTheme.primary
+                                        ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
                                 )
-                                .frame(width: 48, height: 48)
-                                .shadow(color: PulseTheme.primary.opacity(0.30), radius: 8, x: 0, y: 4)
+                                .frame(width: 58, height: 58)
+                                .overlay {
+                                    Circle()
+                                        .stroke(.white.opacity(0.26), lineWidth: 1.5)
+                                }
+                                .shadow(color: PulseTheme.accent.opacity(0.22), radius: 12, x: 0, y: 7)
 
                             Image(systemName: "plus")
-                                .font(.system(size: 22, weight: .bold))
+                                .font(.system(size: 25, weight: .heavy))
                                 .foregroundStyle(.white)
                                 .rotationEffect(.degrees(isQuickMenuExpanded ? 135 : 0))
                         }
                         .scaleEffect(isQuickMenuExpanded ? 1.12 : 1.0)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 52)
+                        .frame(height: 58)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .offset(y: -11)
                     .accessibilityLabel(isQuickMenuExpanded ? "Cerrar menú rápido" : "Abrir menú rápido")
                 }
                 
@@ -439,7 +446,7 @@ private struct FloatingTabBar: View {
                     VStack(spacing: 4) {
                         Image(systemName: selectedTab == tab ? tab.selectedSystemImage : tab.systemImage)
                             .font(.headline)
-                            .foregroundStyle(selectedTab == tab ? PulseTheme.primaryBright : PulseTheme.secondaryText)
+                            .foregroundStyle(selectedTab == tab ? PulseTheme.accent : PulseTheme.secondaryText)
                         Text(tab.title)
                             .font(.system(size: 10, weight: .bold))
                             .lineLimit(1)
@@ -447,11 +454,12 @@ private struct FloatingTabBar: View {
                             .foregroundStyle(selectedTab == tab ? .white : PulseTheme.secondaryText)
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52)
+                    .frame(height: 54)
+                    .contentShape(Rectangle())
                     .background {
                         if selectedTab == tab {
                             Capsule()
-                                .fill(PulseTheme.primary.opacity(0.18))
+                                .fill(PulseTheme.accentMuted)
                                 .matchedGeometryEffect(id: "activeTabPill", in: animationNamespace)
                                 .transition(.asymmetric(insertion: .identity, removal: .identity))
                         }
@@ -462,10 +470,13 @@ private struct FloatingTabBar: View {
             }
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
-        .clipShape(Capsule())
-        .overlay(Capsule().stroke(PulseTheme.separator, lineWidth: 1))
+        .padding(.vertical, 7)
+        .background {
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(Capsule().stroke(PulseTheme.separator, lineWidth: 1))
+        }
+        .contentShape(Capsule())
     }
 }
 

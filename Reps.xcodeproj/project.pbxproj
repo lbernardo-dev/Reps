@@ -50,12 +50,12 @@
 		714F5C6A78D94D47A0E8E19B /* TelemetryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 714F5C6978D94D47A0E8E19B /* TelemetryService.swift */; };
 		7A11B221B18A4A90A7B4B441 /* Monetization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11B220B18A4A90A7B4B441 /* Monetization.swift */; };
 		7A11B223B18A4A90A7B4B441 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11B222B18A4A90A7B4B441 /* PaywallView.swift */; };
+		7CA9A8DE2FCEF0930055D35F /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7CA9A8DD2FCEF0930055D35F /* GoogleService-Info.plist */; };
 		7CEDE3152FCEA0590059DB19 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 7CEDE3142FCEA0590059DB19 /* FirebaseAnalytics */; };
 		7CEDE3172FCEA0590059DB19 /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7CEDE3162FCEA0590059DB19 /* FirebaseAnalyticsCore */; };
 		7CEDE3192FCEA0590059DB19 /* FirebaseAnalyticsIdentitySupport in Frameworks */ = {isa = PBXBuildFile; productRef = 7CEDE3182FCEA0590059DB19 /* FirebaseAnalyticsIdentitySupport */; };
 		7CEDE31B2FCEA0590059DB19 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7CEDE31A2FCEA0590059DB19 /* FirebaseCore */; };
 		7CEDE31D2FCEA0590059DB19 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 7CEDE31C2FCEA0590059DB19 /* FirebaseCrashlytics */; };
-		7CEDE31F2FCEA1750059DB19 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7CEDE31E2FCEA1750059DB19 /* GoogleService-Info.plist */; };
 		87D69B64759C6D1C74B943F7 /* PlansView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95EF4F0FCD797CF0C3006FED /* PlansView.swift */; };
 		8B77A758E15EBD5CCD8D16E2 /* RepsWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFAF43FA22D0DA2672A1E51 /* RepsWidgetsBundle.swift */; };
 		8C747362B6CD2A8E0279E26D /* PlateCalculatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65B11B67EB0B13C847A1331 /* PlateCalculatorView.swift */; };
@@ -162,7 +162,7 @@
 		75F48E903FC027A25C691AD9 /* WorkoutReceiptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutReceiptView.swift; sourceTree = "<group>"; };
 		7A11B220B18A4A90A7B4B441 /* Monetization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Monetization.swift; sourceTree = "<group>"; };
 		7A11B222B18A4A90A7B4B441 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
-		7CEDE31E2FCEA1750059DB19 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		7CA9A8DD2FCEF0930055D35F /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		860264EAF0E928C5E69888F7 /* RepsWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = RepsWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		89F73E9CB8B46A571B9DEA48 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8AD60C6BDD44A63047D0E969 /* Reps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Reps.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -459,7 +459,7 @@
 		F3102035D775E5E118A819E8 /* Reps */ = {
 			isa = PBXGroup;
 			children = (
-				7CEDE31E2FCEA1750059DB19 /* GoogleService-Info.plist */,
+				7CA9A8DD2FCEF0930055D35F /* GoogleService-Info.plist */,
 				89F73E9CB8B46A571B9DEA48 /* Info.plist */,
 				CD3F5EEFFE4D007B55AEC149 /* Reps.entitlements */,
 				574AFA8697AAFF7D05D126D1 /* App */,
@@ -635,7 +635,7 @@
 			files = (
 				3CAE41B17E3ED1DB65A4C116 /* Assets.xcassets in Resources */,
 				3D10070D4B99F825EADAF29C /* Localizable.xcstrings in Resources */,
-				7CEDE31F2FCEA1750059DB19 /* GoogleService-Info.plist in Resources */,
+				7CA9A8DE2FCEF0930055D35F /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -791,7 +791,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerosoft.repsfitness.widgets;
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.widgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -818,7 +818,7 @@
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerosoft.repsfitness;
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -858,7 +858,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 100202606023;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -924,7 +924,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 100202606023;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -960,7 +960,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerosoft.repsfitness.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.watchkitapp;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -988,7 +988,7 @@
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerosoft.repsfitness;
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -1005,7 +1005,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerosoft.repsfitness.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reps.app/Reps";
@@ -1023,7 +1023,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerosoft.repsfitness.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.watchkitapp;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -1042,7 +1042,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerosoft.repsfitness.widgets;
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.widgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1060,7 +1060,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerosoft.repsfitness.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reps.app/Reps";

@@ -5,9 +5,9 @@ enum BatteryStyle: String, CaseIterable, Identifiable {
     case liquid = "liquid"
     case tech = "tech"
     case grid = "grid"
-    
+
     var id: String { self.rawValue }
-    
+
     func displayName(isSpanish: Bool) -> String {
         switch self {
         case .liquid:
@@ -18,7 +18,7 @@ enum BatteryStyle: String, CaseIterable, Identifiable {
             return isSpanish ? "Celda Sci-Fi" : "Sci-Fi Grid"
         }
     }
-    
+
     func systemImage() -> String {
         switch self {
         case .liquid:
@@ -34,18 +34,18 @@ enum BatteryStyle: String, CaseIterable, Identifiable {
 struct TrainingBatteryView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var selectedStyle: BatteryStyle = .liquid
     @State private var simulationDelta: Double = 0.0 // Interactive projection slider delta
-    
+
     private var isSpanish: Bool {
         store.userProfile.preferredLanguage.hasPrefix("es")
     }
-    
+
     private var batteryStatus: FitnessMetrics.TrainingBatteryStatus {
         store.trainingBattery
     }
-    
+
     private var batteryColor: Color {
         switch batteryStatus.state {
         case .charged:
@@ -58,12 +58,12 @@ struct TrainingBatteryView: View {
             return PulseTheme.destructive
         }
     }
-    
+
     // MARK: - Recomputed Internal Physiological Balance Factors
     private var latestMetric: BodyMetric? {
         store.bodyMetrics.sorted { $0.date > $1.date }.first
     }
-    
+
     private var restDays: Int {
         let calendar = Calendar.current
         let lastSession = store.workoutSessions.sorted { $0.date > $1.date }.first
@@ -73,25 +73,25 @@ struct TrainingBatteryView: View {
             return 2
         }
     }
-    
+
     private var sleepCredit: Double {
         latestMetric?.sleepHours.map { clamp(($0 - 6) * 4, lower: -8, upper: 8) } ?? 0
     }
-    
+
     private var hrvCredit: Double {
         store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.heartRateVariabilityMS.map { hrv in
             clamp((hrv - 45) / 8, lower: -5, upper: 6)
         } ?? 0
     }
-    
+
     private var fatigueCredit: Double {
         latestMetric?.fatigue.map { clamp(Double(3 - $0) * 3, lower: -8, upper: 6) } ?? 0
     }
-    
+
     private var restDaysCredit: Double {
         Double(restDays) * 11.0
     }
-    
+
     private var decayedFatigue: Double {
         let calendar = Calendar.current
         let now = Date.now
@@ -102,7 +102,7 @@ struct TrainingBatteryView: View {
             return total + FitnessMetrics.sessionBatteryCost(session) * decay
         }
     }
-    
+
     private var planPressure: Double {
         let calendar = Calendar.current
         let now = Date.now
@@ -118,7 +118,7 @@ struct TrainingBatteryView: View {
         let frequencyPressure = max(Double(store.activePlan.daysPerWeek - 3), 0) * 1.8
         return clamp((averageCost / 10) + frequencyPressure, lower: 0, upper: 16)
     }
-    
+
     private var wellnessPenalty: Double {
         let fatigue = Double(max((latestMetric?.fatigue ?? 3) - 3, 0)) * 5
         let stress = Double(max((latestMetric?.stress ?? 3) - 3, 0)) * 4
@@ -127,15 +127,15 @@ struct TrainingBatteryView: View {
         let activityPenalty = activeEnergy > 900 ? 5.0 : 0.0
         return fatigue + stress + sleep + activityPenalty
     }
-    
+
     private var totalRecovery: Double {
         restDaysCredit + max(0, sleepCredit) + max(0, hrvCredit) + max(0, fatigueCredit)
     }
-    
+
     private var totalFatigue: Double {
         decayedFatigue + planPressure + wellnessPenalty + max(0, -sleepCredit) + max(0, -hrvCredit) + max(0, -fatigueCredit)
     }
-    
+
     // MARK: - Upcoming Workout Projection
     private var nextWorkout: WorkoutDay? {
         let calendar = Calendar.current
@@ -148,20 +148,20 @@ struct TrainingBatteryView: View {
         }
         return store.todaysWorkout
     }
-    
+
     private var estimatedWorkoutCost: Double {
         if let nextWorkout {
             return FitnessMetrics.workoutBatteryCost(nextWorkout)
         }
         return 15.0
     }
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Header navigation bar replacement
                 customNavBar
-                
+
                 // Central showcase hero view
                 ZStack {
                     RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
@@ -171,7 +171,7 @@ struct TrainingBatteryView: View {
                                 .stroke(PulseTheme.separator, lineWidth: 1)
                         )
                         .shadow(color: .black.opacity(0.12), radius: 15, y: 8)
-                    
+
                     VStack(spacing: 20) {
                         // Title of current state
                         VStack(spacing: 4) {
@@ -179,19 +179,19 @@ struct TrainingBatteryView: View {
                                 .font(.system(size: 10, weight: .black, design: .rounded))
                                 .tracking(2.0)
                                 .foregroundStyle(PulseTheme.secondaryText)
-                            
+
                             Text(batteryStatus.title)
                                 .font(.system(size: 22, weight: .bold, design: .rounded))
                                 .foregroundStyle(batteryColor)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 16)
                         }
-                        
+
                         // Dynamic Hero Gauge
                         heroGauge
                             .frame(height: 220)
                             .padding(.vertical, 8)
-                        
+
                         // Coach instant suggestion
                         Text(batteryStatus.suggestion)
                             .font(.subheadline)
@@ -204,19 +204,19 @@ struct TrainingBatteryView: View {
                     .padding(.vertical, 24)
                 }
                 .frame(height: 380)
-                
+
                 // Style Selector Carousel
                 styleSelector
-                
+
                 // Biological Balance Panel (Fatigue vs Recovery)
                 physiologicalBalanceSheet
-                
+
                 // Detailed Health factors grid
                 detailedFactorsGrid
-                
+
                 // Upcoming Workout Projection Simulator
                 workoutProjectionSimulator
-                
+
                 Spacer(minLength: 40)
             }
             .padding(.horizontal, 20)
@@ -225,7 +225,7 @@ struct TrainingBatteryView: View {
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
     }
-    
+
     // MARK: - Navigation Bar
     private var customNavBar: some View {
         HStack {
@@ -242,14 +242,14 @@ struct TrainingBatteryView: View {
                 .foregroundStyle(PulseTheme.primary)
             }
             .buttonStyle(.plain)
-            
+
             Spacer()
-            
+
             Text(isSpanish ? "Batería de Entreno" : "Training Battery")
                 .font(.system(size: 19, weight: .bold, design: .rounded))
-            
+
             Spacer()
-            
+
             // Empty placeholder for symmetry
             Image(systemName: "chevron.left")
                 .font(.system(size: 18, weight: .bold))
@@ -257,7 +257,7 @@ struct TrainingBatteryView: View {
         }
         .padding(.vertical, 14)
     }
-    
+
     // MARK: - Hero Gauge Switcher
     @ViewBuilder
     private var heroGauge: some View {
@@ -273,7 +273,7 @@ struct TrainingBatteryView: View {
                 .transition(.scale.combined(with: .opacity))
         }
     }
-    
+
     // MARK: - Style Selector Component
     private var styleSelector: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -281,7 +281,7 @@ struct TrainingBatteryView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
-            
+
             HStack(spacing: 12) {
                 ForEach(BatteryStyle.allCases) { style in
                     let isSelected = selectedStyle == style
@@ -295,27 +295,27 @@ struct TrainingBatteryView: View {
                             Image(systemName: style.systemImage())
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundStyle(isSelected ? .black : PulseTheme.primary)
-                            
+
                             Text(style.displayName(isSpanish: isSpanish))
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(isSelected ? .black : .primary)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(isSelected ? Color.white : PulseTheme.card)
+                        .background(isSelected ? PulseTheme.accent : PulseTheme.card)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(isSelected ? PulseTheme.primary : PulseTheme.separator, lineWidth: 1.5)
+                                .stroke(isSelected ? PulseTheme.accent : PulseTheme.separator, lineWidth: 1.5)
                         )
-                        .shadow(color: isSelected ? PulseTheme.primary.opacity(0.15) : .clear, radius: 8, y: 4)
+                        .shadow(color: isSelected ? PulseTheme.accent.opacity(0.18) : .clear, radius: 8, y: 4)
                     }
                     .buttonStyle(.plain)
                 }
             }
         }
     }
-    
+
     // MARK: - Physiological Balance Sheet
     private var physiologicalBalanceSheet: some View {
         PulseCard {
@@ -323,12 +323,12 @@ struct TrainingBatteryView: View {
                 Text(isSpanish ? "Balanza de Rendimiento Fisiológico" : "Physiological Performance Balance")
                     .font(.headline)
                     .foregroundStyle(.primary)
-                
+
                 Text(isSpanish ? "Tu batería refleja el balance neto entre recuperación y estrés celular acumulado." : "Your battery reflects the net balance between recovery and accumulated cellular stress.")
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .padding(.bottom, 4)
-                
+
                 // Visual horizontal scale
                 VStack(spacing: 12) {
                     HStack {
@@ -340,7 +340,7 @@ struct TrainingBatteryView: View {
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.destructive)
                     }
-                    
+
                     // Balance indicator bar
                     GeometryReader { geo in
                         let total = max(totalRecovery + totalFatigue, 1.0)
@@ -355,7 +355,7 @@ struct TrainingBatteryView: View {
                     }
                     .frame(height: 10)
                     .clipShape(Capsule())
-                    
+
                     HStack {
                         Text(String(format: "+%.0f pts", totalRecovery))
                             .font(.subheadline.bold())
@@ -369,7 +369,7 @@ struct TrainingBatteryView: View {
                 .padding(14)
                 .background(PulseTheme.grouped)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                
+
                 // Detailed breakdown lists stacked vertically
                 VStack(spacing: 20) {
                     // Recovery metrics (+)
@@ -379,15 +379,15 @@ struct TrainingBatteryView: View {
                             .tracking(1.5)
                             .foregroundStyle(PulseTheme.primaryBright)
                             .padding(.bottom, 2)
-                        
+
                         BalanceRow(label: isSpanish ? "Días de descanso" : "Rest days", value: String(format: "+%.0f", restDaysCredit), icon: "calendar.badge.clock", color: PulseTheme.primaryBright)
                         BalanceRow(label: isSpanish ? "Horas de sueño" : "Hours of sleep", value: String(format: "+%.0f", max(0, sleepCredit)), icon: "bed.double.fill", color: PulseTheme.primaryBright, active: sleepCredit > 0)
                         BalanceRow(label: isSpanish ? "Recuperación HRV" : "HRV recovery", value: String(format: "+%.0f", max(0, hrvCredit)), icon: "waveform.path.ecg", color: PulseTheme.primaryBright, active: hrvCredit > 0)
                         BalanceRow(label: isSpanish ? "Energía / Estrés percibido" : "Perceived energy / stress", value: String(format: "+%.0f", max(0, fatigueCredit)), icon: "face.smiling", color: PulseTheme.primaryBright, active: fatigueCredit > 0)
                     }
-                    
+
                     Divider()
-                    
+
                     // Fatigue metrics (-)
                     VStack(alignment: .leading, spacing: 12) {
                         Text(isSpanish ? "CARGAS DE ESTRÉS (-)" : "STRESS LOADS (-)")
@@ -395,11 +395,11 @@ struct TrainingBatteryView: View {
                             .tracking(1.5)
                             .foregroundStyle(PulseTheme.destructive)
                             .padding(.bottom, 2)
-                        
+
                         BalanceRow(label: isSpanish ? "Fatiga acumulada" : "Decayed fatigue", value: String(format: "-%.0f", decayedFatigue), icon: "clock.arrow.circlepath", color: PulseTheme.destructive)
                         BalanceRow(label: isSpanish ? "Presión del plan activo" : "Active plan pressure", value: String(format: "-%.0f", planPressure), icon: "crown.fill", color: PulseTheme.destructive)
                         BalanceRow(label: isSpanish ? "Estrés corporal y wellness" : "Body stress & wellness", value: String(format: "-%.0f", wellnessPenalty), icon: "exclamationmark.triangle.fill", color: PulseTheme.destructive)
-                        
+
                         // Penalties as positive fatigue values
                         if sleepCredit < 0 {
                             BalanceRow(label: isSpanish ? "Penalización por Sueño" : "Sleep penalty", value: String(format: "-%.0f", -sleepCredit), icon: "moon.fill", color: PulseTheme.destructive)
@@ -413,7 +413,7 @@ struct TrainingBatteryView: View {
             }
         }
     }
-    
+
     // MARK: - Detailed Factors Grid
     private var detailedFactorsGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -421,7 +421,7 @@ struct TrainingBatteryView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
-            
+
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 // Today's session load
                 MiniMetricTile(
@@ -431,7 +431,7 @@ struct TrainingBatteryView: View {
                     systemImage: "calendar.badge.clock",
                     color: PulseTheme.primary
                 )
-                
+
                 // Weekly aggregate load
                 MiniMetricTile(
                     title: isSpanish ? "Carga Semanal" : "Weekly Load",
@@ -440,7 +440,7 @@ struct TrainingBatteryView: View {
                     systemImage: "waveform.path.ecg",
                     color: PulseTheme.primaryBright
                 )
-                
+
                 // Rest days since last workout
                 MiniMetricTile(
                     title: isSpanish ? "Descanso Real" : "Real Rest",
@@ -449,7 +449,7 @@ struct TrainingBatteryView: View {
                     systemImage: "bed.double.fill",
                     color: PulseTheme.accent
                 )
-                
+
                 // Heart Rate Variability (HRV) if synced
                 let latestHRV = store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.heartRateVariabilityMS
                 MiniMetricTile(
@@ -457,12 +457,12 @@ struct TrainingBatteryView: View {
                     value: latestHRV != nil ? "\(Int(latestHRV!)) ms" : "--",
                     subtitle: isSpanish ? "salud del sist. autónomo" : "autonomic system state",
                     systemImage: "waveform.path.ecg.rectangle.fill",
-                    color: .cyan
+                    color: PulseTheme.primaryBright
                 )
             }
         }
     }
-    
+
     // MARK: - Upcoming Workout Projection Simulator
     private var workoutProjectionSimulator: some View {
         PulseCard {
@@ -474,19 +474,19 @@ struct TrainingBatteryView: View {
                     Text(isSpanish ? "Simulador de Impacto de Sesión" : "Session Impact Simulator")
                         .font(.headline)
                 }
-                
+
                 if let nextWorkout {
                     let cost = estimatedWorkoutCost
                     let originalLevel = batteryStatus.level
                     let currentSimLevel = max(5, Int(Double(originalLevel) - cost + simulationDelta))
-                    
+
                     VStack(alignment: .leading, spacing: 14) {
-                        Text(isSpanish 
+                        Text(isSpanish
                              ? "Calcula cómo afectará tu próximo entrenamiento agendado a tu batería de energía:"
                              : "Calculate how your next scheduled workout will impact your training battery:")
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
-                        
+
                         // Workout metadata display
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
@@ -497,7 +497,7 @@ struct TrainingBatteryView: View {
                                     .foregroundStyle(PulseTheme.secondaryText)
                             }
                             Spacer()
-                            
+
                             Text(String(format: "-%.0f%%", cost))
                                 .font(.title3.bold())
                                 .foregroundStyle(PulseTheme.destructive)
@@ -509,7 +509,7 @@ struct TrainingBatteryView: View {
                         .padding(12)
                         .background(PulseTheme.grouped)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        
+
                         // Level impact slider
                         VStack(spacing: 8) {
                             HStack {
@@ -520,7 +520,7 @@ struct TrainingBatteryView: View {
                                     .font(.caption.weight(.bold))
                                     .foregroundStyle(projectedColor(for: currentSimLevel))
                             }
-                            
+
                             // Visual bar
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
@@ -532,13 +532,13 @@ struct TrainingBatteryView: View {
                             .frame(height: 8)
                         }
                         .padding(.vertical, 4)
-                        
+
                         // Dynamic advice
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "info.circle.fill")
                                 .foregroundStyle(projectedColor(for: currentSimLevel))
                                 .font(.subheadline)
-                            
+
                             Text(projectedCoachingAdvice(for: currentSimLevel))
                                 .font(.caption)
                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -557,12 +557,12 @@ struct TrainingBatteryView: View {
             }
         }
     }
-    
+
     // MARK: - Helpers
     private func clamp(_ value: Double, lower: Double, upper: Double) -> Double {
         min(max(value, lower), upper)
     }
-    
+
     private func projectedColor(for level: Int) -> Color {
         switch level {
         case 0..<30:
@@ -575,7 +575,7 @@ struct TrainingBatteryView: View {
             return PulseTheme.primaryBright
         }
     }
-    
+
     private func projectedCoachingAdvice(for level: Int) -> String {
         if isSpanish {
             switch level {
@@ -610,7 +610,7 @@ private struct BalanceRow: View {
     let icon: String
     let color: Color
     var active: Bool = true
-    
+
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
@@ -621,14 +621,14 @@ private struct BalanceRow: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(active ? color : PulseTheme.secondaryText.opacity(0.6))
             }
-            
+
             Text(label)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(active ? .primary : PulseTheme.secondaryText.opacity(0.8))
                 .lineLimit(1)
-            
+
             Spacer(minLength: 8)
-            
+
             Text(value)
                 .font(.system(.subheadline, design: .rounded).bold())
                 .foregroundStyle(active ? color : PulseTheme.secondaryText.opacity(0.6))
@@ -644,7 +644,7 @@ private struct MiniMetricTile: View {
     let subtitle: String
     let systemImage: String
     let color: Color
-    
+
     var body: some View {
         PulseCard(minHeight: 110, contentPadding: 12) {
             VStack(alignment: .leading, spacing: 4) {
@@ -657,20 +657,20 @@ private struct MiniMetricTile: View {
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(color)
                     }
-                    
+
                     Text(title)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
                 }
-                
+
                 Spacer(minLength: 0)
-                
+
                 Text(value)
                     .font(.system(size: 23, weight: .bold, design: .rounded))
                     .foregroundStyle(color)
                     .lineLimit(1)
-                
+
                 Text(subtitle)
                     .font(.system(size: 9))
                     .foregroundStyle(PulseTheme.secondaryText)
@@ -684,76 +684,34 @@ private struct MiniMetricTile: View {
 struct LiquidCapsuleGauge: View {
     let level: Int
     let color: Color
-    
+
+    private let capsuleWidth: CGFloat = 100
+    private let capsuleHeight: CGFloat = 180
+    private let innerCapsuleWidth: CGFloat = 88
+    private let innerCapsuleHeight: CGFloat = 168
+
     var body: some View {
         TimelineView(.animation) { timeline in
             let date = timeline.date
             let time = date.timeIntervalSince1970
-            
+
             ZStack {
                 // Battery Frame Outline
                 Capsule()
                     .stroke(PulseTheme.separator, lineWidth: 6)
                     .background(Capsule().fill(.black.opacity(0.35)))
-                    .frame(width: 100, height: 180)
+                    .frame(width: capsuleWidth, height: capsuleHeight)
                     .shadow(color: color.opacity(0.18), radius: 10)
-                
+
                 // Metallic Pin on top
                 RoundedRectangle(cornerRadius: 3)
                     .fill(PulseTheme.grouped)
                     .frame(width: 32, height: 10)
                     .offset(y: -95)
-                
-                // Internal sloshing liquid fill
-                Capsule()
-                    .fill(.clear)
-                    .frame(width: 88, height: 168)
-                    .clipShape(Capsule())
-                    .overlay(alignment: .bottom) {
-                        let fillHeight = 168.0 * (CGFloat(level) / 100.0)
-                        
-                        LiquidWaveShape(phase: time * 3.5, level: CGFloat(level) / 100.0)
-                            .fill(
-                                LinearGradient(
-                                    colors: [color, color.opacity(0.72), color.opacity(0.92)],
-                                    startPoint: .bottom,
-                                    endPoint: .top
-                                )
-                            )
-                            .frame(height: max(16, fillHeight + 10)) // Extra buffer for wave peaks
-                            .shadow(color: color.opacity(0.45), radius: 12)
-                    }
-                
-                // Float energy bubbles
-                Capsule()
-                    .fill(.clear)
-                    .frame(width: 88, height: 168)
-                    .clipShape(Capsule())
-                    .overlay {
-                        let fillHeight = 168.0 * (CGFloat(level) / 100.0)
-                        
-                        GeometryReader { proxy in
-                            ZStack {
-                                ForEach(0..<5) { index in
-                                    let xOffset = sin(time + Double(index) * 1.5) * 22
-                                    // Make bubble float upwards and cycle
-                                    let yCycle = CGFloat((Int(time * 30.0) + index * 35) % 150)
-                                    let isInsideLiquid = yCycle < fillHeight
-                                    
-                                    if isInsideLiquid {
-                                        Circle()
-                                            .fill(Color.white.opacity(0.38))
-                                            .frame(width: CGFloat(4 + (index % 3)), height: CGFloat(4 + (index % 3)))
-                                            .position(
-                                                x: proxy.size.width / 2 + CGFloat(xOffset),
-                                                y: proxy.size.height - yCycle
-                                            )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                
+
+                // Internal sloshing liquid and bubbles share the same clipped capsule bounds.
+                innerLiquidCapsule(time: time)
+
                 // Glass shine / overlay
                 Capsule()
                     .fill(
@@ -778,14 +736,14 @@ struct LiquidCapsuleGauge: View {
                             )
                             .padding(2)
                     }
-                
+
                 // Central bold level readout
                 VStack(spacing: -2) {
                     Text("\(level)")
                         .font(.system(size: 32, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.55), radius: 6)
-                    
+
                     Text("%")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.85))
@@ -794,29 +752,69 @@ struct LiquidCapsuleGauge: View {
             }
         }
     }
+
+    private func innerLiquidCapsule(time: TimeInterval) -> some View {
+        let normalizedLevel = CGFloat(level) / 100.0
+        let fillHeight = innerCapsuleHeight * normalizedLevel
+
+        return ZStack(alignment: .bottom) {
+            LiquidWaveShape(phase: time * 3.5, level: normalizedLevel)
+                .fill(
+                    LinearGradient(
+                        colors: [color, color.opacity(0.72), color.opacity(0.92)],
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                )
+                .frame(width: innerCapsuleWidth, height: max(16, fillHeight + 10))
+                .shadow(color: color.opacity(0.45), radius: 12)
+
+            GeometryReader { proxy in
+                ZStack {
+                    ForEach(0..<5) { index in
+                        let xOffset = sin(time + Double(index) * 1.5) * 22
+                        let yCycle = CGFloat((Int(time * 30.0) + index * 35) % 150)
+                        let isInsideLiquid = yCycle < fillHeight
+
+                        if isInsideLiquid {
+                            Circle()
+                                .fill(Color.white.opacity(0.38))
+                                .frame(width: CGFloat(4 + (index % 3)), height: CGFloat(4 + (index % 3)))
+                                .position(
+                                    x: proxy.size.width / 2 + CGFloat(xOffset),
+                                    y: proxy.size.height - yCycle
+                                )
+                        }
+                    }
+                }
+            }
+        }
+        .frame(width: innerCapsuleWidth, height: innerCapsuleHeight)
+        .clipShape(Capsule())
+    }
 }
 
 // Wave shape for simulation
 struct LiquidWaveShape: Shape {
     var phase: Double
     var level: CGFloat
-    
+
     var animatableData: Double {
         get { phase }
         set { phase = newValue }
     }
-    
+
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let width = rect.size.width
         let height = rect.size.height
-        
+
         let baseline = height * (1.0 - level)
         let waveHeight: CGFloat = level > 0.95 || level < 0.05 ? 0.0 : 6.0
-        
+
         path.move(to: CGPoint(x: 0, y: height))
         path.addLine(to: CGPoint(x: 0, y: baseline))
-        
+
         // Draw a double sine wave curve
         for x in stride(from: 0, to: width + 1, by: 2) {
             let relativeX = x / width
@@ -824,7 +822,7 @@ struct LiquidWaveShape: Shape {
             let y = baseline + sine * waveHeight
             path.addLine(to: CGPoint(x: x, y: y))
         }
-        
+
         path.addLine(to: CGPoint(x: width, y: height))
         path.closeSubpath()
         return path
@@ -837,18 +835,18 @@ struct CircularTechGauge: View {
     let color: Color
     let isSpanish: Bool
     let stateText: String
-    
+
     var body: some View {
         ZStack {
             // Dashboard ticks and background track
             Circle()
                 .stroke(PulseTheme.separator, lineWidth: 2)
                 .frame(width: 190, height: 190)
-                
+
             Circle()
                 .stroke(PulseTheme.separator.opacity(0.4), style: StrokeStyle(lineWidth: 12, lineCap: .butt, dash: [2, 5]))
                 .frame(width: 172, height: 172)
-            
+
             // Neon glowing charging arc
             Circle()
                 .trim(from: 0, to: CGFloat(level) / 100.0)
@@ -864,19 +862,19 @@ struct CircularTechGauge: View {
                 .rotationEffect(.degrees(-90))
                 .frame(width: 172, height: 172)
                 .shadow(color: color.opacity(0.55), radius: 10)
-            
+
             // Ticks overlay for cyber look
             Circle()
                 .stroke(Color.black.opacity(0.22), style: StrokeStyle(lineWidth: 14, lineCap: .butt, dash: [1.5, 4]))
                 .frame(width: 172, height: 172)
-            
+
             // Central information hub
             VStack(spacing: 2) {
                 Text(isSpanish ? "NIVEL" : "LEVEL")
                     .font(.system(size: 9, weight: .black, design: .rounded))
                     .tracking(1.5)
                     .foregroundStyle(PulseTheme.secondaryText)
-                
+
                 HStack(alignment: .firstTextBaseline, spacing: 1) {
                     Text("\(level)")
                         .font(.system(size: 46, weight: .bold, design: .rounded).monospacedDigit())
@@ -885,7 +883,7 @@ struct CircularTechGauge: View {
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
-                
+
                 Text(stateText)
                     .font(.system(size: 9, weight: .black, design: .rounded))
                     .foregroundStyle(color)
@@ -902,7 +900,7 @@ struct CircularTechGauge: View {
 struct VerticalSegmentedPowerCell: View {
     let level: Int
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 6) {
             // Metallic top terminal
@@ -911,16 +909,16 @@ struct VerticalSegmentedPowerCell: View {
                 .frame(width: 44, height: 12)
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(PulseTheme.separator, lineWidth: 1))
                 .shadow(color: .black.opacity(0.1), radius: 2)
-            
+
             // Outer casing
             VStack(spacing: 5) {
                 let segments = 10
                 let activeSegments = Int(Double(level) / 10.0)
-                
+
                 ForEach((0..<segments).reversed(), id: \.self) { index in
                     let isActive = index < activeSegments
                     let isPulsing = index == activeSegments && (level % 10 > 0)
-                    
+
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(isActive ? color : (isPulsing ? color.opacity(0.65) : color.opacity(0.12)))
                         .frame(width: 80, height: 14)

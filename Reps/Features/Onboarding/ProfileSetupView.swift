@@ -130,7 +130,7 @@ struct ProfileSetupView: View {
             }
 
             ProgressView(value: Double(stepIndex + 1), total: Double(steps.count))
-                .tint(step == .paywall ? PulseTheme.accent : PulseTheme.primary)
+                .tint(PulseTheme.accent)
         }
         .padding(.horizontal, 20)
         .padding(.top, 10)
@@ -225,11 +225,11 @@ struct ProfileSetupView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
                         .foregroundStyle(.primary)
-                        .background(selectedSex == sex ? PulseTheme.elevated : PulseTheme.card)
+                                .background(selectedSex == sex ? PulseTheme.accentMuted : PulseTheme.card)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                                .stroke(selectedSex == sex ? PulseTheme.primaryBright : PulseTheme.separator, lineWidth: 1.2)
+                                .stroke(selectedSex == sex ? PulseTheme.accent : PulseTheme.separator, lineWidth: 1.2)
                         )
                     }
                     .buttonStyle(.plain)
@@ -241,18 +241,46 @@ struct ProfileSetupView: View {
     private var metricsStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "Tus métricas base",
-                subtitle: "Se usan para estimar cargas iniciales, volumen tolerable y pronosticos."
+                title: "Ajusta tu punto de partida",
+                subtitle: "Usaremos estos datos para estimar cargas iniciales, volumen tolerable y progresión."
             )
 
-            PulseCard {
-                VStack(spacing: 20) {
-                    MetricStepper(title: "Edad", value: $age, range: 14...85, unit: "años")
-                    Divider()
-                    DoubleMetricStepper(title: "Altura", value: $heightCm, range: 130...220, step: 1, unit: "cm")
-                    Divider()
-                    DoubleMetricStepper(title: "Peso", value: $weightKg, range: 35...180, step: 0.5, unit: "kg")
-                }
+            VStack(spacing: 14) {
+                OnboardingRulerMetric(
+                    title: "Edad",
+                    valueText: "\(age)",
+                    unit: "años",
+                    caption: "Experiencia, recuperación y volumen inicial.",
+                    icon: "calendar",
+                    value: Binding(
+                        get: { Double(age) },
+                        set: { age = Int($0.rounded()) }
+                    ),
+                    range: 14...85,
+                    step: 1
+                )
+
+                OnboardingRulerMetric(
+                    title: "Altura",
+                    valueText: String(format: "%.0f", heightCm),
+                    unit: "cm",
+                    caption: "Ayuda a contextualizar peso y composición.",
+                    icon: "ruler",
+                    value: $heightCm,
+                    range: 130...220,
+                    step: 1
+                )
+
+                OnboardingRulerMetric(
+                    title: "Peso",
+                    valueText: String(format: "%.1f", weightKg),
+                    unit: "kg",
+                    caption: "Base para tu objetivo y estimaciones de progreso.",
+                    icon: "scalemass.fill",
+                    value: $weightKg,
+                    range: 35...180,
+                    step: 0.5
+                )
             }
 
             metricsRecommendationView
@@ -330,7 +358,7 @@ struct ProfileSetupView: View {
                         .foregroundStyle(.black)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(.white)
+                        .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
                 .padding(.top, 4)
@@ -378,7 +406,7 @@ struct ProfileSetupView: View {
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 48)
                                     .foregroundStyle(profile.weeklyTrainingDays == day ? .black : PulseTheme.secondaryText)
-                                    .background(profile.weeklyTrainingDays == day ? .white : PulseTheme.grouped)
+                                    .background(profile.weeklyTrainingDays == day ? PulseTheme.accent : PulseTheme.grouped)
                                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                             }
                             .buttonStyle(.plain)
@@ -397,7 +425,7 @@ struct ProfileSetupView: View {
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 46)
                                     .foregroundStyle(sessionLengthMinutes == minutes ? .black : PulseTheme.secondaryText)
-                                    .background(sessionLengthMinutes == minutes ? .white : PulseTheme.grouped)
+                                    .background(sessionLengthMinutes == minutes ? PulseTheme.accent : PulseTheme.grouped)
                                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                             }
                             .buttonStyle(.plain)
@@ -733,7 +761,7 @@ struct ProfileSetupView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 34)
                         .foregroundStyle(areAllMusclesSelected ? .black : PulseTheme.secondaryText)
-                        .background(areAllMusclesSelected ? PulseTheme.primaryBright : PulseTheme.grouped)
+                        .background(areAllMusclesSelected ? PulseTheme.accent : PulseTheme.grouped)
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -747,7 +775,7 @@ struct ProfileSetupView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 34)
                             .foregroundStyle(focusMuscles.contains(option.key) ? .black : PulseTheme.secondaryText)
-                            .background(focusMuscles.contains(option.key) ? PulseTheme.primaryBright : PulseTheme.grouped)
+                            .background(focusMuscles.contains(option.key) ? PulseTheme.accent : PulseTheme.grouped)
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -1030,7 +1058,7 @@ struct ProfileSetupView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 8)
                                 .foregroundStyle(selectedConsistencyIndex == index ? .black : PulseTheme.secondaryText)
-                                .background(selectedConsistencyIndex == index ? .white : PulseTheme.grouped)
+                                .background(selectedConsistencyIndex == index ? PulseTheme.accent : PulseTheme.grouped)
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
@@ -1085,43 +1113,26 @@ struct ProfileSetupView: View {
 
     private var paywallStep: some View {
         VStack(alignment: .leading, spacing: 22) {
-            Text("Reps Pro")
-                .font(.system(size: 46, weight: .bold, design: .rounded))
-            Text("Mantén el plan adaptándote a tu progreso real.")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(PulseTheme.secondaryText)
+            OnboardingTitle(
+                title: "Tu plan ya está listo",
+                subtitle: "Activa Reps Pro para mantenerlo adaptándose a tu progreso real desde la primera semana."
+            )
 
             PulseCard {
-                VStack(spacing: 18) {
-                    PaywallBenefit(icon: "sparkles", title: "Ajustes inteligentes por IA", subtitle: "Analiza tu fatiga y adapta series, repeticiones y cargas sesión a sesión automáticamente.")
-                    Divider()
-                    PaywallBenefit(icon: "figure.strengthtraining.traditional", title: "Mapa muscular y fatiga 3D", subtitle: "Visualiza desequilibrios musculares y fatiga acumulada en tiempo real por zona.")
-                    Divider()
-                    PaywallBenefit(icon: "chart.line.uptrend.xyaxis", title: "Estimaciones de fuerza (1RM)", subtitle: "Calcula tu progresión y fuerza estimada sin necesidad de llegar al fallo.")
-                    Divider()
-                    PaywallBenefit(icon: "music.note.list", title: "Música integrada (Spotify y Apple Music)", subtitle: "Controla tus playlists favoritas directamente desde la vista de entrenamiento.")
-                    Divider()
-                    PaywallBenefit(icon: "doc.text.magnifyingglass", title: "Historial ilimitado y exportación", subtitle: "Acceso completo a métricas históricas, exportación a CSV y análisis detallados.")
+                VStack(alignment: .leading, spacing: 18) {
+                    TrialTimelineItem(icon: "checkmark", title: "Hoy", subtitle: "Desbloqueas tu plan, analítica avanzada y progresión automática.")
+                    TrialTimelineItem(icon: "bell.fill", title: "Día 5", subtitle: "Te recordaremos que la prueba termina en 2 días.")
+                    TrialTimelineItem(icon: "chart.line.uptrend.xyaxis", title: "Semana 2", subtitle: "Ya tendrás datos reales para ajustar volumen, fatiga y evolución.")
                 }
             }
 
             PulseCard {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Pro anual")
-                            .font(.headline)
-                        Text("7 dias gratis, cancela cuando quieras")
-                            .font(.subheadline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    Spacer()
-                    Text("Mejor opcion")
-                        .font(.caption.weight(.bold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .foregroundStyle(.black)
-                        .background(PulseTheme.accent)
-                        .clipShape(Capsule())
+                VStack(spacing: 18) {
+                    PaywallBenefit(icon: "sparkles", title: "Ajustes inteligentes", subtitle: "Series, repeticiones y cargas se ajustan según tu fatiga y progreso.")
+                    Divider()
+                    PaywallBenefit(icon: "figure.strengthtraining.traditional", title: "Mapa muscular vivo", subtitle: "Visualiza desequilibrios, foco y fatiga acumulada por zona.")
+                    Divider()
+                    PaywallBenefit(icon: "chart.line.uptrend.xyaxis", title: "Progreso accionable", subtitle: "Historial, 1RM estimado, exportación y tarjetas para compartir.")
                 }
             }
         }
@@ -1156,15 +1167,15 @@ struct ProfileSetupView: View {
                             Spacer()
                             Image(systemName: selection.wrappedValue == option ? "checkmark.circle.fill" : "circle")
                                 .font(.title3)
-                                .foregroundStyle(selection.wrappedValue == option ? PulseTheme.primaryBright : PulseTheme.secondaryText.opacity(0.5))
+                                .foregroundStyle(selection.wrappedValue == option ? PulseTheme.accent : PulseTheme.secondaryText.opacity(0.5))
                         }
                         .padding(14)
                         .foregroundStyle(.primary)
-                        .background(selection.wrappedValue == option ? PulseTheme.elevated : PulseTheme.card)
+                        .background(selection.wrappedValue == option ? PulseTheme.accentMuted : PulseTheme.card)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                                .stroke(selection.wrappedValue == option ? PulseTheme.primary : PulseTheme.separator, lineWidth: 1)
+                                .stroke(selection.wrappedValue == option ? PulseTheme.accent : PulseTheme.separator, lineWidth: 1)
                         )
                     }
                     .buttonStyle(.plain)
@@ -1198,7 +1209,7 @@ struct ProfileSetupView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
                             .foregroundStyle(.black)
-                            .background(.white)
+                            .background(PulseTheme.accent)
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -1228,7 +1239,7 @@ struct ProfileSetupView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
                             .foregroundStyle(.black)
-                            .background(.white)
+                            .background(PulseTheme.accent)
                             .clipShape(Capsule())
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
@@ -1245,7 +1256,7 @@ struct ProfileSetupView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
                             .foregroundStyle(.black)
-                            .background(canMoveForward ? .white : PulseTheme.elevated)
+                            .background(canMoveForward ? PulseTheme.accent : PulseTheme.elevated)
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -1691,6 +1702,98 @@ private struct OnboardingSignal: View {
     }
 }
 
+private struct OnboardingRulerMetric: View {
+    let title: String
+    let valueText: String
+    let unit: String
+    let caption: String
+    let icon: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let step: Double
+
+    private var progress: Double {
+        (value - range.lowerBound) / (range.upperBound - range.lowerBound)
+    }
+
+    var body: some View {
+        PulseCard(contentPadding: 18) {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: icon)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 40, height: 40)
+                        .background(PulseTheme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.headline)
+                        Text(caption)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 8)
+                }
+
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text(valueText)
+                        .font(.system(size: 54, weight: .black, design: .rounded))
+                        .foregroundStyle(PulseTheme.accent)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                        .contentTransition(.numericText(value: value))
+                    Text(unit)
+                        .font(.title2.weight(.black))
+                        .foregroundStyle(PulseTheme.accent)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+
+                VStack(spacing: 10) {
+                    Slider(value: $value, in: range, step: step)
+                        .tint(PulseTheme.accent)
+
+                    TickRail(progress: progress)
+                        .frame(height: 38)
+                }
+            }
+        }
+        .sensoryFeedback(.selection, trigger: value)
+    }
+}
+
+private struct TickRail: View {
+    let progress: Double
+
+    var body: some View {
+        GeometryReader { proxy in
+            let clampedProgress = min(max(progress, 0), 1)
+            let activeX = proxy.size.width * clampedProgress
+
+            ZStack(alignment: .topLeading) {
+                HStack(alignment: .bottom, spacing: 0) {
+                    ForEach(0..<31, id: \.self) { index in
+                        Rectangle()
+                            .fill(index % 5 == 0 ? PulseTheme.secondaryText.opacity(0.55) : PulseTheme.separator.opacity(0.9))
+                            .frame(width: 1.4, height: index % 5 == 0 ? 30 : 18)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+
+                Rectangle()
+                    .fill(PulseTheme.accent)
+                    .frame(width: 3, height: 38)
+                    .offset(x: activeX - 1.5)
+                    .shadow(color: PulseTheme.accent.opacity(0.45), radius: 8)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 private struct MetricStepper: View {
     let title: String
     @Binding var value: Int
@@ -1833,6 +1936,34 @@ private struct PaywallBenefit: View {
             }
             
             Spacer()
+        }
+    }
+}
+
+private struct TrialTimelineItem: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.black))
+                .foregroundStyle(.black)
+                .frame(width: 38, height: 38)
+                .background(PulseTheme.accent)
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
         }
     }
 }

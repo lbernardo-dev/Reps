@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import MuscleMap
 @testable import Reps
 
 struct RepsTests {
@@ -22,6 +23,30 @@ struct RepsTests {
         )
 
         #expect(FitnessMetrics.totalVolumeKg(for: [session]) == 1_300)
+    }
+
+    @Test func exerciseAnatomyUsesSpecificTricepsForCableExtension() {
+        let exercise = Exercise(
+            name: "Cable One Arm Tricep Extension",
+            muscleGroup: "Arms",
+            equipment: "Cable"
+        )
+
+        let descriptor = ExerciseAnatomyDescriptor(exercise: exercise)
+
+        #expect(descriptor.muscles == [.triceps])
+        #expect(descriptor.region.side == .front)
+    }
+
+    @Test func exerciseAnatomyUsesSpecificLegMuscles() {
+        let legExtension = Exercise(name: "Machine Seated Leg Extension", muscleGroup: "Legs", equipment: "Machine")
+        let legCurl = Exercise(name: "Lying Leg Curl", muscleGroup: "Legs", equipment: "Machine")
+        let calfRaise = Exercise(name: "Standing Calf Raise", muscleGroup: "Legs", equipment: "Machine")
+
+        #expect(ExerciseAnatomyDescriptor(exercise: legExtension).muscles.contains(.quadriceps))
+        #expect(!ExerciseAnatomyDescriptor(exercise: legExtension).muscles.contains(.hamstring))
+        #expect(ExerciseAnatomyDescriptor(exercise: legCurl).muscles.contains(.hamstring))
+        #expect(ExerciseAnatomyDescriptor(exercise: calfRaise).muscles.contains(.calves))
     }
 
     @Test func totalVolumePrefersDetailedExerciseLogs() {

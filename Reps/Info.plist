@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Reps</string>
+	<string>StreakRep</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -17,12 +17,12 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.0.0</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.romerosoft.repsfitness</string>
+			<string>com.romerodev.repsfitness</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>reps</string>
@@ -30,15 +30,15 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>6</string>
+	<string>100202606023</string>
 	<key>NSAppleMusicUsageDescription</key>
-	<string>Reps necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos.</string>
+	<string>StreakRep necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Reps lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación.</string>
+	<string>StreakRep lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Reps puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos.</string>
+	<string>StreakRep puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Reps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.</string>
+	<string>StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

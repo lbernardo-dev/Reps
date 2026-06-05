@@ -1,5 +1,26 @@
 import Foundation
 
+enum StoreKitProductID: String, CaseIterable, Identifiable {
+    case weekly = "com.romerodev.repsfitness.pro.weekly"
+    case monthly = "com.romerodev.repsfitness.pro.monthly"
+    case annual = "com.romerodev.repsfitness.pro.annual"
+    case lifetime = "com.romerodev.repsfitness.pro.lifetime"
+
+    var id: String { rawValue }
+
+    static let subscriptions: [StoreKitProductID] = [.weekly, .monthly, .annual]
+    static let allProductIDs = StoreKitProductID.allCases.map(\.rawValue)
+
+    var billingCycle: SubscriptionBillingCycle {
+        switch self {
+        case .weekly: return .weekly
+        case .monthly: return .monthly
+        case .annual: return .annual
+        case .lifetime: return .lifetime
+        }
+    }
+}
+
 enum ProductFeature: String, CaseIterable, Identifiable, Codable {
     case unlimitedLogging
     case exerciseLibrary
@@ -90,33 +111,48 @@ enum SubscriptionStatus: String, Codable {
 }
 
 enum SubscriptionBillingCycle: String, Codable, CaseIterable, Identifiable {
+    case weekly
     case monthly
     case annual
+    case lifetime
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .weekly:
+            return "Semanal"
         case .monthly:
             return "Mensual"
         case .annual:
             return "Anual"
+        case .lifetime:
+            return "Lifetime"
         }
     }
 
     var priceSummary: String {
         switch self {
+        case .weekly:
+            return "Prueba Pro sin compromiso"
         case .monthly:
-            return "Pago flexible"
+            return "Flexibilidad mensual"
         case .annual:
-            return "Ahorra y mantén el hábito"
+            return "Mejor valor para entrenar todo el año"
+        case .lifetime:
+            return "Pago único para desbloquear Pro para siempre"
         }
+    }
+
+    var hasIntroTrial: Bool {
+        self != .lifetime
     }
 }
 
 enum SubscriptionProvider: String, Codable {
     case local
     case revenueCat
+    case storeKit
 }
 
 enum PaywallSource: String, Codable, CaseIterable, Identifiable {

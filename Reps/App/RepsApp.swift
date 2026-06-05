@@ -2,12 +2,22 @@ import Combine
 import SwiftUI
 import UserNotifications
 
+#if canImport(FirebaseCore)
+import FirebaseCore
+#endif
+
 @MainActor
 final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        #if canImport(FirebaseCore)
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
+        #endif
+
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
         return true
     }
@@ -28,7 +38,7 @@ struct RepsApp: App {
             RootView()
                 .environmentObject(store)
                 .environment(\.locale, Locale(identifier: store.userProfile.preferredLanguage))
-                .tint(PulseTheme.primary)
+                .tint(PulseTheme.accent)
                 .task {
                     PermissionService.shared.refreshAll()
 

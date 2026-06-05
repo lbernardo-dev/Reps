@@ -73,7 +73,7 @@ Fuera del MVP inicial:
 
 Decision pendiente antes de scaffolding:
 - Nombre final de app: `Reps`.
-- Bundle ID: `com.romerosoft.repsfitness`.
+- Bundle ID: `com.romerodev.repsfitness`.
 - Target minimo de iOS: iOS 17+ propuesto para SwiftUI moderno, SwiftData opcional y HealthKit async.
 - SwiftData vs Core Data.
 

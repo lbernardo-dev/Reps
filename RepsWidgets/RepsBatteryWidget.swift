@@ -5,7 +5,7 @@ import AppIntents
 struct RepsBatteryEntry: TimelineEntry {
     let date: Date
     let snapshot: SharedWorkoutSnapshot
-    let configuration: RepsWidgetConfigurationIntent
+    let configuredBackgroundColor: WidgetColor
 }
 
 struct RepsBatteryProvider: AppIntentTimelineProvider {
@@ -13,17 +13,16 @@ struct RepsBatteryProvider: AppIntentTimelineProvider {
     typealias Intent = RepsWidgetConfigurationIntent
 
     func placeholder(in context: Context) -> RepsBatteryEntry {
-        RepsBatteryEntry(date: .now, snapshot: .empty, configuration: RepsWidgetConfigurationIntent())
+        RepsBatteryEntry(date: .now, snapshot: .empty, configuredBackgroundColor: .system)
     }
 
     func snapshot(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> RepsBatteryEntry {
-        RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuration: configuration)
+        RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
     }
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsBatteryEntry> {
-        let entry = RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuration: configuration)
-        let next = Calendar.current.date(byAdding: .minute, value: 15, to: .now) ?? .now.addingTimeInterval(900)
-        return Timeline(entries: [entry], policy: .after(next))
+        let entry = RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
+        return Timeline(entries: [entry], policy: .atEnd)
     }
 }
 
@@ -36,15 +35,16 @@ struct RepsBatteryWidget: Widget {
         }
         .configurationDisplayName("Batería de Recuperación")
         .description("Nivel de energía, descanso y sugerencia de entreno.")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular])
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
         .contentMarginsDisabled()
+        .containerBackgroundRemovable(false)
     }
 }
 
 // MARK: - Helpers
 
 private func batteryColor(for level: Int) -> Color {
-    if level >= 75 { return Color(red: 0.33, green: 0.86, blue: 0.32) }
+    if level >= 75 { return Color(red: 0.28, green: 0.86, blue: 0.38) }
     if level >= 40 { return Color(red: 1.0,  green: 0.80, blue: 0.14) }
     if level >= 20 { return Color(red: 1.0,  green: 0.60, blue: 0.14) }
     return Color(red: 0.93, green: 0.24, blue: 0.22)
@@ -57,11 +57,12 @@ private struct RepsBatteryWidgetView: View {
     let entry: RepsBatteryEntry
 
     var body: some View {
-        let resolvedColor = WidgetColor.resolved(
+        let contentColor = WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
+        let backgroundColor = WidgetColor.resolved(
             appColorName: entry.snapshot.widgetAccentColorName,
-            widgetColor: entry.configuration.accentColor
+            widgetBackgroundColor: entry.configuredBackgroundColor
         )
-        let theme = resolvedColor.theme
+        let theme = contentColor.theme
         let level = entry.snapshot.trainingBatteryLevel
         let bColor = batteryColor(for: level)
 
@@ -92,20 +93,20 @@ private struct RepsBatteryWidgetView: View {
                     .minimumScaleFactor(0.8)
             }
 
+        case .accessoryInline:
+            Text("Reps batería \(level)% · \(entry.snapshot.trainingBatteryTitle)")
+                .widgetURL(URL(string: "reps://workout"))
+
         default:
             if family == .systemSmall {
-                SmallBatteryView(entry: entry, theme: theme, bColor: bColor, level: level, resolvedColor: resolvedColor)
+                SmallBatteryView(entry: entry, theme: theme, bColor: bColor, level: level, resolvedColor: contentColor)
                     .padding(14)
-                    .containerBackground(for: .widget) {
-                        theme.background
-                    }
+                    .repsWidgetBackground(backgroundColor)
                     .widgetURL(URL(string: "reps://workout"))
             } else {
-                MediumBatteryView(entry: entry, theme: theme, bColor: bColor, level: level, resolvedColor: resolvedColor)
+                MediumBatteryView(entry: entry, theme: theme, bColor: bColor, level: level, resolvedColor: contentColor)
                     .padding(14)
-                    .containerBackground(for: .widget) {
-                        theme.background
-                    }
+                    .repsWidgetBackground(backgroundColor)
                     .widgetURL(URL(string: "reps://workout"))
             }
         }
@@ -122,7 +123,7 @@ private struct SmallBatteryView: View {
     let resolvedColor: WidgetColor
 
     var body: some View {
-        let percentageColor = (resolvedColor == .system) ? bColor : theme.foreground
+        let percentageColor = (resolvedColor == .system) ? theme.tint : theme.foreground
 
         VStack(alignment: .leading, spacing: 0) {
             // Header row
@@ -173,7 +174,7 @@ private struct MediumBatteryView: View {
     let resolvedColor: WidgetColor
 
     var body: some View {
-        let gaugeColor = (resolvedColor == .system) ? bColor : theme.tint
+        let gaugeColor = theme.tint
 
         HStack(spacing: 14) {
             // Circular gauge

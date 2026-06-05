@@ -69,7 +69,7 @@ struct WorkoutDetailView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .foregroundStyle(.black)
-                    .background(.white)
+                    .background(PulseTheme.accent)
                     .clipShape(Capsule())
             }
             .padding(20)
@@ -141,7 +141,7 @@ struct WorkoutDetailView: View {
         let exercisesWord = isSpanish ? "ejercicios" : "exercises"
         let minutesWord = isSpanish ? "minutos" : "minutes"
         
-        return HStack(alignment: .center, spacing: 16) {
+        return VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 12) {
                 // Header badge
                 HStack(spacing: 6) {
@@ -211,12 +211,11 @@ struct WorkoutDetailView: View {
                     }
                 }
             }
-            
-            Spacer(minLength: 8)
-            
+
             WorkoutMusclePreview(exercises: selectedWorkout.exercises.map(\.exercise), gender: store.userProfile.muscleMapGender)
-                .frame(width: 96, height: 96)
-                .shadow(color: PulseTheme.primaryBright.opacity(0.12), radius: 8, x: 0, y: 4)
+                .frame(maxWidth: .infinity)
+                .frame(height: 196)
+                .shadow(color: PulseTheme.primaryBright.opacity(0.12), radius: 12, x: 0, y: 6)
         }
         .padding(18)
         .background(
@@ -360,15 +359,32 @@ private struct WorkoutMusclePreview: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 18) {
             BodyView(gender: gender, side: .front, style: .repsDark)
                 .heatmap(heatmap, configuration: .repsVolume)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             BodyView(gender: gender, side: .back, style: .repsDark)
                 .heatmap(heatmap, configuration: .repsVolume)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(8)
-        .background(PulseTheme.grouped.opacity(0.72))
+        .padding(.horizontal, 30)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            LinearGradient(
+                colors: [
+                    PulseTheme.grouped.opacity(0.86),
+                    Color.white.opacity(0.035)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke(PulseTheme.primaryBright.opacity(0.08), lineWidth: 1)
+        )
         .allowsHitTesting(false)
         .accessibilityLabel("Resumen muscular del entrenamiento")
     }
