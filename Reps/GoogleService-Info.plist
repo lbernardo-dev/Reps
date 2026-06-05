@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.romerosoft.repsfitness</string>
+	<string>com.romerodev.repsfitness</string>
 	<key>PROJECT_ID</key>
 	<string>reps-241f8</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:296521105435:ios:deead0744c0a96ce5bf8be</string>
+	<string>1:296521105435:ios:272a7ad1536ce6c35bf8be</string>
 </dict>
 </plist>
