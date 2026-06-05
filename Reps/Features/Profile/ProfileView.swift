@@ -121,7 +121,7 @@ struct ProfileView: View {
                     .font(.headline)
 
                 HStack(spacing: 12) {
-                    Button { showQuickMetricEditor = true } label: {
+                    Button { activeSheet = .quickMetricEditor } label: {
                         ProfileMetric(
                             title: "Peso",
                             value: store.hasBodyMetrics ? String(format: "%.1f", store.displayedWeight.value) : "--",
@@ -131,7 +131,7 @@ struct ProfileView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Button { showQuickMetricEditor = true } label: {
+                    Button { activeSheet = .quickMetricEditor } label: {
                         ProfileMetric(
                             title: "Altura",
                             value: store.hasBodyMetrics ? String(format: "%.0f", store.displayedHeight.value) : "--",
@@ -143,7 +143,7 @@ struct ProfileView: View {
                 }
 
                 Button {
-                    showBodyLog = true
+                    activeSheet = .bodyLog
                 } label: {
                     PulseListRow(title: "Registro avanzado", subtitle: "Peso, grasa, medidas, sueño, estrés y molestias", systemImage: "heart.text.square")
                 }
@@ -183,7 +183,7 @@ struct ProfileView: View {
                     )
 
                     Button {
-                        showQuickMetricEditor = true
+                        activeSheet = .quickMetricEditor
                     } label: {
                         Label("Añadir métricas", systemImage: "plus")
                             .font(.subheadline.weight(.bold))
@@ -204,7 +204,7 @@ struct ProfileView: View {
                         .font(.headline)
                     Spacer()
                     Button {
-                        showAddProgressPhoto = true
+                        activeSheet = .addProgressPhoto
                     } label: {
                         Image(systemName: "plus")
                             .font(.headline)
@@ -308,7 +308,7 @@ struct ProfileView: View {
                             
                             ForEach(store.savedShareCards.sorted { $0.date > $1.date }) { card in
                                 Button {
-                                    selectedReceiptForPreview = card
+                                    activeSheet = .receiptPreview(card)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 6) {
                                         if let uiImage = UIImage(data: card.imageData) {
@@ -364,7 +364,7 @@ struct ProfileView: View {
                     Text("Gimnasios")
                         .font(.headline)
                     Spacer()
-                    Button { showAddGymPass = true } label: {
+                    Button { activeSheet = .addGymPass } label: {
                         Image(systemName: "qrcode")
                             .font(.headline)
                             .frame(width: 36, height: 36)
@@ -373,7 +373,7 @@ struct ProfileView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    Button { showAddGymVisit = true } label: {
+                    Button { activeSheet = .addGymVisit } label: {
                         Image(systemName: "mappin.and.ellipse")
                             .font(.headline)
                             .frame(width: 36, height: 36)
@@ -551,8 +551,8 @@ struct ProfileView: View {
                 .font(.headline)
 
                 Button {
-                    if store.requireFeature(.configurableProgression, source: .proPreferences) {
-                        showProPreferences = true
+                    if profileFeatureIsAvailable(.configurableProgression, source: .proPreferences) {
+                        activeSheet = .proPreferences
                     }
                 } label: {
                     PulseListRow(title: "Preferencias Pro", subtitle: "RPE/RIR, tipo de serie, tempo y auto-progresión", systemImage: "slider.horizontal.3")
@@ -576,7 +576,7 @@ struct ProfileView: View {
                         systemImage: "magnifyingglass",
                         color: PulseTheme.primary
                     ) {
-                        showExerciseLibrary = true
+                        activeSheet = .exerciseLibrary
                     }
 
                     ProfileToolButton(
@@ -585,7 +585,7 @@ struct ProfileView: View {
                         systemImage: "figure.run",
                         color: PulseTheme.accent
                     ) {
-                        showCardioLog = true
+                        activeSheet = .cardioLog
                     }
 
                     ProfileToolButton(
@@ -594,7 +594,7 @@ struct ProfileView: View {
                         systemImage: "target",
                         color: .orange
                     ) {
-                        showGoalEditor = true
+                        activeSheet = .goalEditor
                     }
 
                     ProfileToolButton(
@@ -638,7 +638,7 @@ struct ProfileView: View {
                         systemImage: "photo.on.rectangle",
                         color: .orange
                     ) {
-                        if store.requireFeature(.shareCards, source: .shareCards) {
+                        if profileFeatureIsAvailable(.shareCards, source: .shareCards) {
                             prepareWorkoutShareImage()
                         }
                     }
@@ -675,7 +675,7 @@ struct ProfileView: View {
                         systemImage: "externaldrive",
                         color: PulseTheme.accent
                     ) {
-                        if store.requireFeature(.automaticBackups, source: .backupCenter) {
+                        if profileFeatureIsAvailable(.automaticBackups, source: .backupCenter) {
                             prepareBackupExport()
                         }
                     }
@@ -699,7 +699,7 @@ struct ProfileView: View {
                         systemImage: "arrow.down.doc",
                         color: PulseTheme.primary
                     ) {
-                        if store.requireFeature(.automaticBackups, source: .backupCenter) {
+                        if profileFeatureIsAvailable(.automaticBackups, source: .backupCenter) {
                             showImportBackup = true
                         }
                     }
@@ -737,7 +737,7 @@ struct ProfileView: View {
                     color: PulseTheme.primary
                 ) {
                     TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.feedback.rawValue])
-                    activeSupportSheet = .feedback
+                    activeSheet = .support(.feedback)
                 }
 
                 ProfileToolButton(
@@ -747,7 +747,7 @@ struct ProfileView: View {
                     color: PulseTheme.primaryBright
                 ) {
                     TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.help.rawValue])
-                    activeSupportSheet = .help
+                    activeSheet = .support(.help)
                 }
 
                 ProfileToolButton(
@@ -757,7 +757,7 @@ struct ProfileView: View {
                     color: .purple
                 ) {
                     TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.privacy.rawValue])
-                    activeSupportSheet = .privacy
+                    activeSheet = .support(.privacy)
                 }
 
                 ProfileToolButton(
@@ -767,7 +767,7 @@ struct ProfileView: View {
                     color: .orange
                 ) {
                     TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.subscription.rawValue])
-                    activeSupportSheet = .subscription
+                    activeSheet = .support(.subscription)
                 }
 
                 ProfileToolButton(
@@ -777,7 +777,7 @@ struct ProfileView: View {
                     color: .teal
                 ) {
                     TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.roadmap.rawValue])
-                    activeSupportSheet = .roadmap
+                    activeSheet = .support(.roadmap)
                 }
 
                 ProfileToolButton(
@@ -787,9 +787,42 @@ struct ProfileView: View {
                     color: PulseTheme.secondaryText
                 ) {
                     TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.version.rawValue])
-                    activeSupportSheet = .version
+                    activeSheet = .support(.version)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func profileSheetDestination(_ sheet: ProfileSheet) -> some View {
+        switch sheet {
+        case .exerciseLibrary:
+            ExerciseLibraryView()
+        case .goalEditor:
+            GoalEditorView()
+        case .cardioLog:
+            CardioLogEditorView()
+        case .bodyLog:
+            BodyWellnessEditorView(
+                initialWeightKg: store.currentWeight,
+                initialHeightCm: store.currentHeight
+            )
+        case .quickMetricEditor:
+            QuickBodyMetricEditorView()
+        case .addProgressPhoto:
+            ProgressPhotoEditorView()
+        case .addGymPass:
+            GymPassEditorView()
+        case .addGymVisit:
+            GymVisitEditorView()
+        case .proPreferences:
+            ProPreferencesView { presentation in
+                presentPaywallAfterCurrentSheet(presentation)
+            }
+        case .receiptPreview(let card):
+            ReceiptPreviewSheet(card: card)
+        case .support(let supportSheet):
+            supportSheetDestination(supportSheet)
         }
     }
 
@@ -897,6 +930,32 @@ struct ProfileView: View {
         return "\(version) (\(build))"
     }
 
+    private func profileFeatureIsAvailable(
+        _ feature: ProductFeature,
+        source: PaywallSource,
+        trigger: PaywallTrigger = .featureGate
+    ) -> Bool {
+        guard !store.hasFeatureAccess(feature) else {
+            return true
+        }
+
+        TelemetryService.shared.log(.paywallFeatureGateHit, parameters: [
+            "feature": feature.rawValue,
+            "source": source.rawValue
+        ])
+        presentPaywallAfterCurrentSheet(
+            store.makePaywallPresentation(source: source, feature: feature, trigger: trigger)
+        )
+        return false
+    }
+
+    private func presentPaywallAfterCurrentSheet(_ presentation: PaywallPresentation) {
+        activeSheet = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            localPaywall = presentation
+        }
+    }
+
     private func sendFeedback(_ message: String) {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -917,7 +976,7 @@ struct ProfileView: View {
                 "length_bucket": min(trimmed.count / 100, 9)
             ])
             openURL(url)
-            activeSupportSheet = nil
+            activeSheet = nil
         } else {
             store.health.message = "No se pudo preparar el feedback."
         }
@@ -1079,7 +1138,7 @@ struct ProfileView: View {
     }
 
     private func handleBackupImport(_ result: Result<URL, Error>) {
-        guard store.requireFeature(.automaticBackups, source: .backupCenter) else {
+        guard profileFeatureIsAvailable(.automaticBackups, source: .backupCenter) else {
             return
         }
         do {
@@ -1213,6 +1272,36 @@ private struct ProfileToolCard: View {
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private enum ProfileSheet: Identifiable {
+    case exerciseLibrary
+    case goalEditor
+    case cardioLog
+    case bodyLog
+    case quickMetricEditor
+    case addProgressPhoto
+    case addGymPass
+    case addGymVisit
+    case proPreferences
+    case receiptPreview(SavedShareCard)
+    case support(ProfileSupportSheet)
+
+    var id: String {
+        switch self {
+        case .exerciseLibrary: "exerciseLibrary"
+        case .goalEditor: "goalEditor"
+        case .cardioLog: "cardioLog"
+        case .bodyLog: "bodyLog"
+        case .quickMetricEditor: "quickMetricEditor"
+        case .addProgressPhoto: "addProgressPhoto"
+        case .addGymPass: "addGymPass"
+        case .addGymVisit: "addGymVisit"
+        case .proPreferences: "proPreferences"
+        case .receiptPreview(let card): "receiptPreview-\(card.id.uuidString)"
+        case .support(let sheet): "support-\(sheet.id)"
+        }
     }
 }
 
@@ -2362,6 +2451,7 @@ struct BodyWellnessEditorView: View {
 struct ProPreferencesView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: AppStore
+    var onShowPaywall: ((PaywallPresentation) -> Void)?
     private let equipmentOptions = ["Barbell", "Dumbbells", "Kettlebell", "Resistance Band", "Cable", "Machine", "Bench", "Rack", "Pullup Bar", "Cardio Machine"]
 
     var body: some View {
@@ -2442,7 +2532,9 @@ struct ProPreferencesView: View {
                                 buttonTitle: "Ver Reps Pro"
                             ) {
                                 dismiss()
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                if let onShowPaywall {
+                                    onShowPaywall(store.makePaywallPresentation(source: .proPreferences, feature: .configurableProgression))
+                                } else {
                                     store.presentPaywall(source: .proPreferences, feature: .configurableProgression)
                                 }
                             }
