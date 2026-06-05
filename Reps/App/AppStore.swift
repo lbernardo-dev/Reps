@@ -108,7 +108,7 @@ final class AppStore: ObservableObject {
             await self?.listenForStoreKitTransactions()
         }
 
-        startHealthKitWorkoutObserver()
+        startHealthKitWorkoutObserverIfAuthorized()
     }
 
     deinit {
@@ -1623,11 +1623,15 @@ final class AppStore: ObservableObject {
     // MARK: - HealthKit Synchronization & Background Observers
     
     private let healthStore = HKHealthStore()
+    private var healthKitWorkoutObserverStarted = false
     
-    private func startHealthKitWorkoutObserver() {
+    func startHealthKitWorkoutObserverIfAuthorized() {
         guard HKHealthStore.isHealthDataAvailable() else { return }
+        guard !healthKitWorkoutObserverStarted else { return }
         
         let workoutType = HKWorkoutType.workoutType()
+        guard healthStore.authorizationStatus(for: workoutType) != .notDetermined else { return }
+
         let query = HKObserverQuery(sampleType: workoutType, predicate: nil) { [weak self] _, completionHandler, error in
             if let error = error {
                 print("Error de observador de HealthKit: \(error.localizedDescription)")
@@ -1648,6 +1652,7 @@ final class AppStore: ObservableObject {
             }
         }
         healthStore.execute(query)
+        healthKitWorkoutObserverStarted = true
         
         // Habilitar envío en segundo plano
         healthStore.enableBackgroundDelivery(for: workoutType, frequency: .immediate) { success, error in
@@ -2066,6 +2071,7 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
         guard WCSession.isSupported() else { return }
         let session = WCSession.default
         guard session.activationState == .activated else { return }
+        guard session.isWatchAppInstalled else { return }
 
         var context: [String: Any] = [
             "summary": snapshot.summary,

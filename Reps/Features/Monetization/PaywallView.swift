@@ -166,9 +166,9 @@ struct PaywallView: View {
                 .padding(.bottom, 32)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .clipped()
-            .screenBackground()
             .navigationTitle("Suscripción")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -194,6 +194,8 @@ struct PaywallView: View {
                 Text(storeKitInfoMessage)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .screenBackground()
     }
 
     private var paywallHero: some View {
@@ -394,10 +396,12 @@ struct SubscriptionCenterView: View {
                 .padding(20)
                 .padding(.bottom, 24)
             }
-            .screenBackground()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle("Suscripción")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .screenBackground()
     }
 }
 

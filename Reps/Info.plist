@@ -17,7 +17,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -30,15 +30,23 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>100202606023</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>StreakRep necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>StreakRep necesita acceso a la cámara para tomar fotos de progreso y asociarlas a tus entrenamientos.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>StreakRep lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>StreakRep puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>StreakRep necesita acceso al micrófono para grabar notas de voz dentro de tus entrenamientos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>StreakRep necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>StreakRep necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

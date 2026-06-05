@@ -183,6 +183,42 @@ struct RepsTests {
         #expect(shortRestProjection < longRestProjection)
     }
 
+    @Test func csvGymPassRoundTripPreservesCodeValue() {
+        let pass = GymPass(
+            gymName: "Downtown Gym",
+            membershipID: "member-123",
+            codeValue: "qr-secret-456",
+            codeType: .qr,
+            notes: "Main access"
+        )
+        var snapshot = AppSnapshot.empty
+        snapshot.gymPasses = [pass]
+
+        let csv = CSVExporter(snapshot: snapshot).makeCSV()
+        let imported = CSVImporter(csv: csv).gymPasses()
+
+        #expect(imported.count == 1)
+        #expect(imported.first?.membershipID == "member-123")
+        #expect(imported.first?.codeValue == "qr-secret-456")
+        #expect(imported.first?.codeType == .qr)
+        #expect(imported.first?.notes == "Main access")
+    }
+
+    @Test func csvGymPassImportSupportsLegacyRows() {
+        let csv = """
+        # gym_passes
+        id,gym,membership_id,code_type,notes
+        legacy-id,Downtown Gym,member-123,barcode,Legacy access
+        """
+
+        let imported = CSVImporter(csv: csv).gymPasses()
+
+        #expect(imported.count == 1)
+        #expect(imported.first?.membershipID == "member-123")
+        #expect(imported.first?.codeValue == "member-123")
+        #expect(imported.first?.codeType == .barcode)
+    }
+
     @Test func progressionEngineSuggestsIncreaseAfterSuccess() {
         let item = WorkoutExercise(
             exercise: SeedData.bench,

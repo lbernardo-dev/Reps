@@ -196,7 +196,7 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
         case .onboarding:
             return "Accede a los extras de progresión, analítica y compartición desde el primer día."
         case .profileSubscription:
-            return "Consulta tu estado, ventajas incluidas y próximos pasos de monetización."
+            return "Consulta tu estado, ventajas incluidas y opciones de acceso Pro."
         case .proPreferences:
             return "RPE, RIR, tempo, tipo de serie y auto-progresión viven dentro de Pro."
         case .workoutAdvancedFields:

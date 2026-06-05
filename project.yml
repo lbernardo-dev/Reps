@@ -1,6 +1,7 @@
 name: Reps
 options:
   bundleIdPrefix: com.romerodev
+  developmentLanguage: es
   deploymentTarget:
     iOS: "17.0"
     watchOS: "10.0"
@@ -31,10 +32,16 @@ targets:
       path: Reps/Info.plist
       properties:
         CFBundleDisplayName: StreakRep
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSAppleMusicUsageDescription: StreakRep necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos.
+        NSCameraUsageDescription: StreakRep necesita acceso a la cámara para tomar fotos de progreso y asociarlas a tus entrenamientos.
+        NSMicrophoneUsageDescription: StreakRep necesita acceso al micrófono para grabar notas de voz dentro de tus entrenamientos.
         NSHealthShareUsageDescription: StreakRep lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación.
         NSHealthUpdateUsageDescription: StreakRep puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos.
         NSLocationWhenInUseUsageDescription: StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.
+        NSPhotoLibraryAddUsageDescription: StreakRep necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas.
+        NSPhotoLibraryUsageDescription: StreakRep necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos.
         NSSupportsLiveActivities: true
         UIApplicationSupportsIndirectInputEvents: true
         UIBackgroundModes:
@@ -50,6 +57,11 @@ targets:
               - reps
     entitlements:
       path: Reps/Reps.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.background-delivery: true
+        com.apple.security.application-groups:
+          - group.com.romerodev.repsfitness
     dependencies:
       - package: MuscleMap
       - package: firebase-ios-sdk
@@ -66,7 +78,7 @@ targets:
         embed: true
       - target: RepsWatch Watch App
         embed: true
-    postCompileScripts:
+    postBuildScripts:
       - name: Firebase Crashlytics
         script: |
           "${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run"
@@ -88,6 +100,9 @@ targets:
         LD_RUNPATH_SEARCH_PATHS:
           - $(inherited)
           - "@executable_path/Frameworks"
+      configs:
+        Debug:
+          DEBUG_INFORMATION_FORMAT: dwarf
   RepsWidgets:
     type: app-extension
     platform: iOS
@@ -95,14 +110,21 @@ targets:
     sources:
       - path: RepsWidgets
       - path: RepsShared
+      - path: Reps/Resources/Localizable.xcstrings
+      - path: RepsWidgets/InfoPlist.xcstrings
     info:
       path: RepsWidgets/Info.plist
       properties:
         CFBundleDisplayName: StreakRep
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     entitlements:
       path: RepsWidgets/RepsWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.romerodev.repsfitness
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.romerodev.repsfitness.widgets
@@ -118,16 +140,24 @@ targets:
     sources:
       - path: RepsWatch
       - path: RepsShared
+      - path: Reps/Resources/Localizable.xcstrings
+      - path: RepsWatch/InfoPlist.xcstrings
     info:
       path: RepsWatch/Info.plist
       properties:
         CFBundleDisplayName: StreakRep
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSHealthShareUsageDescription: StreakRep Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo.
         NSHealthUpdateUsageDescription: StreakRep Watch guarda sesiones de entrenamiento iniciadas desde el reloj.
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.romerodev.repsfitness
     entitlements:
       path: RepsWatch/RepsWatch.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.security.application-groups:
+          - group.com.romerodev.repsfitness
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.romerodev.repsfitness.watchkitapp
@@ -155,3 +185,26 @@ targets:
           - $(inherited)
           - "@executable_path/Frameworks"
           - "@loader_path/Frameworks"
+schemes:
+  Reps:
+    build:
+      targets:
+        Reps: all
+    test:
+      targets:
+        - RepsTests
+  RepsWidgets:
+    build:
+      targets:
+        RepsWidgets: all
+        Reps: all
+  RepsWatch Watch App:
+    build:
+      targets:
+        RepsWatch Watch App: all
+        Reps: all
+  RepsWatch Watch App (Notification):
+    build:
+      targets:
+        RepsWatch Watch App: all
+        Reps: all

@@ -22,7 +22,7 @@ final class TelemetryService {
 
     func configure() {
         #if canImport(FirebaseCore)
-        if FirebaseApp.app() == nil {
+        if !isConfigured, FirebaseApp.app() == nil {
             FirebaseApp.configure()
         }
         isConfigured = FirebaseApp.app() != nil
@@ -32,6 +32,8 @@ final class TelemetryService {
     }
 
     func updateUserProperties(_ profile: UserProfile) {
+        ensureConfigured()
+
         let properties: [String: String] = [
             "preferred_language": profile.preferredLanguage,
             "units": profile.units.rawValue,
@@ -54,6 +56,7 @@ final class TelemetryService {
     }
 
     func log(_ event: TelemetryEvent, parameters: [String: Any?] = [:]) {
+        ensureConfigured()
         let sanitized = sanitize(parameters)
 
         #if canImport(FirebaseAnalytics)
@@ -69,6 +72,7 @@ final class TelemetryService {
     }
 
     func record(_ error: Error, context: String, parameters: [String: Any?] = [:]) {
+        ensureConfigured()
         var sanitized = sanitize(parameters)
         sanitized["context"] = context
 
@@ -78,10 +82,17 @@ final class TelemetryService {
     }
 
     func triggerTestCrash() -> Never {
+        ensureConfigured()
+
         #if canImport(FirebaseCrashlytics)
         Crashlytics.crashlytics().log("debug_test_crash")
         #endif
         fatalError("Crashlytics debug test crash")
+    }
+
+    private func ensureConfigured() {
+        guard !isConfigured else { return }
+        configure()
     }
 
     private func sanitize(_ parameters: [String: Any?]) -> [String: Any] {

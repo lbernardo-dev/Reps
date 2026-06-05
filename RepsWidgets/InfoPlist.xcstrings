@@ -1,0 +1,35 @@
+{
+  "sourceLanguage" : "es",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StreakRep"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StreakRep"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "RepsWidgets"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

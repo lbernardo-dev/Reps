@@ -134,9 +134,9 @@ struct CSVExporter {
     }
 
     private var gymPassRows: [[String]] {
-        [["id", "gym", "membership_id", "code_type", "notes"]] +
+        [["id", "gym", "membership_id", "code_value", "code_type", "notes"]] +
         snapshot.gymPasses.map {
-            [$0.id.uuidString, $0.gymName, $0.membershipID, $0.codeType.rawValue, $0.notes ?? ""]
+            [$0.id.uuidString, $0.gymName, $0.membershipID, $0.codeValue, $0.codeType.rawValue, $0.notes ?? ""]
         }
     }
 
@@ -236,17 +236,25 @@ struct CSVImporter {
 
     func gymPasses() -> [GymPass] {
         rows(in: "gym_passes").compactMap { row in
-            guard row.count >= 5,
-                  let type = GymPass.CodeType(rawValue: row[3]) else {
+            guard row.count >= 5 else {
+                return nil
+            }
+
+            let hasCodeValueColumn = row.count >= 6
+            let codeValue = hasCodeValueColumn ? row[3] : row[2]
+            let typeIndex = hasCodeValueColumn ? 4 : 3
+            let notesIndex = hasCodeValueColumn ? 5 : 4
+
+            guard let type = GymPass.CodeType(rawValue: row[typeIndex]) else {
                 return nil
             }
             return GymPass(
                 gymName: row[1],
                 membershipID: row[2],
-                codeValue: row[2], // Use membershipID as codeValue placeholder if not fully present
+                codeValue: codeValue,
                 codeType: type,
                 colorHex: "#FFCC24",
-                notes: row[4].isEmpty ? nil : row[4]
+                notes: row[notesIndex].isEmpty ? nil : row[notesIndex]
             )
         }
     }

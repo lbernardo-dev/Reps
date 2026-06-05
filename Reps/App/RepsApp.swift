@@ -2,22 +2,13 @@ import Combine
 import SwiftUI
 import UserNotifications
 
-#if canImport(FirebaseCore)
-import FirebaseCore
-#endif
-
 @MainActor
 final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        #if canImport(FirebaseCore)
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-        }
-        #endif
-
+        TelemetryService.shared.configure()
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
         return true
     }

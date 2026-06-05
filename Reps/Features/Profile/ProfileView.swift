@@ -13,15 +13,7 @@ struct ProfileView: View {
     @StateObject private var healthKit = HealthKitService()
     @State private var weightText = ""
     @State private var heightText = ""
-    @State private var showExerciseLibrary = false
-    @State private var showGoalEditor = false
-    @State private var showCardioLog = false
-    @State private var showBodyLog = false
-    @State private var showQuickMetricEditor = false
-    @State private var showAddProgressPhoto = false
-    @State private var showAddGymPass = false
-    @State private var showAddGymVisit = false
-    @State private var showProPreferences = false
+    @State private var activeSheet: ProfileSheet?
     @State private var showImportBackup = false
     @State private var showImportCSV = false
     @State private var showDeleteAllConfirmation = false
@@ -29,8 +21,6 @@ struct ProfileView: View {
     @State private var backupExportURL: URL?
     @State private var shareImageURL: URL?
     @State private var avatarPickerItem: PhotosPickerItem?
-    @State private var selectedReceiptForPreview: SavedShareCard? = nil
-    @State private var activeSupportSheet: ProfileSupportSheet?
     @State private var localPaywall: PaywallPresentation?
 
     var body: some View {
@@ -88,35 +78,8 @@ struct ProfileView: View {
             .onChange(of: store.userProfile.units) { _, _ in
                 refreshMetricTextFields()
             }
-            .sheet(isPresented: $showExerciseLibrary) {
-                ExerciseLibraryView()
-            }
-            .sheet(isPresented: $showGoalEditor) {
-                GoalEditorView()
-            }
-            .sheet(isPresented: $showCardioLog) {
-                CardioLogEditorView()
-            }
-            .sheet(isPresented: $showBodyLog) {
-                BodyWellnessEditorView(
-                    initialWeightKg: store.currentWeight,
-                    initialHeightCm: store.currentHeight
-                )
-            }
-            .sheet(isPresented: $showQuickMetricEditor) {
-                QuickBodyMetricEditorView()
-            }
-            .sheet(isPresented: $showAddProgressPhoto) {
-                ProgressPhotoEditorView()
-            }
-            .sheet(isPresented: $showAddGymPass) {
-                GymPassEditorView()
-            }
-            .sheet(isPresented: $showAddGymVisit) {
-                GymVisitEditorView()
-            }
-            .sheet(isPresented: $showProPreferences) {
-                ProPreferencesView()
+            .sheet(item: $activeSheet) { sheet in
+                profileSheetDestination(sheet)
             }
             .fileImporter(isPresented: $showImportBackup, allowedContentTypes: [.json]) { result in
                 handleBackupImport(result)
@@ -138,12 +101,6 @@ struct ProfileView: View {
             }
             .onChange(of: avatarPickerItem) { _, item in
                 Task { await loadAvatar(from: item) }
-            }
-            .sheet(item: $selectedReceiptForPreview) { card in
-                ReceiptPreviewSheet(card: card)
-            }
-            .sheet(item: $activeSupportSheet) { sheet in
-                supportSheetDestination(sheet)
             }
             .fullScreenCover(item: $localPaywall) { presentation in
                 PaywallView(presentation: presentation) { reason in
@@ -814,9 +771,9 @@ struct ProfileView: View {
                 }
 
                 ProfileToolButton(
-                    title: "Roadmap",
-                    subtitle: "Próximas mejoras",
-                    systemImage: "map",
+                    title: "Novedades",
+                    subtitle: "Mejoras incluidas",
+                    systemImage: "sparkles",
                     color: .teal
                 ) {
                     TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.roadmap.rawValue])
@@ -874,13 +831,10 @@ struct ProfileView: View {
                         "Fotos, cámara, música, notificaciones y ubicación se solicitan solo cuando usas esas funciones.",
                         "Los widgets leen un resumen mínimo desde el App Group para mostrar progreso y entrenos."
                     ]),
-                    SupportInfoSection(title: "Pendiente MVP", rows: [
-                        "Añadir política de privacidad pública.",
-                        "Validar Crashlytics y subida de símbolos en build de dispositivo y archive."
-                    ]),
-                    SupportInfoSection(title: "Telemetría preparada", rows: [
-                        "Firebase Analytics y Crashlytics ya están integrados en el proyecto.",
-                        "La app registra eventos mínimos de producto sin nombres, notas, fotos ni datos identificativos."
+                    SupportInfoSection(title: "Privacidad y telemetría", rows: [
+                        "La app registra eventos mínimos de producto para mejorar estabilidad y experiencia.",
+                        "No se envían nombres de entrenos, notas, fotos ni datos de Apple Health a analítica.",
+                        "Puedes borrar los datos locales y exportar una copia desde Perfil."
                     ])
                 ]
             )
@@ -888,23 +842,23 @@ struct ProfileView: View {
             SubscriptionCenterView()
         case .roadmap:
             SupportInfoSheet(
-                title: "Roadmap",
-                systemImage: "map",
+                title: "Novedades",
+                systemImage: "sparkles",
                 sections: [
-                    SupportInfoSection(title: "Estabilización MVP", rows: [
-                        "Completar persistencia y QA de todos los flujos actuales.",
-                        "Pulir localización, accesibilidad y pantallas pequeñas.",
-                        "Añadir feedback, reseñas, privacidad, versión y soporte."
+                    SupportInfoSection(title: "Entrenamiento", rows: [
+                        "Rutinas listas con días, ejercicios, series, descansos y progresión.",
+                        "Registro libre con notas, fotos, agua, RPE, RIR, tempo y descansos.",
+                        "Resumen final con volumen, récords y recibos visuales."
                     ]),
                     SupportInfoSection(title: "Integraciones", rows: [
-                        "StoreKit directo para paywall, suscripciones, lifetime y restauración de licencias.",
-                        "Validación final de Firebase en dispositivo y canal de distribución.",
-                        "Mejora de Apple Health, Watch, widgets y Live Activities."
+                        "Apple Health para importar métricas y guardar entrenamientos cuando das permiso.",
+                        "Widgets, Watch y Live Activities para seguir tu sesión fuera de la app.",
+                        "Apple Music para reproducir playlists durante los entrenos."
                     ]),
-                    SupportInfoSection(title: "Producto", rows: [
-                        "Más insights accionables.",
-                        "Mejor sustitución de ejercicios por equipo.",
-                        "Panel Pro con progresión, fatiga y exportación avanzada."
+                    SupportInfoSection(title: "Progreso", rows: [
+                        "Analítica por ejercicio, músculo, carga, rachas y batería de entrenamiento.",
+                        "Backups JSON, exportación CSV y tarjetas compartibles.",
+                        "Pases de gimnasio y visitas para tener tus accesos a mano."
                     ])
                 ]
             )
@@ -1006,6 +960,7 @@ struct ProfileView: View {
             try await healthKit.requestAuthorization()
             store.health.isAuthorized = healthKit.hasWriteAuthorization
             store.health.lastSyncDate = .now
+            store.startHealthKitWorkoutObserverIfAuthorized()
             let metrics = try await healthKit.fetchLatestBodyMetrics()
             let resolvedWeight = metrics.weightKg ?? (store.hasBodyMetrics ? store.currentWeight : nil)
             let resolvedHeight = metrics.heightCm ?? (store.hasBodyMetrics ? store.currentHeight : nil)
@@ -1359,7 +1314,7 @@ private struct FeedbackSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Feedback")
                                 .font(.system(size: 28, weight: .bold, design: .rounded))
-                            Text("Cuéntanos qué mejorarías antes del MVP.")
+                            Text("Cuéntanos qué mejorarías o qué flujo te resultó confuso.")
                                 .font(.subheadline)
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
@@ -1444,16 +1399,6 @@ private struct VersionInfoSheet: View {
 
                             supportRow("Versión: \(appVersionText)")
                             supportRow("Bundle ID: \(Bundle.main.bundleIdentifier ?? "com.romerodev.repsfitness")")
-                        }
-                    }
-
-                    PulseCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Estado")
-                                .font(.headline)
-
-                            supportRow("MVP en preparación.")
-                            supportRow("Build de auditoría interna.")
                         }
                     }
 

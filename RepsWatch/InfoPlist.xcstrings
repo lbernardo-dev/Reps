@@ -1,0 +1,69 @@
+{
+  "sourceLanguage" : "es",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StreakRep"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StreakRep"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "RepsWatch Watch App"
+          }
+        }
+      }
+    },
+    "NSHealthShareUsageDescription" : {
+      "comment" : "Privacy - Health Share Usage Description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StreakRep Watch reads heart rate and calories during workouts to show your live vitals."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StreakRep Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo."
+          }
+        }
+      }
+    },
+    "NSHealthUpdateUsageDescription" : {
+      "comment" : "Privacy - Health Update Usage Description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StreakRep Watch saves workout sessions started from the watch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StreakRep Watch guarda sesiones de entrenamiento iniciadas desde el reloj."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
