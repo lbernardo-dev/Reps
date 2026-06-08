@@ -1565,7 +1565,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ representante%@"
+            "value" : "%@ rep%@"
           }
         }
       }
@@ -19196,7 +19196,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Representantes"
+            "value" : "Repeticiones"
           }
         }
       }
@@ -19511,7 +19511,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Representantes profesionales"
+            "value" : "Reps Pro"
           }
         }
       }
@@ -24420,7 +24420,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "x %@ representante%@"
+            "value" : "x %@ rep%@"
           }
         }
       }

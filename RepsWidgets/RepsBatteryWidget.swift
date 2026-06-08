@@ -17,11 +17,11 @@ struct RepsBatteryProvider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> RepsBatteryEntry {
-        RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
+        RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
     }
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsBatteryEntry> {
-        let entry = RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
+        let entry = RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
         return Timeline(entries: [entry], policy: .atEnd)
     }
 }
@@ -37,7 +37,7 @@ struct RepsBatteryWidget: Widget {
         .description("Nivel de energía, descanso y sugerencia de entreno.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
         .contentMarginsDisabled()
-        .containerBackgroundRemovable(false)
+        .containerBackgroundRemovable(true)
     }
 }
 

@@ -1148,6 +1148,17 @@ struct CreatePlanView: View {
                     pickerTargetDay = index
                 }
             }
+
+            if !sessionsAreReady {
+                Label("Añade título y al menos un ejercicio a cada sesión para poder guardar un plan iniciable.", systemImage: "exclamationmark.circle.fill")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(PulseTheme.warning)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(PulseTheme.warning.opacity(0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+
             Button { addDay() } label: {
                 Label("Añadir sesión", systemImage: "plus")
                     .font(.headline)
@@ -1160,6 +1171,14 @@ struct CreatePlanView: View {
                     )
             }
         }
+    }
+
+    private var sessionsAreReady: Bool {
+        !days.isEmpty
+            && days.allSatisfy {
+                !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && !$0.exercises.isEmpty
+            }
     }
 
     private var musicReviewStep: some View {
@@ -1190,7 +1209,7 @@ struct CreatePlanView: View {
         case .schedule:
             scheduleMode == .cycle || !selectedWeekdays.isEmpty
         case .sessions:
-            !days.isEmpty && days.allSatisfy { !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            sessionsAreReady
         case .musicReview:
             true
         }

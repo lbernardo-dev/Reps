@@ -15,7 +15,7 @@ struct ExerciseProgressView: View {
     @State private var showCamera = false
     @State private var showPermissionDenied = false
 
-    private enum ProgressMetric: String, CaseIterable, Identifiable {
+    fileprivate enum ProgressMetric: String, CaseIterable, Identifiable {
         case weight = "Peso"
         case reps = "Reps"
         case volume = "Volumen"
@@ -310,22 +310,12 @@ struct ExerciseProgressView: View {
                 .pickerStyle(.segmented)
 
                 PulseCard {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Actividad").font(.headline)
-                        Chart(rangedPoints) { point in
-                            LineMark(
-                                x: .value("Fecha", point.date),
-                                y: .value(metric.rawValue, value(for: point))
-                            )
-                            .foregroundStyle(PulseTheme.primary)
-                            PointMark(
-                                x: .value("Fecha", point.date),
-                                y: .value(metric.rawValue, value(for: point))
-                            )
-                            .foregroundStyle(PulseTheme.accent)
-                        }
-                        .frame(height: 220)
-                    }
+                    ExercisePerformanceChart(
+                        points: rangedPoints,
+                        metric: metric,
+                        isSpanish: store.userProfile.preferredLanguage.hasPrefix("es"),
+                        value: value(for:)
+                    )
                 }
 
                 PulseCard {
@@ -483,6 +473,185 @@ struct ExerciseProgressView: View {
     }
 }
 
+private struct ExercisePerformanceChart: View {
+    let points: [FitnessMetrics.ExerciseProgressPoint]
+    let metric: ExerciseProgressView.ProgressMetric
+    let isSpanish: Bool
+    let value: (FitnessMetrics.ExerciseProgressPoint) -> Double
+
+    private var chartPoints: [ChartPoint] {
+        points.map { point in
+            ChartPoint(
+                id: point.id,
+                date: point.date,
+                workoutTitle: point.workoutTitle,
+                value: value(point)
+            )
+        }
+    }
+
+    private var latestPoint: ChartPoint? {
+        chartPoints.max { $0.date < $1.date }
+    }
+
+    private var bestPoint: ChartPoint? {
+        chartPoints.max { $0.value < $1.value }
+    }
+
+    private var averageValue: Double {
+        guard !chartPoints.isEmpty else { return 0 }
+        return chartPoints.map(\.value).reduce(0, +) / Double(chartPoints.count)
+    }
+
+    private var trendText: String {
+        guard let first = chartPoints.min(by: { $0.date < $1.date }),
+              let last = latestPoint else {
+            return "-"
+        }
+        let delta = last.value - first.value
+        let sign = delta > 0 ? "+" : ""
+        return "\(sign)\(formatted(delta)) \(unitLabel)"
+    }
+
+    private var unitLabel: String {
+        switch metric {
+        case .weight, .volume, .oneRepMax:
+            "kg"
+        case .reps:
+            "reps"
+        case .sets:
+            isSpanish ? "series" : "sets"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(isSpanish ? "Evolución del ejercicio" : "Exercise trend")
+                        .font(.headline)
+                    Text(metric.rawValue)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(latestPoint.map { formatted($0.value) } ?? "-")
+                        .font(.title3.weight(.black).monospacedDigit())
+                        .foregroundStyle(PulseTheme.primary)
+                    Text(unitLabel)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+
+            HStack(spacing: 10) {
+                chartMetric(title: isSpanish ? "Mejor" : "Best", value: bestPoint.map { "\(formatted($0.value)) \(unitLabel)" } ?? "-")
+                chartMetric(title: isSpanish ? "Media" : "Average", value: "\(formatted(averageValue)) \(unitLabel)")
+                chartMetric(title: isSpanish ? "Tendencia" : "Trend", value: trendText)
+            }
+
+            Chart {
+                ForEach(chartPoints) { point in
+                    AreaMark(
+                        x: .value("Fecha", point.date),
+                        y: .value(metric.rawValue, point.value)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [PulseTheme.primary.opacity(0.28), PulseTheme.primary.opacity(0.02)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+
+                    LineMark(
+                        x: .value("Fecha", point.date),
+                        y: .value(metric.rawValue, point.value)
+                    )
+                    .foregroundStyle(PulseTheme.primary)
+                    .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                    .interpolationMethod(.catmullRom)
+
+                    PointMark(
+                        x: .value("Fecha", point.date),
+                        y: .value(metric.rawValue, point.value)
+                    )
+                    .foregroundStyle(point.id == latestPoint?.id ? PulseTheme.accent : PulseTheme.primaryBright)
+                    .symbolSize(point.id == latestPoint?.id ? 88 : 42)
+                }
+
+                RuleMark(y: .value(isSpanish ? "Media" : "Average", averageValue))
+                    .foregroundStyle(PulseTheme.secondaryText.opacity(0.45))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                    AxisGridLine()
+                        .foregroundStyle(PulseTheme.separator.opacity(0.5))
+                    AxisValueLabel {
+                        if let doubleValue = value.as(Double.self) {
+                            Text(formatted(doubleValue))
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+                }
+            }
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 4)) {
+                    AxisGridLine()
+                        .foregroundStyle(PulseTheme.separator.opacity(0.25))
+                    AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+            .frame(height: 240)
+
+            if let latestPoint {
+                Text("\(isSpanish ? "Última sesión" : "Last session"): \(latestPoint.workoutTitle) · \(formatted(latestPoint.value)) \(unitLabel)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(2)
+            }
+        }
+    }
+
+    private func chartMetric(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+            Text(value)
+                .font(.caption.weight(.black).monospacedDigit())
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private func formatted(_ value: Double) -> String {
+        if abs(value) >= 100 || value.rounded() == value {
+            return String(format: "%.0f", value)
+        }
+        return String(format: "%.1f", value)
+    }
+
+    private struct ChartPoint: Identifiable {
+        let id: UUID
+        let date: Date
+        let workoutTitle: String
+        let value: Double
+    }
+}
+
 private struct ExerciseInfoChip: View {
     let text: String
     let systemImage: String
@@ -558,52 +727,67 @@ struct ResistanceCurveCard: View {
     var body: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Curva de resistencia")
-                    .font(.headline)
-                Text("Los ejercicios con alta tensión en estiramiento suelen ser más eficientes para hipertrofia.")
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Curva de resistencia")
+                            .font(.headline)
+                        Text("Presión estimada durante el rango de movimiento.")
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
 
-                Chart(profile.points) { point in
-                    RuleMark(x: .value("Fase", point.phase.rawValue))
-                        .foregroundStyle(PulseTheme.separator)
-                    PointMark(
-                        x: .value("Fase", point.phase.rawValue),
-                        y: .value("Tensión", point.intensity)
-                    )
-                    .symbolSize(point.intensity > 0 ? 220 : 90)
-                    .foregroundStyle(point.intensity > 0 ? PulseTheme.primaryBright : PulseTheme.tertiaryText)
-                    if point.intensity > 0 {
-                        BarMark(
-                            x: .value("Fase", point.phase.rawValue),
-                            y: .value("Tensión", point.intensity)
-                        )
-                        .foregroundStyle(PulseTheme.primaryBright.opacity(0.55))
-                        .clipShape(Capsule())
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(profile.dominantPoint.phase.shortTitle)
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(profile.dominantPoint.pressureColor)
+                            .padding(.horizontal, 10)
+                            .frame(height: 28)
+                            .background(profile.dominantPoint.pressureColor.opacity(0.14), in: Capsule())
+                        Text("\(Int((profile.dominantPoint.intensity * 100).rounded()))% pico")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
                     }
                 }
-                .chartYScale(domain: 0...1)
-                .chartYAxis {
-                    AxisMarks(position: .leading, values: [0.5, 1.0]) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 6]))
-                        AxisValueLabel {
-                            if let doubleValue = value.as(Double.self) {
-                                Text("\(Int(doubleValue * 100))%")
-                            }
-                        }
-                    }
+
+                ResistancePressureGraph(points: profile.points)
+                    .frame(height: 210)
+
+                HStack(spacing: 8) {
+                    PressureLegendDot(title: "Baja", color: ResistanceCurveProfile.pressureColor(for: 0.22))
+                    PressureLegendDot(title: "Media", color: ResistanceCurveProfile.pressureColor(for: 0.52))
+                    PressureLegendDot(title: "Alta", color: ResistanceCurveProfile.pressureColor(for: 0.78))
+                    PressureLegendDot(title: "Pico", color: ResistanceCurveProfile.pressureColor(for: 0.95))
                 }
-                .frame(height: 150)
             }
         }
     }
 }
 
 struct ResistanceCurveProfile {
-    enum Phase: String, CaseIterable {
+    enum Phase: String, CaseIterable, Identifiable {
         case stretch = "ESTIRAMIENTO"
         case middle = "MEDIO"
         case contraction = "CONTRACCIÓN"
+
+        var id: String { rawValue }
+
+        var shortTitle: String {
+            switch self {
+            case .stretch: "Estira"
+            case .middle: "Medio"
+            case .contraction: "Contrae"
+            }
+        }
+
+        var index: Double {
+            switch self {
+            case .stretch: 0
+            case .middle: 1
+            case .contraction: 2
+            }
+        }
     }
 
     struct Point: Identifiable {
@@ -611,9 +795,39 @@ struct ResistanceCurveProfile {
         let intensity: Double
 
         var id: Phase { phase }
+
+        var pressureColor: Color {
+            ResistanceCurveProfile.pressureColor(for: intensity)
+        }
+
+        var pressureTitle: String {
+            switch intensity {
+            case 0..<0.35: "Baja"
+            case 0.35..<0.65: "Media"
+            case 0.65..<0.88: "Alta"
+            default: "Pico"
+            }
+        }
     }
 
     let points: [Point]
+
+    var dominantPoint: Point {
+        points.max { $0.intensity < $1.intensity } ?? Point(phase: .middle, intensity: 0)
+    }
+
+    static func pressureColor(for intensity: Double) -> Color {
+        switch intensity {
+        case 0..<0.35:
+            return PulseTheme.primary
+        case 0.35..<0.65:
+            return PulseTheme.primaryBright
+        case 0.65..<0.88:
+            return PulseTheme.warning
+        default:
+            return PulseTheme.destructive
+        }
+    }
 
     init(exercise: Exercise) {
         let text = "\(exercise.name) \(exercise.equipment)".lowercased()
@@ -644,6 +858,142 @@ struct ResistanceCurveProfile {
             Point(phase: .middle, intensity: middle),
             Point(phase: .contraction, intensity: contraction)
         ]
+    }
+}
+
+private struct ResistancePressureGraph: View {
+    let points: [ResistanceCurveProfile.Point]
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let height = proxy.size.height
+            let plotTop: CGFloat = 18
+            let plotBottom: CGFloat = 46
+            let plotHeight = max(height - plotTop - plotBottom, 1)
+            let xPositions = points.map { xPosition(for: $0.phase, width: width) }
+            let coordinates = points.enumerated().map { index, point in
+                CGPoint(
+                    x: xPositions[index],
+                    y: plotTop + (1 - min(max(point.intensity, 0), 1)) * plotHeight
+                )
+            }
+
+            ZStack {
+                VStack(spacing: 0) {
+                    ForEach([1.0, 0.75, 0.5, 0.25], id: \.self) { value in
+                        HStack(spacing: 8) {
+                            Text("\(Int(value * 100))%")
+                                .font(.caption2.weight(.bold).monospacedDigit())
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .frame(width: 36, alignment: .trailing)
+                            Rectangle()
+                                .fill(PulseTheme.separator.opacity(value == 1.0 || value == 0.5 ? 0.7 : 0.32))
+                                .frame(height: value == 1.0 || value == 0.5 ? 1 : 0.5)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+                .padding(.top, plotTop - 6)
+                .padding(.bottom, plotBottom + 4)
+
+                Path { path in
+                    guard let first = coordinates.first else { return }
+                    path.move(to: first)
+                    for coordinate in coordinates.dropFirst() {
+                        path.addLine(to: coordinate)
+                    }
+                }
+                .stroke(
+                    LinearGradient(
+                        colors: points.map(\.pressureColor),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
+                )
+                .shadow(color: PulseTheme.primaryBright.opacity(0.22), radius: 8)
+
+                ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
+                    let x = xPositions[index]
+                    let barHeight = max(point.intensity * plotHeight, 12)
+                    let y = plotTop + plotHeight - barHeight
+
+                    VStack(spacing: 8) {
+                        ZStack(alignment: .bottom) {
+                            Capsule()
+                                .fill(PulseTheme.grouped.opacity(0.9))
+                                .frame(width: 54, height: plotHeight)
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            point.pressureColor.opacity(0.45),
+                                            point.pressureColor
+                                        ],
+                                        startPoint: .bottom,
+                                        endPoint: .top
+                                    )
+                                )
+                                .frame(width: 54, height: barHeight)
+                                .shadow(color: point.pressureColor.opacity(0.28), radius: 8)
+                        }
+                        .overlay(alignment: .top) {
+                            Text("\(Int((point.intensity * 100).rounded()))%")
+                                .font(.caption2.weight(.black).monospacedDigit())
+                                .foregroundStyle(point.pressureColor)
+                                .offset(y: -18)
+                        }
+                        .overlay(alignment: .center) {
+                            Circle()
+                                .fill(point.pressureColor)
+                                .frame(width: 18, height: 18)
+                                .overlay(Circle().stroke(Color.black.opacity(0.18), lineWidth: 2))
+                                .position(x: 27, y: max(y - plotTop, 9))
+                        }
+
+                        VStack(spacing: 2) {
+                            Text(point.phase.rawValue)
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                            Text(point.pressureTitle)
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(point.pressureColor)
+                        }
+                        .frame(width: 92)
+                    }
+                    .position(x: x, y: height / 2 + 12)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Curva de resistencia")
+        .accessibilityValue(points.map { "\($0.phase.rawValue) \(Int(($0.intensity * 100).rounded()))%" }.joined(separator: ", "))
+    }
+
+    private func xPosition(for phase: ResistanceCurveProfile.Phase, width: CGFloat) -> CGFloat {
+        let available = max(width - 86, 1)
+        return 43 + (available * CGFloat(phase.index / 2))
+    }
+}
+
+private struct PressureLegendDot: View {
+    let title: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(title)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 

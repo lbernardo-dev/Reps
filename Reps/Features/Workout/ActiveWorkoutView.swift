@@ -52,6 +52,8 @@ struct ActiveWorkoutView: View {
     @State private var showExerciseNotes = false
     @State private var showSessionFeedback = false
     @State private var showProPreferences = false
+    @State private var showMissingExerciseAlert = false
+    @State private var showStopConfirmation = false
     @State private var lastStatusPublishSecond = -1
 
     private var exerciseDrafts: [ExerciseSessionDraft] {
@@ -180,6 +182,10 @@ struct ActiveWorkoutView: View {
         return restSeconds == 0 ? "Listo" : "Descanso"
     }
 
+    private var isSessionStarted: Bool {
+        store.activeWorkoutStatus != nil && store.activeWorkout?.id == workout.id
+    }
+
     var body: some View {
         Group {
             if let finishedSession {
@@ -196,6 +202,7 @@ struct ActiveWorkoutView: View {
             handleTimerTick()
         }
         .onAppear {
+            prepareWorkoutIfNeeded()
             applyAutoProgressionIfNeeded()
             if let status = store.activeWorkoutStatus, store.activeWorkout?.id == workout.id {
                 elapsedSeconds = status.effectiveElapsedSeconds()
@@ -219,24 +226,19 @@ struct ActiveWorkoutView: View {
                 lastPausedAt       = status.lastPausedAt
                 basePausedSeconds  = status.pausedSeconds
             } else {
-                if store.activeWorkoutStatus == nil {
-                    store.startActiveWorkout(workout, elapsedSeconds: elapsedSeconds, pausedSeconds: pausedSeconds, isPaused: isPaused)
-                } else if store.activeWorkout == nil {
-                    store.activeWorkout = workout
-                    store.activeWorkoutDrafts = Self.makeDrafts(for: workout)
-                } else if store.activeWorkout?.id != workout.id {
-                    store.clearActiveWorkout()
-                    store.startActiveWorkout(workout, elapsedSeconds: 0, pausedSeconds: 0, isPaused: false)
-                }
-                startedAt         = Date()
-                lastPausedAt      = nil
+                elapsedSeconds = 0
+                pausedSeconds = 0
+                isPaused = false
+                startedAt = Date()
+                lastPausedAt = nil
                 basePausedSeconds = 0
             }
             if isRouteCandidate {
                 routeTracker.requestAuthorization()
             }
-            // Keep the process alive so timers continue with screen off.
-            WorkoutBackgroundKeepAlive.shared.startIfNeeded()
+            if isSessionStarted {
+                WorkoutBackgroundKeepAlive.shared.startIfNeeded()
+            }
         }
         .onChange(of: sessionPhotoItems) { _, newItems in
             Task { await appendSessionPhotos(from: newItems) }
@@ -312,6 +314,22 @@ struct ActiveWorkoutView: View {
         } message: {
             Text("Has completado el tiempo planificado de tu entrenamiento (\(workout.durationMinutes) min).")
         }
+        .alert("Añade al menos un ejercicio", isPresented: $showMissingExerciseAlert) {
+            Button("Buscar ejercicio") {
+                showAddExercise = true
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("No se puede iniciar una sesión sin ejercicios.")
+        }
+        .confirmationDialog("Detener sesión", isPresented: $showStopConfirmation, titleVisibility: .visible) {
+            Button("Detener y descartar", role: .destructive) {
+                stopWorkout()
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("Se descartará esta sesión activa y los cambios no finalizados.")
+        }
         .onDisappear {
             if finishedSession == nil {
                 elapsedSeconds = elapsedWorkoutSeconds()
@@ -342,6 +360,8 @@ struct ActiveWorkoutView: View {
                         routeTrackingCard
                             .frame(width: contentWidth)
                     }
+                    sessionExerciseOrderCard
+                        .frame(width: contentWidth)
                     restCard
                         .frame(width: contentWidth)
                     exerciseSwitcher
@@ -372,7 +392,11 @@ struct ActiveWorkoutView: View {
     private var workoutHeader: some View {
         HStack(alignment: .center, spacing: 10) {
             Button {
-                dismiss()
+                if isSessionStarted {
+                    showStopConfirmation = true
+                } else {
+                    stopWorkout()
+                }
             } label: {
                 Image(systemName: "xmark")
                     .font(.body.weight(.bold))
@@ -389,41 +413,96 @@ struct ActiveWorkoutView: View {
                 .minimumScaleFactor(0.72)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button {
-                withAnimation(.snappy(duration: 0.2)) {
-                    setWorkoutPaused(!isPaused)
-                }
-            } label: {
-                Image(systemName: isPaused ? "play.fill" : "pause.fill")
-                    .font(.body.weight(.bold))
-                    .frame(width: 44, height: 44)
-                    .foregroundStyle(isPaused ? PulseTheme.primary : PulseTheme.warning)
-                    .background(isPaused ? PulseTheme.primary.opacity(0.12) : PulseTheme.warning.opacity(0.15))
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle().stroke(
-                            isPaused ? PulseTheme.primary.opacity(0.3) : PulseTheme.warning.opacity(0.4),
-                            lineWidth: 1.5
+            if isSessionStarted {
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) {
+                        setWorkoutPaused(!isPaused)
+                    }
+                } label: {
+                    Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                        .font(.body.weight(.bold))
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(isPaused ? PulseTheme.primary : PulseTheme.warning)
+                        .background(isPaused ? PulseTheme.primary.opacity(0.12) : PulseTheme.warning.opacity(0.15))
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle().stroke(
+                                isPaused ? PulseTheme.primary.opacity(0.3) : PulseTheme.warning.opacity(0.4),
+                                lineWidth: 1.5
+                            )
                         )
-                    )
+                }
+                .accessibilityLabel(isPaused ? "Reanudar entrenamiento" : "Pausar entrenamiento")
             }
-            .accessibilityLabel(isPaused ? "Reanudar entrenamiento" : "Pausar entrenamiento")
 
             Button {
-                finishWorkout()
+                if isSessionStarted {
+                    finishWorkout()
+                } else {
+                    startPreparedSession()
+                }
             } label: {
-                Text("Finalizar")
+                Text(isSessionStarted ? "Finalizar" : "Iniciar")
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(width: 90, height: 44)
-                    .background(PulseTheme.destructive)
+                    .background(isSessionStarted ? PulseTheme.destructive : (exerciseDrafts.isEmpty ? PulseTheme.secondaryText : PulseTheme.primary))
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
+            .disabled(!isSessionStarted && exerciseDrafts.isEmpty)
+            .accessibilityHint(!isSessionStarted && exerciseDrafts.isEmpty ? "Añade al menos un ejercicio para iniciar" : "")
         }
         .padding(.top, 2)
     }
 
+    private func prepareWorkoutIfNeeded() {
+        if store.activeWorkoutStatus != nil, store.activeWorkout?.id != workout.id {
+            return
+        }
+
+        if store.activeWorkout?.id != workout.id {
+            store.activeWorkout = workout
+            store.activeWorkoutDrafts = Self.makeDrafts(for: workout)
+        } else if store.activeWorkoutDrafts.isEmpty, !workout.exercises.isEmpty {
+            store.activeWorkoutDrafts = Self.makeDrafts(for: workout)
+        }
+    }
+
+    private func startPreparedSession() {
+        guard !exerciseDrafts.isEmpty else {
+            showMissingExerciseAlert = true
+            return
+        }
+
+        startedAt = Date()
+        elapsedSeconds = 0
+        pausedSeconds = 0
+        isPaused = false
+        lastPausedAt = nil
+        basePausedSeconds = 0
+        lastStatusPublishSecond = -1
+        store.startPreparedActiveWorkout(workout, drafts: exerciseDrafts)
+        WorkoutBackgroundKeepAlive.shared.startIfNeeded()
+        publishActiveWorkoutStatus()
+    }
+
+    private func stopWorkout() {
+        routeTracker.stop()
+        stopRest()
+        store.clearActiveWorkout()
+        WorkoutBackgroundKeepAlive.shared.stop()
+        dismiss()
+    }
+
     private func finishWorkout() {
+        guard isSessionStarted else {
+            startPreparedSession()
+            return
+        }
+        guard !exerciseDrafts.isEmpty else {
+            showMissingExerciseAlert = true
+            return
+        }
         elapsedSeconds = elapsedWorkoutSeconds()
         let logs = exerciseDrafts.compactMap { draft -> ExerciseLog? in
             let completedSets = draft.sets.filter(\.completed)
@@ -525,7 +604,7 @@ struct ActiveWorkoutView: View {
     }
 
     private func handleTimerTick() {
-        guard finishedSession == nil else { return }
+        guard finishedSession == nil, isSessionStarted else { return }
 
         if let globalPaused = store.activeWorkoutStatus?.isPaused, globalPaused != isPaused {
             isPaused = globalPaused
@@ -569,6 +648,7 @@ struct ActiveWorkoutView: View {
     }
 
     private func setWorkoutPaused(_ paused: Bool) {
+        guard isSessionStarted else { return }
         elapsedSeconds = elapsedWorkoutSeconds()
         isPaused = paused
         if paused {
@@ -621,10 +701,10 @@ struct ActiveWorkoutView: View {
                     .frame(width: 68, height: 68)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(isPaused ? "SESIÓN PAUSADA" : "SESIÓN ACTIVA")
+                        Text(isSessionStarted ? (isPaused ? "SESIÓN PAUSADA" : "SESIÓN ACTIVA") : "SESIÓN PREPARADA")
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.6)
-                            .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.primary)
+                            .foregroundStyle(isSessionStarted ? (isPaused ? PulseTheme.warning : PulseTheme.primary) : PulseTheme.secondaryText)
                         WorkoutElapsedText(
                             startedAt: startedAt,
                             basePausedSeconds: basePausedSeconds,
@@ -686,8 +766,8 @@ struct ActiveWorkoutView: View {
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     .shadow(color: PulseTheme.accent.opacity(0.22), radius: 8, x: 0, y: 4)
                 }
-                .disabled(completedSets == totalSets)
-                .opacity(completedSets == totalSets ? 0.55 : 1)
+                .disabled(!isSessionStarted || completedSets == totalSets)
+                .opacity(!isSessionStarted || completedSets == totalSets ? 0.55 : 1)
 
                 if let playlist = planPlaylist {
                     Divider()
@@ -840,27 +920,32 @@ struct ActiveWorkoutView: View {
                         }
                     } label: {
                         HStack(spacing: 10) {
-                            ExerciseMediaThumbnail(
-                                exercise: draft.workoutExercise.exercise,
-                                gender: store.userProfile.muscleMapGender,
-                                fallbackSize: .caption.weight(.bold)
-                            )
-                            .equatable()
-                            .frame(width: 40, height: 40)
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .overlay(alignment: .topTrailing) {
-                                ZStack {
-                                    Circle()
-                                        .fill(isActive ? PulseTheme.accentMuted : PulseTheme.card)
-                                        .frame(width: 18, height: 18)
-                                    Circle()
-                                        .trim(from: 0, to: ratio)
-                                        .stroke(isActive ? PulseTheme.accent : PulseTheme.primaryBright, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                                        .rotationEffect(.degrees(-90))
-                                        .frame(width: 14, height: 14)
+                            NavigationLink {
+                                ExerciseProgressView(exercise: draft.workoutExercise.exercise)
+                            } label: {
+                                ExerciseMediaThumbnail(
+                                    exercise: draft.workoutExercise.exercise,
+                                    gender: store.userProfile.muscleMapGender,
+                                    fallbackSize: .caption.weight(.bold)
+                                )
+                                .equatable()
+                                .frame(width: 40, height: 40)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .overlay(alignment: .topTrailing) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(isActive ? PulseTheme.accentMuted : PulseTheme.card)
+                                            .frame(width: 18, height: 18)
+                                        Circle()
+                                            .trim(from: 0, to: ratio)
+                                            .stroke(isActive ? PulseTheme.accent : PulseTheme.primaryBright, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                                            .rotationEffect(.degrees(-90))
+                                            .frame(width: 14, height: 14)
+                                    }
+                                    .offset(x: 6, y: -6)
                                 }
-                                .offset(x: 6, y: -6)
                             }
+                            .buttonStyle(.plain)
 
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("\(index + 1). \(RepsText.exerciseName(draft.workoutExercise.exercise.name, language: store.userProfile.preferredLanguage))")
@@ -889,6 +974,75 @@ struct ActiveWorkoutView: View {
             }
             .padding(.horizontal, 2)
             .padding(.vertical, 4)
+        }
+    }
+
+    private var sessionExerciseOrderCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Label("Orden de ejercicios", systemImage: "arrow.up.arrow.down")
+                        .font(.headline)
+                    Spacer()
+                    Button {
+                        showAddExercise = true
+                    } label: {
+                        Label("Añadir", systemImage: "plus")
+                            .font(.subheadline.weight(.bold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(PulseTheme.primary)
+                }
+
+                if exerciseDrafts.isEmpty {
+                    Text("Añade al menos un ejercicio para poder iniciar la sesión.")
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(Array(exerciseDrafts.enumerated()), id: \.element.workoutExercise.id) { index, draft in
+                            HStack(spacing: 10) {
+                                Text("\(index + 1)")
+                                    .font(.caption.weight(.black).monospacedDigit())
+                                    .foregroundStyle(PulseTheme.primary)
+                                    .frame(width: 26, height: 26)
+                                    .background(PulseTheme.primary.opacity(0.12))
+                                    .clipShape(Circle())
+
+                                Text(RepsText.exerciseName(draft.workoutExercise.exercise.name, language: store.userProfile.preferredLanguage))
+                                    .font(.subheadline.weight(.bold))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
+
+                                Spacer()
+
+                                Button {
+                                    moveDraft(from: index, to: index - 1)
+                                } label: {
+                                    Image(systemName: "chevron.up")
+                                        .frame(width: 32, height: 32)
+                                }
+                                .disabled(index == 0)
+
+                                Button {
+                                    moveDraft(from: index, to: index + 1)
+                                } label: {
+                                    Image(systemName: "chevron.down")
+                                        .frame(width: 32, height: 32)
+                                }
+                                .disabled(index == exerciseDrafts.count - 1)
+                            }
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 10)
+                            .frame(height: 44)
+                            .background(selectedExerciseIndex == index ? PulseTheme.accentMuted : PulseTheme.grouped)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 
@@ -1017,7 +1171,11 @@ struct ActiveWorkoutView: View {
                     }
                     Spacer()
                     Button {
-                        routeTracker.isTracking ? routeTracker.stop() : routeTracker.start()
+                        if isSessionStarted {
+                            routeTracker.isTracking ? routeTracker.stop() : routeTracker.start()
+                        } else {
+                            startPreparedSession()
+                        }
                     } label: {
                         Text(routeTracker.isTracking ? "Detener" : "Iniciar")
                             .font(.subheadline.weight(.bold))
@@ -1051,10 +1209,19 @@ struct ActiveWorkoutView: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .top, spacing: 14) {
                     if let exercise = selectedDraft?.workoutExercise.exercise {
-                        ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender)
-                            .equatable()
-                            .frame(width: 92, height: 104)
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        NavigationLink {
+                            ExerciseProgressView(exercise: exercise)
+                        } label: {
+                            ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender)
+                                .equatable()
+                                .frame(width: 92, height: 104)
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                                        .stroke(PulseTheme.separator, lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -1109,12 +1276,14 @@ struct ActiveWorkoutView: View {
                                 withAnimation(.snappy(duration: 0.24)) {
                                     exerciseDrafts.remove(at: selectedExerciseIndex)
                                     selectedExerciseIndex = max(0, min(selectedExerciseIndex, exerciseDrafts.count - 1))
+                                    syncActiveWorkoutExercises()
                                     publishActiveWorkoutStatus()
                                 }
                             } else {
                                 withAnimation(.snappy(duration: 0.24)) {
                                     exerciseDrafts.removeAll()
                                     selectedExerciseIndex = 0
+                                    syncActiveWorkoutExercises()
                                     publishActiveWorkoutStatus()
                                 }
                             }
@@ -1156,6 +1325,7 @@ struct ActiveWorkoutView: View {
                             guard completed else { return }
                             handleSetCompleted(exerciseIndex: selectedExerciseIndex, setIndex: setIndex)
                         }
+                        .disabled(!isSessionStarted)
                     }
                 }
 
@@ -1643,6 +1813,10 @@ struct ActiveWorkoutView: View {
     }
 
     private func completeNextAvailableSet() {
+        guard isSessionStarted else {
+            startPreparedSession()
+            return
+        }
         guard let next = nextIncompleteSet else {
             return
         }
@@ -1662,9 +1836,35 @@ struct ActiveWorkoutView: View {
     }
 
     private func addWater() {
+        guard isSessionStarted else {
+            startPreparedSession()
+            return
+        }
         withAnimation(.snappy(duration: 0.18)) {
             waterLiters = min(waterLiters + 0.25, 8)
         }
+        publishActiveWorkoutStatus()
+    }
+
+    private func moveDraft(from source: Int, to destination: Int) {
+        guard exerciseDrafts.indices.contains(source),
+              exerciseDrafts.indices.contains(destination),
+              source != destination else {
+            return
+        }
+
+        let selectedID = selectedDraft?.workoutExercise.id
+        withAnimation(.snappy(duration: 0.22)) {
+            let draft = exerciseDrafts.remove(at: source)
+            exerciseDrafts.insert(draft, at: destination)
+            if let selectedID,
+               let newIndex = exerciseDrafts.firstIndex(where: { $0.workoutExercise.id == selectedID }) {
+                selectedExerciseIndex = newIndex
+            } else {
+                selectedExerciseIndex = min(max(destination, 0), exerciseDrafts.count - 1)
+            }
+        }
+        syncActiveWorkoutExercises()
         publishActiveWorkoutStatus()
     }
 
@@ -1703,6 +1903,7 @@ struct ActiveWorkoutView: View {
             exerciseDrafts.append(Self.makeDraft(for: exercise))
             selectedExerciseIndex = max(exerciseDrafts.count - 1, 0)
         }
+        syncActiveWorkoutExercises()
     }
 
     private func replaceExercise(at index: Int, with exercise: Exercise) {
@@ -1729,6 +1930,14 @@ struct ActiveWorkoutView: View {
             }
             exerciseDrafts[index] = replacement
             selectedExerciseIndex = index
+        }
+        syncActiveWorkoutExercises()
+    }
+
+    private func syncActiveWorkoutExercises() {
+        if var activeWorkout = store.activeWorkout {
+            activeWorkout.exercises = exerciseDrafts.map(\.workoutExercise)
+            store.activeWorkout = activeWorkout
         }
     }
 

@@ -1,3 +1,4 @@
+import CryptoKit
 import PhotosUI
 import MuscleMap
 import SwiftUI
@@ -1283,9 +1284,9 @@ struct ExerciseHeroMedia: View {
                             .clipped()
                     }
                 } else if let url = exercise.mediaAssetURL {
-                    ExerciseReferenceImage(url: url, size: size)
+                    ExerciseReferenceImage(exercise: exercise, url: url, size: size)
                 } else {
-                    fallback
+                    ExerciseHeroFallback(exercise: exercise)
                         .frame(width: size.width, height: size.height)
                 }
 
@@ -1321,34 +1322,20 @@ struct ExerciseHeroMedia: View {
         .accessibilityLabel("Imagen grande de referencia de \(exercise.name)")
     }
 
-    private var fallback: some View {
-        ZStack {
-            PulseTheme.primary.opacity(0.10)
-            VStack(spacing: 12) {
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 48, weight: .bold))
-                Text("Sin imagen offline")
-                    .font(.headline)
-                Text("Sincroniza la biblioteca abierta para cargar referencias visuales.")
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 28)
-            }
-            .foregroundStyle(PulseTheme.primary)
-        }
-    }
 }
 
 struct ExerciseReferenceImage: View {
+    let exercise: Exercise
     let url: URL
     let size: CGSize
+    @State private var image: UIImage?
+    @State private var isLoading = true
 
     var body: some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image):
+        ZStack {
+            if let image {
                 ZStack {
-                    image
+                    Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
                         .frame(width: size.width, height: size.height)
@@ -1357,7 +1344,7 @@ struct ExerciseReferenceImage: View {
                         .opacity(0.48)
                         .clipped()
 
-                    image
+                    Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
                         .frame(width: size.width, height: size.height, alignment: .center)
@@ -1367,37 +1354,86 @@ struct ExerciseReferenceImage: View {
                 }
                 .frame(width: size.width, height: size.height)
                 .clipped()
-            case .failure:
-                ExerciseHeroFallback()
-                    .frame(width: size.width, height: size.height)
-            case .empty:
+            } else if isLoading {
                 ProgressView()
                     .tint(PulseTheme.accent)
                     .frame(width: size.width, height: size.height)
-            @unknown default:
-                ExerciseHeroFallback()
+            } else {
+                ExerciseHeroFallback(exercise: exercise)
                     .frame(width: size.width, height: size.height)
             }
+        }
+        .task(id: url) {
+            isLoading = true
+            image = await ExerciseReferenceImageCache.shared.image(for: url)
+            isLoading = false
         }
     }
 }
 
 private struct ExerciseHeroFallback: View {
+    let exercise: Exercise
+
     var body: some View {
         ZStack {
-            PulseTheme.primary.opacity(0.10)
-            VStack(spacing: 12) {
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 48, weight: .bold))
-                Text("Sin imagen offline")
-                    .font(.headline)
-                Text("Sincroniza la biblioteca abierta para cargar referencias visuales.")
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 28)
-            }
-            .foregroundStyle(PulseTheme.primary)
+            ExerciseAnatomyThumbnail(exercise: exercise, gender: .male, size: max(260, 1))
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+
+            PulseTheme.primary.opacity(0.08)
         }
+    }
+}
+
+private actor ExerciseReferenceImageCache {
+    static let shared = ExerciseReferenceImageCache()
+
+    private let memoryCache = NSCache<NSURL, UIImage>()
+    private let cacheDirectory: URL
+
+    init() {
+        let baseURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        cacheDirectory = baseURL.appendingPathComponent("ExerciseReferenceImages", isDirectory: true)
+    }
+
+    func image(for url: URL) async -> UIImage? {
+        let nsURL = url as NSURL
+        if let image = memoryCache.object(forKey: nsURL) {
+            return image
+        }
+
+        let fileURL = cacheDirectory.appendingPathComponent(cacheKey(for: url)).appendingPathExtension("img")
+        if let data = try? Data(contentsOf: fileURL), let image = UIImage(data: data) {
+            memoryCache.setObject(image, forKey: nsURL)
+            return image
+        }
+
+        do {
+            var request = URLRequest(url: url)
+            request.cachePolicy = .returnCacheDataElseLoad
+            request.timeoutInterval = 20
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200..<300).contains(httpResponse.statusCode),
+                  let image = UIImage(data: data) else {
+                return nil
+            }
+
+            try? FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+            try? data.write(to: fileURL, options: [.atomic])
+            memoryCache.setObject(image, forKey: nsURL)
+            return image
+        } catch {
+            return nil
+        }
+    }
+
+    private func cacheKey(for url: URL) -> String {
+        SHA256.hash(data: Data(url.absoluteString.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
     }
 }
 

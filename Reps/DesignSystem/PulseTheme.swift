@@ -530,9 +530,10 @@ struct ExerciseMediaThumbnail: View, Equatable {
 
     private var fallback: some View {
         GeometryReader { proxy in
-            let side = min(proxy.size.width, proxy.size.height)
+            let side = max(proxy.size.width, proxy.size.height)
             ExerciseAnatomyThumbnail(exercise: exercise, gender: gender, size: max(side, 1))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
         }
     }
 

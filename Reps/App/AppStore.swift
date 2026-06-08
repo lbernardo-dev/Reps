@@ -624,6 +624,40 @@ final class AppStore: ObservableObject {
         gymVisits.append(visit)
     }
 
+    @discardableResult
+    func handleReceiptDeepLink(_ url: URL) -> Bool {
+        guard let payload = WorkoutReceiptDeepLink.payload(from: url) else {
+            return false
+        }
+
+        let alreadySaved = savedShareCards.contains { card in
+            card.workoutTitle == payload.workoutTitle
+                && abs(card.date.timeIntervalSince(payload.date)) < 1
+        }
+
+        let image = WorkoutShareImageRenderer.render(payload: payload)
+        if let data = image.pngData() {
+            UIPasteboard.general.image = image
+
+            if !alreadySaved {
+                savedShareCards.append(
+                    SavedShareCard(
+                        date: payload.date,
+                        workoutTitle: payload.workoutTitle,
+                        imageData: data
+                    )
+                )
+            }
+        }
+
+        TelemetryService.shared.log(.receiptDeepLinkImported, parameters: [
+            "already_saved": alreadySaved,
+            "exercise_count": payload.exercises.count
+        ])
+
+        return true
+    }
+
     func addCardioLog(_ log: CardioLog) {
         cardioLogs.append(log)
         TelemetryService.shared.log(.cardioLogAdded, parameters: [
@@ -765,6 +799,33 @@ final class AppStore: ObservableObject {
         TelemetryService.shared.log(.workoutStarted, parameters: [
             "session_type": workout.sessionType.rawValue,
             "exercise_count": workout.exercises.count,
+            "origin_has_active_plan": activePlan.days.contains { $0.id == workout.id }
+        ])
+    }
+
+    func startPreparedActiveWorkout(_ workout: WorkoutDay, drafts: [ExerciseSessionDraft], isPaused: Bool = false) {
+        var preparedWorkout = workout
+        preparedWorkout.exercises = drafts.map(\.workoutExercise)
+        activeWorkout = preparedWorkout
+        activeWorkoutDrafts = drafts
+        activeWorkoutStatus = ActiveWorkoutStatus(
+            planTitle: activePlan.days.isEmpty ? nil : activePlan.name,
+            workoutTitle: preparedWorkout.title,
+            sessionTitle: preparedWorkout.subtitle,
+            startedAt: .now,
+            elapsedSeconds: 0,
+            pausedSeconds: 0,
+            completedSets: drafts.flatMap(\.sets).filter(\.completed).count,
+            totalSets: drafts.flatMap(\.sets).count,
+            volumeKg: 0,
+            isPaused: isPaused,
+            exerciseName: drafts.first?.workoutExercise.exercise.name,
+            exerciseIndex: drafts.isEmpty ? nil : 1,
+            totalExercises: drafts.count
+        )
+        TelemetryService.shared.log(.workoutStarted, parameters: [
+            "session_type": preparedWorkout.sessionType.rawValue,
+            "exercise_count": preparedWorkout.exercises.count,
             "origin_has_active_plan": activePlan.days.contains { $0.id == workout.id }
         ])
     }
@@ -1214,7 +1275,9 @@ final class AppStore: ObservableObject {
             // Build key map for faster search and updates
             var existingExercisesByKey: [String: Int] = [:]
             for (index, exercise) in exercises.enumerated() {
-                existingExercisesByKey[exercise.name.normalizedExerciseKey] = index
+                for key in exercise.libraryLookupKeys {
+                    existingExercisesByKey[key] = index
+                }
             }
 
             var mergedCount = 0
@@ -1243,7 +1306,9 @@ final class AppStore: ObservableObject {
                 } else {
                     exercises.append(remoteExercise)
                     addedCount += 1
-                    existingExercisesByKey[key] = exercises.count - 1
+                    for lookupKey in remoteExercise.libraryLookupKeys {
+                        existingExercisesByKey[lookupKey] = exercises.count - 1
+                    }
                 }
             }
 
@@ -2273,5 +2338,21 @@ private extension String {
             .replacingOccurrences(of: "_", with: " ")
             .split(separator: " ")
             .joined(separator: " ")
+    }
+}
+
+private extension Exercise {
+    var libraryLookupKeys: Set<String> {
+        let explicitFallbacks: [String]
+        switch name.normalizedExerciseKey {
+        case "bulgarian split squat":
+            explicitFallbacks = ["Split Squat with Dumbbells", "Split Squats"]
+        default:
+            explicitFallbacks = []
+        }
+
+        return Set(([name] + aliases + explicitFallbacks)
+            .map(\.normalizedExerciseKey)
+            .filter { !$0.isEmpty })
     }
 }

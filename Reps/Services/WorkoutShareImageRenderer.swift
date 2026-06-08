@@ -12,6 +12,15 @@ struct WorkoutShareImageRenderer {
     }
 
     @MainActor
+    static func render(payload: WorkoutReceiptSharePayload) -> UIImage {
+        let view = WorkoutReceiptView(payload: payload)
+            .frame(width: 375)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 3.0
+        return renderer.uiImage ?? UIImage()
+    }
+
+    @MainActor
     static func render(title: String, duration: Int, volume: Int, sets: Int) -> UIImage {
         // Create a mock WorkoutSession to keep compatibility with PRs and general metrics sharing
         let mockSession = WorkoutSession(

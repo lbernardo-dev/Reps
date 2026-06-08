@@ -142,6 +142,7 @@ enum TelemetryEvent: String {
     case mainTabSelected = "main_tab_selected"
     case quickMenuToggled = "quick_menu_toggled"
     case quickActionOpened = "quick_action_opened"
+    case receiptDeepLinkImported = "receipt_deep_link_imported"
     case supportSheetOpened = "support_sheet_opened"
     case reviewPromptRequested = "review_prompt_requested"
     case feedbackSent = "feedback_sent"

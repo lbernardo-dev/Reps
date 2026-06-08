@@ -52,6 +52,9 @@ struct RepsApp: App {
                     store.handleNotificationTarget(target)
                     NotificationRouter.shared.consumeLatestTarget()
                 }
+                .onOpenURL { url in
+                    _ = store.handleReceiptDeepLink(url)
+                }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {

@@ -1,5 +1,8 @@
 import AppIntents
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
     case blue
@@ -65,7 +68,12 @@ public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
         case .purple: return Color(red: 0.18, green: 0.06, blue: 0.34)
         case .red: return Color(red: 0.34, green: 0.05, blue: 0.05)
         case .yellow: return Color(red: 0.92, green: 0.66, blue: 0.03)
-        case .system: return Color(red: 0.05, green: 0.05, blue: 0.06)
+        case .system:
+            #if os(iOS)
+            return Color(uiColor: .systemBackground)
+            #else
+            return Color.primary.opacity(0.05)
+            #endif
         }
     }
 
@@ -199,9 +207,11 @@ public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
                 background: AnyView(
                     ZStack {
                         #if os(watchOS)
-                        Color.black
+                        Color.primary.opacity(0.06)
+                        #elseif os(iOS)
+                        Color(uiColor: .systemBackground)
                         #else
-                        Color(red: 0.05, green: 0.05, blue: 0.06)
+                        Color.primary.opacity(0.06)
                         #endif
                         LinearGradient(
                             colors: [Color(red: 0.28, green: 0.86, blue: 0.38).opacity(0.12), Color.clear],
@@ -210,12 +220,12 @@ public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
                         )
                     }
                 ),
-                foreground: .white,
-                secondaryForeground: .white.opacity(0.68),
-                badgeBackground: Color(red: 0.28, green: 0.86, blue: 0.38).opacity(0.16),
+                foreground: .primary,
+                secondaryForeground: .secondary,
+                badgeBackground: Color.primary.opacity(0.08),
                 badgeText: Color(red: 0.48, green: 0.88, blue: 0.58),
                 tint: Color(red: 0.28, green: 0.86, blue: 0.38),
-                isDarkBackground: true
+                isDarkBackground: false
             )
         }
     }
@@ -234,6 +244,9 @@ public struct WidgetTheme {
 public struct RepsWidgetConfigurationIntent: WidgetConfigurationIntent {
     public static let title: LocalizedStringResource = "Configuración del Widget"
     public static let description = IntentDescription("Personaliza la visualización de los widgets de Reps.")
+
+    @Parameter(title: "Fondo", default: WidgetColor.system)
+    public var backgroundColor: WidgetColor
 
     public init() {}
 }

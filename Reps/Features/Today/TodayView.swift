@@ -31,7 +31,17 @@ struct TodayView: View {
     }
 
     private var completedThisWeek: Int {
-        min(weekSessions.count, store.activePlan.daysPerWeek)
+        guard hasActivePlan else {
+            return weekSessions.count
+        }
+        return min(weekSessions.count, store.activePlan.daysPerWeek)
+    }
+
+    private var weekTargetText: String {
+        guard hasActivePlan else {
+            return "\(completedThisWeek)"
+        }
+        return "\(completedThisWeek)/\(store.activePlan.daysPerWeek)"
     }
 
     private var streakDays: Int {
@@ -382,7 +392,7 @@ struct TodayView: View {
         }()
 
         return VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .center) {
+            ZStack(alignment: .topTrailing) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(badgeText)
                         .font(.system(size: 11, weight: .black, design: .rounded))
@@ -456,13 +466,15 @@ struct TodayView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.84))
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.trailing, 124)
                 }
-                Spacer(minLength: 12)
+
                 WorkoutImageStack(
                     exercises: focusPreviewExercises,
                     gender: store.userProfile.muscleMapGender,
                     fallbackSystemImage: hasActivePlanSession ? "figure.strengthtraining.traditional" : "sparkles"
                 )
+                .offset(x: 16, y: 36)
             }
 
             HStack(spacing: 8) {
@@ -547,7 +559,7 @@ struct TodayView: View {
 
     private var weeklyCommandGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            HomeMetricTile(title: "Week", value: hasActivePlan ? "\(completedThisWeek)/\(store.activePlan.daysPerWeek)" : "0", subtitle: isSpanish ? "sesiones" : "sessions", systemImage: "calendar", color: PulseTheme.primary)
+            HomeMetricTile(title: "Week", value: weekTargetText, subtitle: isSpanish ? "sesiones" : "sessions", systemImage: "calendar", color: PulseTheme.primary)
             HomeMetricTile(title: "Volume", value: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: isSpanish ? "kg esta semana" : "kg this week", systemImage: "scalemass", color: PulseTheme.primaryBright)
             HomeMetricTile(title: "Streak", value: "\(streakDays)", subtitle: isSpanish ? "días seguidos" : "days in a row", systemImage: "flame", color: PulseTheme.accent)
         }

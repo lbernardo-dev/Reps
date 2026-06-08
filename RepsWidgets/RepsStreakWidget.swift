@@ -17,11 +17,11 @@ struct RepsStreakProvider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> RepsStreakEntry {
-        RepsStreakEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
+        RepsStreakEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
     }
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsStreakEntry> {
-        let entry = RepsStreakEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
+        let entry = RepsStreakEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
         return Timeline(entries: [entry], policy: .atEnd)
     }
 }
@@ -37,7 +37,7 @@ struct RepsStreakWidget: Widget {
         .description("Días de racha seguidos y progreso semanal de entrenamientos.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
         .contentMarginsDisabled()
-        .containerBackgroundRemovable(false)
+        .containerBackgroundRemovable(true)
     }
 }
 

@@ -1,9 +1,191 @@
+import CoreImage.CIFilterBuiltins
 import SwiftUI
 import MuscleMap
 
+struct WorkoutReceiptExerciseLine: Codable, Hashable {
+    var name: String
+    var sets: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case name = "n"
+        case sets = "s"
+    }
+}
+
+struct WorkoutReceiptSharePayload: Codable, Hashable {
+    var id: UUID
+    var workoutTitle: String
+    var date: Date
+    var durationMinutes: Int
+    var totalVolumeKg: Int
+    var completedSetsCount: Int
+    var exercises: [WorkoutReceiptExerciseLine]
+
+    private enum CodingKeys: String, CodingKey {
+        case id = "i"
+        case workoutTitle = "t"
+        case date = "d"
+        case durationMinutes = "m"
+        case totalVolumeKg = "v"
+        case completedSetsCount = "c"
+        case exercises = "e"
+    }
+
+    init(
+        id: UUID,
+        workoutTitle: String,
+        date: Date,
+        durationMinutes: Int,
+        totalVolumeKg: Int,
+        completedSetsCount: Int,
+        exercises: [WorkoutReceiptExerciseLine]
+    ) {
+        self.id = id
+        self.workoutTitle = workoutTitle
+        self.date = date
+        self.durationMinutes = durationMinutes
+        self.totalVolumeKg = totalVolumeKg
+        self.completedSetsCount = completedSetsCount
+        self.exercises = exercises
+    }
+
+    init(session: WorkoutSession, isSpanish: Bool) {
+        let logs = FitnessMetrics.completedExerciseLogs(in: session)
+        self.init(
+            id: session.id,
+            workoutTitle: session.workoutTitle,
+            date: session.date,
+            durationMinutes: session.durationMinutes,
+            totalVolumeKg: Int(FitnessMetrics.totalVolumeKg(for: [session])),
+            completedSetsCount: FitnessMetrics.completedSets(in: session).count,
+            exercises: logs.prefix(6).map { log in
+                WorkoutReceiptExerciseLine(
+                    name: RepsText.exerciseName(log.exercise.name, language: isSpanish ? "es" : "en"),
+                    sets: log.sets.count
+                )
+            }
+        )
+    }
+
+    var receiptCode: String {
+        "REPS-FIT-\(id.uuidString.prefix(8).uppercased())"
+    }
+}
+
+enum WorkoutReceiptDeepLink {
+    static let appStoreURL = URL(string: "https://apps.apple.com/app/id6775801149")!
+    static let webReceiptBaseURL = URL(string: "https://reps.fit/receipt")!
+
+    static func qrURL(for payload: WorkoutReceiptSharePayload) -> URL {
+        guard let encodedPayload = encode(payload) else {
+            return appStoreURL
+        }
+
+        var components = URLComponents(url: webReceiptBaseURL, resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "p", value: encodedPayload)
+        ]
+        return components.url ?? appStoreURL
+    }
+
+    static func payload(from url: URL) -> WorkoutReceiptSharePayload? {
+        guard url.scheme == "reps" || url.scheme == "https" else {
+            return nil
+        }
+
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let encodedPayload = components.queryItems?.first(where: { $0.name == "p" })?.value else {
+            return nil
+        }
+
+        if url.scheme == "reps" {
+            guard url.host == "receipt" else { return nil }
+        } else {
+            guard url.host == webReceiptBaseURL.host else { return nil }
+        }
+
+        return decode(encodedPayload)
+    }
+
+    static func session(from payload: WorkoutReceiptSharePayload) -> WorkoutSession {
+        WorkoutSession(
+            id: payload.id,
+            workoutTitle: payload.workoutTitle,
+            date: payload.date,
+            startedAt: payload.date.addingTimeInterval(TimeInterval(-payload.durationMinutes * 60)),
+            endedAt: payload.date,
+            origin: .free,
+            location: .gym,
+            contextTag: .normal,
+            durationMinutes: payload.durationMinutes,
+            sets: (0..<payload.completedSetsCount).map { index in
+                SetLog(setNumber: index + 1, weightKg: 0, reps: 0, completed: true)
+            },
+            notes: String(localized: "Importado desde un QR de recibo Reps."),
+            exerciseLogs: payload.exercises.map { line in
+                ExerciseLog(
+                    exercise: Exercise(
+                        name: line.name,
+                        muscleGroup: "General",
+                        secondaryMuscles: [],
+                        equipment: "Reps QR"
+                    ),
+                    notes: "",
+                    sets: (0..<line.sets).map { index in
+                        SetLog(setNumber: index + 1, weightKg: 0, reps: 0, completed: true)
+                    }
+                )
+            }
+        )
+    }
+
+    private static func encode(_ payload: WorkoutReceiptSharePayload) -> String? {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(payload) else {
+            return nil
+        }
+        return data.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private static func decode(_ value: String) -> WorkoutReceiptSharePayload? {
+        var base64 = value
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let padding = base64.count % 4
+        if padding > 0 {
+            base64.append(String(repeating: "=", count: 4 - padding))
+        }
+
+        guard let data = Data(base64Encoded: base64) else {
+            return nil
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(WorkoutReceiptSharePayload.self, from: data)
+    }
+}
+
 struct WorkoutReceiptView: View {
-    let session: WorkoutSession
+    private let session: WorkoutSession?
+    private let importedPayload: WorkoutReceiptSharePayload?
     var gender: BodyGender = .male
+
+    init(session: WorkoutSession, gender: BodyGender = .male) {
+        self.session = session
+        self.importedPayload = nil
+        self.gender = gender
+    }
+
+    init(payload: WorkoutReceiptSharePayload, gender: BodyGender = .male) {
+        self.session = nil
+        self.importedPayload = payload
+        self.gender = gender
+    }
     
     private var isSpanish: Bool {
         Locale.current.language.languageCode?.identifier.hasPrefix("es") ?? true
@@ -13,25 +195,26 @@ struct WorkoutReceiptView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd MMM yyyy"
         formatter.locale = Locale(identifier: isSpanish ? "es_ES" : "en_US")
-        return formatter.string(from: session.date).uppercased()
+        return formatter.string(from: sharePayload.date).uppercased()
     }
     
     private var timeString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
-        return formatter.string(from: session.date)
+        return formatter.string(from: sharePayload.date)
     }
     
     private var completedSetsCount: Int {
-        FitnessMetrics.completedSets(in: session).count
+        sharePayload.completedSetsCount
     }
     
     private var totalVolume: Int {
-        Int(FitnessMetrics.totalVolumeKg(for: [session]))
+        sharePayload.totalVolumeKg
     }
     
     private var completedLogs: [ExerciseLog] {
-        FitnessMetrics.completedExerciseLogs(in: session)
+        guard let session else { return [] }
+        return FitnessMetrics.completedExerciseLogs(in: session)
     }
 
     private var exercises: [Exercise] {
@@ -44,6 +227,30 @@ struct WorkoutReceiptView: View {
     
     private var heatmap: [MuscleIntensity] {
         musclesTrained.map { MuscleIntensity(muscle: $0, intensity: 0.76) }
+    }
+
+    private var sharePayload: WorkoutReceiptSharePayload {
+        if let importedPayload {
+            return importedPayload
+        }
+
+        guard let session else {
+            return WorkoutReceiptSharePayload(
+                id: UUID(),
+                workoutTitle: "Reps Workout",
+                date: .now,
+                durationMinutes: 0,
+                totalVolumeKg: 0,
+                completedSetsCount: 0,
+                exercises: []
+            )
+        }
+
+        return WorkoutReceiptSharePayload(session: session, isSpanish: isSpanish)
+    }
+
+    private var qrImage: UIImage? {
+        Self.makeQRCode(from: WorkoutReceiptDeepLink.qrURL(for: sharePayload).absoluteString)
     }
     
     var body: some View {
@@ -96,21 +303,21 @@ struct WorkoutReceiptView: View {
             
             // Exercise rows in Receipt format
             VStack(alignment: .leading, spacing: 6) {
-                if !completedLogs.isEmpty {
-                    ForEach(completedLogs) { log in
-                        let name = RepsText.exerciseName(log.exercise.name, language: isSpanish ? "es" : "en")
+                if !sharePayload.exercises.isEmpty {
+                    ForEach(sharePayload.exercises, id: \.self) { line in
                         HStack(alignment: .bottom, spacing: 2) {
-                            Text(receiptTrim(name, maxChars: 24))
+                            Text(receiptTrim(line.name, maxChars: 24))
                                 .font(.system(size: 13, weight: .semibold, design: .monospaced))
 
-                            Text(String(repeating: ".", count: max(2, 30 - name.count)))
+                            Text(String(repeating: ".", count: max(2, 30 - line.name.count)))
                                 .font(.system(size: 11, design: .monospaced))
                                 .foregroundStyle(Color.black.opacity(0.35))
                                 .lineLimit(1)
 
                             Spacer(minLength: 2)
 
-                            Text("\(log.sets.count) \(isSpanish ? "SERIES" : "SETS")")
+                            let setsLabel = isSpanish ? "SERIES" : "SETS"
+                            Text("\(line.sets) \(setsLabel)")
                                 .font(.system(size: 13, weight: .bold, design: .monospaced))
                         }
                         .foregroundStyle(Color.black.opacity(0.85))
@@ -133,7 +340,7 @@ struct WorkoutReceiptView: View {
                     .foregroundStyle(Color.black.opacity(0.85))
                     .padding(.bottom, 2)
                 
-                statRow(title: isSpanish ? "DURACIÓN" : "DURATION", value: "\(session.durationMinutes) MIN")
+                statRow(title: isSpanish ? "DURACIÓN" : "DURATION", value: "\(sharePayload.durationMinutes) MIN")
                 statRow(title: isSpanish ? "VOLUMEN TOTAL" : "TOTAL VOLUME", value: "\(totalVolume) KG")
                 statRow(title: isSpanish ? "SERIES COMPLETADAS" : "COMPLETED SETS", value: "\(completedSetsCount) SRS")
             }
@@ -141,17 +348,24 @@ struct WorkoutReceiptView: View {
             
             dividerLine
             
-            // Mock Barcode
+            // Share QR
             VStack(spacing: 6) {
-                HStack(spacing: 2.2) {
-                    ForEach(0..<26, id: \.self) { index in
-                        Rectangle()
-                            .fill(Color.black.opacity(0.85))
-                            .frame(width: index % 3 == 0 ? 3.5 : (index % 4 == 0 ? 1.2 : 2.2), height: 36)
-                    }
+                if let qrImage {
+                    Image(uiImage: qrImage)
+                        .interpolation(.none)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 74, height: 74)
+                        .padding(6)
+                        .background(Color.white.opacity(0.9))
+                } else {
+                    Image(systemName: "qrcode")
+                        .font(.system(size: 54, weight: .regular))
+                        .foregroundStyle(Color.black.opacity(0.85))
+                        .frame(width: 86, height: 86)
                 }
                 
-                Text("REPS-FIT-\(session.id.uuidString.prefix(8).uppercased())")
+                Text(sharePayload.receiptCode)
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundStyle(Color.black.opacity(0.55))
             }
@@ -197,6 +411,24 @@ struct WorkoutReceiptView: View {
             return text.uppercased()
         }
         return text.prefix(maxChars - 3).uppercased() + "..."
+    }
+
+    private static func makeQRCode(from string: String) -> UIImage? {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        filter.message = Data(string.utf8)
+        filter.correctionLevel = "M"
+
+        guard let output = filter.outputImage else {
+            return nil
+        }
+
+        let transformed = output.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
+        guard let image = context.createCGImage(transformed, from: transformed.extent) else {
+            return nil
+        }
+
+        return UIImage(cgImage: image)
     }
 }
 

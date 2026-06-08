@@ -21,7 +21,12 @@ enum SeedData {
     static let lateralRaise = Exercise(name: "Lateral Raise", muscleGroup: "Shoulders", equipment: "Dumbbells")
     static let curl = Exercise(name: "Dumbbell Curl", muscleGroup: "Arms", equipment: "Dumbbells")
     static let tricepsExtension = Exercise(name: "Overhead Triceps Extension", muscleGroup: "Arms", equipment: "Dumbbells")
-    static let splitSquat = Exercise(name: "Bulgarian Split Squat", muscleGroup: "Legs", equipment: "Dumbbells")
+    static let splitSquat = Exercise(
+        name: "Bulgarian Split Squat",
+        aliases: ["Split Squat with Dumbbells", "Split Squats"],
+        muscleGroup: "Legs",
+        equipment: "Dumbbells"
+    )
     static let calfRaise = Exercise(name: "Standing Calf Raise", muscleGroup: "Legs", equipment: "Bodyweight", trackingType: .repsOnly)
     static let mountainClimber = Exercise(name: "Mountain Climber", muscleGroup: "Core", equipment: "Bodyweight", trackingType: .duration)
     static let kettlebellSwing = Exercise(name: "Kettlebell Swing", muscleGroup: "Full Body", equipment: "Kettlebell")

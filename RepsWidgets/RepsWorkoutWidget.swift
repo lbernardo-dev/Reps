@@ -17,11 +17,11 @@ struct RepsWorkoutProvider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> RepsWorkoutEntry {
-        RepsWorkoutEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
+        RepsWorkoutEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
     }
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsWorkoutEntry> {
-        let entry = RepsWorkoutEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: .system)
+        let entry = RepsWorkoutEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
         return Timeline(entries: [entry], policy: .atEnd)
     }
 }
@@ -37,7 +37,7 @@ struct RepsWorkoutWidget: Widget {
         .description("Entreno activo, progreso, calorías y estado físico.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
         .contentMarginsDisabled()
-        .containerBackgroundRemovable(false)
+        .containerBackgroundRemovable(true)
     }
 }
 

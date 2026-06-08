@@ -677,20 +677,67 @@ private struct MuscleAnatomyThumbnail: View {
     var size: CGFloat = 58
 
     var body: some View {
-        BodyView(gender: gender, side: segment.preferredSide, style: .repsThumbnail)
+        GeometryReader { proxy in
+            ZStack {
+                body(side: segment.preferredSide == .front ? .back : .front)
+                    .opacity(0.34)
+                    .frame(width: proxy.size.width * 0.82, height: proxy.size.height)
+                    .scaleEffect(max(region.scale * 0.92, 1.1), anchor: region.anchor)
+                    .offset(x: -proxy.size.width * 0.16, y: proxy.size.height * region.offset.height)
+
+                body(side: segment.preferredSide)
+                    .frame(width: proxy.size.width * 0.82, height: proxy.size.height)
+                    .scaleEffect(region.scale, anchor: region.anchor)
+                    .offset(x: proxy.size.width * (0.15 + region.offset.width), y: proxy.size.height * region.offset.height)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+        }
+        .frame(width: size, height: size)
+        .padding(2)
+        .background(Color.black.opacity(0.3))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipped()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func body(side: BodySide) -> some View {
+        BodyView(gender: gender, side: side, style: .repsThumbnail)
             .heatmap(thumbnailData, configuration: .repsVolume)
-            .frame(width: size, height: size)
-            .background(Color.black.opacity(0.3))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
     }
 
     private var thumbnailData: [MuscleIntensity] {
         segment.muscles.map {
-            MuscleIntensity(muscle: $0, intensity: max(intensity, 0.45))
+            MuscleIntensity(muscle: $0, intensity: min(max(intensity, 0.18), 1))
         }
     }
+
+    private var region: MuscleThumbnailRegion {
+        switch segment {
+        case .chest:
+            MuscleThumbnailRegion(scale: 2.55, anchor: .center, offset: CGSize(width: 0, height: 0.29))
+        case .deltoids, .traps:
+            MuscleThumbnailRegion(scale: 2.45, anchor: .center, offset: CGSize(width: 0, height: 0.25))
+        case .upperBack:
+            MuscleThumbnailRegion(scale: 2.45, anchor: .center, offset: CGSize(width: 0, height: 0.24))
+        case .lowerBack:
+            MuscleThumbnailRegion(scale: 2.35, anchor: .center, offset: CGSize(width: 0, height: 0.07))
+        case .biceps, .triceps, .forearms:
+            MuscleThumbnailRegion(scale: 2.18, anchor: .center, offset: CGSize(width: 0, height: 0.12))
+        case .abs, .obliques:
+            MuscleThumbnailRegion(scale: 2.25, anchor: .center, offset: CGSize(width: 0, height: -0.02))
+        case .quads, .hamstrings, .calves, .adductors:
+            MuscleThumbnailRegion(scale: 1.94, anchor: .bottom, offset: CGSize(width: 0, height: -0.10))
+        case .glutes:
+            MuscleThumbnailRegion(scale: 2.08, anchor: .bottom, offset: CGSize(width: 0, height: -0.22))
+        }
+    }
+}
+
+private struct MuscleThumbnailRegion {
+    let scale: CGFloat
+    let anchor: UnitPoint
+    let offset: CGSize
 }
 
 private struct RepsProgressiveSegmentBar: View {

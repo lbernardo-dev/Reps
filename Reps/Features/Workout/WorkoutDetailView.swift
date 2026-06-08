@@ -214,7 +214,7 @@ struct WorkoutDetailView: View {
 
             WorkoutMusclePreview(exercises: selectedWorkout.exercises.map(\.exercise), gender: store.userProfile.muscleMapGender)
                 .frame(maxWidth: .infinity)
-                .frame(height: 196)
+                .frame(height: 380)
                 .shadow(color: PulseTheme.primaryBright.opacity(0.12), radius: 12, x: 0, y: 6)
         }
         .padding(18)
@@ -323,10 +323,24 @@ private struct WorkoutExercisePreviewRow: View {
     let language: String
 
     var body: some View {
-        HStack(spacing: 12) {
-            ExerciseMediaThumbnail(exercise: item.exercise, gender: gender)
-                .frame(width: 68, height: 68)
-                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        HStack(alignment: .center, spacing: 14) {
+            ZStack(alignment: .bottomTrailing) {
+                ExerciseMediaThumbnail(exercise: item.exercise, gender: gender)
+                    .frame(width: 88, height: 88)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                    )
+
+                ExerciseAnatomyThumbnail(exercise: item.exercise, gender: gender, size: 34)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .stroke(PulseTheme.card.opacity(0.95), lineWidth: 2)
+                    )
+                    .offset(x: 5, y: 5)
+            }
+            .frame(width: 94, height: 94)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text("\(index). \(RepsText.exerciseName(item.exercise.name, language: language))")
@@ -340,13 +354,15 @@ private struct WorkoutExercisePreviewRow: View {
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(2)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Image(systemName: "chevron.right")
-                .font(.caption.weight(.bold))
+                .font(.callout.weight(.bold))
                 .foregroundStyle(PulseTheme.secondaryText)
+                .frame(width: 24, alignment: .trailing)
         }
         .contentShape(Rectangle())
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
     }
 }
 
@@ -354,21 +370,24 @@ private struct WorkoutMusclePreview: View {
     let exercises: [Exercise]
     let gender: BodyGender
 
-    private var muscles: [Muscle] {
-        Array(Set(exercises.flatMap { ExerciseAnatomyDescriptor(exercise: $0).muscles }))
-    }
+    @State private var selectedSide: BodySide = .front
 
     var body: some View {
-        HStack(spacing: 18) {
-            BodyView(gender: gender, side: .front, style: .repsDark)
-                .heatmap(heatmap, configuration: .repsVolume)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            BodyView(gender: gender, side: .back, style: .repsDark)
-                .heatmap(heatmap, configuration: .repsVolume)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        GeometryReader { proxy in
+            ZStack {
+                bodyLayer(side: .back, in: proxy.size)
+                bodyLayer(side: .front, in: proxy.size)
+
+                HStack(spacing: 0) {
+                    sideTapZone(.front)
+                    sideTapZone(.back)
+                }
+                .frame(width: proxy.size.width, height: proxy.size.height)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .padding(.horizontal, 30)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             LinearGradient(
@@ -385,12 +404,78 @@ private struct WorkoutMusclePreview: View {
             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
                 .stroke(PulseTheme.primaryBright.opacity(0.08), lineWidth: 1)
         )
-        .allowsHitTesting(false)
         .accessibilityLabel("Resumen muscular del entrenamiento")
     }
 
+    private func bodyLayer(side: BodySide, in size: CGSize) -> some View {
+        let isSelected = selectedSide == side
+        return BodyView(gender: gender, side: side, style: .repsDark)
+            .heatmap(heatmap, configuration: .repsVolume)
+            .frame(width: size.width * 0.78, height: size.height * 0.88)
+            .allowsHitTesting(false)
+            .scaleEffect(isSelected ? 1.08 : 0.58)
+            .opacity(isSelected ? 1 : 0.34)
+            .saturation(isSelected ? 1.1 : 0.58)
+            .brightness(isSelected ? 0 : -0.08)
+            .shadow(color: selectedTint.opacity(isSelected ? 0.34 : 0.04), radius: isSelected ? 22 : 6, x: 0, y: 10)
+            .overlay(alignment: .bottom) {
+                Text(sideLabel(side))
+                    .font(.system(size: 10, weight: .black))
+                    .tracking(1.2)
+                    .foregroundStyle(isSelected ? .black : PulseTheme.secondaryText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(isSelected ? selectedTint : Color.white.opacity(0.06), in: Capsule())
+                    .opacity(isSelected ? 1 : 0.75)
+            }
+        .offset(x: isSelected ? 0 : backgroundOffset(for: side, width: size.width),
+                y: isSelected ? 0 : 34)
+        .zIndex(isSelected ? 2 : 1)
+        .animation(.spring(response: 0.42, dampingFraction: 0.82), value: selectedSide)
+        .accessibilityLabel(sideLabel(side))
+    }
+
+    private func sideTapZone(_ side: BodySide) -> some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                    selectedSide = side
+                }
+            }
+            .accessibilityLabel(sideLabel(side))
+            .accessibilityAddTraits(.isButton)
+    }
+
     private var heatmap: [MuscleIntensity] {
-        muscles.map { MuscleIntensity(muscle: $0, intensity: 0.72) }
+        let descriptors = exercises.map(ExerciseAnatomyDescriptor.init(exercise:))
+        let muscles = Array(Set(descriptors.flatMap(\.muscles)))
+        let counts = Dictionary(grouping: descriptors.flatMap(\.muscles), by: { $0 }).mapValues(\.count)
+        let maxCount = max(counts.values.max() ?? 1, 1)
+
+        return muscles.map { muscle in
+            let load = Double(counts[muscle, default: 1]) / Double(maxCount)
+            return MuscleIntensity(muscle: muscle, intensity: 0.42 + (load * 0.58))
+        }
+    }
+
+    private var selectedTint: Color {
+        let maxLoad = heatmap.map(\.intensity).max() ?? 0.72
+        if maxLoad > 0.86 {
+            return PulseTheme.accent
+        }
+        if maxLoad > 0.64 {
+            return PulseTheme.primaryBright
+        }
+        return PulseTheme.primary
+    }
+
+    private func backgroundOffset(for side: BodySide, width: CGFloat) -> CGFloat {
+        side == .front ? -width * 0.30 : width * 0.30
+    }
+
+    private func sideLabel(_ side: BodySide) -> String {
+        side == .front ? "FRONT" : "BACK"
     }
 }
 

@@ -106,29 +106,33 @@ private struct AnatomyThumbnailCanvas: View {
 
     var body: some View {
         GeometryReader { proxy in
-            HStack(spacing: 0) {
-                BodyView(gender: gender, side: primarySide, style: .thumbnailAnatomy)
-                    .heatmap(heatmap, configuration: .thumbnailAnatomy)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+            ZStack {
                 BodyView(gender: gender, side: primarySide == .front ? .back : .front, style: .thumbnailAnatomy)
                     .heatmap(heatmap, configuration: .thumbnailAnatomy)
-                    .opacity(0.42)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .opacity(0.36)
+                    .frame(width: proxy.size.width * 0.82, height: proxy.size.height)
+                    .scaleEffect(max(effectiveScale * 0.92, 1.1), anchor: region.anchor)
+                    .offset(x: -proxy.size.width * 0.17, y: proxy.size.height * region.offset.height)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+
+                BodyView(gender: gender, side: primarySide, style: .thumbnailAnatomy)
+                    .heatmap(heatmap, configuration: .thumbnailAnatomy)
+                    .frame(width: proxy.size.width * 0.82, height: proxy.size.height)
+                    .scaleEffect(effectiveScale, anchor: region.anchor)
+                    .offset(x: proxy.size.width * (0.15 + region.offset.width), y: proxy.size.height * region.offset.height)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
-            .scaleEffect(effectiveScale, anchor: region.anchor)
-            .offset(x: proxy.size.width * region.offset.width, y: proxy.size.height * region.offset.height)
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .padding(3)
+        .padding(2)
         .clipped()
         .accessibilityHidden(true)
     }
 
     private var effectiveScale: CGFloat {
-        min(max(region.scale, 1.18), 1.82)
+        min(max(region.scale, 1.22), 2.85)
     }
 
     private var heatmap: [MuscleIntensity] {
