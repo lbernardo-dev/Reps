@@ -36,6 +36,10 @@ struct PaywallView: View {
                         LockedFeatureSummary(feature: feature)
                     }
 
+                    ContextualPaywallPreview(source: presentation.source, feature: presentation.feature)
+
+                    PlanComparisonCard()
+
                     trialTimeline
 
                     PulseCard {
@@ -84,25 +88,7 @@ struct PaywallView: View {
                     }
 
                     VStack(spacing: 10) {
-                        Button {
-                            Task { await purchaseSelectedProduct() }
-                        } label: {
-                            HStack(spacing: 8) {
-                                if isPurchasing {
-                                    ProgressView()
-                                        .tint(.black)
-                                }
-                                Text(primaryButtonTitle)
-                                    .font(.headline)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 58)
-                            .foregroundStyle(.black)
-                            .background(PulseTheme.accent)
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isPurchasing || selectedProduct == nil)
+                        primaryPurchaseButton
 
                         Button {
                             close(reason: .notNow)
@@ -163,12 +149,30 @@ struct PaywallView: View {
                     #endif
                 }
                 .padding(20)
-                .padding(.bottom, 32)
+                .padding(.bottom, 128)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .clipped()
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 8) {
+                    primaryPurchaseButton
+
+                    Button {
+                        close(reason: .notNow)
+                    } label: {
+                        Text("Ahora no")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+                .background(.ultraThinMaterial)
+            }
             .navigationTitle("Suscripción")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -225,6 +229,28 @@ struct PaywallView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.top, 8)
+    }
+
+    private var primaryPurchaseButton: some View {
+        Button {
+            Task { await purchaseSelectedProduct() }
+        } label: {
+            HStack(spacing: 8) {
+                if isPurchasing {
+                    ProgressView()
+                        .tint(.black)
+                }
+                Text(primaryButtonTitle)
+                    .font(.headline)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 58)
+            .foregroundStyle(.black)
+            .background(PulseTheme.accent)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(isPurchasing || selectedProduct == nil)
     }
 
     private var trialTimeline: some View {
@@ -517,6 +543,115 @@ private struct LockedFeatureSummary: View {
         .padding(14)
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct ContextualPaywallPreview: View {
+    let source: PaywallSource
+    let feature: ProductFeature?
+
+    var body: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: feature?.systemImage ?? "sparkles")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 42, height: 42)
+                        .background(PulseTheme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(source.previewTitle)
+                            .font(.headline)
+                        if let feature {
+                            Text(feature.conversionBenefit)
+                                .font(.subheadline)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text(source.subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Spacer()
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(source.previewBullets, id: \.self) { bullet in
+                        Label(bullet, systemImage: "checkmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct PlanComparisonCard: View {
+    var body: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Qué queda gratis vs Pro")
+                    .font(.headline)
+
+                HStack(alignment: .top, spacing: 12) {
+                    FeatureTierColumn(
+                        title: "Free",
+                        subtitle: "Hábito básico",
+                        color: PulseTheme.primaryBright,
+                        features: ProductAccess.freeFeatures
+                    )
+                    FeatureTierColumn(
+                        title: "Pro",
+                        subtitle: "Decisiones avanzadas",
+                        color: PulseTheme.accent,
+                        features: ProductAccess.proFeatures
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct FeatureTierColumn: View {
+    let title: String
+    let subtitle: String
+    let color: Color
+    let features: [ProductFeature]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(color)
+                Text(subtitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+
+            ForEach(features) { feature in
+                HStack(alignment: .top, spacing: 7) {
+                    Image(systemName: feature.systemImage)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(color)
+                        .frame(width: 16)
+                    Text(feature.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
 

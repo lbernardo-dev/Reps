@@ -2068,6 +2068,10 @@ private struct PlanExercisePickerSheet: View {
     @State private var searchText = ""
     @State private var selectedMuscle = "Todos"
     @State private var selectedEquipment = "Todos"
+    @State private var selectedType: Exercise.ExerciseType?
+    @State private var selectedDifficulty: Exercise.Difficulty?
+    @State private var selectedEnvironment: Exercise.Environment?
+    @State private var onlyAvailableEquipment = false
 
     private var muscles: [String] {
         ["Todos"] + Array(Set(exercises.map(\.muscleGroup))).sorted()
@@ -2080,13 +2084,24 @@ private struct PlanExercisePickerSheet: View {
     private var filtered: [Exercise] {
         exercises.filter { exercise in
             let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-            let matchesQuery = query.isEmpty
-                || exercise.name.localizedCaseInsensitiveContains(query)
-                || exercise.muscleGroup.localizedCaseInsensitiveContains(query)
-                || exercise.equipment.localizedCaseInsensitiveContains(query)
+            let searchableText = [
+                exercise.name,
+                exercise.aliases.joined(separator: " "),
+                exercise.muscleGroup,
+                exercise.secondaryMuscles.joined(separator: " "),
+                exercise.equipment,
+                exercise.requiredEquipment.joined(separator: " "),
+                exercise.tags.joined(separator: " "),
+                exercise.instructions ?? ""
+            ].joined(separator: " ")
+            let matchesQuery = query.isEmpty || searchableText.localizedCaseInsensitiveContains(query)
             let matchesMuscle = selectedMuscle == "Todos" || exercise.muscleGroup == selectedMuscle
             let matchesEquipment = selectedEquipment == "Todos" || exercise.equipment == selectedEquipment
-            return matchesQuery && matchesMuscle && matchesEquipment
+            let matchesType = selectedType == nil || exercise.exerciseType == selectedType
+            let matchesDifficulty = selectedDifficulty == nil || exercise.difficulty == selectedDifficulty
+            let matchesEnvironment = selectedEnvironment == nil || exercise.environment == selectedEnvironment || exercise.environment == .both
+            let matchesAvailableEquipment = !onlyAvailableEquipment || availableEquipmentMatches(exercise)
+            return matchesQuery && matchesMuscle && matchesEquipment && matchesType && matchesDifficulty && matchesEnvironment && matchesAvailableEquipment
         }
     }
 
@@ -2110,6 +2125,38 @@ private struct PlanExercisePickerSheet: View {
                         }
                         .padding(.horizontal, 20)
                     }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            Picker("Tipo", selection: $selectedType) {
+                                Text("Todo").tag(Optional<Exercise.ExerciseType>.none)
+                                ForEach(Exercise.ExerciseType.allCases) { type in
+                                    Text(type.planPickerTitle(language: store.userProfile.preferredLanguage)).tag(Optional(type))
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Picker("Dificultad", selection: $selectedDifficulty) {
+                                Text("Cualquiera").tag(Optional<Exercise.Difficulty>.none)
+                                ForEach(Exercise.Difficulty.allCases) { difficulty in
+                                    Text(difficulty.planPickerTitle(language: store.userProfile.preferredLanguage)).tag(Optional(difficulty))
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Picker("Entorno", selection: $selectedEnvironment) {
+                                Text("Cualquiera").tag(Optional<Exercise.Environment>.none)
+                                ForEach(Exercise.Environment.allCases) { environment in
+                                    Text(environment.planPickerTitle(language: store.userProfile.preferredLanguage)).tag(Optional(environment))
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Toggle("Mi equipo", isOn: $onlyAvailableEquipment)
+                                .toggleStyle(.button)
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    .font(.subheadline.weight(.semibold))
 
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         ForEach(filtered) { exercise in
@@ -2149,6 +2196,58 @@ private struct PlanExercisePickerSheet: View {
                     Button("Cerrar") { dismiss() }
                 }
             }
+        }
+    }
+
+    private func availableEquipmentMatches(_ exercise: Exercise) -> Bool {
+        let equipment = Set(store.userProfile.availableEquipment.map(normalized))
+        guard !equipment.isEmpty else {
+            return true
+        }
+
+        let required = exercise.requiredEquipment.isEmpty ? [exercise.equipment] : exercise.requiredEquipment
+        let normalizedRequired = Set(required.map(normalized))
+        return normalizedRequired.contains("bodyweight")
+            || normalizedRequired.contains("body only")
+            || !normalizedRequired.isDisjoint(with: equipment)
+            || equipment.contains(normalized(exercise.equipment))
+    }
+
+    private func normalized(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+}
+
+private extension Exercise.ExerciseType {
+    func planPickerTitle(language: String) -> String {
+        switch self {
+        case .strength: language.hasPrefix("es") ? "Fuerza" : "Strength"
+        case .cardio: "Cardio"
+        case .mobility: language.hasPrefix("es") ? "Movilidad" : "Mobility"
+        case .stretching: language.hasPrefix("es") ? "Estiramientos" : "Stretching"
+        case .hiit: "HIIT"
+        }
+    }
+}
+
+private extension Exercise.Difficulty {
+    func planPickerTitle(language: String) -> String {
+        switch self {
+        case .low: language.hasPrefix("es") ? "Principiante" : "Beginner"
+        case .medium: language.hasPrefix("es") ? "Intermedio" : "Intermediate"
+        case .high: language.hasPrefix("es") ? "Avanzado" : "Advanced"
+        }
+    }
+}
+
+private extension Exercise.Environment {
+    func planPickerTitle(language: String) -> String {
+        switch self {
+        case .home: language.hasPrefix("es") ? "Casa" : "Home"
+        case .gym: language.hasPrefix("es") ? "Gimnasio" : "Gym"
+        case .both: language.hasPrefix("es") ? "Casa y gym" : "Home and gym"
         }
     }
 }

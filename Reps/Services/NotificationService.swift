@@ -7,6 +7,7 @@ enum NotificationService {
         case missedWorkoutCheck
         case dailySummary
         case batteryRecoverySuggestion
+        case retentionNudge
     }
 
     struct NotificationTarget: Equatable {
@@ -19,6 +20,7 @@ enum NotificationService {
     private static let missedWorkoutPrefix = "missed-workout-"
     private static let dailySummaryIdentifier = "daily-summary"
     private static let batterySuggestionIdentifier = "battery-recovery-suggestion"
+    private static let retentionNudgePrefix = "retention-nudge-"
 
     private static let kindKey = "notification_kind"
     private static let scheduledWorkoutIDKey = "scheduled_workout_id"
@@ -62,6 +64,32 @@ enum NotificationService {
             identifier: batterySuggestionIdentifier,
             content: content,
             trigger: trigger
+        )
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    static func scheduleRetentionNudge(title: String, body: String, date: Date, now: Date = .now) async throws {
+        guard date > now.addingTimeInterval(60) else {
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.threadIdentifier = "retention"
+        content.userInfo = [
+            kindKey: Kind.retentionNudge.rawValue
+        ]
+
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: date
+        )
+        let request = UNNotificationRequest(
+            identifier: "\(retentionNudgePrefix)\(iso8601String(from: date))",
+            content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         )
         try await UNUserNotificationCenter.current().add(request)
     }
@@ -307,7 +335,9 @@ enum NotificationService {
     }
 
     private static func isManagedIdentifier(_ identifier: String) -> Bool {
-        isScheduledReminderIdentifier(identifier) || identifier == batterySuggestionIdentifier
+        isScheduledReminderIdentifier(identifier)
+            || identifier == batterySuggestionIdentifier
+            || identifier.hasPrefix(retentionNudgePrefix)
     }
 
     private static func iso8601String(from date: Date) -> String {

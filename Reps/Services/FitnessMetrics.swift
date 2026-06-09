@@ -474,6 +474,50 @@ enum AnalyticsEngine {
         let fatigueScore: Double
     }
 
+    struct MuscleTargetPoint: Identifiable, Equatable {
+        var id: String { "\(muscleGroup)-\(kind)" }
+        let muscleGroup: String
+        let kind: String
+        let sets: Int
+    }
+
+    struct ExerciseStall: Identifiable, Equatable {
+        var id: UUID { exercise.id }
+        let exercise: Exercise
+        let latestEstimatedOneRepMaxKg: Double
+        let previousBestEstimatedOneRepMaxKg: Double
+        let loggedSessions: Int
+    }
+
+    enum CompetitiveAction: Equatable {
+        case scheduleUndertrainedMuscle(String)
+        case scheduleDeloadExercise(UUID)
+        case reviewPlan
+        case scheduleRecovery
+        case none
+    }
+
+    struct CompetitiveRecommendation: Identifiable, Equatable {
+        var id: String { "\(title)-\(systemImage)" }
+        let title: String
+        let message: String
+        let systemImage: String
+        let action: CompetitiveAction
+    }
+
+    struct CompetitiveSummary: Equatable {
+        let completedWorkouts: Int
+        let plannedWorkouts: Int
+        let completionRate: Double
+        let targetWeeklySets: Int
+        let actualWeeklySets: Int
+        let muscleTargets: [MuscleTargetPoint]
+        let undertrainedMuscles: [MuscleTargetPoint]
+        let overtrainedMuscles: [MuscleTargetPoint]
+        let stalledExercises: [ExerciseStall]
+        let recommendations: [CompetitiveRecommendation]
+    }
+
     struct IntensityBucket: Identifiable, Equatable {
         let label: String
         let count: Int
@@ -541,6 +585,316 @@ enum AnalyticsEngine {
             acwr: acwr,
             fatigueScore: fatigueScore
         )
+    }
+
+    static func competitiveSummary(
+        sessions: [WorkoutSession],
+        activePlan: WorkoutPlan,
+        exercises: [Exercise],
+        since startDate: Date,
+        now: Date = .now
+    ) -> CompetitiveSummary {
+        let recentSessions = sessions.filter { $0.date >= startDate && $0.date <= now }
+        let completedWorkouts = recentSessions.count
+        let plannedWorkouts = max(activePlan.daysPerWeek, 0)
+        let completionRate = FitnessMetrics.weeklyCompletion(
+            completedWorkouts: completedWorkouts,
+            plannedWorkouts: plannedWorkouts
+        )
+
+        let actualByMuscle = muscleSetBuckets(from: recentSessions)
+        let targetByMuscle = plannedSetBuckets(from: activePlan)
+        let allMuscles = Set(actualByMuscle.keys).union(targetByMuscle.keys)
+        let targetWeeklySets = targetByMuscle.values.reduce(0, +)
+        let actualWeeklySets = actualByMuscle.values.reduce(0, +)
+
+        let muscleTargets = allMuscles.sorted().flatMap { muscle -> [MuscleTargetPoint] in
+            [
+                MuscleTargetPoint(muscleGroup: muscle, kind: "Objetivo", sets: targetByMuscle[muscle, default: 0]),
+                MuscleTargetPoint(muscleGroup: muscle, kind: "Real", sets: actualByMuscle[muscle, default: 0])
+            ]
+        }
+
+        let undertrained = allMuscles.compactMap { muscle -> MuscleTargetPoint? in
+            let target = targetByMuscle[muscle, default: 0]
+            let actual = actualByMuscle[muscle, default: 0]
+            guard target >= 4, actual < Int(Double(target) * 0.75) else { return nil }
+            return MuscleTargetPoint(muscleGroup: muscle, kind: "Faltan", sets: target - actual)
+        }
+        .sorted { $0.sets > $1.sets }
+
+        let overtrained = allMuscles.compactMap { muscle -> MuscleTargetPoint? in
+            let target = targetByMuscle[muscle, default: 0]
+            let actual = actualByMuscle[muscle, default: 0]
+            guard target > 0, actual > Int(Double(target) * 1.35) else { return nil }
+            return MuscleTargetPoint(muscleGroup: muscle, kind: "Exceso", sets: actual - target)
+        }
+        .sorted { $0.sets > $1.sets }
+
+        let stalled = stalledExercises(in: exercises, sessions: sessions)
+        let recommendations = competitiveRecommendations(
+            completionRate: completionRate,
+            undertrainedMuscles: undertrained,
+            overtrainedMuscles: overtrained,
+            stalledExercises: stalled,
+            actualWeeklySets: actualWeeklySets,
+            targetWeeklySets: targetWeeklySets
+        )
+
+        return CompetitiveSummary(
+            completedWorkouts: completedWorkouts,
+            plannedWorkouts: plannedWorkouts,
+            completionRate: completionRate,
+            targetWeeklySets: targetWeeklySets,
+            actualWeeklySets: actualWeeklySets,
+            muscleTargets: muscleTargets,
+            undertrainedMuscles: Array(undertrained.prefix(4)),
+            overtrainedMuscles: Array(overtrained.prefix(4)),
+            stalledExercises: Array(stalled.prefix(5)),
+            recommendations: recommendations
+        )
+    }
+
+    private static func muscleSetBuckets(from sessions: [WorkoutSession]) -> [String: Int] {
+        var buckets: [String: Int] = [:]
+        sessions
+            .flatMap(FitnessMetrics.completedExerciseLogs(in:))
+            .forEach { log in
+                buckets[log.exercise.muscleGroup, default: 0] += log.sets.count
+            }
+        return buckets
+    }
+
+    private static func plannedSetBuckets(from plan: WorkoutPlan) -> [String: Int] {
+        var buckets: [String: Int] = [:]
+        plan.days
+            .prefix(max(plan.daysPerWeek, 0))
+            .flatMap(\.exercises)
+            .forEach { item in
+                buckets[item.exercise.muscleGroup, default: 0] += max(item.targetSets, 0)
+            }
+        return buckets
+    }
+
+    private static func stalledExercises(in exercises: [Exercise], sessions: [WorkoutSession]) -> [ExerciseStall] {
+        exercises.compactMap { exercise in
+            let points = FitnessMetrics.progressPoints(for: exercise, in: sessions)
+            guard points.count >= 4 else { return nil }
+            let latestWindow = points.suffix(3)
+            let latestBest = latestWindow.map(\.estimatedOneRepMaxKg).max() ?? 0
+            let previousBest = points.dropLast(3).map(\.estimatedOneRepMaxKg).max() ?? 0
+            guard previousBest > 0, latestBest <= previousBest * 1.005 else { return nil }
+            return ExerciseStall(
+                exercise: exercise,
+                latestEstimatedOneRepMaxKg: latestBest,
+                previousBestEstimatedOneRepMaxKg: previousBest,
+                loggedSessions: points.count
+            )
+        }
+        .sorted {
+            if $0.loggedSessions == $1.loggedSessions {
+                return $0.exercise.name < $1.exercise.name
+            }
+            return $0.loggedSessions > $1.loggedSessions
+        }
+    }
+
+    private static func competitiveRecommendations(
+        completionRate: Double,
+        undertrainedMuscles: [MuscleTargetPoint],
+        overtrainedMuscles: [MuscleTargetPoint],
+        stalledExercises: [ExerciseStall],
+        actualWeeklySets: Int,
+        targetWeeklySets: Int
+    ) -> [CompetitiveRecommendation] {
+        var recommendations: [CompetitiveRecommendation] = []
+
+        if completionRate < 0.75 {
+            recommendations.append(CompetitiveRecommendation(
+                title: "Sube la adherencia",
+                message: "Completa al menos el 75% del plan semanal antes de endurecer progresiones.",
+                systemImage: "calendar.badge.exclamationmark",
+                action: .reviewPlan
+            ))
+        }
+
+        if let muscle = undertrainedMuscles.first {
+            recommendations.append(CompetitiveRecommendation(
+                title: "Prioriza \(muscle.muscleGroup)",
+                message: "Faltan \(muscle.sets) series para acercarte al objetivo semanal.",
+                systemImage: "target",
+                action: .scheduleUndertrainedMuscle(muscle.muscleGroup)
+            ))
+        }
+
+        if let muscle = overtrainedMuscles.first {
+            recommendations.append(CompetitiveRecommendation(
+                title: "Controla \(muscle.muscleGroup)",
+                message: "Vas \(muscle.sets) series por encima del objetivo. Considera recortar accesorios.",
+                systemImage: "gauge.with.needle",
+                action: .scheduleRecovery
+            ))
+        }
+
+        if let stalled = stalledExercises.first {
+            recommendations.append(CompetitiveRecommendation(
+                title: "Rompe el estancamiento",
+                message: "\(stalled.exercise.name) no mejora frente a su mejor 1RM estimado reciente. Prueba descarga, repeticiones objetivo o cambio de variante.",
+                systemImage: "arrow.triangle.2.circlepath",
+                action: .scheduleDeloadExercise(stalled.exercise.id)
+            ))
+        }
+
+        if recommendations.isEmpty {
+            let delta = actualWeeklySets - targetWeeklySets
+            recommendations.append(CompetitiveRecommendation(
+                title: "Semana equilibrada",
+                message: delta >= 0 ? "El volumen real cubre el objetivo del plan." : "Estás a \(abs(delta)) series de cubrir el objetivo semanal.",
+                systemImage: "checkmark.seal",
+                action: .none
+            ))
+        }
+
+        return Array(recommendations.prefix(4))
+    }
+}
+
+enum RetentionEngine {
+    enum ActivationAction: Equatable {
+        case startWorkout
+        case createPlan
+        case scheduleWorkout
+        case competitive(AnalyticsEngine.CompetitiveAction)
+        case openProgress
+    }
+
+    struct ActivationStep: Identifiable, Equatable {
+        let id: String
+        let title: String
+        let message: String
+        let systemImage: String
+        let isCompleted: Bool
+        let actionTitle: String
+        let action: ActivationAction?
+    }
+
+    static func nextBestSteps(
+        sessions: [WorkoutSession],
+        activePlan: WorkoutPlan,
+        scheduledWorkouts: [ScheduledWorkout],
+        remindersEnabled: Bool,
+        competitiveSummary: AnalyticsEngine.CompetitiveSummary,
+        now: Date = .now
+    ) -> [ActivationStep] {
+        let calendar = Calendar.current
+        let hasPlan = !activePlan.days.isEmpty
+        let hasCompletedWorkout = !sessions.isEmpty
+        let hasUpcomingWorkout = scheduledWorkouts.contains { workout in
+            workout.status == .scheduled && workout.date >= calendar.startOfDay(for: now)
+        }
+        let hasTodayWorkout = scheduledWorkouts.contains { workout in
+            workout.status == .scheduled && calendar.isDate(workout.date, inSameDayAs: now)
+        }
+        let latestSession = sessions.map(\.date).max()
+        let inactiveDays = latestSession.map { calendar.dateComponents([.day], from: calendar.startOfDay(for: $0), to: calendar.startOfDay(for: now)).day ?? 0 }
+
+        var steps: [ActivationStep] = []
+
+        steps.append(ActivationStep(
+            id: "create-plan",
+            title: "Crear plan base",
+            message: hasPlan ? "Tu plan activo ya define frecuencia, días y volumen objetivo." : "El primer plan reduce fricción y permite medir objetivo vs real.",
+            systemImage: "rectangle.stack.badge.plus",
+            isCompleted: hasPlan,
+            actionTitle: "Crear plan",
+            action: hasPlan ? nil : .createPlan
+        ))
+
+        steps.append(ActivationStep(
+            id: "schedule-session",
+            title: "Programar próxima sesión",
+            message: hasUpcomingWorkout ? "Ya tienes una sesión en calendario para mantener continuidad." : "Agenda una sesión concreta para convertir intención en compromiso.",
+            systemImage: "calendar.badge.plus",
+            isCompleted: hasUpcomingWorkout,
+            actionTitle: "Programar",
+            action: hasUpcomingWorkout ? nil : .scheduleWorkout
+        ))
+
+        if !hasCompletedWorkout || inactiveDays.map({ $0 >= 5 }) == true {
+            steps.append(ActivationStep(
+                id: "start-workout",
+                title: hasCompletedWorkout ? "Recuperar ritmo" : "Completar primer entreno",
+                message: hasCompletedWorkout ? "Han pasado \(inactiveDays ?? 0) días desde tu último registro. Una sesión corta reactiva la racha." : "El primer registro desbloquea progresión, volumen y recomendaciones reales.",
+                systemImage: "play.circle.fill",
+                isCompleted: false,
+                actionTitle: "Entrenar",
+                action: .startWorkout
+            ))
+        } else {
+            steps.append(ActivationStep(
+                id: "start-workout",
+                title: "Primer valor conseguido",
+                message: "Ya tienes historial suficiente para que Reps empiece a personalizar carga y recuperación.",
+                systemImage: "checkmark.seal.fill",
+                isCompleted: true,
+                actionTitle: "Ver progreso",
+                action: .openProgress
+            ))
+        }
+
+        if hasTodayWorkout && competitiveSummary.completionRate < 0.75 {
+            steps.append(ActivationStep(
+                id: "protect-adherence",
+                title: "Cerrar la semana",
+                message: "Completar la sesión de hoy ayuda a recuperar adherencia antes de subir carga.",
+                systemImage: "target",
+                isCompleted: false,
+                actionTitle: "Empezar hoy",
+                action: .startWorkout
+            ))
+        }
+
+        for recommendation in competitiveSummary.recommendations where recommendation.action != .none {
+            guard !steps.contains(where: { $0.id == recommendation.id }) else { continue }
+            steps.append(ActivationStep(
+                id: recommendation.id,
+                title: recommendation.title,
+                message: recommendation.message,
+                systemImage: recommendation.systemImage,
+                isCompleted: false,
+                actionTitle: actionTitle(for: recommendation.action),
+                action: .competitive(recommendation.action)
+            ))
+        }
+
+        if !remindersEnabled {
+            steps.append(ActivationStep(
+                id: "enable-reminders",
+                title: "Activar recordatorios",
+                message: "Los recordatorios ayudan a volver cuando hay una sesión o acción de recuperación pendiente.",
+                systemImage: "bell.badge.fill",
+                isCompleted: false,
+                actionTitle: "Abrir perfil",
+                action: nil
+            ))
+        }
+
+        return Array(steps.prefix(5))
+    }
+
+    private static func actionTitle(for action: AnalyticsEngine.CompetitiveAction) -> String {
+        switch action {
+        case .scheduleUndertrainedMuscle:
+            return "Programar foco"
+        case .scheduleDeloadExercise:
+            return "Programar descarga"
+        case .reviewPlan:
+            return "Revisar plan"
+        case .scheduleRecovery:
+            return "Programar recuperación"
+        case .none:
+            return "Ver"
+        }
     }
 }
 
@@ -729,6 +1083,31 @@ enum ExerciseSubstitutionService {
             .map { $0 }
     }
 
+    static func matchReasons(
+        for candidate: Exercise,
+        replacing original: Exercise,
+        availableEquipment: [String]
+    ) -> [String] {
+        var reasons: [String] = []
+        if normalized(candidate.muscleGroup) == normalized(original.muscleGroup) {
+            reasons.append("Mismo grupo muscular")
+        }
+        if normalized(candidate.equipment) == normalized(original.equipment) {
+            reasons.append("Mismo equipo")
+        }
+        if matchesAvailableEquipment(candidate, availableEquipment: availableEquipment) {
+            reasons.append("Disponible con tu equipo")
+        }
+        if candidate.trackingType == original.trackingType {
+            reasons.append("Misma medición")
+        }
+        if candidate.environment == original.environment || candidate.environment == .both {
+            reasons.append("Mismo entorno")
+        }
+
+        return Array(reasons.prefix(3))
+    }
+
     private static func substitutionScore(_ candidate: Exercise, original: Exercise) -> Int {
         var score = 0
         if normalized(candidate.equipment) == normalized(original.equipment) { score += 3 }
@@ -738,9 +1117,129 @@ enum ExerciseSubstitutionService {
         return score
     }
 
+    private static func matchesAvailableEquipment(_ exercise: Exercise, availableEquipment: [String]) -> Bool {
+        let equipment = Set(availableEquipment.map(normalized))
+        guard !equipment.isEmpty else { return true }
+
+        let required = exercise.requiredEquipment.isEmpty ? [exercise.equipment] : exercise.requiredEquipment
+        let normalizedRequired = Set(required.map(normalized))
+        return normalizedRequired.isEmpty
+            || normalizedRequired.contains("bodyweight")
+            || normalizedRequired.contains("body only")
+            || !normalizedRequired.isDisjoint(with: equipment)
+            || equipment.contains(normalized(exercise.equipment))
+    }
+
     private static func normalized(_ value: String) -> String {
         value.trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
             .lowercased()
+    }
+}
+
+struct PlateLoadItem: Identifiable, Equatable {
+    var id: Double { weightKg }
+    let weightKg: Double
+    let count: Int
+}
+
+enum PlateLoadingCalculator {
+    static let defaultMetricPlates: [Double] = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5]
+
+    static func platesPerSide(
+        targetWeightKg: Double,
+        barWeightKg: Double = 20,
+        availablePlatesKg: [Double] = defaultMetricPlates
+    ) -> [PlateLoadItem] {
+        guard targetWeightKg > barWeightKg else { return [] }
+
+        var remaining = (targetWeightKg - barWeightKg) / 2
+        var items: [PlateLoadItem] = []
+
+        for plate in availablePlatesKg.sorted(by: >) where plate > 0 {
+            let count = Int(remaining / plate)
+            guard count > 0 else { continue }
+            items.append(PlateLoadItem(weightKg: plate, count: count))
+            remaining -= Double(count) * plate
+        }
+
+        return items
+    }
+
+    static func loadSummary(
+        targetWeightKg: Double,
+        barWeightKg: Double = 20,
+        availablePlatesKg: [Double] = defaultMetricPlates
+    ) -> String? {
+        let plates = platesPerSide(
+            targetWeightKg: targetWeightKg,
+            barWeightKg: barWeightKg,
+            availablePlatesKg: availablePlatesKg
+        )
+        guard !plates.isEmpty else { return nil }
+
+        return plates
+            .map { item in
+                let weight = item.weightKg.truncatingRemainder(dividingBy: 1) == 0
+                    ? "\(Int(item.weightKg))"
+                    : String(format: "%.2f", item.weightKg).replacingOccurrences(of: ".00", with: "")
+                return "\(item.count)x\(weight)"
+            }
+            .joined(separator: " + ")
+    }
+}
+
+enum WorkoutSetBuilder {
+    static func warmUpSets(targetWeightKg: Double, targetReps: Int) -> [SetLog] {
+        guard targetWeightKg >= 20 else { return [] }
+
+        let steps: [(Double, Int)] = [
+            (0.40, max(targetReps, 8)),
+            (0.60, min(max(targetReps - 2, 5), 8)),
+            (0.80, min(max(targetReps - 4, 3), 5))
+        ]
+
+        return steps.enumerated().map { index, step in
+            SetLog(
+                setNumber: index + 1,
+                weightKg: roundedToNearestIncrement(targetWeightKg * step.0),
+                reps: step.1,
+                completed: false,
+                setType: .warmUp
+            )
+        }
+    }
+
+    static func dropSet(after set: SetLog) -> SetLog {
+        SetLog(
+            setNumber: set.setNumber + 1,
+            weightKg: roundedToNearestIncrement(set.weightKg * 0.75),
+            reps: max(set.reps + 4, 8),
+            completed: false,
+            setType: .dropSet
+        )
+    }
+
+    static func backOffSet(after set: SetLog) -> SetLog {
+        SetLog(
+            setNumber: set.setNumber + 1,
+            weightKg: roundedToNearestIncrement(set.weightKg * 0.90),
+            reps: max(set.reps + 2, 6),
+            completed: false,
+            setType: .backOff
+        )
+    }
+
+    static func renumbered(_ sets: [SetLog]) -> [SetLog] {
+        sets.enumerated().map { index, set in
+            var copy = set
+            copy.setNumber = index + 1
+            return copy
+        }
+    }
+
+    private static func roundedToNearestIncrement(_ weightKg: Double, increment: Double = 2.5) -> Double {
+        guard increment > 0 else { return weightKg }
+        return max(0, (weightKg / increment).rounded() * increment)
     }
 }

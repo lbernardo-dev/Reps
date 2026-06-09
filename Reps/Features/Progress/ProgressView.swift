@@ -8,6 +8,8 @@ struct ProgressDashboardView: View {
   @State private var selectedSection: ProgressSection = .muscles
   @State private var activeDestination: ProgressDestination?
 
+  var onSelectTab: ((AppTab) -> Void)? = nil
+
   var body: some View {
     NavigationStack {
       ScrollView {
@@ -54,25 +56,23 @@ struct ProgressDashboardView: View {
           }
           .pickerStyle(.segmented)
 
-          ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-              ForEach(ProgressSection.allCases) { section in
-                Button {
-                  if section == .load,
-                     !store.hasFeatureAccess(.advancedAnalytics) {
-                    store.presentPaywall(source: .progressLoad, feature: .advancedAnalytics)
-                  } else {
-                    withAnimation(.snappy(duration: 0.2)) {
-                      selectedSection = section
-                    }
+          LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 8)], spacing: 8) {
+            ForEach(ProgressSection.allCases) { section in
+              Button {
+                if section == .load,
+                   !store.hasFeatureAccess(.advancedAnalytics) {
+                  store.presentPaywall(source: .progressLoad, feature: .advancedAnalytics)
+                } else {
+                  withAnimation(.snappy(duration: 0.2)) {
+                    selectedSection = section
                   }
-                } label: {
-                  PulseChip(title: section.title, isSelected: selectedSection == section)
                 }
-                .buttonStyle(.plain)
+              } label: {
+                PulseChip(title: section.title, isSelected: selectedSection == section)
+                  .frame(maxWidth: .infinity)
               }
+              .buttonStyle(.plain)
             }
-            .padding(.horizontal, 1)
           }
 
           if selectedSection == .general {
@@ -169,6 +169,8 @@ struct ProgressDashboardView: View {
           }
 
           if selectedSection == .load {
+            CompetitiveSummaryCard(summary: competitiveSummary)
+
             HStack(spacing: 14) {
               MetricCard(
                 title: "Carga", value: "\(Int(workload.acuteLoad))", subtitle: "7 días",
@@ -250,6 +252,77 @@ struct ProgressDashboardView: View {
                     .foregroundStyle(PulseTheme.primary)
                   }
                   .frame(height: 150)
+                }
+              }
+            }
+
+            PulseCard {
+              VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                  Text("Objetivo vs real")
+                    .font(.headline)
+                  Spacer()
+                  Text("\(competitiveSummary.actualWeeklySets)/\(competitiveSummary.targetWeeklySets) series")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                }
+
+                if competitiveSummary.muscleTargets.isEmpty {
+                  PulseEmptyState(
+                    title: "Sin plan activo",
+                    message: "Activa un plan para comparar el volumen real contra el objetivo semanal.",
+                    systemImage: "target"
+                  )
+                } else {
+                  Chart(competitiveSummary.muscleTargets) { point in
+                    BarMark(
+                      x: .value("Músculo", point.muscleGroup),
+                      y: .value("Series", point.sets)
+                    )
+                    .foregroundStyle(by: .value("Tipo", point.kind))
+                    .position(by: .value("Tipo", point.kind))
+                  }
+                  .frame(height: 190)
+                  .chartYAxis {
+                    AxisMarks(position: .leading, values: .automatic(desiredCount: 4))
+                  }
+                }
+              }
+            }
+
+            if !competitiveSummary.stalledExercises.isEmpty {
+              PulseCard {
+                VStack(alignment: .leading, spacing: 14) {
+                  HStack {
+                    Text("Ejercicios estancados")
+                      .font(.headline)
+                    Spacer()
+                    Text("\(competitiveSummary.stalledExercises.count)")
+                      .font(.subheadline.weight(.semibold))
+                      .foregroundStyle(PulseTheme.secondaryText)
+                  }
+
+                  ForEach(competitiveSummary.stalledExercises) { stall in
+                    StalledExerciseRow(stall: stall)
+                    if stall.id != competitiveSummary.stalledExercises.last?.id {
+                      Divider()
+                    }
+                  }
+                }
+              }
+            }
+
+            PulseCard {
+              VStack(alignment: .leading, spacing: 14) {
+                Text("Qué ejecutar")
+                  .font(.headline)
+                ForEach(competitiveSummary.recommendations) { recommendation in
+                  CompetitiveRecommendationRow(recommendation: recommendation) {
+                    perform(recommendation.action)
+                  }
+                  if recommendation.id != competitiveSummary.recommendations.last?.id {
+                    Divider()
+                  }
                 }
               }
             }
@@ -501,6 +574,15 @@ struct ProgressDashboardView: View {
     AnalyticsEngine.workloadSummary(sessions: store.workoutSessions, bodyMetrics: store.bodyMetrics)
   }
 
+  private var competitiveSummary: AnalyticsEngine.CompetitiveSummary {
+    AnalyticsEngine.competitiveSummary(
+      sessions: store.workoutSessions,
+      activePlan: store.activePlan,
+      exercises: store.exercises,
+      since: selectedRange.startDate
+    )
+  }
+
   private var effectiveSetCount: Int {
     filteredSessions.reduce(0) { $0 + AnalyticsEngine.effectiveSets(in: $1).count }
   }
@@ -617,6 +699,13 @@ struct ProgressDashboardView: View {
         date: date, count: grouped[calendar.startOfDay(for: date)]?.count ?? 0)
     }
   }
+
+  private func perform(_ action: AnalyticsEngine.CompetitiveAction) {
+    guard let destination = store.executeCompetitiveAction(action) else {
+      return
+    }
+    onSelectTab?(destination)
+  }
 }
 
 private struct ExerciseProgressRow: View {
@@ -699,6 +788,165 @@ private struct AnalyticsShortcutCard: View {
     .background(PulseTheme.card)
     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
     .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 8)
+  }
+}
+
+private struct CompetitiveSummaryCard: View {
+  let summary: AnalyticsEngine.CompetitiveSummary
+
+  var body: some View {
+    PulseCard {
+      VStack(alignment: .leading, spacing: 14) {
+        HStack(alignment: .top) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Diagnóstico competitivo")
+              .font(.headline)
+            Text("Adherencia, volumen y señales de estancamiento contra el plan activo.")
+              .font(.subheadline)
+              .foregroundStyle(PulseTheme.secondaryText)
+              .fixedSize(horizontal: false, vertical: true)
+          }
+          Spacer()
+          Text("\(Int(summary.completionRate * 100))%")
+            .font(.title2.monospacedDigit().weight(.bold))
+            .foregroundStyle(summary.completionRate >= 0.75 ? PulseTheme.recovery : PulseTheme.warning)
+        }
+
+        ProgressView(value: summary.completionRate)
+          .tint(summary.completionRate >= 0.75 ? PulseTheme.recovery : PulseTheme.warning)
+
+        HStack(spacing: 10) {
+          MetricInline(
+            title: "Plan",
+            value: "\(summary.completedWorkouts)/\(max(summary.plannedWorkouts, 1))")
+          MetricInline(
+            title: "Volumen",
+            value: "\(summary.actualWeeklySets)/\(summary.targetWeeklySets)")
+          MetricInline(
+            title: "Alertas",
+            value: "\(summary.undertrainedMuscles.count + summary.overtrainedMuscles.count + summary.stalledExercises.count)")
+        }
+
+        if !summary.undertrainedMuscles.isEmpty || !summary.overtrainedMuscles.isEmpty {
+          VStack(alignment: .leading, spacing: 8) {
+            ForEach(summary.undertrainedMuscles.prefix(2)) { point in
+              CompetitiveMuscleGapRow(
+                point: point,
+                title: "\(point.muscleGroup): faltan \(point.sets) series",
+                color: PulseTheme.warning
+              )
+            }
+            ForEach(summary.overtrainedMuscles.prefix(2)) { point in
+              CompetitiveMuscleGapRow(
+                point: point,
+                title: "\(point.muscleGroup): exceso de \(point.sets) series",
+                color: PulseTheme.destructive
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+private struct CompetitiveMuscleGapRow: View {
+  let point: AnalyticsEngine.MuscleTargetPoint
+  let title: String
+  let color: Color
+
+  var body: some View {
+    HStack(spacing: 10) {
+      Image(systemName: point.kind == "Faltan" ? "arrow.down.circle.fill" : "exclamationmark.triangle.fill")
+        .font(.subheadline)
+        .foregroundStyle(color)
+        .frame(width: 28, height: 28)
+        .background(color.opacity(0.12))
+        .clipShape(Circle())
+      Text(title)
+        .font(.subheadline.weight(.semibold))
+      Spacer()
+    }
+  }
+}
+
+private struct StalledExerciseRow: View {
+  let stall: AnalyticsEngine.ExerciseStall
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 12) {
+      Image(systemName: "pause.circle.fill")
+        .font(.headline)
+        .foregroundStyle(PulseTheme.warning)
+        .frame(width: 38, height: 38)
+        .background(PulseTheme.warning.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 4) {
+        Text(stall.exercise.name)
+          .font(.headline)
+        Text("\(stall.loggedSessions) sesiones · mejor previo \(Int(stall.previousBestEstimatedOneRepMaxKg)) kg · actual \(Int(stall.latestEstimatedOneRepMaxKg)) kg")
+          .font(.subheadline)
+          .foregroundStyle(PulseTheme.secondaryText)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+
+      Spacer()
+    }
+    .padding(.vertical, 4)
+  }
+}
+
+private struct CompetitiveRecommendationRow: View {
+  let recommendation: AnalyticsEngine.CompetitiveRecommendation
+  let onExecute: () -> Void
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 12) {
+      Image(systemName: recommendation.systemImage)
+        .font(.headline)
+        .foregroundStyle(PulseTheme.primary)
+        .frame(width: 38, height: 38)
+        .background(PulseTheme.primary.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 4) {
+        Text(recommendation.title)
+          .font(.headline)
+        Text(recommendation.message)
+          .font(.subheadline)
+          .foregroundStyle(PulseTheme.secondaryText)
+          .fixedSize(horizontal: false, vertical: true)
+        if recommendation.action != .none {
+          Button(action: onExecute) {
+            Label(actionTitle, systemImage: "arrow.forward.circle.fill")
+              .font(.caption.weight(.bold))
+              .foregroundStyle(.white)
+              .padding(.horizontal, 12)
+              .frame(height: 32)
+              .background(PulseTheme.primary)
+              .clipShape(Capsule())
+          }
+          .buttonStyle(.plain)
+          .padding(.top, 4)
+        }
+      }
+    }
+  }
+
+  private var actionTitle: String {
+    switch recommendation.action {
+    case .scheduleUndertrainedMuscle:
+      return "Programar foco"
+    case .scheduleDeloadExercise:
+      return "Programar descarga"
+    case .reviewPlan:
+      return "Revisar plan"
+    case .scheduleRecovery:
+      return "Programar recuperación"
+    case .none:
+      return ""
+    }
   }
 }
 

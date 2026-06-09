@@ -120,7 +120,7 @@ extension AppSnapshot {
             userProfile: UserProfile(),
             monetization: MonetizationState(),
             activePlan: .empty,
-            plans: [],
+            plans: SeedData.defaultPlans,
             workoutTemplates: SeedData.workoutTemplates,
             exercises: SeedData.exercises,
             scheduledWorkouts: [],

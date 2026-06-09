@@ -82,7 +82,9 @@ targets:
       - name: Firebase Crashlytics
         script: |
           "${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run"
-        basedOnDependencyAnalysis: false
+          mkdir -p "${DERIVED_FILE_DIR}/Crashlytics"
+          touch "${DERIVED_FILE_DIR}/Crashlytics/${TARGET_NAME}-${CURRENT_PROJECT_VERSION}.stamp"
+        basedOnDependencyAnalysis: true
         inputFiles:
           - "${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}"
           - "${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}"
@@ -90,6 +92,8 @@ targets:
           - "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist"
           - "$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)"
           - "$(TARGET_BUILD_DIR)/$(PRODUCT_NAME).debug.dylib"
+        outputFiles:
+          - "${DERIVED_FILE_DIR}/Crashlytics/${TARGET_NAME}-${CURRENT_PROJECT_VERSION}.stamp"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.romerodev.repsfitness
@@ -102,7 +106,7 @@ targets:
           - "@executable_path/Frameworks"
       configs:
         Debug:
-          DEBUG_INFORMATION_FORMAT: dwarf
+          DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
   RepsWidgets:
     type: app-extension
     platform: iOS

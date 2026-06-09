@@ -78,14 +78,25 @@ final class AppStore: ObservableObject {
     }
 
     private let persistence: SwiftDataPersistence
+    private let shareImageRenderer: (WorkoutSession?) -> UIImage
     private var isRestoring = false
     private var hasAttemptedExerciseLibrarySync = false
     private var saveTask: Task<Void, Never>?
     private var pendingPaywallDismissReason: PaywallDismissReason?
     private var transactionUpdatesTask: Task<Void, Never>?
 
-    init(persistence: SwiftDataPersistence = SwiftDataPersistence()) {
+    init(
+        persistence: SwiftDataPersistence = SwiftDataPersistence(),
+        shareImageRenderer: ((WorkoutSession?) -> UIImage)? = nil,
+        startsBackgroundServices: Bool = true
+    ) {
         self.persistence = persistence
+        self.shareImageRenderer = shareImageRenderer ?? { session in
+            if let session {
+                return WorkoutShareImageRenderer.render(session: session)
+            }
+            return WorkoutShareImageRenderer.render(title: "Reps Workout", duration: 0, volume: 0, sets: 0)
+        }
         self.isUsingFallbackStorage = persistence.didFallbackToInMemory
         WatchSyncService.shared.configure { [weak self] command in
             self?.handleWatchCommand(command)
@@ -98,17 +109,20 @@ final class AppStore: ObservableObject {
             SharedWorkoutStore.save(sharedWorkoutSnapshot())
         }
 
-        Task {
-            await refreshStoreKitProducts()
-            await refreshStoreKitEntitlements()
-            await syncOpenExerciseLibraryIfNeeded()
-        }
-        
-        transactionUpdatesTask = Task { [weak self] in
-            await self?.listenForStoreKitTransactions()
-        }
+        let shouldStartBackgroundServices = startsBackgroundServices && !Self.isRunningUnitTests
+        if shouldStartBackgroundServices {
+            Task {
+                await refreshStoreKitProducts()
+                await refreshStoreKitEntitlements()
+                await syncOpenExerciseLibraryIfNeeded()
+            }
 
-        startHealthKitWorkoutObserverIfAuthorized()
+            transactionUpdatesTask = Task { [weak self] in
+                await self?.listenForStoreKitTransactions()
+            }
+
+            startHealthKitWorkoutObserverIfAuthorized()
+        }
     }
 
     deinit {
@@ -137,7 +151,7 @@ final class AppStore: ObservableObject {
                 focusDate: focusDate,
                 scheduledWorkoutID: target.scheduledWorkoutID
             )
-        case .dailySummary, .batteryRecoverySuggestion:
+        case .dailySummary, .batteryRecoverySuggestion, .retentionNudge:
             notificationDestination = NotificationDestination(
                 tab: .today,
                 focusDate: nil,
@@ -1199,6 +1213,156 @@ final class AppStore: ObservableObject {
         addScheduledWorkout(workout, date: date)
     }
 
+    @discardableResult
+    func executeCompetitiveAction(_ action: AnalyticsEngine.CompetitiveAction) -> AppTab? {
+        switch action {
+        case .scheduleUndertrainedMuscle(let muscleGroup):
+            scheduleMuscleFocusSession(muscleGroup: muscleGroup)
+            return .calendar
+        case .scheduleDeloadExercise(let exerciseID):
+            guard let exercise = exercises.first(where: { $0.id == exerciseID }) else {
+                return .progress
+            }
+            scheduleDeloadSession(for: exercise)
+            return .calendar
+        case .reviewPlan:
+            health.message = String(localized: "Revisa la distribución del plan y programa la siguiente sesión para recuperar adherencia.")
+            return .plans
+        case .scheduleRecovery:
+            scheduleRecoverySession()
+            return .calendar
+        case .none:
+            return nil
+        }
+    }
+
+    private func scheduleMuscleFocusSession(muscleGroup: String) {
+        let candidates = exercises
+            .filter { $0.muscleGroup.localizedCaseInsensitiveCompare(muscleGroup) == .orderedSame }
+            .sorted { lhs, rhs in
+                let lhsAvailable = availableEquipmentMatches(lhs)
+                let rhsAvailable = availableEquipmentMatches(rhs)
+                if lhsAvailable == rhsAvailable {
+                    return lhs.name < rhs.name
+                }
+                return lhsAvailable && !rhsAvailable
+            }
+        let selected = Array(candidates.prefix(3))
+        guard !selected.isEmpty else {
+            health.message = String(localized: "No encontré ejercicios disponibles para \(muscleGroup). Revisa tu catálogo o equipo disponible.")
+            return
+        }
+
+        let workout = WorkoutDay(
+            title: String(localized: "Foco \(muscleGroup)"),
+            subtitle: String(localized: "Sesión guiada para cerrar la brecha semanal"),
+            durationMinutes: max(24, selected.count * 10),
+            exercises: selected.map { exercise in
+                WorkoutExercise(
+                    exercise: exercise,
+                    targetSets: 3,
+                    repRange: exercise.trackingType == .duration ? "30-45 sec" : "10-15",
+                    previous: "-",
+                    restSeconds: 75,
+                    priority: .accessory,
+                    progressionType: .none
+                )
+            }
+        )
+        addScheduledWorkout(workout, date: nextRetentionActionDate())
+        health.message = String(localized: "Sesión de foco para \(muscleGroup) programada para mañana.")
+        scheduleRetentionNudge(title: "Foco \(muscleGroup)", body: "Tienes una sesión corta para cerrar la brecha semanal.")
+    }
+
+    private func scheduleDeloadSession(for exercise: Exercise) {
+        let workout = WorkoutDay(
+            title: String(localized: "Descarga: \(exercise.name)"),
+            subtitle: String(localized: "Reduce carga y recupera progresión"),
+            durationMinutes: 24,
+            exercises: [
+                WorkoutExercise(
+                    exercise: exercise,
+                    targetSets: 3,
+                    repRange: exercise.trackingType == .duration ? "30 sec suave" : "6-8",
+                    previous: "-",
+                    restSeconds: 120,
+                    priority: .primary,
+                    progressionType: .rpeTarget,
+                    targetRPE: 6
+                )
+            ]
+        )
+        addScheduledWorkout(workout, date: nextRetentionActionDate())
+        health.message = String(localized: "Descarga de \(exercise.name) programada para mañana.")
+        scheduleRetentionNudge(title: "Descarga programada", body: "Mañana toca bajar fatiga y volver a progresar en \(exercise.name).")
+    }
+
+    private func scheduleRecoverySession() {
+        let mobilityExercises = exercises
+            .filter { $0.exerciseType == .mobility || $0.exerciseType == .stretching }
+            .prefix(4)
+        let fallback = [
+            Exercise(name: "Full Body Mobility Flow", muscleGroup: "Full Body", equipment: "Bodyweight", trackingType: .duration, exerciseType: .mobility),
+            Exercise(name: "Hip Flexor Stretch", muscleGroup: "Legs", equipment: "Bodyweight", trackingType: .duration, exerciseType: .stretching)
+        ]
+        let selected = Array(mobilityExercises.isEmpty ? fallback.prefix(4) : mobilityExercises)
+        let workout = WorkoutDay(
+            title: String(localized: "Recuperación activa"),
+            subtitle: String(localized: "Movilidad suave para absorber el volumen"),
+            durationMinutes: 20,
+            exercises: selected.map { exercise in
+                WorkoutExercise(
+                    exercise: exercise,
+                    targetSets: 2,
+                    repRange: "45-60 sec",
+                    previous: "-",
+                    restSeconds: 30,
+                    priority: .accessory,
+                    progressionType: .none
+                )
+            },
+            sessionType: .mobility,
+            restBetweenExercisesSeconds: 30
+        )
+        addScheduledWorkout(workout, date: nextRetentionActionDate())
+        health.message = String(localized: "Recuperación activa programada para mañana.")
+        scheduleRetentionNudge(title: "Recuperación activa", body: "Mañana tienes una sesión suave para llegar mejor al siguiente entreno.")
+    }
+
+    private func nextRetentionActionDate() -> Date {
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: .now) ?? .now.addingTimeInterval(86_400)
+        return calendar.date(bySettingHour: 10, minute: 0, second: 0, of: tomorrow) ?? tomorrow
+    }
+
+    private func availableEquipmentMatches(_ exercise: Exercise) -> Bool {
+        let equipment = Set(userProfile.availableEquipment.map(Self.normalizedText))
+        guard !equipment.isEmpty else {
+            return true
+        }
+
+        let required = exercise.requiredEquipment.isEmpty ? [exercise.equipment] : exercise.requiredEquipment
+        let normalizedRequired = Set(required.map(Self.normalizedText))
+        return normalizedRequired.contains("bodyweight")
+            || normalizedRequired.contains("body only")
+            || !normalizedRequired.isDisjoint(with: equipment)
+            || equipment.contains(Self.normalizedText(exercise.equipment))
+    }
+
+    private func scheduleRetentionNudge(title: String, body: String) {
+        guard userProfile.remindersEnabled else {
+            return
+        }
+
+        Task {
+            try? await NotificationService.scheduleRetentionNudge(
+                title: title,
+                body: body,
+                date: nextRetentionActionDate()
+            )
+        }
+    }
+
     func deactivatePlan(_ plan: WorkoutPlan) {
         guard activePlan.id == plan.id else {
             return
@@ -1450,12 +1614,7 @@ final class AppStore: ObservableObject {
     func exportWorkoutShareImageURL(session: WorkoutSession? = nil) throws -> URL {
         let selected = session ?? workoutSessions.sorted { $0.date > $1.date }.first
         let url = exportURL(fileName: "reps-share-\(Self.exportDateStamp()).png")
-        let image: UIImage
-        if let sel = selected {
-            image = WorkoutShareImageRenderer.render(session: sel)
-        } else {
-            image = WorkoutShareImageRenderer.render(title: "Reps Workout", duration: 0, volume: 0, sets: 0)
-        }
+        let image = shareImageRenderer(selected)
         guard let data = image.pngData() else {
             throw CocoaError(.fileWriteUnknown)
         }
@@ -1534,6 +1693,12 @@ final class AppStore: ObservableObject {
                 let workoutKey = "\(dayKey)-\(workout.workoutDay.id.uuidString)-\(workout.status.rawValue)"
                 return seen.insert(workoutKey).inserted
             }
+    }
+
+    private static func normalizedText(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 
     private func save(reloadWidgetTimelines: Bool = true) {
@@ -1616,6 +1781,10 @@ final class AppStore: ObservableObject {
         return formatter.string(from: .now)
     }
 
+    private static var isRunningUnitTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
     private var currentSnapshot: AppSnapshot {
         AppSnapshot(
             userProfile: userProfile,
@@ -1667,7 +1836,7 @@ final class AppStore: ObservableObject {
         userProfile = snapshot.userProfile
         monetization = snapshot.monetization
         activePlan = snapshot.activePlan
-        plans = snapshot.plans
+        plans = mergeSeedPlans(into: snapshot.plans)
         workoutTemplates = mergeSeedWorkouts(into: snapshot.workoutTemplates.isEmpty ? snapshot.activePlan.days : snapshot.workoutTemplates)
         exercises = mergeSeedExercises(into: snapshot.exercises.isEmpty ? SeedData.exercises : snapshot.exercises)
         scheduledWorkouts = Self.normalizedScheduledWorkouts(snapshot.scheduledWorkouts)
@@ -1956,6 +2125,12 @@ final class AppStore: ObservableObject {
         let existingTitles = Set(storedWorkouts.map { $0.title.lowercased() })
         let missing = SeedData.workoutTemplates.filter { !existingTitles.contains($0.title.lowercased()) }
         return storedWorkouts + missing
+    }
+
+    private func mergeSeedPlans(into storedPlans: [WorkoutPlan]) -> [WorkoutPlan] {
+        let existingNames = Set(storedPlans.map { $0.name.lowercased() })
+        let missing = SeedData.defaultPlans.filter { !existingNames.contains($0.name.lowercased()) }
+        return storedPlans + missing
     }
 }
 

@@ -21,6 +21,11 @@ final class TelemetryService {
     private init() {}
 
     func configure() {
+        guard !Self.isDisabledForCurrentProcess else {
+            isConfigured = false
+            return
+        }
+
         #if canImport(FirebaseCore)
         if !isConfigured, FirebaseApp.app() == nil {
             FirebaseApp.configure()
@@ -33,6 +38,7 @@ final class TelemetryService {
 
     func updateUserProperties(_ profile: UserProfile) {
         ensureConfigured()
+        guard isConfigured else { return }
 
         let properties: [String: String] = [
             "preferred_language": profile.preferredLanguage,
@@ -57,6 +63,8 @@ final class TelemetryService {
 
     func log(_ event: TelemetryEvent, parameters: [String: Any?] = [:]) {
         ensureConfigured()
+        guard isConfigured else { return }
+
         let sanitized = sanitize(parameters)
 
         #if canImport(FirebaseAnalytics)
@@ -73,6 +81,8 @@ final class TelemetryService {
 
     func record(_ error: Error, context: String, parameters: [String: Any?] = [:]) {
         ensureConfigured()
+        guard isConfigured else { return }
+
         var sanitized = sanitize(parameters)
         sanitized["context"] = context
 
@@ -93,6 +103,12 @@ final class TelemetryService {
     private func ensureConfigured() {
         guard !isConfigured else { return }
         configure()
+    }
+
+    private static var isDisabledForCurrentProcess: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        return environment["XCTestConfigurationFilePath"] != nil
+            || environment["REPS_DISABLE_TELEMETRY"] == "1"
     }
 
     private func sanitize(_ parameters: [String: Any?]) -> [String: Any] {

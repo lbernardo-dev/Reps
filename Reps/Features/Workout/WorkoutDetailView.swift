@@ -30,12 +30,26 @@ struct WorkoutDetailView: View {
         }
     }
 
+    private var progressionRecommendations: [SmartProgressionAdvisor.Recommendation] {
+        SmartProgressionAdvisor.recommendations(
+            for: selectedWorkout,
+            sessions: store.workoutSessions,
+            weightIncrementKg: store.userProfile.weightIncrementKg,
+            limit: 4
+        )
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 headerSection
                 heroCard
                 exerciseListCard
+                ProgressionRecommendationCard(
+                    recommendations: progressionRecommendations,
+                    language: store.userProfile.preferredLanguage,
+                    title: store.userProfile.preferredLanguage.hasPrefix("es") ? "Plan de progresión" : "Progression Plan"
+                )
                 
                 let adjustWord = store.userProfile.preferredLanguage.hasPrefix("es")
                     ? "El entrenamiento se adaptará según tu rendimiento."

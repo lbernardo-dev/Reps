@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import UIKit
 import MuscleMap
 @testable import Reps
 
@@ -304,6 +305,101 @@ struct RepsTests {
         #expect(ProgressionEngine.isStalled(recentSets: sets))
     }
 
+    @Test func smartProgressionAdvisorUsesDetailedExerciseHistory() {
+        let workout = WorkoutDay(
+            title: "Push",
+            subtitle: "Strength",
+            durationMinutes: 45,
+            exercises: [
+                WorkoutExercise(
+                    exercise: SeedData.bench,
+                    targetSets: 3,
+                    repRange: "8-10",
+                    previous: "60kg x 10",
+                    progressionType: .doubleProgression,
+                    incrementKg: 2.5
+                )
+            ]
+        )
+        let session = WorkoutSession(
+            workoutTitle: "Previous Push",
+            date: .now,
+            durationMinutes: 45,
+            sets: [],
+            exerciseLogs: [
+                ExerciseLog(exercise: SeedData.bench, notes: "", sets: [
+                    SetLog(setNumber: 1, weightKg: 60, reps: 10, completed: true, rpe: 7),
+                    SetLog(setNumber: 2, weightKg: 60, reps: 10, completed: true, rpe: 8),
+                    SetLog(setNumber: 3, weightKg: 60, reps: 10, completed: true, rpe: 8)
+                ])
+            ]
+        )
+
+        let recommendations = SmartProgressionAdvisor.recommendations(
+            for: workout,
+            sessions: [session],
+            weightIncrementKg: 2.5
+        )
+
+        #expect(recommendations.count == 1)
+        #expect(recommendations.first?.exercise.id == SeedData.bench.id)
+        #expect(recommendations.first?.suggestion.targetWeightKg == 62.5)
+        #expect(recommendations.first?.suggestion.targetReps == 8)
+    }
+
+    @Test func smartProgressionAdvisorPrioritizesDeloadsAndRespectsLimit() {
+        let benchItem = WorkoutExercise(
+            exercise: SeedData.bench,
+            targetSets: 3,
+            repRange: "8-10",
+            previous: "60kg x 10",
+            progressionType: .linear,
+            incrementKg: 2.5
+        )
+        let squatItem = WorkoutExercise(
+            exercise: SeedData.squat,
+            targetSets: 3,
+            repRange: "8-10",
+            previous: "100kg x 10",
+            progressionType: .doubleProgression,
+            incrementKg: 2.5
+        )
+        let workout = WorkoutDay(
+            title: "Full Body",
+            subtitle: "Strength",
+            durationMinutes: 55,
+            exercises: [squatItem, benchItem]
+        )
+        let session = WorkoutSession(
+            workoutTitle: "Previous Full Body",
+            date: .now,
+            durationMinutes: 55,
+            sets: [],
+            exerciseLogs: [
+                ExerciseLog(exercise: SeedData.squat, notes: "", sets: [
+                    SetLog(setNumber: 1, weightKg: 100, reps: 10, completed: true, rpe: 7),
+                    SetLog(setNumber: 2, weightKg: 100, reps: 10, completed: true, rpe: 8),
+                    SetLog(setNumber: 3, weightKg: 100, reps: 10, completed: true, rpe: 8)
+                ]),
+                ExerciseLog(exercise: SeedData.bench, notes: "", sets: [
+                    SetLog(setNumber: 1, weightKg: 60, reps: 7, completed: true, rpe: 9.5),
+                    SetLog(setNumber: 2, weightKg: 60, reps: 6, completed: true, rpe: 10)
+                ])
+            ]
+        )
+
+        let recommendations = SmartProgressionAdvisor.recommendations(
+            for: workout,
+            sessions: [session],
+            weightIncrementKg: 2.5,
+            limit: 1
+        )
+
+        #expect(recommendations.count == 1)
+        #expect(recommendations.first?.exercise.id == SeedData.bench.id)
+        #expect(recommendations.first?.suggestion.shouldDeload == true)
+    }
+
     @Test func exerciseSubstitutionPrefersSameMuscleAndAvailableEquipment() {
         let candidates = ExerciseSubstitutionService.candidates(
             for: SeedData.bench,
@@ -313,6 +409,267 @@ struct RepsTests {
 
         #expect(candidates.allSatisfy { $0.id != SeedData.bench.id })
         #expect(candidates.contains { $0.name == SeedData.incline.name || $0.name == SeedData.floorPress.name || $0.name == SeedData.pushup.name })
+    }
+
+    @Test func seedCatalogProvidesCompetitiveFallbackLibrary() {
+        #expect(SeedData.exercises.count >= 300)
+        #expect(Set(SeedData.exercises.map { $0.name.lowercased() }).count == SeedData.exercises.count)
+        #expect(SeedData.exercises.contains { $0.exerciseType == .cardio })
+        #expect(SeedData.exercises.contains { $0.exerciseType == .mobility })
+        #expect(SeedData.exercises.contains { $0.exerciseType == .stretching })
+        #expect(SeedData.exercises.contains { $0.environment == .home })
+        #expect(SeedData.exercises.contains { $0.environment == .gym })
+        #expect(SeedData.exercises.contains { !$0.requiredEquipment.isEmpty && ($0.instructions ?? "").isEmpty == false })
+    }
+
+    @Test func seedProgramsProvideRealMultiWeekPlans() {
+        #expect(SeedData.defaultPlans.count >= 10)
+        #expect(SeedData.defaultPlans.contains { $0.name == "Strength 5x5" && $0.totalWeeks == 12 })
+        #expect(SeedData.defaultPlans.contains { $0.name == "Hypertrophy 8-Week" && $0.daysPerWeek == 5 })
+        #expect(SeedData.defaultPlans.contains { $0.location == .home })
+        #expect(SeedData.defaultPlans.allSatisfy { plan in
+            plan.totalWeeks >= 6
+                && plan.totalWeeks <= 12
+                && plan.daysPerWeek > 0
+                && !plan.days.isEmpty
+                && plan.days.allSatisfy { !$0.exercises.isEmpty }
+        })
+        #expect(SeedData.defaultPlans.flatMap(\.days).flatMap(\.exercises).contains { $0.progressionType != .none })
+    }
+
+    @Test @MainActor func appStoreMergesSeedPlansIntoEmptySnapshot() {
+        let persistence = SwiftDataPersistence(inMemory: true)
+        var snapshot = AppSnapshot.empty
+        snapshot.plans = []
+        persistence.save(snapshot)
+
+        let store = AppStore(persistence: persistence)
+
+        #expect(store.plans.count >= SeedData.defaultPlans.count)
+        #expect(store.plans.contains { $0.name == "Full Body Beginner 3-Day" })
+        #expect(store.plans.contains { $0.name == "Express 30-Minute Strength" })
+    }
+
+    @Test func substitutionRespectsAvailableEquipment() {
+        let candidates = ExerciseSubstitutionService.candidates(
+            for: SeedData.bench,
+            in: SeedData.exercises,
+            availableEquipment: ["Bodyweight"]
+        )
+
+        #expect(!candidates.isEmpty)
+        #expect(candidates.allSatisfy { exercise in
+            let required = exercise.requiredEquipment.isEmpty ? [exercise.equipment] : exercise.requiredEquipment
+            return required.contains { $0.localizedCaseInsensitiveContains("bodyweight") }
+        })
+    }
+
+    @Test func substitutionReasonsExplainCandidateFit() throws {
+        let candidate = try #require(ExerciseSubstitutionService.candidates(
+            for: SeedData.bench,
+            in: SeedData.exercises,
+            availableEquipment: ["Bodyweight"]
+        ).first)
+
+        let reasons = ExerciseSubstitutionService.matchReasons(
+            for: candidate,
+            replacing: SeedData.bench,
+            availableEquipment: ["Bodyweight"]
+        )
+
+        #expect(!reasons.isEmpty)
+        #expect(reasons.contains("Mismo grupo muscular"))
+        #expect(reasons.contains("Disponible con tu equipo"))
+    }
+
+    @Test func plateLoadingCalculatorBuildsPerSideMetricLoad() {
+        let plates = PlateLoadingCalculator.platesPerSide(targetWeightKg: 100, barWeightKg: 20)
+
+        #expect(plates == [
+            PlateLoadItem(weightKg: 25, count: 1),
+            PlateLoadItem(weightKg: 15, count: 1)
+        ])
+        #expect(PlateLoadingCalculator.loadSummary(targetWeightKg: 100, barWeightKg: 20) == "1x25 + 1x15")
+        #expect(PlateLoadingCalculator.platesPerSide(targetWeightKg: 20, barWeightKg: 20).isEmpty)
+    }
+
+    @Test func workoutSetBuilderCreatesWarmUpsAndAdvancedSets() {
+        let warmUps = WorkoutSetBuilder.warmUpSets(targetWeightKg: 100, targetReps: 8)
+        let workSet = SetLog(setNumber: 4, weightKg: 100, reps: 8, completed: false)
+        let dropSet = WorkoutSetBuilder.dropSet(after: workSet)
+        let backOff = WorkoutSetBuilder.backOffSet(after: workSet)
+
+        #expect(warmUps.count == 3)
+        #expect(warmUps.allSatisfy { $0.setType == .warmUp && !$0.completed })
+        #expect(warmUps.map(\.weightKg) == [40, 60, 80])
+        #expect(dropSet.setType == .dropSet)
+        #expect(dropSet.weightKg == 75)
+        #expect(backOff.setType == .backOff)
+        #expect(backOff.weightKg == 90)
+        #expect(WorkoutSetBuilder.renumbered([workSet, dropSet]).map(\.setNumber) == [1, 2])
+    }
+
+    @Test func competitiveSummaryComparesPlanTargetsToActualWeek() {
+        let now = Date()
+        let plan = WorkoutPlan(
+            name: "Push Pull",
+            location: .gym,
+            daysPerWeek: 2,
+            currentWeek: 1,
+            totalWeeks: 8,
+            completion: 0,
+            days: [
+                WorkoutDay(title: "Push", subtitle: "", durationMinutes: 45, exercises: [
+                    WorkoutExercise(exercise: SeedData.bench, targetSets: 4, repRange: "8-10", previous: "60kg x 8")
+                ]),
+                WorkoutDay(title: "Pull", subtitle: "", durationMinutes: 45, exercises: [
+                    WorkoutExercise(exercise: SeedData.row, targetSets: 4, repRange: "8-10", previous: "60kg x 8")
+                ])
+            ]
+        )
+        let sessions = [
+            WorkoutSession(
+                workoutTitle: "Push",
+                date: now,
+                durationMinutes: 45,
+                sets: [],
+                exerciseLogs: [
+                    ExerciseLog(exercise: SeedData.bench, notes: "", sets: [
+                        SetLog(setNumber: 1, weightKg: 60, reps: 8, completed: true),
+                        SetLog(setNumber: 2, weightKg: 60, reps: 8, completed: true)
+                    ])
+                ]
+            )
+        ]
+
+        let summary = AnalyticsEngine.competitiveSummary(
+            sessions: sessions,
+            activePlan: plan,
+            exercises: SeedData.exercises,
+            since: Calendar.current.date(byAdding: .day, value: -6, to: now) ?? now,
+            now: now
+        )
+
+        #expect(summary.completedWorkouts == 1)
+        #expect(summary.plannedWorkouts == 2)
+        #expect(summary.completionRate == 0.5)
+        #expect(summary.targetWeeklySets == 8)
+        #expect(summary.actualWeeklySets == 2)
+        #expect(summary.undertrainedMuscles.contains { $0.muscleGroup == SeedData.row.muscleGroup })
+        #expect(summary.recommendations.contains { $0.title == "Sube la adherencia" })
+    }
+
+    @Test func competitiveSummaryDetectsStalledExercises() {
+        let now = Date()
+        let sessions = (0..<4).map { index in
+            WorkoutSession(
+                workoutTitle: "Bench \(index)",
+                date: Calendar.current.date(byAdding: .day, value: -(21 - index * 7), to: now) ?? now,
+                durationMinutes: 45,
+                sets: [],
+                exerciseLogs: [
+                    ExerciseLog(exercise: SeedData.bench, notes: "", sets: [
+                        SetLog(setNumber: 1, weightKg: index == 0 ? 105 : 100, reps: 5, completed: true)
+                    ])
+                ]
+            )
+        }
+
+        let summary = AnalyticsEngine.competitiveSummary(
+            sessions: sessions,
+            activePlan: .empty,
+            exercises: [SeedData.bench],
+            since: Calendar.current.date(byAdding: .day, value: -28, to: now) ?? now,
+            now: now
+        )
+
+        #expect(summary.stalledExercises.first?.exercise.id == SeedData.bench.id)
+        #expect(summary.recommendations.contains { $0.title == "Rompe el estancamiento" })
+    }
+
+    @Test @MainActor func competitiveActionSchedulesMuscleFocusSession() {
+        let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+        store.userProfile.availableEquipment = ["Bodyweight", "Dumbbells"]
+        let before = store.scheduledWorkouts.count
+
+        let destination = store.executeCompetitiveAction(.scheduleUndertrainedMuscle("Chest"))
+
+        #expect(destination == .calendar)
+        #expect(store.scheduledWorkouts.count == before + 1)
+        #expect(store.scheduledWorkouts.last?.workoutDay.title.contains("Chest") == true)
+        #expect(store.scheduledWorkouts.last?.workoutDay.exercises.isEmpty == false)
+    }
+
+    @Test @MainActor func competitiveActionSchedulesDeloadSession() {
+        let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+
+        let destination = store.executeCompetitiveAction(.scheduleDeloadExercise(SeedData.bench.id))
+
+        #expect(destination == .calendar)
+        #expect(store.scheduledWorkouts.last?.workoutDay.title.contains("Descarga") == true)
+        #expect(store.scheduledWorkouts.last?.workoutDay.exercises.first?.targetRPE == 6)
+    }
+
+    @Test func retentionEngineGuidesNewUsersToActivation() {
+        let summary = AnalyticsEngine.competitiveSummary(
+            sessions: [],
+            activePlan: .empty,
+            exercises: SeedData.exercises,
+            since: .now,
+            now: .now
+        )
+
+        let steps = RetentionEngine.nextBestSteps(
+            sessions: [],
+            activePlan: .empty,
+            scheduledWorkouts: [],
+            remindersEnabled: false,
+            competitiveSummary: summary
+        )
+
+        #expect(steps.first?.id == "create-plan")
+        #expect(steps.contains { $0.action == .createPlan })
+        #expect(steps.contains { $0.action == .scheduleWorkout })
+        #expect(steps.contains { $0.action == .startWorkout })
+    }
+
+    @Test func retentionEngineSurfacesCompetitiveActionsForActiveUsers() {
+        let recommendation = AnalyticsEngine.CompetitiveRecommendation(
+            title: "Prioriza Chest",
+            message: "Faltan series",
+            systemImage: "target",
+            action: .scheduleUndertrainedMuscle("Chest")
+        )
+        let summary = AnalyticsEngine.CompetitiveSummary(
+            completedWorkouts: 1,
+            plannedWorkouts: 3,
+            completionRate: 0.33,
+            targetWeeklySets: 12,
+            actualWeeklySets: 4,
+            muscleTargets: [],
+            undertrainedMuscles: [],
+            overtrainedMuscles: [],
+            stalledExercises: [],
+            recommendations: [recommendation]
+        )
+        let oldSession = WorkoutSession(
+            workoutTitle: "Push",
+            date: Calendar.current.date(byAdding: .day, value: -8, to: .now) ?? .now,
+            durationMinutes: 45,
+            sets: [SetLog(setNumber: 1, weightKg: 60, reps: 8, completed: true)]
+        )
+
+        let steps = RetentionEngine.nextBestSteps(
+            sessions: [oldSession],
+            activePlan: SeedData.defaultPlans[0],
+            scheduledWorkouts: [],
+            remindersEnabled: true,
+            competitiveSummary: summary
+        )
+
+        #expect(steps.contains { $0.id == recommendation.id })
+        #expect(steps.contains { $0.action == .startWorkout })
+        #expect(!steps.contains { $0.id == "enable-reminders" })
     }
 
     @Test func unitConversionsRoundTrip() {
@@ -469,7 +826,15 @@ struct RepsTests {
     }
 
     @Test @MainActor func shareImageExportCreatesPNG() throws {
-        let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+        let store = AppStore(
+            persistence: SwiftDataPersistence(inMemory: true),
+            shareImageRenderer: { _ in
+                UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { context in
+                    UIColor.black.setFill()
+                    context.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
+                }
+            }
+        )
         let url = try store.exportWorkoutShareImageURL()
         let data = try Data(contentsOf: url)
 
@@ -481,6 +846,18 @@ struct RepsTests {
         #expect(ProductAccess.isEnabled(.unlimitedLogging))
         #expect(!ProductAccess.isEnabled(.advancedAnalytics))
         #expect(ProductAccess.isEnabled(.advancedAnalytics, proEnabled: true))
+        #expect(ProductAccess.freeFeatures.contains(.customRoutines))
+        #expect(ProductAccess.freeFeatures.contains(.basicAnalytics))
+        #expect(ProductAccess.proFeatures.contains(.configurableProgression))
+        #expect(ProductAccess.proFeatures.contains(.automaticBackups))
+        #expect(ProductFeature.advancedAnalytics.tier == .pro)
+        #expect(ProductFeature.exerciseLibrary.tier == .free)
+    }
+
+    @Test func paywallSourcesProvideContextualPreviewCopy() {
+        #expect(PaywallSource.progressLoad.previewTitle.contains("Decisiones"))
+        #expect(PaywallSource.workoutAdvancedFields.previewBullets.contains { $0.contains("entreno activo") })
+        #expect(ProductFeature.configurableProgression.conversionBenefit.contains("RPE"))
     }
 
     @Test @MainActor func monetizationStatePersistsThroughSwiftData() {

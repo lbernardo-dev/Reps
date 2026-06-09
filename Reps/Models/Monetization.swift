@@ -33,6 +33,15 @@ enum ProductFeature: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
+    enum Tier: String {
+        case free = "Free"
+        case pro = "Pro"
+    }
+
+    var tier: Tier {
+        ProductAccess.isEnabled(self) ? .free : .pro
+    }
+
     var title: String {
         switch self {
         case .unlimitedLogging:
@@ -74,9 +83,54 @@ enum ProductFeature: String, CaseIterable, Identifiable, Codable {
             return "Comparte recibos, tarjetas y resúmenes visuales."
         }
     }
+
+    var conversionBenefit: String {
+        switch self {
+        case .unlimitedLogging:
+            return "Construye el hábito base: registrar entrenos sin fricción."
+        case .exerciseLibrary:
+            return "Encuentra ejercicios para casa o gimnasio desde el día uno."
+        case .customRoutines:
+            return "Crea rutinas reales antes de decidir si necesitas automatización."
+        case .basicAnalytics:
+            return "Mide constancia, volumen y progreso básico gratis."
+        case .advancedAnalytics:
+            return "Convierte tus datos en decisiones: objetivo vs real, fatiga, estancamientos y próximas acciones."
+        case .configurableProgression:
+            return "Registra RPE/RIR, tempo y tipos de serie para ajustar cargas con más precisión."
+        case .automaticBackups:
+            return "Protege tu historial completo y muévelo entre instalaciones."
+        case .shareCards:
+            return "Convierte entrenos y récords en recibos visuales listos para compartir."
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .unlimitedLogging:
+            return "list.clipboard.fill"
+        case .exerciseLibrary:
+            return "books.vertical.fill"
+        case .customRoutines:
+            return "rectangle.stack.fill"
+        case .basicAnalytics:
+            return "chart.bar.fill"
+        case .advancedAnalytics:
+            return "chart.line.uptrend.xyaxis"
+        case .configurableProgression:
+            return "slider.horizontal.3"
+        case .automaticBackups:
+            return "externaldrive.fill"
+        case .shareCards:
+            return "square.and.arrow.up.fill"
+        }
+    }
 }
 
 enum ProductAccess {
+    static let freeFeatures: [ProductFeature] = ProductFeature.allCases.filter { isEnabled($0) }
+    static let proFeatures: [ProductFeature] = ProductFeature.allCases.filter { !isEnabled($0) }
+
     static func isEnabled(_ feature: ProductFeature, proEnabled: Bool = false) -> Bool {
         switch feature {
         case .unlimitedLogging, .exerciseLibrary, .customRoutines, .basicAnalytics:
@@ -211,6 +265,73 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
             return "Convierte tus entrenos y récords en tarjetas listas para compartir."
         case .receiptGallery:
             return "Guarda y revisa tus recibos visuales cuando quieras."
+        }
+    }
+
+    var previewTitle: String {
+        switch self {
+        case .onboarding:
+            return "Empieza gratis, escala con Pro"
+        case .profileSubscription:
+            return "Tu centro de acceso Pro"
+        case .proPreferences, .workoutAdvancedFields:
+            return "Registro avanzado en contexto"
+        case .progressAdvancedAnalytics, .progressLoad:
+            return "Decisiones de entrenamiento, no solo gráficas"
+        case .backupCenter:
+            return "Tu historial bajo control"
+        case .shareCards, .receiptGallery:
+            return "Progreso listo para compartir"
+        }
+    }
+
+    var previewBullets: [String] {
+        switch self {
+        case .onboarding:
+            return [
+                "Free mantiene entrenos, rutinas y analítica base.",
+                "Pro añade progresión automática, carga/fatiga y backups."
+            ]
+        case .profileSubscription:
+            return [
+                "Revisa estado, plan y ventajas incluidas.",
+                "Desbloquea todo Pro desde una sola pantalla."
+            ]
+        case .proPreferences:
+            return [
+                "Activa RPE, RIR, tempo y tipo de serie.",
+                "Ajusta incrementos y auto-progresión según tu historial."
+            ]
+        case .workoutAdvancedFields:
+            return [
+                "Registra más contexto sin salir del entreno activo.",
+                "Mejora la calidad de las recomendaciones futuras."
+            ]
+        case .progressAdvancedAnalytics:
+            return [
+                "Detecta estancamientos por ejercicio.",
+                "Compara tendencia, 1RM estimado y volumen efectivo."
+            ]
+        case .progressLoad:
+            return [
+                "Mide carga aguda, fatiga e intensidad.",
+                "Decide cuándo apretar, descargar o recuperar."
+            ]
+        case .backupCenter:
+            return [
+                "Exporta/importa backups completos.",
+                "Protege sesiones, planes, fotos y métricas."
+            ]
+        case .shareCards:
+            return [
+                "Genera tarjetas visuales de entrenos y récords.",
+                "Comparte progreso sin capturas manuales."
+            ]
+        case .receiptGallery:
+            return [
+                "Guarda recibos visuales en tu galería.",
+                "Reutiliza tus mejores resúmenes cuando quieras."
+            ]
         }
     }
 }

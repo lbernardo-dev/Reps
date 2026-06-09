@@ -35,7 +35,7 @@ final class SwiftDataPersistence {
         do {
             let configuration: ModelConfiguration
             if inMemory {
-                configuration = ModelConfiguration("RepsStore", schema: schema, isStoredInMemoryOnly: true)
+                configuration = ModelConfiguration("RepsStore-\(UUID().uuidString)", schema: schema, isStoredInMemoryOnly: true)
             } else {
                 configuration = try Self.persistentConfiguration(schema: schema)
             }
@@ -48,7 +48,7 @@ final class SwiftDataPersistence {
             didFallbackToInMemory = true
             container = try! ModelContainer(
                 for: schema,
-                configurations: ModelConfiguration("RepsFallbackStore", schema: schema, isStoredInMemoryOnly: true)
+                configurations: ModelConfiguration("RepsFallbackStore-\(UUID().uuidString)", schema: schema, isStoredInMemoryOnly: true)
             )
         }
     }
@@ -80,13 +80,18 @@ final class SwiftDataPersistence {
 
     func loadSnapshot() -> AppSnapshot? {
         let profiles = fetch(UserProfileRecord.self)
-        let plans = fetch(WorkoutPlanRecord.self)
+        let planRecords = fetch(WorkoutPlanRecord.self)
 
         guard let profile = profiles.first else {
             return nil
         }
 
-        let activePlan = plans.first(where: \.isActive)?.domain ?? plans.first?.domain ?? .empty
+        let activePlan = planRecords.first(where: \.isActive)?.domain ?? planRecords.first?.domain ?? .empty
+        let visiblePlans = planRecords
+            .filter { record in
+                !(record.isActive && record.id == activePlan.id && activePlan.days.isEmpty)
+            }
+            .map(\.domain)
 
         let activeWorkoutStatus = profile.activeWorkoutStatusData.flatMap { try? JSONDecoder().decode(ActiveWorkoutStatus.self, from: $0) }
         let activeWorkout = profile.activeWorkoutData.flatMap { try? JSONDecoder().decode(WorkoutDay.self, from: $0) }
@@ -96,7 +101,7 @@ final class SwiftDataPersistence {
             userProfile: profile.domain,
             monetization: fetch(MonetizationStateRecord.self).first?.domain ?? MonetizationState(),
             activePlan: activePlan,
-            plans: plans.map(\.domain),
+            plans: visiblePlans,
             workoutTemplates: fetch(WorkoutTemplateRecord.self).map(\.domain),
             exercises: fetch(ExerciseRecord.self).filter(\.isLibraryItem).map(\.domain),
             scheduledWorkouts: fetch(ScheduledWorkoutRecord.self).map(\.domain),
@@ -130,7 +135,11 @@ final class SwiftDataPersistence {
         snapshot.exercises
             .map { ExerciseRecord(exercise: $0, isLibraryItem: true) }
             .forEach(context.insert)
-        snapshot.plans
+        let persistedPlans = snapshot.plans.contains(where: { $0.id == snapshot.activePlan.id })
+            ? snapshot.plans
+            : snapshot.plans + [snapshot.activePlan]
+
+        persistedPlans
             .map { plan in
                 let isActive = plan.id == snapshot.activePlan.id
                 return WorkoutPlanRecord(plan: isActive ? snapshot.activePlan : plan, isActive: isActive)

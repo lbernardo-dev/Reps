@@ -160,6 +160,21 @@ struct ActiveWorkoutView: View {
         selectedDraft?.sets.first(where: { !$0.completed }) ?? selectedDraft?.sets.last
     }
 
+    private var selectedTargetWeightKg: Double? {
+        guard let set = currentWorkingSet, set.weightKg > 0 else { return nil }
+        return set.weightKg
+    }
+
+    private var selectedPlateLoadSummary: String? {
+        guard let selectedDraft,
+              isBarbellLoadedExercise(selectedDraft.workoutExercise.exercise),
+              let target = selectedTargetWeightKg else {
+            return nil
+        }
+
+        return PlateLoadingCalculator.loadSummary(targetWeightKg: target)
+    }
+
     private var selectedExerciseHistorySummary: String? {
         guard let exercise = selectedDraft?.workoutExercise.exercise else { return nil }
         let recent = recentSets(for: exercise).prefix(3)
@@ -168,6 +183,19 @@ struct ActiveWorkoutView: View {
             return "Histórico: \(Int(best.weightKg)) kg x \(best.reps)"
         }
         return nil
+    }
+
+    private var selectedProgressionRecommendations: [SmartProgressionAdvisor.Recommendation] {
+        guard let selectedDraft,
+              let recommendation = SmartProgressionAdvisor.recommendation(
+                for: selectedDraft.workoutExercise,
+                sessions: store.workoutSessions,
+                weightIncrementKg: store.userProfile.weightIncrementKg
+              ) else {
+            return []
+        }
+
+        return [recommendation]
     }
 
     private var selectedGymPass: GymPass? {
@@ -366,6 +394,14 @@ struct ActiveWorkoutView: View {
                         .frame(width: contentWidth)
                     exerciseSwitcher
                         .frame(width: contentWidth)
+                    if !selectedProgressionRecommendations.isEmpty {
+                        ProgressionRecommendationCard(
+                            recommendations: selectedProgressionRecommendations,
+                            language: store.userProfile.preferredLanguage,
+                            title: store.userProfile.preferredLanguage.hasPrefix("es") ? "Siguiente ajuste" : "Next Adjustment"
+                        )
+                        .frame(width: contentWidth)
+                    }
                     if exerciseDrafts.isEmpty {
                         emptyFreeWorkoutCard
                             .frame(width: contentWidth)
@@ -1299,6 +1335,8 @@ struct ActiveWorkoutView: View {
 
                 executionSummaryStrip
 
+                activeWorkoutToolsCard
+
                 if !selectedMediaBookmarks.isEmpty {
                     ExerciseBookmarkStrip(bookmarks: selectedMediaBookmarks, activeBookmark: $activeBookmark)
                 }
@@ -1600,6 +1638,83 @@ struct ActiveWorkoutView: View {
                 icon: "photo.fill.on.rectangle.fill"
             )
         }
+    }
+
+    private var activeWorkoutToolsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                Label("Herramientas de serie", systemImage: "wrench.and.screwdriver.fill")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(PulseTheme.primary)
+                Spacer()
+                if let selectedPlateLoadSummary {
+                    Text("Lado: \(selectedPlateLoadSummary)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+
+            HStack(spacing: 8) {
+                workoutToolButton(title: "Warm-up", systemImage: "flame.fill") {
+                    insertWarmUpSetsForSelectedExercise()
+                }
+                .disabled(!canInsertWarmUpSets)
+
+                workoutToolButton(title: "Back-off", systemImage: "arrow.down.forward.circle.fill") {
+                    appendBackOffSetToSelectedExercise()
+                }
+                .disabled(!canAppendAdvancedSet)
+
+                workoutToolButton(title: "Dropset", systemImage: "arrow.down.circle.fill") {
+                    appendDropSetToSelectedExercise()
+                }
+                .disabled(!canAppendAdvancedSet)
+            }
+
+            Text(activeWorkoutToolsCaption)
+                .font(.caption)
+                .foregroundStyle(PulseTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+
+    private func workoutToolButton(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.bold))
+                .frame(maxWidth: .infinity)
+                .frame(height: 38)
+                .foregroundStyle(PulseTheme.primary)
+                .background(PulseTheme.primary.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var activeWorkoutToolsCaption: String {
+        if selectedPlateLoadSummary != nil {
+            return "Carga recomendada por lado con barra de 20 kg. Los botones insertan series especiales sin cerrar el entrenamiento."
+        }
+
+        if canAppendAdvancedSet {
+            return "Inserta calentamientos, back-off o dropsets desde la misma pantalla y deja el tipo de serie registrado."
+        }
+
+        return "Añade peso a la serie objetivo para activar herramientas de calentamiento y carga."
+    }
+
+    private var canInsertWarmUpSets: Bool {
+        guard let selectedDraft, let target = selectedTargetWeightKg else { return false }
+        return target >= 20 && !selectedDraft.sets.contains(where: { $0.setType == .warmUp })
+    }
+
+    private var canAppendAdvancedSet: Bool {
+        selectedDraft?.sets.isEmpty == false && selectedTargetWeightKg != nil
     }
 
     private var sessionFeedbackCard: some View {
@@ -1956,6 +2071,65 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    private func insertWarmUpSetsForSelectedExercise() {
+        withAnimation(.snappy(duration: 0.25)) {
+            guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+                  let targetSet = currentWorkingSet,
+                  targetSet.weightKg >= 20,
+                  !exerciseDrafts[selectedExerciseIndex].sets.contains(where: { $0.setType == .warmUp }) else {
+                return
+            }
+
+            let warmUps = WorkoutSetBuilder.warmUpSets(
+                targetWeightKg: targetSet.weightKg,
+                targetReps: targetSet.reps
+            )
+            guard !warmUps.isEmpty else { return }
+
+            let existing = exerciseDrafts[selectedExerciseIndex].sets
+            let firstWorkIndex = existing.firstIndex { $0.setType != .warmUp } ?? 0
+            let updated = Array(existing[..<firstWorkIndex]) + warmUps + Array(existing[firstWorkIndex...])
+            exerciseDrafts[selectedExerciseIndex].sets = WorkoutSetBuilder.renumbered(updated)
+            syncActiveWorkoutExercises()
+            publishActiveWorkoutStatus()
+        }
+    }
+
+    private func appendDropSetToSelectedExercise() {
+        appendSpecialSet { WorkoutSetBuilder.dropSet(after: $0) }
+    }
+
+    private func appendBackOffSetToSelectedExercise() {
+        appendSpecialSet { WorkoutSetBuilder.backOffSet(after: $0) }
+    }
+
+    private func appendSpecialSet(_ build: (SetLog) -> SetLog) {
+        withAnimation(.snappy(duration: 0.25)) {
+            guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+                  let reference = exerciseDrafts[selectedExerciseIndex].sets.last(where: { $0.weightKg > 0 }) ?? exerciseDrafts[selectedExerciseIndex].sets.last else {
+                return
+            }
+
+            var next = build(reference)
+            next.completed = false
+            exerciseDrafts[selectedExerciseIndex].sets.append(next)
+            exerciseDrafts[selectedExerciseIndex].sets = WorkoutSetBuilder.renumbered(exerciseDrafts[selectedExerciseIndex].sets)
+            syncActiveWorkoutExercises()
+            publishActiveWorkoutStatus()
+        }
+    }
+
+    private func isBarbellLoadedExercise(_ exercise: Exercise) -> Bool {
+        let searchable = "\(exercise.name) \(exercise.equipment) \(exercise.requiredEquipment.joined(separator: " "))"
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+
+        return searchable.contains("barbell") ||
+            searchable.contains("barra") ||
+            searchable.contains("smith")
+    }
+
     @MainActor
     private func appendSessionPhotos(from items: [PhotosPickerItem]) async {
         let attachments = await imageAttachments(from: items)
@@ -2206,6 +2380,10 @@ private struct ExercisePickerSheet: View {
     @State private var searchText = ""
     @State private var selectedMuscle = "Todos"
     @State private var selectedEquipment = "Todos"
+    @State private var selectedType: Exercise.ExerciseType?
+    @State private var selectedDifficulty: Exercise.Difficulty?
+    @State private var selectedEnvironment: Exercise.Environment?
+    @State private var onlyAvailableEquipment = false
 
     private var muscles: [String] {
         ["Todos"] + Array(Set(exercises.map(\.muscleGroup))).sorted()
@@ -2218,14 +2396,24 @@ private struct ExercisePickerSheet: View {
     private var filteredExercises: [Exercise] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return exercises.filter { exercise in
-            let matchesQuery = query.isEmpty
-                || exercise.name.localizedCaseInsensitiveContains(query)
-                || exercise.muscleGroup.localizedCaseInsensitiveContains(query)
-                || exercise.equipment.localizedCaseInsensitiveContains(query)
-                || exercise.aliases.contains { $0.localizedCaseInsensitiveContains(query) }
+            let searchableText = [
+                exercise.name,
+                exercise.aliases.joined(separator: " "),
+                exercise.muscleGroup,
+                exercise.secondaryMuscles.joined(separator: " "),
+                exercise.equipment,
+                exercise.requiredEquipment.joined(separator: " "),
+                exercise.tags.joined(separator: " "),
+                exercise.instructions ?? ""
+            ].joined(separator: " ")
+            let matchesQuery = query.isEmpty || searchableText.localizedCaseInsensitiveContains(query)
             let matchesMuscle = selectedMuscle == "Todos" || exercise.muscleGroup == selectedMuscle
             let matchesEquipment = selectedEquipment == "Todos" || exercise.equipment == selectedEquipment
-            return matchesQuery && matchesMuscle && matchesEquipment
+            let matchesType = selectedType == nil || exercise.exerciseType == selectedType
+            let matchesDifficulty = selectedDifficulty == nil || exercise.difficulty == selectedDifficulty
+            let matchesEnvironment = selectedEnvironment == nil || exercise.environment == selectedEnvironment || exercise.environment == .both
+            let matchesAvailableEquipment = !onlyAvailableEquipment || availableEquipmentMatches(exercise)
+            return matchesQuery && matchesMuscle && matchesEquipment && matchesType && matchesDifficulty && matchesEnvironment && matchesAvailableEquipment
         }
     }
 
@@ -2254,6 +2442,38 @@ private struct ExercisePickerSheet: View {
                     }
                     .font(.subheadline.weight(.semibold))
 
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            Picker("Tipo", selection: $selectedType) {
+                                Text("Todo").tag(Optional<Exercise.ExerciseType>.none)
+                                ForEach(Exercise.ExerciseType.allCases) { type in
+                                    Text(type.title(language: store.userProfile.preferredLanguage)).tag(Optional(type))
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Picker("Dificultad", selection: $selectedDifficulty) {
+                                Text("Cualquiera").tag(Optional<Exercise.Difficulty>.none)
+                                ForEach(Exercise.Difficulty.allCases) { difficulty in
+                                    Text(difficulty.title(language: store.userProfile.preferredLanguage)).tag(Optional(difficulty))
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Picker("Entorno", selection: $selectedEnvironment) {
+                                Text("Cualquiera").tag(Optional<Exercise.Environment>.none)
+                                ForEach(Exercise.Environment.allCases) { environment in
+                                    Text(environment.title(language: store.userProfile.preferredLanguage)).tag(Optional(environment))
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Toggle("Mi equipo", isOn: $onlyAvailableEquipment)
+                                .toggleStyle(.button)
+                        }
+                    }
+                    .font(.subheadline.weight(.semibold))
+
                     LazyVStack(spacing: 10) {
                         ForEach(filteredExercises) { exercise in
                             Button {
@@ -2263,6 +2483,7 @@ private struct ExercisePickerSheet: View {
                                 ReplacementExerciseRow(
                                     exercise: exercise,
                                     currentExercise: currentExercise,
+                                    availableEquipment: store.userProfile.availableEquipment,
                                     gender: store.userProfile.muscleMapGender,
                                     language: store.userProfile.preferredLanguage
                                 )
@@ -2284,6 +2505,26 @@ private struct ExercisePickerSheet: View {
                 }
             }
         }
+    }
+
+    private func availableEquipmentMatches(_ exercise: Exercise) -> Bool {
+        let equipment = Set(store.userProfile.availableEquipment.map(normalized))
+        guard !equipment.isEmpty else {
+            return true
+        }
+
+        let required = exercise.requiredEquipment.isEmpty ? [exercise.equipment] : exercise.requiredEquipment
+        let normalizedRequired = Set(required.map(normalized))
+        return normalizedRequired.contains("bodyweight")
+            || normalizedRequired.contains("body only")
+            || !normalizedRequired.isDisjoint(with: equipment)
+            || equipment.contains(normalized(exercise.equipment))
+    }
+
+    private func normalized(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 
     private func replacementHeader(for exercise: Exercise) -> some View {
@@ -2325,9 +2566,42 @@ private struct ExercisePickerSheet: View {
     }
 }
 
+private extension Exercise.ExerciseType {
+    func title(language: String) -> String {
+        switch self {
+        case .strength: language.hasPrefix("es") ? "Fuerza" : "Strength"
+        case .cardio: "Cardio"
+        case .mobility: language.hasPrefix("es") ? "Movilidad" : "Mobility"
+        case .stretching: language.hasPrefix("es") ? "Estiramientos" : "Stretching"
+        case .hiit: "HIIT"
+        }
+    }
+}
+
+private extension Exercise.Difficulty {
+    func title(language: String) -> String {
+        switch self {
+        case .low: language.hasPrefix("es") ? "Principiante" : "Beginner"
+        case .medium: language.hasPrefix("es") ? "Intermedio" : "Intermediate"
+        case .high: language.hasPrefix("es") ? "Avanzado" : "Advanced"
+        }
+    }
+}
+
+private extension Exercise.Environment {
+    func title(language: String) -> String {
+        switch self {
+        case .home: language.hasPrefix("es") ? "Casa" : "Home"
+        case .gym: language.hasPrefix("es") ? "Gimnasio" : "Gym"
+        case .both: language.hasPrefix("es") ? "Casa y gym" : "Home and gym"
+        }
+    }
+}
+
 private struct ReplacementExerciseRow: View {
     let exercise: Exercise
     let currentExercise: Exercise?
+    let availableEquipment: [String]
     let gender: BodyGender
     let language: String
 
@@ -2351,6 +2625,12 @@ private struct ReplacementExerciseRow: View {
                         .font(.caption)
                         .foregroundStyle(PulseTheme.primary)
                         .lineLimit(1)
+                }
+                if let reasonText {
+                    Label(reasonText, systemImage: "checkmark.seal.fill")
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.recovery)
+                        .lineLimit(2)
                 }
             }
 
@@ -2388,6 +2668,16 @@ private struct ReplacementExerciseRow: View {
             return "Esencial"
         }
         return nil
+    }
+
+    private var reasonText: String? {
+        guard let currentExercise else { return nil }
+        let reasons = ExerciseSubstitutionService.matchReasons(
+            for: exercise,
+            replacing: currentExercise,
+            availableEquipment: availableEquipment
+        )
+        return reasons.isEmpty ? nil : reasons.joined(separator: " · ")
     }
 
     private func normalized(_ value: String) -> String {

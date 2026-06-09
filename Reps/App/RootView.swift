@@ -63,7 +63,7 @@ struct MainTabView: View {
                 PlansView()
                     .id(plansResetID)
             case .progress:
-                ProgressDashboardView()
+                ProgressDashboardView(onSelectTab: { select($0) })
                     .id(progressResetID)
             }
 
