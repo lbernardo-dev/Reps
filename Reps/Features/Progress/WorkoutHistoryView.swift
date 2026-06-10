@@ -1,3 +1,5 @@
+import CoreLocation
+import MapKit
 import SwiftUI
 
 struct WorkoutHistoryView: View {
@@ -274,6 +276,10 @@ struct WorkoutSessionDetailView: View {
                     MetricCard(title: "Series", value: "\(FitnessMetrics.completedSets(in: session).count)", subtitle: "completadas", systemImage: "checkmark.circle", badgeColor: PulseTheme.primary)
                 }
 
+                if session.hasRouteMetrics {
+                    RouteSessionMetricsCard(session: session)
+                }
+
                 if let notes = session.notes, !notes.isEmpty {
                     PulseCard {
                         VStack(alignment: .leading, spacing: 6) {
@@ -348,6 +354,150 @@ struct WorkoutSessionDetailView: View {
                 ActivityViewController(activityItems: [image])
             }
         }
+    }
+}
+
+private struct RouteSessionMetricsCard: View {
+    let session: WorkoutSession
+
+    var body: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Label(routeTitle, systemImage: "map.fill")
+                        .font(.headline)
+                    Spacer()
+                    Text(session.routePoints.isEmpty ? "Sin GPS" : "\(session.routePoints.count) puntos")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+
+                if !session.routePoints.isEmpty {
+                    HistoryRouteMap(routePoints: session.routePoints)
+                        .frame(height: 210)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    RouteMetricTile(title: "Distancia", value: session.distanceKm.map { String(format: "%.2f km", $0) } ?? "--", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
+                    RouteMetricTile(title: "Ritmo", value: session.averagePaceSecondsPerKm.map(Self.paceText) ?? "--", systemImage: "speedometer")
+                    RouteMetricTile(title: "Pasos", value: session.steps.map { "\(Int($0))" } ?? "--", systemImage: "figure.walk")
+                    RouteMetricTile(title: "Kcal activas", value: session.activeEnergyKcal.map { "\(Int($0))" } ?? session.estimatedCalories.map { "\(Int($0))" } ?? "--", systemImage: "flame.fill")
+                    RouteMetricTile(title: "Pulso medio", value: session.averageHeartRate.map { "\(Int($0)) lpm" } ?? "--", systemImage: "heart.fill")
+                    RouteMetricTile(title: "Pulso max", value: session.maxHeartRate.map { "\(Int($0)) lpm" } ?? "--", systemImage: "waveform.path.ecg")
+                    RouteMetricTile(title: "Antes", value: session.heartRateBefore.map { "\(Int($0)) lpm" } ?? "--", systemImage: "arrow.backward.heart")
+                    RouteMetricTile(title: "Después", value: session.heartRateAfter.map { "\(Int($0)) lpm" } ?? "--", systemImage: "arrow.forward.heart")
+                }
+            }
+        }
+    }
+
+    private var routeTitle: String {
+        if session.workoutTitle.localizedCaseInsensitiveContains("camina") {
+            return "Caminata"
+        }
+        if session.workoutTitle.localizedCaseInsensitiveContains("carrera") || session.workoutTitle.localizedCaseInsensitiveContains("run") {
+            return "Carrera"
+        }
+        return "Ruta"
+    }
+
+    private static func paceText(_ seconds: Double) -> String {
+        "\(Int(seconds) / 60):\(String(format: "%02d", Int(seconds) % 60))/km"
+    }
+}
+
+private struct RouteMetricTile: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .foregroundStyle(PulseTheme.primary)
+                .frame(width: 28, height: 28)
+                .background(PulseTheme.primary.opacity(0.12))
+                .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Text(value)
+                    .font(.subheadline.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private struct HistoryRouteMap: View {
+    let routePoints: [RoutePoint]
+    @State private var position: MapCameraPosition = .automatic
+
+    private var coordinates: [CLLocationCoordinate2D] {
+        routePoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+    }
+
+    var body: some View {
+        Map(position: $position) {
+            if coordinates.count >= 2 {
+                MapPolyline(coordinates: coordinates)
+                    .stroke(PulseTheme.primary, lineWidth: 5)
+            }
+            if let first = coordinates.first {
+                Marker("Inicio", systemImage: "play.fill", coordinate: first)
+                    .tint(.green)
+            }
+            if let last = coordinates.last {
+                Marker("Fin", systemImage: "flag.checkered", coordinate: last)
+                    .tint(.purple)
+            }
+        }
+        .mapStyle(.standard(elevation: .realistic))
+        .mapControls {
+            MapCompass()
+            MapScaleView()
+        }
+        .onAppear(perform: fitRoute)
+    }
+
+    private func fitRoute() {
+        let coords = coordinates
+        guard let first = coords.first else { return }
+        var minLat = first.latitude
+        var maxLat = first.latitude
+        var minLon = first.longitude
+        var maxLon = first.longitude
+
+        for coordinate in coords {
+            minLat = min(minLat, coordinate.latitude)
+            maxLat = max(maxLat, coordinate.latitude)
+            minLon = min(minLon, coordinate.longitude)
+            maxLon = max(maxLon, coordinate.longitude)
+        }
+
+        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
+        let span = MKCoordinateSpan(latitudeDelta: max((maxLat - minLat) * 1.8, 0.005), longitudeDelta: max((maxLon - minLon) * 1.8, 0.005))
+        position = .region(MKCoordinateRegion(center: center, span: span))
+    }
+}
+
+private extension WorkoutSession {
+    var hasRouteMetrics: Bool {
+        !routePoints.isEmpty ||
+        distanceKm != nil ||
+        steps != nil ||
+        activeEnergyKcal != nil ||
+        averageHeartRate != nil ||
+        maxHeartRate != nil ||
+        heartRateBefore != nil ||
+        heartRateAfter != nil
     }
 }
 

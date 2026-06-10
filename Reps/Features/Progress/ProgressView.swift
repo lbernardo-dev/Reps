@@ -227,6 +227,36 @@ struct ProgressDashboardView: View {
                     .foregroundStyle(PulseTheme.primaryBright)
                   }
                   .frame(height: 140)
+
+                  VStack(spacing: 10) {
+                    ForEach(walkingAndRunningLogs.prefix(6)) { log in
+                      HStack(spacing: 12) {
+                        Image(systemName: log.activityType == .walking ? "figure.walk" : "figure.run")
+                          .foregroundStyle(PulseTheme.primary)
+                          .frame(width: 34, height: 34)
+                          .background(PulseTheme.primary.opacity(0.12))
+                          .clipShape(Circle())
+                        VStack(alignment: .leading, spacing: 3) {
+                          Text(log.activityType.displayName)
+                            .font(.subheadline.weight(.bold))
+                          Text(log.date.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 3) {
+                          Text("\(log.durationMinutes) min")
+                            .font(.subheadline.weight(.bold))
+                          Text(cardioDetailText(for: log))
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                      }
+                      .padding(10)
+                      .background(PulseTheme.grouped)
+                      .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                  }
                 }
               }
             }
@@ -595,6 +625,12 @@ struct ProgressDashboardView: View {
     filteredCardioLogs.compactMap(\.distanceKm).reduce(0, +)
   }
 
+  private var walkingAndRunningLogs: [CardioLog] {
+    filteredCardioLogs
+      .filter { $0.activityType == .walking || $0.activityType == .outdoorRun }
+      .sorted { $0.date > $1.date }
+  }
+
   private var intensityDistribution: [AnalyticsEngine.IntensityBucket] {
     AnalyticsEngine.intensityDistribution(for: filteredSessions)
   }
@@ -603,6 +639,20 @@ struct ProgressDashboardView: View {
     let values = filteredCardioLogs.compactMap(\.rpe)
     guard !values.isEmpty else { return "-" }
     return String(format: "%.1f", values.reduce(0, +) / Double(values.count))
+  }
+
+  private func cardioDetailText(for log: CardioLog) -> String {
+    var parts: [String] = []
+    if let distanceKm = log.distanceKm {
+      parts.append(String(format: "%.2f km", distanceKm))
+    }
+    if let steps = log.steps {
+      parts.append("\(Int(steps)) pasos")
+    }
+    if let heartRate = log.averageHeartRate {
+      parts.append("\(Int(heartRate)) lpm")
+    }
+    return parts.isEmpty ? "Sin sensores" : parts.joined(separator: " · ")
   }
 
   private var consistencyTotal: Int {
@@ -705,6 +755,21 @@ struct ProgressDashboardView: View {
       return
     }
     onSelectTab?(destination)
+  }
+}
+
+private extension CardioLog.ActivityType {
+  var displayName: LocalizedStringKey {
+    switch self {
+    case .treadmill: "Cinta"
+    case .elliptical: "Elíptica"
+    case .stationaryBike: "Bici"
+    case .outdoorRun: "Carrera"
+    case .walking: "Caminata"
+    case .rowing: "Remo"
+    case .hiit: "HIIT"
+    case .other: "Otro"
+    }
   }
 }
 

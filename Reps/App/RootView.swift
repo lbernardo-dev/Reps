@@ -207,7 +207,7 @@ struct MainTabView: View {
         switch action {
         case .freeWorkout:
             NavigationStack {
-                ActiveWorkoutView(workout: freeWorkout, origin: .free)
+                FreeWorkoutStartView()
             }
         case .scheduleWorkout:
             ScheduleWorkoutView()

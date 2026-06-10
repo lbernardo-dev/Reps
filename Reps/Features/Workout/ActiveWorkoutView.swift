@@ -1,6 +1,7 @@
 import AVFoundation
 import Combine
 import CoreImage
+import CoreMotion
 import WebKit
 import CoreLocation
 import MapKit
@@ -19,6 +20,8 @@ struct ActiveWorkoutView: View {
     @StateObject private var routeTracker = WorkoutRouteTracker()
     @StateObject private var audioRecorder = WorkoutAudioRecorder()
     @StateObject private var musicPlayer = WorkoutAppleMusicPlayer.shared
+    @StateObject private var healthKit = HealthKitService()
+    @StateObject private var motionResumeDetector = WorkoutMotionResumeDetector()
     @State private var elapsedSeconds = 0
     @State private var pausedSeconds = 0
     @State private var startedAt = Date()
@@ -55,6 +58,9 @@ struct ActiveWorkoutView: View {
     @State private var showMissingExerciseAlert = false
     @State private var showStopConfirmation = false
     @State private var lastStatusPublishSecond = -1
+    @State private var workoutSensorSummary: WorkoutSensorSummary?
+    @State private var isFinishingWorkout = false
+    @State private var showResumeSuggestion = false
 
     private var exerciseDrafts: [ExerciseSessionDraft] {
         get { store.activeWorkoutDrafts }
@@ -302,6 +308,12 @@ struct ActiveWorkoutView: View {
             guard let playlist = planPlaylist else { return }
             Task { await musicPlayer.playOrPause(playlist) }
         }
+        .onReceive(NotificationCenter.default.publisher(for: WatchCommand.pause.notificationName)) { _ in
+            setWorkoutPaused(true)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WatchCommand.resume.notificationName)) { _ in
+            setWorkoutPaused(false)
+        }
         .onReceive(NotificationCenter.default.publisher(for: WatchCommand.musicNext.notificationName)) { _ in
             Task { await musicPlayer.skipForward(planPlaylist) }
         }
@@ -325,6 +337,15 @@ struct ActiveWorkoutView: View {
         }
         .onChange(of: selectedExerciseIndex) { _, _ in
             publishActiveWorkoutStatus()
+        }
+        .onReceive(motionResumeDetector.$shouldSuggestResume) { shouldSuggest in
+            guard isRouteCandidate, isPaused, isSessionStarted else {
+                showResumeSuggestion = false
+                return
+            }
+            withAnimation(.snappy(duration: 0.24)) {
+                showResumeSuggestion = shouldSuggest
+            }
         }
         .alert("Permiso necesario", isPresented: $showPermissionDenied) {
             Button("Abrir Ajustes") {
@@ -365,6 +386,7 @@ struct ActiveWorkoutView: View {
                 publishActiveWorkoutStatus()
             }
             routeTracker.stop()
+            motionResumeDetector.stop()
             _ = audioRecorder.stopRecording(note: nil)
             // Only stop the background task if the workout is fully done.
             if finishedSession != nil {
@@ -380,41 +402,58 @@ struct ActiveWorkoutView: View {
                 LazyVStack(spacing: 18) {
                     workoutHeader
                         .frame(width: contentWidth)
-                    sessionProgressCard
-                        .frame(width: contentWidth)
+                    if isRouteOnlySession {
+                        routeProgressCard
+                            .frame(width: contentWidth)
+                    } else {
+                        sessionProgressCard
+                            .frame(width: contentWidth)
+                    }
                     batteryCard
                         .frame(width: contentWidth)
                     if isRouteCandidate {
                         routeTrackingCard
                             .frame(width: contentWidth)
                     }
-                    sessionExerciseOrderCard
-                        .frame(width: contentWidth)
-                    restCard
-                        .frame(width: contentWidth)
-                    exerciseSwitcher
-                        .frame(width: contentWidth)
-                    if !selectedProgressionRecommendations.isEmpty {
-                        ProgressionRecommendationCard(
-                            recommendations: selectedProgressionRecommendations,
-                            language: store.userProfile.preferredLanguage,
-                            title: store.userProfile.preferredLanguage.hasPrefix("es") ? "Siguiente ajuste" : "Next Adjustment"
-                        )
-                        .frame(width: contentWidth)
-                    }
-                    if exerciseDrafts.isEmpty {
-                        emptyFreeWorkoutCard
+
+                    if isRouteOnlySession {
+                        if isSessionStarted {
+                            routeSessionControlCard
+                                .frame(width: contentWidth)
+                            routeSessionFeedbackCard
+                                .frame(width: contentWidth)
+                        }
+                        liveRouteMapCard
                             .frame(width: contentWidth)
                     } else {
-                        exerciseCard
+                        sessionExerciseOrderCard
+                            .frame(width: contentWidth)
+                        restCard
+                            .frame(width: contentWidth)
+                        exerciseSwitcher
+                            .frame(width: contentWidth)
+                        if !selectedProgressionRecommendations.isEmpty {
+                            ProgressionRecommendationCard(
+                                recommendations: selectedProgressionRecommendations,
+                                language: store.userProfile.preferredLanguage,
+                                title: store.userProfile.preferredLanguage.hasPrefix("es") ? "Siguiente ajuste" : "Next Adjustment"
+                            )
+                            .frame(width: contentWidth)
+                        }
+                        if exerciseDrafts.isEmpty {
+                            emptyFreeWorkoutCard
+                                .frame(width: contentWidth)
+                        } else {
+                            exerciseCard
+                                .frame(width: contentWidth)
+                        }
+                        sessionControlCenterCard
+                            .frame(width: contentWidth)
+                        sessionFeedbackCard
+                            .frame(width: contentWidth)
+                        nextExerciseCard
                             .frame(width: contentWidth)
                     }
-                    sessionControlCenterCard
-                        .frame(width: contentWidth)
-                    sessionFeedbackCard
-                        .frame(width: contentWidth)
-                    nextExerciseCard
-                        .frame(width: contentWidth)
                 }
                 .frame(maxWidth: .infinity)
                 .safeAreaPadding(.top, 8)
@@ -478,17 +517,25 @@ struct ActiveWorkoutView: View {
                     startPreparedSession()
                 }
             } label: {
-                Text(isSessionStarted ? "Finalizar" : "Iniciar")
+                Text(isFinishingWorkout ? "Guardando" : (isSessionStarted ? "Finalizar" : "Iniciar"))
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(width: 90, height: 44)
-                    .background(isSessionStarted ? PulseTheme.destructive : (exerciseDrafts.isEmpty ? PulseTheme.secondaryText : PulseTheme.primary))
+                    .background(isSessionStarted ? PulseTheme.destructive : (canStartWorkout ? PulseTheme.primary : PulseTheme.secondaryText))
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            .disabled(!isSessionStarted && exerciseDrafts.isEmpty)
-            .accessibilityHint(!isSessionStarted && exerciseDrafts.isEmpty ? "Añade al menos un ejercicio para iniciar" : "")
+            .disabled(isFinishingWorkout || (!isSessionStarted && !canStartWorkout))
+            .accessibilityHint(!isSessionStarted && !canStartWorkout ? "Añade al menos un ejercicio o usa una sesión de ruta" : "")
         }
         .padding(.top, 2)
+    }
+
+    private var canStartWorkout: Bool {
+        !exerciseDrafts.isEmpty || isRouteCandidate
+    }
+
+    private var isRouteOnlySession: Bool {
+        isRouteCandidate && exerciseDrafts.isEmpty
     }
 
     private func prepareWorkoutIfNeeded() {
@@ -505,7 +552,7 @@ struct ActiveWorkoutView: View {
     }
 
     private func startPreparedSession() {
-        guard !exerciseDrafts.isEmpty else {
+        guard canStartWorkout else {
             showMissingExerciseAlert = true
             return
         }
@@ -517,6 +564,10 @@ struct ActiveWorkoutView: View {
         lastPausedAt = nil
         basePausedSeconds = 0
         lastStatusPublishSecond = -1
+        workoutSensorSummary = nil
+        if isRouteCandidate {
+            routeTracker.start()
+        }
         store.startPreparedActiveWorkout(workout, drafts: exerciseDrafts)
         WorkoutBackgroundKeepAlive.shared.startIfNeeded()
         publishActiveWorkoutStatus()
@@ -524,6 +575,7 @@ struct ActiveWorkoutView: View {
 
     private func stopWorkout() {
         routeTracker.stop()
+        motionResumeDetector.stop()
         stopRest()
         store.clearActiveWorkout()
         WorkoutBackgroundKeepAlive.shared.stop()
@@ -531,15 +583,29 @@ struct ActiveWorkoutView: View {
     }
 
     private func finishWorkout() {
+        guard !isFinishingWorkout else { return }
         guard isSessionStarted else {
             startPreparedSession()
             return
         }
-        guard !exerciseDrafts.isEmpty else {
+        guard !exerciseDrafts.isEmpty || isRouteCandidate else {
             showMissingExerciseAlert = true
             return
         }
+        isFinishingWorkout = true
+        Task {
+            await finishWorkoutAsync()
+        }
+    }
+
+    private func finishWorkoutAsync() async {
         elapsedSeconds = elapsedWorkoutSeconds()
+        let finishedAt = Date()
+        routeTracker.stop()
+        motionResumeDetector.stop()
+        let startDate = startedAt
+        let sensorSummary = try? await healthKit.fetchWorkoutSensorSummary(start: startDate, end: finishedAt)
+        workoutSensorSummary = sensorSummary
         let logs = exerciseDrafts.compactMap { draft -> ExerciseLog? in
             let completedSets = draft.sets.filter(\.completed)
             guard !completedSets.isEmpty else {
@@ -557,7 +623,9 @@ struct ActiveWorkoutView: View {
         let allSets = logs.flatMap(\.sets)
         let sessionAttachments = sessionMediaAttachments + voiceAttachments(from: sessionVoiceNote)
         let sessionLocation: WorkoutSession.Location
-        if origin == .free {
+        if isRouteCandidate {
+            sessionLocation = .outdoor
+        } else if origin == .free {
             switch store.userProfile.trainingLocation {
             case .home: sessionLocation = .home
             default: sessionLocation = .gym
@@ -571,9 +639,9 @@ struct ActiveWorkoutView: View {
 
         let session = WorkoutSession(
             workoutTitle: workout.title,
-            date: .now,
-            startedAt: Date().addingTimeInterval(TimeInterval(-elapsedSeconds)),
-            endedAt: .now,
+            date: finishedAt,
+            startedAt: startDate,
+            endedAt: finishedAt,
             origin: origin,
             location: sessionLocation,
             contextTag: .normal,
@@ -584,12 +652,58 @@ struct ActiveWorkoutView: View {
             sessionRPE: sessionRPE,
             energyBefore: Int(energyBefore),
             energyAfter: Int(energyAfter),
+            estimatedCalories: sensorSummary?.activeEnergyKcal,
             mediaAttachments: sessionAttachments,
             routePoints: routeTracker.routePoints,
-            pausedDurationSeconds: pausedSeconds
+            pausedDurationSeconds: pausedSeconds,
+            distanceKm: routeTracker.distanceKm > 0 ? routeTracker.distanceKm : nil,
+            averagePaceSecondsPerKm: routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds),
+            steps: sensorSummary?.steps,
+            activeEnergyKcal: sensorSummary?.activeEnergyKcal,
+            heartRateBefore: sensorSummary?.heartRateBefore,
+            heartRateAfter: sensorSummary?.heartRateAfter,
+            averageHeartRate: sensorSummary?.averageHeartRate,
+            maxHeartRate: sensorSummary?.maxHeartRate
         )
         store.finishWorkout(session)
+        if let cardioLog = cardioLog(from: session, sensorSummary: sensorSummary) {
+            store.addCardioLog(cardioLog)
+        }
+        isFinishingWorkout = false
         dismiss()
+    }
+
+    private func cardioLog(from session: WorkoutSession, sensorSummary: WorkoutSensorSummary?) -> CardioLog? {
+        guard isRouteCandidate else { return nil }
+
+        let activityType: CardioLog.ActivityType
+        switch workout.sessionType {
+        case .cardioRun:
+            activityType = .outdoorRun
+        case .cardioWalk:
+            activityType = .walking
+        default:
+            activityType = .other
+        }
+
+        return CardioLog(
+            activityType: activityType,
+            date: session.startedAt ?? session.date,
+            durationMinutes: session.durationMinutes,
+            distanceKm: session.distanceKm,
+            averageSpeedKmh: routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds),
+            averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
+            averageHeartRate: sensorSummary?.averageHeartRate,
+            maxHeartRate: sensorSummary?.maxHeartRate,
+            estimatedCalories: sensorSummary?.activeEnergyKcal,
+            steps: sensorSummary?.steps,
+            activeEnergyKcal: sensorSummary?.activeEnergyKcal,
+            heartRateBefore: sensorSummary?.heartRateBefore,
+            heartRateAfter: sensorSummary?.heartRateAfter,
+            rpe: session.sessionRPE,
+            notes: session.notes,
+            routePoints: session.routePoints
+        )
     }
 
     private func publishActiveWorkoutStatus() {
@@ -619,7 +733,13 @@ struct ActiveWorkoutView: View {
             nextExerciseName: nextExerciseTitle,
             exerciseHistorySummary: selectedExerciseHistorySummary,
             gymPass: selectedGymPass,
-            lastPausedAt: lastPausedAt
+            lastPausedAt: lastPausedAt,
+            isRouteWorkout: isRouteCandidate,
+            routeDistanceKm: isRouteCandidate ? routeTracker.distanceKm : nil,
+            routePaceSecondsPerKm: isRouteCandidate ? routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds) : nil,
+            routeSpeedKmh: isRouteCandidate ? routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds) : nil,
+            routePointCount: isRouteCandidate ? routeTracker.routePoints.count : nil,
+            routeSteps: workoutSensorSummary?.steps
         )
     }
 
@@ -689,11 +809,20 @@ struct ActiveWorkoutView: View {
         isPaused = paused
         if paused {
             lastPausedAt = Date()
+            if isRouteCandidate {
+                routeTracker.stop()
+                motionResumeDetector.start()
+            }
         } else {
             if let lastPaused = lastPausedAt {
                 basePausedSeconds += Int(Date().timeIntervalSince(lastPaused))
             }
             lastPausedAt = nil
+            if isRouteCandidate {
+                routeTracker.start()
+                motionResumeDetector.stop()
+                showResumeSuggestion = false
+            }
         }
         pausedSeconds = basePausedSeconds
         lastStatusPublishSecond = elapsedSeconds + pausedSeconds
@@ -1188,6 +1317,112 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    private var routeProgressCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .center, spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .stroke(PulseTheme.grouped, lineWidth: 7)
+                        Circle()
+                            .trim(from: 0, to: routeDurationProgress)
+                            .stroke(routeProgressColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .animation(.snappy(duration: 0.35), value: routeDurationProgress)
+                        Image(systemName: routeProgressIcon)
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(routeProgressColor)
+                    }
+                    .frame(width: 68, height: 68)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(routeProgressStatus)
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .tracking(1.6)
+                            .foregroundStyle(routeProgressColor)
+
+                        if isSessionStarted {
+                            WorkoutElapsedText(
+                                startedAt: startedAt,
+                                basePausedSeconds: basePausedSeconds,
+                                lastPausedAt: lastPausedAt,
+                                isPaused: isPaused,
+                                fallbackElapsedSeconds: elapsedSeconds
+                            )
+                        } else {
+                            Text("00:00")
+                                .font(.system(size: 42, weight: .black, design: .rounded).monospacedDigit())
+                        }
+
+                        Text(routeProgressSubtitle)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer()
+                }
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(PulseTheme.grouped)
+                            .frame(height: 8)
+                        Capsule()
+                            .fill(routeProgressColor)
+                            .frame(width: max(geo.size.width * routeDurationProgress, routeDurationProgress > 0 ? 16 : 0), height: 8)
+                            .animation(.snappy(duration: 0.35), value: routeDurationProgress)
+                    }
+                }
+                .frame(height: 8)
+
+                if !isSessionStarted {
+                    Label("Pulsa Iniciar arriba para empezar a registrar GPS, distancia y sensores.", systemImage: "location.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(PulseTheme.grouped)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+            }
+        }
+    }
+
+    private var routeDurationProgress: Double {
+        guard workout.durationMinutes > 0 else { return 0 }
+        return min(Double(elapsedSeconds) / Double(workout.durationMinutes * 60), 1)
+    }
+
+    private var routeProgressColor: Color {
+        if !isSessionStarted { return PulseTheme.secondaryText }
+        return isPaused ? PulseTheme.warning : PulseTheme.primary
+    }
+
+    private var routeProgressIcon: String {
+        if !isSessionStarted { return "location" }
+        return isPaused ? "pause.fill" : "figure.walk"
+    }
+
+    private var routeProgressStatus: String {
+        if !isSessionStarted { return "RUTA PREPARADA" }
+        return isPaused ? "RUTA PAUSADA" : "RUTA ACTIVA"
+    }
+
+    private var routeProgressSubtitle: String {
+        if !isSessionStarted {
+            return "\(workout.durationMinutes) min planificados"
+        }
+        var parts = [
+            String(format: "%.2f km", routeTracker.distanceKm),
+            routeTracker.paceText(elapsedSeconds: elapsedSeconds)
+        ]
+        if pausedSeconds > 0 {
+            parts.append("pausa \(timeString(pausedSeconds))")
+        }
+        return parts.joined(separator: " · ")
+    }
+
     private var routeTrackingCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -1206,21 +1441,13 @@ struct ActiveWorkoutView: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
                     Spacer()
-                    Button {
-                        if isSessionStarted {
-                            routeTracker.isTracking ? routeTracker.stop() : routeTracker.start()
-                        } else {
-                            startPreparedSession()
-                        }
-                    } label: {
-                        Text(routeTracker.isTracking ? "Detener" : "Iniciar")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(routeTracker.isTracking ? PulseTheme.secondaryText : .white)
-                            .padding(.horizontal, 14)
-                            .frame(height: 40)
-                            .background(routeTracker.isTracking ? PulseTheme.grouped : PulseTheme.primary)
-                            .clipShape(Capsule())
-                    }
+                    Text(routeTrackerStatusBadge)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(routeTracker.isTracking ? PulseTheme.primary : PulseTheme.secondaryText)
+                        .padding(.horizontal, 12)
+                        .frame(height: 32)
+                        .background((routeTracker.isTracking ? PulseTheme.primary : PulseTheme.secondaryText).opacity(0.12))
+                        .clipShape(Capsule())
                 }
 
                 HStack(spacing: 10) {
@@ -1229,13 +1456,57 @@ struct ActiveWorkoutView: View {
                     MiniSessionPill(title: "Ritmo", value: routeTracker.paceText(elapsedSeconds: elapsedSeconds), icon: "speedometer")
                 }
 
-                if routeTracker.routePoints.count >= 2 {
-                    RouteMapPreview(routePoints: routeTracker.routePoints)
-                        .frame(height: 180)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                HStack(spacing: 10) {
+                    MiniSessionPill(title: "Velocidad", value: routeTracker.speedText(elapsedSeconds: elapsedSeconds), icon: "gauge.with.needle")
+                    MiniSessionPill(title: "Pasos", value: workoutSensorSummary?.steps.map { "\(Int($0))" } ?? "--", icon: "shoeprints.fill")
+                    MiniSessionPill(title: "Pulso", value: workoutSensorSummary?.averageHeartRate.map { "\(Int($0)) lpm" } ?? "--", icon: "heart.fill")
                 }
             }
         }
+    }
+
+    private var liveRouteMapCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Label("Mapa en vivo", systemImage: "map.fill")
+                        .font(.headline)
+                    Spacer()
+                    Text(routeTracker.routePoints.isEmpty ? "Esperando GPS" : "\(routeTracker.routePoints.count) puntos")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+
+                ZStack {
+                    RouteMapPreview(routePoints: routeTracker.routePoints)
+                        .frame(height: 240)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                    if routeTracker.routePoints.count < 2 {
+                        VStack(spacing: 10) {
+                            Image(systemName: "location.magnifyingglass")
+                                .font(.title2.weight(.bold))
+                                .foregroundStyle(PulseTheme.primary)
+                            Text(isSessionStarted ? "La ruta se dibujará aquí en cuanto entren puntos GPS." : "Al iniciar, la ruta se irá dibujando aquí.")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 18)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                }
+            }
+        }
+    }
+
+    private var routeTrackerStatusBadge: String {
+        if routeTracker.isTracking { return "GPS activo" }
+        if isSessionStarted && isPaused { return "Pausado" }
+        if isSessionStarted { return "GPS listo" }
+        return "Listo"
     }
 
 
@@ -1616,6 +1887,208 @@ struct ActiveWorkoutView: View {
                 if let pass = selectedGymPass {
                     ActiveGymPassCard(pass: pass)
                 }
+            }
+        }
+    }
+
+    private var routeSessionControlCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Label("Control de ruta", systemImage: "figure.walk")
+                        .font(.headline)
+                    Spacer()
+                    Label(routeTracker.isTracking ? "GPS activo" : (isPaused ? "Pausado" : "GPS listo"), systemImage: routeTracker.isTracking ? "location.fill" : "pause.circle")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(routeTracker.isTracking ? PulseTheme.primary : PulseTheme.warning)
+                }
+
+                if showResumeSuggestion {
+                    HStack(spacing: 12) {
+                        Image(systemName: "figure.walk")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.black)
+                            .frame(width: 34, height: 34)
+                            .background(PulseTheme.accent)
+                            .clipShape(Circle())
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Movimiento detectado")
+                                .font(.subheadline.weight(.bold))
+                            Text("Reanuda para seguir sumando ruta y distancia.")
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+                        Button("Reanudar") {
+                            setWorkoutPaused(false)
+                        }
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 12)
+                        .frame(height: 34)
+                        .background(PulseTheme.accent)
+                        .clipShape(Capsule())
+                    }
+                    .padding(12)
+                    .background(PulseTheme.accent.opacity(0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+
+                HStack(spacing: 10) {
+                    MiniSessionPill(title: "Tiempo", value: timeString(elapsedSeconds), icon: "timer")
+                    MiniSessionPill(title: "Distancia", value: String(format: "%.2f km", routeTracker.distanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up")
+                    MiniSessionPill(title: "Ritmo", value: routeTracker.paceText(elapsedSeconds: elapsedSeconds), icon: "speedometer")
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        setWorkoutPaused(!isPaused)
+                    } label: {
+                        Label(isPaused ? "Reanudar" : "Pausar", systemImage: isPaused ? "play.fill" : "pause.fill")
+                            .font(.headline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .foregroundStyle(isPaused ? .black : .white)
+                            .background(isPaused ? PulseTheme.accent : PulseTheme.warning)
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .disabled(!isSessionStarted)
+
+                    Button {
+                        addWater()
+                    } label: {
+                        Label("+250 ml", systemImage: "waterbottle.fill")
+                            .font(.headline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .foregroundStyle(PulseTheme.primary)
+                            .background(PulseTheme.primary.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    MiniSessionPill(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill")
+                    MiniSessionPill(title: "Kcal", value: workoutSensorSummary?.activeEnergyKcal.map { "\(Int($0))" } ?? store.todayHealthMetric.map { "\(Int($0.activeEnergyKcal))" } ?? "--", icon: "flame.fill")
+                    MiniSessionPill(title: "Pulso", value: workoutSensorSummary?.averageHeartRate.map { "\(Int($0)) lpm" } ?? "--", icon: "heart.fill")
+                }
+            }
+        }
+    }
+
+    private var routeSessionFeedbackCard: some View {
+        PulseCard {
+            DisclosureGroup(isExpanded: $showSessionFeedback) {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(spacing: 18) {
+                        HStack {
+                            Label("Esfuerzo (RPE)", systemImage: "flame.fill")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Spacer()
+                            InlineStepper(
+                                value: $sessionRPE,
+                                range: 1...10,
+                                step: 0.5,
+                                formatter: { String(format: "%.1f", $0) }
+                            )
+                            .frame(width: 156)
+                        }
+
+                        Divider()
+
+                        HStack {
+                            Label("Energía antes", systemImage: "battery.50")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Spacer()
+                            InlineStepper(
+                                value: $energyBefore,
+                                range: 1...5,
+                                step: 1,
+                                formatter: { "\(Int($0))/5" }
+                            )
+                            .frame(width: 156)
+                        }
+
+                        Divider()
+
+                        HStack {
+                            Label("Energía después", systemImage: "battery.100")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Spacer()
+                            InlineStepper(
+                                value: $energyAfter,
+                                range: 1...5,
+                                step: 1,
+                                formatter: { "\(Int($0))/5" }
+                            )
+                            .frame(width: 156)
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    TextField("Notas de ruta, molestias o terreno", text: $sessionNotes, axis: .vertical)
+                        .lineLimit(2...4)
+                        .padding(12)
+                        .background(PulseTheme.grouped)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                    HStack(spacing: 10) {
+                        Button {
+                            Task {
+                                if audioRecorder.isRecording {
+                                    if let attachment = audioRecorder.stopRecording(note: sessionVoiceNote) {
+                                        sessionMediaAttachments.append(attachment)
+                                    }
+                                } else {
+                                    let granted = await PermissionService.shared.requestMicrophone()
+                                    if granted {
+                                        audioRecorder.startRecording()
+                                    } else {
+                                        permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actívalo en Ajustes → Reps."
+                                        showPermissionDenied = true
+                                    }
+                                }
+                            }
+                        } label: {
+                            Label(audioRecorder.isRecording ? "Guardar audio" : "Nota de voz", systemImage: audioRecorder.isRecording ? "stop.fill" : "mic.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .foregroundStyle(audioRecorder.isRecording ? .white : PulseTheme.primary)
+                                .background(audioRecorder.isRecording ? Color.red : PulseTheme.primary.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+
+                        MediaSourceMenu(
+                            maxSelectionCount: 8,
+                            photoPickerItems: $sessionPhotoItems,
+                            onCameraCapture: { image in
+                                guard let data = image.jpegData(compressionQuality: 0.82) else { return }
+                                sessionMediaAttachments.append(
+                                    WorkoutMediaAttachment(kind: .image, data: data)
+                                )
+                            }
+                        ) {
+                            Label("\(sessionMediaAttachments.filter { $0.kind == .image }.count)", systemImage: "photo.badge.plus")
+                                .font(.headline)
+                                .frame(width: 72, height: 48)
+                                .foregroundStyle(PulseTheme.primary)
+                                .background(PulseTheme.primary.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                    }
+
+                    if !sessionMediaAttachments.isEmpty {
+                        AttachmentPreviewStrip(attachments: sessionMediaAttachments)
+                    }
+                }
+                .padding(.top, 12)
+            } label: {
+                Label("Cierre de ruta", systemImage: "flag.checkered")
+                    .font(.headline)
             }
         }
     }
@@ -3147,11 +3620,31 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
     }
 
     func paceText(elapsedSeconds: Int) -> String {
-        guard distanceKm > 0.02 else {
+        guard let pace = averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds) else {
             return "--"
         }
-        let pace = Double(max(elapsedSeconds, 1)) / distanceKm
         return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
+    }
+
+    func averagePaceSecondsPerKm(elapsedSeconds: Int) -> Double? {
+        guard distanceKm > 0.02 else {
+            return nil
+        }
+        return Double(max(elapsedSeconds, 1)) / distanceKm
+    }
+
+    func averageSpeedKmh(elapsedSeconds: Int) -> Double? {
+        guard elapsedSeconds > 0, distanceKm > 0.02 else {
+            return nil
+        }
+        return distanceKm / (Double(elapsedSeconds) / 3_600)
+    }
+
+    func speedText(elapsedSeconds: Int) -> String {
+        guard let speed = averageSpeedKmh(elapsedSeconds: elapsedSeconds) else {
+            return "--"
+        }
+        return String(format: "%.1f km/h", speed)
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -3185,6 +3678,39 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
                 )
             }
         }
+    }
+}
+
+@MainActor
+private final class WorkoutMotionResumeDetector: ObservableObject {
+    @Published var shouldSuggestResume = false
+
+    private let activityManager = CMMotionActivityManager()
+    private var startedAt: Date?
+
+    func start() {
+        guard CMMotionActivityManager.isActivityAvailable() else { return }
+        guard startedAt == nil else { return }
+
+        startedAt = Date()
+        shouldSuggestResume = false
+        activityManager.startActivityUpdates(to: .main) { [weak self] activity in
+            guard let self else { return }
+            guard let startedAt = self.startedAt,
+                  Date().timeIntervalSince(startedAt) > 8 else {
+                return
+            }
+
+            let isMovingOnFoot = activity?.walking == true || activity?.running == true
+            let isReliable = activity?.confidence == .medium || activity?.confidence == .high
+            self.shouldSuggestResume = isMovingOnFoot && isReliable
+        }
+    }
+
+    func stop() {
+        activityManager.stopActivityUpdates()
+        startedAt = nil
+        shouldSuggestResume = false
     }
 }
 

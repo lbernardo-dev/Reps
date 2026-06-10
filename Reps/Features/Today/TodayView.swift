@@ -6,6 +6,7 @@ struct TodayView: View {
     @State private var showScheduleWorkout = false
     @State private var showCreatePlan = false
     @State private var showProfile = false
+    @State private var showFreeWorkoutStart = false
     @State private var planToEdit: WorkoutPlan?
     @State private var workoutToStart: WorkoutDay?
 
@@ -187,6 +188,9 @@ struct TodayView: View {
             }
             .navigationDestination(item: $workoutToStart) { workout in
                 ActiveWorkoutView(workout: workout, origin: workout.id == freeWorkout.id ? .free : .routine)
+            }
+            .navigationDestination(isPresented: $showFreeWorkoutStart) {
+                FreeWorkoutStartView()
             }
         }
     }
@@ -542,9 +546,11 @@ struct TodayView: View {
 
             HStack(spacing: 10) {
                 NavigationLink {
-                    hasActivePlanSession
-                        ? ActiveWorkoutView(workout: focusWorkout)
-                        : ActiveWorkoutView(workout: freeWorkout, origin: .free)
+                    if hasActivePlanSession {
+                        ActiveWorkoutView(workout: focusWorkout)
+                    } else {
+                        FreeWorkoutStartView()
+                    }
                 } label: {
                     Label(playButtonTitle, systemImage: "play.fill")
                         .font(.headline)
@@ -631,7 +637,11 @@ struct TodayView: View {
 
         switch action {
         case .startWorkout:
-            workoutToStart = (todaysScheduledWorkout != nil || hasActivePlan) ? focusWorkout : freeWorkout
+            if todaysScheduledWorkout != nil || hasActivePlan {
+                workoutToStart = focusWorkout
+            } else {
+                showFreeWorkoutStart = true
+            }
         case .createPlan:
             showCreatePlan = true
         case .scheduleWorkout:

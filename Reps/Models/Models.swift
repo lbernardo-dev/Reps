@@ -448,6 +448,12 @@ struct WorkoutSession: Codable, Identifiable {
     var mediaAttachments: [WorkoutMediaAttachment] = []
     var routePoints: [RoutePoint] = []
     var pausedDurationSeconds: Int = 0
+    var distanceKm: Double? = nil
+    var averagePaceSecondsPerKm: Double? = nil
+    var steps: Double? = nil
+    var activeEnergyKcal: Double? = nil
+    var heartRateBefore: Double? = nil
+    var heartRateAfter: Double? = nil
     
     // HealthKit sync properties
     var healthKitUUIDString: String? = nil
@@ -497,6 +503,14 @@ struct ActiveWorkoutStatus: Identifiable, Equatable, Codable {
     var gymCodeValue: String?
     var gymCodeType: String?
     var lastPausedAt: Date? = nil
+    var isRouteWorkout: Bool = false
+    var routeDistanceKm: Double?
+    var routePaceSecondsPerKm: Double?
+    var routeSpeedKmh: Double?
+    var routePointCount: Int?
+    var routeSteps: Double?
+    var liveHeartRate: Double?
+    var liveActiveEnergyKcal: Double?
 
     func effectivePausedSeconds(at date: Date = .now) -> Int {
         guard isPaused, let lastPausedAt else {
@@ -587,9 +601,22 @@ struct CardioLog: Codable, Identifiable, Hashable {
     var averageHeartRate: Double?
     var maxHeartRate: Double?
     var estimatedCalories: Double?
+    var steps: Double?
+    var activeEnergyKcal: Double?
+    var heartRateBefore: Double?
+    var heartRateAfter: Double?
     var rpe: Double?
     var notes: String?
     var routePoints: [RoutePoint] = []
+}
+
+struct WorkoutSensorSummary: Codable, Hashable {
+    var steps: Double?
+    var activeEnergyKcal: Double?
+    var averageHeartRate: Double?
+    var maxHeartRate: Double?
+    var heartRateBefore: Double?
+    var heartRateAfter: Double?
 }
 
 struct DailyHealthMetric: Codable, Identifiable, Hashable {

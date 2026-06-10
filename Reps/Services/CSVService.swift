@@ -81,7 +81,7 @@ struct CSVExporter {
     }
 
     private var cardioRows: [[String]] {
-        [["id", "activity", "date", "duration_min", "distance_km", "avg_hr", "max_hr", "calories", "rpe", "notes"]] +
+        [["id", "activity", "date", "duration_min", "distance_km", "avg_hr", "max_hr", "calories", "steps", "active_energy_kcal", "hr_before", "hr_after", "rpe", "notes"]] +
         snapshot.cardioLogs.map {
             [
                 $0.id.uuidString,
@@ -92,6 +92,10 @@ struct CSVExporter {
                 Self.value($0.averageHeartRate),
                 Self.value($0.maxHeartRate),
                 Self.value($0.estimatedCalories),
+                Self.value($0.steps),
+                Self.value($0.activeEnergyKcal),
+                Self.value($0.heartRateBefore),
+                Self.value($0.heartRateAfter),
                 Self.value($0.rpe),
                 $0.notes ?? ""
             ]
@@ -194,6 +198,7 @@ struct CSVImporter {
                   let duration = Int(row[3]) else {
                 return nil
             }
+            let isExpanded = row.count >= 14
             return CardioLog(
                 activityType: activity,
                 date: date,
@@ -202,8 +207,12 @@ struct CSVImporter {
                 averageHeartRate: Self.double(row[5]),
                 maxHeartRate: Self.double(row[6]),
                 estimatedCalories: Self.double(row[7]),
-                rpe: Self.double(row[8]),
-                notes: row[9].isEmpty ? nil : row[9]
+                steps: isExpanded ? Self.double(row[8]) : nil,
+                activeEnergyKcal: isExpanded ? Self.double(row[9]) : nil,
+                heartRateBefore: isExpanded ? Self.double(row[10]) : nil,
+                heartRateAfter: isExpanded ? Self.double(row[11]) : nil,
+                rpe: Self.double(isExpanded ? row[12] : row[8]),
+                notes: (isExpanded ? row[13] : row[9]).isEmpty ? nil : (isExpanded ? row[13] : row[9])
             )
         }
     }

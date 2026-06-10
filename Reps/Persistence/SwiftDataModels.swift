@@ -496,6 +496,12 @@ final class WorkoutSessionRecord {
     var mediaAttachmentsData: Data?
     var routePointsData: Data?
     var pausedDurationSeconds: Int?
+    var distanceKm: Double?
+    var averagePaceSecondsPerKm: Double?
+    var steps: Double?
+    var activeEnergyKcal: Double?
+    var heartRateBefore: Double?
+    var heartRateAfter: Double?
     @Relationship(deleteRule: .cascade) var sets: [SetLogRecord]
     @Relationship(deleteRule: .cascade) var exerciseLogs: [ExerciseLogRecord]
 
@@ -517,6 +523,12 @@ final class WorkoutSessionRecord {
         mediaAttachmentsData = encodeWorkoutMediaAttachments(session.mediaAttachments)
         routePointsData = encodeRoutePoints(session.routePoints)
         pausedDurationSeconds = session.pausedDurationSeconds
+        distanceKm = session.distanceKm
+        averagePaceSecondsPerKm = session.averagePaceSecondsPerKm
+        steps = session.steps
+        activeEnergyKcal = session.activeEnergyKcal
+        heartRateBefore = session.heartRateBefore
+        heartRateAfter = session.heartRateAfter
         sets = session.sets.map(SetLogRecord.init)
         exerciseLogs = (session.exerciseLogs ?? []).map(ExerciseLogRecord.init)
     }
@@ -541,7 +553,13 @@ final class WorkoutSessionRecord {
             estimatedCalories: estimatedCalories,
             mediaAttachments: decodeWorkoutMediaAttachments(mediaAttachmentsData),
             routePoints: decodeRoutePoints(routePointsData),
-            pausedDurationSeconds: pausedDurationSeconds ?? 0
+            pausedDurationSeconds: pausedDurationSeconds ?? 0,
+            distanceKm: distanceKm,
+            averagePaceSecondsPerKm: averagePaceSecondsPerKm,
+            steps: steps,
+            activeEnergyKcal: activeEnergyKcal,
+            heartRateBefore: heartRateBefore,
+            heartRateAfter: heartRateAfter
         )
     }
 }
@@ -655,6 +673,10 @@ final class CardioLogRecord {
     var averageHeartRate: Double?
     var maxHeartRate: Double?
     var estimatedCalories: Double?
+    var steps: Double?
+    var activeEnergyKcal: Double?
+    var heartRateBefore: Double?
+    var heartRateAfter: Double?
     var rpe: Double?
     var notes: String?
     var routePointsData: Data?
@@ -670,6 +692,10 @@ final class CardioLogRecord {
         averageHeartRate = log.averageHeartRate
         maxHeartRate = log.maxHeartRate
         estimatedCalories = log.estimatedCalories
+        steps = log.steps
+        activeEnergyKcal = log.activeEnergyKcal
+        heartRateBefore = log.heartRateBefore
+        heartRateAfter = log.heartRateAfter
         rpe = log.rpe
         notes = log.notes
         routePointsData = encodeRoutePoints(log.routePoints)
@@ -687,6 +713,10 @@ final class CardioLogRecord {
             averageHeartRate: averageHeartRate,
             maxHeartRate: maxHeartRate,
             estimatedCalories: estimatedCalories,
+            steps: steps,
+            activeEnergyKcal: activeEnergyKcal,
+            heartRateBefore: heartRateBefore,
+            heartRateAfter: heartRateAfter,
             rpe: rpe,
             notes: notes,
             routePoints: decodeRoutePoints(routePointsData)

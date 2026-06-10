@@ -1,9 +1,11 @@
 import Foundation
+import CoreLocation
+import CoreMotion
 import HealthKit
 import WatchConnectivity
 
 @MainActor
-final class WatchWorkoutModel: NSObject, ObservableObject {
+final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     enum State {
         case idle
         case running
@@ -14,17 +16,37 @@ final class WatchWorkoutModel: NSObject, ObservableObject {
     @Published var state: State = .idle
     @Published var heartRate: Double?
     @Published var activeEnergy: Double = 0
+    @Published var routeDistanceKm: Double?
+    @Published var routeSteps: Double?
+    @Published var routePaceSecondsPerKm: Double?
+    @Published var routeSpeedKmh: Double?
     @Published var elapsedSeconds = 0
     @Published var message: String?
+    @Published var routePointCount = 0
+    @Published var isStandaloneRouteWorkout = false
 
     private let healthStore = HKHealthStore()
+    private let pedometer = CMPedometer()
+    private let locationManager = CLLocationManager()
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
     private var startedAt: Date?
+    private var endedAt: Date?
     private var timer: Timer?
+    private var isLocalRouteWorkout = false
+    private var standaloneActivity: WatchRouteWorkoutActivity?
+    private var standaloneWorkoutID: UUID?
+    private var lastRouteMetricsSentAt: Date?
+    private var pauseStartedAt: Date?
+    private var accumulatedPausedSeconds = 0
+    private var routePoints: [SharedRoutePoint] = []
+    private var lastLocation: CLLocation?
+    private var totalDistanceMeters: CLLocationDistance = 0
+    private var heartRateSamples: [Double] = []
 
     override init() {
         super.init()
+        configureLocation()
         configureConnectivity()
         snapshot = SharedWorkoutStore.load()
     }
@@ -60,26 +82,115 @@ final class WatchWorkoutModel: NSObject, ObservableObject {
     func pause() {
         session?.pause()
         state = .paused
+        snapshot.isPaused = true
+        pauseStartedAt = .now
+        stopPedometer()
+        stopLocation()
+        updateStandaloneSnapshotIfNeeded()
         send(command: .pause)
     }
 
     func resume() {
+        if let pauseStartedAt {
+            accumulatedPausedSeconds += max(Int(Date().timeIntervalSince(pauseStartedAt)), 0)
+        }
+        pauseStartedAt = nil
         session?.resume()
         state = .running
+        snapshot.isPaused = false
+        if isLocalRouteWorkout {
+            startPedometer()
+            startLocation()
+        }
+        updateStandaloneSnapshotIfNeeded()
         send(command: .resume)
     }
 
     func stop() {
+        stopSession(sendsCommand: true)
+    }
+
+    func toggleRoutePause() {
+        if snapshot.isPaused || state == .paused {
+            resume()
+        } else {
+            pause()
+        }
+    }
+
+    func startStandaloneRouteWorkout(activity: WatchRouteWorkoutActivity) {
+        guard session == nil else { return }
+        Task {
+            do {
+                try await requestHealthAuthorization()
+                let configuration = HKWorkoutConfiguration()
+                configuration.activityType = activity == .running ? .running : .walking
+                configuration.locationType = .outdoor
+
+                let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
+                let workoutBuilder = workoutSession.associatedWorkoutBuilder()
+                workoutBuilder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
+                workoutSession.delegate = self
+                workoutBuilder.delegate = self
+
+                let startDate = Date()
+                session = workoutSession
+                builder = workoutBuilder
+                startedAt = startDate
+                endedAt = nil
+                state = .running
+                isLocalRouteWorkout = true
+                isStandaloneRouteWorkout = true
+                standaloneActivity = activity
+                standaloneWorkoutID = UUID()
+                accumulatedPausedSeconds = 0
+                pauseStartedAt = nil
+                resetRouteMetrics()
+                updateStandaloneSnapshotIfNeeded()
+
+                workoutSession.startActivity(with: startDate)
+                try await workoutBuilder.beginCollection(at: startDate)
+                startPedometer()
+                startLocation()
+                startTimer()
+            } catch {
+                message = error.localizedDescription
+            }
+        }
+    }
+
+    private func stopSession(sendsCommand: Bool) {
         Task {
             let endDate = Date()
+            if let pauseStartedAt {
+                accumulatedPausedSeconds += max(Int(endDate.timeIntervalSince(pauseStartedAt)), 0)
+            }
+            pauseStartedAt = nil
+            let shouldSendStandaloneSummary = isStandaloneRouteWorkout
+            let summary = shouldSendStandaloneSummary ? makeStandaloneSummary(endedAt: endDate) : nil
             session?.end()
             try? await builder?.endCollection(at: endDate)
             _ = try? await builder?.finishWorkout()
             timer?.invalidate()
+            stopPedometer()
+            stopLocation()
             state = .idle
-            send(command: .stop)
+            endedAt = endDate
+            if let summary {
+                sendStandaloneSummary(summary)
+            } else if sendsCommand {
+                send(command: .stop)
+            }
             session = nil
             builder = nil
+            isLocalRouteWorkout = false
+            isStandaloneRouteWorkout = false
+            standaloneActivity = nil
+            standaloneWorkoutID = nil
+            accumulatedPausedSeconds = 0
+            resetRouteMetrics()
+            snapshot = SharedWorkoutSnapshot.empty
+            SharedWorkoutStore.save(snapshot)
         }
     }
 
@@ -87,7 +198,9 @@ final class WatchWorkoutModel: NSObject, ObservableObject {
         guard HKHealthStore.isHealthDataAvailable() else { return }
         let readTypes: Set<HKObjectType> = [
             HKQuantityType(.heartRate),
-            HKQuantityType(.activeEnergyBurned)
+            HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.distanceWalkingRunning),
+            HKQuantityType(.stepCount)
         ]
         let shareTypes: Set<HKSampleType> = [HKWorkoutType.workoutType()]
         try await healthStore.requestAuthorization(toShare: shareTypes, read: readTypes)
@@ -99,12 +212,22 @@ final class WatchWorkoutModel: NSObject, ObservableObject {
         WCSession.default.activate()
     }
 
+    private func configureLocation() {
+        locationManager.delegate = self
+        locationManager.activityType = .fitness
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.distanceFilter = 8
+    }
+
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self, let startedAt = self.startedAt else { return }
                 self.elapsedSeconds = Int(Date().timeIntervalSince(startedAt))
+                self.updateRouteDerivedMetrics()
+                self.updateStandaloneSnapshotIfNeeded()
+                self.sendRouteMetricsIfNeeded()
             }
         }
     }
@@ -114,10 +237,280 @@ final class WatchWorkoutModel: NSObject, ObservableObject {
         case HKQuantityType(.heartRate):
             let unit = HKUnit.count().unitDivided(by: .minute())
             heartRate = statistics.mostRecentQuantity()?.doubleValue(for: unit)
+            if let heartRate {
+                heartRateSamples.append(heartRate)
+            }
         case HKQuantityType(.activeEnergyBurned):
             activeEnergy = statistics.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? activeEnergy
+        case HKQuantityType(.distanceWalkingRunning):
+            let meters = statistics.sumQuantity()?.doubleValue(for: .meter()) ?? 0
+            routeDistanceKm = meters > 0 ? meters / 1_000 : routeDistanceKm
+            updateRouteDerivedMetrics()
         default:
             break
+        }
+    }
+
+    private func startLocalRouteWorkoutIfNeeded(for snapshot: SharedWorkoutSnapshot) {
+        guard snapshot.hasActiveWorkout, snapshot.isRouteWorkout else { return }
+        guard session == nil else {
+            if snapshot.isPaused, state == .running {
+                session?.pause()
+                state = .paused
+                stopPedometer()
+            } else if !snapshot.isPaused, state == .paused {
+                session?.resume()
+                state = .running
+                startPedometer()
+            }
+            return
+        }
+
+        Task {
+            do {
+                try await requestHealthAuthorization()
+                let configuration = HKWorkoutConfiguration()
+                configuration.activityType = Self.routeActivityType(for: snapshot)
+                configuration.locationType = .outdoor
+
+                let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
+                let workoutBuilder = workoutSession.associatedWorkoutBuilder()
+                workoutBuilder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
+                workoutSession.delegate = self
+                workoutBuilder.delegate = self
+
+                session = workoutSession
+                builder = workoutBuilder
+                startedAt = snapshot.updatedAt.addingTimeInterval(-TimeInterval(snapshot.elapsedSeconds))
+                elapsedSeconds = snapshot.elapsedSeconds
+                state = snapshot.isPaused ? .paused : .running
+                isLocalRouteWorkout = true
+                isStandaloneRouteWorkout = false
+                resetRouteMetrics()
+
+                workoutSession.startActivity(with: .now)
+                try await workoutBuilder.beginCollection(at: .now)
+                if snapshot.isPaused {
+                    workoutSession.pause()
+                } else {
+                    startPedometer()
+                    startLocation()
+                }
+                startTimer()
+            } catch {
+                message = error.localizedDescription
+            }
+        }
+    }
+
+    private func stopLocalRouteWorkoutIfNeeded() {
+        guard isLocalRouteWorkout else { return }
+        stopSession(sendsCommand: false)
+    }
+
+    private func startPedometer() {
+        guard CMPedometer.isStepCountingAvailable() else { return }
+        pedometer.startUpdates(from: startedAt ?? .now) { [weak self] data, _ in
+            Task { @MainActor in
+                guard let self, let data else { return }
+                self.routeSteps = data.numberOfSteps.doubleValue
+                if self.routeDistanceKm == nil, let meters = data.distance?.doubleValue, meters > 0 {
+                    self.routeDistanceKm = meters / 1_000
+                }
+                self.updateRouteDerivedMetrics()
+            }
+        }
+    }
+
+    private func stopPedometer() {
+        pedometer.stopUpdates()
+    }
+
+    private func startLocation() {
+        switch locationManager.authorizationStatus {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .authorizedAlways, .authorizedWhenInUse:
+            locationManager.startUpdatingLocation()
+        default:
+            break
+        }
+    }
+
+    private func stopLocation() {
+        locationManager.stopUpdatingLocation()
+    }
+
+    private func resetRouteMetrics() {
+        routeDistanceKm = nil
+        routeSteps = nil
+        routePaceSecondsPerKm = nil
+        routeSpeedKmh = nil
+        lastRouteMetricsSentAt = nil
+        routePointCount = 0
+        routePoints = []
+        lastLocation = nil
+        totalDistanceMeters = 0
+        heartRateSamples = []
+    }
+
+    private func updateRouteDerivedMetrics() {
+        guard let routeDistanceKm, routeDistanceKm > 0.02, elapsedSeconds > 0 else {
+            routePaceSecondsPerKm = nil
+            routeSpeedKmh = nil
+            return
+        }
+        routePaceSecondsPerKm = Double(elapsedSeconds) / routeDistanceKm
+        routeSpeedKmh = routeDistanceKm / (Double(elapsedSeconds) / 3_600)
+    }
+
+    private static func routeActivityType(for snapshot: SharedWorkoutSnapshot) -> HKWorkoutActivityType {
+        let title = snapshot.workoutTitle.lowercased()
+        if title.contains("carrera") || title.contains("run") {
+            return .running
+        }
+        return .walking
+    }
+
+    private func sendRouteMetricsIfNeeded() {
+        guard isLocalRouteWorkout else { return }
+        let now = Date()
+        if let lastRouteMetricsSentAt, now.timeIntervalSince(lastRouteMetricsSentAt) < 5 {
+            return
+        }
+        lastRouteMetricsSentAt = now
+
+        var message: [String: Any] = [
+            "kind": "routeMetrics",
+            "activeEnergyKcal": activeEnergy
+        ]
+        if let heartRate {
+            message["heartRate"] = heartRate
+        }
+        if let routeDistanceKm {
+            message["routeDistanceKm"] = routeDistanceKm
+        }
+        if let routePaceSecondsPerKm {
+            message["routePaceSecondsPerKm"] = routePaceSecondsPerKm
+        }
+        if let routeSpeedKmh {
+            message["routeSpeedKmh"] = routeSpeedKmh
+        }
+        if let routeSteps {
+            message["routeSteps"] = routeSteps
+        }
+        message["routePointCount"] = routePointCount
+
+        guard WCSession.isSupported() else { return }
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(message, replyHandler: nil)
+        }
+    }
+
+    private func updateStandaloneSnapshotIfNeeded() {
+        guard isStandaloneRouteWorkout, let startedAt, let activity = standaloneActivity else { return }
+        let elapsed = max(Int(Date().timeIntervalSince(startedAt)) - accumulatedPausedSeconds, 0)
+        elapsedSeconds = elapsed
+        snapshot = SharedWorkoutSnapshot(
+            hasActiveWorkout: true,
+            planTitle: nil,
+            workoutTitle: activity.title,
+            sessionTitle: "Iniciado desde Apple Watch",
+            elapsedSeconds: elapsed,
+            pausedSeconds: currentPausedSeconds,
+            completedSets: 0,
+            totalSets: 0,
+            volumeKg: 0,
+            isPaused: state == .paused,
+            exerciseName: nil,
+            exerciseIndex: nil,
+            totalExercises: nil,
+            currentExerciseCompletedSets: nil,
+            currentExerciseTotalSets: nil,
+            currentSetWeightKg: nil,
+            currentSetReps: nil,
+            restSeconds: nil,
+            restDurationSeconds: nil,
+            estimatedRemainingSeconds: nil,
+            waterLiters: nil,
+            musicTitle: nil,
+            musicArtist: nil,
+            isMusicPlaying: nil,
+            nextExerciseName: nil,
+            exerciseHistorySummary: nil,
+            gymPassName: nil,
+            gymMembershipID: nil,
+            gymCodeValue: nil,
+            gymCodeType: nil,
+            heartRate: heartRate,
+            activeEnergyKcal: activeEnergy,
+            isRouteWorkout: true,
+            routeDistanceKm: routeDistanceKm,
+            routePaceSecondsPerKm: routePaceSecondsPerKm,
+            routeSpeedKmh: routeSpeedKmh,
+            routePointCount: routePointCount,
+            routeSteps: routeSteps,
+            summary: "\(activity.title) en curso desde Apple Watch",
+            updatedAt: .now,
+            streakDays: snapshot.streakDays,
+            weeklyCompletion: snapshot.weeklyCompletion,
+            trainingBatteryLevel: snapshot.trainingBatteryLevel,
+            trainingBatteryState: snapshot.trainingBatteryState,
+            trainingBatteryTitle: snapshot.trainingBatteryTitle,
+            trainingBatterySuggestion: snapshot.trainingBatterySuggestion,
+            trainingBatterySystemImage: snapshot.trainingBatterySystemImage,
+            nextWorkoutDayName: snapshot.nextWorkoutDayName,
+            nextWorkoutDayDescription: snapshot.nextWorkoutDayDescription,
+            widgetAccentColorName: "green"
+        )
+        SharedWorkoutStore.save(snapshot)
+    }
+
+    private var currentPausedSeconds: Int {
+        if let pauseStartedAt {
+            return accumulatedPausedSeconds + max(Int(Date().timeIntervalSince(pauseStartedAt)), 0)
+        }
+        return accumulatedPausedSeconds
+    }
+
+    private func makeStandaloneSummary(endedAt endDate: Date) -> WatchRouteWorkoutSummary? {
+        guard let startedAt, let activity = standaloneActivity else { return nil }
+        let duration = max(Int(endDate.timeIntervalSince(startedAt)) - currentPausedSeconds, 1)
+        updateRouteDerivedMetrics()
+        return WatchRouteWorkoutSummary(
+            id: standaloneWorkoutID ?? UUID(),
+            activity: activity,
+            startedAt: startedAt,
+            endedAt: endDate,
+            durationSeconds: duration,
+            pausedSeconds: currentPausedSeconds,
+            distanceKm: routeDistanceKm,
+            averagePaceSecondsPerKm: routePaceSecondsPerKm,
+            averageSpeedKmh: routeSpeedKmh,
+            steps: routeSteps,
+            activeEnergyKcal: activeEnergy > 0 ? activeEnergy : nil,
+            averageHeartRate: averageHeartRate,
+            maxHeartRate: heartRateSamples.max(),
+            routePoints: routePoints
+        )
+    }
+
+    private var averageHeartRate: Double? {
+        guard !heartRateSamples.isEmpty else { return heartRate }
+        return heartRateSamples.reduce(0, +) / Double(heartRateSamples.count)
+    }
+
+    private func sendStandaloneSummary(_ summary: WatchRouteWorkoutSummary) {
+        guard WCSession.isSupported(),
+              let data = try? JSONEncoder().encode(summary) else { return }
+        let context: [String: Any] = [
+            "kind": "routeWorkoutSummary",
+            "routeWorkoutSummary": data
+        ]
+        WCSession.default.transferUserInfo(context)
+        try? WCSession.default.updateApplicationContext(context)
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(context, replyHandler: nil)
         }
     }
 
@@ -132,6 +525,43 @@ final class WatchWorkoutModel: NSObject, ObservableObject {
             WCSession.default.sendMessage(message, replyHandler: nil)
         } else {
             try? WCSession.default.updateApplicationContext(message)
+        }
+    }
+
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        Task { @MainActor in
+            if self.isLocalRouteWorkout,
+               self.state == .running,
+               status == .authorizedAlways || status == .authorizedWhenInUse {
+                self.locationManager.startUpdatingLocation()
+            }
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        Task { @MainActor in
+            for location in locations where location.horizontalAccuracy >= 0 && location.horizontalAccuracy <= 60 {
+                if let lastLocation {
+                    totalDistanceMeters += location.distance(from: lastLocation)
+                }
+                lastLocation = location
+                routePoints.append(
+                    SharedRoutePoint(
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude,
+                        altitude: location.altitude,
+                        horizontalAccuracy: location.horizontalAccuracy,
+                        timestamp: location.timestamp
+                    )
+                )
+                routePointCount = routePoints.count
+                if totalDistanceMeters > 0 {
+                    routeDistanceKm = totalDistanceMeters / 1_000
+                }
+            }
+            updateRouteDerivedMetrics()
+            updateStandaloneSnapshotIfNeeded()
         }
     }
 }
@@ -191,6 +621,12 @@ extension WatchWorkoutModel: WCSessionDelegate {
             gymCodeType: context["gymCodeType"] as? String,
             heartRate: context["heartRate"] as? Double,
             activeEnergyKcal: context["activeEnergyKcal"] as? Double,
+            isRouteWorkout: context["isRouteWorkout"] as? Bool ?? false,
+            routeDistanceKm: context["routeDistanceKm"] as? Double,
+            routePaceSecondsPerKm: context["routePaceSecondsPerKm"] as? Double,
+            routeSpeedKmh: context["routeSpeedKmh"] as? Double,
+            routePointCount: context["routePointCount"] as? Int,
+            routeSteps: context["routeSteps"] as? Double,
             summary: context["summary"] as? String ?? "",
             updatedAt: Date(timeIntervalSince1970: context["updatedAt"] as? Double ?? Date().timeIntervalSince1970),
             streakDays: context["streakDays"] as? Int ?? 0,
@@ -207,8 +643,16 @@ extension WatchWorkoutModel: WCSessionDelegate {
     }
 
     private func apply(snapshot: SharedWorkoutSnapshot) {
+        if isStandaloneRouteWorkout {
+            return
+        }
         self.snapshot = snapshot
         SharedWorkoutStore.save(snapshot)
+        if snapshot.hasActiveWorkout, snapshot.isRouteWorkout {
+            startLocalRouteWorkoutIfNeeded(for: snapshot)
+        } else if !snapshot.hasActiveWorkout {
+            stopLocalRouteWorkoutIfNeeded()
+        }
     }
 }
 

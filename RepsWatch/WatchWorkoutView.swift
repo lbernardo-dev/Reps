@@ -8,7 +8,11 @@ struct WatchWorkoutView: View {
             TabView {
                 summaryPage
                 controlsPage
-                timersPage
+                if model.snapshot.isRouteWorkout {
+                    routePage
+                } else {
+                    timersPage
+                }
                 gymAndMusicPage
             }
             .tabViewStyle(.verticalPage)
@@ -22,7 +26,11 @@ struct WatchWorkoutView: View {
                 VStack(alignment: .leading, spacing: 9) {
                     liveHeroCard
                     evolutionCard
-                    exerciseCard
+                    if model.snapshot.isRouteWorkout {
+                        routeLiveCard
+                    } else {
+                        exerciseCard
+                    }
                 }
                 .padding(.horizontal, 6)
                 .padding(.bottom, 10)
@@ -43,45 +51,49 @@ struct WatchWorkoutView: View {
         ScrollView {
             if model.snapshot.hasActiveWorkout {
                 VStack(spacing: 12) {
-                    Button {
-                        WatchCommandRouter.send(WatchCommand.completeSet.rawValue)
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 18, weight: .bold))
-                            Text("Serie hecha")
-                                .font(.system(.headline, design: .rounded).bold())
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(
-                            LinearGradient(
-                                colors: [Color(red: 0.15, green: 0.68, blue: 0.37), Color(red: 0.18, green: 0.8, blue: 0.44)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                    if model.snapshot.isRouteWorkout {
+                        routeControls
+                    } else {
+                        Button {
+                            WatchCommandRouter.send(WatchCommand.completeSet.rawValue)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 18, weight: .bold))
+                                Text("Serie hecha")
+                                    .font(.system(.headline, design: .rounded).bold())
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color(red: 0.15, green: 0.68, blue: 0.37), Color(red: 0.18, green: 0.8, blue: 0.44)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(Color.green.opacity(0.3), lineWidth: 1)
-                        )
-                        .shadow(color: Color.green.opacity(0.2), radius: 4, x: 0, y: 2)
-                    }
-                    .buttonStyle(.plain)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                            )
+                            .shadow(color: Color.green.opacity(0.2), radius: 4, x: 0, y: 2)
+                        }
+                        .buttonStyle(.plain)
 
-                    HStack(spacing: 12) {
-                        commandButton(.previousExercise, icon: "chevron.backward", tint: .blue)
-                        commandButton(model.snapshot.isPaused ? .resume : .pause, icon: model.snapshot.isPaused ? "play.fill" : "pause.fill", tint: model.snapshot.isPaused ? .green : .orange)
-                        commandButton(.nextExercise, icon: "chevron.forward", tint: .blue)
-                    }
-                    .padding(.vertical, 4)
+                        HStack(spacing: 12) {
+                            commandButton(.previousExercise, icon: "chevron.backward", tint: .blue)
+                            commandButton(model.snapshot.isPaused ? .resume : .pause, icon: model.snapshot.isPaused ? "play.fill" : "pause.fill", tint: model.snapshot.isPaused ? .green : .orange)
+                            commandButton(.nextExercise, icon: "chevron.forward", tint: .blue)
+                        }
+                        .padding(.vertical, 4)
 
-                    HStack(spacing: 12) {
-                        commandButton(.addWater, icon: "waterbottle.fill", tint: .cyan)
-                        commandButton(.voiceNote, icon: "mic.fill", tint: .red)
-                        commandButton(.stop, icon: "stop.fill", tint: .red)
+                        HStack(spacing: 12) {
+                            commandButton(.addWater, icon: "waterbottle.fill", tint: .cyan)
+                            commandButton(.voiceNote, icon: "mic.fill", tint: .red)
+                            commandButton(.stop, icon: "stop.fill", tint: .red)
+                        }
                     }
 
                     if let history = model.snapshot.exerciseHistorySummary {
@@ -121,6 +133,27 @@ struct WatchWorkoutView: View {
         }
     }
 
+    private var routePage: some View {
+        ScrollView {
+            if model.snapshot.hasActiveWorkout {
+                VStack(alignment: .leading, spacing: 9) {
+                    routeLiveCard
+                    routeMetricsGrid
+                    WatchInfoCard(
+                        icon: "map.fill",
+                        title: "GPS",
+                        value: "\(model.snapshot.routePointCount ?? 0) puntos recibidos del iPhone",
+                        color: .blue
+                    )
+                }
+                .padding(.horizontal, 6)
+                .padding(.bottom, 10)
+            } else {
+                inactiveControlsState
+            }
+        }
+    }
+
     private var inactiveControlsState: some View {
         VStack(spacing: 12) {
             ZStack {
@@ -137,17 +170,45 @@ struct WatchWorkoutView: View {
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
-                Text("Inicia un entreno desde el iPhone para activar los controles del reloj.")
+                Text("Inicia caminata o carrera aquí, o sincroniza un entreno abierto desde el iPhone.")
                     .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
             }
 
+            VStack(spacing: 8) {
+                Button {
+                    model.startStandaloneRouteWorkout(activity: .walking)
+                } label: {
+                    Label("Caminata", systemImage: "figure.walk")
+                        .font(.system(.headline, design: .rounded).bold())
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                        .background(Color.green)
+                        .foregroundStyle(.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    model.startStandaloneRouteWorkout(activity: .running)
+                } label: {
+                    Label("Carrera", systemImage: "figure.run")
+                        .font(.system(.headline, design: .rounded).bold())
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                        .background(accentColor.opacity(0.16))
+                        .foregroundStyle(accentColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+
             WatchInfoCard(
                 icon: "iphone",
-                title: "Requiere sesión",
-                value: "Los botones aparecerán aquí cuando Reps reciba un entreno en curso.",
+                title: "Sin móvil",
+                value: "El reloj guarda la ruta y la vuelca a Reps cuando vuelva a conectar.",
                 color: accentColor
             )
         }
@@ -391,6 +452,79 @@ struct WatchWorkoutView: View {
         .watchCard()
     }
 
+    private var routeLiveCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Ruta en vivo", systemImage: "figure.walk")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(accentColor)
+                Spacer()
+                Text(model.snapshot.isPaused ? "PAUSA" : "GPS")
+                    .font(.system(size: 9, weight: .black, design: .rounded))
+                    .foregroundStyle(model.snapshot.isPaused ? .orange : accentColor)
+            }
+
+            Text(routeDistanceText)
+                .font(.system(size: 34, weight: .black, design: .rounded).monospacedDigit())
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            HStack(spacing: 6) {
+                WatchTimePill(title: "Tiempo", value: liveElapsedText, icon: "timer", color: accentColor)
+                WatchTimePill(title: "Ritmo", value: routePaceText, icon: "speedometer", color: .orange)
+            }
+
+            ProgressView(value: routeTimeProgress)
+                .progressViewStyle(LinearTintProgressStyle(color: accentColor))
+
+            Text(model.snapshot.isPaused ? "Pausado desde el iPhone o reloj. Reanuda para seguir sumando ruta." : "Consulta distancia, ritmo y pulso sin esperar al resumen final.")
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+        }
+        .watchCard(borderColor: accentColor.opacity(0.18))
+    }
+
+    private var routeControls: some View {
+        VStack(spacing: 12) {
+            Button {
+                model.toggleRoutePause()
+            } label: {
+                Label(model.snapshot.isPaused ? "Reanudar" : "Pausar", systemImage: model.snapshot.isPaused ? "play.fill" : "pause.fill")
+                    .font(.system(.headline, design: .rounded).bold())
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(model.snapshot.isPaused ? Color.green : Color.orange)
+                    .foregroundStyle(model.snapshot.isPaused ? .black : .white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 12) {
+                commandButton(.addWater, icon: "waterbottle.fill", tint: .cyan)
+                commandButton(.voiceNote, icon: "mic.fill", tint: .red)
+                Button {
+                    model.stop()
+                } label: {
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.red)
+                        .frame(width: 46, height: 46)
+                        .background(Color.red.opacity(0.12))
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.red.opacity(0.25), lineWidth: 1.5)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+
+            WatchInfoCard(icon: "applewatch", title: "Fuente", value: model.isStandaloneRouteWorkout ? "El reloj registra ruta, pasos, distancia, pulso y kcal; Reps lo importará al reconectar." : "El reloj lee pulso, kcal, pasos y distancia en vivo; el iPhone mantiene la ruta y el mapa.", color: .blue)
+        }
+    }
+
     private var timersHeader: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
@@ -465,6 +599,17 @@ struct WatchWorkoutView: View {
         }
     }
 
+    private var routeMetricsGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            WatchMetric(title: "Distancia", value: String(format: "%.2f", routeDistanceKm), unit: "km", icon: "point.topleft.down.curvedto.point.bottomright.up", color: accentColor)
+            WatchMetric(title: "Ritmo", value: routePaceText, unit: "", icon: "speedometer", color: .orange)
+            WatchMetric(title: "Velocidad", value: routeSpeedKmh.map { String(format: "%.1f", $0) } ?? "--", unit: "km/h", icon: "gauge.with.needle", color: .blue)
+            WatchMetric(title: "Pasos", value: routeSteps.map { "\(Int($0))" } ?? "--", unit: "", icon: "shoeprints.fill", color: .green)
+            WatchMetric(title: "Kcal", value: "\(Int(model.snapshot.activeEnergyKcal ?? model.activeEnergy))", unit: "act.", icon: "flame.fill", color: .orange)
+            WatchMetric(title: "Pulso", value: model.heartRate.map { "\(Int($0))" } ?? model.snapshot.heartRate.map { "\(Int($0))" } ?? "--", unit: "lpm", icon: "heart.fill", color: .red)
+        }
+    }
+
     private var accentColor: Color {
         switch model.snapshot.widgetAccentColorName.lowercased() {
         case "green":
@@ -518,6 +663,42 @@ struct WatchWorkoutView: View {
             return model.snapshot.elapsedText
         }
         return elapsedText
+    }
+
+    private var routeDistanceText: String {
+        String(format: "%.2f km", routeDistanceKm)
+    }
+
+    private var routePaceText: String {
+        guard let pace = routePaceSecondsPerKm, pace.isFinite, pace > 0 else {
+            return "--"
+        }
+        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
+    }
+
+    private var routeDistanceKm: Double {
+        model.routeDistanceKm ?? model.snapshot.routeDistanceKm ?? 0
+    }
+
+    private var routePaceSecondsPerKm: Double? {
+        model.routePaceSecondsPerKm ?? model.snapshot.routePaceSecondsPerKm
+    }
+
+    private var routeSpeedKmh: Double? {
+        model.routeSpeedKmh ?? model.snapshot.routeSpeedKmh
+    }
+
+    private var routeSteps: Double? {
+        model.routeSteps ?? model.snapshot.routeSteps
+    }
+
+    private var routeTimeProgress: Double {
+        guard let remaining = model.snapshot.estimatedRemainingSeconds else {
+            return 0
+        }
+        let total = model.snapshot.elapsedSeconds + remaining
+        guard total > 0 else { return 0 }
+        return min(max(Double(model.snapshot.elapsedSeconds) / Double(total), 0), 1)
     }
 
     private var elapsedText: String {

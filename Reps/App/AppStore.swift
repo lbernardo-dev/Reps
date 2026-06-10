@@ -98,9 +98,17 @@ final class AppStore: ObservableObject {
             return WorkoutShareImageRenderer.render(title: "Reps Workout", duration: 0, volume: 0, sets: 0)
         }
         self.isUsingFallbackStorage = persistence.didFallbackToInMemory
-        WatchSyncService.shared.configure { [weak self] command in
-            self?.handleWatchCommand(command)
-        }
+        WatchSyncService.shared.configure(
+            commandHandler: { [weak self] command in
+                self?.handleWatchCommand(command)
+            },
+            routeMetricsHandler: { [weak self] metrics in
+                self?.handleWatchRouteMetrics(metrics)
+            },
+            routeSummaryHandler: { [weak self] summary in
+                self?.importWatchRouteWorkout(summary)
+            }
+        )
         if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
             restore(snapshot)
         } else {
@@ -884,7 +892,15 @@ final class AppStore: ObservableObject {
         nextExerciseName: String? = nil,
         exerciseHistorySummary: String? = nil,
         gymPass: GymPass? = nil,
-        lastPausedAt: Date? = nil
+        lastPausedAt: Date? = nil,
+        isRouteWorkout: Bool = false,
+        routeDistanceKm: Double? = nil,
+        routePaceSecondsPerKm: Double? = nil,
+        routeSpeedKmh: Double? = nil,
+        routePointCount: Int? = nil,
+        routeSteps: Double? = nil,
+        liveHeartRate: Double? = nil,
+        liveActiveEnergyKcal: Double? = nil
     ) {
         guard var status = activeWorkoutStatus else { return }
         status.planTitle = activePlan.name
@@ -916,6 +932,18 @@ final class AppStore: ObservableObject {
         status.gymCodeValue = gymPass?.codeValue
         status.gymCodeType = gymPass?.codeType.rawValue
         status.lastPausedAt = lastPausedAt
+        status.isRouteWorkout = isRouteWorkout
+        status.routeDistanceKm = routeDistanceKm
+        status.routePaceSecondsPerKm = routePaceSecondsPerKm
+        status.routeSpeedKmh = routeSpeedKmh
+        status.routePointCount = routePointCount
+        status.routeSteps = routeSteps
+        if let liveHeartRate {
+            status.liveHeartRate = liveHeartRate
+        }
+        if let liveActiveEnergyKcal {
+            status.liveActiveEnergyKcal = liveActiveEnergyKcal
+        }
         activeWorkoutStatus = status
     }
 
@@ -944,13 +972,113 @@ final class AppStore: ObservableObject {
         switch command {
         case .pause:
             setActiveWorkoutPaused(true)
+            NotificationCenter.default.post(name: command.notificationName, object: nil)
         case .resume:
             setActiveWorkoutPaused(false)
+            NotificationCenter.default.post(name: command.notificationName, object: nil)
         case .stop:
             finishActiveWorkoutFromSummaryCard()
         case .musicToggle, .musicNext, .musicPrevious, .completeSet, .nextExercise, .previousExercise, .addWater, .voiceNote:
             NotificationCenter.default.post(name: command.notificationName, object: nil)
         }
+    }
+
+    private func handleWatchRouteMetrics(_ metrics: WatchRouteMetrics) {
+        guard var status = activeWorkoutStatus else { return }
+        status.isRouteWorkout = true
+        status.routeDistanceKm = metrics.distanceKm ?? status.routeDistanceKm
+        status.routePaceSecondsPerKm = metrics.paceSecondsPerKm ?? status.routePaceSecondsPerKm
+        status.routeSpeedKmh = metrics.speedKmh ?? status.routeSpeedKmh
+        status.routeSteps = metrics.steps ?? status.routeSteps
+        status.liveHeartRate = metrics.heartRate ?? status.liveHeartRate
+        status.liveActiveEnergyKcal = metrics.activeEnergyKcal ?? status.liveActiveEnergyKcal
+        activeWorkoutStatus = status
+    }
+
+    private func importWatchRouteWorkout(_ summary: WatchRouteWorkoutSummary) {
+        let healthKitID = "watch-\(summary.id.uuidString)"
+        guard !workoutSessions.contains(where: { $0.id == summary.id || $0.healthKitUUIDString == healthKitID }) else {
+            return
+        }
+
+        let routePoints = summary.routePoints.map {
+            RoutePoint(
+                latitude: $0.latitude,
+                longitude: $0.longitude,
+                altitude: $0.altitude,
+                horizontalAccuracy: $0.horizontalAccuracy,
+                timestamp: $0.timestamp
+            )
+        }
+        let title = summary.activity.title
+        let session = WorkoutSession(
+            id: summary.id,
+            workoutTitle: title,
+            date: summary.endedAt,
+            startedAt: summary.startedAt,
+            endedAt: summary.endedAt,
+            origin: .free,
+            location: .outdoor,
+            contextTag: .normal,
+            durationMinutes: summary.durationMinutes,
+            sets: [],
+            notes: "Iniciado y registrado desde Apple Watch.",
+            exerciseLogs: [],
+            sessionRPE: nil,
+            energyBefore: nil,
+            energyAfter: nil,
+            estimatedCalories: summary.activeEnergyKcal,
+            mediaAttachments: [],
+            routePoints: routePoints,
+            pausedDurationSeconds: summary.pausedSeconds,
+            distanceKm: summary.distanceKm,
+            averagePaceSecondsPerKm: summary.averagePaceSecondsPerKm,
+            steps: summary.steps,
+            activeEnergyKcal: summary.activeEnergyKcal,
+            heartRateBefore: nil,
+            heartRateAfter: nil,
+            healthKitUUIDString: healthKitID,
+            isImportedFromHealth: false,
+            healthKitActivityTypes: [summary.activity == .running ? "Running" : "Walking"],
+            averageHeartRate: summary.averageHeartRate,
+            maxHeartRate: summary.maxHeartRate
+        )
+
+        workoutSessions.append(session)
+
+        let cardioLog = CardioLog(
+            activityType: summary.activity == .running ? .outdoorRun : .walking,
+            date: summary.startedAt,
+            durationMinutes: summary.durationMinutes,
+            distanceKm: summary.distanceKm,
+            averageSpeedKmh: summary.averageSpeedKmh,
+            averagePaceSecondsPerKm: summary.averagePaceSecondsPerKm,
+            averageHeartRate: summary.averageHeartRate,
+            maxHeartRate: summary.maxHeartRate,
+            estimatedCalories: summary.activeEnergyKcal,
+            steps: summary.steps,
+            activeEnergyKcal: summary.activeEnergyKcal,
+            heartRateBefore: nil,
+            heartRateAfter: nil,
+            rpe: nil,
+            notes: "Importado desde Apple Watch.",
+            routePoints: routePoints
+        )
+        _ = importCardioLogs([cardioLog])
+
+        let image = WorkoutShareImageRenderer.render(session: session)
+        if let data = image.pngData() {
+            savedShareCards.append(SavedShareCard(date: session.date, workoutTitle: session.workoutTitle, imageData: data))
+        }
+
+        TelemetryService.shared.log(.workoutFinished, parameters: [
+            "origin": session.origin.rawValue,
+            "location": session.location.rawValue,
+            "duration_minutes": session.durationMinutes,
+            "exercise_count": 0,
+            "set_count": 0,
+            "source": "apple_watch"
+        ])
     }
 
     private func sharedWorkoutSnapshot() -> SharedWorkoutSnapshot {
@@ -993,6 +1121,12 @@ final class AppStore: ObservableObject {
                 gymCodeType: gymPasses.first?.codeType.rawValue,
                 heartRate: todayHealthMetric?.restingHeartRate,
                 activeEnergyKcal: todayHealthMetric?.activeEnergyKcal,
+                isRouteWorkout: false,
+                routeDistanceKm: nil,
+                routePaceSecondsPerKm: nil,
+                routeSpeedKmh: nil,
+                routePointCount: nil,
+                routeSteps: nil,
                 summary: dailySummary,
                 updatedAt: .now,
                 streakDays: streak,
@@ -1041,8 +1175,14 @@ final class AppStore: ObservableObject {
             gymMembershipID: status.gymMembershipID ?? gymPasses.first?.membershipID,
             gymCodeValue: status.gymCodeValue ?? gymPasses.first?.codeValue,
             gymCodeType: status.gymCodeType ?? gymPasses.first?.codeType.rawValue,
-            heartRate: todayHealthMetric?.restingHeartRate,
-            activeEnergyKcal: todayHealthMetric?.activeEnergyKcal,
+            heartRate: status.liveHeartRate ?? todayHealthMetric?.restingHeartRate,
+            activeEnergyKcal: status.liveActiveEnergyKcal ?? todayHealthMetric?.activeEnergyKcal,
+            isRouteWorkout: status.isRouteWorkout,
+            routeDistanceKm: status.routeDistanceKm,
+            routePaceSecondsPerKm: status.routePaceSecondsPerKm,
+            routeSpeedKmh: status.routeSpeedKmh,
+            routePointCount: status.routePointCount,
+            routeSteps: status.routeSteps,
             summary: dailySummary,
             updatedAt: .now,
             streakDays: streak,
@@ -2300,16 +2440,33 @@ private struct OpenExerciseRecord: Decodable {
     }
 }
 
+struct WatchRouteMetrics: Sendable {
+    var distanceKm: Double?
+    var paceSecondsPerKm: Double?
+    var speedKmh: Double?
+    var steps: Double?
+    var heartRate: Double?
+    var activeEnergyKcal: Double?
+}
+
 final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
     static let shared = WatchSyncService()
     private var commandHandler: (@MainActor @Sendable (WatchCommand) -> Void)?
+    private var routeMetricsHandler: (@MainActor @Sendable (WatchRouteMetrics) -> Void)?
+    private var routeSummaryHandler: (@MainActor @Sendable (WatchRouteWorkoutSummary) -> Void)?
 
     private override init() {
         super.init()
     }
 
-    func configure(commandHandler: (@MainActor @Sendable (WatchCommand) -> Void)? = nil) {
+    func configure(
+        commandHandler: (@MainActor @Sendable (WatchCommand) -> Void)? = nil,
+        routeMetricsHandler: (@MainActor @Sendable (WatchRouteMetrics) -> Void)? = nil,
+        routeSummaryHandler: (@MainActor @Sendable (WatchRouteWorkoutSummary) -> Void)? = nil
+    ) {
         self.commandHandler = commandHandler
+        self.routeMetricsHandler = routeMetricsHandler
+        self.routeSummaryHandler = routeSummaryHandler
         guard WCSession.isSupported() else { return }
         let session = WCSession.default
         guard session.delegate == nil else { return }
@@ -2363,6 +2520,12 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
         if let activeEnergyKcal = snapshot.activeEnergyKcal {
             context["activeEnergyKcal"] = activeEnergyKcal
         }
+        context["isRouteWorkout"] = snapshot.isRouteWorkout
+        context["routeDistanceKm"] = snapshot.routeDistanceKm
+        context["routePaceSecondsPerKm"] = snapshot.routePaceSecondsPerKm
+        context["routeSpeedKmh"] = snapshot.routeSpeedKmh
+        context["routePointCount"] = snapshot.routePointCount
+        context["routeSteps"] = snapshot.routeSteps
         context["streakDays"] = snapshot.streakDays
         context["weeklyCompletion"] = snapshot.weeklyCompletion
         context["trainingBatteryLevel"] = snapshot.trainingBatteryLevel
@@ -2405,7 +2568,46 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
         handle(message)
     }
 
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        handlePersistentPayload(applicationContext)
+    }
+
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        handlePersistentPayload(userInfo)
+    }
+
+    private func handlePersistentPayload(_ message: [String: Any]) {
+        if message["kind"] as? String == "routeWorkoutSummary",
+           let data = message["routeWorkoutSummary"] as? Data,
+           let summary = try? JSONDecoder().decode(WatchRouteWorkoutSummary.self, from: data) {
+            let handler = routeSummaryHandler
+            Task { @MainActor in
+                handler?(summary)
+            }
+        }
+    }
+
     private func handle(_ message: [String: Any]) {
+        if message["kind"] as? String == "routeWorkoutSummary" {
+            handlePersistentPayload(message)
+            return
+        }
+        if message["kind"] as? String == "routeMetrics" {
+            let metrics = WatchRouteMetrics(
+                distanceKm: message["routeDistanceKm"] as? Double,
+                paceSecondsPerKm: message["routePaceSecondsPerKm"] as? Double,
+                speedKmh: message["routeSpeedKmh"] as? Double,
+                steps: message["routeSteps"] as? Double,
+                heartRate: message["heartRate"] as? Double,
+                activeEnergyKcal: message["activeEnergyKcal"] as? Double
+            )
+            let handler = routeMetricsHandler
+            Task { @MainActor in
+                handler?(metrics)
+            }
+            return
+        }
+
         guard let rawCommand = message["command"] as? String,
               let command = WatchCommand(rawValue: rawCommand) else {
             return

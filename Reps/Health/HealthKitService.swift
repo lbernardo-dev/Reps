@@ -29,6 +29,8 @@ final class HealthKitService: ObservableObject {
             HKQuantityType(.height),
             HKQuantityType(.dietaryEnergyConsumed),
             HKQuantityType(.dietaryWater),
+            HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.distanceWalkingRunning),
             HKWorkoutType.workoutType()
         ]
     }
@@ -41,6 +43,7 @@ final class HealthKitService: ObservableObject {
             HKQuantityType(.waistCircumference),
             HKQuantityType(.stepCount),
             HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.distanceWalkingRunning),
             HKQuantityType(.appleExerciseTime),
             HKQuantityType(.dietaryEnergyConsumed),
             HKQuantityType(.dietaryWater),
@@ -243,6 +246,7 @@ final class HealthKitService: ObservableObject {
 
         for workout in workouts where workout.isCardioLike {
             let heartRate = try? await heartRateSummary(for: workout)
+            let sensors = try? await fetchWorkoutSensorSummary(start: workout.startDate, end: workout.endDate)
             logs.append(CardioLog(
                 activityType: CardioLog.ActivityType(workoutActivityType: workout.workoutActivityType),
                 date: workout.startDate,
@@ -250,9 +254,13 @@ final class HealthKitService: ObservableObject {
                 distanceKm: workout.totalDistance?.doubleValue(for: .meterUnit(with: .kilo)),
                 averageSpeedKmh: nil,
                 averagePaceSecondsPerKm: nil,
-                averageHeartRate: heartRate?.average,
-                maxHeartRate: heartRate?.max,
+                averageHeartRate: heartRate?.average ?? sensors?.averageHeartRate,
+                maxHeartRate: heartRate?.max ?? sensors?.maxHeartRate,
                 estimatedCalories: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()),
+                steps: sensors?.steps,
+                activeEnergyKcal: sensors?.activeEnergyKcal,
+                heartRateBefore: sensors?.heartRateBefore,
+                heartRateAfter: sensors?.heartRateAfter,
                 rpe: nil,
                 notes: String(localized: "Importado desde Apple Health")
             ))
@@ -261,14 +269,54 @@ final class HealthKitService: ObservableObject {
         return logs
     }
 
+    func fetchWorkoutSensorSummary(start: Date, end: Date) async throws -> WorkoutSensorSummary {
+        guard isAvailable else { throw HealthKitError.unavailable }
+
+        let normalizedEnd = max(end, start.addingTimeInterval(60))
+        let heartRate = try await heartRateSummary(from: start, to: normalizedEnd)
+        let steps = try await cumulativeValue(
+            for: HKQuantityType(.stepCount),
+            unit: .count(),
+            from: start,
+            to: normalizedEnd
+        )
+        let activeEnergy = try await cumulativeValue(
+            for: HKQuantityType(.activeEnergyBurned),
+            unit: .kilocalorie(),
+            from: start,
+            to: normalizedEnd
+        )
+        let beforeWindowStart = start.addingTimeInterval(-15 * 60)
+        let afterWindowEnd = normalizedEnd.addingTimeInterval(15 * 60)
+
+        return WorkoutSensorSummary(
+            steps: positive(steps),
+            activeEnergyKcal: positive(activeEnergy),
+            averageHeartRate: heartRate.average,
+            maxHeartRate: heartRate.max,
+            heartRateBefore: try await averageValue(
+                for: HKQuantityType(.heartRate),
+                unit: HKUnit.count().unitDivided(by: .minute()),
+                from: beforeWindowStart,
+                to: start
+            ),
+            heartRateAfter: try await averageValue(
+                for: HKQuantityType(.heartRate),
+                unit: HKUnit.count().unitDivided(by: .minute()),
+                from: normalizedEnd,
+                to: afterWindowEnd
+            )
+        )
+    }
+
     func saveWorkout(_ session: WorkoutSession) async throws {
         guard isAvailable else { throw HealthKitError.unavailable }
 
         let start = session.startedAt ?? session.date
         let end = session.endedAt ?? Calendar.current.date(byAdding: .minute, value: session.durationMinutes, to: start) ?? start
         let configuration = HKWorkoutConfiguration()
-        configuration.activityType = .traditionalStrengthTraining
-        configuration.locationType = session.location == .home ? .indoor : .unknown
+        configuration.activityType = session.healthKitWorkoutActivityType
+        configuration.locationType = session.location == .outdoor ? .outdoor : (session.location == .home ? .indoor : .unknown)
 
         let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: .local())
         try await builder.addMetadata([
@@ -281,6 +329,16 @@ final class HealthKitService: ObservableObject {
             let sample = HKQuantitySample(
                 type: HKQuantityType(.activeEnergyBurned),
                 quantity: HKQuantity(unit: .kilocalorie(), doubleValue: calories),
+                start: start,
+                end: end
+            )
+            try await addSamples([sample], to: builder)
+        }
+
+        if let distanceKm = session.distanceKm, distanceKm > 0 {
+            let sample = HKQuantitySample(
+                type: HKQuantityType(.distanceWalkingRunning),
+                quantity: HKQuantity(unit: .meterUnit(with: .kilo), doubleValue: distanceKm),
                 start: start,
                 end: end
             )
@@ -487,6 +545,23 @@ final class HealthKitService: ObservableObject {
         )
     }
 
+    private func heartRateSummary(from startDate: Date, to endDate: Date) async throws -> (average: Double?, max: Double?) {
+        let heartRateType = HKQuantityType(.heartRate)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let samplePredicate = HKSamplePredicate.quantitySample(type: heartRateType, predicate: predicate)
+        let descriptor = HKStatisticsQueryDescriptor(
+            predicate: samplePredicate,
+            options: [.discreteAverage, .discreteMax]
+        )
+
+        let statistics = try await descriptor.result(for: healthStore)
+        let unit = HKUnit.count().unitDivided(by: .minute())
+        return (
+            statistics?.averageQuantity()?.doubleValue(for: unit),
+            statistics?.maximumQuantity()?.doubleValue(for: unit)
+        )
+    }
+
     private func addSamples(_ samples: [HKSample], to builder: HKWorkoutBuilder) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             builder.add(samples) { _, error in
@@ -519,6 +594,22 @@ private extension HKWorkout {
         default:
             false
         }
+    }
+}
+
+private extension WorkoutSession {
+    var healthKitWorkoutActivityType: HKWorkoutActivityType {
+        let title = workoutTitle.lowercased()
+        if title.contains("camina") || title.contains("walk") {
+            return .walking
+        }
+        if title.contains("carrera") || title.contains("run") {
+            return .running
+        }
+        if distanceKm != nil || !routePoints.isEmpty {
+            return .walking
+        }
+        return .traditionalStrengthTraining
     }
 }
 

@@ -229,6 +229,20 @@ struct WorkoutReceiptView: View {
         musclesTrained.map { MuscleIntensity(muscle: $0, intensity: 0.76) }
     }
 
+    private var routePoints: [RoutePoint] {
+        session?.routePoints ?? []
+    }
+
+    private var hasRouteMetrics: Bool {
+        guard let session else { return false }
+        return !session.routePoints.isEmpty ||
+            session.distanceKm != nil ||
+            session.steps != nil ||
+            session.activeEnergyKcal != nil ||
+            session.averageHeartRate != nil ||
+            session.maxHeartRate != nil
+    }
+
     private var sharePayload: WorkoutReceiptSharePayload {
         if let importedPayload {
             return importedPayload
@@ -281,19 +295,28 @@ struct WorkoutReceiptView: View {
             
             dividerLine
             
-            // Muscle Map dual body preview
-            HStack(spacing: 16) {
-                Spacer()
-                BodyView(gender: gender, side: .front, style: .repsReceipt)
-                    .heatmap(heatmap, configuration: .repsVolumeReceipt)
-                    .frame(width: 80, height: 165)
-                    .scaleEffect(1.08)
-                
-                BodyView(gender: gender, side: .back, style: .repsReceipt)
-                    .heatmap(heatmap, configuration: .repsVolumeReceipt)
-                    .frame(width: 80, height: 165)
-                    .scaleEffect(1.08)
-                Spacer()
+            // Muscle map with route overlay for outdoor sessions.
+            ZStack(alignment: .bottom) {
+                HStack(spacing: 16) {
+                    Spacer()
+                    BodyView(gender: gender, side: .front, style: .repsReceipt)
+                        .heatmap(heatmap, configuration: .repsVolumeReceipt)
+                        .frame(width: 80, height: 165)
+                        .scaleEffect(1.08)
+
+                    BodyView(gender: gender, side: .back, style: .repsReceipt)
+                        .heatmap(heatmap, configuration: .repsVolumeReceipt)
+                        .frame(width: 80, height: 165)
+                        .scaleEffect(1.08)
+                    Spacer()
+                }
+
+                if !routePoints.isEmpty {
+                    ReceiptRouteTrace(routePoints: routePoints)
+                        .frame(height: 82)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 4)
+                }
             }
             .frame(height: 175)
             .allowsHitTesting(false)
@@ -323,7 +346,7 @@ struct WorkoutReceiptView: View {
                         .foregroundStyle(Color.black.opacity(0.85))
                     }
                 } else {
-                    Text(isSpanish ? "NINGÚN EJERCICIO COMPLETADO" : "NO EXERCISES COMPLETED")
+                    Text(hasRouteMetrics ? (isSpanish ? "RUTA REGISTRADA" : "ROUTE RECORDED") : (isSpanish ? "NINGÚN EJERCICIO COMPLETADO" : "NO EXERCISES COMPLETED"))
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundStyle(Color.black.opacity(0.45))
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -343,6 +366,23 @@ struct WorkoutReceiptView: View {
                 statRow(title: isSpanish ? "DURACIÓN" : "DURATION", value: "\(sharePayload.durationMinutes) MIN")
                 statRow(title: isSpanish ? "VOLUMEN TOTAL" : "TOTAL VOLUME", value: "\(totalVolume) KG")
                 statRow(title: isSpanish ? "SERIES COMPLETADAS" : "COMPLETED SETS", value: "\(completedSetsCount) SRS")
+                if hasRouteMetrics, let session {
+                    if let distanceKm = session.distanceKm {
+                        statRow(title: isSpanish ? "DISTANCIA" : "DISTANCE", value: String(format: "%.2f KM", distanceKm))
+                    }
+                    if let pace = session.averagePaceSecondsPerKm {
+                        statRow(title: isSpanish ? "RITMO" : "PACE", value: paceText(pace).uppercased())
+                    }
+                    if let steps = session.steps {
+                        statRow(title: isSpanish ? "PASOS" : "STEPS", value: "\(Int(steps))")
+                    }
+                    if let heartRate = session.averageHeartRate {
+                        statRow(title: isSpanish ? "PULSO MEDIO" : "AVG HR", value: "\(Int(heartRate)) LPM")
+                    }
+                    if let before = session.heartRateBefore, let after = session.heartRateAfter {
+                        statRow(title: isSpanish ? "ANTES/DESPUÉS" : "BEFORE/AFTER", value: "\(Int(before))/\(Int(after)) LPM")
+                    }
+                }
             }
             .padding(.horizontal, 4)
             
@@ -413,6 +453,10 @@ struct WorkoutReceiptView: View {
         return text.prefix(maxChars - 3).uppercased() + "..."
     }
 
+    private func paceText(_ seconds: Double) -> String {
+        "\(Int(seconds) / 60):\(String(format: "%02d", Int(seconds) % 60))/km"
+    }
+
     private static func makeQRCode(from string: String) -> UIImage? {
         let context = CIContext()
         let filter = CIFilter.qrCodeGenerator()
@@ -429,6 +473,76 @@ struct WorkoutReceiptView: View {
         }
 
         return UIImage(cgImage: image)
+    }
+}
+
+private struct ReceiptRouteTrace: View {
+    let routePoints: [RoutePoint]
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.black.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.black.opacity(0.16), lineWidth: 1)
+                )
+
+            GeometryReader { proxy in
+                let points = normalizedPoints(in: proxy.size)
+                Path { path in
+                    guard let first = points.first else { return }
+                    path.move(to: first)
+                    for point in points.dropFirst() {
+                        path.addLine(to: point)
+                    }
+                }
+                .stroke(Color.black.opacity(0.76), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+
+                if let first = points.first {
+                    Circle()
+                        .fill(Color.green.opacity(0.9))
+                        .frame(width: 9, height: 9)
+                        .position(first)
+                }
+
+                if let last = points.last {
+                    Circle()
+                        .fill(Color(red: 0.05, green: 0.42, blue: 0.94))
+                        .frame(width: 11, height: 11)
+                        .position(last)
+                }
+            }
+            .padding(12)
+
+            VStack {
+                HStack {
+                    Text("ROUTE")
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.black.opacity(0.5))
+                    Spacer()
+                }
+                Spacer()
+            }
+            .padding(8)
+        }
+    }
+
+    private func normalizedPoints(in size: CGSize) -> [CGPoint] {
+        guard !routePoints.isEmpty else { return [] }
+        let minLat = routePoints.map(\.latitude).min() ?? 0
+        let maxLat = routePoints.map(\.latitude).max() ?? minLat
+        let minLon = routePoints.map(\.longitude).min() ?? 0
+        let maxLon = routePoints.map(\.longitude).max() ?? minLon
+        let latSpan = max(maxLat - minLat, 0.000_01)
+        let lonSpan = max(maxLon - minLon, 0.000_01)
+
+        return routePoints.map { point in
+            CGPoint(
+                x: ((point.longitude - minLon) / lonSpan) * size.width,
+                y: (1 - ((point.latitude - minLat) / latSpan)) * size.height
+            )
+        }
     }
 }
 

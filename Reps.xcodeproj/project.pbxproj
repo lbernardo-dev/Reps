@@ -18,6 +18,7 @@
 		0E00CC3C9F6C2159FB29A4C2 /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDACE73A69FB227E398FFFD2 /* WorkoutDetailView.swift */; };
 		0EF2DDE77D4576BA9AF9C1E3 /* WorkoutAppleMusicPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B33244C64642C7FC7A82750 /* WorkoutAppleMusicPlayer.swift */; };
 		1118218145E04D17172393ED /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54CD939A2CD9CE21F12AEBBF /* RootView.swift */; };
+		11A52A6D5F9D46C8B0F1B9AA /* FreeWorkoutStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A52A6C5F9D46C8B0F1B9AA /* FreeWorkoutStartView.swift */; };
 		12F65CD1C12A32E81565F376 /* ProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29299AE9BE85F4DBEC4B9D50 /* ProgressView.swift */; };
 		14E8046963CD0B8B192BEE1E /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9D2981F0A803B185345B94 /* SeedData.swift */; };
 		15CB0EB913EA694C83854740 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5207FC54AA0F20CA9E4C36D1 /* TodayView.swift */; };
@@ -153,6 +154,7 @@
 		130E4F75D706852645E5A1F1 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
 		139C9662D78E951B54E33A7E /* RepsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsApp.swift; sourceTree = "<group>"; };
 		14586CFEF76851389015CC51 /* OneRepMaxCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneRepMaxCalculatorView.swift; sourceTree = "<group>"; };
+		11A52A6C5F9D46C8B0F1B9AA /* FreeWorkoutStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeWorkoutStartView.swift; sourceTree = "<group>"; };
 		1AACCD6E1BE104C3FD7B706C /* ProfileDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileDetailView.swift; sourceTree = "<group>"; };
 		1B33244C64642C7FC7A82750 /* WorkoutAppleMusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAppleMusicPlayer.swift; sourceTree = "<group>"; };
 		1BBBDF092A6D10BCD7C83446 /* RepsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsTests.swift; sourceTree = "<group>"; };
@@ -377,6 +379,7 @@
 			isa = PBXGroup;
 			children = (
 				BC2E966C3D2F2713A83D63E5 /* ActiveWorkoutView.swift */,
+				11A52A6C5F9D46C8B0F1B9AA /* FreeWorkoutStartView.swift */,
 				DDACE73A69FB227E398FFFD2 /* WorkoutDetailView.swift */,
 				1DCD64ED32F8198042C69E79 /* WorkoutLibraryView.swift */,
 			);
@@ -736,6 +739,7 @@
 				F9B2D5537BBD3546D9D6EA03 /* CSVService.swift in Sources */,
 				22DCD6674BD063A7C0C43FCF /* CalendarView.swift in Sources */,
 				2D2EC1841DDA45A8378AF351 /* CameraPicker.swift in Sources */,
+				11A52A6D5F9D46C8B0F1B9AA /* FreeWorkoutStartView.swift in Sources */,
 				052E8E4F5A9988448FDD4CF4 /* ExerciseLibraryView.swift in Sources */,
 				D922780FD8ECD6C4A313A3B4 /* ExerciseProgressView.swift in Sources */,
 				571B9B9626B8C28B2BCAD209 /* FitnessMetrics.swift in Sources */,

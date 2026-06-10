@@ -31,6 +31,49 @@ enum WatchCommand: String, Sendable {
     }
 }
 
+enum WatchRouteWorkoutActivity: String, Codable, Hashable, Sendable {
+    case walking
+    case running
+
+    var title: String {
+        switch self {
+        case .walking:
+            return "Caminata libre"
+        case .running:
+            return "Carrera libre"
+        }
+    }
+}
+
+struct SharedRoutePoint: Codable, Hashable, Sendable {
+    var latitude: Double
+    var longitude: Double
+    var altitude: Double?
+    var horizontalAccuracy: Double?
+    var timestamp: Date
+}
+
+struct WatchRouteWorkoutSummary: Codable, Hashable, Sendable {
+    var id: UUID
+    var activity: WatchRouteWorkoutActivity
+    var startedAt: Date
+    var endedAt: Date
+    var durationSeconds: Int
+    var pausedSeconds: Int
+    var distanceKm: Double?
+    var averagePaceSecondsPerKm: Double?
+    var averageSpeedKmh: Double?
+    var steps: Double?
+    var activeEnergyKcal: Double?
+    var averageHeartRate: Double?
+    var maxHeartRate: Double?
+    var routePoints: [SharedRoutePoint]
+
+    var durationMinutes: Int {
+        max(durationSeconds / 60, 1)
+    }
+}
+
 struct SharedWorkoutSnapshot: Codable, Hashable {
     var hasActiveWorkout: Bool
     var planTitle: String?
@@ -64,6 +107,12 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
     var gymCodeType: String?
     var heartRate: Double?
     var activeEnergyKcal: Double?
+    var isRouteWorkout: Bool
+    var routeDistanceKm: Double?
+    var routePaceSecondsPerKm: Double?
+    var routeSpeedKmh: Double?
+    var routePointCount: Int?
+    var routeSteps: Double?
     var summary: String
     var updatedAt: Date
 
@@ -113,6 +162,12 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
         gymCodeType: nil,
         heartRate: nil,
         activeEnergyKcal: nil,
+        isRouteWorkout: false,
+        routeDistanceKm: nil,
+        routePaceSecondsPerKm: nil,
+        routeSpeedKmh: nil,
+        routePointCount: nil,
+        routeSteps: nil,
         summary: "Sin entreno activo",
         updatedAt: .now,
         streakDays: 0,
