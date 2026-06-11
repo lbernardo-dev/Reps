@@ -27,8 +27,8 @@ struct ProfileView: View {
     @State private var activeDestination: ProfileDestination?
 
     var body: some View {
-        NavigationStack {
-            let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
+        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
+        applyProfileModifiers(
             StickyHeaderScaffold(
                 title: isSpanish ? "Perfil" : "Profile",
                 subtitle: isSpanish ? "Cuerpo, datos y cuenta" : "Body, data, and account",
@@ -69,78 +69,29 @@ struct ProfileView: View {
                     .stickyHeaderTitle(isSpanish ? "Gimnasios" : "Gyms")
                 healthCard
                     .stickyHeaderTitle("Apple Health")
+                toolsCard
+                    .stickyHeaderTitle(isSpanish ? "Acciones" : "Actions")
                 settingsCard
                     .stickyHeaderTitle(isSpanish ? "Configuración" : "Settings")
                 supportAndProductCard
                     .stickyHeaderTitle(isSpanish ? "Soporte" : "Support")
-                toolsCard
-                    .stickyHeaderTitle(isSpanish ? "Acciones" : "Actions")
             }
-            .toolbar(.hidden, for: .navigationBar)
-            .onAppear {
-                refreshMetricTextFields()
-                store.health.isAvailable = healthKit.isAvailable
-            }
-            .onChange(of: store.userProfile.units) { _, _ in
-                refreshMetricTextFields()
-            }
-            .sheet(item: $activeSheet) { sheet in
-                profileSheetDestination(sheet)
-            }
-            .fileImporter(isPresented: $showImportBackup, allowedContentTypes: [.json]) { result in
-                handleBackupImport(result)
-            }
-            .fileImporter(isPresented: $showImportCSV, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
-                handleCSVImport(result)
-            }
-            .confirmationDialog(
-                "Borrar todos los datos",
-                isPresented: $showDeleteAllConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button("Borrar todo", role: .destructive) {
-                    store.resetAllData()
-                }
-                Button("Cancelar", role: .cancel) {}
-            } message: {
-                Text("Se eliminarán entrenos, rutinas, métricas, fotos, tarjetas y ajustes locales. Exporta un backup antes si quieres conservarlos.")
-            }
-            .onChange(of: avatarPickerItem) { _, item in
-                Task { await loadAvatar(from: item) }
-            }
-            .alert(item: $suggestedPlanConfirmation) { confirmation in
-                if onOpenPlans == nil {
-                    Alert(
-                        title: Text("Rutina creada"),
-                        message: Text("\(confirmation.name) está activa con \(confirmation.daysPerWeek) días por semana."),
-                        dismissButton: .default(Text("OK"))
-                    )
-                } else {
-                    Alert(
-                        title: Text("Rutina creada"),
-                        message: Text("\(confirmation.name) está activa con \(confirmation.daysPerWeek) días por semana."),
-                        primaryButton: .default(Text("Ver planes")) {
-                            dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                onOpenPlans?()
-                            }
-                        },
-                        secondaryButton: .cancel(Text("Seguir"))
-                    )
-                }
-            }
-            .fullScreenCover(item: $localPaywall) { presentation in
-                PaywallView(presentation: presentation) { reason in
-                    store.trackPaywallDismissal(presentation, reason: reason)
-                    localPaywall = nil
-                }
-                .environmentObject(store)
-            }
-            .navigationDestination(item: $activeDestination) { destination in
-                profileDestination(destination)
-            }
-            .mainTabBarHidden()
+        )
+        .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            refreshMetricTextFields()
+            store.health.isAvailable = healthKit.isAvailable
         }
+        .onChange(of: store.userProfile.units) { _, _ in
+            refreshMetricTextFields()
+        }
+        .onChange(of: avatarPickerItem) { _, item in
+            Task { await loadAvatar(from: item) }
+        }
+        .navigationDestination(item: $activeDestination) { destination in
+            profileDestination(destination)
+        }
+        .mainTabBarHidden()
     }
 
 
@@ -636,224 +587,258 @@ struct ProfileView: View {
     }
 
     private var dataPrivacyCenter: some View {
-        StickyHeaderScaffold(
-            title: "Centro de datos",
-            subtitle: "Exportación, backup y privacidad",
-            accessory: {
-                Image(systemName: "externaldrive.badge.icloud")
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(PulseTheme.primary)
-                    .clipShape(Circle())
-            }
-        ) {
-            ProfileToolSection(title: "Compartir progreso") {
-                LazyVGrid(columns: profileToolColumns, spacing: 12) {
-                    ProfileToolButton(
-                        title: "CSV",
-                        subtitle: csvExportURL == nil ? "Generar archivo" : "Listo para compartir",
-                        systemImage: "tablecells",
-                        color: PulseTheme.primary
-                    ) {
-                        prepareCSVExport()
-                    }
-
-                    if let csvExportURL {
-                        ShareLink(item: csvExportURL) {
-                            ProfileToolCard(
-                                title: "Compartir CSV",
-                                subtitle: "Enviar archivo",
-                                systemImage: "square.and.arrow.up",
-                                color: PulseTheme.primary,
-                                badge: "listo"
-                            )
+        applyProfileModifiers(
+            StickyHeaderScaffold(
+                title: "Centro de datos",
+                subtitle: "Exportación, backup y privacidad",
+                accessory: {
+                    HStack(spacing: 10) {
+                        Button {
+                            HapticService.selection()
+                            activeDestination = nil
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 40, height: 40)
+                                .background(Color.white.opacity(0.12))
+                                .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
-                    }
 
-                    ProfileToolButton(
-                        title: "Imagen",
-                        subtitle: shareImageURL == nil ? "Resumen privado" : "PNG listo",
-                        systemImage: "photo.on.rectangle",
-                        color: .orange
-                    ) {
-                        if profileFeatureIsAvailable(.shareCards, source: .shareCards) {
-                            prepareWorkoutShareImage()
-                        }
-                    }
-
-                    if let shareImageURL {
-                        ShareLink(item: shareImageURL) {
-                            ProfileToolCard(
-                                title: "Compartir PNG",
-                                subtitle: "Último entreno",
-                                systemImage: "square.and.arrow.up",
-                                color: .orange,
-                                badge: "listo"
-                            )
-                        }
-                        .buttonStyle(.plain)
+                        Image(systemName: "externaldrive.badge.icloud")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                            .background(PulseTheme.primary)
+                            .clipShape(Circle())
                     }
                 }
-            }
-            .stickyHeaderTitle("Compartir")
-
-            ProfileToolSection(title: "Datos y privacidad") {
-                LazyVGrid(columns: profileToolColumns, spacing: 12) {
-                    ProfileToolButton(
-                        title: "Importar CSV",
-                        subtitle: "Cardio y cuerpo",
-                        systemImage: "square.and.arrow.down",
-                        color: PulseTheme.primaryBright
-                    ) {
-                        showImportCSV = true
-                    }
-
-                    ProfileToolButton(
-                        title: "Backup",
-                        subtitle: backupExportURL == nil ? "Generar JSON" : "JSON listo",
-                        systemImage: "externaldrive",
-                        color: PulseTheme.accent
-                    ) {
-                        if profileFeatureIsAvailable(.automaticBackups, source: .backupCenter) {
-                            prepareBackupExport()
+            ) {
+                ProfileToolSection(title: "Compartir progreso") {
+                    LazyVGrid(columns: profileToolColumns, spacing: 12) {
+                        ProfileToolButton(
+                            title: "CSV",
+                            subtitle: csvExportURL == nil ? "Generar archivo" : "Listo para compartir",
+                            systemImage: "tablecells",
+                            color: PulseTheme.primary
+                        ) {
+                            prepareCSVExport()
                         }
-                    }
 
-                    if let backupExportURL {
-                        ShareLink(item: backupExportURL) {
-                            ProfileToolCard(
-                                title: "Compartir backup",
-                                subtitle: "Copia completa",
-                                systemImage: "doc.badge.gearshape",
-                                color: PulseTheme.accent,
-                                badge: "listo"
-                            )
+                        if let csvExportURL {
+                            ShareLink(item: csvExportURL) {
+                                ProfileToolCard(
+                                    title: "Compartir CSV",
+                                    subtitle: "Enviar archivo",
+                                    systemImage: "square.and.arrow.up",
+                                    color: PulseTheme.primary,
+                                    badge: "listo"
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-                    }
 
-                    ProfileToolButton(
-                        title: "Restaurar",
-                        subtitle: "Importar JSON",
-                        systemImage: "arrow.down.doc",
-                        color: PulseTheme.primary
-                    ) {
-                        if profileFeatureIsAvailable(.automaticBackups, source: .backupCenter) {
-                            showImportBackup = true
+                        ProfileToolButton(
+                            title: "Imagen",
+                            subtitle: shareImageURL == nil ? "Resumen privado" : "PNG listo",
+                            systemImage: "photo.on.rectangle",
+                            color: .orange
+                        ) {
+                            if profileFeatureIsAvailable(.shareCards, source: .shareCards) {
+                                prepareWorkoutShareImage()
+                            }
                         }
-                    }
 
-                    ProfileToolButton(
-                        title: "Borrar datos",
-                        subtitle: "Reiniciar app",
-                        systemImage: "trash",
-                        color: .red
-                    ) {
-                        showDeleteAllConfirmation = true
+                        if let shareImageURL {
+                            ShareLink(item: shareImageURL) {
+                                ProfileToolCard(
+                                    title: "Compartir PNG",
+                                    subtitle: "Último entreno",
+                                    systemImage: "square.and.arrow.up",
+                                    color: .orange,
+                                    badge: "listo"
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
+                .stickyHeaderTitle("Compartir")
+
+                ProfileToolSection(title: "Datos y privacidad") {
+                    LazyVGrid(columns: profileToolColumns, spacing: 12) {
+                        ProfileToolButton(
+                            title: "Importar CSV",
+                            subtitle: "Cardio y cuerpo",
+                            systemImage: "square.and.arrow.down",
+                            color: PulseTheme.primaryBright
+                        ) {
+                            showImportCSV = true
+                        }
+
+                        ProfileToolButton(
+                            title: "Backup",
+                            subtitle: backupExportURL == nil ? "Generar JSON" : "JSON listo",
+                            systemImage: "externaldrive",
+                            color: PulseTheme.accent
+                        ) {
+                            if profileFeatureIsAvailable(.automaticBackups, source: .backupCenter) {
+                                prepareBackupExport()
+                            }
+                        }
+
+                        if let backupExportURL {
+                            ShareLink(item: backupExportURL) {
+                                ProfileToolCard(
+                                    title: "Compartir backup",
+                                    subtitle: "Copia completa",
+                                    systemImage: "doc.badge.gearshape",
+                                    color: PulseTheme.accent,
+                                    badge: "listo"
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        ProfileToolButton(
+                            title: "Restaurar",
+                            subtitle: "Importar JSON",
+                            systemImage: "arrow.down.doc",
+                            color: PulseTheme.primary
+                        ) {
+                            if profileFeatureIsAvailable(.automaticBackups, source: .backupCenter) {
+                                showImportBackup = true
+                            }
+                        }
+
+                        ProfileToolButton(
+                            title: "Borrar datos",
+                            subtitle: "Reiniciar app",
+                            systemImage: "trash",
+                            color: .red
+                        ) {
+                            showDeleteAllConfirmation = true
+                        }
+                    }
+                }
+                .stickyHeaderTitle("Privacidad")
             }
-            .stickyHeaderTitle("Privacidad")
-        }
+        )
         .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
     }
 
     private var supportProductCenter: some View {
-        StickyHeaderScaffold(
-            title: "Soporte",
-            subtitle: "Ayuda, producto y suscripción",
-            accessory: {
-                Image(systemName: "questionmark.bubble.fill")
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(PulseTheme.primaryBright)
-                    .clipShape(Circle())
-            }
-        ) {
-            ProfileToolSection(title: "Contacto") {
-                LazyVGrid(columns: profileToolColumns, spacing: 12) {
-                    ProfileToolButton(
-                        title: "Valorar app",
-                        subtitle: "Pedir reseña",
-                        systemImage: "star.bubble",
-                        color: PulseTheme.accent
-                    ) {
-                        TelemetryService.shared.log(.reviewPromptRequested)
-                        requestReview()
-                    }
+        applyProfileModifiers(
+            StickyHeaderScaffold(
+                title: "Soporte",
+                subtitle: "Ayuda, producto y suscripción",
+                accessory: {
+                    HStack(spacing: 10) {
+                        Button {
+                            HapticService.selection()
+                            activeDestination = nil
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 40, height: 40)
+                                .background(Color.white.opacity(0.12))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
 
-                    ProfileToolButton(
-                        title: "Feedback",
-                        subtitle: "Enviar opinión",
-                        systemImage: "bubble.left.and.text.bubble.right",
-                        color: PulseTheme.primary
-                    ) {
-                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.feedback.rawValue])
-                        activeSheet = .support(.feedback)
+                        Image(systemName: "questionmark.bubble.fill")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                            .background(PulseTheme.primaryBright)
+                            .clipShape(Circle())
                     }
                 }
-            }
-            .stickyHeaderTitle("Contacto")
+            ) {
+                ProfileToolSection(title: "Contacto") {
+                    LazyVGrid(columns: profileToolColumns, spacing: 12) {
+                        ProfileToolButton(
+                            title: "Valorar app",
+                            subtitle: "Pedir reseña",
+                            systemImage: "star.bubble",
+                            color: PulseTheme.accent
+                        ) {
+                            TelemetryService.shared.log(.reviewPromptRequested)
+                            requestReview()
+                        }
 
-            ProfileToolSection(title: "Producto") {
-                LazyVGrid(columns: profileToolColumns, spacing: 12) {
-                    ProfileToolButton(
-                        title: "Ayuda",
-                        subtitle: "Preguntas rápidas",
-                        systemImage: "questionmark.circle",
-                        color: PulseTheme.primaryBright
-                    ) {
-                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.help.rawValue])
-                        activeSheet = .support(.help)
-                    }
-
-                    ProfileToolButton(
-                        title: "Privacidad",
-                        subtitle: "Datos y permisos",
-                        systemImage: "hand.raised",
-                        color: .purple
-                    ) {
-                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.privacy.rawValue])
-                        activeSheet = .support(.privacy)
-                    }
-
-                    ProfileToolButton(
-                        title: "Suscripción",
-                        subtitle: store.monetization.hasProAccess ? store.monetization.statusLabel : "Estado y Pro",
-                        systemImage: "creditcard",
-                        color: .orange
-                    ) {
-                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.subscription.rawValue])
-                        activeSheet = .support(.subscription)
-                    }
-
-                    ProfileToolButton(
-                        title: "Novedades",
-                        subtitle: "Mejoras incluidas",
-                        systemImage: "sparkles",
-                        color: .teal
-                    ) {
-                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.roadmap.rawValue])
-                        activeSheet = .support(.roadmap)
-                    }
-
-                    ProfileToolButton(
-                        title: "Versión",
-                        subtitle: appVersionText,
-                        systemImage: "info.circle",
-                        color: PulseTheme.secondaryText
-                    ) {
-                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.version.rawValue])
-                        activeSheet = .support(.version)
+                        ProfileToolButton(
+                            title: "Feedback",
+                            subtitle: "Enviar opinión",
+                            systemImage: "bubble.left.and.text.bubble.right",
+                            color: PulseTheme.primary
+                        ) {
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.feedback.rawValue])
+                            activeSheet = .support(.feedback)
+                        }
                     }
                 }
+                .stickyHeaderTitle("Contacto")
+
+                ProfileToolSection(title: "Producto") {
+                    LazyVGrid(columns: profileToolColumns, spacing: 12) {
+                        ProfileToolButton(
+                            title: "Ayuda",
+                            subtitle: "Preguntas rápidas",
+                            systemImage: "questionmark.circle",
+                            color: PulseTheme.primaryBright
+                        ) {
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.help.rawValue])
+                            activeSheet = .support(.help)
+                        }
+
+                        ProfileToolButton(
+                            title: "Privacidad",
+                            subtitle: "Datos y permisos",
+                            systemImage: "hand.raised",
+                            color: .purple
+                        ) {
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.privacy.rawValue])
+                            activeSheet = .support(.privacy)
+                        }
+
+                        ProfileToolButton(
+                            title: "Suscripción",
+                            subtitle: store.monetization.hasProAccess ? store.monetization.statusLabel : "Estado y Pro",
+                            systemImage: "creditcard",
+                            color: .orange
+                        ) {
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.subscription.rawValue])
+                            activeSheet = .support(.subscription)
+                        }
+
+                        ProfileToolButton(
+                            title: "Novedades",
+                            subtitle: "Mejoras incluidas",
+                            systemImage: "sparkles",
+                            color: .teal
+                        ) {
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.roadmap.rawValue])
+                            activeSheet = .support(.roadmap)
+                        }
+
+                        ProfileToolButton(
+                            title: "Versión",
+                            subtitle: appVersionText,
+                            systemImage: "info.circle",
+                            color: PulseTheme.secondaryText
+                        ) {
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.version.rawValue])
+                            activeSheet = .support(.version)
+                        }
+                    }
+                }
+                .stickyHeaderTitle("Producto")
             }
-            .stickyHeaderTitle("Producto")
-        }
+        )
         .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
     }
@@ -1212,6 +1197,59 @@ struct ProfileView: View {
             store.health.message = String(localized: "No se pudo importar el CSV.")
             TelemetryService.shared.record(error, context: "csv_import_handle")
         }
+    }
+
+    private func applyProfileModifiers<V: View>(_ view: V) -> some View {
+        view
+            .sheet(item: $activeSheet) { sheet in
+                profileSheetDestination(sheet)
+            }
+            .fileImporter(isPresented: $showImportBackup, allowedContentTypes: [.json]) { result in
+                handleBackupImport(result)
+            }
+            .fileImporter(isPresented: $showImportCSV, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
+                handleCSVImport(result)
+            }
+            .confirmationDialog(
+                "Borrar todos los datos",
+                isPresented: $showDeleteAllConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Borrar todo", role: .destructive) {
+                    store.resetAllData()
+                }
+                Button("Cancelar", role: .cancel) {}
+            } message: {
+                Text("Se eliminarán entrenos, rutinas, métricas, fotos, tarjetas y ajustes locales. Exporta un backup antes si quieres conservarlos.")
+            }
+            .alert(item: $suggestedPlanConfirmation) { confirmation in
+                if onOpenPlans == nil {
+                    Alert(
+                        title: Text("Rutina creada"),
+                        message: Text("\(confirmation.name) está activa con \(confirmation.daysPerWeek) días por semana."),
+                        dismissButton: .default(Text("OK"))
+                    )
+                } else {
+                    Alert(
+                        title: Text("Rutina creada"),
+                        message: Text("\(confirmation.name) está activa con \(confirmation.daysPerWeek) días por semana."),
+                        primaryButton: .default(Text("Ver planes")) {
+                            dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                onOpenPlans?()
+                            }
+                        },
+                        secondaryButton: .cancel(Text("Seguir"))
+                    )
+                }
+            }
+            .fullScreenCover(item: $localPaywall) { presentation in
+                PaywallView(presentation: presentation) { reason in
+                    store.trackPaywallDismissal(presentation, reason: reason)
+                    localPaywall = nil
+                }
+                .environmentObject(store)
+            }
     }
 }
 
