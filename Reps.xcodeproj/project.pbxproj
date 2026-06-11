@@ -61,8 +61,12 @@
 		6DF3D84068D927DBA8F82F18 /* RepsWidgetConfigurationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542BD8688B577CF24924B7C3 /* RepsWidgetConfigurationIntent.swift */; };
 		6F5CC8058CB016D740233F29 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 93621471CB3E1736B6202A5E /* PrivacyInfo.xcprivacy */; };
 		72D71C5C282BD6A560BD1B58 /* WorkoutBackgroundKeepAlive.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B5923EEA9DE73B9AEDAF82 /* WorkoutBackgroundKeepAlive.swift */; };
-		7C1C0D7F5A8B4F03A1C2D9E0 /* ICloudProEntitlementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C1C0D7E5A8B4F03A1C2D9E0 /* ICloudProEntitlementService.swift */; };
 		73E11A0A5F1B20892C3BF91D /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 993ED47C6A26814D8131BB84 /* Localizable.xcstrings */; };
+		7C1C0D7F5A8B4F03A1C2D9E0 /* ICloudProEntitlementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C1C0D7E5A8B4F03A1C2D9E0 /* ICloudProEntitlementService.swift */; };
+		7CF0EBAE2FDB51010062A6EB /* StreakRepFit.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7CF0EBAD2FDB51010062A6EB /* StreakRepFit.icon */; };
+		7CF0EBAF2FDB51010062A6EB /* StreakRepFit.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7CF0EBAD2FDB51010062A6EB /* StreakRepFit.icon */; };
+		7CF0EBB12FDB53110062A6EB /* StreakRepFit2.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7CF0EBB02FDB53110062A6EB /* StreakRepFit2.icon */; };
+		7CF0EBB22FDB53110062A6EB /* StreakRepFit2.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7CF0EBB02FDB53110062A6EB /* StreakRepFit2.icon */; };
 		80862DB167042E5D727DAE0B /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 993ED47C6A26814D8131BB84 /* Localizable.xcstrings */; };
 		87D69B64759C6D1C74B943F7 /* PlansView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95EF4F0FCD797CF0C3006FED /* PlansView.swift */; };
 		8B77A758E15EBD5CCD8D16E2 /* RepsWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFAF43FA22D0DA2672A1E51 /* RepsWidgetsBundle.swift */; };
@@ -155,11 +159,11 @@
 		0B97E952AF94341517324563 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		0CFAF43FA22D0DA2672A1E51 /* RepsWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsWidgetsBundle.swift; sourceTree = "<group>"; };
 		0ECBBCF60B8C5057CAB72E32 /* TelemetryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryService.swift; sourceTree = "<group>"; };
+		11A52A6C5F9D46C8B0F1B9AA /* FreeWorkoutStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeWorkoutStartView.swift; sourceTree = "<group>"; };
 		12DAAE09638B4291B3E89483 /* RepsBatteryWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsBatteryWidget.swift; sourceTree = "<group>"; };
 		130E4F75D706852645E5A1F1 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
 		139C9662D78E951B54E33A7E /* RepsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsApp.swift; sourceTree = "<group>"; };
 		14586CFEF76851389015CC51 /* OneRepMaxCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneRepMaxCalculatorView.swift; sourceTree = "<group>"; };
-		11A52A6C5F9D46C8B0F1B9AA /* FreeWorkoutStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeWorkoutStartView.swift; sourceTree = "<group>"; };
 		1AACCD6E1BE104C3FD7B706C /* ProfileDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileDetailView.swift; sourceTree = "<group>"; };
 		1B33244C64642C7FC7A82750 /* WorkoutAppleMusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAppleMusicPlayer.swift; sourceTree = "<group>"; };
 		1BBBDF092A6D10BCD7C83446 /* RepsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsTests.swift; sourceTree = "<group>"; };
@@ -182,6 +186,8 @@
 		5E1ADC30960DF398B94738B6 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		75F48E903FC027A25C691AD9 /* WorkoutReceiptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutReceiptView.swift; sourceTree = "<group>"; };
 		7C1C0D7E5A8B4F03A1C2D9E0 /* ICloudProEntitlementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudProEntitlementService.swift; sourceTree = "<group>"; };
+		7CF0EBAD2FDB51010062A6EB /* StreakRepFit.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = StreakRepFit.icon; sourceTree = "<group>"; };
+		7CF0EBB02FDB53110062A6EB /* StreakRepFit2.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = StreakRepFit2.icon; sourceTree = "<group>"; };
 		860264EAF0E928C5E69888F7 /* RepsWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RepsWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		89F73E9CB8B46A571B9DEA48 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8AD60C6BDD44A63047D0E969 /* Reps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Reps.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -503,6 +509,8 @@
 		F3102035D775E5E118A819E8 /* Reps */ = {
 			isa = PBXGroup;
 			children = (
+				7CF0EBB02FDB53110062A6EB /* StreakRepFit2.icon */,
+				7CF0EBAD2FDB51010062A6EB /* StreakRepFit.icon */,
 				E2BE385D47ABA3B5B45D5345 /* GoogleService-Info.plist */,
 				89F73E9CB8B46A571B9DEA48 /* Info.plist */,
 				CD3F5EEFFE4D007B55AEC149 /* Reps.entitlements */,
@@ -674,6 +682,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7CF0EBAE2FDB51010062A6EB /* StreakRepFit.icon in Resources */,
+				7CF0EBB22FDB53110062A6EB /* StreakRepFit2.icon in Resources */,
 				0C6BDC1A9655AF33E79C6847 /* Assets.xcassets in Resources */,
 				569BA3500A2E3B7A507C4400 /* InfoPlist.xcstrings in Resources */,
 				73E11A0A5F1B20892C3BF91D /* Localizable.xcstrings in Resources */,
@@ -688,7 +698,9 @@
 				3CAE41B17E3ED1DB65A4C116 /* Assets.xcassets in Resources */,
 				BFE1B9D6D602D915FC465A43 /* GoogleService-Info.plist in Resources */,
 				F7003C108D6BC29AB768A015 /* InfoPlist.xcstrings in Resources */,
+				7CF0EBB12FDB53110062A6EB /* StreakRepFit2.icon in Resources */,
 				3D10070D4B99F825EADAF29C /* Localizable.xcstrings in Resources */,
+				7CF0EBAF2FDB51010062A6EB /* StreakRepFit.icon in Resources */,
 				EE9DE8C1630FEA181B86F3A7 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -876,12 +888,13 @@
 		35EFD3E117AF290EBCB00260 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				INFOPLIST_FILE = Reps/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "StreakRep Fit";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1030,10 +1043,11 @@
 		6F3AB2473C31CC9ACB9BC34A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
 				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RepsWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "StreakRep Fit";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1049,11 +1063,12 @@
 		919CA4D77571434F7FBB6526 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = Reps/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "StreakRep Fit";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1087,10 +1102,11 @@
 		CEFD8405E7DEF8522AA68218 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
 				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RepsWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "StreakRep Fit";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
