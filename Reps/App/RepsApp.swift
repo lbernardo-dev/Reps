@@ -2,8 +2,32 @@ import Combine
 import SwiftUI
 import UserNotifications
 
+#if canImport(FirebaseCore)
+import FirebaseCore
+#endif
+
+private enum FirebaseBootstrap {
+    static func configureIfNeeded() {
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+              ProcessInfo.processInfo.environment["REPS_DISABLE_TELEMETRY"] != "1" else {
+            return
+        }
+
+        #if canImport(FirebaseCore)
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
+        #endif
+    }
+}
+
 @MainActor
 final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
+    override init() {
+        FirebaseBootstrap.configureIfNeeded()
+        super.init()
+    }
+
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -17,11 +41,13 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
 @main
 struct RepsApp: App {
     @UIApplicationDelegateAdaptor(RepsApplicationDelegate.self) private var appDelegate
-    @StateObject private var store = AppStore()
+    @StateObject private var store: AppStore
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        FirebaseBootstrap.configureIfNeeded()
         TelemetryService.shared.configure()
+        _store = StateObject(wrappedValue: AppStore())
     }
 
     var body: some Scene {

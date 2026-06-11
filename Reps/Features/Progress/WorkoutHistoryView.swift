@@ -187,23 +187,48 @@ struct WorkoutLogRow: View {
         FitnessMetrics.completedExerciseLogs(in: session).count
     }
 
+    private var rowIcon: String {
+        if session.isRouteSession {
+            return session.routeSystemImage
+        }
+        return session.location == .home ? "house.fill" : "dumbbell.fill"
+    }
+
+    private var rowDetailText: String {
+        if session.isRouteSession {
+            var parts = ["\(session.durationMinutes) min"]
+            if let distanceKm = session.distanceKm {
+                parts.append(String(format: "%.2f km", distanceKm))
+            }
+            if let pace = session.averagePaceSecondsPerKm {
+                parts.append(Self.paceText(pace))
+            }
+            if let steps = session.steps {
+                parts.append("\(Int(steps)) pasos")
+            }
+            parts.append(session.date.formatted(date: .abbreviated, time: .shortened))
+            return parts.joined(separator: " · ")
+        }
+        return "\(session.durationMinutes) min · \(exerciseCount) ej · \(session.date.formatted(date: .abbreviated, time: .shortened))"
+    }
+
     var body: some View {
         HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(session.location == .home ? PulseTheme.accent.opacity(0.12) : PulseTheme.primary.opacity(0.12))
-                Image(systemName: session.location == .home ? "house.fill" : "dumbbell.fill")
+                    .fill(session.isRouteSession ? PulseTheme.accent.opacity(0.14) : (session.location == .home ? PulseTheme.accent.opacity(0.12) : PulseTheme.primary.opacity(0.12)))
+                Image(systemName: rowIcon)
                     .font(.subheadline)
-                    .foregroundStyle(session.location == .home ? PulseTheme.accent : PulseTheme.primary)
+                    .foregroundStyle(session.isRouteSession || session.location == .home ? PulseTheme.accent : PulseTheme.primary)
             }
             .frame(width: 42, height: 42)
             
             VStack(alignment: .leading, spacing: 3) {
-                Text(session.workoutTitle)
+                Text(session.isRouteSession ? session.routeKindTitle : session.workoutTitle)
                     .font(.headline)
                     .lineLimit(1)
                 
-                Text("\(session.durationMinutes) min · \(exerciseCount) ej · \(session.date.formatted(date: .abbreviated, time: .shortened))")
+                Text(rowDetailText)
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -214,6 +239,10 @@ struct WorkoutLogRow: View {
                 .foregroundStyle(PulseTheme.secondaryText)
         }
         .padding(.vertical, 4)
+    }
+
+    private static func paceText(_ seconds: Double) -> String {
+        "\(Int(seconds) / 60):\(String(format: "%02d", Int(seconds) % 60))/km"
     }
 }
 
@@ -233,7 +262,7 @@ struct WorkoutSessionDetailView: View {
                 PulseCard {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
-                            Text(session.workoutTitle)
+                            Text(session.isRouteSession ? session.routeKindTitle : session.workoutTitle)
                                 .font(.system(size: 26, weight: .bold, design: .rounded))
                                 .lineLimit(2)
                             
@@ -263,20 +292,32 @@ struct WorkoutSessionDetailView: View {
                         
                         HStack(spacing: 14) {
                             Label("\(session.durationMinutes) min", systemImage: "timer")
-                            Label("\(exerciseLogs.count) ejercicios", systemImage: "list.bullet")
-                            Label(session.location == .home ? "Casa" : "Gimnasio", systemImage: session.location == .home ? "house" : "building")
+                            if session.isRouteSession {
+                                Label(session.distanceKm.map { String(format: "%.2f km", $0) } ?? "Sin distancia", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
+                                Label(session.location == .outdoor ? "Exterior" : "Cinta", systemImage: session.location == .outdoor ? "location" : "figure.run.treadmill")
+                            } else {
+                                Label("\(exerciseLogs.count) ejercicios", systemImage: "list.bullet")
+                                Label(session.location == .home ? "Casa" : "Gimnasio", systemImage: session.location == .home ? "house" : "building")
+                            }
                         }
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.primary)
                     }
                 }
 
-                HStack(spacing: 14) {
-                    MetricCard(title: "Volumen", value: "\(Int(FitnessMetrics.totalVolumeKg(for: [session])))", subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primaryBright)
-                    MetricCard(title: "Series", value: "\(FitnessMetrics.completedSets(in: session).count)", subtitle: "completadas", systemImage: "checkmark.circle", badgeColor: PulseTheme.primary)
+                if session.isRouteSession {
+                    HStack(spacing: 14) {
+                        MetricCard(title: "Distancia", value: session.distanceKm.map { String(format: "%.2f", $0) } ?? "--", subtitle: "km", systemImage: "point.topleft.down.curvedto.point.bottomright.up", badgeColor: PulseTheme.primaryBright)
+                        MetricCard(title: "Ritmo", value: session.averagePaceSecondsPerKm.map(Self.paceText) ?? "--", subtitle: "min/km", systemImage: "speedometer", badgeColor: PulseTheme.primary)
+                    }
+                } else {
+                    HStack(spacing: 14) {
+                        MetricCard(title: "Volumen", value: "\(Int(FitnessMetrics.totalVolumeKg(for: [session])))", subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primaryBright)
+                        MetricCard(title: "Series", value: "\(FitnessMetrics.completedSets(in: session).count)", subtitle: "completadas", systemImage: "checkmark.circle", badgeColor: PulseTheme.primary)
+                    }
                 }
 
-                if session.hasRouteMetrics {
+                if session.isRouteSession {
                     RouteSessionMetricsCard(session: session)
                 }
 
@@ -293,50 +334,60 @@ struct WorkoutSessionDetailView: View {
                     }
                 }
 
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Ejercicios")
-                            .font(.headline)
-                        
-                        ForEach(exerciseLogs) { log in
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(log.exercise.name)
-                                            .font(.headline)
-                                        Text("\(log.sets.count) series · \(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg")
-                                            .font(.subheadline)
-                                            .foregroundStyle(PulseTheme.secondaryText)
+                if !session.isRouteSession || !exerciseLogs.isEmpty {
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Ejercicios")
+                                .font(.headline)
+
+                            if exerciseLogs.isEmpty {
+                                PulseEmptyState(
+                                    title: "Sin ejercicios registrados",
+                                    message: "Esta sesión no contiene series de fuerza.",
+                                    systemImage: "list.bullet.clipboard"
+                                )
+                            } else {
+                                ForEach(exerciseLogs) { log in
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                Text(log.exercise.name)
+                                                    .font(.headline)
+                                                Text("\(log.sets.count) series · \(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg")
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(PulseTheme.secondaryText)
+                                            }
+                                            Spacer()
+                                            NavigationLink {
+                                                ExerciseProgressView(exercise: log.exercise)
+                                            } label: {
+                                                Image(systemName: "chart.line.uptrend.xyaxis")
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(PulseTheme.primary)
+                                                    .padding(8)
+                                                    .background(PulseTheme.grouped)
+                                                    .clipShape(Circle())
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+
+                                        ForEach(log.sets) { set in
+                                            WorkoutSessionSetRow(set: set)
+                                        }
+
+                                        if !log.notes.isEmpty {
+                                            Text(log.notes)
+                                                .font(.caption)
+                                                .foregroundStyle(PulseTheme.secondaryText)
+                                                .padding(.top, 2)
+                                        }
                                     }
-                                    Spacer()
-                                    NavigationLink {
-                                        ExerciseProgressView(exercise: log.exercise)
-                                    } label: {
-                                        Image(systemName: "chart.line.uptrend.xyaxis")
-                                            .font(.subheadline)
-                                            .foregroundStyle(PulseTheme.primary)
-                                            .padding(8)
-                                            .background(PulseTheme.grouped)
-                                            .clipShape(Circle())
+                                    .padding(.vertical, 4)
+
+                                    if log.id != exerciseLogs.last?.id {
+                                        Divider()
                                     }
-                                    .buttonStyle(.plain)
                                 }
-                                
-                                ForEach(log.sets) { set in
-                                    WorkoutSessionSetRow(set: set)
-                                }
-                                
-                                if !log.notes.isEmpty {
-                                    Text(log.notes)
-                                        .font(.caption)
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                        .padding(.top, 2)
-                                }
-                            }
-                            .padding(.vertical, 4)
-                            
-                            if log.id != exerciseLogs.last?.id {
-                                Divider()
                             }
                         }
                     }
@@ -355,6 +406,10 @@ struct WorkoutSessionDetailView: View {
             }
         }
     }
+
+    private static func paceText(_ seconds: Double) -> String {
+        "\(Int(seconds) / 60):\(String(format: "%02d", Int(seconds) % 60))"
+    }
 }
 
 private struct RouteSessionMetricsCard: View {
@@ -364,18 +419,32 @@ private struct RouteSessionMetricsCard: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Label(routeTitle, systemImage: "map.fill")
+                    Label(session.routeKindTitle, systemImage: session.routeSystemImage)
                         .font(.headline)
                     Spacer()
-                    Text(session.routePoints.isEmpty ? "Sin GPS" : "\(session.routePoints.count) puntos")
+                    Text(session.isOutdoorRouteSession ? "\(session.routePoints.count) puntos" : (session.location == .outdoor ? "Sin GPS" : "Cinta"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
 
-                if !session.routePoints.isEmpty {
+                if session.isOutdoorRouteSession {
                     HistoryRouteMap(routePoints: session.routePoints)
                         .frame(height: 210)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                } else {
+                    VStack(spacing: 8) {
+                        Image(systemName: session.location == .outdoor ? "map" : "figure.run.treadmill")
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        Text(session.location == .outdoor ? "No hay trazado GPS guardado para esta sesión." : "Sesión en cinta: sin mapa ni desplazamiento GPS.")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 150)
+                    .background(PulseTheme.grouped)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
@@ -385,21 +454,11 @@ private struct RouteSessionMetricsCard: View {
                     RouteMetricTile(title: "Kcal activas", value: session.activeEnergyKcal.map { "\(Int($0))" } ?? session.estimatedCalories.map { "\(Int($0))" } ?? "--", systemImage: "flame.fill")
                     RouteMetricTile(title: "Pulso medio", value: session.averageHeartRate.map { "\(Int($0)) lpm" } ?? "--", systemImage: "heart.fill")
                     RouteMetricTile(title: "Pulso max", value: session.maxHeartRate.map { "\(Int($0)) lpm" } ?? "--", systemImage: "waveform.path.ecg")
-                    RouteMetricTile(title: "Antes", value: session.heartRateBefore.map { "\(Int($0)) lpm" } ?? "--", systemImage: "arrow.backward.heart")
-                    RouteMetricTile(title: "Después", value: session.heartRateAfter.map { "\(Int($0)) lpm" } ?? "--", systemImage: "arrow.forward.heart")
+                    RouteMetricTile(title: "Antes", value: session.heartRateBefore.map { "\(Int($0)) lpm" } ?? "--", systemImage: "heart.circle")
+                    RouteMetricTile(title: "Después", value: session.heartRateAfter.map { "\(Int($0)) lpm" } ?? "--", systemImage: "heart.circle.fill")
                 }
             }
         }
-    }
-
-    private var routeTitle: String {
-        if session.workoutTitle.localizedCaseInsensitiveContains("camina") {
-            return "Caminata"
-        }
-        if session.workoutTitle.localizedCaseInsensitiveContains("carrera") || session.workoutTitle.localizedCaseInsensitiveContains("run") {
-            return "Carrera"
-        }
-        return "Ruta"
     }
 
     private static func paceText(_ seconds: Double) -> String {
@@ -485,19 +544,6 @@ private struct HistoryRouteMap: View {
         let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
         let span = MKCoordinateSpan(latitudeDelta: max((maxLat - minLat) * 1.8, 0.005), longitudeDelta: max((maxLon - minLon) * 1.8, 0.005))
         position = .region(MKCoordinateRegion(center: center, span: span))
-    }
-}
-
-private extension WorkoutSession {
-    var hasRouteMetrics: Bool {
-        !routePoints.isEmpty ||
-        distanceKm != nil ||
-        steps != nil ||
-        activeEnergyKcal != nil ||
-        averageHeartRate != nil ||
-        maxHeartRate != nil ||
-        heartRateBefore != nil ||
-        heartRateAfter != nil
     }
 }
 

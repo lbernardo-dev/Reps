@@ -112,13 +112,16 @@ struct ActiveWorkoutView: View {
         (store.userProfile.showSetType || store.userProfile.showRPE || store.userProfile.showRIR || store.userProfile.showTempo)
     }
 
+    private var isCardioMovementCandidate: Bool {
+        workout.isCardioMovement
+    }
+
     private var isRouteCandidate: Bool {
-        switch workout.sessionType {
-        case .cardioRun, .cardioWalk, .mixedRoute:
-            return true
-        case .strength, .mobility, .free:
-            return false
-        }
+        workout.isOutdoorRouteWorkout
+    }
+
+    private var isTreadmillCandidate: Bool {
+        workout.isTreadmillWorkout
     }
 
     private var planPlaylist: PlanPlaylist? {
@@ -402,7 +405,7 @@ struct ActiveWorkoutView: View {
                 LazyVStack(spacing: 18) {
                     workoutHeader
                         .frame(width: contentWidth)
-                    if isRouteOnlySession {
+                    if isCardioOnlySession {
                         routeProgressCard
                             .frame(width: contentWidth)
                     } else {
@@ -411,20 +414,22 @@ struct ActiveWorkoutView: View {
                     }
                     batteryCard
                         .frame(width: contentWidth)
-                    if isRouteCandidate {
+                    if isRouteCandidate && !isCardioOnlySession {
                         routeTrackingCard
                             .frame(width: contentWidth)
                     }
 
-                    if isRouteOnlySession {
+                    if isCardioOnlySession {
                         if isSessionStarted {
                             routeSessionControlCard
                                 .frame(width: contentWidth)
                             routeSessionFeedbackCard
                                 .frame(width: contentWidth)
                         }
-                        liveRouteMapCard
-                            .frame(width: contentWidth)
+                        if isRouteCandidate {
+                            liveRouteMapCard
+                                .frame(width: contentWidth)
+                        }
                     } else {
                         sessionExerciseOrderCard
                             .frame(width: contentWidth)
@@ -525,17 +530,21 @@ struct ActiveWorkoutView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
             .disabled(isFinishingWorkout || (!isSessionStarted && !canStartWorkout))
-            .accessibilityHint(!isSessionStarted && !canStartWorkout ? "Añade al menos un ejercicio o usa una sesión de ruta" : "")
+            .accessibilityHint(!isSessionStarted && !canStartWorkout ? "Añade al menos un ejercicio o usa una sesión de cardio" : "")
         }
         .padding(.top, 2)
     }
 
     private var canStartWorkout: Bool {
-        !exerciseDrafts.isEmpty || isRouteCandidate
+        !exerciseDrafts.isEmpty || isCardioMovementCandidate
     }
 
     private var isRouteOnlySession: Bool {
         isRouteCandidate && exerciseDrafts.isEmpty
+    }
+
+    private var isCardioOnlySession: Bool {
+        isCardioMovementCandidate && exerciseDrafts.isEmpty
     }
 
     private func prepareWorkoutIfNeeded() {
@@ -588,7 +597,7 @@ struct ActiveWorkoutView: View {
             startPreparedSession()
             return
         }
-        guard !exerciseDrafts.isEmpty || isRouteCandidate else {
+        guard !exerciseDrafts.isEmpty || isCardioMovementCandidate else {
             showMissingExerciseAlert = true
             return
         }
@@ -625,6 +634,8 @@ struct ActiveWorkoutView: View {
         let sessionLocation: WorkoutSession.Location
         if isRouteCandidate {
             sessionLocation = .outdoor
+        } else if isTreadmillCandidate {
+            sessionLocation = .gym
         } else if origin == .free {
             switch store.userProfile.trainingLocation {
             case .home: sessionLocation = .home
@@ -654,10 +665,10 @@ struct ActiveWorkoutView: View {
             energyAfter: Int(energyAfter),
             estimatedCalories: sensorSummary?.activeEnergyKcal,
             mediaAttachments: sessionAttachments,
-            routePoints: routeTracker.routePoints,
+            routePoints: isRouteCandidate ? routeTracker.routePoints : [],
             pausedDurationSeconds: pausedSeconds,
-            distanceKm: routeTracker.distanceKm > 0 ? routeTracker.distanceKm : nil,
-            averagePaceSecondsPerKm: routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds),
+            distanceKm: displayedRouteDistanceKm > 0 ? displayedRouteDistanceKm : nil,
+            averagePaceSecondsPerKm: displayedRoutePaceSecondsPerKm,
             steps: sensorSummary?.steps,
             activeEnergyKcal: sensorSummary?.activeEnergyKcal,
             heartRateBefore: sensorSummary?.heartRateBefore,
@@ -674,12 +685,12 @@ struct ActiveWorkoutView: View {
     }
 
     private func cardioLog(from session: WorkoutSession, sensorSummary: WorkoutSensorSummary?) -> CardioLog? {
-        guard isRouteCandidate else { return nil }
+        guard isCardioMovementCandidate else { return nil }
 
         let activityType: CardioLog.ActivityType
         switch workout.sessionType {
         case .cardioRun:
-            activityType = .outdoorRun
+            activityType = isTreadmillCandidate ? .treadmill : .outdoorRun
         case .cardioWalk:
             activityType = .walking
         default:
@@ -691,7 +702,7 @@ struct ActiveWorkoutView: View {
             date: session.startedAt ?? session.date,
             durationMinutes: session.durationMinutes,
             distanceKm: session.distanceKm,
-            averageSpeedKmh: routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds),
+            averageSpeedKmh: displayedRouteSpeedKmh,
             averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
             averageHeartRate: sensorSummary?.averageHeartRate,
             maxHeartRate: sensorSummary?.maxHeartRate,
@@ -702,7 +713,7 @@ struct ActiveWorkoutView: View {
             heartRateAfter: sensorSummary?.heartRateAfter,
             rpe: session.sessionRPE,
             notes: session.notes,
-            routePoints: session.routePoints
+            routePoints: isRouteCandidate ? session.routePoints : []
         )
     }
 
@@ -734,10 +745,11 @@ struct ActiveWorkoutView: View {
             exerciseHistorySummary: selectedExerciseHistorySummary,
             gymPass: selectedGymPass,
             lastPausedAt: lastPausedAt,
-            isRouteWorkout: isRouteCandidate,
-            routeDistanceKm: isRouteCandidate ? routeTracker.distanceKm : nil,
-            routePaceSecondsPerKm: isRouteCandidate ? routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds) : nil,
-            routeSpeedKmh: isRouteCandidate ? routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds) : nil,
+            isRouteWorkout: isCardioMovementCandidate,
+            isOutdoorRoute: isRouteCandidate,
+            routeDistanceKm: isRouteCandidate ? routeTracker.distanceKm : store.activeWorkoutStatus?.routeDistanceKm,
+            routePaceSecondsPerKm: isRouteCandidate ? routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds) : store.activeWorkoutStatus?.routePaceSecondsPerKm,
+            routeSpeedKmh: isRouteCandidate ? routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds) : store.activeWorkoutStatus?.routeSpeedKmh,
             routePointCount: isRouteCandidate ? routeTracker.routePoints.count : nil,
             routeSteps: workoutSensorSummary?.steps
         )
@@ -801,6 +813,7 @@ struct ActiveWorkoutView: View {
         }
 
         elapsedSeconds = currentElapsed
+        publishActiveWorkoutStatusIfNeeded(currentElapsedSeconds: currentElapsed)
     }
 
     private func setWorkoutPaused(_ paused: Bool) {
@@ -1377,7 +1390,7 @@ struct ActiveWorkoutView: View {
                 .frame(height: 8)
 
                 if !isSessionStarted {
-                    Label("Pulsa Iniciar arriba para empezar a registrar GPS, distancia y sensores.", systemImage: "location.fill")
+                    Label(cardioStartHint, systemImage: isRouteCandidate ? "location.fill" : "figure.run.treadmill")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .padding(12)
@@ -1400,11 +1413,18 @@ struct ActiveWorkoutView: View {
     }
 
     private var routeProgressIcon: String {
+        if isTreadmillCandidate {
+            return isPaused ? "pause.fill" : "figure.run.treadmill"
+        }
         if !isSessionStarted { return "location" }
         return isPaused ? "pause.fill" : "figure.walk"
     }
 
     private var routeProgressStatus: String {
+        if isTreadmillCandidate {
+            if !isSessionStarted { return "CINTA PREPARADA" }
+            return isPaused ? "CINTA PAUSADA" : "CINTA ACTIVA"
+        }
         if !isSessionStarted { return "RUTA PREPARADA" }
         return isPaused ? "RUTA PAUSADA" : "RUTA ACTIVA"
     }
@@ -1414,13 +1434,20 @@ struct ActiveWorkoutView: View {
             return "\(workout.durationMinutes) min planificados"
         }
         var parts = [
-            String(format: "%.2f km", routeTracker.distanceKm),
-            routeTracker.paceText(elapsedSeconds: elapsedSeconds)
+            String(format: "%.2f km", displayedRouteDistanceKm),
+            displayedRoutePaceText
         ]
         if pausedSeconds > 0 {
             parts.append("pausa \(timeString(pausedSeconds))")
         }
         return parts.joined(separator: " · ")
+    }
+
+    private var cardioStartHint: String {
+        if isTreadmillCandidate {
+            return "Pulsa Iniciar arriba para registrar tiempo, pasos, pulso, kcal y distancia si está disponible."
+        }
+        return "Pulsa Iniciar arriba para empezar a registrar GPS, distancia y sensores."
     }
 
     private var routeTrackingCard: some View {
@@ -1451,15 +1478,15 @@ struct ActiveWorkoutView: View {
                 }
 
                 HStack(spacing: 10) {
-                    MiniSessionPill(title: "Distancia", value: String(format: "%.2f km", routeTracker.distanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up")
-                    MiniSessionPill(title: "Puntos", value: "\(routeTracker.routePoints.count)", icon: "map.fill")
-                    MiniSessionPill(title: "Ritmo", value: routeTracker.paceText(elapsedSeconds: elapsedSeconds), icon: "speedometer")
+                    MiniSessionPill(title: "Distancia", value: String(format: "%.2f km", displayedRouteDistanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up")
+                    MiniSessionPill(title: "Puntos", value: "\(displayedRoutePointCount)", icon: "map.fill")
+                    MiniSessionPill(title: "Ritmo", value: displayedRoutePaceText, icon: "speedometer")
                 }
 
                 HStack(spacing: 10) {
-                    MiniSessionPill(title: "Velocidad", value: routeTracker.speedText(elapsedSeconds: elapsedSeconds), icon: "gauge.with.needle")
-                    MiniSessionPill(title: "Pasos", value: workoutSensorSummary?.steps.map { "\(Int($0))" } ?? "--", icon: "shoeprints.fill")
-                    MiniSessionPill(title: "Pulso", value: workoutSensorSummary?.averageHeartRate.map { "\(Int($0)) lpm" } ?? "--", icon: "heart.fill")
+                    MiniSessionPill(title: "Velocidad", value: displayedRouteSpeedText, icon: "gauge.with.needle")
+                    MiniSessionPill(title: "Pasos", value: displayedRouteStepsText, icon: "shoeprints.fill")
+                    MiniSessionPill(title: "Pulso", value: displayedRouteHeartRateText, icon: "heart.fill")
                 }
             }
         }
@@ -1507,6 +1534,71 @@ struct ActiveWorkoutView: View {
         if isSessionStarted && isPaused { return "Pausado" }
         if isSessionStarted { return "GPS listo" }
         return "Listo"
+    }
+
+    private var cardioControlStatus: String {
+        if isTreadmillCandidate {
+            return isPaused ? "Pausado" : "Cinta"
+        }
+        return routeTrackerStatusBadge
+    }
+
+    private var displayedRouteDistanceKm: Double {
+        max(routeTracker.distanceKm, store.activeWorkoutStatus?.routeDistanceKm ?? 0)
+    }
+
+    private var displayedRoutePaceSecondsPerKm: Double? {
+        if let pace = store.activeWorkoutStatus?.routePaceSecondsPerKm, pace > 0 {
+            return pace
+        }
+        return routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds)
+    }
+
+    private var displayedRouteSpeedKmh: Double? {
+        if let speed = store.activeWorkoutStatus?.routeSpeedKmh, speed > 0 {
+            return speed
+        }
+        return routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds)
+    }
+
+    private var displayedRoutePointCount: Int {
+        max(routeTracker.routePoints.count, store.activeWorkoutStatus?.routePointCount ?? 0)
+    }
+
+    private var displayedRoutePaceText: String {
+        guard let pace = displayedRoutePaceSecondsPerKm, pace.isFinite, pace > 0 else {
+            return "--"
+        }
+        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
+    }
+
+    private var displayedRouteSpeedText: String {
+        guard let speed = displayedRouteSpeedKmh, speed.isFinite, speed > 0 else {
+            return "--"
+        }
+        return String(format: "%.1f km/h", speed)
+    }
+
+    private var displayedRouteStepsText: String {
+        if let steps = store.activeWorkoutStatus?.routeSteps ?? workoutSensorSummary?.steps, steps > 0 {
+            return "\(Int(steps))"
+        }
+        return "--"
+    }
+
+    private var displayedRouteHeartRateText: String {
+        if let heartRate = store.activeWorkoutStatus?.liveHeartRate ?? workoutSensorSummary?.averageHeartRate, heartRate > 0 {
+            return "\(Int(heartRate)) lpm"
+        }
+        return "--"
+    }
+
+    private var displayedRouteEnergyText: String {
+        if let activeEnergy = store.activeWorkoutStatus?.liveActiveEnergyKcal ?? workoutSensorSummary?.activeEnergyKcal ?? store.todayHealthMetric?.activeEnergyKcal,
+           activeEnergy > 0 {
+            return "\(Int(activeEnergy))"
+        }
+        return "--"
     }
 
 
@@ -1895,12 +1987,12 @@ struct ActiveWorkoutView: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Label("Control de ruta", systemImage: "figure.walk")
+                    Label(isTreadmillCandidate ? "Control de cinta" : "Control de ruta", systemImage: isTreadmillCandidate ? "figure.run.treadmill" : "figure.walk")
                         .font(.headline)
                     Spacer()
-                    Label(routeTracker.isTracking ? "GPS activo" : (isPaused ? "Pausado" : "GPS listo"), systemImage: routeTracker.isTracking ? "location.fill" : "pause.circle")
+                    Label(cardioControlStatus, systemImage: routeTracker.isTracking ? "location.fill" : (isTreadmillCandidate ? "figure.run.treadmill" : "pause.circle"))
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(routeTracker.isTracking ? PulseTheme.primary : PulseTheme.warning)
+                        .foregroundStyle(routeTracker.isTracking || isTreadmillCandidate ? PulseTheme.primary : PulseTheme.warning)
                 }
 
                 if showResumeSuggestion {
@@ -1936,8 +2028,8 @@ struct ActiveWorkoutView: View {
 
                 HStack(spacing: 10) {
                     MiniSessionPill(title: "Tiempo", value: timeString(elapsedSeconds), icon: "timer")
-                    MiniSessionPill(title: "Distancia", value: String(format: "%.2f km", routeTracker.distanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up")
-                    MiniSessionPill(title: "Ritmo", value: routeTracker.paceText(elapsedSeconds: elapsedSeconds), icon: "speedometer")
+                    MiniSessionPill(title: "Distancia", value: String(format: "%.2f km", displayedRouteDistanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up")
+                    MiniSessionPill(title: "Ritmo", value: displayedRoutePaceText, icon: "speedometer")
                 }
 
                 HStack(spacing: 10) {
@@ -1969,8 +2061,8 @@ struct ActiveWorkoutView: View {
 
                 HStack(spacing: 10) {
                     MiniSessionPill(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill")
-                    MiniSessionPill(title: "Kcal", value: workoutSensorSummary?.activeEnergyKcal.map { "\(Int($0))" } ?? store.todayHealthMetric.map { "\(Int($0.activeEnergyKcal))" } ?? "--", icon: "flame.fill")
-                    MiniSessionPill(title: "Pulso", value: workoutSensorSummary?.averageHeartRate.map { "\(Int($0)) lpm" } ?? "--", icon: "heart.fill")
+                    MiniSessionPill(title: "Kcal", value: displayedRouteEnergyText, icon: "flame.fill")
+                    MiniSessionPill(title: "Pulso", value: displayedRouteHeartRateText, icon: "heart.fill")
                 }
             }
         }
@@ -2029,7 +2121,7 @@ struct ActiveWorkoutView: View {
                     }
                     .padding(.vertical, 4)
 
-                    TextField("Notas de ruta, molestias o terreno", text: $sessionNotes, axis: .vertical)
+                    TextField(isTreadmillCandidate ? "Notas de cinta, ritmo o sensaciones" : "Notas de ruta, molestias o terreno", text: $sessionNotes, axis: .vertical)
                         .lineLimit(2...4)
                         .padding(12)
                         .background(PulseTheme.grouped)
@@ -2087,7 +2179,7 @@ struct ActiveWorkoutView: View {
                 }
                 .padding(.top, 12)
             } label: {
-                Label("Cierre de ruta", systemImage: "flag.checkered")
+                Label(isTreadmillCandidate ? "Cierre de cinta" : "Cierre de ruta", systemImage: "flag.checkered")
                     .font(.headline)
             }
         }

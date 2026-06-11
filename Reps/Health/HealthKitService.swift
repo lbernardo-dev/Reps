@@ -51,6 +51,7 @@ final class HealthKitService: ObservableObject {
             HKQuantityType(.restingHeartRate),
             HKQuantityType(.heartRateVariabilitySDNN),
             HKCategoryType(.sleepAnalysis),
+            HKSeriesType.workoutRoute(),
             HKWorkoutType.workoutType()
         ]
     }

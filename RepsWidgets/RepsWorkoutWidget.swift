@@ -74,6 +74,16 @@ private struct RepsWorkoutWidgetView: View {
         case .accessoryCircular:
             Group {
                 if entry.snapshot.hasActiveWorkout,
+                   entry.snapshot.isRouteWorkout {
+                    Gauge(value: min(max((entry.snapshot.routeDistanceKm ?? 0) / 5.0, 0), 1)) {
+                        Image(systemName: entry.snapshot.stateSystemImage)
+                    } currentValueLabel: {
+                        Text(routeDistanceText(compact: true))
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .minimumScaleFactor(0.6)
+                    }
+                    .gaugeStyle(.accessoryCircular)
+                } else if entry.snapshot.hasActiveWorkout,
                    let restEndDate = entry.snapshot.restEndDate {
                     Gauge(value: entry.snapshot.restProgress) {
                         Image(systemName: "hourglass")
@@ -106,7 +116,10 @@ private struct RepsWorkoutWidgetView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                     HStack(spacing: 6) {
-                        if let restEndDate = entry.snapshot.restEndDate {
+                        if entry.snapshot.isRouteWorkout {
+                            Label(routeDistanceText(), systemImage: "point.topleft.down.curvedto.point.bottomright.up")
+                            Text(routePaceText())
+                        } else if let restEndDate = entry.snapshot.restEndDate {
                             Label {
                                 Text(restEndDate, style: .timer)
                             } icon: {
@@ -119,7 +132,9 @@ private struct RepsWorkoutWidgetView: View {
                                 Image(systemName: "timer")
                             }
                         }
-                        Text("\(entry.snapshot.completedSets)/\(entry.snapshot.totalSets)")
+                        if !entry.snapshot.isRouteWorkout {
+                            Text("\(entry.snapshot.completedSets)/\(entry.snapshot.totalSets)")
+                        }
                     }
                     .font(.caption2.weight(.semibold))
                     .lineLimit(1)
@@ -138,13 +153,18 @@ private struct RepsWorkoutWidgetView: View {
             .widgetURL(URL(string: "reps://workout"))
 
         case .accessoryInline:
-            if entry.snapshot.hasActiveWorkout {
-                elapsedTimerText(prefix: entry.snapshot.workoutTitle)
-                    .widgetURL(URL(string: "reps://workout"))
-            } else {
-                Text("Reps: \(entry.snapshot.nextWorkoutDayName ?? "Sin plan")")
-                    .widgetURL(URL(string: "reps://workout"))
+            Group {
+                if entry.snapshot.hasActiveWorkout {
+                if entry.snapshot.isRouteWorkout {
+                    Text("\(entry.snapshot.workoutTitle) \(routeDistanceText()) \(routePaceText())")
+                } else {
+                    elapsedTimerText(prefix: entry.snapshot.workoutTitle)
+                }
+                } else {
+                    Text("Reps: \(entry.snapshot.nextWorkoutDayName ?? "Sin plan")")
+                }
             }
+            .widgetURL(URL(string: "reps://workout"))
 
         default:
             Group {
@@ -170,10 +190,28 @@ private struct RepsWorkoutWidgetView: View {
             Text(entry.snapshot.elapsedStartDate, style: .timer)
         }
     }
+
+    private func routeDistanceText(compact: Bool = false) -> String {
+        guard let distance = entry.snapshot.routeDistanceKm, distance > 0 else {
+            return compact ? "0.0" : "0.00 km"
+        }
+        return compact ? String(format: "%.1f", distance) : String(format: "%.2f km", distance)
+    }
+
+    private func routePaceText() -> String {
+        guard let pace = entry.snapshot.routePaceSecondsPerKm, pace.isFinite, pace > 0 else {
+            return "--"
+        }
+        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
+    }
 }
 
 private extension SharedWorkoutSnapshot {
     var stateLabel: String {
+        if isRouteWorkout {
+            if isPaused { return "PAUSA" }
+            return isOutdoorRoute == false ? "CINTA" : "RUTA"
+        }
         if restEndDate != nil {
             return "DESCANSO"
         }
@@ -181,6 +219,10 @@ private extension SharedWorkoutSnapshot {
     }
 
     var stateSystemImage: String {
+        if isRouteWorkout {
+            if isPaused { return "pause.fill" }
+            return isOutdoorRoute == false ? "figure.run.treadmill" : "figure.walk"
+        }
         if restEndDate != nil {
             return "hourglass"
         }
@@ -216,7 +258,9 @@ private struct ActiveWorkoutView: View {
     var body: some View {
         let isResting = entry.snapshot.restEndDate != nil
 
-        if family == .systemMedium {
+        if entry.snapshot.isRouteWorkout {
+            routeActiveBody()
+        } else if family == .systemMedium {
             mediumActiveBody(isResting: isResting)
         } else {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 4 : 8) {
@@ -354,6 +398,54 @@ private struct ActiveWorkoutView: View {
         }
     }
 
+    private func routeActiveBody() -> some View {
+        VStack(alignment: .leading, spacing: family == .systemSmall ? 5 : 8) {
+            HStack(alignment: .center) {
+                Image(systemName: entry.snapshot.stateSystemImage)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(theme.tint)
+                Text(entry.snapshot.stateLabel)
+                    .font(.system(size: 8, weight: .black))
+                    .foregroundStyle(entry.snapshot.isPaused ? Color.orange : theme.badgeText)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(entry.snapshot.isPaused ? Color.orange.opacity(0.15) : theme.badgeBackground, in: Capsule())
+                Spacer(minLength: 0)
+                if entry.snapshot.isPaused {
+                    Text(entry.snapshot.elapsedText)
+                } else {
+                    Text(entry.snapshot.elapsedStartDate, style: .timer)
+                }
+            }
+            .font(.system(size: 10, weight: .black, design: .rounded))
+
+            Text(entry.snapshot.workoutTitle)
+                .font(.system(size: family == .systemSmall ? 13 : 16, weight: .black, design: .rounded))
+                .foregroundStyle(theme.foreground)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(routeDistanceText())
+                    .font(.system(size: family == .systemSmall ? 20 : 28, weight: .black, design: .rounded))
+                    .foregroundStyle(theme.foreground)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 6) {
+                metricPill(title: "Ritmo", value: routePaceText(), icon: "speedometer")
+                if family == .systemMedium {
+                    metricPill(title: "Pulso", value: entry.snapshot.heartRate.map { "\(Int($0)) lpm" } ?? "--", icon: "heart.fill")
+                    metricPill(title: "Kcal", value: entry.snapshot.activeEnergyKcal.map { "\(Int($0))" } ?? "--", icon: "flame.fill")
+                } else {
+                    metricPill(title: "Pasos", value: entry.snapshot.routeSteps.map { "\(Int($0))" } ?? "--", icon: "shoeprints.fill")
+                }
+            }
+        }
+    }
+
     private func mediumActiveBody(isResting: Bool) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .center, spacing: 8) {
@@ -440,6 +532,20 @@ private struct ActiveWorkoutView: View {
                 metricPill(title: "Agua", value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
             }
         }
+    }
+
+    private func routeDistanceText() -> String {
+        guard let distance = entry.snapshot.routeDistanceKm, distance > 0 else {
+            return "0.00 km"
+        }
+        return String(format: "%.2f km", distance)
+    }
+
+    private func routePaceText() -> String {
+        guard let pace = entry.snapshot.routePaceSecondsPerKm, pace.isFinite, pace > 0 else {
+            return "--"
+        }
+        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
     }
 
     private var currentExerciseDetailText: String {

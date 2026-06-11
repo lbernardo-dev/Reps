@@ -21,28 +21,48 @@ struct FreeWorkoutStartView: View {
                 }
 
                 NavigationLink {
-                    ActiveWorkoutView(workout: .freeWalk, origin: .free)
+                    ActiveWorkoutView(workout: .freeOutdoorWalk, origin: .free)
                 } label: {
                     FreeWorkoutStartRow(
-                        title: isSpanish ? "Caminata" : "Walk",
+                        title: isSpanish ? "Caminata exterior" : "Outdoor Walk",
                         subtitle: isSpanish ? "GPS, ruta, pasos, distancia y vitales." : "GPS, route, steps, distance, and vitals.",
                         systemImage: "figure.walk"
                     )
                 }
 
                 NavigationLink {
-                    ActiveWorkoutView(workout: .freeRun, origin: .free)
+                    ActiveWorkoutView(workout: .freeTreadmillWalk, origin: .free)
                 } label: {
                     FreeWorkoutStartRow(
-                        title: isSpanish ? "Carrera" : "Run",
+                        title: isSpanish ? "Caminata en cinta" : "Treadmill Walk",
+                        subtitle: isSpanish ? "Sin mapa: tiempo, pasos, pulso, kcal y distancia si la cinta/Watch la aporta." : "No map: time, steps, heart rate, kcal, and distance when available.",
+                        systemImage: "figure.walk.motion"
+                    )
+                }
+
+                NavigationLink {
+                    ActiveWorkoutView(workout: .freeOutdoorRun, origin: .free)
+                } label: {
+                    FreeWorkoutStartRow(
+                        title: isSpanish ? "Carrera exterior" : "Outdoor Run",
                         subtitle: isSpanish ? "Ritmo, mapa, pulso y resumen final." : "Pace, map, heart rate, and final summary.",
                         systemImage: "figure.run"
+                    )
+                }
+
+                NavigationLink {
+                    ActiveWorkoutView(workout: .freeTreadmillRun, origin: .free)
+                } label: {
+                    FreeWorkoutStartRow(
+                        title: isSpanish ? "Carrera en cinta" : "Treadmill Run",
+                        subtitle: isSpanish ? "Sin GPS: tiempo, ritmo, pulso y kcal desde sensores." : "No GPS: time, pace, heart rate, and kcal from sensors.",
+                        systemImage: "figure.run.treadmill"
                     )
                 }
             } header: {
                 Text(isSpanish ? "Entrenamiento libre" : "Free Workout")
             } footer: {
-                Text(isSpanish ? "Caminata y carrera guardan también un registro de cardio y tributan a tus estadísticas." : "Walks and runs also save a cardio log and count toward your stats.")
+                Text(isSpanish ? "Exterior usa GPS y mapa. Cinta no pide ruta ni muestra mapa; guarda sensores y distancia cuando esté disponible." : "Outdoor uses GPS and map. Treadmill skips route tracking and saves sensors plus distance when available.")
             }
         }
         .navigationTitle(isSpanish ? "Empezar" : "Start")
@@ -79,23 +99,47 @@ private struct FreeWorkoutStartRow: View {
 }
 
 extension WorkoutDay {
-    static var freeWalk: WorkoutDay {
+    static var freeOutdoorWalk: WorkoutDay {
         WorkoutDay(
-            title: "Caminata libre",
+            title: "Caminata exterior",
             subtitle: "GPS, ruta y sensores",
             durationMinutes: 30,
             exercises: [],
-            sessionType: .cardioWalk
+            sessionType: .cardioWalk,
+            cardioEnvironment: .outdoor
         )
     }
 
-    static var freeRun: WorkoutDay {
+    static var freeTreadmillWalk: WorkoutDay {
         WorkoutDay(
-            title: "Carrera libre",
+            title: "Caminata en cinta",
+            subtitle: "Sin GPS, con sensores",
+            durationMinutes: 30,
+            exercises: [],
+            sessionType: .cardioWalk,
+            cardioEnvironment: .treadmill
+        )
+    }
+
+    static var freeOutdoorRun: WorkoutDay {
+        WorkoutDay(
+            title: "Carrera exterior",
             subtitle: "Ritmo, ruta y sensores",
             durationMinutes: 30,
             exercises: [],
-            sessionType: .cardioRun
+            sessionType: .cardioRun,
+            cardioEnvironment: .outdoor
+        )
+    }
+
+    static var freeTreadmillRun: WorkoutDay {
+        WorkoutDay(
+            title: "Carrera en cinta",
+            subtitle: "Sin GPS, con sensores",
+            durationMinutes: 30,
+            exercises: [],
+            sessionType: .cardioRun,
+            cardioEnvironment: .treadmill
         )
     }
 }

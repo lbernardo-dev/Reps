@@ -14,13 +14,21 @@ struct RepsWorkoutLiveActivity: Widget {
             let theme = WidgetColor.from(name: snapshot.widgetAccentColorName).theme
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    islandMetric("Sesión", icon: "timer", tint: theme.tint) {
-                        elapsedTimerText(snapshot)
+                    islandMetric(snapshot.isRouteWorkout ? "Distancia" : "Sesión", icon: snapshot.isRouteWorkout ? "point.topleft.down.curvedto.point.bottomright.up" : "timer", tint: theme.tint) {
+                        if snapshot.isRouteWorkout {
+                            Text(routeDistanceText(snapshot))
+                        } else {
+                            elapsedTimerText(snapshot)
+                        }
                     }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    islandMetric("Series", icon: "checkmark.circle", tint: theme.tint) {
-                        Text("\(snapshot.completedSets)/\(max(snapshot.totalSets, 1))")
+                    islandMetric(snapshot.isRouteWorkout ? "Ritmo" : "Series", icon: snapshot.isRouteWorkout ? "speedometer" : "checkmark.circle", tint: theme.tint) {
+                        if snapshot.isRouteWorkout {
+                            Text(routePaceText(snapshot))
+                        } else {
+                            Text("\(snapshot.completedSets)/\(max(snapshot.totalSets, 1))")
+                        }
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
@@ -35,7 +43,7 @@ struct RepsWorkoutLiveActivity: Widget {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             } minimal: {
-                Image(systemName: "dumbbell.fill")
+                Image(systemName: snapshot.isRouteWorkout ? "figure.walk" : "dumbbell.fill")
                     .foregroundStyle(theme.tint)
             }
         }
@@ -43,6 +51,59 @@ struct RepsWorkoutLiveActivity: Widget {
 
     @ViewBuilder
     private func liveActivityBody(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme, isStale: Bool) -> some View {
+        if snapshot.isRouteWorkout {
+            routeLiveActivityBody(snapshot, theme: theme, isStale: isStale)
+        } else {
+            strengthLiveActivityBody(snapshot, theme: theme, isStale: isStale)
+        }
+    }
+
+    private func routeLiveActivityBody(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme, isStale: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(snapshot.workoutTitle)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(theme.foreground)
+                        .lineLimit(1)
+                    Text(snapshot.isPaused ? (snapshot.isOutdoorRoute == false ? "Cinta pausada" : "Ruta pausada") : routeSubtitle(snapshot))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(theme.secondaryForeground)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                statusBadge(snapshot, theme: theme, isStale: isStale)
+            }
+
+            HStack(spacing: 10) {
+                compactMetric("Tiempo", icon: "timer", theme: theme) {
+                    elapsedTimerText(snapshot)
+                }
+                compactMetric("Distancia", icon: "point.topleft.down.curvedto.point.bottomright.up", theme: theme) {
+                    Text(routeDistanceText(snapshot))
+                }
+                compactMetric("Ritmo", icon: "speedometer", theme: theme) {
+                    Text(routePaceText(snapshot))
+                }
+            }
+
+            HStack(spacing: 10) {
+                compactMetric("Pulso", icon: "heart.fill", theme: theme) {
+                    Text(snapshot.heartRate.map { "\(Int($0)) lpm" } ?? "--")
+                }
+                compactMetric("Kcal", icon: "flame.fill", theme: theme) {
+                    Text(snapshot.activeEnergyKcal.map { "\(Int($0))" } ?? "--")
+                }
+                compactMetric("Pasos", icon: "shoeprints.fill", theme: theme) {
+                    Text(snapshot.routeSteps.map { "\(Int($0))" } ?? "--")
+                }
+            }
+        }
+        .padding()
+        .background(theme.background)
+    }
+
+    private func strengthLiveActivityBody(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme, isStale: Bool) -> some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -122,7 +183,7 @@ struct RepsWorkoutLiveActivity: Widget {
                         .foregroundStyle(theme.foreground)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
-                    Text(snapshot.exerciseName ?? snapshot.summary)
+                    Text(snapshot.isRouteWorkout ? routeSubtitle(snapshot) : (snapshot.exerciseName ?? snapshot.summary))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(theme.secondaryForeground)
                         .lineLimit(1)
@@ -135,13 +196,16 @@ struct RepsWorkoutLiveActivity: Widget {
                     .labelStyle(.titleAndIcon)
             }
 
-            ProgressView(value: snapshot.progress)
-                .progressViewStyle(RepsProgressStyle(tintColor: theme.tint, isDarkBackground: true))
-
             HStack(spacing: 6) {
-                islandCompactMetric(icon: "hourglass", value: snapshot.restEndDate == nil ? snapshot.remainingText : snapshot.restText, theme: theme)
-                islandCompactMetric(icon: "scalemass", value: "\(snapshot.volumeKg) kg", theme: theme)
-                islandCompactMetric(icon: "dumbbell.fill", value: "\(snapshot.completedSets)/\(max(snapshot.totalSets, 1))", theme: theme)
+                if snapshot.isRouteWorkout {
+                    islandCompactMetric(icon: "timer", value: snapshot.isPaused ? snapshot.elapsedText : "En curso", theme: theme)
+                    islandCompactMetric(icon: "point.topleft.down.curvedto.point.bottomright.up", value: routeDistanceText(snapshot), theme: theme)
+                    islandCompactMetric(icon: "speedometer", value: routePaceText(snapshot), theme: theme)
+                } else {
+                    islandCompactMetric(icon: "hourglass", value: snapshot.restEndDate == nil ? snapshot.remainingText : snapshot.restText, theme: theme)
+                    islandCompactMetric(icon: "scalemass", value: "\(snapshot.volumeKg) kg", theme: theme)
+                    islandCompactMetric(icon: "dumbbell.fill", value: "\(snapshot.completedSets)/\(max(snapshot.totalSets, 1))", theme: theme)
+                }
             }
         }
         .padding(.horizontal, 12)
@@ -227,6 +291,10 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func compactLeadingSystemImage(_ snapshot: SharedWorkoutSnapshot) -> String {
+        if snapshot.isRouteWorkout {
+            if snapshot.isPaused { return "pause.fill" }
+            return snapshot.isOutdoorRoute == false ? "figure.run.treadmill" : "figure.walk"
+        }
         if snapshot.restEndDate != nil {
             return "hourglass"
         }
@@ -235,18 +303,46 @@ struct RepsWorkoutLiveActivity: Widget {
 
     @ViewBuilder
     private func compactTrailingView(_ snapshot: SharedWorkoutSnapshot) -> some View {
-        if let restEndDate = snapshot.restEndDate {
-            Text(restEndDate, style: .timer)
+        if snapshot.isRouteWorkout {
+            Text(routeDistanceText(snapshot))
         } else {
-            Text("\(snapshot.completedSets)/\(max(snapshot.totalSets, 1))")
+            if let restEndDate = snapshot.restEndDate {
+                Text(restEndDate, style: .timer)
+            } else {
+                Text("\(snapshot.completedSets)/\(max(snapshot.totalSets, 1))")
+            }
         }
     }
 
     private func statusTitle(_ snapshot: SharedWorkoutSnapshot) -> String {
+        if snapshot.isRouteWorkout {
+            if snapshot.isPaused { return "PAUSA" }
+            return snapshot.isOutdoorRoute == false ? "CINTA" : "RUTA"
+        }
         if snapshot.restEndDate != nil {
             return "DESCANSO"
         }
         return snapshot.isPaused ? "PAUSA" : "ACTIVO"
+    }
+
+    private func routeDistanceText(_ snapshot: SharedWorkoutSnapshot) -> String {
+        guard let distance = snapshot.routeDistanceKm, distance > 0 else {
+            return "0.00 km"
+        }
+        return String(format: "%.2f km", distance)
+    }
+
+    private func routePaceText(_ snapshot: SharedWorkoutSnapshot) -> String {
+        guard let pace = snapshot.routePaceSecondsPerKm, pace.isFinite, pace > 0 else {
+            return "--"
+        }
+        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
+    }
+
+    private func routeSubtitle(_ snapshot: SharedWorkoutSnapshot) -> String {
+        [routeDistanceText(snapshot), routePaceText(snapshot)]
+            .filter { $0 != "--" }
+            .joined(separator: " · ")
     }
 }
 

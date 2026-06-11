@@ -249,6 +249,13 @@ struct WorkoutDay: Codable, Identifiable, Hashable {
         var id: String { rawValue }
     }
 
+    enum CardioEnvironment: String, Codable, CaseIterable, Identifiable {
+        case outdoor
+        case treadmill
+
+        var id: String { rawValue }
+    }
+
     var id = UUID()
     var title: String
     var subtitle: String
@@ -256,6 +263,7 @@ struct WorkoutDay: Codable, Identifiable, Hashable {
     var exercises: [WorkoutExercise]
     var sessionType: SessionType = .strength
     var restBetweenExercisesSeconds: Int = 120
+    var cardioEnvironment: CardioEnvironment?
 }
 
 extension WorkoutDay {
@@ -463,6 +471,71 @@ struct WorkoutSession: Codable, Identifiable {
     var maxHeartRate: Double? = nil
 }
 
+extension WorkoutSession {
+    var hasRouteMetrics: Bool {
+        !routePoints.isEmpty ||
+        distanceKm != nil ||
+        averagePaceSecondsPerKm != nil ||
+        steps != nil
+    }
+
+    var isRouteSession: Bool {
+        if hasRouteMetrics {
+            return true
+        }
+        let normalizedTitle = workoutTitle.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        return sets.isEmpty && (
+            normalizedTitle.localizedCaseInsensitiveContains("camina") ||
+            normalizedTitle.localizedCaseInsensitiveContains("walk") ||
+            normalizedTitle.localizedCaseInsensitiveContains("carrera") ||
+            normalizedTitle.localizedCaseInsensitiveContains("run")
+        )
+    }
+
+    var routeKindTitle: String {
+        let normalizedTitle = workoutTitle.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        if normalizedTitle.localizedCaseInsensitiveContains("carrera") ||
+            normalizedTitle.localizedCaseInsensitiveContains("run") {
+            return location == .outdoor ? "Carrera" : "Carrera en cinta"
+        }
+        if normalizedTitle.localizedCaseInsensitiveContains("camina") ||
+            normalizedTitle.localizedCaseInsensitiveContains("walk") {
+            return location == .outdoor ? "Caminata" : "Caminata en cinta"
+        }
+        return "Ruta"
+    }
+
+    var routeSystemImage: String {
+        if routeKindTitle.localizedCaseInsensitiveContains("carrera") {
+            return location == .outdoor ? "figure.run" : "figure.run.treadmill"
+        }
+        return location == .outdoor ? "figure.walk" : "figure.walk.motion"
+    }
+
+    var isOutdoorRouteSession: Bool {
+        isRouteSession && location == .outdoor && routePoints.count >= 2
+    }
+}
+
+extension WorkoutDay {
+    var isCardioMovement: Bool {
+        switch sessionType {
+        case .cardioRun, .cardioWalk, .mixedRoute:
+            return true
+        case .strength, .mobility, .free:
+            return false
+        }
+    }
+
+    var isOutdoorRouteWorkout: Bool {
+        isCardioMovement && cardioEnvironment != .treadmill
+    }
+
+    var isTreadmillWorkout: Bool {
+        isCardioMovement && cardioEnvironment == .treadmill
+    }
+}
+
 struct SavedShareCard: Codable, Identifiable, Hashable {
     var id = UUID()
     var date: Date
@@ -504,6 +577,7 @@ struct ActiveWorkoutStatus: Identifiable, Equatable, Codable {
     var gymCodeType: String?
     var lastPausedAt: Date? = nil
     var isRouteWorkout: Bool = false
+    var isOutdoorRoute: Bool?
     var routeDistanceKm: Double?
     var routePaceSecondsPerKm: Double?
     var routeSpeedKmh: Double?

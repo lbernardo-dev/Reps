@@ -11,6 +11,10 @@ import WidgetKit
 
 enum RepsAppGroup {
     static let identifier = "group.com.romerodev.repsfitness"
+
+    static var isAvailable: Bool {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: identifier) != nil
+    }
 }
 
 enum WatchCommand: String, Sendable {
@@ -108,6 +112,7 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
     var heartRate: Double?
     var activeEnergyKcal: Double?
     var isRouteWorkout: Bool
+    var isOutdoorRoute: Bool? = nil
     var routeDistanceKm: Double?
     var routePaceSecondsPerKm: Double?
     var routeSpeedKmh: Double?
@@ -163,6 +168,7 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
         heartRate: nil,
         activeEnergyKcal: nil,
         isRouteWorkout: false,
+        isOutdoorRoute: nil,
         routeDistanceKm: nil,
         routePaceSecondsPerKm: nil,
         routeSpeedKmh: nil,
@@ -243,6 +249,9 @@ enum SharedWorkoutStore {
     private static let minimumTimelineReloadInterval: TimeInterval = 3
 
     static func load() -> SharedWorkoutSnapshot {
+        guard RepsAppGroup.isAvailable else {
+            return .empty
+        }
         guard let defaults = UserDefaults(suiteName: RepsAppGroup.identifier),
               let data = defaults.data(forKey: key),
               let snapshot = try? JSONDecoder().decode(SharedWorkoutSnapshot.self, from: data) else {
@@ -252,6 +261,9 @@ enum SharedWorkoutStore {
     }
 
     static func save(_ snapshot: SharedWorkoutSnapshot, reloadTimelines: Bool = true, forceReload: Bool = false) {
+        guard RepsAppGroup.isAvailable else {
+            return
+        }
         guard let defaults = UserDefaults(suiteName: RepsAppGroup.identifier),
               let data = try? JSONEncoder().encode(snapshot) else {
             return

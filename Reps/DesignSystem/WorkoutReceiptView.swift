@@ -233,14 +233,21 @@ struct WorkoutReceiptView: View {
         session?.routePoints ?? []
     }
 
+    private var isRouteReceipt: Bool {
+        session?.isRouteSession ?? false
+    }
+
     private var hasRouteMetrics: Bool {
+        session?.hasRouteMetrics ?? false
+    }
+
+    private var routeTitle: String {
+        session?.routeKindTitle.uppercased() ?? (isSpanish ? "RUTA" : "ROUTE")
+    }
+
+    private var isTreadmillReceipt: Bool {
         guard let session else { return false }
-        return !session.routePoints.isEmpty ||
-            session.distanceKm != nil ||
-            session.steps != nil ||
-            session.activeEnergyKcal != nil ||
-            session.averageHeartRate != nil ||
-            session.maxHeartRate != nil
+        return session.isRouteSession && session.location != .outdoor && routePoints.isEmpty
     }
 
     private var sharePayload: WorkoutReceiptSharePayload {
@@ -295,29 +302,7 @@ struct WorkoutReceiptView: View {
             
             dividerLine
             
-            // Muscle map with route overlay for outdoor sessions.
-            ZStack(alignment: .bottom) {
-                HStack(spacing: 16) {
-                    Spacer()
-                    BodyView(gender: gender, side: .front, style: .repsReceipt)
-                        .heatmap(heatmap, configuration: .repsVolumeReceipt)
-                        .frame(width: 80, height: 165)
-                        .scaleEffect(1.08)
-
-                    BodyView(gender: gender, side: .back, style: .repsReceipt)
-                        .heatmap(heatmap, configuration: .repsVolumeReceipt)
-                        .frame(width: 80, height: 165)
-                        .scaleEffect(1.08)
-                    Spacer()
-                }
-
-                if !routePoints.isEmpty {
-                    ReceiptRouteTrace(routePoints: routePoints)
-                        .frame(height: 82)
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 4)
-                }
-            }
+            visualSummary
             .frame(height: 175)
             .allowsHitTesting(false)
             .padding(.vertical, 4)
@@ -345,8 +330,18 @@ struct WorkoutReceiptView: View {
                         }
                         .foregroundStyle(Color.black.opacity(0.85))
                     }
+                } else if isRouteReceipt {
+                    VStack(spacing: 4) {
+                        Text(routeTitle)
+                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.black.opacity(0.78))
+                        Text(routeStatusText)
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Color.black.opacity(0.46))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
                 } else {
-                    Text(hasRouteMetrics ? (isSpanish ? "RUTA REGISTRADA" : "ROUTE RECORDED") : (isSpanish ? "NINGÚN EJERCICIO COMPLETADO" : "NO EXERCISES COMPLETED"))
+                    Text(isSpanish ? "NINGÚN EJERCICIO COMPLETADO" : "NO EXERCISES COMPLETED")
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundStyle(Color.black.opacity(0.45))
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -364,9 +359,13 @@ struct WorkoutReceiptView: View {
                     .padding(.bottom, 2)
                 
                 statRow(title: isSpanish ? "DURACIÓN" : "DURATION", value: "\(sharePayload.durationMinutes) MIN")
-                statRow(title: isSpanish ? "VOLUMEN TOTAL" : "TOTAL VOLUME", value: "\(totalVolume) KG")
-                statRow(title: isSpanish ? "SERIES COMPLETADAS" : "COMPLETED SETS", value: "\(completedSetsCount) SRS")
-                if hasRouteMetrics, let session {
+                if !isRouteReceipt || totalVolume > 0 {
+                    statRow(title: isSpanish ? "VOLUMEN TOTAL" : "TOTAL VOLUME", value: "\(totalVolume) KG")
+                }
+                if !isRouteReceipt || completedSetsCount > 0 {
+                    statRow(title: isSpanish ? "SERIES COMPLETADAS" : "COMPLETED SETS", value: "\(completedSetsCount) SRS")
+                }
+                if isRouteReceipt, let session {
                     if let distanceKm = session.distanceKm {
                         statRow(title: isSpanish ? "DISTANCIA" : "DISTANCE", value: String(format: "%.2f KM", distanceKm))
                     }
@@ -429,6 +428,37 @@ struct WorkoutReceiptView: View {
             .foregroundStyle(Color.black.opacity(0.24))
             .lineLimit(1)
             .frame(height: 12)
+    }
+
+    @ViewBuilder
+    private var visualSummary: some View {
+        if isRouteReceipt {
+            ReceiptRoutePanel(routePoints: routePoints, title: routeTitle, isSpanish: isSpanish, isTreadmill: isTreadmillReceipt)
+        } else {
+            HStack(spacing: 16) {
+                Spacer()
+                BodyView(gender: gender, side: .front, style: .repsReceipt)
+                    .heatmap(heatmap, configuration: .repsVolumeReceipt)
+                    .frame(width: 80, height: 165)
+                    .scaleEffect(1.08)
+
+                BodyView(gender: gender, side: .back, style: .repsReceipt)
+                    .heatmap(heatmap, configuration: .repsVolumeReceipt)
+                    .frame(width: 80, height: 165)
+                    .scaleEffect(1.08)
+                Spacer()
+            }
+        }
+    }
+
+    private var routeStatusText: String {
+        if routePoints.count >= 2 {
+            return isSpanish ? "MAPA GPS REGISTRADO" : "GPS MAP RECORDED"
+        }
+        if isTreadmillReceipt {
+            return isSpanish ? "SIN GPS · CINTA" : "NO GPS · TREADMILL"
+        }
+        return isSpanish ? "SIN TRAZADO GPS GUARDADO" : "NO GPS TRACE SAVED"
     }
     
     private func statRow(title: String, value: String) -> some View {
@@ -543,6 +573,81 @@ private struct ReceiptRouteTrace: View {
                 y: (1 - ((point.latitude - minLat) / latSpan)) * size.height
             )
         }
+    }
+}
+
+private struct ReceiptRoutePanel: View {
+    let routePoints: [RoutePoint]
+    let title: String
+    let isSpanish: Bool
+    let isTreadmill: Bool
+
+    private var hasTrace: Bool {
+        routePoints.count >= 2
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.black.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.black.opacity(0.16), lineWidth: 1)
+                )
+
+            if hasTrace {
+                ReceiptRouteTrace(routePoints: routePoints)
+                    .padding(10)
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: isTreadmill ? "figure.run.treadmill" : "map")
+                        .font(.system(size: 32, weight: .semibold))
+                        .foregroundStyle(Color.black.opacity(0.32))
+                    Text(emptyTitle)
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.black.opacity(0.55))
+                    Text(emptySubtitle)
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color.black.opacity(0.42))
+                }
+                .multilineTextAlignment(.center)
+            }
+
+            VStack {
+                HStack {
+                    Text(title)
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.black.opacity(0.58))
+                    Spacer()
+                    Text(hasTrace ? "\(routePoints.count) GPS" : emptyBadge)
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.black.opacity(0.46))
+                }
+                Spacer()
+            }
+            .padding(10)
+        }
+    }
+
+    private var emptyTitle: String {
+        if isTreadmill {
+            return isSpanish ? "CINTA · SIN GPS" : "TREADMILL · NO GPS"
+        }
+        return isSpanish ? "SIN MAPA GPS" : "NO GPS MAP"
+    }
+
+    private var emptySubtitle: String {
+        if isTreadmill {
+            return isSpanish ? "Entrenamiento en lugar" : "Stationary workout"
+        }
+        return isSpanish ? "No hay puntos de ruta guardados" : "No saved route points"
+    }
+
+    private var emptyBadge: String {
+        if isTreadmill {
+            return isSpanish ? "CINTA" : "TREADMILL"
+        }
+        return isSpanish ? "SIN GPS" : "NO GPS"
     }
 }
 

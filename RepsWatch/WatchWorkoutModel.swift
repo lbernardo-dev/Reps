@@ -166,8 +166,8 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 accumulatedPausedSeconds += max(Int(endDate.timeIntervalSince(pauseStartedAt)), 0)
             }
             pauseStartedAt = nil
-            let shouldSendStandaloneSummary = isStandaloneRouteWorkout
-            let summary = shouldSendStandaloneSummary ? makeStandaloneSummary(endedAt: endDate) : nil
+            let shouldSendRouteSummary = isLocalRouteWorkout
+            let summary = shouldSendRouteSummary ? makeStandaloneSummary(endedAt: endDate) : nil
             session?.end()
             try? await builder?.endCollection(at: endDate)
             _ = try? await builder?.finishWorkout()
@@ -271,7 +271,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 try await requestHealthAuthorization()
                 let configuration = HKWorkoutConfiguration()
                 configuration.activityType = Self.routeActivityType(for: snapshot)
-                configuration.locationType = .outdoor
+                configuration.locationType = snapshot.isOutdoorRoute == false ? .indoor : .outdoor
 
                 let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
                 let workoutBuilder = workoutSession.associatedWorkoutBuilder()
@@ -286,6 +286,8 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 state = snapshot.isPaused ? .paused : .running
                 isLocalRouteWorkout = true
                 isStandaloneRouteWorkout = false
+                standaloneActivity = Self.routeWorkoutActivity(for: snapshot)
+                standaloneWorkoutID = UUID()
                 resetRouteMetrics()
 
                 workoutSession.startActivity(with: .now)
@@ -294,7 +296,9 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                     workoutSession.pause()
                 } else {
                     startPedometer()
-                    startLocation()
+                    if snapshot.isOutdoorRoute != false {
+                        startLocation()
+                    }
                 }
                 startTimer()
             } catch {
@@ -365,6 +369,10 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
     }
 
     private static func routeActivityType(for snapshot: SharedWorkoutSnapshot) -> HKWorkoutActivityType {
+        routeWorkoutActivity(for: snapshot) == .running ? .running : .walking
+    }
+
+    private static func routeWorkoutActivity(for snapshot: SharedWorkoutSnapshot) -> WatchRouteWorkoutActivity {
         let title = snapshot.workoutTitle.lowercased()
         if title.contains("carrera") || title.contains("run") {
             return .running
@@ -445,6 +453,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             heartRate: heartRate,
             activeEnergyKcal: activeEnergy,
             isRouteWorkout: true,
+            isOutdoorRoute: isLocalRouteWorkout ? snapshot.isOutdoorRoute : true,
             routeDistanceKm: routeDistanceKm,
             routePaceSecondsPerKm: routePaceSecondsPerKm,
             routeSpeedKmh: routeSpeedKmh,
@@ -622,6 +631,7 @@ extension WatchWorkoutModel: WCSessionDelegate {
             heartRate: context["heartRate"] as? Double,
             activeEnergyKcal: context["activeEnergyKcal"] as? Double,
             isRouteWorkout: context["isRouteWorkout"] as? Bool ?? false,
+            isOutdoorRoute: context["isOutdoorRoute"] as? Bool,
             routeDistanceKm: context["routeDistanceKm"] as? Double,
             routePaceSecondsPerKm: context["routePaceSecondsPerKm"] as? Double,
             routeSpeedKmh: context["routeSpeedKmh"] as? Double,

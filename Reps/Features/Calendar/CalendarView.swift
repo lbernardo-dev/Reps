@@ -137,10 +137,15 @@ struct CalendarView: View {
                             if !daySessions.isEmpty {
                                 HStack(spacing: 12) {
                                     let sessionsWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "sesiones" : "sessions"
-                                    let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
                                     CalendarSummaryPill(title: "\(daySessions.count)", subtitle: LocalizedStringKey(sessionsWord), systemImage: "checkmark.circle")
-                                    CalendarSummaryPill(title: "\(dayExerciseCount(on: selectedDate))", subtitle: LocalizedStringKey(exercisesWord), systemImage: "dumbbell")
-                                    CalendarSummaryPill(title: "\(Int(FitnessMetrics.totalVolumeKg(for: daySessions)))", subtitle: "kg", systemImage: "scalemass")
+                                    if dayRouteDistanceKm(on: selectedDate) > 0 {
+                                        CalendarSummaryPill(title: String(format: "%.1f", dayRouteDistanceKm(on: selectedDate)), subtitle: "km", systemImage: "figure.walk")
+                                    } else {
+                                        let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
+                                        CalendarSummaryPill(title: "\(dayExerciseCount(on: selectedDate))", subtitle: LocalizedStringKey(exercisesWord), systemImage: "dumbbell")
+                                    }
+                                    let volume = Int(FitnessMetrics.totalVolumeKg(for: daySessions))
+                                    CalendarSummaryPill(title: volume > 0 ? "\(volume)" : "\(daySessions.reduce(0) { $0 + $1.durationMinutes })", subtitle: volume > 0 ? "kg" : "min", systemImage: volume > 0 ? "scalemass" : "timer")
                                 }
                             }
                             ForEach(loggedWorkouts(on: selectedDate)) { session in
@@ -148,10 +153,15 @@ struct CalendarView: View {
                                     WorkoutSessionDetailView(session: session)
                                 } label: {
                                     HStack {
+                                        Image(systemName: session.isRouteSession ? session.routeSystemImage : "dumbbell.fill")
+                                            .font(.headline)
+                                            .foregroundStyle(session.isRouteSession ? PulseTheme.accent : PulseTheme.primary)
+                                            .frame(width: 36, height: 36)
+                                            .background((session.isRouteSession ? PulseTheme.accent : PulseTheme.primary).opacity(0.12))
+                                            .clipShape(Circle())
                                         VStack(alignment: .leading) {
-                                            Text(session.workoutTitle).font(.title3.weight(.bold))
-                                            let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
-                                            Text("\(session.durationMinutes) min · \(exerciseCount(for: session)) \(exercisesWord)")
+                                            Text(session.isRouteSession ? session.routeKindTitle : session.workoutTitle).font(.title3.weight(.bold))
+                                            Text(calendarSessionDetailText(for: session))
                                                 .foregroundStyle(PulseTheme.secondaryText)
                                         }
                                         Spacer()
@@ -161,25 +171,27 @@ struct CalendarView: View {
                                 }
                                 .buttonStyle(.plain)
 
-                                ForEach(exerciseLogs(for: session)) { log in
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        HStack {
-                                            Text(RepsText.exerciseName(log.exercise.name, language: store.userProfile.preferredLanguage))
-                                                .font(.headline)
-                                            Spacer()
-                                            let setsWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "series" : "sets"
-                                            Text("\(log.sets.count) \(setsWord)")
-                                                .font(.subheadline.weight(.semibold))
-                                                .foregroundStyle(PulseTheme.primary)
+                                if !session.isRouteSession {
+                                    ForEach(exerciseLogs(for: session)) { log in
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            HStack {
+                                                Text(RepsText.exerciseName(log.exercise.name, language: store.userProfile.preferredLanguage))
+                                                    .font(.headline)
+                                                Spacer()
+                                                let setsWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "series" : "sets"
+                                                Text("\(log.sets.count) \(setsWord)")
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .foregroundStyle(PulseTheme.primary)
+                                            }
+                                            let volumeWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "volumen" : "volume"
+                                            Text("\(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg \(volumeWord)")
+                                                .font(.subheadline)
+                                                .foregroundStyle(PulseTheme.secondaryText)
                                         }
-                                        let volumeWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "volumen" : "volume"
-                                        Text("\(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg \(volumeWord)")
-                                            .font(.subheadline)
-                                            .foregroundStyle(PulseTheme.secondaryText)
+                                        .padding(12)
+                                        .background(PulseTheme.grouped)
+                                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                                     }
-                                    .padding(12)
-                                    .background(PulseTheme.grouped)
-                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                                 }
                             }
                             if loggedWorkouts(on: selectedDate).isEmpty {
@@ -308,8 +320,31 @@ struct CalendarView: View {
         loggedWorkouts(on: date).reduce(0) { $0 + exerciseCount(for: $1) }
     }
 
+    private func dayRouteDistanceKm(on date: Date) -> Double {
+        loggedWorkouts(on: date).compactMap(\.distanceKm).reduce(0, +)
+    }
+
     private func exerciseCount(for session: WorkoutSession) -> Int {
         FitnessMetrics.completedExerciseLogs(in: session).count
+    }
+
+    private func calendarSessionDetailText(for session: WorkoutSession) -> String {
+        if session.isRouteSession {
+            var parts = ["\(session.durationMinutes) min"]
+            if let distanceKm = session.distanceKm {
+                parts.append(String(format: "%.2f km", distanceKm))
+            }
+            if let pace = session.averagePaceSecondsPerKm {
+                parts.append("\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km")
+            }
+            if let steps = session.steps {
+                parts.append("\(Int(steps)) pasos")
+            }
+            return parts.joined(separator: " · ")
+        }
+
+        let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
+        return "\(session.durationMinutes) min · \(exerciseCount(for: session)) \(exercisesWord)"
     }
 
     private func exerciseLogs(for session: WorkoutSession) -> [ExerciseLog] {

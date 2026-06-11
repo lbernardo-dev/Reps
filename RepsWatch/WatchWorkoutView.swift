@@ -139,12 +139,21 @@ struct WatchWorkoutView: View {
                 VStack(alignment: .leading, spacing: 9) {
                     routeLiveCard
                     routeMetricsGrid
-                    WatchInfoCard(
-                        icon: "map.fill",
-                        title: "GPS",
-                        value: "\(model.snapshot.routePointCount ?? 0) puntos recibidos del iPhone",
-                        color: .blue
-                    )
+                    if model.snapshot.isOutdoorRoute != false {
+                        WatchInfoCard(
+                            icon: "map.fill",
+                            title: "GPS",
+                            value: "\(model.snapshot.routePointCount ?? 0) puntos recibidos del iPhone",
+                            color: .blue
+                        )
+                    } else {
+                        WatchInfoCard(
+                            icon: "figure.run.treadmill",
+                            title: "Cinta",
+                            value: "Sin mapa ni puntos GPS",
+                            color: .blue
+                        )
+                    }
                 }
                 .padding(.horizontal, 6)
                 .padding(.bottom, 10)
@@ -455,11 +464,11 @@ struct WatchWorkoutView: View {
     private var routeLiveCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label("Ruta en vivo", systemImage: "figure.walk")
+                Label(model.snapshot.isOutdoorRoute == false ? "Cinta en vivo" : "Ruta en vivo", systemImage: model.snapshot.isOutdoorRoute == false ? "figure.run.treadmill" : "figure.walk")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundStyle(accentColor)
                 Spacer()
-                Text(model.snapshot.isPaused ? "PAUSA" : "GPS")
+                Text(model.snapshot.isPaused ? "PAUSA" : (model.snapshot.isOutdoorRoute == false ? "CINTA" : "GPS"))
                     .font(.system(size: 9, weight: .black, design: .rounded))
                     .foregroundStyle(model.snapshot.isPaused ? .orange : accentColor)
             }
@@ -478,7 +487,7 @@ struct WatchWorkoutView: View {
             ProgressView(value: routeTimeProgress)
                 .progressViewStyle(LinearTintProgressStyle(color: accentColor))
 
-            Text(model.snapshot.isPaused ? "Pausado desde el iPhone o reloj. Reanuda para seguir sumando ruta." : "Consulta distancia, ritmo y pulso sin esperar al resumen final.")
+            Text(model.snapshot.isPaused ? pausedRouteHelpText : liveRouteHelpText)
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
@@ -674,6 +683,20 @@ struct WatchWorkoutView: View {
             return "--"
         }
         return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
+    }
+
+    private var pausedRouteHelpText: String {
+        if model.snapshot.isOutdoorRoute == false {
+            return "Pausado desde el iPhone o reloj. Reanuda para seguir sumando sensores."
+        }
+        return "Pausado desde el iPhone o reloj. Reanuda para seguir sumando ruta."
+    }
+
+    private var liveRouteHelpText: String {
+        if model.snapshot.isOutdoorRoute == false {
+            return "Consulta tiempo, distancia estimada, pasos y pulso sin mapa GPS."
+        }
+        return "Consulta distancia, ritmo y pulso sin esperar al resumen final."
     }
 
     private var routeDistanceKm: Double {

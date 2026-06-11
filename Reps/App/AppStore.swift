@@ -1,4 +1,5 @@
 import ActivityKit
+import CoreLocation
 import Foundation
 import HealthKit
 import StoreKit
@@ -792,6 +793,8 @@ final class AppStore: ObservableObject {
     }
 
     func startActiveWorkout(_ workout: WorkoutDay, elapsedSeconds: Int = 0, pausedSeconds: Int = 0, isPaused: Bool = false) {
+        let isRouteWorkout = Self.isRouteWorkout(workout)
+        let isOutdoorRoute = Self.isOutdoorRoute(workout)
         activeWorkout = workout
         activeWorkoutDrafts = workout.exercises.map { item in
             ExerciseSessionDraft(
@@ -816,7 +819,9 @@ final class AppStore: ObservableObject {
             completedSets: 0,
             totalSets: activeWorkoutDrafts.flatMap(\.sets).count,
             volumeKg: 0,
-            isPaused: isPaused
+            isPaused: isPaused,
+            isRouteWorkout: isRouteWorkout,
+            isOutdoorRoute: isOutdoorRoute
         )
         TelemetryService.shared.log(.workoutStarted, parameters: [
             "session_type": workout.sessionType.rawValue,
@@ -828,6 +833,8 @@ final class AppStore: ObservableObject {
     func startPreparedActiveWorkout(_ workout: WorkoutDay, drafts: [ExerciseSessionDraft], isPaused: Bool = false) {
         var preparedWorkout = workout
         preparedWorkout.exercises = drafts.map(\.workoutExercise)
+        let isRouteWorkout = Self.isRouteWorkout(preparedWorkout)
+        let isOutdoorRoute = Self.isOutdoorRoute(preparedWorkout)
         activeWorkout = preparedWorkout
         activeWorkoutDrafts = drafts
         activeWorkoutStatus = ActiveWorkoutStatus(
@@ -843,13 +850,23 @@ final class AppStore: ObservableObject {
             isPaused: isPaused,
             exerciseName: drafts.first?.workoutExercise.exercise.name,
             exerciseIndex: drafts.isEmpty ? nil : 1,
-            totalExercises: drafts.count
+            totalExercises: drafts.count,
+            isRouteWorkout: isRouteWorkout,
+            isOutdoorRoute: isOutdoorRoute
         )
         TelemetryService.shared.log(.workoutStarted, parameters: [
             "session_type": preparedWorkout.sessionType.rawValue,
             "exercise_count": preparedWorkout.exercises.count,
             "origin_has_active_plan": activePlan.days.contains { $0.id == workout.id }
         ])
+    }
+
+    private static func isRouteWorkout(_ workout: WorkoutDay) -> Bool {
+        workout.isCardioMovement
+    }
+
+    private static func isOutdoorRoute(_ workout: WorkoutDay) -> Bool {
+        workout.isOutdoorRouteWorkout
     }
 
     private func defaultWeight(from previous: String) -> Double {
@@ -894,6 +911,7 @@ final class AppStore: ObservableObject {
         gymPass: GymPass? = nil,
         lastPausedAt: Date? = nil,
         isRouteWorkout: Bool = false,
+        isOutdoorRoute: Bool? = nil,
         routeDistanceKm: Double? = nil,
         routePaceSecondsPerKm: Double? = nil,
         routeSpeedKmh: Double? = nil,
@@ -932,12 +950,21 @@ final class AppStore: ObservableObject {
         status.gymCodeValue = gymPass?.codeValue
         status.gymCodeType = gymPass?.codeType.rawValue
         status.lastPausedAt = lastPausedAt
-        status.isRouteWorkout = isRouteWorkout
-        status.routeDistanceKm = routeDistanceKm
-        status.routePaceSecondsPerKm = routePaceSecondsPerKm
-        status.routeSpeedKmh = routeSpeedKmh
-        status.routePointCount = routePointCount
-        status.routeSteps = routeSteps
+        status.isRouteWorkout = isRouteWorkout || status.isRouteWorkout
+        status.isOutdoorRoute = isOutdoorRoute ?? status.isOutdoorRoute
+        if status.isRouteWorkout {
+            status.routeDistanceKm = Self.bestRouteDistance(status.routeDistanceKm, routeDistanceKm)
+            status.routePaceSecondsPerKm = Self.bestRouteMetric(status.routePaceSecondsPerKm, routePaceSecondsPerKm)
+            status.routeSpeedKmh = Self.bestRouteMetric(status.routeSpeedKmh, routeSpeedKmh)
+            status.routePointCount = max(status.routePointCount ?? 0, routePointCount ?? 0)
+            status.routeSteps = Self.bestRouteMetric(status.routeSteps, routeSteps)
+        } else {
+            status.routeDistanceKm = nil
+            status.routePaceSecondsPerKm = nil
+            status.routeSpeedKmh = nil
+            status.routePointCount = nil
+            status.routeSteps = nil
+        }
         if let liveHeartRate {
             status.liveHeartRate = liveHeartRate
         }
@@ -945,6 +972,19 @@ final class AppStore: ObservableObject {
             status.liveActiveEnergyKcal = liveActiveEnergyKcal
         }
         activeWorkoutStatus = status
+    }
+
+    private static func bestRouteDistance(_ current: Double?, _ incoming: Double?) -> Double? {
+        guard let incoming, incoming > 0 else { return current }
+        guard let current, current > 0 else { return incoming }
+        return max(current, incoming)
+    }
+
+    private static func bestRouteMetric(_ current: Double?, _ incoming: Double?) -> Double? {
+        if let incoming, incoming > 0 {
+            return incoming
+        }
+        return current
     }
 
     func setActiveWorkoutPaused(_ paused: Bool) {
@@ -990,6 +1030,7 @@ final class AppStore: ObservableObject {
         status.routePaceSecondsPerKm = metrics.paceSecondsPerKm ?? status.routePaceSecondsPerKm
         status.routeSpeedKmh = metrics.speedKmh ?? status.routeSpeedKmh
         status.routeSteps = metrics.steps ?? status.routeSteps
+        status.routePointCount = max(status.routePointCount ?? 0, metrics.pointCount ?? 0)
         status.liveHeartRate = metrics.heartRate ?? status.liveHeartRate
         status.liveActiveEnergyKcal = metrics.activeEnergyKcal ?? status.liveActiveEnergyKcal
         activeWorkoutStatus = status
@@ -1010,6 +1051,52 @@ final class AppStore: ObservableObject {
                 timestamp: $0.timestamp
             )
         }
+
+        if let existingIndex = workoutSessions.firstIndex(where: { session in
+            let sessionStart = session.startedAt ?? session.date
+            let sessionEnd = session.endedAt ?? session.date
+            let overlapsStart = abs(sessionStart.timeIntervalSince(summary.startedAt)) < 600
+            let overlapsEnd = abs(sessionEnd.timeIntervalSince(summary.endedAt)) < 600
+            return (session.isRouteSession || session.location == .outdoor) && (overlapsStart || overlapsEnd)
+        }) {
+            var existing = workoutSessions[existingIndex]
+            existing.healthKitUUIDString = existing.healthKitUUIDString ?? healthKitID
+            existing.healthKitActivityTypes = existing.healthKitActivityTypes.isEmpty ? [summary.activity == .running ? "Running" : "Walking"] : existing.healthKitActivityTypes
+            existing.routePoints = existing.routePoints.isEmpty ? routePoints : existing.routePoints
+            existing.distanceKm = Self.bestRouteDistance(existing.distanceKm, summary.distanceKm)
+            existing.averagePaceSecondsPerKm = existing.averagePaceSecondsPerKm ?? summary.averagePaceSecondsPerKm
+            existing.steps = Self.bestRouteMetric(existing.steps, summary.steps)
+            existing.activeEnergyKcal = Self.bestRouteMetric(existing.activeEnergyKcal, summary.activeEnergyKcal)
+            existing.estimatedCalories = Self.bestRouteMetric(existing.estimatedCalories, summary.activeEnergyKcal)
+            existing.averageHeartRate = existing.averageHeartRate ?? summary.averageHeartRate
+            existing.maxHeartRate = Self.bestRouteMetric(existing.maxHeartRate, summary.maxHeartRate)
+            workoutSessions[existingIndex] = existing
+
+            let mergedActivityType: CardioLog.ActivityType = summary.activity == .running
+                ? (existing.location == .outdoor || !routePoints.isEmpty ? .outdoorRun : .treadmill)
+                : .walking
+            let cardioLog = CardioLog(
+                activityType: mergedActivityType,
+                date: summary.startedAt,
+                durationMinutes: summary.durationMinutes,
+                distanceKm: summary.distanceKm,
+                averageSpeedKmh: summary.averageSpeedKmh,
+                averagePaceSecondsPerKm: summary.averagePaceSecondsPerKm,
+                averageHeartRate: summary.averageHeartRate,
+                maxHeartRate: summary.maxHeartRate,
+                estimatedCalories: summary.activeEnergyKcal,
+                steps: summary.steps,
+                activeEnergyKcal: summary.activeEnergyKcal,
+                heartRateBefore: nil,
+                heartRateAfter: nil,
+                rpe: nil,
+                notes: routePoints.isEmpty ? "Cardio en cinta enriquecido desde Apple Watch." : "Ruta enriquecida desde Apple Watch.",
+                routePoints: existing.location == .outdoor ? routePoints : []
+            )
+            _ = importCardioLogs([cardioLog])
+            return
+        }
+
         let title = summary.activity.title
         let session = WorkoutSession(
             id: summary.id,
@@ -1122,6 +1209,7 @@ final class AppStore: ObservableObject {
                 heartRate: todayHealthMetric?.restingHeartRate,
                 activeEnergyKcal: todayHealthMetric?.activeEnergyKcal,
                 isRouteWorkout: false,
+                isOutdoorRoute: nil,
                 routeDistanceKm: nil,
                 routePaceSecondsPerKm: nil,
                 routeSpeedKmh: nil,
@@ -1178,6 +1266,7 @@ final class AppStore: ObservableObject {
             heartRate: status.liveHeartRate ?? todayHealthMetric?.restingHeartRate,
             activeEnergyKcal: status.liveActiveEnergyKcal ?? todayHealthMetric?.activeEnergyKcal,
             isRouteWorkout: status.isRouteWorkout,
+            isOutdoorRoute: status.isOutdoorRoute,
             routeDistanceKm: status.routeDistanceKm,
             routePaceSecondsPerKm: status.routePaceSecondsPerKm,
             routeSpeedKmh: status.routeSpeedKmh,
@@ -2084,6 +2173,10 @@ final class AppStore: ObservableObject {
         
         // Obtener datos del pulso
         let heartRate = await heartRateSummary(for: workout)
+        let routePoints = await workoutRoutePoints(for: workout)
+        let distanceKm = workout.totalDistance?.doubleValue(for: .meterUnit(with: .kilo))
+        let averagePaceSecondsPerKm = Self.averagePaceSecondsPerKm(duration: workout.duration, distanceKm: distanceKm)
+        let steps = await workoutQuantitySum(for: workout, type: HKQuantityType(.stepCount), unit: .count())
         
         // Obtener actividades
         var activities: [String] = []
@@ -2098,6 +2191,7 @@ final class AppStore: ObservableObject {
         let uniqueActivities = Array(Set(activities)).sorted()
         
         let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie())
+        let sessionLocation = Self.location(for: workout)
         
         // 2. Comprobar si hay un entrenamiento en progreso coincidente para finalizar o mezclar
         if let activeStatus = activeWorkoutStatus,
@@ -2117,6 +2211,7 @@ final class AppStore: ObservableObject {
             
             let allSets = logs.flatMap(\.sets)
             let durationMin = max(Int(workout.duration / 60), 1)
+            let activeIsOutdoorRoute = activeStatus.isOutdoorRoute ?? !routePoints.isEmpty
             
             let mergedSession = WorkoutSession(
                 workoutTitle: activeStatus.workoutTitle,
@@ -2124,7 +2219,7 @@ final class AppStore: ObservableObject {
                 startedAt: workout.startDate,
                 endedAt: workout.endDate,
                 origin: activeWorkout?.sessionType == .free ? .free : .routine,
-                location: activeWorkout?.sessionType == .free ? (userProfile.trainingLocation == .home ? .home : .gym) : (activePlan.location == .home ? .home : .gym),
+                location: activeIsOutdoorRoute ? .outdoor : (activeWorkout?.sessionType == .free ? (userProfile.trainingLocation == .home ? .home : .gym) : (activePlan.location == .home ? .home : .gym)),
                 contextTag: .normal,
                 durationMinutes: durationMin,
                 sets: allSets,
@@ -2135,8 +2230,12 @@ final class AppStore: ObservableObject {
                 energyAfter: 3,
                 estimatedCalories: calories,
                 mediaAttachments: [],
-                routePoints: [],
+                routePoints: routePoints,
                 pausedDurationSeconds: activeStatus.pausedSeconds,
+                distanceKm: Self.bestRouteDistance(activeStatus.routeDistanceKm, distanceKm),
+                averagePaceSecondsPerKm: activeStatus.routePaceSecondsPerKm ?? averagePaceSecondsPerKm,
+                steps: Self.bestRouteMetric(activeStatus.routeSteps, steps),
+                activeEnergyKcal: calories,
                 healthKitUUIDString: uuidString,
                 isImportedFromHealth: false,
                 healthKitActivityTypes: uniqueActivities,
@@ -2158,6 +2257,14 @@ final class AppStore: ObservableObject {
             existing.averageHeartRate = heartRate.average
             existing.maxHeartRate = heartRate.max
             existing.healthKitActivityTypes = uniqueActivities
+            existing.routePoints = existing.routePoints.isEmpty ? routePoints : existing.routePoints
+            existing.distanceKm = Self.bestRouteDistance(existing.distanceKm, distanceKm)
+            existing.averagePaceSecondsPerKm = existing.averagePaceSecondsPerKm ?? averagePaceSecondsPerKm
+            existing.steps = Self.bestRouteMetric(existing.steps, steps)
+            existing.activeEnergyKcal = Self.bestRouteMetric(existing.activeEnergyKcal, calories)
+            if existing.isOutdoorRouteSession || !routePoints.isEmpty {
+                existing.location = .outdoor
+            }
             workoutSessions[index] = existing
             return
         }
@@ -2170,7 +2277,7 @@ final class AppStore: ObservableObject {
             startedAt: workout.startDate,
             endedAt: workout.endDate,
             origin: .free,
-            location: workout.workoutActivityType == .swimming ? .outdoor : .gym,
+            location: sessionLocation,
             contextTag: .normal,
             durationMinutes: max(Int(workout.duration / 60), 1),
             sets: [],
@@ -2181,8 +2288,12 @@ final class AppStore: ObservableObject {
             energyAfter: nil,
             estimatedCalories: calories,
             mediaAttachments: [],
-            routePoints: [],
+            routePoints: routePoints,
             pausedDurationSeconds: 0,
+            distanceKm: distanceKm,
+            averagePaceSecondsPerKm: averagePaceSecondsPerKm,
+            steps: steps,
+            activeEnergyKcal: calories,
             healthKitUUIDString: uuidString,
             isImportedFromHealth: true,
             healthKitActivityTypes: uniqueActivities,
@@ -2218,6 +2329,109 @@ final class AppStore: ObservableObject {
             )
         } catch {
             return (nil, nil)
+        }
+    }
+
+    private func workoutQuantitySum(for workout: HKWorkout, type: HKQuantityType, unit: HKUnit) async -> Double? {
+        let predicate = HKQuery.predicateForObjects(from: workout)
+        let samplePredicate = HKSamplePredicate.quantitySample(type: type, predicate: predicate)
+        let descriptor = HKStatisticsQueryDescriptor(predicate: samplePredicate, options: .cumulativeSum)
+
+        do {
+            let statistics = try await descriptor.result(for: healthStore)
+            let value = statistics?.sumQuantity()?.doubleValue(for: unit)
+            guard let value, value > 0 else { return nil }
+            return value
+        } catch {
+            return nil
+        }
+    }
+
+    private func workoutRoutePoints(for workout: HKWorkout) async -> [RoutePoint] {
+        let routeType = HKSeriesType.workoutRoute()
+        let predicate = HKQuery.predicateForObjects(from: workout)
+
+        let routes: [HKWorkoutRoute] = await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: routeType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { _, samples, _ in
+                continuation.resume(returning: samples as? [HKWorkoutRoute] ?? [])
+            }
+            healthStore.execute(query)
+        }
+
+        var routePoints: [RoutePoint] = []
+        for route in routes {
+            let locations = await locations(for: route)
+            routePoints.append(contentsOf: locations.map { location in
+                RoutePoint(
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
+                    altitude: location.altitude,
+                    horizontalAccuracy: location.horizontalAccuracy,
+                    timestamp: location.timestamp
+                )
+            })
+        }
+        return routePoints.sorted { $0.timestamp < $1.timestamp }
+    }
+
+    private func locations(for route: HKWorkoutRoute) async -> [CLLocation] {
+        await withCheckedContinuation { continuation in
+            let accumulator = RouteLocationAccumulator()
+            let query = HKWorkoutRouteQuery(route: route) { _, batch, done, _ in
+                accumulator.append(contentsOf: batch ?? [])
+                if done {
+                    continuation.resume(returning: accumulator.snapshot())
+                }
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    private static func averagePaceSecondsPerKm(duration: TimeInterval, distanceKm: Double?) -> Double? {
+        guard let distanceKm, distanceKm > 0.02 else {
+            return nil
+        }
+        return duration / distanceKm
+    }
+
+    private static func location(for workout: HKWorkout) -> WorkoutSession.Location {
+        if workout.metadata?[HKMetadataKeyIndoorWorkout] as? Bool == true {
+            return .gym
+        }
+        if !workout.workoutActivities.isEmpty {
+            let hasOutdoorActivity = workout.workoutActivities.contains { activity in
+                activity.workoutConfiguration.locationType == .outdoor
+            }
+            let hasIndoorActivity = workout.workoutActivities.contains { activity in
+                activity.workoutConfiguration.locationType == .indoor
+            }
+            if hasOutdoorActivity {
+                return .outdoor
+            }
+            if hasIndoorActivity {
+                return .gym
+            }
+        }
+
+        switch workout.workoutActivityType {
+        case .walking, .running, .cycling, .hiking, .swimming:
+            return .outdoor
+        default:
+            return .gym
+        }
+    }
+
+    private static func location(for activityType: HKWorkoutActivityType) -> WorkoutSession.Location {
+        switch activityType {
+        case .walking, .running, .cycling, .hiking, .swimming:
+            return .outdoor
+        default:
+            return .gym
         }
     }
     
@@ -2445,8 +2659,27 @@ struct WatchRouteMetrics: Sendable {
     var paceSecondsPerKm: Double?
     var speedKmh: Double?
     var steps: Double?
+    var pointCount: Int?
     var heartRate: Double?
     var activeEnergyKcal: Double?
+}
+
+private final class RouteLocationAccumulator: @unchecked Sendable {
+    private let lock = NSLock()
+    private var locations: [CLLocation] = []
+
+    func append(contentsOf newLocations: [CLLocation]) {
+        lock.lock()
+        locations.append(contentsOf: newLocations)
+        lock.unlock()
+    }
+
+    func snapshot() -> [CLLocation] {
+        lock.lock()
+        let value = locations
+        lock.unlock()
+        return value
+    }
 }
 
 final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
@@ -2521,6 +2754,7 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
             context["activeEnergyKcal"] = activeEnergyKcal
         }
         context["isRouteWorkout"] = snapshot.isRouteWorkout
+        context["isOutdoorRoute"] = snapshot.isOutdoorRoute
         context["routeDistanceKm"] = snapshot.routeDistanceKm
         context["routePaceSecondsPerKm"] = snapshot.routePaceSecondsPerKm
         context["routeSpeedKmh"] = snapshot.routeSpeedKmh
@@ -2598,6 +2832,7 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
                 paceSecondsPerKm: message["routePaceSecondsPerKm"] as? Double,
                 speedKmh: message["routeSpeedKmh"] as? Double,
                 steps: message["routeSteps"] as? Double,
+                pointCount: message["routePointCount"] as? Int,
                 heartRate: message["heartRate"] as? Double,
                 activeEnergyKcal: message["activeEnergyKcal"] as? Double
             )
