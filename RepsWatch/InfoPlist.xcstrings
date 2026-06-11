@@ -1,93 +1,111 @@
 {
-  "sourceLanguage" : "es",
-  "strings" : {
-    "CFBundleDisplayName" : {
-      "comment" : "Bundle display name",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "StreakRep"
+  "sourceLanguage": "es",
+  "strings": {
+    "CFBundleDisplayName": {
+      "comment": "Bundle display name",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "StreakRep"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep"
           }
         }
       }
     },
-    "CFBundleName" : {
-      "comment" : "Bundle name",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "RepsWatch Watch App"
-          }
-        }
-      }
-    },
-    "NSHealthShareUsageDescription" : {
-      "comment" : "Privacy - Health Share Usage Description",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "StreakRep Watch reads heart rate and calories during workouts to show your live vitals."
+    "CFBundleName": {
+      "comment": "Bundle name",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RepsWatch Watch App"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "StreakRep Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RepsWatch Watch App"
           }
         }
       }
     },
-    "NSHealthUpdateUsageDescription" : {
-      "comment" : "Privacy - Health Update Usage Description",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "StreakRep Watch saves workout sessions started from the watch."
+    "NSHealthShareUsageDescription": {
+      "comment": "Privacy - Health Share Usage Description",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep Watch reads heart rate and calories during workouts to show your live vitals."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "StreakRep Watch guarda sesiones de entrenamiento iniciadas desde el reloj."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo."
           }
         }
       }
     },
-    "NSLocationWhenInUseUsageDescription" : {
-      "comment" : "Privacy - Location When In Use Usage Description",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "StreakRep Watch usa tu ubicación para dibujar la ruta de caminatas y carreras iniciadas desde el reloj."
+    "NSHealthUpdateUsageDescription": {
+      "comment": "Privacy - Health Update Usage Description",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep Watch saves workout sessions started from the watch."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep Watch guarda sesiones de entrenamiento iniciadas desde el reloj."
           }
         }
       }
     },
-    "NSMotionUsageDescription" : {
-      "comment" : "Privacy - Motion Usage Description",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "StreakRep Watch usa movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras."
+    "NSLocationWhenInUseUsageDescription": {
+      "comment": "Privacy - Location When In Use Usage Description",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep Watch usa tu ubicación para dibujar la ruta de caminatas y carreras iniciadas desde el reloj."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep Watch uses your location to draw the route of walks and runs started from the watch."
+          }
+        }
+      }
+    },
+    "NSMotionUsageDescription": {
+      "comment": "Privacy - Motion Usage Description",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep Watch usa movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep Watch uses motion and pedometer to show steps and distance during walks and runs."
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }
