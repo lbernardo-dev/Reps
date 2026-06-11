@@ -81,23 +81,6 @@
         }
       }
     },
-    "NSHealthShareUsageDescription_Watch" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "StreakRep Watch reads heart rate and calories during workouts to show your live vitals."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "StreakRep Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo."
-          }
-        }
-      }
-    },
     "NSHealthUpdateUsageDescription" : {
       "comment" : "Privacy - Health Update Usage Description",
       "localizations" : {
@@ -111,23 +94,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "StreakRep puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos."
-          }
-        }
-      }
-    },
-    "NSHealthUpdateUsageDescription_Watch" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "StreakRep Watch saves workout sessions started from the watch."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "StreakRep Watch guarda sesiones de entrenamiento iniciadas desde el reloj."
           }
         }
       }

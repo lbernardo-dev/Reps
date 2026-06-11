@@ -13,6 +13,7 @@ settings:
     MARKETING_VERSION: 1.0.0
     CURRENT_PROJECT_VERSION: 100202606111
     SWIFT_VERSION: 6.0
+    DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 packages:
   MuscleMap:
     url: https://github.com/melihcolpan/MuscleMap.git
@@ -110,9 +111,7 @@ targets:
         LD_RUNPATH_SEARCH_PATHS:
           - $(inherited)
           - "@executable_path/Frameworks"
-      configs:
-        Debug:
-          DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+
   RepsWidgets:
     type: app-extension
     platform: iOS

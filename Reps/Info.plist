@@ -43,18 +43,16 @@
 	<string>StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>StreakRep necesita acceso al micrófono para grabar notas de voz dentro de tus entrenamientos.</string>
-	<key>NSMotionUsageDescription</key>
-	<string>StreakRep usa los sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>StreakRep necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>StreakRep necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>RepsProICloudRecordIDHashes</key>
 	<array>
 		<string>69c0dc20d15124f24860efa6345787972b5cc2ebe6f3646fe44cdfe1a5e37ca9</string>
 	</array>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
