@@ -257,25 +257,38 @@ struct WorkoutSessionDetailView: View {
     }
 
     var body: some View {
+        Group {
+            if session.isRouteSession {
+                RouteWorkoutSummaryView(session: session, shareAction: shareSession)
+            } else {
+                strengthSessionDetail
+            }
+        }
+        .navigationTitle(session.isRouteSession ? "" : "Registro")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(session.isRouteSession)
+        .toolbar(session.isRouteSession ? .hidden : .visible, for: .navigationBar)
+        .mainTabBarHidden()
+        .sheet(isPresented: $isShowingShareSheet) {
+            if let image = shareImage {
+                ActivityViewController(activityItems: [image])
+            }
+        }
+    }
+
+    private var strengthSessionDetail: some View {
         ScrollView {
             VStack(spacing: 18) {
                 PulseCard {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
-                            Text(session.isRouteSession ? session.routeKindTitle : session.workoutTitle)
+                            Text(session.workoutTitle)
                                 .font(.system(size: 26, weight: .bold, design: .rounded))
                                 .lineLimit(2)
-                            
+
                             Spacer()
-                            
-                            Button {
-                                guard store.requireFeature(.shareCards, source: .shareCards) else {
-                                    return
-                                }
-                                // Generate a share card for the session
-                                shareImage = WorkoutShareImageRenderer.render(session: session)
-                                isShowingShareSheet = true
-                            } label: {
+
+                            Button(action: shareSession) {
                                 Image(systemName: "square.and.arrow.up")
                                     .font(.body)
                                     .foregroundStyle(PulseTheme.primary)
@@ -285,40 +298,24 @@ struct WorkoutSessionDetailView: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        
+
                         Text(session.date.formatted(date: .complete, time: .shortened))
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
-                        
+
                         HStack(spacing: 14) {
                             Label("\(session.durationMinutes) min", systemImage: "timer")
-                            if session.isRouteSession {
-                                Label(session.distanceKm.map { String(format: "%.2f km", $0) } ?? "Sin distancia", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
-                                Label(session.location == .outdoor ? "Exterior" : "Cinta", systemImage: session.location == .outdoor ? "location" : "figure.run.treadmill")
-                            } else {
-                                Label("\(exerciseLogs.count) ejercicios", systemImage: "list.bullet")
-                                Label(session.location == .home ? "Casa" : "Gimnasio", systemImage: session.location == .home ? "house" : "building")
-                            }
+                            Label("\(exerciseLogs.count) ejercicios", systemImage: "list.bullet")
+                            Label(session.location == .home ? "Casa" : "Gimnasio", systemImage: session.location == .home ? "house" : "building")
                         }
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.primary)
                     }
                 }
 
-                if session.isRouteSession {
-                    HStack(spacing: 14) {
-                        MetricCard(title: "Distancia", value: session.distanceKm.map { String(format: "%.2f", $0) } ?? "--", subtitle: "km", systemImage: "point.topleft.down.curvedto.point.bottomright.up", badgeColor: PulseTheme.primaryBright)
-                        MetricCard(title: "Ritmo", value: session.averagePaceSecondsPerKm.map(Self.paceText) ?? "--", subtitle: "min/km", systemImage: "speedometer", badgeColor: PulseTheme.primary)
-                    }
-                } else {
-                    HStack(spacing: 14) {
-                        MetricCard(title: "Volumen", value: "\(Int(FitnessMetrics.totalVolumeKg(for: [session])))", subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primaryBright)
-                        MetricCard(title: "Series", value: "\(FitnessMetrics.completedSets(in: session).count)", subtitle: "completadas", systemImage: "checkmark.circle", badgeColor: PulseTheme.primary)
-                    }
-                }
-
-                if session.isRouteSession {
-                    RouteSessionMetricsCard(session: session)
+                HStack(spacing: 14) {
+                    MetricCard(title: "Volumen", value: "\(Int(FitnessMetrics.totalVolumeKg(for: [session])))", subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primaryBright)
+                    MetricCard(title: "Series", value: "\(FitnessMetrics.completedSets(in: session).count)", subtitle: "completadas", systemImage: "checkmark.circle", badgeColor: PulseTheme.primary)
                 }
 
                 if let notes = session.notes, !notes.isEmpty {
@@ -334,59 +331,57 @@ struct WorkoutSessionDetailView: View {
                     }
                 }
 
-                if !session.isRouteSession || !exerciseLogs.isEmpty {
-                    PulseCard {
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("Ejercicios")
-                                .font(.headline)
+                PulseCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Ejercicios")
+                            .font(.headline)
 
-                            if exerciseLogs.isEmpty {
-                                PulseEmptyState(
-                                    title: "Sin ejercicios registrados",
-                                    message: "Esta sesión no contiene series de fuerza.",
-                                    systemImage: "list.bullet.clipboard"
-                                )
-                            } else {
-                                ForEach(exerciseLogs) { log in
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 3) {
-                                                Text(log.exercise.name)
-                                                    .font(.headline)
-                                                Text("\(log.sets.count) series · \(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg")
-                                                    .font(.subheadline)
-                                                    .foregroundStyle(PulseTheme.secondaryText)
-                                            }
-                                            Spacer()
-                                            NavigationLink {
-                                                ExerciseProgressView(exercise: log.exercise)
-                                            } label: {
-                                                Image(systemName: "chart.line.uptrend.xyaxis")
-                                                    .font(.subheadline)
-                                                    .foregroundStyle(PulseTheme.primary)
-                                                    .padding(8)
-                                                    .background(PulseTheme.grouped)
-                                                    .clipShape(Circle())
-                                            }
-                                            .buttonStyle(.plain)
-                                        }
-
-                                        ForEach(log.sets) { set in
-                                            WorkoutSessionSetRow(set: set)
-                                        }
-
-                                        if !log.notes.isEmpty {
-                                            Text(log.notes)
-                                                .font(.caption)
+                        if exerciseLogs.isEmpty {
+                            PulseEmptyState(
+                                title: "Sin ejercicios registrados",
+                                message: "Esta sesión no contiene series de fuerza.",
+                                systemImage: "list.bullet.clipboard"
+                            )
+                        } else {
+                            ForEach(exerciseLogs) { log in
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(log.exercise.name)
+                                                .font(.headline)
+                                            Text("\(log.sets.count) series · \(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg")
+                                                .font(.subheadline)
                                                 .foregroundStyle(PulseTheme.secondaryText)
-                                                .padding(.top, 2)
                                         }
+                                        Spacer()
+                                        NavigationLink {
+                                            ExerciseProgressView(exercise: log.exercise)
+                                        } label: {
+                                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                                .font(.subheadline)
+                                                .foregroundStyle(PulseTheme.primary)
+                                                .padding(8)
+                                                .background(PulseTheme.grouped)
+                                                .clipShape(Circle())
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .padding(.vertical, 4)
 
-                                    if log.id != exerciseLogs.last?.id {
-                                        Divider()
+                                    ForEach(log.sets) { set in
+                                        WorkoutSessionSetRow(set: set)
                                     }
+
+                                    if !log.notes.isEmpty {
+                                        Text(log.notes)
+                                            .font(.caption)
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                            .padding(.top, 2)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+
+                                if log.id != exerciseLogs.last?.id {
+                                    Divider()
                                 }
                             }
                         }
@@ -397,14 +392,14 @@ struct WorkoutSessionDetailView: View {
             .padding(.bottom, 112)
         }
         .screenBackground()
-        .navigationTitle("Registro")
-        .navigationBarTitleDisplayMode(.inline)
-        .mainTabBarHidden()
-        .sheet(isPresented: $isShowingShareSheet) {
-            if let image = shareImage {
-                ActivityViewController(activityItems: [image])
-            }
+    }
+
+    private func shareSession() {
+        guard store.requireFeature(.shareCards, source: .shareCards) else {
+            return
         }
+        shareImage = WorkoutShareImageRenderer.render(session: session)
+        isShowingShareSheet = true
     }
 
     private static func paceText(_ seconds: Double) -> String {
@@ -412,91 +407,320 @@ struct WorkoutSessionDetailView: View {
     }
 }
 
-private struct RouteSessionMetricsCard: View {
+private struct RouteWorkoutSummaryView: View {
+    @Environment(\.dismiss) private var dismiss
     let session: WorkoutSession
+    let shareAction: () -> Void
 
     var body: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Label(session.routeKindTitle, systemImage: session.routeSystemImage)
-                        .font(.headline)
-                    Spacer()
-                    Text(session.isOutdoorRouteSession ? "\(session.routePoints.count) puntos" : (session.location == .outdoor ? "Sin GPS" : "Cinta"))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                }
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                RouteWorkoutHero(session: session, backAction: { dismiss() }, shareAction: shareAction)
 
-                if session.isOutdoorRouteSession {
-                    HistoryRouteMap(routePoints: session.routePoints)
-                        .frame(height: 210)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                } else {
-                    VStack(spacing: 8) {
-                        Image(systemName: session.location == .outdoor ? "map" : "figure.run.treadmill")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                        Text(session.location == .outdoor ? "No hay trazado GPS guardado para esta sesión." : "Sesión en cinta: sin mapa ni desplazamiento GPS.")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .multilineTextAlignment(.center)
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 8) {
+                        Text("Workout Details")
+                            .font(.system(size: 30, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(Color.white.opacity(0.55))
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 150)
-                    .background(PulseTheme.grouped)
-                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    RouteMetricTile(title: "Distancia", value: session.distanceKm.map { String(format: "%.2f km", $0) } ?? "--", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
-                    RouteMetricTile(title: "Ritmo", value: session.averagePaceSecondsPerKm.map(Self.paceText) ?? "--", systemImage: "speedometer")
-                    RouteMetricTile(title: "Pasos", value: session.steps.map { "\(Int($0))" } ?? "--", systemImage: "figure.walk")
-                    RouteMetricTile(title: "Kcal activas", value: session.activeEnergyKcal.map { "\(Int($0))" } ?? session.estimatedCalories.map { "\(Int($0))" } ?? "--", systemImage: "flame.fill")
-                    RouteMetricTile(title: "Pulso medio", value: session.averageHeartRate.map { "\(Int($0)) lpm" } ?? "--", systemImage: "heart.fill")
-                    RouteMetricTile(title: "Pulso max", value: session.maxHeartRate.map { "\(Int($0)) lpm" } ?? "--", systemImage: "waveform.path.ecg")
-                    RouteMetricTile(title: "Antes", value: session.heartRateBefore.map { "\(Int($0)) lpm" } ?? "--", systemImage: "heart.circle")
-                    RouteMetricTile(title: "Después", value: session.heartRateAfter.map { "\(Int($0)) lpm" } ?? "--", systemImage: "heart.circle.fill")
+                    RouteWorkoutDetailsCard(session: session)
+
+                    if let notes = session.notes, !notes.isEmpty {
+                        RouteWorkoutNotesCard(notes: notes)
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 112)
+                .offset(y: -8)
             }
         }
-    }
-
-    private static func paceText(_ seconds: Double) -> String {
-        "\(Int(seconds) / 60):\(String(format: "%02d", Int(seconds) % 60))/km"
+        .ignoresSafeArea(edges: .top)
+        .background(Color.black)
     }
 }
 
-private struct RouteMetricTile: View {
-    let title: String
-    let value: String
-    let systemImage: String
+private struct RouteWorkoutHero: View {
+    let session: WorkoutSession
+    let backAction: () -> Void
+    let shareAction: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: systemImage)
-                .foregroundStyle(PulseTheme.primary)
-                .frame(width: 28, height: 28)
-                .background(PulseTheme.primary.opacity(0.12))
-                .clipShape(Circle())
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(PulseTheme.secondaryText)
-                Text(value)
-                    .font(.subheadline.weight(.bold))
+        ZStack(alignment: .bottomLeading) {
+            RouteWorkoutMapBackdrop(session: session)
+                .frame(height: 610)
+
+            LinearGradient(
+                colors: [
+                    .clear,
+                    Color.black.opacity(0.15),
+                    Color.black.opacity(0.82),
+                    .black
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 360)
+            .frame(maxHeight: .infinity, alignment: .bottom)
+
+            VStack(alignment: .leading, spacing: 12) {
+                Spacer()
+
+                HStack(spacing: 5) {
+                    Image(systemName: "location.north.circle")
+                        .font(.system(size: 19, weight: .semibold))
+                    Text(session.routeLocationText)
+                        .font(.system(size: 25, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+                .foregroundStyle(.white)
+
+                Text(session.appleFitnessRouteTitle)
+                    .font(.system(size: 46, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.78)
+                    .minimumScaleFactor(0.62)
+
+                Text(session.distanceKm.map { Self.distanceText($0) } ?? "--")
+                    .font(.system(size: 45, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color(red: 0.62, green: 1.0, blue: 0.03))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                HStack(spacing: 6) {
+                    Text(session.routeDateRangeText)
+                    Image(systemName: "applewatch")
+                    Text(session.routeSourceText)
+                }
+                .font(.system(size: 19, weight: .semibold, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.52))
+                .lineLimit(1)
+                .minimumScaleFactor(0.66)
+
+                if session.hasRouteSensorSummary {
+                    HStack(spacing: 16) {
+                        if let averageHeartRate = session.averageHeartRate {
+                            RouteHeroSensor(
+                                icon: "heart.fill",
+                                iconColor: Color(red: 1.0, green: 0.15, blue: 0.36),
+                                value: "\(Int(averageHeartRate))",
+                                label: "Avg. Heart Rate"
+                            )
+                        }
+
+                        if let steps = session.steps {
+                            RouteHeroSensor(
+                                icon: "shoeprints.fill",
+                                iconColor: Color(red: 0.22, green: 0.78, blue: 1.0),
+                                value: Self.compactNumber(steps),
+                                label: "Steps"
+                            )
+                        }
+                    }
+                    .padding(.top, 8)
+                }
             }
-            Spacer(minLength: 0)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 26)
+
+            HStack {
+                Button(action: backAction) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 74, height: 74)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Button(action: shareAction) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 74, height: 74)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 60)
+            .frame(maxHeight: .infinity, alignment: .top)
         }
-        .padding(10)
-        .background(PulseTheme.grouped)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .frame(height: 610)
+    }
+
+    private static func distanceText(_ distanceKm: Double) -> String {
+        "\(localizedDecimal(distanceKm, fractionDigits: 2))KM"
+    }
+
+    private static func compactNumber(_ value: Double) -> String {
+        if value >= 10_000 {
+            return "\(localizedDecimal(value / 1_000, fractionDigits: 1))K"
+        }
+        return "\(Int(value))"
+    }
+
+    private static func localizedDecimal(_ value: Double, fractionDigits: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = fractionDigits
+        formatter.maximumFractionDigits = fractionDigits
+        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.\(fractionDigits)f", value)
+    }
+}
+
+private struct RouteHeroSensor: View {
+    let icon: String
+    let iconColor: Color
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .foregroundStyle(iconColor)
+                Text(value)
+                    .foregroundStyle(.white)
+            }
+            .font(.system(size: 20, weight: .semibold, design: .rounded))
+
+            Text(label)
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.48))
+        }
+    }
+}
+
+private struct RouteWorkoutMapBackdrop: View {
+    let session: WorkoutSession
+
+    var body: some View {
+        if session.isOutdoorRouteSession {
+            HistoryRouteMap(routePoints: session.routePoints, style: .hero)
+        } else {
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.09, green: 0.11, blue: 0.13),
+                        Color(red: 0.02, green: 0.02, blue: 0.03)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                Image(systemName: session.location == .outdoor ? "map" : "figure.run.treadmill")
+                    .font(.system(size: 96, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.18))
+
+                Text(session.location == .outdoor ? "No GPS Route" : "Treadmill Workout")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.6))
+                    .padding(.top, 148)
+            }
+        }
+    }
+}
+
+private struct RouteWorkoutDetailsCard: View {
+    let session: WorkoutSession
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 18, alignment: .topLeading),
+        GridItem(.flexible(), spacing: 18, alignment: .topLeading)
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 24) {
+            RouteWorkoutMetric(title: "Workout Time", value: session.workoutTimeText, color: Color(red: 1.0, green: 0.90, blue: 0.03))
+            RouteWorkoutMetric(title: "Distance", value: session.distanceKm.map { "\(Self.localizedDecimal($0, fractionDigits: 2))KM" } ?? "--", color: Color(red: 0.0, green: 0.72, blue: 1.0))
+            RouteWorkoutMetric(title: "Active Kilocalories", value: session.activeKilocaloriesText, color: Color(red: 1.0, green: 0.08, blue: 0.34))
+            RouteWorkoutMetric(title: "Total Kilocalories", value: session.totalKilocaloriesText, color: Color(red: 1.0, green: 0.08, blue: 0.34))
+            RouteWorkoutMetric(title: "Elevation Gain", value: "--", color: Color(red: 0.33, green: 1.0, blue: 0.36))
+            RouteWorkoutMetric(title: "Avg. Power", value: "--", color: Color(red: 0.62, green: 1.0, blue: 0.03))
+            RouteWorkoutMetric(title: "Avg. Cadence", value: session.averageCadenceText, color: Color(red: 0.0, green: 0.86, blue: 0.90))
+            RouteWorkoutMetric(title: "Avg. Pace", value: session.averagePaceSecondsPerKm.map(Self.paceText) ?? "--", color: Color(red: 0.0, green: 0.86, blue: 0.90))
+            RouteWorkoutMetric(title: "Avg. Heart Rate", value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: Color(red: 1.0, green: 0.20, blue: 0.30))
+            RouteWorkoutMetric(title: "Max Heart Rate", value: session.maxHeartRate.map { "\(Int($0))BPM" } ?? "--", color: Color(red: 1.0, green: 0.20, blue: 0.30))
+        }
+        .padding(24)
+        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private static func paceText(_ seconds: Double) -> String {
+        "\(Int(seconds) / 60)'\(String(format: "%02d", Int(seconds) % 60))\"/KM"
+    }
+
+    private static func localizedDecimal(_ value: Double, fractionDigits: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = fractionDigits
+        formatter.maximumFractionDigits = fractionDigits
+        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.\(fractionDigits)f", value)
+    }
+}
+
+private struct RouteWorkoutMetric: View {
+    let title: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 22, weight: .regular, design: .rounded))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.78)
+
+            Text(value)
+                .font(.system(size: 42, weight: .regular, design: .rounded))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.48)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct RouteWorkoutNotesCard: View {
+    let notes: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Notes")
+                .font(.headline)
+                .foregroundStyle(.white)
+            Text(notes)
+                .font(.body)
+                .foregroundStyle(Color.white.opacity(0.72))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
 
 private struct HistoryRouteMap: View {
+    enum Style {
+        case card
+        case hero
+    }
+
     let routePoints: [RoutePoint]
+    var style: Style = .card
     @State private var position: MapCameraPosition = .automatic
 
     private var coordinates: [CLLocationCoordinate2D] {
@@ -507,21 +731,32 @@ private struct HistoryRouteMap: View {
         Map(position: $position) {
             if coordinates.count >= 2 {
                 MapPolyline(coordinates: coordinates)
-                    .stroke(PulseTheme.primary, lineWidth: 5)
+                    .stroke(style == .hero ? Color(red: 1.0, green: 0.88, blue: 0.0) : PulseTheme.primary, lineWidth: style == .hero ? 7 : 5)
             }
             if let first = coordinates.first {
-                Marker("Inicio", systemImage: "play.fill", coordinate: first)
-                    .tint(.green)
+                Annotation("Inicio", coordinate: first) {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: style == .hero ? 26 : 18, height: style == .hero ? 26 : 18)
+                        .overlay(Circle().stroke(.white, lineWidth: 2))
+                }
             }
             if let last = coordinates.last {
-                Marker("Fin", systemImage: "flag.checkered", coordinate: last)
-                    .tint(.purple)
+                Annotation("Fin", coordinate: last) {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: style == .hero ? 26 : 18, height: style == .hero ? 26 : 18)
+                        .overlay(Circle().stroke(.white, lineWidth: 2))
+                }
             }
         }
         .mapStyle(.standard(elevation: .realistic))
+        .modifier(HeroRouteMapColorScheme(isEnabled: style == .hero))
         .mapControls {
-            MapCompass()
-            MapScaleView()
+            if style == .card {
+                MapCompass()
+                MapScaleView()
+            }
         }
         .onAppear(perform: fitRoute)
     }
@@ -544,6 +779,99 @@ private struct HistoryRouteMap: View {
         let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
         let span = MKCoordinateSpan(latitudeDelta: max((maxLat - minLat) * 1.8, 0.005), longitudeDelta: max((maxLon - minLon) * 1.8, 0.005))
         position = .region(MKCoordinateRegion(center: center, span: span))
+    }
+}
+
+private struct HeroRouteMapColorScheme: ViewModifier {
+    let isEnabled: Bool
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.colorScheme(.dark)
+        } else {
+            content
+        }
+    }
+}
+
+private extension WorkoutSession {
+    var appleFitnessRouteTitle: String {
+        let normalizedTitle = workoutTitle.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        let isRun = normalizedTitle.localizedCaseInsensitiveContains("carrera") ||
+            normalizedTitle.localizedCaseInsensitiveContains("run")
+        let isWalk = normalizedTitle.localizedCaseInsensitiveContains("camina") ||
+            normalizedTitle.localizedCaseInsensitiveContains("walk")
+
+        if isRun {
+            return location == .outdoor ? "Outdoor Run" : "Treadmill Run"
+        }
+        if isWalk {
+            return location == .outdoor ? "Outdoor Walk" : "Treadmill Walk"
+        }
+        return location == .outdoor ? "Outdoor Workout" : "Indoor Workout"
+    }
+
+    var routeLocationText: String {
+        location == .outdoor ? "Outdoor" : "Indoor"
+    }
+
+    var routeSourceText: String {
+        if isImportedFromHealth || healthKitUUIDString != nil || !healthKitActivityTypes.isEmpty {
+            return "Apple Watch"
+        }
+        return "Reps"
+    }
+
+    var routeDateRangeText: String {
+        let start = startedAt ?? date
+        let end = endedAt ?? Calendar.current.date(byAdding: .minute, value: durationMinutes, to: start) ?? start
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = .current
+        dateFormatter.dateFormat = "d MMMM yyyy"
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = .current
+        timeFormatter.dateFormat = "HH:mm"
+
+        return "\(dateFormatter.string(from: start)), \(timeFormatter.string(from: start))-\(timeFormatter.string(from: end))"
+    }
+
+    var workoutTimeText: String {
+        let start = startedAt ?? date
+        let fallbackEnd = Calendar.current.date(byAdding: .minute, value: durationMinutes, to: start) ?? start
+        let end = endedAt ?? fallbackEnd
+        let measuredElapsed = Int(end.timeIntervalSince(start)) - pausedDurationSeconds
+        let elapsed = measuredElapsed > 0 ? measuredElapsed : max(durationMinutes, 1) * 60
+        let hours = elapsed / 3_600
+        let minutes = (elapsed % 3_600) / 60
+        let seconds = elapsed % 60
+        return "\(hours):\(String(format: "%02d", minutes)):\(String(format: "%02d", seconds))"
+    }
+
+    var activeKilocaloriesText: String {
+        let kcal = activeEnergyKcal ?? estimatedCalories
+        return kcal.map { "\(Int($0))KCAL" } ?? "--"
+    }
+
+    var totalKilocaloriesText: String {
+        if let estimatedCalories {
+            return "\(Int(estimatedCalories))KCAL"
+        }
+        if let activeEnergyKcal {
+            return "\(Int(activeEnergyKcal * 1.12))KCAL"
+        }
+        return "--"
+    }
+
+    var averageCadenceText: String {
+        guard let steps, durationMinutes > 0 else {
+            return "--"
+        }
+        return "\(Int(steps / Double(durationMinutes)))SPM"
+    }
+
+    var hasRouteSensorSummary: Bool {
+        averageHeartRate != nil || steps != nil
     }
 }
 

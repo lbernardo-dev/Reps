@@ -61,6 +61,7 @@ struct ActiveWorkoutView: View {
     @State private var workoutSensorSummary: WorkoutSensorSummary?
     @State private var isFinishingWorkout = false
     @State private var showResumeSuggestion = false
+    @State private var plannedDurationMinutes: Int
 
     private var exerciseDrafts: [ExerciseSessionDraft] {
         get { store.activeWorkoutDrafts }
@@ -73,6 +74,7 @@ struct ActiveWorkoutView: View {
     init(workout: WorkoutDay, origin: WorkoutSession.Origin = .routine) {
         self.workout = workout
         self.origin = origin
+        _plannedDurationMinutes = State(initialValue: workout.durationMinutes)
     }
 
     private var completedSets: Int {
@@ -162,7 +164,7 @@ struct ActiveWorkoutView: View {
             let projected = Int(Double(elapsedSeconds) / max(setCompletion, 0.01))
             return max(projected - elapsedSeconds, 0)
         }
-        return max((workout.durationMinutes * 60) - elapsedSeconds, 0)
+        return max((plannedDurationMinutes * 60) - elapsedSeconds, 0)
     }
 
     private var selectedExerciseContext: SelectedExerciseContextBuilder.Context {
@@ -349,7 +351,7 @@ struct ActiveWorkoutView: View {
             }
             Button("Continuar", role: .cancel) {}
         } message: {
-            Text("Has completado el tiempo planificado de tu entrenamiento (\(workout.durationMinutes) min).")
+            Text("Has completado el tiempo planificado de tu entrenamiento (\(plannedDurationMinutes) min).")
         }
         .alert("Añade al menos un ejercicio", isPresented: $showMissingExerciseAlert) {
             Button("Buscar ejercicio") {
@@ -701,7 +703,7 @@ struct ActiveWorkoutView: View {
         }
 
         // Comprobar si se ha agotado el tiempo planificado
-        let targetSeconds = workout.durationMinutes * 60
+        let targetSeconds = plannedDurationMinutes * 60
         if currentElapsed >= targetSeconds, !hasShownDurationAlert {
             elapsedSeconds = currentElapsed
             hasShownDurationAlert = true
@@ -1065,6 +1067,8 @@ struct ActiveWorkoutView: View {
                 .frame(height: 8)
 
                 if !isSessionStarted {
+                    PlannedDurationEditor(minutes: $plannedDurationMinutes)
+
                     Label(progress.startHint, systemImage: progress.startHintSystemImage)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
@@ -1083,7 +1087,7 @@ struct ActiveWorkoutView: View {
                 isTreadmill: isTreadmillCandidate,
                 isSessionStarted: isSessionStarted,
                 isPaused: isPaused,
-                plannedDurationMinutes: workout.durationMinutes,
+                plannedDurationMinutes: plannedDurationMinutes,
                 elapsedSeconds: elapsedSeconds,
                 pausedSeconds: pausedSeconds,
                 distanceKm: displayedRouteMetrics.distanceKm,
@@ -2471,6 +2475,53 @@ private struct SessionMetricStrip: View {
                 MiniSessionPill(title: metric.title, value: metric.value, icon: metric.icon)
             }
         }
+    }
+}
+
+private struct PlannedDurationEditor: View {
+    @Binding var minutes: Int
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Label("Duración planificada", systemImage: "timer")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+
+            Spacer(minLength: 8)
+
+            Button {
+                minutes = max(5, minutes - 5)
+            } label: {
+                Image(systemName: "minus")
+                    .font(.caption.weight(.black))
+                    .frame(width: 30, height: 30)
+                    .foregroundStyle(PulseTheme.primary)
+                    .background(PulseTheme.primary.opacity(0.12))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Reducir duración")
+
+            Text("\(minutes) min")
+                .font(.headline.weight(.black).monospacedDigit())
+                .frame(minWidth: 72)
+
+            Button {
+                minutes = min(180, minutes + 5)
+            } label: {
+                Image(systemName: "plus")
+                    .font(.caption.weight(.black))
+                    .frame(width: 30, height: 30)
+                    .foregroundStyle(.white)
+                    .background(PulseTheme.primary)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Aumentar duración")
+        }
+        .padding(12)
+        .background(PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
 

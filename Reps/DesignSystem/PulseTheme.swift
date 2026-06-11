@@ -397,11 +397,19 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 14)
-            .background(.ultraThinMaterial)
+            .background {
+                UnevenRoundedRectangle(
+                    cornerRadii: .init(bottomLeading: 28, bottomTrailing: 28),
+                    style: .continuous
+                )
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .top)
+            }
             .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(PulseTheme.separator)
-                    .frame(height: 1)
+                StickyHeaderBottomBorder(cornerRadius: 28)
+                    .stroke(PulseTheme.separator, lineWidth: 1)
+                    .frame(height: 28)
+                    .allowsHitTesting(false)
             }
 
             LinearGradient(
@@ -420,6 +428,26 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
             .filter { $0.minY <= threshold }
             .max { $0.minY < $1.minY }?
             .title ?? title
+    }
+}
+
+struct StickyHeaderBottomBorder: Shape {
+    let cornerRadius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let radius = min(cornerRadius, rect.height, rect.width / 2)
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + radius, y: rect.maxY),
+            control: CGPoint(x: rect.minX, y: rect.maxY)
+        )
+        path.addLine(to: CGPoint(x: rect.maxX - radius, y: rect.maxY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.minY),
+            control: CGPoint(x: rect.maxX, y: rect.maxY)
+        )
+        return path
     }
 }
 
