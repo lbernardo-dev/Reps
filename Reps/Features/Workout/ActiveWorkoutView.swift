@@ -62,13 +62,16 @@ struct ActiveWorkoutView: View {
     @State private var isFinishingWorkout = false
     @State private var showResumeSuggestion = false
     @State private var plannedDurationMinutes: Int
+    @State private var lastSensorRefreshSecond = -999
+    @State private var isRefreshingSensorSummary = false
+    @State private var showExpandedRouteMap = false
 
     private var exerciseDrafts: [ExerciseSessionDraft] {
         get { store.activeWorkoutDrafts }
         nonmutating set { store.activeWorkoutDrafts = newValue }
     }
 
-    private let timer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let origin: WorkoutSession.Origin
 
     init(workout: WorkoutDay, origin: WorkoutSession.Origin = .routine) {
@@ -499,18 +502,21 @@ struct ActiveWorkoutView: View {
             return
         }
 
-        startedAt = Date()
+        let startDate = Date()
+        startedAt = startDate
         elapsedSeconds = 0
         pausedSeconds = 0
         isPaused = false
         lastPausedAt = nil
         basePausedSeconds = 0
         lastStatusPublishSecond = -1
+        lastSensorRefreshSecond = -999
+        hasShownDurationAlert = false
         workoutSensorSummary = nil
+        store.startPreparedActiveWorkout(workout, drafts: exerciseDrafts, startedAt: startDate)
         if isRouteCandidate {
-            routeTracker.start()
+            routeTracker.startNewRoute(startedAt: startDate)
         }
-        store.startPreparedActiveWorkout(workout, drafts: exerciseDrafts)
         WorkoutBackgroundKeepAlive.shared.startIfNeeded()
         publishActiveWorkoutStatus()
     }
@@ -612,7 +618,7 @@ struct ActiveWorkoutView: View {
             store.addCardioLog(cardioLog)
         }
         isFinishingWorkout = false
-        dismiss()
+        finishedSession = session
     }
 
     private func publishActiveWorkoutStatus() {
@@ -648,7 +654,9 @@ struct ActiveWorkoutView: View {
                 previousRoutePaceSecondsPerKm: store.activeWorkoutStatus?.routePaceSecondsPerKm,
                 previousRouteSpeedKmh: store.activeWorkoutStatus?.routeSpeedKmh,
                 previousRoutePointCount: store.activeWorkoutStatus?.routePointCount,
-                routeSteps: workoutSensorSummary?.steps
+                routeSteps: workoutSensorSummary?.steps,
+                liveHeartRate: workoutSensorSummary?.averageHeartRate,
+                liveActiveEnergyKcal: workoutSensorSummary?.activeEnergyKcal
             )
         ))
     }
@@ -712,6 +720,7 @@ struct ActiveWorkoutView: View {
 
         elapsedSeconds = currentElapsed
         publishActiveWorkoutStatusIfNeeded(currentElapsedSeconds: currentElapsed)
+        refreshLiveSensorSummaryIfNeeded(currentElapsedSeconds: currentElapsed)
     }
 
     private func setWorkoutPaused(_ paused: Bool) {
@@ -730,7 +739,7 @@ struct ActiveWorkoutView: View {
             }
             lastPausedAt = nil
             if isRouteCandidate {
-                routeTracker.start()
+                routeTracker.resume()
                 motionResumeDetector.stop()
                 showResumeSuggestion = false
             }
@@ -750,6 +759,26 @@ struct ActiveWorkoutView: View {
             return restSeconds
         }
         return max(restDuration - Int(date.timeIntervalSince(restStartedAt)), 0)
+    }
+
+    private func refreshLiveSensorSummaryIfNeeded(currentElapsedSeconds: Int) {
+        guard isCardioMovementCandidate, isSessionStarted, !isPaused, currentElapsedSeconds >= 15 else { return }
+        guard currentElapsedSeconds - lastSensorRefreshSecond >= 30 else { return }
+        guard !isRefreshingSensorSummary else { return }
+
+        lastSensorRefreshSecond = currentElapsedSeconds
+        isRefreshingSensorSummary = true
+        let startDate = startedAt
+        Task {
+            let summary = try? await healthKit.fetchWorkoutSensorSummary(start: startDate, end: Date())
+            await MainActor.run {
+                if let summary {
+                    workoutSensorSummary = summary
+                    publishActiveWorkoutStatus()
+                }
+                isRefreshingSensorSummary = false
+            }
+        }
     }
 
     private var sessionProgressCard: some View {
@@ -1131,7 +1160,14 @@ struct ActiveWorkoutView: View {
         PulseCard {
             LiveRouteMapPanel(
                 routePoints: routeTracker.routePoints,
-                isSessionStarted: isSessionStarted
+                isSessionStarted: isSessionStarted,
+                onExpand: { showExpandedRouteMap = true }
+            )
+        }
+        .sheet(isPresented: $showExpandedRouteMap) {
+            ExpandedRouteMapView(
+                title: RepsText.workoutTitle(workout.title, language: store.userProfile.preferredLanguage),
+                routePoints: routeTracker.routePoints
             )
         }
     }
@@ -1159,7 +1195,7 @@ struct ActiveWorkoutView: View {
                 trackerPointCount: routeTracker.routePoints.count,
                 activeStatus: store.activeWorkoutStatus,
                 sensorSummary: workoutSensorSummary,
-                todayHealthMetric: store.todayHealthMetric
+                todayHealthMetric: nil
             )
         )
     }
@@ -2571,6 +2607,7 @@ private struct RouteTrackingPanel: View {
 private struct LiveRouteMapPanel: View {
     let routePoints: [RoutePoint]
     let isSessionStarted: Bool
+    let onExpand: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -2603,8 +2640,68 @@ private struct LiveRouteMapPanel: View {
                     .background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
+
+                Button(action: onExpand) {
+                    Label("Ampliar mapa", systemImage: "arrow.up.left.and.arrow.down.right")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .frame(height: 36)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.16), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .padding(12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .disabled(routePoints.isEmpty)
+                .opacity(routePoints.isEmpty ? 0 : 1)
             }
         }
+    }
+}
+
+private struct ExpandedRouteMapView: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let routePoints: [RoutePoint]
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            RouteMapPreview(routePoints: routePoints, followsRoute: false, showsControls: true)
+                .ignoresSafeArea()
+
+            HStack(spacing: 12) {
+                Text(title)
+                    .font(.headline.weight(.black))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.headline.weight(.bold))
+                        .frame(width: 44, height: 44)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.72), Color.black.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea(edges: .top)
+            )
+        }
+        .presentationBackground(.black)
     }
 }
 
@@ -3080,7 +3177,10 @@ struct VideoPlayerSheet: View {
 
 private struct RouteMapPreview: View {
     let routePoints: [RoutePoint]
+    var followsRoute = true
+    var showsControls = false
     @State private var position: MapCameraPosition = .automatic
+    @State private var userHasInteracted = false
 
     private var coordinates: [CLLocationCoordinate2D] {
         routePoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
@@ -3102,14 +3202,21 @@ private struct RouteMapPreview: View {
             }
         }
         .mapControls {
-            MapCompass()
-            MapScaleView()
+            if showsControls {
+                MapUserLocationButton()
+                MapCompass()
+                MapScaleView()
+            }
         }
+        .simultaneousGesture(DragGesture(minimumDistance: 4).onChanged { _ in userHasInteracted = true })
+        .simultaneousGesture(MagnifyGesture().onChanged { _ in userHasInteracted = true })
         .onAppear {
             fitRoute()
         }
         .onChange(of: routePoints.count) { _, _ in
-            fitRoute()
+            if followsRoute, !userHasInteracted {
+                fitRoute()
+            }
         }
     }
 
@@ -3144,6 +3251,7 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
     private var lastLocation: CLLocation?
     private var totalDistanceMeters: CLLocationDistance = 0
     private var shouldStartAfterAuthorization = false
+    private var startedAt: Date?
 
     override init() {
         super.init()
@@ -3177,7 +3285,19 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
         manager.requestWhenInUseAuthorization()
     }
 
-    func start() {
+    func startNewRoute(startedAt: Date) {
+        routePoints = []
+        lastLocation = nil
+        totalDistanceMeters = 0
+        self.startedAt = startedAt
+        startUpdatingLocation()
+    }
+
+    func resume() {
+        startUpdatingLocation()
+    }
+
+    private func startUpdatingLocation() {
         if authorizationStatus == .notDetermined {
             shouldStartAfterAuthorization = true
             requestAuthorization()
@@ -3233,7 +3353,7 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
             authorizationStatus = status
             if shouldStartAfterAuthorization,
                status == .authorizedWhenInUse || status == .authorizedAlways {
-                start()
+                startUpdatingLocation()
             } else if status == .denied || status == .restricted {
                 shouldStartAfterAuthorization = false
             }
@@ -3242,9 +3362,12 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         Task { @MainActor in
-            for location in locations where location.horizontalAccuracy >= 0 && location.horizontalAccuracy <= 50 {
+            for location in locations where shouldAccept(location) {
                 if let lastLocation {
-                    totalDistanceMeters += location.distance(from: lastLocation)
+                    let segmentDistance = location.distance(from: lastLocation)
+                    if segmentDistance >= 1, segmentDistance <= 250 {
+                        totalDistanceMeters += segmentDistance
+                    }
                 }
                 lastLocation = location
                 routePoints.append(
@@ -3258,6 +3381,22 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
                 )
             }
         }
+    }
+
+    private func shouldAccept(_ location: CLLocation) -> Bool {
+        guard location.horizontalAccuracy >= 0, location.horizontalAccuracy <= 35 else {
+            return false
+        }
+        if let startedAt, location.timestamp < startedAt.addingTimeInterval(-3) {
+            return false
+        }
+        if location.speed > 8.5 {
+            return false
+        }
+        if let lastLocation, location.timestamp <= lastLocation.timestamp {
+            return false
+        }
+        return true
     }
 }
 
@@ -3413,106 +3552,111 @@ struct WorkoutSummaryView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Retro Thermal Receipt Card
-                WorkoutReceiptView(session: session)
-                    .padding(.horizontal, 4)
-                
-                // Share and Save Buttons (High Contrast Premium styling)
-                HStack(spacing: 12) {
+        Group {
+            if session.isRouteSession {
+                RouteWorkoutSummaryView(session: session, shareAction: shareSession)
+            } else {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        WorkoutReceiptView(session: session)
+                            .padding(.horizontal, 4)
+
+                        HStack(spacing: 12) {
+                            Button(action: shareSession) {
+                                HStack {
+                                    Image(systemName: "square.and.arrow.up")
+                                    Text("Compartir")
+                                }
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(PulseTheme.accent)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                guard store.requireFeature(.shareCards, source: .shareCards) else {
+                                    return
+                                }
+                                let img = WorkoutShareImageRenderer.render(session: session)
+                                UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil)
+                                withAnimation {
+                                    isImageSaved = true
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                    isImageSaved = false
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: isImageSaved ? "checkmark" : "square.and.arrow.down")
+                                    Text(isImageSaved ? "Guardado" : "Guardar Foto")
+                                }
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color.white.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 4)
+
+                        PulseCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Detalles adicionales").font(.headline)
+                                if !session.mediaAttachments.isEmpty {
+                                    AttachmentPreviewStrip(attachments: session.mediaAttachments)
+                                }
+                                if let notes = session.notes, !notes.isEmpty {
+                                    Divider()
+                                    Text(notes)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                } else {
+                                    Text("Sin notas de entrenamiento adicionales.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(PulseTheme.tertiaryText)
+                                }
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .padding(.bottom, 24)
+                }
+                .screenBackground()
+                .overlay(alignment: .topTrailing) {
                     Button {
-                        guard store.requireFeature(.shareCards, source: .shareCards) else {
-                            return
-                        }
-                        generatedImage = WorkoutShareImageRenderer.render(session: session)
-                        isShowingShareSheet = true
+                        onDone()
                     } label: {
-                        HStack {
-                            Image(systemName: "square.and.arrow.up")
-                            Text("Compartir")
-                        }
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(PulseTheme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        Image(systemName: "xmark")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .frame(width: 32, height: 32)
+                            .background(PulseTheme.elevated)
+                            .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    
-                    Button {
-                        guard store.requireFeature(.shareCards, source: .shareCards) else {
-                            return
-                        }
-                        let img = WorkoutShareImageRenderer.render(session: session)
-                        UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil)
-                        withAnimation {
-                            isImageSaved = true
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            isImageSaved = false
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: isImageSaved ? "checkmark" : "square.and.arrow.down")
-                            Text(isImageSaved ? "Guardado" : "Guardar Foto")
-                        }
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 4)
-                
-                // Additional standard information cards below
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Detalles adicionales").font(.headline)
-                        if !session.mediaAttachments.isEmpty {
-                            AttachmentPreviewStrip(attachments: session.mediaAttachments)
-                        }
-                        if let notes = session.notes, !notes.isEmpty {
-                            Divider()
-                            Text(notes)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        } else {
-                            Text("Sin notas de entrenamiento adicionales.")
-                                .font(.subheadline)
-                                .foregroundStyle(PulseTheme.tertiaryText)
-                        }
-                    }
+                    .padding(.top, 14)
+                    .padding(.trailing, 16)
+                    .accessibilityLabel("Cerrar resumen")
                 }
             }
-            .padding(16)
-            .padding(.bottom, 24)
-        }
-        .screenBackground()
-        .overlay(alignment: .topTrailing) {
-            Button {
-                onDone()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .frame(width: 32, height: 32)
-                    .background(PulseTheme.elevated)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 14)
-            .padding(.trailing, 16)
-            .accessibilityLabel("Cerrar resumen")
         }
         .sheet(isPresented: $isShowingShareSheet) {
             if let image = generatedImage {
                 ActivityViewController(activityItems: [image])
             }
         }
+    }
+
+    private func shareSession() {
+        guard store.requireFeature(.shareCards, source: .shareCards) else {
+            return
+        }
+        generatedImage = WorkoutShareImageRenderer.render(session: session)
+        isShowingShareSheet = true
     }
 }
 

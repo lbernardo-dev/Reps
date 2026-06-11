@@ -407,15 +407,21 @@ struct WorkoutSessionDetailView: View {
     }
 }
 
-private struct RouteWorkoutSummaryView: View {
+struct RouteWorkoutSummaryView: View {
     @Environment(\.dismiss) private var dismiss
     let session: WorkoutSession
     let shareAction: () -> Void
+    @State private var showExpandedMap = false
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
-                RouteWorkoutHero(session: session, backAction: { dismiss() }, shareAction: shareAction)
+                RouteWorkoutHero(
+                    session: session,
+                    backAction: { dismiss() },
+                    shareAction: shareAction,
+                    mapAction: { showExpandedMap = true }
+                )
 
                 VStack(alignment: .leading, spacing: 14) {
                     HStack(spacing: 8) {
@@ -429,6 +435,16 @@ private struct RouteWorkoutSummaryView: View {
 
                     RouteWorkoutDetailsCard(session: session)
 
+                    if !session.routeSplits.isEmpty {
+                        RouteWorkoutSplitsCard(splits: session.routeSplits)
+                    }
+
+                    if session.isOutdoorRouteSession {
+                        RouteWorkoutMapCard(session: session) {
+                            showExpandedMap = true
+                        }
+                    }
+
                     if let notes = session.notes, !notes.isEmpty {
                         RouteWorkoutNotesCard(notes: notes)
                     }
@@ -440,6 +456,9 @@ private struct RouteWorkoutSummaryView: View {
         }
         .ignoresSafeArea(edges: .top)
         .background(Color.black)
+        .sheet(isPresented: $showExpandedMap) {
+            RouteWorkoutExpandedMap(session: session)
+        }
     }
 }
 
@@ -447,11 +466,14 @@ private struct RouteWorkoutHero: View {
     let session: WorkoutSession
     let backAction: () -> Void
     let shareAction: () -> Void
+    let mapAction: () -> Void
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             RouteWorkoutMapBackdrop(session: session)
                 .frame(height: 610)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: mapAction)
 
             LinearGradient(
                 colors: [
@@ -551,6 +573,19 @@ private struct RouteWorkoutHero: View {
                         .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
+
+                if session.isOutdoorRouteSession {
+                    Button(action: mapAction) {
+                        Image(systemName: "map")
+                            .font(.system(size: 25, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 74, height: 74)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 60)
@@ -671,6 +706,166 @@ private struct RouteWorkoutDetailsCard: View {
     }
 }
 
+private struct RouteWorkoutSplitsCard: View {
+    let splits: [RouteSplit]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Text("Splits")
+                    .font(.system(size: 30, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Color.white.opacity(0.55))
+            }
+
+            VStack(spacing: 0) {
+                HStack {
+                    Text("")
+                        .frame(width: 28, alignment: .leading)
+                    Text("Time")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Pace")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Distance")
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.white.opacity(0.48))
+                .padding(.bottom, 8)
+
+                ForEach(splits) { split in
+                    HStack {
+                        Text("\(split.index)")
+                            .foregroundStyle(Color.white.opacity(0.48))
+                            .frame(width: 28, alignment: .leading)
+                        Text(Self.timeText(split.elapsedSeconds))
+                            .foregroundStyle(Color(red: 1.0, green: 0.90, blue: 0.03))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(Self.paceText(split.paceSecondsPerKm))
+                            .foregroundStyle(Color(red: 0.0, green: 0.86, blue: 0.90))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(split.distanceText)
+                            .foregroundStyle(Color.white.opacity(0.58))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    .font(.system(size: 18, weight: .medium, design: .rounded).monospacedDigit())
+                    .padding(.vertical, 8)
+
+                    if split.id != splits.last?.id {
+                        Divider().background(Color.white.opacity(0.12))
+                    }
+                }
+            }
+            .padding(18)
+            .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        }
+    }
+
+    private static func timeText(_ seconds: TimeInterval) -> String {
+        let value = max(Int(seconds.rounded()), 0)
+        return "\(value / 60):\(String(format: "%02d", value % 60))"
+    }
+
+    private static func paceText(_ seconds: TimeInterval) -> String {
+        let value = max(Int(seconds.rounded()), 0)
+        return "\(value / 60)'\(String(format: "%02d", value % 60))\""
+    }
+}
+
+private struct RouteWorkoutMapCard: View {
+    let session: WorkoutSession
+    let onExpand: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Button(action: onExpand) {
+                HStack(spacing: 8) {
+                    Text("Map")
+                        .font(.system(size: 30, weight: .black, design: .rounded))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(Color.white.opacity(0.55))
+                    Spacer()
+                }
+                .foregroundStyle(.white)
+            }
+            .buttonStyle(.plain)
+
+            ZStack(alignment: .topTrailing) {
+                HistoryRouteMap(routePoints: session.routePoints, style: .card)
+                    .frame(height: 220)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+                    .padding(12)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .onTapGesture(perform: onExpand)
+        }
+    }
+}
+
+private struct RouteWorkoutExpandedMap: View {
+    @Environment(\.dismiss) private var dismiss
+    let session: WorkoutSession
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            HistoryRouteMap(routePoints: session.routePoints, style: .expanded)
+                .ignoresSafeArea()
+
+            HStack(spacing: 12) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.title3.weight(.bold))
+                        .frame(width: 52, height: 52)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+
+                Text(session.distanceKm.map { "\(Self.localizedDecimal($0, fractionDigits: 2)) KM \(session.appleFitnessRouteTitle)" } ?? session.appleFitnessRouteTitle)
+                    .font(.headline.weight(.black))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                Spacer()
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.72), Color.black.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea(edges: .top)
+            )
+        }
+        .presentationBackground(.black)
+    }
+
+    private static func localizedDecimal(_ value: Double, fractionDigits: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = fractionDigits
+        formatter.maximumFractionDigits = fractionDigits
+        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.\(fractionDigits)f", value)
+    }
+}
+
 private struct RouteWorkoutMetric: View {
     let title: String
     let value: String
@@ -717,6 +912,7 @@ private struct HistoryRouteMap: View {
     enum Style {
         case card
         case hero
+        case expanded
     }
 
     let routePoints: [RoutePoint]
@@ -731,13 +927,13 @@ private struct HistoryRouteMap: View {
         Map(position: $position) {
             if coordinates.count >= 2 {
                 MapPolyline(coordinates: coordinates)
-                    .stroke(style == .hero ? Color(red: 1.0, green: 0.88, blue: 0.0) : PulseTheme.primary, lineWidth: style == .hero ? 7 : 5)
+                    .stroke(style == .card ? PulseTheme.primary : Color(red: 1.0, green: 0.88, blue: 0.0), lineWidth: style == .card ? 5 : 7)
             }
             if let first = coordinates.first {
                 Annotation("Inicio", coordinate: first) {
                     Circle()
                         .fill(Color.green)
-                        .frame(width: style == .hero ? 26 : 18, height: style == .hero ? 26 : 18)
+                        .frame(width: style == .card ? 18 : 26, height: style == .card ? 18 : 26)
                         .overlay(Circle().stroke(.white, lineWidth: 2))
                 }
             }
@@ -745,15 +941,16 @@ private struct HistoryRouteMap: View {
                 Annotation("Fin", coordinate: last) {
                     Circle()
                         .fill(Color.red)
-                        .frame(width: style == .hero ? 26 : 18, height: style == .hero ? 26 : 18)
+                        .frame(width: style == .card ? 18 : 26, height: style == .card ? 18 : 26)
                         .overlay(Circle().stroke(.white, lineWidth: 2))
                 }
             }
         }
         .mapStyle(.standard(elevation: .realistic))
-        .modifier(HeroRouteMapColorScheme(isEnabled: style == .hero))
+        .modifier(HeroRouteMapColorScheme(isEnabled: style != .card))
         .mapControls {
-            if style == .card {
+            if style != .hero {
+                MapUserLocationButton()
                 MapCompass()
                 MapScaleView()
             }
@@ -791,6 +988,25 @@ private struct HeroRouteMapColorScheme: ViewModifier {
         } else {
             content
         }
+    }
+}
+
+private struct RouteSplit: Identifiable, Hashable {
+    let id = UUID()
+    let index: Int
+    let distanceMeters: CLLocationDistance
+    let elapsedSeconds: TimeInterval
+
+    var paceSecondsPerKm: TimeInterval {
+        guard distanceMeters > 0 else { return 0 }
+        return elapsedSeconds / (distanceMeters / 1_000)
+    }
+
+    var distanceText: String {
+        if distanceMeters >= 999 {
+            return "1 KM"
+        }
+        return "\(Int(distanceMeters.rounded())) M"
     }
 }
 
@@ -872,6 +1088,59 @@ private extension WorkoutSession {
 
     var hasRouteSensorSummary: Bool {
         averageHeartRate != nil || steps != nil
+    }
+
+    var routeSplits: [RouteSplit] {
+        guard routePoints.count >= 2 else { return [] }
+
+        var splits: [RouteSplit] = []
+        var splitIndex = 1
+        var splitStartDistance: CLLocationDistance = 0
+        var splitStartTime = routePoints[0].timestamp
+        var cumulativeDistance: CLLocationDistance = 0
+        var previousPoint = routePoints[0]
+        let targetMeters: CLLocationDistance = 1_000
+
+        for point in routePoints.dropFirst() {
+            let previousLocation = CLLocation(latitude: previousPoint.latitude, longitude: previousPoint.longitude)
+            let currentLocation = CLLocation(latitude: point.latitude, longitude: point.longitude)
+            let segmentDistance = currentLocation.distance(from: previousLocation)
+            guard segmentDistance > 0 else {
+                previousPoint = point
+                continue
+            }
+
+            let previousDistance = cumulativeDistance
+            cumulativeDistance += segmentDistance
+
+            while cumulativeDistance - splitStartDistance >= targetMeters {
+                let needed = splitStartDistance + targetMeters
+                let ratio = min(max((needed - previousDistance) / segmentDistance, 0), 1)
+                let segmentDuration = point.timestamp.timeIntervalSince(previousPoint.timestamp)
+                let splitEndTime = previousPoint.timestamp.addingTimeInterval(segmentDuration * ratio)
+                splits.append(RouteSplit(
+                    index: splitIndex,
+                    distanceMeters: targetMeters,
+                    elapsedSeconds: splitEndTime.timeIntervalSince(splitStartTime)
+                ))
+                splitIndex += 1
+                splitStartDistance = needed
+                splitStartTime = splitEndTime
+            }
+
+            previousPoint = point
+        }
+
+        let remainder = cumulativeDistance - splitStartDistance
+        if remainder >= 50, let last = routePoints.last {
+            splits.append(RouteSplit(
+                index: splitIndex,
+                distanceMeters: remainder,
+                elapsedSeconds: last.timestamp.timeIntervalSince(splitStartTime)
+            ))
+        }
+
+        return splits
     }
 }
 

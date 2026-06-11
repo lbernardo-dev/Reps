@@ -1214,7 +1214,9 @@ struct RepsTests {
                 previousRoutePaceSecondsPerKm: 360,
                 previousRouteSpeedKmh: 10,
                 previousRoutePointCount: 24,
-                routeSteps: 3_000
+                routeSteps: 3_000,
+                liveHeartRate: 128,
+                liveActiveEnergyKcal: 64
             )
         )
 
@@ -1234,6 +1236,8 @@ struct RepsTests {
         #expect(update.routeSpeedKmh == 10)
         #expect(update.routePointCount == 24)
         #expect(update.routeSteps == 3_000)
+        #expect(update.liveHeartRate == 128)
+        #expect(update.liveActiveEnergyKcal == 64)
     }
 
     @Test func routeMetricsBuilderPrioritizesLiveStatusAndFormatsValues() {
@@ -1295,7 +1299,7 @@ struct RepsTests {
         #expect(metrics.energyText == "340")
     }
 
-    @Test func routeMetricsBuilderFallsBackToTrackerSensorAndDailyHealth() {
+    @Test func routeMetricsBuilderFallsBackToTrackerAndSensorOnly() {
         let sensor = WorkoutSensorSummary(
             steps: 2_200,
             activeEnergyKcal: nil,
@@ -1330,7 +1334,7 @@ struct RepsTests {
         #expect(metrics.pointCount == 18)
         #expect(metrics.stepsText == "2200")
         #expect(metrics.heartRateText == "132 lpm")
-        #expect(metrics.energyText == "410")
+        #expect(metrics.energyText == "--")
     }
 
     @Test func routeProgressBuilderCreatesRouteAndTreadmillSnapshots() {

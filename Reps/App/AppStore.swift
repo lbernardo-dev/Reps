@@ -884,7 +884,7 @@ final class AppStore: ObservableObject {
         ])
     }
 
-    func startPreparedActiveWorkout(_ workout: WorkoutDay, drafts: [ExerciseSessionDraft], isPaused: Bool = false) {
+    func startPreparedActiveWorkout(_ workout: WorkoutDay, drafts: [ExerciseSessionDraft], isPaused: Bool = false, startedAt: Date = .now) {
         var preparedWorkout = workout
         preparedWorkout.exercises = drafts.map(\.workoutExercise)
         let isRouteWorkout = Self.isRouteWorkout(preparedWorkout)
@@ -895,7 +895,7 @@ final class AppStore: ObservableObject {
             planTitle: activePlan.days.isEmpty ? nil : activePlan.name,
             workoutTitle: preparedWorkout.title,
             sessionTitle: preparedWorkout.subtitle,
-            startedAt: .now,
+            startedAt: startedAt,
             elapsedSeconds: 0,
             pausedSeconds: 0,
             completedSets: drafts.flatMap(\.sets).filter(\.completed).count,
@@ -1060,7 +1060,9 @@ final class AppStore: ObservableObject {
             routePaceSecondsPerKm: update.routePaceSecondsPerKm,
             routeSpeedKmh: update.routeSpeedKmh,
             routePointCount: update.routePointCount,
-            routeSteps: update.routeSteps
+            routeSteps: update.routeSteps,
+            liveHeartRate: update.liveHeartRate,
+            liveActiveEnergyKcal: update.liveActiveEnergyKcal
         )
     }
 

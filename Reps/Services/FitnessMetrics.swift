@@ -1933,6 +1933,8 @@ enum ActiveWorkoutStatusBuilder {
         let previousRouteSpeedKmh: Double?
         let previousRoutePointCount: Int?
         let routeSteps: Double?
+        let liveHeartRate: Double?
+        let liveActiveEnergyKcal: Double?
     }
 
     struct Update {
@@ -1967,6 +1969,8 @@ enum ActiveWorkoutStatusBuilder {
         let routeSpeedKmh: Double?
         let routePointCount: Int?
         let routeSteps: Double?
+        let liveHeartRate: Double?
+        let liveActiveEnergyKcal: Double?
     }
 
     static func update(from input: Input) -> Update {
@@ -2009,7 +2013,9 @@ enum ActiveWorkoutStatusBuilder {
             routePaceSecondsPerKm: routePace,
             routeSpeedKmh: routeSpeed,
             routePointCount: routePointCount,
-            routeSteps: input.routeSteps
+            routeSteps: input.routeSteps,
+            liveHeartRate: input.liveHeartRate,
+            liveActiveEnergyKcal: input.liveActiveEnergyKcal
         )
     }
 }
@@ -2044,7 +2050,7 @@ enum RouteMetricsBuilder {
         let pointCount = max(input.trackerPointCount, input.activeStatus?.routePointCount ?? 0)
         let steps = input.activeStatus?.routeSteps ?? input.sensorSummary?.steps
         let heartRate = input.activeStatus?.liveHeartRate ?? input.sensorSummary?.averageHeartRate
-        let activeEnergy = input.activeStatus?.liveActiveEnergyKcal ?? input.sensorSummary?.activeEnergyKcal ?? input.todayHealthMetric?.activeEnergyKcal
+        let activeEnergy = input.activeStatus?.liveActiveEnergyKcal ?? input.sensorSummary?.activeEnergyKcal
 
         return Metrics(
             distanceKm: distanceKm,
