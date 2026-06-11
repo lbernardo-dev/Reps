@@ -41,6 +41,7 @@ targets:
         NSHealthShareUsageDescription: StreakRep lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación.
         NSHealthUpdateUsageDescription: StreakRep puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos.
         NSLocationWhenInUseUsageDescription: StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.
+        NSMotionUsageDescription: StreakRep usa sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada.
         NSPhotoLibraryAddUsageDescription: StreakRep necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas.
         NSPhotoLibraryUsageDescription: StreakRep necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos.
         RepsProICloudRecordIDHashes:
@@ -105,7 +106,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.romerodev.repsfitness
         TARGETED_DEVICE_FAMILY: "1,2"
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_APPICON_NAME: StreakRepFit2
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.healthcare-fitness
         LD_RUNPATH_SEARCH_PATHS:
@@ -159,6 +160,8 @@ targets:
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSHealthShareUsageDescription: StreakRep Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo.
         NSHealthUpdateUsageDescription: StreakRep Watch guarda sesiones de entrenamiento iniciadas desde el reloj.
+        NSLocationWhenInUseUsageDescription: StreakRep Watch usa tu ubicación para dibujar la ruta de caminatas y carreras iniciadas desde el reloj.
+        NSMotionUsageDescription: StreakRep Watch usa el movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras.
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.romerodev.repsfitness
     entitlements:

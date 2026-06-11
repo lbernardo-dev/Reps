@@ -20,15 +20,14 @@
     },
     "CFBundleName": {
       "comment": "Bundle name",
-      "extractionState": "extracted_with_value",
       "localizations": {
-        "es": {
+        "en": {
           "stringUnit": {
             "state": "translated",
             "value": "RepsWidgets"
           }
         },
-        "en": {
+        "es": {
           "stringUnit": {
             "state": "translated",
             "value": "RepsWidgets"

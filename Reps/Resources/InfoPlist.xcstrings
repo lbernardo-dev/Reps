@@ -20,15 +20,14 @@
     },
     "CFBundleName": {
       "comment": "Bundle name",
-      "extractionState": "extracted_with_value",
       "localizations": {
-        "es": {
+        "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Reps"
           }
         },
-        "en": {
+        "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Reps"
@@ -140,18 +139,17 @@
     },
     "NSMotionUsageDescription": {
       "comment": "Privacy - Motion Usage Description",
-      "extractionState": "extracted_with_value",
       "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StreakRep usa los sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada."
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "StreakRep uses motion sensors to detect walking or running and suggest resuming a paused route."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StreakRep usa los sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada."
           }
         }
       }
