@@ -7,27 +7,10 @@ struct WorkoutLibraryView: View {
     @State private var editingWorkout: WorkoutDay?
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Custom Navigation Bar / Toolbar
-            HStack(spacing: 12) {
-                Button {
-                    HapticService.selection()
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-
-                Text("Rutinas")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                
-                Spacer()
-                
+        StickyHeaderScaffold(
+            title: "Rutinas",
+            subtitle: "Crea, programa y reutiliza",
+            accessory: {
                 Button {
                     showCreate = true
                 } label: {
@@ -42,39 +25,27 @@ struct WorkoutLibraryView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Crear rutina")
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text("Crea, programa y reutiliza tus entrenamientos")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .padding(.bottom, 2)
-
-                    if store.workoutTemplates.isEmpty {
-                        PulseCard {
-                            PulseEmptyState(
-                                title: "No hay rutinas",
-                                message: "Crea rutinas con tus ejercicios, notas y material.",
-                                systemImage: "list.clipboard"
-                            )
-                        }
-                    } else {
-                        ForEach(store.workoutTemplates) { workout in
-                            PulseCard {
-                                WorkoutTemplateRow(workout: workout) {
-                                    editingWorkout = workout
-                                }
-                            }
+        ) {
+            if store.workoutTemplates.isEmpty {
+                PulseCard {
+                    PulseEmptyState(
+                        title: "No hay rutinas",
+                        message: "Crea rutinas con tus ejercicios, notas y material.",
+                        systemImage: "list.clipboard"
+                    )
+                }
+                .stickyHeaderTitle("Sin rutinas")
+            } else {
+                ForEach(store.workoutTemplates) { workout in
+                    PulseCard {
+                        WorkoutTemplateRow(workout: workout) {
+                            editingWorkout = workout
                         }
                     }
+                    .stickyHeaderTitle(workout.title)
                 }
-                .padding(20)
-                .padding(.bottom, 112)
             }
         }
-        .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
         .sheet(isPresented: $showCreate) {

@@ -12,42 +12,20 @@ struct ProgressDashboardView: View {
 
   var body: some View {
     NavigationStack {
-      ScrollView {
-        VStack(spacing: 18) {
-          let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
-          HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text(isSpanish ? "RENDIMIENTO" : "PERFORMANCE")
-                .font(.system(size: 10, weight: .black, design: .rounded))
-                .tracking(2.0)
-                .foregroundStyle(PulseTheme.primary)
-                .padding(.bottom, 1)
-
-              Text(isSpanish ? "Progreso" : "Progress")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .lineLimit(1)
-
-              Text(
-                selectedSection == .muscles
-                  ? (isSpanish
-                    ? "Series por músculo en los últimos 7 días"
-                    : "Sets per muscle in the last 7 days") : selectedRange.subtitle
-              )
-              .font(.subheadline.weight(.semibold))
-              .foregroundStyle(PulseTheme.secondaryText)
-              .lineLimit(2)
-              .minimumScaleFactor(0.82)
-            }
-
-            Spacer()
-
+      let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
+      StickyHeaderScaffold(
+        title: isSpanish ? "Progreso" : "Progress",
+        subtitle: isSpanish ? "Rendimiento" : "Performance",
+        topContentPadding: 128,
+        accessory: {
             NavigationLink {
               CalendarView()
             } label: {
               StreakBadge(days: store.streakDays, isSpanish: isSpanish)
             }
             .buttonStyle(.plain)
-          }
+        }
+      ) {
 
           Picker("Rango", selection: $selectedRange) {
             ForEach(ProgressRange.allCases) { range in
@@ -61,8 +39,10 @@ struct ProgressDashboardView: View {
               Button {
                 if section == .load,
                    !store.hasFeatureAccess(.advancedAnalytics) {
+                  HapticService.notification(.warning)
                   store.presentPaywall(source: .progressLoad, feature: .advancedAnalytics)
                 } else {
+                  HapticService.selection()
                   withAnimation(.snappy(duration: 0.2)) {
                     selectedSection = section
                   }
@@ -74,6 +54,18 @@ struct ProgressDashboardView: View {
               .buttonStyle(.plain)
             }
           }
+          .stickyHeaderTitle(isSpanish ? "Métrica" : "Metric")
+
+          ProgressActionPlanCard(
+            steps: nextBestSteps,
+            weeklyCompletion: store.weeklyCompletion,
+            battery: batteryStatus,
+            completionRate: competitiveSummary.completionRate,
+            isSpanish: isSpanish
+          ) { action in
+            perform(action)
+          }
+          .stickyHeaderTitle(isSpanish ? "Plan de progreso" : "Progress Plan")
 
           if selectedSection == .general {
             HStack(spacing: 14) {
@@ -99,6 +91,7 @@ struct ProgressDashboardView: View {
               }
               .buttonStyle(.plain)
             }
+            .stickyHeaderTitle(isSpanish ? "Vista general" : "Overview")
 
             HStack(spacing: 14) {
               MetricCard(
@@ -170,6 +163,7 @@ struct ProgressDashboardView: View {
 
           if selectedSection == .load {
             CompetitiveSummaryCard(summary: competitiveSummary)
+              .stickyHeaderTitle(isSpanish ? "Carga" : "Load")
 
             HStack(spacing: 14) {
               MetricCard(
@@ -447,6 +441,7 @@ struct ProgressDashboardView: View {
                 }
               }
             }
+            .stickyHeaderTitle(isSpanish ? "Ejercicios" : "Exercises")
 
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
@@ -540,6 +535,7 @@ struct ProgressDashboardView: View {
 
           if selectedSection == .body {
             bodyProgressCard
+              .stickyHeaderTitle(isSpanish ? "Cuerpo" : "Body")
           }
 
           if selectedSection == .muscles {
@@ -558,6 +554,7 @@ struct ProgressDashboardView: View {
                 startDate: selectedRange.startDate,
                 gender: store.userProfile.muscleMapGender
               )
+              .stickyHeaderTitle(isSpanish ? "Mapa muscular" : "Muscle Map")
             }
           }
 
@@ -583,12 +580,8 @@ struct ProgressDashboardView: View {
               }
             }
           }
-        }
-        .padding(20)
-        .padding(.bottom, 112)
       }
-      .screenBackground()
-      .navigationBarHidden(true)
+      .toolbar(.hidden, for: .navigationBar)
     }
   }
 
@@ -611,6 +604,20 @@ struct ProgressDashboardView: View {
       exercises: store.exercises,
       since: selectedRange.startDate
     )
+  }
+
+  private var nextBestSteps: [RetentionEngine.ActivationStep] {
+    RetentionEngine.nextBestSteps(
+      sessions: store.workoutSessions,
+      activePlan: store.activePlan,
+      scheduledWorkouts: store.scheduledWorkouts,
+      remindersEnabled: store.userProfile.remindersEnabled,
+      competitiveSummary: competitiveSummary
+    )
+  }
+
+  private var batteryStatus: FitnessMetrics.TrainingBatteryStatus {
+    store.trainingBattery
   }
 
   private var effectiveSetCount: Int {
@@ -751,10 +758,34 @@ struct ProgressDashboardView: View {
   }
 
   private func perform(_ action: AnalyticsEngine.CompetitiveAction) {
+    HapticService.selection()
     guard let destination = store.executeCompetitiveAction(action) else {
       return
     }
     onSelectTab?(destination)
+  }
+
+  private func perform(_ action: RetentionEngine.ActivationAction?) {
+    guard let action else { return }
+    HapticService.selection()
+
+    switch action {
+    case .startWorkout:
+      onSelectTab?(.today)
+    case .createPlan:
+      onSelectTab?(.plans)
+    case .scheduleWorkout:
+      onSelectTab?(.calendar)
+    case .competitive(let competitiveAction):
+      guard let destination = store.executeCompetitiveAction(competitiveAction) else {
+        return
+      }
+      onSelectTab?(destination)
+    case .openProgress:
+      withAnimation(.snappy(duration: 0.2)) {
+        selectedSection = .general
+      }
+    }
   }
 }
 
@@ -853,6 +884,236 @@ private struct AnalyticsShortcutCard: View {
     .background(PulseTheme.card)
     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
     .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 8)
+  }
+}
+
+private struct ProgressActionPlanCard: View {
+  let steps: [RetentionEngine.ActivationStep]
+  let weeklyCompletion: Double
+  let battery: FitnessMetrics.TrainingBatteryStatus
+  let completionRate: Double
+  let isSpanish: Bool
+  let onAction: (RetentionEngine.ActivationAction?) -> Void
+
+  private var pendingStep: RetentionEngine.ActivationStep? {
+    steps.first { !$0.isCompleted } ?? steps.first
+  }
+
+  private var completedSteps: Int {
+    steps.filter(\.isCompleted).count
+  }
+
+  private var planProgress: Double {
+    guard !steps.isEmpty else { return 0 }
+    return Double(completedSteps) / Double(steps.count)
+  }
+
+  private var visibleStepCount: Int {
+    min(steps.count, 2)
+  }
+
+  private var batteryColor: Color {
+    switch battery.state {
+    case .charged:
+      return PulseTheme.recovery
+    case .steady:
+      return PulseTheme.primary
+    case .low:
+      return PulseTheme.warning
+    case .critical:
+      return PulseTheme.destructive
+    }
+  }
+
+  var body: some View {
+    PulseCard(contentPadding: 18) {
+      VStack(alignment: .leading, spacing: 16) {
+        HStack(alignment: .center, spacing: 16) {
+          ProgressPlanRing(
+            progress: max(planProgress, min(max(weeklyCompletion, 0), 1) * 0.85),
+            color: batteryColor,
+            centerValue: "\(Int(max(weeklyCompletion, 0) * 100))%"
+          )
+          .frame(width: 92, height: 92)
+
+          VStack(alignment: .leading, spacing: 9) {
+            Label(isSpanish ? "Dirección de progreso" : "Progress Direction", systemImage: "sparkles")
+              .font(.caption.weight(.black))
+              .textCase(.uppercase)
+              .foregroundStyle(PulseTheme.primary)
+
+            Text(pendingStep?.title ?? (isSpanish ? "Mantén la semana estable" : "Keep the Week Stable"))
+              .font(.title3.weight(.bold))
+              .lineLimit(2)
+              .minimumScaleFactor(0.82)
+
+            Text(pendingStep?.message ?? battery.suggestion)
+              .font(.subheadline)
+              .foregroundStyle(PulseTheme.secondaryText)
+              .lineLimit(3)
+              .minimumScaleFactor(0.82)
+          }
+
+          Spacer(minLength: 0)
+        }
+
+        HStack(spacing: 8) {
+          ProgressSignalPill(
+            title: isSpanish ? "Adherencia" : "Adherence",
+            value: "\(Int(completionRate * 100))%",
+            color: completionRate >= 0.75 ? PulseTheme.recovery : PulseTheme.warning
+          )
+          ProgressSignalPill(
+            title: isSpanish ? "Batería" : "Battery",
+            value: "\(battery.level)%",
+            color: batteryColor
+          )
+          ProgressSignalPill(
+            title: isSpanish ? "Pasos" : "Steps",
+            value: "\(completedSteps)/\(max(steps.count, 1))",
+            color: PulseTheme.primary
+          )
+        }
+
+        VStack(spacing: 0) {
+          ForEach(Array(steps.prefix(visibleStepCount).enumerated()), id: \.element.id) { index, step in
+            ProgressActionStepRow(step: step, isSpanish: isSpanish) {
+              onAction(step.action)
+            }
+
+            if index < visibleStepCount - 1 {
+              Divider()
+                .padding(.leading, 52)
+            }
+          }
+        }
+
+        if let pendingStep, !pendingStep.isCompleted, pendingStep.action != nil {
+          Button {
+            onAction(pendingStep.action)
+          } label: {
+            Label(pendingStep.actionTitle, systemImage: "arrow.forward.circle.fill")
+              .font(.subheadline.weight(.bold))
+              .foregroundStyle(.white)
+              .frame(maxWidth: .infinity)
+              .frame(height: 46)
+              .background(PulseTheme.accent)
+              .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+          }
+          .buttonStyle(.plain)
+        }
+      }
+    }
+  }
+}
+
+private struct ProgressPlanRing: View {
+  let progress: Double
+  let color: Color
+  let centerValue: String
+
+  var body: some View {
+    ZStack {
+      Circle()
+        .stroke(PulseTheme.grouped, lineWidth: 12)
+      Circle()
+        .trim(from: 0, to: min(max(progress, 0), 1))
+        .stroke(
+          AngularGradient(colors: [color, PulseTheme.accent, color], center: .center),
+          style: StrokeStyle(lineWidth: 12, lineCap: .round)
+        )
+        .rotationEffect(.degrees(-90))
+      VStack(spacing: 0) {
+        Text(centerValue)
+          .font(.system(size: 20, weight: .black, design: .rounded))
+        Text("PLAN")
+          .font(.system(size: 9, weight: .black, design: .rounded))
+          .foregroundStyle(PulseTheme.secondaryText)
+      }
+    }
+    .accessibilityLabel("Progreso semanal \(centerValue)")
+  }
+}
+
+private struct ProgressSignalPill: View {
+  let title: String
+  let value: String
+  let color: Color
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(title)
+        .font(.caption2.weight(.bold))
+        .foregroundStyle(PulseTheme.secondaryText)
+      Text(value)
+        .font(.caption.weight(.black).monospacedDigit())
+        .foregroundStyle(color)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.horizontal, 10)
+    .padding(.vertical, 8)
+    .background(color.opacity(0.10))
+    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+  }
+}
+
+private struct ProgressActionStepRow: View {
+  let step: RetentionEngine.ActivationStep
+  let isSpanish: Bool
+  let onAction: () -> Void
+
+  private var iconColor: Color {
+    step.isCompleted ? PulseTheme.recovery : PulseTheme.primary
+  }
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 12) {
+      ZStack {
+        RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+          .fill(iconColor.opacity(step.isCompleted ? 0.18 : 0.12))
+        Image(systemName: step.isCompleted ? "checkmark.seal.fill" : step.systemImage)
+          .font(.subheadline.weight(.bold))
+          .foregroundStyle(iconColor)
+      }
+      .frame(width: 40, height: 40)
+
+      VStack(alignment: .leading, spacing: 5) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+          Text(step.title)
+            .font(.subheadline.weight(.bold))
+            .lineLimit(2)
+            .minimumScaleFactor(0.86)
+
+          if step.isCompleted {
+            Text(isSpanish ? "Hecho" : "Done")
+              .font(.caption2.weight(.bold))
+              .foregroundStyle(PulseTheme.recovery)
+              .padding(.horizontal, 7)
+              .padding(.vertical, 3)
+              .background(PulseTheme.recovery.opacity(0.12))
+              .clipShape(Capsule())
+          }
+        }
+
+        Text(step.message)
+          .font(.caption)
+          .foregroundStyle(PulseTheme.secondaryText)
+          .fixedSize(horizontal: false, vertical: true)
+
+        if !step.isCompleted, step.action != nil {
+          Button(action: onAction) {
+            Text(step.actionTitle)
+              .font(.caption.weight(.bold))
+              .foregroundStyle(PulseTheme.primary)
+          }
+          .buttonStyle(.plain)
+          .padding(.top, 2)
+        }
+      }
+
+      Spacer(minLength: 0)
+    }
+    .padding(.vertical, 9)
   }
 }
 

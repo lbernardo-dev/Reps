@@ -1,5 +1,6 @@
 import StoreKit
 import SwiftUI
+import UIKit
 
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
@@ -141,6 +142,25 @@ struct PaywallView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Desarrollo")
                             .font(.headline)
+                        if let message = store.iCloudProEntitlementMessage {
+                            Text(message)
+                                .font(.footnote)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        if let hash = store.iCloudProRecordHash {
+                            Text("iCloud hash: \(hash)")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .textSelection(.enabled)
+                            Button("Copiar hash iCloud") {
+                                UIPasteboard.general.string = hash
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        Button("Actualizar acceso Pro iCloud") {
+                            Task { await store.refreshICloudProEntitlement() }
+                        }
+                        .buttonStyle(.bordered)
                         Button("Resetear acceso Pro local") {
                             store.resetProAccessForDebug()
                         }

@@ -24,12 +24,16 @@ struct ProfileView: View {
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var localPaywall: PaywallPresentation?
     @State private var suggestedPlanConfirmation: SuggestedPlanConfirmation?
+    @State private var activeDestination: ProfileDestination?
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 18) {
-                    HStack(spacing: 12) {
+            let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
+            StickyHeaderScaffold(
+                title: isSpanish ? "Perfil" : "Profile",
+                subtitle: isSpanish ? "Cuerpo, datos y cuenta" : "Body, data, and account",
+                accessory: {
+                    HStack(spacing: 10) {
                         Button {
                             HapticService.selection()
                             dismiss()
@@ -43,12 +47,6 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.plain)
 
-                        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
-                        Text(isSpanish ? "Perfil" : "Profile")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                        
-                        Spacer()
-                        
                         NavigationLink {
                             ProfileDetailView()
                         } label: {
@@ -57,21 +55,27 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.plain)
                     }
-
-                    bodyMetricsCard
-                    bodyIndexCard
-                    progressPhotoCard
-                    achievementsCard
-                    gymPassesCard
-                    healthCard
-                    settingsCard
-                    supportAndProductCard
-                    toolsCard
                 }
-                .padding(20)
-                .padding(.bottom, 112)
+            ) {
+                bodyMetricsCard
+                    .stickyHeaderTitle(isSpanish ? "Métricas" : "Metrics")
+                bodyIndexCard
+                    .stickyHeaderTitle(isSpanish ? "Índices" : "Body Indexes")
+                progressPhotoCard
+                    .stickyHeaderTitle(isSpanish ? "Fotos" : "Photos")
+                achievementsCard
+                    .stickyHeaderTitle(isSpanish ? "Logros" : "Achievements")
+                gymPassesCard
+                    .stickyHeaderTitle(isSpanish ? "Gimnasios" : "Gyms")
+                healthCard
+                    .stickyHeaderTitle("Apple Health")
+                settingsCard
+                    .stickyHeaderTitle(isSpanish ? "Configuración" : "Settings")
+                supportAndProductCard
+                    .stickyHeaderTitle(isSpanish ? "Soporte" : "Support")
+                toolsCard
+                    .stickyHeaderTitle(isSpanish ? "Acciones" : "Actions")
             }
-            .screenBackground()
             .toolbar(.hidden, for: .navigationBar)
             .onAppear {
                 refreshMetricTextFields()
@@ -132,6 +136,10 @@ struct ProfileView: View {
                 }
                 .environmentObject(store)
             }
+            .navigationDestination(item: $activeDestination) { destination in
+                profileDestination(destination)
+            }
+            .mainTabBarHidden()
         }
     }
 
@@ -499,89 +507,16 @@ struct ProfileView: View {
 
     private var settingsCard: some View {
         PulseCard {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Ajustes")
-                    .font(.headline)
-
-                Picker("Unidades", selection: $store.userProfile.units) {
-                    ForEach(UserProfile.Units.allCases) { units in
-                        Text(units.rawValue).tag(units)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Picker("Idioma", selection: $store.userProfile.preferredLanguage) {
-                    Text("English").tag("en")
-                    Text("Español").tag("es")
-                }
-                .pickerStyle(.segmented)
-
-                Picker("Distancia", selection: $store.userProfile.distanceUnit) {
-                    ForEach(UserProfile.DistanceUnit.allCases) { unit in
-                        Text(unit.rawValue).tag(unit)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Picker("Tema", selection: Binding(
-                    get: { store.userProfile.activeThemeMode },
-                    set: { mode in
-                        store.userProfile.themeMode = mode
-                        HapticService.selection()
-                    }
-                )) {
-                    ForEach(UserProfile.ThemeMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Picker("Color de Widgets", selection: Binding(
-                    get: { store.userProfile.widgetAccentColorName },
-                    set: { colorName in
-                        store.userProfile.widgetAccentColorName = colorName
-                        store.syncWidgets()
-                        HapticService.selection()
-                    }
-                )) {
-                    let widgetColors = ["system", "blue", "green", "orange", "purple", "red", "yellow"]
-                    let colorTranslations = [
-                        "system": "Sistema",
-                        "blue": "Azul",
-                        "green": "Verde",
-                        "orange": "Naranja",
-                        "purple": "Morado",
-                        "red": "Rojo",
-                        "yellow": "Amarillo"
-                    ]
-                    ForEach(widgetColors, id: \.self) { colorName in
-                        Text(colorTranslations[colorName] ?? colorName.capitalized).tag(colorName)
-                    }
-                }
-                .pickerStyle(.menu)
-
-                Toggle("Recordatorios de entreno", isOn: Binding(
-                    get: { store.userProfile.remindersEnabled },
-                    set: { enabled in
-                        store.userProfile.remindersEnabled = enabled
-                        if enabled {
-                            Task { await enableReminders() }
-                        } else {
-                            NotificationService.clearWorkoutReminders()
-                        }
-                    }
-                ))
-                .font(.headline)
-
-                Button {
-                    if profileFeatureIsAvailable(.configurableProgression, source: .proPreferences) {
-                        activeSheet = .proPreferences
-                    }
-                } label: {
-                    PulseListRow(title: "Preferencias Pro", subtitle: "RPE/RIR, tipo de serie, tempo y auto-progresión", systemImage: "slider.horizontal.3")
-                }
-                .buttonStyle(.plain)
+            NavigationLink {
+                SettingsView()
+            } label: {
+                PulseListRow(
+                    title: "Configuración",
+                    subtitle: "Unidades, idioma, tema, widgets, recordatorios y preferencias Pro",
+                    systemImage: "gearshape.fill"
+                )
             }
+            .buttonStyle(.plain)
         }
     }
 
@@ -599,7 +534,7 @@ struct ProfileView: View {
                         systemImage: "magnifyingglass",
                         color: PulseTheme.primary
                     ) {
-                        activeSheet = .exerciseLibrary
+                        activeDestination = .exerciseLibrary
                     }
 
                     ProfileToolButton(
@@ -631,7 +566,89 @@ struct ProfileView: View {
                 }
             }
 
-            ProfileToolSection(title: "Compartir y exportar") {
+            ProfileToolSection(title: "Datos y privacidad") {
+                Button {
+                    activeDestination = .dataPrivacy
+                } label: {
+                    PulseListRow(
+                        title: "Centro de datos",
+                        subtitle: "CSV, backups, restauración, privacidad y borrado",
+                        systemImage: "externaldrive.badge.icloud"
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var supportAndProductCard: some View {
+        PulseCard {
+            Button {
+                activeDestination = .supportProduct
+            } label: {
+                PulseListRow(
+                    title: "Soporte y producto",
+                    subtitle: "Ayuda, feedback, privacidad, suscripción, novedades y versión",
+                    systemImage: "questionmark.bubble.fill"
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private func profileSheetDestination(_ sheet: ProfileSheet) -> some View {
+        switch sheet {
+        case .goalEditor:
+            GoalEditorView()
+        case .cardioLog:
+            CardioLogEditorView()
+        case .bodyLog:
+            BodyWellnessEditorView(
+                initialWeightKg: store.currentWeight,
+                initialHeightCm: store.currentHeight
+            )
+        case .quickMetricEditor:
+            QuickBodyMetricEditorView()
+        case .addProgressPhoto:
+            ProgressPhotoEditorView()
+        case .addGymPass:
+            GymPassEditorView()
+        case .addGymVisit:
+            GymVisitEditorView()
+        case .receiptPreview(let card):
+            ReceiptPreviewSheet(card: card)
+        case .support(let supportSheet):
+            supportSheetDestination(supportSheet)
+        }
+    }
+
+    @ViewBuilder
+    private func profileDestination(_ destination: ProfileDestination) -> some View {
+        switch destination {
+        case .exerciseLibrary:
+            ExerciseLibraryView()
+        case .dataPrivacy:
+            dataPrivacyCenter
+        case .supportProduct:
+            supportProductCenter
+        }
+    }
+
+    private var dataPrivacyCenter: some View {
+        StickyHeaderScaffold(
+            title: "Centro de datos",
+            subtitle: "Exportación, backup y privacidad",
+            accessory: {
+                Image(systemName: "externaldrive.badge.icloud")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(PulseTheme.primary)
+                    .clipShape(Circle())
+            }
+        ) {
+            ProfileToolSection(title: "Compartir progreso") {
                 LazyVGrid(columns: profileToolColumns, spacing: 12) {
                     ProfileToolButton(
                         title: "CSV",
@@ -680,6 +697,7 @@ struct ProfileView: View {
                     }
                 }
             }
+            .stickyHeaderTitle("Compartir")
 
             ProfileToolSection(title: "Datos y privacidad") {
                 LazyVGrid(columns: profileToolColumns, spacing: 12) {
@@ -737,116 +755,107 @@ struct ProfileView: View {
                     }
                 }
             }
+            .stickyHeaderTitle("Privacidad")
         }
+        .toolbar(.hidden, for: .navigationBar)
+        .mainTabBarHidden()
     }
 
-    private var supportAndProductCard: some View {
-        ProfileToolSection(title: "Soporte y producto") {
-            LazyVGrid(columns: profileToolColumns, spacing: 12) {
-                ProfileToolButton(
-                    title: "Valorar app",
-                    subtitle: "Pedir reseña",
-                    systemImage: "star.bubble",
-                    color: PulseTheme.accent
-                ) {
-                    TelemetryService.shared.log(.reviewPromptRequested)
-                    requestReview()
-                }
+    private var supportProductCenter: some View {
+        StickyHeaderScaffold(
+            title: "Soporte",
+            subtitle: "Ayuda, producto y suscripción",
+            accessory: {
+                Image(systemName: "questionmark.bubble.fill")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(PulseTheme.primaryBright)
+                    .clipShape(Circle())
+            }
+        ) {
+            ProfileToolSection(title: "Contacto") {
+                LazyVGrid(columns: profileToolColumns, spacing: 12) {
+                    ProfileToolButton(
+                        title: "Valorar app",
+                        subtitle: "Pedir reseña",
+                        systemImage: "star.bubble",
+                        color: PulseTheme.accent
+                    ) {
+                        TelemetryService.shared.log(.reviewPromptRequested)
+                        requestReview()
+                    }
 
-                ProfileToolButton(
-                    title: "Feedback",
-                    subtitle: "Enviar opinión",
-                    systemImage: "bubble.left.and.text.bubble.right",
-                    color: PulseTheme.primary
-                ) {
-                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.feedback.rawValue])
-                    activeSheet = .support(.feedback)
-                }
-
-                ProfileToolButton(
-                    title: "Ayuda",
-                    subtitle: "Preguntas rápidas",
-                    systemImage: "questionmark.circle",
-                    color: PulseTheme.primaryBright
-                ) {
-                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.help.rawValue])
-                    activeSheet = .support(.help)
-                }
-
-                ProfileToolButton(
-                    title: "Privacidad",
-                    subtitle: "Datos y permisos",
-                    systemImage: "hand.raised",
-                    color: .purple
-                ) {
-                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.privacy.rawValue])
-                    activeSheet = .support(.privacy)
-                }
-
-                ProfileToolButton(
-                    title: "Suscripción",
-                    subtitle: store.monetization.hasProAccess ? store.monetization.statusLabel : "Estado y Pro",
-                    systemImage: "creditcard",
-                    color: .orange
-                ) {
-                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.subscription.rawValue])
-                    activeSheet = .support(.subscription)
-                }
-
-                ProfileToolButton(
-                    title: "Novedades",
-                    subtitle: "Mejoras incluidas",
-                    systemImage: "sparkles",
-                    color: .teal
-                ) {
-                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.roadmap.rawValue])
-                    activeSheet = .support(.roadmap)
-                }
-
-                ProfileToolButton(
-                    title: "Versión",
-                    subtitle: appVersionText,
-                    systemImage: "info.circle",
-                    color: PulseTheme.secondaryText
-                ) {
-                    TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.version.rawValue])
-                    activeSheet = .support(.version)
+                    ProfileToolButton(
+                        title: "Feedback",
+                        subtitle: "Enviar opinión",
+                        systemImage: "bubble.left.and.text.bubble.right",
+                        color: PulseTheme.primary
+                    ) {
+                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.feedback.rawValue])
+                        activeSheet = .support(.feedback)
+                    }
                 }
             }
-        }
-    }
+            .stickyHeaderTitle("Contacto")
 
-    @ViewBuilder
-    private func profileSheetDestination(_ sheet: ProfileSheet) -> some View {
-        switch sheet {
-        case .exerciseLibrary:
-            ExerciseLibraryView()
-        case .goalEditor:
-            GoalEditorView()
-        case .cardioLog:
-            CardioLogEditorView()
-        case .bodyLog:
-            BodyWellnessEditorView(
-                initialWeightKg: store.currentWeight,
-                initialHeightCm: store.currentHeight
-            )
-        case .quickMetricEditor:
-            QuickBodyMetricEditorView()
-        case .addProgressPhoto:
-            ProgressPhotoEditorView()
-        case .addGymPass:
-            GymPassEditorView()
-        case .addGymVisit:
-            GymVisitEditorView()
-        case .proPreferences:
-            ProPreferencesView { presentation in
-                presentPaywallAfterCurrentSheet(presentation)
+            ProfileToolSection(title: "Producto") {
+                LazyVGrid(columns: profileToolColumns, spacing: 12) {
+                    ProfileToolButton(
+                        title: "Ayuda",
+                        subtitle: "Preguntas rápidas",
+                        systemImage: "questionmark.circle",
+                        color: PulseTheme.primaryBright
+                    ) {
+                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.help.rawValue])
+                        activeSheet = .support(.help)
+                    }
+
+                    ProfileToolButton(
+                        title: "Privacidad",
+                        subtitle: "Datos y permisos",
+                        systemImage: "hand.raised",
+                        color: .purple
+                    ) {
+                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.privacy.rawValue])
+                        activeSheet = .support(.privacy)
+                    }
+
+                    ProfileToolButton(
+                        title: "Suscripción",
+                        subtitle: store.monetization.hasProAccess ? store.monetization.statusLabel : "Estado y Pro",
+                        systemImage: "creditcard",
+                        color: .orange
+                    ) {
+                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.subscription.rawValue])
+                        activeSheet = .support(.subscription)
+                    }
+
+                    ProfileToolButton(
+                        title: "Novedades",
+                        subtitle: "Mejoras incluidas",
+                        systemImage: "sparkles",
+                        color: .teal
+                    ) {
+                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.roadmap.rawValue])
+                        activeSheet = .support(.roadmap)
+                    }
+
+                    ProfileToolButton(
+                        title: "Versión",
+                        subtitle: appVersionText,
+                        systemImage: "info.circle",
+                        color: PulseTheme.secondaryText
+                    ) {
+                        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.version.rawValue])
+                        activeSheet = .support(.version)
+                    }
+                }
             }
-        case .receiptPreview(let card):
-            ReceiptPreviewSheet(card: card)
-        case .support(let supportSheet):
-            supportSheetDestination(supportSheet)
+            .stickyHeaderTitle("Producto")
         }
+        .toolbar(.hidden, for: .navigationBar)
+        .mainTabBarHidden()
     }
 
     @ViewBuilder
@@ -1206,6 +1215,225 @@ struct ProfileView: View {
     }
 }
 
+struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: AppStore
+
+    @State private var activeDestination: SettingsDestination?
+    @State private var localPaywall: PaywallPresentation?
+
+    private var isSpanish: Bool {
+        store.userProfile.preferredLanguage.hasPrefix("es")
+    }
+
+    var body: some View {
+        StickyHeaderScaffold(
+            title: isSpanish ? "Configuración" : "Settings",
+            subtitle: isSpanish ? "App, entrenamiento y permisos" : "App, training, and permissions",
+            accessory: {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 40, height: 40)
+                        .background(PulseTheme.grouped)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isSpanish ? "Cerrar ajustes" : "Close settings")
+            }
+        ) {
+            appPreferences
+                .stickyHeaderTitle(isSpanish ? "App" : "App")
+            trainingPreferences
+                .stickyHeaderTitle(isSpanish ? "Entrenamiento" : "Training")
+            widgetPreferences
+                .stickyHeaderTitle(isSpanish ? "Widgets" : "Widgets")
+            notificationPreferences
+                .stickyHeaderTitle(isSpanish ? "Recordatorios" : "Reminders")
+            proPreferencesEntry
+                .stickyHeaderTitle(isSpanish ? "Preferencias Pro" : "Pro Preferences")
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .mainTabBarHidden()
+        .navigationDestination(item: $activeDestination) { destination in
+            switch destination {
+            case .proPreferences:
+                ProPreferencesView { presentation in
+                    localPaywall = presentation
+                }
+            }
+        }
+        .fullScreenCover(item: $localPaywall) { presentation in
+            PaywallView(presentation: presentation) { reason in
+                store.trackPaywallDismissal(presentation, reason: reason)
+                localPaywall = nil
+            }
+            .environmentObject(store)
+        }
+    }
+
+    private var appPreferences: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 16) {
+                Label(isSpanish ? "Preferencias de app" : "App Preferences", systemImage: "app.badge")
+                    .font(.headline)
+
+                Picker(isSpanish ? "Idioma" : "Language", selection: $store.userProfile.preferredLanguage) {
+                    Text("English").tag("en")
+                    Text("Español").tag("es")
+                }
+                .pickerStyle(.segmented)
+
+                Picker(isSpanish ? "Tema" : "Theme", selection: Binding(
+                    get: { store.userProfile.activeThemeMode },
+                    set: { mode in
+                        store.userProfile.themeMode = mode
+                        HapticService.selection()
+                    }
+                )) {
+                    ForEach(UserProfile.ThemeMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+        }
+    }
+
+    private var trainingPreferences: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 16) {
+                Label(isSpanish ? "Medición" : "Measurement", systemImage: "ruler")
+                    .font(.headline)
+
+                Picker(isSpanish ? "Unidades" : "Units", selection: $store.userProfile.units) {
+                    ForEach(UserProfile.Units.allCases) { units in
+                        Text(units.rawValue).tag(units)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Picker(isSpanish ? "Distancia" : "Distance", selection: $store.userProfile.distanceUnit) {
+                    ForEach(UserProfile.DistanceUnit.allCases) { unit in
+                        Text(unit.rawValue).tag(unit)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+        }
+    }
+
+    private var widgetPreferences: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 16) {
+                Label(isSpanish ? "Widgets" : "Widgets", systemImage: "rectangle.grid.2x2")
+                    .font(.headline)
+
+                Picker(isSpanish ? "Color de Widgets" : "Widget Color", selection: Binding(
+                    get: { store.userProfile.widgetAccentColorName },
+                    set: { colorName in
+                        store.userProfile.widgetAccentColorName = colorName
+                        store.syncWidgets()
+                        HapticService.selection()
+                    }
+                )) {
+                    ForEach(widgetColors, id: \.self) { colorName in
+                        Text(widgetColorTitle(colorName)).tag(colorName)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+        }
+    }
+
+    private var notificationPreferences: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Toggle(isSpanish ? "Recordatorios de entreno" : "Workout Reminders", isOn: Binding(
+                    get: { store.userProfile.remindersEnabled },
+                    set: { enabled in
+                        store.userProfile.remindersEnabled = enabled
+                        HapticService.selection()
+                        if enabled {
+                            Task { await enableReminders() }
+                        } else {
+                            NotificationService.clearWorkoutReminders()
+                        }
+                    }
+                ))
+                .font(.headline)
+
+                Text(isSpanish ? "Activa avisos para entrenos programados y señales de constancia." : "Enable alerts for scheduled sessions and consistency nudges.")
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+        }
+    }
+
+    private var proPreferencesEntry: some View {
+        PulseCard {
+            Button {
+                if store.hasFeatureAccess(.configurableProgression) {
+                    activeDestination = .proPreferences
+                } else {
+                    localPaywall = store.makePaywallPresentation(source: .proPreferences, feature: .configurableProgression)
+                }
+            } label: {
+                PulseListRow(
+                    title: "Preferencias Pro",
+                    subtitle: "RPE/RIR, tipo de serie, tempo, auto-progresión y equipamiento",
+                    systemImage: "slider.horizontal.3"
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var widgetColors: [String] {
+        ["system", "blue", "green", "orange", "purple", "red", "yellow"]
+    }
+
+    private func widgetColorTitle(_ colorName: String) -> String {
+        let spanish = [
+            "system": "Sistema",
+            "blue": "Azul",
+            "green": "Verde",
+            "orange": "Naranja",
+            "purple": "Morado",
+            "red": "Rojo",
+            "yellow": "Amarillo"
+        ]
+        guard isSpanish else {
+            return colorName == "system" ? "System" : colorName.capitalized
+        }
+        return spanish[colorName] ?? colorName.capitalized
+    }
+
+    private func enableReminders() async {
+        do {
+            let granted = try await NotificationService.requestAuthorization()
+            guard granted else {
+                store.userProfile.remindersEnabled = false
+                return
+            }
+            store.refreshNotificationSchedule()
+        } catch {
+            store.userProfile.remindersEnabled = false
+            store.health.message = error.localizedDescription
+            TelemetryService.shared.record(error, context: "settings_notifications_enable")
+        }
+    }
+}
+
+private enum SettingsDestination: String, Identifiable {
+    case proPreferences
+
+    var id: String { rawValue }
+}
+
 private struct ProfileToolSection<Content: View>: View {
     let title: LocalizedStringKey
     let content: Content
@@ -1235,7 +1463,10 @@ private struct ProfileToolButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            HapticService.selection()
+            action()
+        } label: {
             ProfileToolCard(
                 title: title,
                 subtitle: subtitle,
@@ -1304,8 +1535,15 @@ private struct ProfileToolCard: View {
     }
 }
 
-private enum ProfileSheet: Identifiable {
+private enum ProfileDestination: String, Identifiable {
     case exerciseLibrary
+    case dataPrivacy
+    case supportProduct
+
+    var id: String { rawValue }
+}
+
+private enum ProfileSheet: Identifiable {
     case goalEditor
     case cardioLog
     case bodyLog
@@ -1313,13 +1551,11 @@ private enum ProfileSheet: Identifiable {
     case addProgressPhoto
     case addGymPass
     case addGymVisit
-    case proPreferences
     case receiptPreview(SavedShareCard)
     case support(ProfileSupportSheet)
 
     var id: String {
         switch self {
-        case .exerciseLibrary: "exerciseLibrary"
         case .goalEditor: "goalEditor"
         case .cardioLog: "cardioLog"
         case .bodyLog: "bodyLog"
@@ -1327,7 +1563,6 @@ private enum ProfileSheet: Identifiable {
         case .addProgressPhoto: "addProgressPhoto"
         case .addGymPass: "addGymPass"
         case .addGymVisit: "addGymVisit"
-        case .proPreferences: "proPreferences"
         case .receiptPreview(let card): "receiptPreview-\(card.id.uuidString)"
         case .support(let sheet): "support-\(sheet.id)"
         }

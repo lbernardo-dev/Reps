@@ -9,50 +9,20 @@ struct PlansView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 26) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Plan")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                            Text("Crea y ajusta tu rutina")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                        Spacer()
-                        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
-                        Button {
-                            HapticService.selection()
-                            showProfile = true
-                        } label: {
-                            let avatarData = store.userProfile.avatarImageData
-                            if let avatarData, let image = UIImage(data: avatarData) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 38, height: 38)
-                                    .clipShape(Circle())
-                                    .overlay(Circle().stroke(.white, lineWidth: 2))
-                                    .shadow(color: .black.opacity(0.20), radius: 4)
-                            } else {
-                                ZStack {
-                                    Circle()
-                                        .fill(PulseTheme.primary.opacity(0.12))
-                                        .frame(width: 38, height: 38)
-                                    Image(systemName: "person.crop.circle.fill")
-                                        .font(.system(size: 22))
-                                        .foregroundStyle(PulseTheme.primary)
-                                }
-                                .overlay(Circle().stroke(.white, lineWidth: 2))
-                                .shadow(color: .black.opacity(0.20), radius: 4)
-                            }
-                        }
-                        .padding(.top, 4)
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(isSpanish ? "Perfil" : "Profile")
+            let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
+            StickyHeaderScaffold(
+                title: isSpanish ? "Plan" : "Plan",
+                subtitle: isSpanish ? "Crea y ajusta tu rutina" : "Create and tune your routine",
+                accessory: {
+                    HeaderAvatarButton(
+                        imageData: store.userProfile.avatarImageData,
+                        accessibilityLabel: isSpanish ? "Perfil" : "Profile"
+                    ) {
+                        showProfile = true
                     }
-
-                    PulseCard {
+                }
+            ) {
+                PulseCard {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("Bibliotecas")
                                 .font(.headline)
@@ -85,14 +55,18 @@ struct PlansView: View {
                             }
                         }
                     }
+                    .stickyHeaderTitle(isSpanish ? "Bibliotecas" : "Libraries")
 
                     if hasActivePlan {
                         activePlanSection
+                            .stickyHeaderTitle(isSpanish ? "Plan activo" : "Active Plan")
                     } else {
                         emptyPlanSection
+                            .stickyHeaderTitle(isSpanish ? "Crear plan" : "Create Plan")
                     }
 
                     SectionHeader(title: "TUS PLANES")
+                        .stickyHeaderTitle(isSpanish ? "Tus planes" : "Your Plans")
 
                     PulseCard {
                         VStack(spacing: 0) {
@@ -107,6 +81,7 @@ struct PlansView: View {
                             ForEach(inactivePlans) { plan in
                                 HStack(spacing: 0) {
                                     Button {
+                                        HapticService.selection()
                                         store.activatePlan(plan)
                                     } label: {
                                         PlanRow(plan: plan)
@@ -117,6 +92,7 @@ struct PlansView: View {
 
                                     Menu {
                                         Button("Activar") {
+                                            HapticService.selection()
                                             store.activatePlan(plan)
                                         }
                                         Button("Editar plan") {
@@ -135,6 +111,7 @@ struct PlansView: View {
                                 }
                                 .contextMenu {
                                     Button("Activar") {
+                                        HapticService.selection()
                                         store.activatePlan(plan)
                                     }
                                     Button("Editar plan") {
@@ -151,24 +128,20 @@ struct PlansView: View {
                             }
                         }
                     }
-                }
-                .padding(20)
-                .padding(.bottom, 112)
             }
-            .screenBackground()
-            .navigationBarHidden(true)
             .sheet(isPresented: $showCreatePlan) {
                 CreatePlanView()
             }
             .sheet(item: $planToEdit) { plan in
                 EditPlanView(plan: plan)
             }
-            .sheet(isPresented: $showExerciseLibrary) {
+            .navigationDestination(isPresented: $showExerciseLibrary) {
                 ExerciseLibraryView()
             }
-            .sheet(isPresented: $showProfile) {
+            .navigationDestination(isPresented: $showProfile) {
                 ProfileView()
             }
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 

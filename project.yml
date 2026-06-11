@@ -42,6 +42,8 @@ targets:
         NSLocationWhenInUseUsageDescription: StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.
         NSPhotoLibraryAddUsageDescription: StreakRep necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas.
         NSPhotoLibraryUsageDescription: StreakRep necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos.
+        RepsProICloudRecordIDHashes:
+          - 69c0dc20d15124f24860efa6345787972b5cc2ebe6f3646fe44cdfe1a5e37ca9
         NSSupportsLiveActivities: true
         UIApplicationSupportsIndirectInputEvents: true
         UIBackgroundModes:
@@ -60,6 +62,10 @@ targets:
       properties:
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.background-delivery: true
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.romerodev.repsfitness
+        com.apple.developer.icloud-services:
+          - CloudKit
         com.apple.security.application-groups:
           - group.com.romerodev.repsfitness
     dependencies:

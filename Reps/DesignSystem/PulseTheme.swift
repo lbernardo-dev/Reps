@@ -1,3 +1,4 @@
+import CryptoKit
 import MuscleMap
 import SwiftUI
 
@@ -323,6 +324,171 @@ struct SectionHeader: View {
     }
 }
 
+struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
+    let title: String
+    let subtitle: String?
+    let topContentPadding: CGFloat
+    let accessory: Accessory
+    let content: Content
+
+    @State private var activeTitle: String
+
+    init(
+        title: String,
+        subtitle: String? = nil,
+        topContentPadding: CGFloat = 86,
+        @ViewBuilder accessory: () -> Accessory,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.topContentPadding = topContentPadding
+        self.accessory = accessory()
+        self.content = content()
+        _activeTitle = State(initialValue: title)
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    content
+                }
+                .padding(.horizontal, 20)
+                .safeAreaPadding(.top, topContentPadding)
+                .padding(.bottom, 120)
+            }
+            .coordinateSpace(.named(StickyHeaderTitleReader.coordinateSpaceName))
+            .onPreferenceChange(StickyHeaderTitlePreferenceKey.self) { markers in
+                let nextTitle = titleForVisibleSection(markers)
+                guard activeTitle != nextTitle else { return }
+                withAnimation(.snappy(duration: 0.18)) {
+                    activeTitle = nextTitle
+                }
+            }
+
+            stickyHeader
+        }
+        .screenBackground()
+    }
+
+    private var stickyHeader: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.caption.weight(.bold))
+                            .textCase(.uppercase)
+                            .foregroundStyle(PulseTheme.primary)
+                            .lineLimit(1)
+                    }
+
+                    Text(activeTitle)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                }
+
+                Spacer(minLength: 12)
+
+                accessory
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 14)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(PulseTheme.separator)
+                    .frame(height: 1)
+            }
+
+            LinearGradient(
+                colors: [PulseTheme.background.opacity(0.72), PulseTheme.background.opacity(0)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 16)
+            .allowsHitTesting(false)
+        }
+    }
+
+    private func titleForVisibleSection(_ markers: [StickyHeaderTitleMarker]) -> String {
+        let threshold: CGFloat = 116
+        return markers
+            .filter { $0.minY <= threshold }
+            .max { $0.minY < $1.minY }?
+            .title ?? title
+    }
+}
+
+struct StickyHeaderTitleReader: View {
+    static let coordinateSpaceName = "reps-sticky-header-scroll"
+
+    let title: String
+
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear.preference(
+                key: StickyHeaderTitlePreferenceKey.self,
+                value: [
+                    StickyHeaderTitleMarker(
+                        title: title,
+                        minY: proxy.frame(in: .named(Self.coordinateSpaceName)).minY
+                    )
+                ]
+            )
+        }
+    }
+}
+
+struct StickyHeaderTitleMarker: Equatable {
+    let title: String
+    let minY: CGFloat
+}
+
+struct StickyHeaderTitlePreferenceKey: PreferenceKey {
+    static let defaultValue: [StickyHeaderTitleMarker] = []
+
+    static func reduce(value: inout [StickyHeaderTitleMarker], nextValue: () -> [StickyHeaderTitleMarker]) {
+        value.append(contentsOf: nextValue())
+    }
+}
+
+struct HeaderAvatarButton: View {
+    let imageData: Data?
+    let accessibilityLabel: LocalizedStringKey
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            HapticService.selection()
+            action()
+        } label: {
+            ZStack {
+                if let imageData, let image = UIImage(data: imageData) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Circle()
+                        .fill(PulseTheme.primary.opacity(0.12))
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(PulseTheme.primary)
+                }
+            }
+            .frame(width: 40, height: 40)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 2))
+            .shadow(color: .black.opacity(0.16), radius: 5, y: 2)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
 struct PulseListRow<Trailing: View>: View {
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey
@@ -508,17 +674,8 @@ struct ExerciseMediaThumbnail: View, Equatable {
                     .resizable()
                     .scaledToFill()
             } else if let url = exercise.mediaAssetURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure, .empty:
-                        fallback
-                    @unknown default:
-                        fallback
-                    }
+                RemoteExerciseImage(url: url) {
+                    fallback
                 }
             } else {
                 fallback
@@ -539,6 +696,123 @@ struct ExerciseMediaThumbnail: View, Equatable {
 
     nonisolated private static func customImageFingerprint(for data: Data?) -> CustomImageFingerprint? {
         data.map(CustomImageFingerprint.init)
+    }
+}
+
+struct RemoteExerciseImage<Fallback: View>: View {
+    let url: URL
+    let fallback: Fallback
+
+    @State private var image: UIImage?
+    @State private var didFail = false
+
+    init(url: URL, @ViewBuilder fallback: () -> Fallback) {
+        self.url = url
+        self.fallback = fallback()
+    }
+
+    var body: some View {
+        ZStack {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .transition(.opacity)
+            } else {
+                fallback
+                    .overlay {
+                        if !didFail {
+                            ProgressView()
+                                .controlSize(.small)
+                                .tint(PulseTheme.primary)
+                        }
+                    }
+            }
+        }
+        .task(id: url) {
+            await load()
+        }
+        .animation(.easeInOut(duration: 0.18), value: image != nil)
+    }
+
+    private func load() async {
+        if let cached = RemoteExerciseImageCache.shared.image(for: url) {
+            image = cached
+            didFail = false
+            return
+        }
+
+        do {
+            let loaded = try await RemoteExerciseImageCache.shared.load(url)
+            image = loaded
+            didFail = false
+        } catch {
+            didFail = true
+        }
+    }
+}
+
+@MainActor
+final class RemoteExerciseImageCache {
+    static let shared = RemoteExerciseImageCache()
+
+    private let cache = NSCache<NSURL, UIImage>()
+    private let fileManager = FileManager.default
+    private lazy var diskCacheDirectory: URL = {
+        let baseURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        return baseURL.appendingPathComponent("RemoteExerciseImages", isDirectory: true)
+    }()
+
+    func image(for url: URL) -> UIImage? {
+        if let cached = cache.object(forKey: url as NSURL) {
+            return cached
+        }
+
+        guard let data = try? Data(contentsOf: cacheFileURL(for: url)),
+              let image = UIImage(data: data) else {
+            return nil
+        }
+        cache.setObject(image, forKey: url as NSURL)
+        return image
+    }
+
+    func load(_ url: URL) async throws -> UIImage {
+        if let cached = cache.object(forKey: url as NSURL) {
+            return cached
+        }
+
+        var request = URLRequest(url: url)
+        request.cachePolicy = .returnCacheDataElseLoad
+        request.timeoutInterval = 18
+        request.setValue("image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode),
+              let image = UIImage(data: data) else {
+            throw URLError(.cannotDecodeContentData)
+        }
+
+        cache.setObject(image, forKey: url as NSURL)
+        persist(data, for: url)
+        return image
+    }
+
+    func removeAll() {
+        cache.removeAllObjects()
+        try? fileManager.removeItem(at: diskCacheDirectory)
+    }
+
+    private func persist(_ data: Data, for url: URL) {
+        try? fileManager.createDirectory(at: diskCacheDirectory, withIntermediateDirectories: true)
+        try? data.write(to: cacheFileURL(for: url), options: [.atomic])
+    }
+
+    private func cacheFileURL(for url: URL) -> URL {
+        let digest = SHA256.hash(data: Data(url.absoluteString.utf8))
+        let filename = digest.map { String(format: "%02x", $0) }.joined() + ".img"
+        return diskCacheDirectory.appendingPathComponent(filename, isDirectory: false)
     }
 }
 
@@ -576,6 +850,10 @@ private final class ExerciseThumbnailImageCache {
 extension View {
     func screenBackground() -> some View {
         background(PulseTheme.background.ignoresSafeArea())
+    }
+
+    func stickyHeaderTitle(_ title: String) -> some View {
+        background(StickyHeaderTitleReader(title: title))
     }
 
     func mainTabBarHidden(_ hidden: Bool = true) -> some View {

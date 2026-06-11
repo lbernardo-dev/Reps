@@ -35,7 +35,12 @@ final class SwiftDataPersistence {
         do {
             let configuration: ModelConfiguration
             if inMemory {
-                configuration = ModelConfiguration("RepsStore-\(UUID().uuidString)", schema: schema, isStoredInMemoryOnly: true)
+                configuration = ModelConfiguration(
+                    "RepsStore-\(UUID().uuidString)",
+                    schema: schema,
+                    isStoredInMemoryOnly: true,
+                    cloudKitDatabase: .none
+                )
             } else {
                 configuration = try Self.persistentConfiguration(schema: schema)
             }
@@ -48,7 +53,12 @@ final class SwiftDataPersistence {
             didFallbackToInMemory = true
             container = try! ModelContainer(
                 for: schema,
-                configurations: ModelConfiguration("RepsFallbackStore-\(UUID().uuidString)", schema: schema, isStoredInMemoryOnly: true)
+                configurations: ModelConfiguration(
+                    "RepsFallbackStore-\(UUID().uuidString)",
+                    schema: schema,
+                    isStoredInMemoryOnly: true,
+                    cloudKitDatabase: .none
+                )
             )
         }
     }
@@ -74,7 +84,8 @@ final class SwiftDataPersistence {
         return ModelConfiguration(
             "RepsStore",
             schema: schema,
-            url: applicationSupportURL.appendingPathComponent("RepsStore.store")
+            url: applicationSupportURL.appendingPathComponent("RepsStore.store"),
+            cloudKitDatabase: .none
         )
     }
 

@@ -146,45 +146,60 @@ struct TodayView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    header
-                    focusHero
-                    activationChecklist
-                    if !focusProgressionRecommendations.isEmpty {
-                        ProgressionRecommendationCard(
-                            recommendations: focusProgressionRecommendations,
-                            language: store.userProfile.preferredLanguage,
-                            title: isSpanish ? "Qué progresar hoy" : "What to Progress Today"
-                        )
+            StickyHeaderScaffold(
+                title: isSpanish ? "Resumen" : "Summary",
+                subtitle: currentDateTitle,
+                accessory: {
+                    HeaderAvatarButton(
+                        imageData: store.userProfile.avatarImageData,
+                        accessibilityLabel: isSpanish ? "Perfil" : "Profile"
+                    ) {
+                        showProfile = true
                     }
-                    weeklyCommandGrid
-                    wellnessWidgets
-                    coachingCard
-                    planSection
-                    progressAndRecovery
-                    smartShortcuts
-                    visualLibraryStrip
                 }
-                .padding(20)
-                .safeAreaPadding(.top, 8)
-                .padding(.bottom, 120)
+            ) {
+                dailyMissionCard
+                    .stickyHeaderTitle(isSpanish ? "Misión diaria" : "Daily Mission")
+                focusHero
+                    .stickyHeaderTitle(isSpanish ? "Entreno de hoy" : "Today's Workout")
+                activationChecklist
+                    .stickyHeaderTitle(isSpanish ? "Siguiente acción" : "Next Action")
+                if !focusProgressionRecommendations.isEmpty {
+                    ProgressionRecommendationCard(
+                        recommendations: focusProgressionRecommendations,
+                        language: store.userProfile.preferredLanguage,
+                        title: isSpanish ? "Qué progresar hoy" : "What to Progress Today"
+                    )
+                    .stickyHeaderTitle(isSpanish ? "Progresión" : "Progression")
+                }
+                weeklyCommandGrid
+                    .stickyHeaderTitle(isSpanish ? "Semana" : "Week")
+                wellnessWidgets
+                    .stickyHeaderTitle(isSpanish ? "Recuperación" : "Recovery")
+                coachingCard
+                    .stickyHeaderTitle(isSpanish ? "Coach" : "Coach")
+                planSection
+                    .stickyHeaderTitle(isSpanish ? "Plan" : "Plan")
+                progressAndRecovery
+                    .stickyHeaderTitle(isSpanish ? "Progreso" : "Progress")
+                smartShortcuts
+                    .stickyHeaderTitle(isSpanish ? "Atajos" : "Shortcuts")
+                visualLibraryStrip
+                    .stickyHeaderTitle(isSpanish ? "Biblioteca visual" : "Visual Library")
             }
-            .screenBackground()
-            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showScheduleWorkout) {
                 ScheduleWorkoutView()
             }
             .sheet(isPresented: $showCreatePlan) {
                 CreatePlanView()
             }
-            .sheet(isPresented: $showProfile) {
+            .sheet(item: $planToEdit) { plan in
+                EditPlanView(plan: plan)
+            }
+            .navigationDestination(isPresented: $showProfile) {
                 ProfileView {
                     onSelectTab?(.plans)
                 }
-            }
-            .sheet(item: $planToEdit) { plan in
-                EditPlanView(plan: plan)
             }
             .navigationDestination(item: $workoutToStart) { workout in
                 ActiveWorkoutView(workout: workout, origin: workout.id == freeWorkout.id ? .free : .routine)
@@ -192,6 +207,7 @@ struct TodayView: View {
             .navigationDestination(isPresented: $showFreeWorkoutStart) {
                 FreeWorkoutStartView()
             }
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
@@ -226,6 +242,55 @@ struct TodayView: View {
                     }
                     if index < nextBestSteps.count - 1 {
                         Divider()
+                    }
+                }
+            }
+        }
+    }
+
+    private var dailyMissionCard: some View {
+        let missionProgress = min(max(store.weeklyCompletion, 0), 1)
+        let action = nextBestSteps.first { !$0.isCompleted } ?? nextBestSteps.first
+
+        return PulseCard(contentPadding: 18) {
+            HStack(alignment: .center, spacing: 16) {
+                ProgressMissionRing(
+                    progress: missionProgress,
+                    color: batteryColor,
+                    centerValue: "\(Int(missionProgress * 100))%"
+                )
+                .frame(width: 92, height: 92)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        Label(isSpanish ? "Misión de hoy" : "Today's Mission", systemImage: "flag.checkered")
+                            .font(.caption.weight(.black))
+                            .textCase(.uppercase)
+                            .foregroundStyle(PulseTheme.primary)
+                        Spacer(minLength: 0)
+                        Text("\(streakDays)🔥")
+                            .font(.caption.weight(.bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(PulseTheme.accent.opacity(0.12))
+                            .foregroundStyle(PulseTheme.accent)
+                            .clipShape(Capsule())
+                    }
+
+                    Text(action?.title ?? (isSpanish ? "Mantén el ritmo" : "Keep Momentum"))
+                        .font(.title3.weight(.bold))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+
+                    Text(action?.message ?? coachInsight.message)
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.82)
+
+                    HStack(spacing: 8) {
+                        MissionSignal(title: isSpanish ? "Semana" : "Week", value: weekTargetText, color: PulseTheme.primary)
+                        MissionSignal(title: isSpanish ? "Batería" : "Battery", value: "\(Int(batteryStatus.level))%", color: batteryColor)
                     }
                 }
             }
@@ -630,6 +695,7 @@ struct TodayView: View {
     }
 
     private func perform(_ action: RetentionEngine.ActivationAction?) {
+        HapticService.impact(.light)
         guard let action else {
             showProfile = true
             return
@@ -960,6 +1026,7 @@ struct TodayView: View {
                 .buttonStyle(.plain)
 
                 Button {
+                    HapticService.selection()
                     if let onSelectTab {
                         onSelectTab(.progress)
                     }
@@ -974,6 +1041,7 @@ struct TodayView: View {
                 .buttonStyle(.plain)
 
                 Button {
+                    HapticService.selection()
                     showCreatePlan = true
                 } label: {
                     ShortcutTile(
@@ -1256,6 +1324,56 @@ private struct TodayActivationStepRow: View {
 
     private var iconColor: Color {
         step.isCompleted ? PulseTheme.recovery : PulseTheme.primary
+    }
+}
+
+private struct ProgressMissionRing: View {
+    let progress: Double
+    let color: Color
+    let centerValue: String
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(PulseTheme.grouped, lineWidth: 12)
+            Circle()
+                .trim(from: 0, to: min(max(progress, 0), 1))
+                .stroke(
+                    AngularGradient(colors: [color, PulseTheme.accent, color], center: .center),
+                    style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+            VStack(spacing: 0) {
+                Text(centerValue)
+                    .font(.system(size: 20, weight: .black, design: .rounded))
+                Text("GO")
+                    .font(.system(size: 9, weight: .black, design: .rounded))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+        }
+        .accessibilityLabel("Progreso de misión \(centerValue)")
+    }
+}
+
+private struct MissionSignal: View {
+    let title: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+            Text(value)
+                .font(.caption.weight(.black).monospacedDigit())
+                .foregroundStyle(color)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(color.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
 
@@ -1563,17 +1681,8 @@ private struct ExerciseCardImage: View {
                     .resizable()
                     .scaledToFill()
             } else if let url = exercise.mediaAssetURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure, .empty:
-                        fallback
-                    @unknown default:
-                        fallback
-                    }
+                RemoteExerciseImage(url: url) {
+                    fallback
                 }
             } else {
                 fallback

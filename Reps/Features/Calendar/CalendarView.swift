@@ -10,52 +10,21 @@ struct CalendarView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    HStack(alignment: .top) {
-                        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(isSpanish ? "Calendario" : "Calendar")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                            Text(isSpanish ? "Planifica, revisa la carga y ve al grano" : "Plan, review load, and jump to the correct session")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.85)
-                        }
-                        Spacer()
-                        Button {
-                            HapticService.selection()
-                            showProfile = true
-                        } label: {
-                            let avatarData = store.userProfile.avatarImageData
-                            if let avatarData, let image = UIImage(data: avatarData) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 38, height: 38)
-                                    .clipShape(Circle())
-                                    .overlay(Circle().stroke(.white, lineWidth: 2))
-                                    .shadow(color: .black.opacity(0.20), radius: 4)
-                            } else {
-                                ZStack {
-                                    Circle()
-                                        .fill(PulseTheme.primary.opacity(0.12))
-                                        .frame(width: 38, height: 38)
-                                    Image(systemName: "person.crop.circle.fill")
-                                        .font(.system(size: 22))
-                                        .foregroundStyle(PulseTheme.primary)
-                                }
-                                .overlay(Circle().stroke(.white, lineWidth: 2))
-                                .shadow(color: .black.opacity(0.20), radius: 4)
-                            }
-                        }
-                        .padding(.top, 4)
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(isSpanish ? "Perfil" : "Profile")
+            let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
+            StickyHeaderScaffold(
+                title: isSpanish ? "Calendario" : "Calendar",
+                subtitle: isSpanish ? "Planifica y revisa carga" : "Plan and review load",
+                accessory: {
+                    HeaderAvatarButton(
+                        imageData: store.userProfile.avatarImageData,
+                        accessibilityLabel: isSpanish ? "Perfil" : "Profile"
+                    ) {
+                        showProfile = true
                     }
-
+                }
+            ) {
                     calendarCommandCard
+                        .stickyHeaderTitle(isSpanish ? "Esta semana" : "This Week")
 
                     HStack {
                         Button { changeMonth(by: -1) } label: { Image(systemName: "chevron.left") }
@@ -111,6 +80,7 @@ struct CalendarView: View {
                     .padding()
                     .background(PulseTheme.card)
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+                    .stickyHeaderTitle(formattedMonth(visibleMonth))
 
                     PulseCard {
                         VStack(alignment: .leading, spacing: 14) {
@@ -207,18 +177,15 @@ struct CalendarView: View {
                             }
                         }
                     }
-                }
-                .padding(20)
-                .padding(.bottom, 112)
+                    .stickyHeaderTitle(formattedSelectedDate(selectedDate))
             }
-            .screenBackground()
-            .navigationBarHidden(true)
             .sheet(isPresented: $showSchedule) {
                 ScheduleWorkoutView()
             }
-            .sheet(isPresented: $showProfile) {
+            .navigationDestination(isPresented: $showProfile) {
                 ProfileView()
             }
+            .toolbar(.hidden, for: .navigationBar)
         }
         .onAppear {
             applyFocusedDate(store.calendarFocusedDate)

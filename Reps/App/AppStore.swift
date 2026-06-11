@@ -27,6 +27,8 @@ final class AppStore: ObservableObject {
     @Published private(set) var storeKitProducts: [Product] = []
     @Published private(set) var isLoadingStoreKitProducts = false
     @Published private(set) var storeKitErrorMessage: String?
+    @Published private(set) var iCloudProRecordHash: String?
+    @Published private(set) var iCloudProEntitlementMessage: String?
     @Published var activePlan = WorkoutPlan.empty { didSet { save() } }
     @Published var plans: [WorkoutPlan] = [] { didSet { save() } }
     @Published var workoutTemplates: [WorkoutDay] = SeedData.workoutTemplates { didSet { save() } }
@@ -79,6 +81,7 @@ final class AppStore: ObservableObject {
     }
 
     private let persistence: SwiftDataPersistence
+    private let iCloudProEntitlementService: ICloudProEntitlementService
     private let shareImageRenderer: (WorkoutSession?) -> UIImage
     private var isRestoring = false
     private var hasAttemptedExerciseLibrarySync = false
@@ -88,10 +91,12 @@ final class AppStore: ObservableObject {
 
     init(
         persistence: SwiftDataPersistence = SwiftDataPersistence(),
+        iCloudProEntitlementService: ICloudProEntitlementService = .shared,
         shareImageRenderer: ((WorkoutSession?) -> UIImage)? = nil,
         startsBackgroundServices: Bool = true
     ) {
         self.persistence = persistence
+        self.iCloudProEntitlementService = iCloudProEntitlementService
         self.shareImageRenderer = shareImageRenderer ?? { session in
             if let session {
                 return WorkoutShareImageRenderer.render(session: session)
@@ -123,6 +128,7 @@ final class AppStore: ObservableObject {
             Task {
                 await refreshStoreKitProducts()
                 await refreshStoreKitEntitlements()
+                await refreshICloudProEntitlement()
                 await syncOpenExerciseLibraryIfNeeded()
             }
 
@@ -445,6 +451,42 @@ final class AppStore: ObservableObject {
     }
 
     @discardableResult
+    func refreshICloudProEntitlement() async -> Bool {
+        do {
+            let snapshot = try await iCloudProEntitlementService.evaluateCurrentAccount()
+            iCloudProRecordHash = snapshot.identifierHash
+            let sourceLabel = switch snapshot.source {
+            case .cloudKitRecord:
+                "CloudKit"
+            case .ubiquityIdentityToken:
+                "token iCloud local"
+            }
+
+            guard snapshot.isAllowed else {
+                iCloudProEntitlementMessage = snapshot.allowedHashesConfigured
+                    ? "Esta cuenta iCloud no está en la allowlist Pro."
+                    : "Hash iCloud listo vía \(sourceLabel). Añádelo a RepsProICloudRecordIDHashes para activar Pro en tus dispositivos."
+                revokeICloudOwnerEntitlementIfNeeded()
+                return false
+            }
+
+            monetization.entitlement = .pro
+            monetization.status = .active
+            monetization.billingCycle = .lifetime
+            monetization.provider = .iCloudOwner
+            monetization.renewsAt = nil
+            monetization.lastEntitlementSyncDate = .now
+            iCloudProEntitlementMessage = "Acceso Pro de propietario activo por iCloud."
+            return true
+        } catch {
+            iCloudProRecordHash = nil
+            iCloudProEntitlementMessage = error.localizedDescription
+            revokeICloudOwnerEntitlementIfNeeded()
+            return false
+        }
+    }
+
+    @discardableResult
     func refreshStoreKitEntitlements() async -> Bool {
         var latestTransaction: Transaction?
 
@@ -529,6 +571,18 @@ final class AppStore: ObservableObject {
         case .lifetime: return 3
         case nil: return Int.max
         }
+    }
+
+    private func revokeICloudOwnerEntitlementIfNeeded() {
+        guard monetization.provider == .iCloudOwner else {
+            return
+        }
+
+        monetization.entitlement = .free
+        monetization.status = .inactive
+        monetization.billingCycle = nil
+        monetization.renewsAt = nil
+        monetization.lastEntitlementSyncDate = .now
     }
 
     #if DEBUG
@@ -972,6 +1026,42 @@ final class AppStore: ObservableObject {
             status.liveActiveEnergyKcal = liveActiveEnergyKcal
         }
         activeWorkoutStatus = status
+    }
+
+    func updateActiveWorkout(_ update: ActiveWorkoutStatusBuilder.Update) {
+        updateActiveWorkout(
+            elapsedSeconds: update.elapsedSeconds,
+            pausedSeconds: update.pausedSeconds,
+            completedSets: update.completedSets,
+            totalSets: update.totalSets,
+            volumeKg: update.volumeKg,
+            isPaused: update.isPaused,
+            exerciseName: update.exerciseName,
+            exerciseIndex: update.exerciseIndex,
+            totalExercises: update.totalExercises,
+            currentExerciseCompletedSets: update.currentExerciseCompletedSets,
+            currentExerciseTotalSets: update.currentExerciseTotalSets,
+            currentSetWeightKg: update.currentSetWeightKg,
+            currentSetReps: update.currentSetReps,
+            restSeconds: update.restSeconds,
+            restDurationSeconds: update.restDurationSeconds,
+            estimatedRemainingSeconds: update.estimatedRemainingSeconds,
+            waterLiters: update.waterLiters,
+            musicTitle: update.musicTitle,
+            musicArtist: update.musicArtist,
+            isMusicPlaying: update.isMusicPlaying,
+            nextExerciseName: update.nextExerciseName,
+            exerciseHistorySummary: update.exerciseHistorySummary,
+            gymPass: update.gymPass,
+            lastPausedAt: update.lastPausedAt,
+            isRouteWorkout: update.isRouteWorkout,
+            isOutdoorRoute: update.isOutdoorRoute,
+            routeDistanceKm: update.routeDistanceKm,
+            routePaceSecondsPerKm: update.routePaceSecondsPerKm,
+            routeSpeedKmh: update.routeSpeedKmh,
+            routePointCount: update.routePointCount,
+            routeSteps: update.routeSteps
+        )
     }
 
     private static func bestRouteDistance(_ current: Double?, _ incoming: Double?) -> Double? {

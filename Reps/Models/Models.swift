@@ -175,12 +175,16 @@ extension Exercise {
             return nil
         }
 
-        if let url = URL(string: mediaURL) {
+        let trimmedURL = mediaURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let url = URL(string: trimmedURL) {
             return url
         }
 
-        return mediaURL
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+        var allowedCharacters = CharacterSet.urlQueryAllowed
+        allowedCharacters.remove(charactersIn: "#%")
+
+        return trimmedURL
+            .addingPercentEncoding(withAllowedCharacters: allowedCharacters)
             .flatMap(URL.init(string:))
     }
 }

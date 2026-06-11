@@ -86,6 +86,10 @@ struct RepsApp: App {
             if newPhase == .active {
                 store.syncWidgets()
                 store.refreshNotificationSchedule()
+                Task {
+                    await store.refreshStoreKitEntitlements()
+                    await store.refreshICloudProEntitlement()
+                }
             }
         }
     }

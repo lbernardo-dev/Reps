@@ -207,6 +207,7 @@ enum SubscriptionProvider: String, Codable {
     case local
     case revenueCat
     case storeKit
+    case iCloudOwner
 }
 
 enum PaywallSource: String, Codable, CaseIterable, Identifiable {

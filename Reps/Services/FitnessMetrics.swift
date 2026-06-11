@@ -854,6 +854,18 @@ enum RetentionEngine {
             ))
         }
 
+        if !remindersEnabled {
+            steps.append(ActivationStep(
+                id: "enable-reminders",
+                title: "Activar recordatorios",
+                message: "Los recordatorios ayudan a volver cuando hay una sesión o acción de recuperación pendiente.",
+                systemImage: "bell.badge.fill",
+                isCompleted: false,
+                actionTitle: "Abrir perfil",
+                action: nil
+            ))
+        }
+
         for recommendation in competitiveSummary.recommendations where recommendation.action != .none {
             guard !steps.contains(where: { $0.id == recommendation.id }) else { continue }
             steps.append(ActivationStep(
@@ -864,18 +876,6 @@ enum RetentionEngine {
                 isCompleted: false,
                 actionTitle: actionTitle(for: recommendation.action),
                 action: .competitive(recommendation.action)
-            ))
-        }
-
-        if !remindersEnabled {
-            steps.append(ActivationStep(
-                id: "enable-reminders",
-                title: "Activar recordatorios",
-                message: "Los recordatorios ayudan a volver cuando hay una sesión o acción de recuperación pendiente.",
-                systemImage: "bell.badge.fill",
-                isCompleted: false,
-                actionTitle: "Abrir perfil",
-                action: nil
             ))
         }
 
@@ -1241,5 +1241,961 @@ enum WorkoutSetBuilder {
     private static func roundedToNearestIncrement(_ weightKg: Double, increment: Double = 2.5) -> Double {
         guard increment > 0 else { return weightKg }
         return max(0, (weightKg / increment).rounded() * increment)
+    }
+}
+
+enum ExerciseHistoryAnalyzer {
+    static func recentCompletedSets(
+        for exercise: Exercise,
+        in sessions: [WorkoutSession],
+        limit: Int = 12
+    ) -> [SetLog] {
+        sessions
+            .sorted { $0.date > $1.date }
+            .flatMap { session in
+                (session.exerciseLogs ?? []).filter { log in
+                    log.exercise.id == exercise.id || normalizedExerciseName(log.exercise.name) == normalizedExerciseName(exercise.name)
+                }
+                .flatMap(\.sets)
+            }
+            .filter(\.completed)
+            .prefix(limit)
+            .map { $0 }
+    }
+
+    static func isPersonalRecord(_ set: SetLog, for exercise: Exercise, in sessions: [WorkoutSession]) -> Bool {
+        let points = FitnessMetrics.progressPoints(for: exercise, in: sessions)
+        let previousBestWeight = points.map(\.maxWeightKg).max() ?? 0
+        let previousBestOneRepMax = points.map(\.estimatedOneRepMaxKg).max() ?? 0
+        let estimatedOneRepMax = FitnessMetrics.estimatedOneRepMax(weightKg: set.weightKg, reps: set.reps)
+        return set.weightKg > previousBestWeight || estimatedOneRepMax > previousBestOneRepMax
+    }
+
+    static func normalizedExerciseName(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+            .split(separator: " ")
+            .joined(separator: " ")
+    }
+}
+
+enum WorkoutDraftController {
+    struct PendingSet: Equatable {
+        let exerciseIndex: Int
+        let setIndex: Int
+        let exerciseName: String
+        let setNumber: Int
+    }
+
+    struct CompletionOutcome: Equatable {
+        let restDurationSeconds: Int?
+        let shouldMoveToNextExercise: Bool
+        let didFinishWorkout: Bool
+    }
+
+    static func makeDrafts(for workout: WorkoutDay) -> [ExerciseSessionDraft] {
+        workout.exercises.map(makeDraft(for:))
+    }
+
+    static func makeDraft(for exercise: Exercise) -> ExerciseSessionDraft {
+        makeDraft(
+            for: WorkoutExercise(
+                exercise: exercise,
+                targetSets: 3,
+                repRange: defaultRepRange(for: exercise),
+                previous: "-"
+            )
+        )
+    }
+
+    static func makeDraft(for item: WorkoutExercise) -> ExerciseSessionDraft {
+        let sets = (1...max(item.targetSets, 1)).map { index in
+            SetLog(
+                setNumber: index,
+                weightKg: defaultWeight(from: item.previous),
+                reps: defaultReps(from: item.repRange),
+                completed: false
+            )
+        }
+        return ExerciseSessionDraft(workoutExercise: item, notes: "", sets: sets)
+    }
+
+    @discardableResult
+    static func addExercise(_ exercise: Exercise, to drafts: inout [ExerciseSessionDraft]) -> Int {
+        drafts.append(makeDraft(for: exercise))
+        return max(drafts.count - 1, 0)
+    }
+
+    @discardableResult
+    static func replaceExercise(at index: Int, with exercise: Exercise, in drafts: inout [ExerciseSessionDraft]) -> Bool {
+        guard drafts.indices.contains(index) else { return false }
+
+        var replacement = makeDraft(for: exercise)
+        let currentSets = drafts[index].sets
+        if !currentSets.isEmpty {
+            replacement.sets = currentSets.enumerated().map { offset, set in
+                SetLog(
+                    setNumber: offset + 1,
+                    weightKg: set.weightKg,
+                    reps: set.reps,
+                    completed: set.completed,
+                    setType: set.setType,
+                    rpe: set.rpe,
+                    rir: set.rir,
+                    tempo: set.tempo,
+                    previousRestSeconds: set.previousRestSeconds,
+                    isPersonalRecord: false,
+                    notes: set.notes
+                )
+            }
+        }
+        drafts[index] = replacement
+        return true
+    }
+
+    @discardableResult
+    static func removeExercise(at index: Int, from drafts: inout [ExerciseSessionDraft]) -> Int? {
+        guard drafts.indices.contains(index) else { return nil }
+
+        drafts.remove(at: index)
+        return max(0, min(index, drafts.count - 1))
+    }
+
+    @discardableResult
+    static func moveExercise(
+        from source: Int,
+        to destination: Int,
+        in drafts: inout [ExerciseSessionDraft],
+        selectedWorkoutExerciseID: UUID?
+    ) -> Int? {
+        guard drafts.indices.contains(source),
+              drafts.indices.contains(destination),
+              source != destination else {
+            return nil
+        }
+
+        let draft = drafts.remove(at: source)
+        drafts.insert(draft, at: destination)
+        if let selectedWorkoutExerciseID,
+           let newIndex = drafts.firstIndex(where: { $0.workoutExercise.id == selectedWorkoutExerciseID }) {
+            return newIndex
+        }
+        return min(max(destination, 0), drafts.count - 1)
+    }
+
+    @discardableResult
+    static func applyAutoProgression(
+        to drafts: inout [ExerciseSessionDraft],
+        sessions: [WorkoutSession],
+        weightIncrementKg: Double
+    ) -> Bool {
+        var didApply = false
+
+        for index in drafts.indices {
+            let item = drafts[index].workoutExercise
+            let recentSets = ExerciseHistoryAnalyzer.recentCompletedSets(for: item.exercise, in: sessions)
+            guard !recentSets.isEmpty else {
+                continue
+            }
+
+            let suggestion = ProgressionEngine.nextSuggestion(
+                for: item,
+                recentSets: recentSets,
+                weightIncrementKg: weightIncrementKg
+            )
+            guard suggestion.targetWeightKg > 0 else {
+                continue
+            }
+
+            for setIndex in drafts[index].sets.indices where !drafts[index].sets[setIndex].completed {
+                drafts[index].sets[setIndex].weightKg = suggestion.targetWeightKg
+                drafts[index].sets[setIndex].reps = suggestion.targetReps
+                didApply = true
+            }
+        }
+
+        return didApply
+    }
+
+    static func nextIncompleteSet(in drafts: [ExerciseSessionDraft]) -> PendingSet? {
+        for exerciseIndex in drafts.indices {
+            if let setIndex = drafts[exerciseIndex].sets.firstIndex(where: { !$0.completed }) {
+                let draft = drafts[exerciseIndex]
+                return PendingSet(
+                    exerciseIndex: exerciseIndex,
+                    setIndex: setIndex,
+                    exerciseName: draft.workoutExercise.exercise.name,
+                    setNumber: draft.sets[setIndex].setNumber
+                )
+            }
+        }
+
+        return nil
+    }
+
+    @discardableResult
+    static func completeSet(
+        in drafts: inout [ExerciseSessionDraft],
+        exerciseIndex: Int,
+        setIndex: Int,
+        elapsedSeconds: Int,
+        lastSetCompletedAtSeconds: Int?,
+        isPersonalRecord: Bool,
+        betweenExercisesRestSeconds: Int
+    ) -> CompletionOutcome? {
+        guard drafts.indices.contains(exerciseIndex),
+              drafts[exerciseIndex].sets.indices.contains(setIndex) else {
+            return nil
+        }
+
+        if let lastSetCompletedAtSeconds {
+            drafts[exerciseIndex].sets[setIndex].previousRestSeconds = max(elapsedSeconds - lastSetCompletedAtSeconds, 0)
+        }
+        drafts[exerciseIndex].sets[setIndex].completed = true
+        drafts[exerciseIndex].sets[setIndex].isPersonalRecord = isPersonalRecord
+
+        let completedSet = drafts[exerciseIndex].sets[setIndex]
+        let nextSetIndex = setIndex + 1
+        if drafts[exerciseIndex].sets.indices.contains(nextSetIndex),
+           !drafts[exerciseIndex].sets[nextSetIndex].completed {
+            drafts[exerciseIndex].sets[nextSetIndex].weightKg = completedSet.weightKg
+            drafts[exerciseIndex].sets[nextSetIndex].reps = completedSet.reps
+            return CompletionOutcome(
+                restDurationSeconds: drafts[exerciseIndex].workoutExercise.restSeconds,
+                shouldMoveToNextExercise: false,
+                didFinishWorkout: false
+            )
+        }
+
+        let nextExerciseIndex = exerciseIndex + 1
+        if drafts.indices.contains(nextExerciseIndex),
+           drafts[nextExerciseIndex].sets.contains(where: { !$0.completed }) {
+            return CompletionOutcome(
+                restDurationSeconds: betweenExercisesRestSeconds,
+                shouldMoveToNextExercise: true,
+                didFinishWorkout: false
+            )
+        }
+
+        return CompletionOutcome(
+            restDurationSeconds: nil,
+            shouldMoveToNextExercise: false,
+            didFinishWorkout: true
+        )
+    }
+
+    @discardableResult
+    static func addSet(to drafts: inout [ExerciseSessionDraft], selectedIndex: Int) -> Bool {
+        guard drafts.indices.contains(selectedIndex) else { return false }
+
+        let previous = drafts[selectedIndex].sets.last
+        drafts[selectedIndex].sets.append(
+            SetLog(
+                setNumber: drafts[selectedIndex].sets.count + 1,
+                weightKg: previous?.weightKg ?? 0,
+                reps: previous?.reps ?? 8,
+                completed: false
+            )
+        )
+        return true
+    }
+
+    @discardableResult
+    static func insertWarmUpSets(
+        to drafts: inout [ExerciseSessionDraft],
+        selectedIndex: Int,
+        targetSet: SetLog?
+    ) -> Bool {
+        guard drafts.indices.contains(selectedIndex),
+              let targetSet,
+              targetSet.weightKg >= 20,
+              !drafts[selectedIndex].sets.contains(where: { $0.setType == .warmUp }) else {
+            return false
+        }
+
+        let warmUps = WorkoutSetBuilder.warmUpSets(
+            targetWeightKg: targetSet.weightKg,
+            targetReps: targetSet.reps
+        )
+        guard !warmUps.isEmpty else { return false }
+
+        let existing = drafts[selectedIndex].sets
+        let firstWorkIndex = existing.firstIndex { $0.setType != .warmUp } ?? 0
+        let updated = Array(existing[..<firstWorkIndex]) + warmUps + Array(existing[firstWorkIndex...])
+        drafts[selectedIndex].sets = WorkoutSetBuilder.renumbered(updated)
+        return true
+    }
+
+    @discardableResult
+    static func appendDropSet(to drafts: inout [ExerciseSessionDraft], selectedIndex: Int) -> Bool {
+        appendSpecialSet(to: &drafts, selectedIndex: selectedIndex) { WorkoutSetBuilder.dropSet(after: $0) }
+    }
+
+    @discardableResult
+    static func appendBackOffSet(to drafts: inout [ExerciseSessionDraft], selectedIndex: Int) -> Bool {
+        appendSpecialSet(to: &drafts, selectedIndex: selectedIndex) { WorkoutSetBuilder.backOffSet(after: $0) }
+    }
+
+    @discardableResult
+    private static func appendSpecialSet(
+        to drafts: inout [ExerciseSessionDraft],
+        selectedIndex: Int,
+        build: (SetLog) -> SetLog
+    ) -> Bool {
+        guard drafts.indices.contains(selectedIndex),
+              let reference = drafts[selectedIndex].sets.last(where: { $0.weightKg > 0 }) ?? drafts[selectedIndex].sets.last else {
+            return false
+        }
+
+        var next = build(reference)
+        next.completed = false
+        drafts[selectedIndex].sets.append(next)
+        drafts[selectedIndex].sets = WorkoutSetBuilder.renumbered(drafts[selectedIndex].sets)
+        return true
+    }
+
+    private static func defaultRepRange(for exercise: Exercise) -> String {
+        switch exercise.trackingType {
+        case .weightReps: "8-12"
+        case .repsOnly: "8-15"
+        case .duration: "30-45 sec"
+        }
+    }
+
+    private static func defaultWeight(from previous: String) -> Double {
+        let normalized = previous.replacingOccurrences(of: ",", with: ".")
+        let number = normalized
+            .split { character in
+                !(character.isNumber || character == ".")
+            }
+            .compactMap { Double($0) }
+            .first
+        return number ?? 0
+    }
+
+    private static func defaultReps(from repRange: String) -> Int {
+        let digits = repRange.split { !$0.isNumber }.compactMap { Int($0) }
+        return digits.first ?? 8
+    }
+}
+
+enum SelectedExerciseContextBuilder {
+    struct Input {
+        let draft: ExerciseSessionDraft?
+        let recentSets: [SetLog]
+        let hasConfigurableProgressionAccess: Bool
+        let autoProgressionEnabled: Bool
+        let weightIncrementKg: Double
+    }
+
+    struct Context: Equatable {
+        let currentWorkingSet: SetLog?
+        let targetWeightKg: Double?
+        let plateLoadSummary: String?
+        let historySummary: String?
+        let suggestionText: String?
+        let canInsertWarmUpSets: Bool
+        let canAppendAdvancedSet: Bool
+        let toolsCaption: String
+    }
+
+    static func context(from input: Input) -> Context {
+        let currentWorkingSet = input.draft?.sets.first(where: { !$0.completed }) ?? input.draft?.sets.last
+        let targetWeightKg = currentWorkingSet.flatMap { $0.weightKg > 0 ? $0.weightKg : nil }
+        let plateLoadSummary = plateLoadSummary(for: input.draft?.workoutExercise.exercise, targetWeightKg: targetWeightKg)
+        let canInsertWarmUpSets = canInsertWarmUpSets(draft: input.draft, targetWeightKg: targetWeightKg)
+        let canAppendAdvancedSet = input.draft?.sets.isEmpty == false && targetWeightKg != nil
+        let suggestionText = suggestionText(
+            draft: input.draft,
+            recentSets: input.recentSets,
+            hasConfigurableProgressionAccess: input.hasConfigurableProgressionAccess,
+            autoProgressionEnabled: input.autoProgressionEnabled,
+            weightIncrementKg: input.weightIncrementKg
+        )
+        let toolsCaption: String
+        if plateLoadSummary != nil {
+            toolsCaption = "Carga recomendada por lado con barra de 20 kg. Los botones insertan series especiales sin cerrar el entrenamiento."
+        } else if canAppendAdvancedSet {
+            toolsCaption = "Inserta calentamientos, back-off o dropsets desde la misma pantalla y deja el tipo de serie registrado."
+        } else {
+            toolsCaption = "Añade peso a la serie objetivo para activar herramientas de calentamiento y carga."
+        }
+
+        return Context(
+            currentWorkingSet: currentWorkingSet,
+            targetWeightKg: targetWeightKg,
+            plateLoadSummary: plateLoadSummary,
+            historySummary: historySummary(from: input.recentSets),
+            suggestionText: suggestionText,
+            canInsertWarmUpSets: canInsertWarmUpSets,
+            canAppendAdvancedSet: canAppendAdvancedSet,
+            toolsCaption: toolsCaption
+        )
+    }
+
+    private static func canInsertWarmUpSets(draft: ExerciseSessionDraft?, targetWeightKg: Double?) -> Bool {
+        guard let draft, let targetWeightKg else { return false }
+        return targetWeightKg >= 20 && !draft.sets.contains(where: { $0.setType == .warmUp })
+    }
+
+    private static func plateLoadSummary(for exercise: Exercise?, targetWeightKg: Double?) -> String? {
+        guard let exercise,
+              isBarbellLoadedExercise(exercise),
+              let targetWeightKg else {
+            return nil
+        }
+        return PlateLoadingCalculator.loadSummary(targetWeightKg: targetWeightKg)
+    }
+
+    private static func historySummary(from recentSets: [SetLog]) -> String? {
+        let recent = recentSets.prefix(3)
+        guard !recent.isEmpty,
+              let best = recent.max(by: { ($0.weightKg * Double($0.reps)) < ($1.weightKg * Double($1.reps)) }) else {
+            return nil
+        }
+        return "Histórico: \(Int(best.weightKg)) kg x \(best.reps)"
+    }
+
+    private static func suggestionText(
+        draft: ExerciseSessionDraft?,
+        recentSets: [SetLog],
+        hasConfigurableProgressionAccess: Bool,
+        autoProgressionEnabled: Bool,
+        weightIncrementKg: Double
+    ) -> String? {
+        guard hasConfigurableProgressionAccess,
+              autoProgressionEnabled,
+              let draft,
+              !recentSets.isEmpty else {
+            return nil
+        }
+
+        let suggestion = ProgressionEngine.nextSuggestion(
+            for: draft.workoutExercise,
+            recentSets: recentSets,
+            weightIncrementKg: weightIncrementKg
+        )
+        return suggestion.explanation
+    }
+
+    private static func isBarbellLoadedExercise(_ exercise: Exercise) -> Bool {
+        let searchable = "\(exercise.name) \(exercise.equipment) \(exercise.requiredEquipment.joined(separator: " "))"
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+
+        return searchable.contains("barbell") ||
+            searchable.contains("barra") ||
+            searchable.contains("smith")
+    }
+}
+
+enum WorkoutRestController {
+    struct RestState: Equatable {
+        let restSeconds: Int
+        let restDuration: Int
+        let restStartedAt: Date?
+    }
+
+    static func adjustedRest(
+        current: RestState,
+        remainingSeconds: Int,
+        deltaSeconds: Int,
+        now: Date = Date()
+    ) -> RestState {
+        if deltaSeconds < 0 {
+            return RestState(
+                restSeconds: max(0, remainingSeconds + deltaSeconds),
+                restDuration: current.restDuration,
+                restStartedAt: current.restStartedAt?.addingTimeInterval(Double(deltaSeconds))
+            )
+        }
+
+        if let restStartedAt = current.restStartedAt {
+            return RestState(
+                restSeconds: min(600, remainingSeconds + deltaSeconds),
+                restDuration: current.restDuration,
+                restStartedAt: restStartedAt.addingTimeInterval(Double(deltaSeconds))
+            )
+        }
+
+        return RestState(
+            restSeconds: deltaSeconds,
+            restDuration: deltaSeconds,
+            restStartedAt: now
+        )
+    }
+}
+
+enum WorkoutSessionBuilder {
+    struct Input {
+        let workoutTitle: String
+        let finishedAt: Date
+        let startedAt: Date
+        let origin: WorkoutSession.Origin
+        let isRouteCandidate: Bool
+        let isTreadmillCandidate: Bool
+        let userTrainingLocation: UserProfile.TrainingLocation
+        let activePlanLocation: UserProfile.TrainingLocation
+        let elapsedSeconds: Int
+        let drafts: [ExerciseSessionDraft]
+        let globalNotes: String
+        let sessionVoiceNote: String
+        let sessionMediaAttachments: [WorkoutMediaAttachment]
+        let sessionRPE: Double
+        let energyBefore: Double
+        let energyAfter: Double
+        let sensorSummary: WorkoutSensorSummary?
+        let routePoints: [RoutePoint]
+        let pausedSeconds: Int
+        let displayedRouteDistanceKm: Double
+        let displayedRoutePaceSecondsPerKm: Double?
+    }
+
+    static func session(from input: Input) -> WorkoutSession {
+        let logs = exerciseLogs(from: input.drafts)
+        let sessionAttachments = input.sessionMediaAttachments + voiceAttachments(from: input.sessionVoiceNote)
+
+        return WorkoutSession(
+            workoutTitle: input.workoutTitle,
+            date: input.finishedAt,
+            startedAt: input.startedAt,
+            endedAt: input.finishedAt,
+            origin: input.origin,
+            location: location(
+                isRouteCandidate: input.isRouteCandidate,
+                isTreadmillCandidate: input.isTreadmillCandidate,
+                origin: input.origin,
+                userTrainingLocation: input.userTrainingLocation,
+                activePlanLocation: input.activePlanLocation
+            ),
+            contextTag: .normal,
+            durationMinutes: max(input.elapsedSeconds / 60, 1),
+            sets: logs.flatMap(\.sets),
+            notes: sessionNotes(
+                globalNotes: input.globalNotes,
+                sessionMediaAttachments: input.sessionMediaAttachments,
+                logs: logs
+            ),
+            exerciseLogs: logs,
+            sessionRPE: input.sessionRPE,
+            energyBefore: Int(input.energyBefore),
+            energyAfter: Int(input.energyAfter),
+            estimatedCalories: input.sensorSummary?.activeEnergyKcal,
+            mediaAttachments: sessionAttachments,
+            routePoints: input.isRouteCandidate ? input.routePoints : [],
+            pausedDurationSeconds: input.pausedSeconds,
+            distanceKm: input.displayedRouteDistanceKm > 0 ? input.displayedRouteDistanceKm : nil,
+            averagePaceSecondsPerKm: input.displayedRoutePaceSecondsPerKm,
+            steps: input.sensorSummary?.steps,
+            activeEnergyKcal: input.sensorSummary?.activeEnergyKcal,
+            heartRateBefore: input.sensorSummary?.heartRateBefore,
+            heartRateAfter: input.sensorSummary?.heartRateAfter,
+            averageHeartRate: input.sensorSummary?.averageHeartRate,
+            maxHeartRate: input.sensorSummary?.maxHeartRate
+        )
+    }
+
+    static func voiceAttachments(from text: String) -> [WorkoutMediaAttachment] {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return []
+        }
+
+        return [WorkoutMediaAttachment(kind: .audio, note: trimmed, durationSeconds: nil)]
+    }
+
+    static func exerciseLogs(from drafts: [ExerciseSessionDraft]) -> [ExerciseLog] {
+        drafts.compactMap { draft -> ExerciseLog? in
+            let completedSets = draft.sets.filter(\.completed)
+            guard !completedSets.isEmpty else {
+                return nil
+            }
+
+            return ExerciseLog(
+                exercise: draft.workoutExercise.exercise,
+                notes: draft.notes,
+                sets: completedSets,
+                mediaAttachments: draft.mediaAttachments + voiceAttachments(from: draft.voiceNote)
+            )
+        }
+    }
+
+    static func sessionNotes(
+        globalNotes: String,
+        sessionMediaAttachments: [WorkoutMediaAttachment],
+        logs: [ExerciseLog]
+    ) -> String? {
+        let exerciseNotes = logs.compactMap { $0.notes.isEmpty ? nil : "\($0.exercise.name): \($0.notes)" }
+        let global = globalNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sessionMediaSummary = sessionMediaAttachments.isEmpty ? nil : "\(sessionMediaAttachments.count) fotos adjuntas de sesión"
+        let exerciseMediaSummary = logs
+            .filter { !$0.mediaAttachments.isEmpty }
+            .map { "\($0.exercise.name): \($0.mediaAttachments.count) adjuntos" }
+        let allNotes = (global.isEmpty ? [] : [global]) + exerciseNotes + (sessionMediaSummary.map { [$0] } ?? []) + exerciseMediaSummary
+        return allNotes.isEmpty ? nil : allNotes.joined(separator: "\n")
+    }
+
+    static func location(
+        isRouteCandidate: Bool,
+        isTreadmillCandidate: Bool,
+        origin: WorkoutSession.Origin,
+        userTrainingLocation: UserProfile.TrainingLocation,
+        activePlanLocation: UserProfile.TrainingLocation
+    ) -> WorkoutSession.Location {
+        if isRouteCandidate {
+            return .outdoor
+        }
+
+        if isTreadmillCandidate {
+            return .gym
+        }
+
+        if origin == .free {
+            return userTrainingLocation == .home ? .home : .gym
+        }
+
+        return activePlanLocation == .home ? .home : .gym
+    }
+
+    static func cardioLog(
+        from session: WorkoutSession,
+        sensorSummary: WorkoutSensorSummary?,
+        isCardioMovementCandidate: Bool,
+        sessionType: WorkoutDay.SessionType,
+        isTreadmillCandidate: Bool,
+        isRouteCandidate: Bool,
+        averageSpeedKmh: Double?
+    ) -> CardioLog? {
+        guard isCardioMovementCandidate else { return nil }
+
+        let activityType: CardioLog.ActivityType
+        switch sessionType {
+        case .cardioRun:
+            activityType = isTreadmillCandidate ? .treadmill : .outdoorRun
+        case .cardioWalk:
+            activityType = .walking
+        default:
+            activityType = .other
+        }
+
+        return CardioLog(
+            activityType: activityType,
+            date: session.startedAt ?? session.date,
+            durationMinutes: session.durationMinutes,
+            distanceKm: session.distanceKm,
+            averageSpeedKmh: averageSpeedKmh,
+            averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
+            averageHeartRate: sensorSummary?.averageHeartRate,
+            maxHeartRate: sensorSummary?.maxHeartRate,
+            estimatedCalories: sensorSummary?.activeEnergyKcal,
+            steps: sensorSummary?.steps,
+            activeEnergyKcal: sensorSummary?.activeEnergyKcal,
+            heartRateBefore: sensorSummary?.heartRateBefore,
+            heartRateAfter: sensorSummary?.heartRateAfter,
+            rpe: session.sessionRPE,
+            notes: session.notes,
+            routePoints: isRouteCandidate ? session.routePoints : []
+        )
+    }
+}
+
+enum ActiveWorkoutStatusBuilder {
+    struct Input {
+        let elapsedSeconds: Int
+        let pausedSeconds: Int
+        let isPaused: Bool
+        let selectedExerciseName: String?
+        let selectedExerciseIndex: Int
+        let drafts: [ExerciseSessionDraft]
+        let currentSet: SetLog?
+        let restSeconds: Int
+        let restDurationSeconds: Int
+        let estimatedRemainingSeconds: Int
+        let waterLiters: Double
+        let musicTitle: String?
+        let musicArtist: String?
+        let isMusicPlaying: Bool?
+        let nextExerciseName: String
+        let exerciseHistorySummary: String?
+        let gymPass: GymPass?
+        let lastPausedAt: Date?
+        let isRouteWorkout: Bool
+        let isOutdoorRoute: Bool
+        let routeDistanceKm: Double?
+        let routePaceSecondsPerKm: Double?
+        let routeSpeedKmh: Double?
+        let routePointCount: Int?
+        let previousRouteDistanceKm: Double?
+        let previousRoutePaceSecondsPerKm: Double?
+        let previousRouteSpeedKmh: Double?
+        let previousRoutePointCount: Int?
+        let routeSteps: Double?
+    }
+
+    struct Update {
+        let elapsedSeconds: Int
+        let pausedSeconds: Int
+        let completedSets: Int
+        let totalSets: Int
+        let volumeKg: Int
+        let isPaused: Bool
+        let exerciseName: String?
+        let exerciseIndex: Int?
+        let totalExercises: Int?
+        let currentExerciseCompletedSets: Int?
+        let currentExerciseTotalSets: Int?
+        let currentSetWeightKg: Double?
+        let currentSetReps: Int?
+        let restSeconds: Int?
+        let restDurationSeconds: Int?
+        let estimatedRemainingSeconds: Int?
+        let waterLiters: Double?
+        let musicTitle: String?
+        let musicArtist: String?
+        let isMusicPlaying: Bool?
+        let nextExerciseName: String?
+        let exerciseHistorySummary: String?
+        let gymPass: GymPass?
+        let lastPausedAt: Date?
+        let isRouteWorkout: Bool
+        let isOutdoorRoute: Bool?
+        let routeDistanceKm: Double?
+        let routePaceSecondsPerKm: Double?
+        let routeSpeedKmh: Double?
+        let routePointCount: Int?
+        let routeSteps: Double?
+    }
+
+    static func update(from input: Input) -> Update {
+        let allSets = input.drafts.flatMap(\.sets)
+        let completedSets = allSets.filter(\.completed)
+        let selectedDraft = input.drafts.indices.contains(input.selectedExerciseIndex) ? input.drafts[input.selectedExerciseIndex] : nil
+        let routeDistance = input.isOutdoorRoute ? input.routeDistanceKm : input.previousRouteDistanceKm
+        let routePace = input.isOutdoorRoute ? input.routePaceSecondsPerKm : input.previousRoutePaceSecondsPerKm
+        let routeSpeed = input.isOutdoorRoute ? input.routeSpeedKmh : input.previousRouteSpeedKmh
+        let routePointCount = input.isOutdoorRoute ? input.routePointCount : input.previousRoutePointCount
+
+        return Update(
+            elapsedSeconds: input.elapsedSeconds,
+            pausedSeconds: input.pausedSeconds,
+            completedSets: completedSets.count,
+            totalSets: allSets.count,
+            volumeKg: Int(completedSets.reduce(0.0) { $0 + ($1.weightKg * Double($1.reps)) }),
+            isPaused: input.isPaused,
+            exerciseName: input.selectedExerciseName,
+            exerciseIndex: input.drafts.isEmpty ? nil : input.selectedExerciseIndex + 1,
+            totalExercises: input.drafts.count,
+            currentExerciseCompletedSets: selectedDraft?.sets.filter(\.completed).count,
+            currentExerciseTotalSets: selectedDraft?.sets.count,
+            currentSetWeightKg: input.currentSet?.weightKg,
+            currentSetReps: input.currentSet?.reps,
+            restSeconds: input.restSeconds,
+            restDurationSeconds: input.restDurationSeconds,
+            estimatedRemainingSeconds: input.estimatedRemainingSeconds,
+            waterLiters: input.waterLiters,
+            musicTitle: input.musicTitle,
+            musicArtist: input.musicArtist,
+            isMusicPlaying: input.isMusicPlaying,
+            nextExerciseName: input.nextExerciseName,
+            exerciseHistorySummary: input.exerciseHistorySummary,
+            gymPass: input.gymPass,
+            lastPausedAt: input.lastPausedAt,
+            isRouteWorkout: input.isRouteWorkout,
+            isOutdoorRoute: input.isOutdoorRoute,
+            routeDistanceKm: routeDistance,
+            routePaceSecondsPerKm: routePace,
+            routeSpeedKmh: routeSpeed,
+            routePointCount: routePointCount,
+            routeSteps: input.routeSteps
+        )
+    }
+}
+
+enum RouteMetricsBuilder {
+    struct Input {
+        let trackerDistanceKm: Double
+        let trackerPaceSecondsPerKm: Double?
+        let trackerSpeedKmh: Double?
+        let trackerPointCount: Int
+        let activeStatus: ActiveWorkoutStatus?
+        let sensorSummary: WorkoutSensorSummary?
+        let todayHealthMetric: DailyHealthMetric?
+    }
+
+    struct Metrics: Equatable {
+        let distanceKm: Double
+        let paceSecondsPerKm: Double?
+        let speedKmh: Double?
+        let pointCount: Int
+        let paceText: String
+        let speedText: String
+        let stepsText: String
+        let heartRateText: String
+        let energyText: String
+    }
+
+    static func metrics(from input: Input) -> Metrics {
+        let distanceKm = max(input.trackerDistanceKm, input.activeStatus?.routeDistanceKm ?? 0)
+        let paceSecondsPerKm = validPositive(input.activeStatus?.routePaceSecondsPerKm) ?? validPositive(input.trackerPaceSecondsPerKm)
+        let speedKmh = validPositive(input.activeStatus?.routeSpeedKmh) ?? validPositive(input.trackerSpeedKmh)
+        let pointCount = max(input.trackerPointCount, input.activeStatus?.routePointCount ?? 0)
+        let steps = input.activeStatus?.routeSteps ?? input.sensorSummary?.steps
+        let heartRate = input.activeStatus?.liveHeartRate ?? input.sensorSummary?.averageHeartRate
+        let activeEnergy = input.activeStatus?.liveActiveEnergyKcal ?? input.sensorSummary?.activeEnergyKcal ?? input.todayHealthMetric?.activeEnergyKcal
+
+        return Metrics(
+            distanceKm: distanceKm,
+            paceSecondsPerKm: paceSecondsPerKm,
+            speedKmh: speedKmh,
+            pointCount: pointCount,
+            paceText: paceText(for: paceSecondsPerKm),
+            speedText: speedText(for: speedKmh),
+            stepsText: integerText(for: steps),
+            heartRateText: heartRateText(for: heartRate),
+            energyText: integerText(for: activeEnergy)
+        )
+    }
+
+    private static func validPositive(_ value: Double?) -> Double? {
+        guard let value, value.isFinite, value > 0 else {
+            return nil
+        }
+        return value
+    }
+
+    private static func paceText(for secondsPerKm: Double?) -> String {
+        guard let secondsPerKm = validPositive(secondsPerKm) else {
+            return "--"
+        }
+        return "\(Int(secondsPerKm) / 60):\(String(format: "%02d", Int(secondsPerKm) % 60))/km"
+    }
+
+    private static func speedText(for speedKmh: Double?) -> String {
+        guard let speedKmh = validPositive(speedKmh) else {
+            return "--"
+        }
+        return String(format: "%.1f km/h", speedKmh)
+    }
+
+    private static func integerText(for value: Double?) -> String {
+        guard let value = validPositive(value) else {
+            return "--"
+        }
+        return "\(Int(value))"
+    }
+
+    private static func heartRateText(for value: Double?) -> String {
+        guard let value = validPositive(value) else {
+            return "--"
+        }
+        return "\(Int(value)) lpm"
+    }
+}
+
+enum RouteProgressBuilder {
+    enum VisualState: Equatable {
+        case inactive
+        case active
+        case paused
+    }
+
+    struct Input {
+        let isTreadmill: Bool
+        let isSessionStarted: Bool
+        let isPaused: Bool
+        let plannedDurationMinutes: Int
+        let elapsedSeconds: Int
+        let pausedSeconds: Int
+        let distanceKm: Double
+        let paceText: String
+    }
+
+    struct Snapshot: Equatable {
+        let progress: Double
+        let visualState: VisualState
+        let icon: String
+        let status: String
+        let subtitle: String
+        let startHint: String
+        let startHintSystemImage: String
+    }
+
+    static func snapshot(from input: Input) -> Snapshot {
+        let progress = durationProgress(elapsedSeconds: input.elapsedSeconds, plannedDurationMinutes: input.plannedDurationMinutes)
+        let visualState: VisualState = !input.isSessionStarted ? .inactive : (input.isPaused ? .paused : .active)
+        let status = statusText(isTreadmill: input.isTreadmill, isSessionStarted: input.isSessionStarted, isPaused: input.isPaused)
+        let subtitle = subtitleText(
+            isSessionStarted: input.isSessionStarted,
+            plannedDurationMinutes: input.plannedDurationMinutes,
+            pausedSeconds: input.pausedSeconds,
+            distanceKm: input.distanceKm,
+            paceText: input.paceText
+        )
+
+        return Snapshot(
+            progress: progress,
+            visualState: visualState,
+            icon: icon(isTreadmill: input.isTreadmill, isSessionStarted: input.isSessionStarted, isPaused: input.isPaused),
+            status: status,
+            subtitle: subtitle,
+            startHint: input.isTreadmill
+                ? "Pulsa Iniciar arriba para registrar tiempo, pasos, pulso, kcal y distancia si está disponible."
+                : "Pulsa Iniciar arriba para empezar a registrar GPS, distancia y sensores.",
+            startHintSystemImage: input.isTreadmill ? "figure.run.treadmill" : "location.fill"
+        )
+    }
+
+    private static func durationProgress(elapsedSeconds: Int, plannedDurationMinutes: Int) -> Double {
+        guard plannedDurationMinutes > 0 else { return 0 }
+        return min(Double(elapsedSeconds) / Double(plannedDurationMinutes * 60), 1)
+    }
+
+    private static func icon(isTreadmill: Bool, isSessionStarted: Bool, isPaused: Bool) -> String {
+        if isTreadmill {
+            return isPaused ? "pause.fill" : "figure.run.treadmill"
+        }
+        if !isSessionStarted {
+            return "location"
+        }
+        return isPaused ? "pause.fill" : "figure.walk"
+    }
+
+    private static func statusText(isTreadmill: Bool, isSessionStarted: Bool, isPaused: Bool) -> String {
+        if isTreadmill {
+            if !isSessionStarted { return "CINTA PREPARADA" }
+            return isPaused ? "CINTA PAUSADA" : "CINTA ACTIVA"
+        }
+        if !isSessionStarted { return "RUTA PREPARADA" }
+        return isPaused ? "RUTA PAUSADA" : "RUTA ACTIVA"
+    }
+
+    private static func subtitleText(
+        isSessionStarted: Bool,
+        plannedDurationMinutes: Int,
+        pausedSeconds: Int,
+        distanceKm: Double,
+        paceText: String
+    ) -> String {
+        guard isSessionStarted else {
+            return "\(plannedDurationMinutes) min planificados"
+        }
+
+        var parts = [
+            String(format: "%.2f km", distanceKm),
+            paceText
+        ]
+        if pausedSeconds > 0 {
+            parts.append("pausa \(timeString(pausedSeconds))")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func timeString(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        let secs = seconds % 60
+        return String(format: "%02d:%02d", minutes, secs)
     }
 }

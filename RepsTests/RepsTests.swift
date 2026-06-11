@@ -509,6 +509,890 @@ struct RepsTests {
         #expect(WorkoutSetBuilder.renumbered([workSet, dropSet]).map(\.setNumber) == [1, 2])
     }
 
+    @Test func workoutDraftControllerMutatesSelectedExerciseSets() {
+        let exercise = WorkoutExercise(
+            exercise: SeedData.bench,
+            targetSets: 1,
+            repRange: "8-10",
+            previous: "60 x 8"
+        )
+        var drafts = [
+            ExerciseSessionDraft(
+                workoutExercise: exercise,
+                notes: "",
+                sets: [SetLog(setNumber: 1, weightKg: 60, reps: 8, completed: false)]
+            )
+        ]
+
+        #expect(WorkoutDraftController.addSet(to: &drafts, selectedIndex: 0))
+        #expect(drafts[0].sets.count == 2)
+        #expect(drafts[0].sets[1].weightKg == 60)
+        #expect(drafts[0].sets[1].reps == 8)
+
+        #expect(WorkoutDraftController.insertWarmUpSets(to: &drafts, selectedIndex: 0, targetSet: drafts[0].sets.last))
+        #expect(drafts[0].sets.prefix(3).allSatisfy { $0.setType == .warmUp })
+        #expect(drafts[0].sets.map(\.setNumber) == Array(1...5))
+
+        #expect(WorkoutDraftController.appendDropSet(to: &drafts, selectedIndex: 0))
+        #expect(drafts[0].sets.last?.setType == .dropSet)
+
+        #expect(WorkoutDraftController.appendBackOffSet(to: &drafts, selectedIndex: 0))
+        #expect(drafts[0].sets.last?.setType == .backOff)
+        #expect(drafts[0].sets.map(\.setNumber) == Array(1...7))
+    }
+
+    @Test func workoutDraftControllerMutatesExerciseDrafts() {
+        var drafts: [ExerciseSessionDraft] = []
+
+        let benchIndex = WorkoutDraftController.addExercise(SeedData.bench, to: &drafts)
+
+        #expect(benchIndex == 0)
+        #expect(drafts.count == 1)
+        #expect(drafts[0].workoutExercise.exercise.name == SeedData.bench.name)
+        #expect(drafts[0].workoutExercise.repRange == "8-12")
+        #expect(drafts[0].sets.count == 3)
+        #expect(drafts[0].sets.allSatisfy { !$0.completed })
+
+        drafts[0].sets = [
+            SetLog(
+                setNumber: 1,
+                weightKg: 80,
+                reps: 6,
+                completed: true,
+                setType: .work,
+                rpe: 8,
+                rir: 2,
+                tempo: "3-1-1",
+                previousRestSeconds: 90,
+                isPersonalRecord: true,
+                notes: "Mantener técnica"
+            ),
+            SetLog(setNumber: 2, weightKg: 75, reps: 8, completed: false, setType: .backOff)
+        ]
+
+        #expect(WorkoutDraftController.replaceExercise(at: 0, with: SeedData.squat, in: &drafts))
+        #expect(drafts[0].workoutExercise.exercise.name == SeedData.squat.name)
+        #expect(drafts[0].sets.map(\.setNumber) == [1, 2])
+        #expect(drafts[0].sets[0].weightKg == 80)
+        #expect(drafts[0].sets[0].reps == 6)
+        #expect(drafts[0].sets[0].completed)
+        #expect(drafts[0].sets[0].setType == .work)
+        #expect(drafts[0].sets[0].rpe == 8)
+        #expect(drafts[0].sets[0].rir == 2)
+        #expect(drafts[0].sets[0].tempo == "3-1-1")
+        #expect(drafts[0].sets[0].previousRestSeconds == 90)
+        #expect(drafts[0].sets[0].isPersonalRecord == false)
+        #expect(drafts[0].sets[0].notes == "Mantener técnica")
+
+        _ = WorkoutDraftController.addExercise(SeedData.row, to: &drafts)
+        let selectedID = drafts[0].workoutExercise.id
+        let movedSelection = WorkoutDraftController.moveExercise(
+            from: 1,
+            to: 0,
+            in: &drafts,
+            selectedWorkoutExerciseID: selectedID
+        )
+
+        #expect(drafts.map { $0.workoutExercise.exercise.name } == [SeedData.row.name, SeedData.squat.name])
+        #expect(movedSelection == 1)
+
+        let selectedAfterRemoval = WorkoutDraftController.removeExercise(at: 1, from: &drafts)
+        #expect(selectedAfterRemoval == 0)
+        #expect(drafts.map { $0.workoutExercise.exercise.name } == [SeedData.row.name])
+
+        let emptySelection = WorkoutDraftController.removeExercise(at: 0, from: &drafts)
+        #expect(emptySelection == 0)
+        #expect(drafts.isEmpty)
+        #expect(WorkoutDraftController.removeExercise(at: 0, from: &drafts) == nil)
+    }
+
+    @Test func exerciseHistoryAnalyzerMatchesNormalizedNamesAndDetectsRecords() {
+        let older = Date(timeIntervalSince1970: 1_000)
+        let newer = Date(timeIntervalSince1970: 2_000)
+        let alternateBench = Exercise(name: "  barbell-bench_press  ", muscleGroup: "Chest", equipment: "Barbell")
+        let sessions = [
+            WorkoutSession(
+                workoutTitle: "Older Push",
+                date: older,
+                durationMinutes: 40,
+                sets: [],
+                exerciseLogs: [
+                    ExerciseLog(exercise: SeedData.bench, notes: "", sets: [
+                        SetLog(setNumber: 1, weightKg: 75, reps: 8, completed: true),
+                        SetLog(setNumber: 2, weightKg: 75, reps: 8, completed: false)
+                    ])
+                ]
+            ),
+            WorkoutSession(
+                workoutTitle: "Newer Push",
+                date: newer,
+                durationMinutes: 42,
+                sets: [],
+                exerciseLogs: [
+                    ExerciseLog(exercise: alternateBench, notes: "", sets: [
+                        SetLog(setNumber: 1, weightKg: 80, reps: 5, completed: true)
+                    ])
+                ]
+            )
+        ]
+
+        let recent = ExerciseHistoryAnalyzer.recentCompletedSets(for: SeedData.bench, in: sessions)
+
+        #expect(recent.map(\.weightKg) == [80, 75])
+        #expect(ExerciseHistoryAnalyzer.normalizedExerciseName("  Barbell-Bench_press ") == "barbell bench press")
+        #expect(ExerciseHistoryAnalyzer.isPersonalRecord(
+            SetLog(setNumber: 1, weightKg: 82.5, reps: 5, completed: true),
+            for: SeedData.bench,
+            in: sessions
+        ))
+        #expect(!ExerciseHistoryAnalyzer.isPersonalRecord(
+            SetLog(setNumber: 1, weightKg: 70, reps: 5, completed: true),
+            for: SeedData.bench,
+            in: sessions
+        ))
+    }
+
+    @Test func workoutDraftControllerAppliesAutoProgressionToIncompleteSets() {
+        var item = WorkoutExercise(
+            exercise: SeedData.bench,
+            targetSets: 2,
+            repRange: "8-10",
+            previous: "60 x 10"
+        )
+        item.progressionType = .linear
+        item.incrementKg = 2.5
+        var drafts = [
+            ExerciseSessionDraft(
+                workoutExercise: item,
+                notes: "",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 60, reps: 10, completed: true),
+                    SetLog(setNumber: 2, weightKg: 0, reps: 0, completed: false),
+                    SetLog(setNumber: 3, weightKg: 0, reps: 0, completed: false)
+                ]
+            )
+        ]
+        let sessions = [
+            WorkoutSession(
+                workoutTitle: "Push",
+                date: .now,
+                durationMinutes: 40,
+                sets: [],
+                exerciseLogs: [
+                    ExerciseLog(exercise: SeedData.bench, notes: "", sets: [
+                        SetLog(setNumber: 1, weightKg: 60, reps: 10, completed: true, rpe: 7),
+                        SetLog(setNumber: 2, weightKg: 60, reps: 10, completed: true, rpe: 7)
+                    ])
+                ]
+            )
+        ]
+
+        #expect(WorkoutDraftController.applyAutoProgression(to: &drafts, sessions: sessions, weightIncrementKg: 2.5))
+        #expect(drafts[0].sets[0].weightKg == 60)
+        #expect(drafts[0].sets[0].reps == 10)
+        #expect(drafts[0].sets[1].weightKg == 62.5)
+        #expect(drafts[0].sets[1].reps == 8)
+        #expect(drafts[0].sets[2].weightKg == 62.5)
+        #expect(drafts[0].sets[2].reps == 8)
+
+        var emptyHistoryDrafts = drafts
+        #expect(!WorkoutDraftController.applyAutoProgression(to: &emptyHistoryDrafts, sessions: [], weightIncrementKg: 2.5))
+    }
+
+    @Test func workoutDraftControllerFindsNextIncompleteSetAcrossExercises() {
+        let first = WorkoutExercise(
+            exercise: SeedData.bench,
+            targetSets: 2,
+            repRange: "8-10",
+            previous: ""
+        )
+        let second = WorkoutExercise(
+            exercise: SeedData.squat,
+            targetSets: 2,
+            repRange: "6-8",
+            previous: ""
+        )
+        var drafts = [
+            ExerciseSessionDraft(
+                workoutExercise: first,
+                notes: "",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 70, reps: 8, completed: true),
+                    SetLog(setNumber: 2, weightKg: 70, reps: 8, completed: true)
+                ]
+            ),
+            ExerciseSessionDraft(
+                workoutExercise: second,
+                notes: "",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 90, reps: 6, completed: false),
+                    SetLog(setNumber: 2, weightKg: 90, reps: 6, completed: false)
+                ]
+            )
+        ]
+
+        let pending = WorkoutDraftController.nextIncompleteSet(in: drafts)
+
+        #expect(pending?.exerciseIndex == 1)
+        #expect(pending?.setIndex == 0)
+        #expect(pending?.exerciseName == SeedData.squat.name)
+        #expect(pending?.setNumber == 1)
+
+        drafts[1].sets[0].completed = true
+        drafts[1].sets[1].completed = true
+        #expect(WorkoutDraftController.nextIncompleteSet(in: drafts) == nil)
+    }
+
+    @Test func workoutDraftControllerCompletesSetsAndChoosesRest() {
+        var first = WorkoutExercise(
+            exercise: SeedData.bench,
+            targetSets: 2,
+            repRange: "8-10",
+            previous: ""
+        )
+        first.restSeconds = 75
+        let second = WorkoutExercise(
+            exercise: SeedData.squat,
+            targetSets: 1,
+            repRange: "6-8",
+            previous: ""
+        )
+        var drafts = [
+            ExerciseSessionDraft(
+                workoutExercise: first,
+                notes: "",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 72.5, reps: 8, completed: false),
+                    SetLog(setNumber: 2, weightKg: 0, reps: 0, completed: false)
+                ]
+            ),
+            ExerciseSessionDraft(
+                workoutExercise: second,
+                notes: "",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 90, reps: 6, completed: false)
+                ]
+            )
+        ]
+
+        let firstOutcome = WorkoutDraftController.completeSet(
+            in: &drafts,
+            exerciseIndex: 0,
+            setIndex: 0,
+            elapsedSeconds: 180,
+            lastSetCompletedAtSeconds: 100,
+            isPersonalRecord: true,
+            betweenExercisesRestSeconds: 150
+        )
+
+        #expect(drafts[0].sets[0].completed)
+        #expect(drafts[0].sets[0].previousRestSeconds == 80)
+        #expect(drafts[0].sets[0].isPersonalRecord)
+        #expect(drafts[0].sets[1].weightKg == 72.5)
+        #expect(drafts[0].sets[1].reps == 8)
+        #expect(firstOutcome?.restDurationSeconds == 75)
+        #expect(firstOutcome?.shouldMoveToNextExercise == false)
+        #expect(firstOutcome?.didFinishWorkout == false)
+
+        let secondOutcome = WorkoutDraftController.completeSet(
+            in: &drafts,
+            exerciseIndex: 0,
+            setIndex: 1,
+            elapsedSeconds: 260,
+            lastSetCompletedAtSeconds: 180,
+            isPersonalRecord: false,
+            betweenExercisesRestSeconds: 150
+        )
+
+        #expect(secondOutcome?.restDurationSeconds == 150)
+        #expect(secondOutcome?.shouldMoveToNextExercise == true)
+        #expect(secondOutcome?.didFinishWorkout == false)
+
+        let finalOutcome = WorkoutDraftController.completeSet(
+            in: &drafts,
+            exerciseIndex: 1,
+            setIndex: 0,
+            elapsedSeconds: 420,
+            lastSetCompletedAtSeconds: 260,
+            isPersonalRecord: false,
+            betweenExercisesRestSeconds: 150
+        )
+
+        #expect(finalOutcome?.restDurationSeconds == nil)
+        #expect(finalOutcome?.didFinishWorkout == true)
+    }
+
+    @Test func workoutRestControllerAdjustsRestDeterministically() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let started = Date(timeIntervalSince1970: 900)
+
+        let fresh = WorkoutRestController.adjustedRest(
+            current: WorkoutRestController.RestState(restSeconds: 0, restDuration: 0, restStartedAt: nil),
+            remainingSeconds: 0,
+            deltaSeconds: 30,
+            now: now
+        )
+        #expect(fresh.restSeconds == 30)
+        #expect(fresh.restDuration == 30)
+        #expect(fresh.restStartedAt == now)
+
+        let extended = WorkoutRestController.adjustedRest(
+            current: WorkoutRestController.RestState(restSeconds: 45, restDuration: 75, restStartedAt: started),
+            remainingSeconds: 45,
+            deltaSeconds: 30,
+            now: now
+        )
+        #expect(extended.restSeconds == 75)
+        #expect(extended.restDuration == 75)
+        #expect(extended.restStartedAt == started.addingTimeInterval(30))
+
+        let reduced = WorkoutRestController.adjustedRest(
+            current: WorkoutRestController.RestState(restSeconds: 10, restDuration: 75, restStartedAt: started),
+            remainingSeconds: 10,
+            deltaSeconds: -30,
+            now: now
+        )
+        #expect(reduced.restSeconds == 0)
+        #expect(reduced.restDuration == 75)
+        #expect(reduced.restStartedAt == started.addingTimeInterval(-30))
+    }
+
+    @Test func selectedExerciseContextBuilderBuildsToolsHistoryAndSuggestion() {
+        var exercise = SeedData.bench
+        exercise.requiredEquipment = ["Barbell", "Bench"]
+        let workoutExercise = WorkoutExercise(
+            exercise: exercise,
+            targetSets: 2,
+            repRange: "8-10",
+            previous: "80 x 8",
+            progressionType: .doubleProgression
+        )
+        let draft = ExerciseSessionDraft(
+            workoutExercise: workoutExercise,
+            notes: "",
+            sets: [
+                SetLog(setNumber: 1, weightKg: 80, reps: 8, completed: true),
+                SetLog(setNumber: 2, weightKg: 80, reps: 8, completed: false)
+            ]
+        )
+        let recentSets = [
+            SetLog(setNumber: 1, weightKg: 82.5, reps: 8, completed: true),
+            SetLog(setNumber: 2, weightKg: 80, reps: 10, completed: true),
+            SetLog(setNumber: 3, weightKg: 75, reps: 12, completed: true)
+        ]
+
+        let context = SelectedExerciseContextBuilder.context(
+            from: SelectedExerciseContextBuilder.Input(
+                draft: draft,
+                recentSets: recentSets,
+                hasConfigurableProgressionAccess: true,
+                autoProgressionEnabled: true,
+                weightIncrementKg: 2.5
+            )
+        )
+
+        #expect(context.currentWorkingSet?.setNumber == 2)
+        #expect(context.targetWeightKg == 80)
+        #expect(context.plateLoadSummary == "1x25 + 1x5")
+        #expect(context.historySummary == "Histórico: 75 kg x 12")
+        #expect(context.suggestionText != nil)
+        #expect(context.canInsertWarmUpSets)
+        #expect(context.canAppendAdvancedSet)
+        #expect(context.toolsCaption == "Carga recomendada por lado con barra de 20 kg. Los botones insertan series especiales sin cerrar el entrenamiento.")
+    }
+
+    @Test func selectedExerciseContextBuilderHandlesEmptyOrBodyweightDrafts() {
+        let bodyweight = WorkoutExercise(
+            exercise: SeedData.pushup,
+            targetSets: 3,
+            repRange: "10-15",
+            previous: ""
+        )
+        let draft = ExerciseSessionDraft(
+            workoutExercise: bodyweight,
+            notes: "",
+            sets: [
+                SetLog(setNumber: 1, weightKg: 0, reps: 12, completed: false)
+            ]
+        )
+
+        let context = SelectedExerciseContextBuilder.context(
+            from: SelectedExerciseContextBuilder.Input(
+                draft: draft,
+                recentSets: [],
+                hasConfigurableProgressionAccess: false,
+                autoProgressionEnabled: false,
+                weightIncrementKg: 2.5
+            )
+        )
+
+        #expect(context.targetWeightKg == nil)
+        #expect(context.plateLoadSummary == nil)
+        #expect(context.historySummary == nil)
+        #expect(context.suggestionText == nil)
+        #expect(context.canInsertWarmUpSets == false)
+        #expect(context.canAppendAdvancedSet == false)
+        #expect(context.toolsCaption == "Añade peso a la serie objetivo para activar herramientas de calentamiento y carga.")
+    }
+
+    @Test func workoutSessionBuilderCreatesLogsNotesAndLocation() {
+        let imageAttachment = WorkoutMediaAttachment(kind: .image, data: Data([1, 2, 3]))
+        let bench = WorkoutExercise(
+            exercise: SeedData.bench,
+            targetSets: 2,
+            repRange: "8-10",
+            previous: ""
+        )
+        let squat = WorkoutExercise(
+            exercise: SeedData.squat,
+            targetSets: 1,
+            repRange: "6-8",
+            previous: ""
+        )
+        let drafts = [
+            ExerciseSessionDraft(
+                workoutExercise: bench,
+                notes: "Buena velocidad",
+                voiceNote: "Mantener agarre",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 70, reps: 8, completed: true),
+                    SetLog(setNumber: 2, weightKg: 70, reps: 8, completed: false)
+                ],
+                mediaAttachments: [imageAttachment]
+            ),
+            ExerciseSessionDraft(
+                workoutExercise: squat,
+                notes: "Sin completar",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 100, reps: 5, completed: false)
+                ]
+            )
+        ]
+
+        let logs = WorkoutSessionBuilder.exerciseLogs(from: drafts)
+
+        #expect(logs.count == 1)
+        #expect(logs[0].exercise.id == SeedData.bench.id)
+        #expect(logs[0].sets.count == 1)
+        #expect(logs[0].mediaAttachments.count == 2)
+        #expect(logs[0].mediaAttachments.contains { $0.kind == .audio && $0.note == "Mantener agarre" })
+
+        let notes = WorkoutSessionBuilder.sessionNotes(
+            globalNotes: "Sesión sólida",
+            sessionMediaAttachments: [imageAttachment],
+            logs: logs
+        )
+
+        #expect(notes?.contains("Sesión sólida") == true)
+        #expect(notes?.contains("Barbell Bench Press: Buena velocidad") == true)
+        #expect(notes?.contains("1 fotos adjuntas de sesión") == true)
+        #expect(notes?.contains("Barbell Bench Press: 2 adjuntos") == true)
+
+        #expect(WorkoutSessionBuilder.voiceAttachments(from: "   ").isEmpty)
+        #expect(WorkoutSessionBuilder.location(
+            isRouteCandidate: true,
+            isTreadmillCandidate: false,
+            origin: .routine,
+            userTrainingLocation: .gym,
+            activePlanLocation: .gym
+        ) == .outdoor)
+        #expect(WorkoutSessionBuilder.location(
+            isRouteCandidate: false,
+            isTreadmillCandidate: true,
+            origin: .routine,
+            userTrainingLocation: .home,
+            activePlanLocation: .home
+        ) == .gym)
+        #expect(WorkoutSessionBuilder.location(
+            isRouteCandidate: false,
+            isTreadmillCandidate: false,
+            origin: .free,
+            userTrainingLocation: .home,
+            activePlanLocation: .gym
+        ) == .home)
+    }
+
+    @Test func workoutSessionBuilderBuildsCompleteWorkoutSessionFromInput() {
+        let startedAt = Date(timeIntervalSince1970: 2_000)
+        let finishedAt = startedAt.addingTimeInterval(2_460)
+        let routePoint = RoutePoint(latitude: 40.0, longitude: -3.0, timestamp: startedAt)
+        let sessionImage = WorkoutMediaAttachment(kind: .image, data: Data([9, 8, 7]))
+        let exercise = WorkoutExercise(
+            exercise: SeedData.bench,
+            targetSets: 1,
+            repRange: "8-10",
+            previous: ""
+        )
+        let drafts = [
+            ExerciseSessionDraft(
+                workoutExercise: exercise,
+                notes: "Controlado",
+                voiceNote: "Subir 2.5 kg",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 80, reps: 8, completed: true)
+                ]
+            )
+        ]
+        let sensor = WorkoutSensorSummary(
+            steps: 1_200,
+            activeEnergyKcal: 180,
+            averageHeartRate: 118,
+            maxHeartRate: 145,
+            heartRateBefore: 70,
+            heartRateAfter: 92
+        )
+
+        let session = WorkoutSessionBuilder.session(
+            from: WorkoutSessionBuilder.Input(
+                workoutTitle: "Push",
+                finishedAt: finishedAt,
+                startedAt: startedAt,
+                origin: .free,
+                isRouteCandidate: false,
+                isTreadmillCandidate: false,
+                userTrainingLocation: .home,
+                activePlanLocation: .gym,
+                elapsedSeconds: 2_460,
+                drafts: drafts,
+                globalNotes: "Buena sesión",
+                sessionVoiceNote: "Cierre general",
+                sessionMediaAttachments: [sessionImage],
+                sessionRPE: 8.5,
+                energyBefore: 3.9,
+                energyAfter: 4.1,
+                sensorSummary: sensor,
+                routePoints: [routePoint],
+                pausedSeconds: 90,
+                displayedRouteDistanceKm: 0,
+                displayedRoutePaceSecondsPerKm: nil
+            )
+        )
+
+        #expect(session.workoutTitle == "Push")
+        #expect(session.startedAt == startedAt)
+        #expect(session.endedAt == finishedAt)
+        #expect(session.location == .home)
+        #expect(session.durationMinutes == 41)
+        #expect(session.sets.count == 1)
+        #expect(session.exerciseLogs?.count == 1)
+        #expect(session.notes?.contains("Buena sesión") == true)
+        #expect(session.notes?.contains("Barbell Bench Press: Controlado") == true)
+        #expect(session.mediaAttachments.count == 2)
+        #expect(session.routePoints.isEmpty)
+        #expect(session.pausedDurationSeconds == 90)
+        #expect(session.distanceKm == nil)
+        #expect(session.energyBefore == 3)
+        #expect(session.energyAfter == 4)
+        #expect(session.activeEnergyKcal == 180)
+        #expect(session.averageHeartRate == 118)
+    }
+
+    @Test func workoutSessionBuilderCreatesCardioLogsOnlyForCardioSessions() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        let routePoint = RoutePoint(latitude: 40.0, longitude: -3.0, timestamp: start)
+        let session = WorkoutSession(
+            workoutTitle: "Carrera",
+            date: start.addingTimeInterval(1_800),
+            startedAt: start,
+            endedAt: start.addingTimeInterval(1_800),
+            origin: .routine,
+            location: .outdoor,
+            durationMinutes: 30,
+            sets: [],
+            notes: "Ritmo controlado",
+            sessionRPE: 7,
+            routePoints: [routePoint],
+            distanceKm: 5,
+            averagePaceSecondsPerKm: 360
+        )
+        let sensor = WorkoutSensorSummary(
+            steps: 5_000,
+            activeEnergyKcal: 320,
+            averageHeartRate: 142,
+            maxHeartRate: 170,
+            heartRateBefore: 72,
+            heartRateAfter: 96
+        )
+
+        #expect(WorkoutSessionBuilder.cardioLog(
+            from: session,
+            sensorSummary: sensor,
+            isCardioMovementCandidate: false,
+            sessionType: .strength,
+            isTreadmillCandidate: false,
+            isRouteCandidate: false,
+            averageSpeedKmh: nil
+        ) == nil)
+
+        let outdoorLog = WorkoutSessionBuilder.cardioLog(
+            from: session,
+            sensorSummary: sensor,
+            isCardioMovementCandidate: true,
+            sessionType: .cardioRun,
+            isTreadmillCandidate: false,
+            isRouteCandidate: true,
+            averageSpeedKmh: 10
+        )
+
+        #expect(outdoorLog?.activityType == .outdoorRun)
+        #expect(outdoorLog?.routePoints.count == 1)
+        #expect(outdoorLog?.averageHeartRate == 142)
+        #expect(outdoorLog?.averageSpeedKmh == 10)
+
+        let treadmillLog = WorkoutSessionBuilder.cardioLog(
+            from: session,
+            sensorSummary: nil,
+            isCardioMovementCandidate: true,
+            sessionType: .cardioRun,
+            isTreadmillCandidate: true,
+            isRouteCandidate: false,
+            averageSpeedKmh: 9
+        )
+
+        #expect(treadmillLog?.activityType == .treadmill)
+        #expect(treadmillLog?.routePoints.isEmpty == true)
+    }
+
+    @Test func activeWorkoutStatusBuilderCreatesStatusUpdateFromDrafts() {
+        let bench = WorkoutExercise(
+            exercise: SeedData.bench,
+            targetSets: 2,
+            repRange: "8-10",
+            previous: ""
+        )
+        let squat = WorkoutExercise(
+            exercise: SeedData.squat,
+            targetSets: 1,
+            repRange: "6-8",
+            previous: ""
+        )
+        let drafts = [
+            ExerciseSessionDraft(
+                workoutExercise: bench,
+                notes: "",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 80, reps: 8, completed: true),
+                    SetLog(setNumber: 2, weightKg: 80, reps: 8, completed: false)
+                ]
+            ),
+            ExerciseSessionDraft(
+                workoutExercise: squat,
+                notes: "",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 100, reps: 5, completed: true)
+                ]
+            )
+        ]
+
+        let update = ActiveWorkoutStatusBuilder.update(
+            from: ActiveWorkoutStatusBuilder.Input(
+                elapsedSeconds: 420,
+                pausedSeconds: 30,
+                isPaused: false,
+                selectedExerciseName: "Press banca",
+                selectedExerciseIndex: 0,
+                drafts: drafts,
+                currentSet: drafts[0].sets[1],
+                restSeconds: 45,
+                restDurationSeconds: 90,
+                estimatedRemainingSeconds: 600,
+                waterLiters: 0.5,
+                musicTitle: "Playlist",
+                musicArtist: "Apple Music",
+                isMusicPlaying: true,
+                nextExerciseName: "Sentadilla",
+                exerciseHistorySummary: "80 x 8",
+                gymPass: nil,
+                lastPausedAt: nil,
+                isRouteWorkout: true,
+                isOutdoorRoute: false,
+                routeDistanceKm: nil,
+                routePaceSecondsPerKm: nil,
+                routeSpeedKmh: nil,
+                routePointCount: nil,
+                previousRouteDistanceKm: 2.4,
+                previousRoutePaceSecondsPerKm: 360,
+                previousRouteSpeedKmh: 10,
+                previousRoutePointCount: 24,
+                routeSteps: 3_000
+            )
+        )
+
+        #expect(update.elapsedSeconds == 420)
+        #expect(update.completedSets == 2)
+        #expect(update.totalSets == 3)
+        #expect(update.volumeKg == 1_140)
+        #expect(update.exerciseName == "Press banca")
+        #expect(update.exerciseIndex == 1)
+        #expect(update.totalExercises == 2)
+        #expect(update.currentExerciseCompletedSets == 1)
+        #expect(update.currentExerciseTotalSets == 2)
+        #expect(update.currentSetWeightKg == 80)
+        #expect(update.currentSetReps == 8)
+        #expect(update.routeDistanceKm == 2.4)
+        #expect(update.routePaceSecondsPerKm == 360)
+        #expect(update.routeSpeedKmh == 10)
+        #expect(update.routePointCount == 24)
+        #expect(update.routeSteps == 3_000)
+    }
+
+    @Test func routeMetricsBuilderPrioritizesLiveStatusAndFormatsValues() {
+        let status = ActiveWorkoutStatus(
+            planTitle: "Plan",
+            workoutTitle: "Carrera",
+            elapsedSeconds: 600,
+            pausedSeconds: 0,
+            completedSets: 0,
+            totalSets: 0,
+            volumeKg: 0,
+            isPaused: false,
+            isRouteWorkout: true,
+            isOutdoorRoute: true,
+            routeDistanceKm: 3.2,
+            routePaceSecondsPerKm: 312,
+            routeSpeedKmh: 11.5,
+            routePointCount: 80,
+            routeSteps: 4_200,
+            liveHeartRate: 151,
+            liveActiveEnergyKcal: 340
+        )
+        let sensor = WorkoutSensorSummary(
+            steps: 3_000,
+            activeEnergyKcal: 250,
+            averageHeartRate: 140,
+            maxHeartRate: 170,
+            heartRateBefore: nil,
+            heartRateAfter: nil
+        )
+        let today = DailyHealthMetric(
+            date: .now,
+            steps: 10_000,
+            activeEnergyKcal: 500,
+            dietaryEnergyKcal: 2_100,
+            waterLiters: 1.5
+        )
+
+        let metrics = RouteMetricsBuilder.metrics(
+            from: RouteMetricsBuilder.Input(
+                trackerDistanceKm: 2.6,
+                trackerPaceSecondsPerKm: 400,
+                trackerSpeedKmh: 9.2,
+                trackerPointCount: 40,
+                activeStatus: status,
+                sensorSummary: sensor,
+                todayHealthMetric: today
+            )
+        )
+
+        #expect(metrics.distanceKm == 3.2)
+        #expect(metrics.paceSecondsPerKm == 312)
+        #expect(metrics.speedKmh == 11.5)
+        #expect(metrics.pointCount == 80)
+        #expect(metrics.paceText == "5:12/km")
+        #expect(metrics.speedText == "11.5 km/h")
+        #expect(metrics.stepsText == "4200")
+        #expect(metrics.heartRateText == "151 lpm")
+        #expect(metrics.energyText == "340")
+    }
+
+    @Test func routeMetricsBuilderFallsBackToTrackerSensorAndDailyHealth() {
+        let sensor = WorkoutSensorSummary(
+            steps: 2_200,
+            activeEnergyKcal: nil,
+            averageHeartRate: 132,
+            maxHeartRate: nil,
+            heartRateBefore: nil,
+            heartRateAfter: nil
+        )
+        let today = DailyHealthMetric(
+            date: .now,
+            steps: 8_000,
+            activeEnergyKcal: 410,
+            dietaryEnergyKcal: 2_000,
+            waterLiters: 1.0
+        )
+
+        let metrics = RouteMetricsBuilder.metrics(
+            from: RouteMetricsBuilder.Input(
+                trackerDistanceKm: 1.4,
+                trackerPaceSecondsPerKm: 450,
+                trackerSpeedKmh: 8,
+                trackerPointCount: 18,
+                activeStatus: nil,
+                sensorSummary: sensor,
+                todayHealthMetric: today
+            )
+        )
+
+        #expect(metrics.distanceKm == 1.4)
+        #expect(metrics.paceText == "7:30/km")
+        #expect(metrics.speedText == "8.0 km/h")
+        #expect(metrics.pointCount == 18)
+        #expect(metrics.stepsText == "2200")
+        #expect(metrics.heartRateText == "132 lpm")
+        #expect(metrics.energyText == "410")
+    }
+
+    @Test func routeProgressBuilderCreatesRouteAndTreadmillSnapshots() {
+        let preparedRoute = RouteProgressBuilder.snapshot(
+            from: RouteProgressBuilder.Input(
+                isTreadmill: false,
+                isSessionStarted: false,
+                isPaused: false,
+                plannedDurationMinutes: 45,
+                elapsedSeconds: 0,
+                pausedSeconds: 0,
+                distanceKm: 0,
+                paceText: "--"
+            )
+        )
+
+        #expect(preparedRoute.progress == 0)
+        #expect(preparedRoute.visualState == .inactive)
+        #expect(preparedRoute.icon == "location")
+        #expect(preparedRoute.status == "RUTA PREPARADA")
+        #expect(preparedRoute.subtitle == "45 min planificados")
+        #expect(preparedRoute.startHintSystemImage == "location.fill")
+
+        let activeRoute = RouteProgressBuilder.snapshot(
+            from: RouteProgressBuilder.Input(
+                isTreadmill: false,
+                isSessionStarted: true,
+                isPaused: false,
+                plannedDurationMinutes: 30,
+                elapsedSeconds: 900,
+                pausedSeconds: 75,
+                distanceKm: 2.35,
+                paceText: "6:20/km"
+            )
+        )
+
+        #expect(activeRoute.progress == 0.5)
+        #expect(activeRoute.visualState == .active)
+        #expect(activeRoute.icon == "figure.walk")
+        #expect(activeRoute.status == "RUTA ACTIVA")
+        #expect(activeRoute.subtitle == "2.35 km · 6:20/km · pausa 01:15")
+
+        let pausedTreadmill = RouteProgressBuilder.snapshot(
+            from: RouteProgressBuilder.Input(
+                isTreadmill: true,
+                isSessionStarted: true,
+                isPaused: true,
+                plannedDurationMinutes: 20,
+                elapsedSeconds: 1_500,
+                pausedSeconds: 0,
+                distanceKm: 3.5,
+                paceText: "5:42/km"
+            )
+        )
+
+        #expect(pausedTreadmill.progress == 1)
+        #expect(pausedTreadmill.visualState == .paused)
+        #expect(pausedTreadmill.icon == "pause.fill")
+        #expect(pausedTreadmill.status == "CINTA PAUSADA")
+        #expect(pausedTreadmill.startHintSystemImage == "figure.run.treadmill")
+    }
+
     @Test func competitiveSummaryComparesPlanTargetsToActualWeek() {
         let now = Date()
         let plan = WorkoutPlan(
@@ -866,6 +1750,7 @@ struct RepsTests {
         snapshot.monetization.entitlement = .pro
         snapshot.monetization.status = .active
         snapshot.monetization.billingCycle = .annual
+        snapshot.monetization.provider = .iCloudOwner
         snapshot.monetization.lastPaywallSource = .profileSubscription
         snapshot.monetization.paywallPresentationCount = 3
 
@@ -875,8 +1760,81 @@ struct RepsTests {
         #expect(loaded?.monetization.entitlement == .pro)
         #expect(loaded?.monetization.status == .active)
         #expect(loaded?.monetization.billingCycle == .annual)
+        #expect(loaded?.monetization.provider == .iCloudOwner)
         #expect(loaded?.monetization.lastPaywallSource == .profileSubscription)
         #expect(loaded?.monetization.paywallPresentationCount == 3)
+    }
+
+    @Test func iCloudProHashesAreNormalizedFromEnvironment() {
+        let hash = ICloudProEntitlementService.sha256Hex("owner-record")
+        let hashes = ICloudProEntitlementService.allowedRecordNameHashes(
+            environment: ["REPS_PRO_ICLOUD_RECORD_ID_HASHES": " \(hash.uppercased()) , "]
+        )
+
+        #expect(hashes == [hash])
+    }
+
+    @Test func exerciseMediaAssetURLTrimsAndEncodesRemoteMedia() {
+        let exercise = Exercise(
+            name: "Cable Fly",
+            muscleGroup: "Chest",
+            equipment: "Cable",
+            mediaURL: " https://example.com/exercises/cable fly/image 1.jpg "
+        )
+
+        #expect(exercise.mediaAssetURL?.absoluteString == "https://example.com/exercises/cable%20fly/image%201.jpg")
+    }
+
+    @Test func retentionEngineAddsReminderActivationWhenDisabled() {
+        let steps = RetentionEngine.nextBestSteps(
+            sessions: [WorkoutSession(workoutTitle: "Push", date: .now, durationMinutes: 40, sets: [])],
+            activePlan: SeedData.pushPullLegsPlan,
+            scheduledWorkouts: [
+                ScheduledWorkout(date: .now.addingTimeInterval(86_400), workoutDay: SeedData.pushDay, status: .scheduled)
+            ],
+            remindersEnabled: false,
+            competitiveSummary: AnalyticsEngine.competitiveSummary(
+                sessions: [],
+                activePlan: SeedData.pushPullLegsPlan,
+                exercises: SeedData.exercises,
+                since: .now.addingTimeInterval(-604_800)
+            )
+        )
+
+        #expect(steps.contains { $0.id == "enable-reminders" && !$0.isCompleted })
+    }
+
+    @Test func retentionEngineKeepsCompetitiveActionsVisible() {
+        let recommendation = AnalyticsEngine.CompetitiveRecommendation(
+            title: "Prioriza Espalda",
+            message: "Faltan 6 series para acercarte al objetivo semanal.",
+            systemImage: "target",
+            action: .scheduleUndertrainedMuscle("Back")
+        )
+        let summary = AnalyticsEngine.CompetitiveSummary(
+            completedWorkouts: 1,
+            plannedWorkouts: 3,
+            completionRate: 0.33,
+            targetWeeklySets: 18,
+            actualWeeklySets: 8,
+            muscleTargets: [],
+            undertrainedMuscles: [],
+            overtrainedMuscles: [],
+            stalledExercises: [],
+            recommendations: [recommendation]
+        )
+
+        let steps = RetentionEngine.nextBestSteps(
+            sessions: [WorkoutSession(workoutTitle: "Pull", date: .now, durationMinutes: 42, sets: [])],
+            activePlan: SeedData.pushPullLegsPlan,
+            scheduledWorkouts: [
+                ScheduledWorkout(date: .now.addingTimeInterval(86_400), workoutDay: SeedData.pullDay, status: .scheduled)
+            ],
+            remindersEnabled: true,
+            competitiveSummary: summary
+        )
+
+        #expect(steps.contains { $0.title == recommendation.title && $0.action == .competitive(recommendation.action) })
     }
 
     @Test @MainActor func requireFeaturePresentsPaywallWhenProFeatureIsLocked() {

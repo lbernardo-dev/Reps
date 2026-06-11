@@ -165,33 +165,18 @@ struct ActiveWorkoutView: View {
         return max((workout.durationMinutes * 60) - elapsedSeconds, 0)
     }
 
-    private var currentWorkingSet: SetLog? {
-        selectedDraft?.sets.first(where: { !$0.completed }) ?? selectedDraft?.sets.last
-    }
-
-    private var selectedTargetWeightKg: Double? {
-        guard let set = currentWorkingSet, set.weightKg > 0 else { return nil }
-        return set.weightKg
-    }
-
-    private var selectedPlateLoadSummary: String? {
-        guard let selectedDraft,
-              isBarbellLoadedExercise(selectedDraft.workoutExercise.exercise),
-              let target = selectedTargetWeightKg else {
-            return nil
-        }
-
-        return PlateLoadingCalculator.loadSummary(targetWeightKg: target)
-    }
-
-    private var selectedExerciseHistorySummary: String? {
-        guard let exercise = selectedDraft?.workoutExercise.exercise else { return nil }
-        let recent = recentSets(for: exercise).prefix(3)
-        guard !recent.isEmpty else { return nil }
-        if let best = recent.max(by: { ($0.weightKg * Double($0.reps)) < ($1.weightKg * Double($1.reps)) }) {
-            return "Histórico: \(Int(best.weightKg)) kg x \(best.reps)"
-        }
-        return nil
+    private var selectedExerciseContext: SelectedExerciseContextBuilder.Context {
+        SelectedExerciseContextBuilder.context(
+            from: SelectedExerciseContextBuilder.Input(
+                draft: selectedDraft,
+                recentSets: selectedDraft.map {
+                    ExerciseHistoryAnalyzer.recentCompletedSets(for: $0.workoutExercise.exercise, in: store.workoutSessions)
+                } ?? [],
+                hasConfigurableProgressionAccess: store.hasFeatureAccess(.configurableProgression),
+                autoProgressionEnabled: store.userProfile.autoProgressionEnabled,
+                weightIncrementKg: store.userProfile.weightIncrementKg
+            )
+        )
     }
 
     private var selectedProgressionRecommendations: [SmartProgressionAdvisor.Recommendation] {
@@ -401,138 +386,84 @@ struct ActiveWorkoutView: View {
     private var activeWorkoutContent: some View {
         GeometryReader { proxy in
             let contentWidth = max(proxy.size.width - 40, 0)
-            ScrollView {
-                LazyVStack(spacing: 18) {
-                    workoutHeader
-                        .frame(width: contentWidth)
-                    if isCardioOnlySession {
-                        routeProgressCard
-                            .frame(width: contentWidth)
-                    } else {
-                        sessionProgressCard
-                            .frame(width: contentWidth)
-                    }
-                    batteryCard
-                        .frame(width: contentWidth)
-                    if isRouteCandidate && !isCardioOnlySession {
-                        routeTrackingCard
-                            .frame(width: contentWidth)
-                    }
-
-                    if isCardioOnlySession {
-                        if isSessionStarted {
-                            routeSessionControlCard
-                                .frame(width: contentWidth)
-                            routeSessionFeedbackCard
-                                .frame(width: contentWidth)
-                        }
-                        if isRouteCandidate {
-                            liveRouteMapCard
-                                .frame(width: contentWidth)
-                        }
-                    } else {
-                        sessionExerciseOrderCard
-                            .frame(width: contentWidth)
-                        restCard
-                            .frame(width: contentWidth)
-                        exerciseSwitcher
-                            .frame(width: contentWidth)
-                        if !selectedProgressionRecommendations.isEmpty {
-                            ProgressionRecommendationCard(
-                                recommendations: selectedProgressionRecommendations,
-                                language: store.userProfile.preferredLanguage,
-                                title: store.userProfile.preferredLanguage.hasPrefix("es") ? "Siguiente ajuste" : "Next Adjustment"
-                            )
-                            .frame(width: contentWidth)
-                        }
-                        if exerciseDrafts.isEmpty {
-                            emptyFreeWorkoutCard
+            ZStack(alignment: .top) {
+                ScrollView {
+                    LazyVStack(spacing: 18) {
+                        if isCardioOnlySession {
+                            routeProgressCard
                                 .frame(width: contentWidth)
                         } else {
-                            exerciseCard
+                            sessionProgressCard
                                 .frame(width: contentWidth)
                         }
-                        sessionControlCenterCard
+                        batteryCard
                             .frame(width: contentWidth)
-                        sessionFeedbackCard
-                            .frame(width: contentWidth)
-                        nextExerciseCard
-                            .frame(width: contentWidth)
+                        if isRouteCandidate && !isCardioOnlySession {
+                            routeTrackingCard
+                                .frame(width: contentWidth)
+                        }
+
+                        if isCardioOnlySession {
+                            if isSessionStarted {
+                                routeSessionControlCard
+                                    .frame(width: contentWidth)
+                                routeSessionFeedbackCard
+                                    .frame(width: contentWidth)
+                            }
+                            if isRouteCandidate {
+                                liveRouteMapCard
+                                    .frame(width: contentWidth)
+                            }
+                        } else {
+                            sessionExerciseOrderCard
+                                .frame(width: contentWidth)
+                            restCard
+                                .frame(width: contentWidth)
+                            exerciseSwitcher
+                                .frame(width: contentWidth)
+                            if !selectedProgressionRecommendations.isEmpty {
+                                ProgressionRecommendationCard(
+                                    recommendations: selectedProgressionRecommendations,
+                                    language: store.userProfile.preferredLanguage,
+                                    title: store.userProfile.preferredLanguage.hasPrefix("es") ? "Siguiente ajuste" : "Next Adjustment"
+                                )
+                                .frame(width: contentWidth)
+                            }
+                            if exerciseDrafts.isEmpty {
+                                emptyFreeWorkoutCard
+                                    .frame(width: contentWidth)
+                            } else {
+                                exerciseCard
+                                    .frame(width: contentWidth)
+                            }
+                            sessionControlCenterCard
+                                .frame(width: contentWidth)
+                            sessionFeedbackCard
+                                .frame(width: contentWidth)
+                            nextExerciseCard
+                                .frame(width: contentWidth)
+                        }
                     }
+                    .frame(maxWidth: .infinity)
+                    .safeAreaPadding(.top, 96)
+                    .padding(.top, 8)
+                    .padding(.bottom, 128)
                 }
-                .frame(maxWidth: .infinity)
-                .safeAreaPadding(.top, 8)
-                .padding(.top, 8)
-                .padding(.bottom, 128)
+
+                ActiveWorkoutPinnedHeader(
+                    title: RepsText.workoutTitle(workout.title, language: store.userProfile.preferredLanguage),
+                    contentWidth: contentWidth,
+                    isSessionStarted: isSessionStarted,
+                    isPaused: isPaused,
+                    canStartWorkout: canStartWorkout,
+                    isFinishingWorkout: isFinishingWorkout,
+                    onClose: requestWorkoutClose,
+                    onTogglePause: toggleWorkoutPause,
+                    onPrimaryAction: performPrimaryWorkoutAction
+                )
             }
         }
         .screenBackground()
-    }
-
-    private var workoutHeader: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Button {
-                if isSessionStarted {
-                    showStopConfirmation = true
-                } else {
-                    stopWorkout()
-                }
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.body.weight(.bold))
-                    .frame(width: 44, height: 44)
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .background(PulseTheme.grouped)
-                    .clipShape(Circle())
-            }
-            .accessibilityLabel("Volver")
-
-            Text(RepsText.workoutTitle(workout.title, language: store.userProfile.preferredLanguage))
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .lineLimit(2)
-                .minimumScaleFactor(0.72)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if isSessionStarted {
-                Button {
-                    withAnimation(.snappy(duration: 0.2)) {
-                        setWorkoutPaused(!isPaused)
-                    }
-                } label: {
-                    Image(systemName: isPaused ? "play.fill" : "pause.fill")
-                        .font(.body.weight(.bold))
-                        .frame(width: 44, height: 44)
-                        .foregroundStyle(isPaused ? PulseTheme.primary : PulseTheme.warning)
-                        .background(isPaused ? PulseTheme.primary.opacity(0.12) : PulseTheme.warning.opacity(0.15))
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle().stroke(
-                                isPaused ? PulseTheme.primary.opacity(0.3) : PulseTheme.warning.opacity(0.4),
-                                lineWidth: 1.5
-                            )
-                        )
-                }
-                .accessibilityLabel(isPaused ? "Reanudar entrenamiento" : "Pausar entrenamiento")
-            }
-
-            Button {
-                if isSessionStarted {
-                    finishWorkout()
-                } else {
-                    startPreparedSession()
-                }
-            } label: {
-                Text(isFinishingWorkout ? "Guardando" : (isSessionStarted ? "Finalizar" : "Iniciar"))
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 90, height: 44)
-                    .background(isSessionStarted ? PulseTheme.destructive : (canStartWorkout ? PulseTheme.primary : PulseTheme.secondaryText))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
-            .disabled(isFinishingWorkout || (!isSessionStarted && !canStartWorkout))
-            .accessibilityHint(!isSessionStarted && !canStartWorkout ? "Añade al menos un ejercicio o usa una sesión de cardio" : "")
-        }
-        .padding(.top, 2)
     }
 
     private var canStartWorkout: Bool {
@@ -554,9 +485,9 @@ struct ActiveWorkoutView: View {
 
         if store.activeWorkout?.id != workout.id {
             store.activeWorkout = workout
-            store.activeWorkoutDrafts = Self.makeDrafts(for: workout)
+            store.activeWorkoutDrafts = WorkoutDraftController.makeDrafts(for: workout)
         } else if store.activeWorkoutDrafts.isEmpty, !workout.exercises.isEmpty {
-            store.activeWorkoutDrafts = Self.makeDrafts(for: workout)
+            store.activeWorkoutDrafts = WorkoutDraftController.makeDrafts(for: workout)
         }
     }
 
@@ -580,6 +511,32 @@ struct ActiveWorkoutView: View {
         store.startPreparedActiveWorkout(workout, drafts: exerciseDrafts)
         WorkoutBackgroundKeepAlive.shared.startIfNeeded()
         publishActiveWorkoutStatus()
+    }
+
+    private func requestWorkoutClose() {
+        HapticService.selection()
+        if isSessionStarted {
+            showStopConfirmation = true
+        } else {
+            stopWorkout()
+        }
+    }
+
+    private func toggleWorkoutPause() {
+        HapticService.selection()
+        withAnimation(.snappy(duration: 0.2)) {
+            setWorkoutPaused(!isPaused)
+        }
+    }
+
+    private func performPrimaryWorkoutAction() {
+        if isSessionStarted {
+            HapticService.notification(.warning)
+            finishWorkout()
+        } else {
+            HapticService.impact(.medium)
+            startPreparedSession()
+        }
     }
 
     private func stopWorkout() {
@@ -615,144 +572,83 @@ struct ActiveWorkoutView: View {
         let startDate = startedAt
         let sensorSummary = try? await healthKit.fetchWorkoutSensorSummary(start: startDate, end: finishedAt)
         workoutSensorSummary = sensorSummary
-        let logs = exerciseDrafts.compactMap { draft -> ExerciseLog? in
-            let completedSets = draft.sets.filter(\.completed)
-            guard !completedSets.isEmpty else {
-                return nil
-            }
-
-            let attachments = draft.mediaAttachments + voiceAttachments(from: draft.voiceNote)
-            return ExerciseLog(
-                exercise: draft.workoutExercise.exercise,
-                notes: draft.notes,
-                sets: completedSets,
-                mediaAttachments: attachments
+        let session = WorkoutSessionBuilder.session(
+            from: WorkoutSessionBuilder.Input(
+                workoutTitle: workout.title,
+                finishedAt: finishedAt,
+                startedAt: startDate,
+                origin: origin,
+                isRouteCandidate: isRouteCandidate,
+                isTreadmillCandidate: isTreadmillCandidate,
+                userTrainingLocation: store.userProfile.trainingLocation,
+                activePlanLocation: store.activePlan.location,
+                elapsedSeconds: elapsedSeconds,
+                drafts: exerciseDrafts,
+                globalNotes: sessionNotes,
+                sessionVoiceNote: sessionVoiceNote,
+                sessionMediaAttachments: sessionMediaAttachments,
+                sessionRPE: sessionRPE,
+                energyBefore: energyBefore,
+                energyAfter: energyAfter,
+                sensorSummary: sensorSummary,
+                routePoints: routeTracker.routePoints,
+                pausedSeconds: pausedSeconds,
+                displayedRouteDistanceKm: displayedRouteMetrics.distanceKm,
+                displayedRoutePaceSecondsPerKm: displayedRouteMetrics.paceSecondsPerKm
             )
-        }
-        let allSets = logs.flatMap(\.sets)
-        let sessionAttachments = sessionMediaAttachments + voiceAttachments(from: sessionVoiceNote)
-        let sessionLocation: WorkoutSession.Location
-        if isRouteCandidate {
-            sessionLocation = .outdoor
-        } else if isTreadmillCandidate {
-            sessionLocation = .gym
-        } else if origin == .free {
-            switch store.userProfile.trainingLocation {
-            case .home: sessionLocation = .home
-            default: sessionLocation = .gym
-            }
-        } else {
-            switch store.activePlan.location {
-            case .home: sessionLocation = .home
-            default: sessionLocation = .gym
-            }
-        }
-
-        let session = WorkoutSession(
-            workoutTitle: workout.title,
-            date: finishedAt,
-            startedAt: startDate,
-            endedAt: finishedAt,
-            origin: origin,
-            location: sessionLocation,
-            contextTag: .normal,
-            durationMinutes: max(elapsedSeconds / 60, 1),
-            sets: allSets,
-            notes: sessionNotesText(from: logs),
-            exerciseLogs: logs,
-            sessionRPE: sessionRPE,
-            energyBefore: Int(energyBefore),
-            energyAfter: Int(energyAfter),
-            estimatedCalories: sensorSummary?.activeEnergyKcal,
-            mediaAttachments: sessionAttachments,
-            routePoints: isRouteCandidate ? routeTracker.routePoints : [],
-            pausedDurationSeconds: pausedSeconds,
-            distanceKm: displayedRouteDistanceKm > 0 ? displayedRouteDistanceKm : nil,
-            averagePaceSecondsPerKm: displayedRoutePaceSecondsPerKm,
-            steps: sensorSummary?.steps,
-            activeEnergyKcal: sensorSummary?.activeEnergyKcal,
-            heartRateBefore: sensorSummary?.heartRateBefore,
-            heartRateAfter: sensorSummary?.heartRateAfter,
-            averageHeartRate: sensorSummary?.averageHeartRate,
-            maxHeartRate: sensorSummary?.maxHeartRate
         )
         store.finishWorkout(session)
-        if let cardioLog = cardioLog(from: session, sensorSummary: sensorSummary) {
+        if let cardioLog = WorkoutSessionBuilder.cardioLog(
+            from: session,
+            sensorSummary: sensorSummary,
+            isCardioMovementCandidate: isCardioMovementCandidate,
+            sessionType: workout.sessionType,
+            isTreadmillCandidate: isTreadmillCandidate,
+            isRouteCandidate: isRouteCandidate,
+            averageSpeedKmh: displayedRouteMetrics.speedKmh
+        ) {
             store.addCardioLog(cardioLog)
         }
         isFinishingWorkout = false
         dismiss()
     }
 
-    private func cardioLog(from session: WorkoutSession, sensorSummary: WorkoutSensorSummary?) -> CardioLog? {
-        guard isCardioMovementCandidate else { return nil }
-
-        let activityType: CardioLog.ActivityType
-        switch workout.sessionType {
-        case .cardioRun:
-            activityType = isTreadmillCandidate ? .treadmill : .outdoorRun
-        case .cardioWalk:
-            activityType = .walking
-        default:
-            activityType = .other
-        }
-
-        return CardioLog(
-            activityType: activityType,
-            date: session.startedAt ?? session.date,
-            durationMinutes: session.durationMinutes,
-            distanceKm: session.distanceKm,
-            averageSpeedKmh: displayedRouteSpeedKmh,
-            averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
-            averageHeartRate: sensorSummary?.averageHeartRate,
-            maxHeartRate: sensorSummary?.maxHeartRate,
-            estimatedCalories: sensorSummary?.activeEnergyKcal,
-            steps: sensorSummary?.steps,
-            activeEnergyKcal: sensorSummary?.activeEnergyKcal,
-            heartRateBefore: sensorSummary?.heartRateBefore,
-            heartRateAfter: sensorSummary?.heartRateAfter,
-            rpe: session.sessionRPE,
-            notes: session.notes,
-            routePoints: isRouteCandidate ? session.routePoints : []
-        )
-    }
-
     private func publishActiveWorkoutStatus() {
-        let currentSet = currentWorkingSet
+        let currentSet = selectedExerciseContext.currentWorkingSet
         let playlist = planPlaylist
-        store.updateActiveWorkout(
-            elapsedSeconds: elapsedSeconds,
-            pausedSeconds: pausedSeconds,
-            completedSets: completedSets,
-            totalSets: totalSets,
-            volumeKg: totalVolume,
-            isPaused: isPaused,
-            exerciseName: selectedDraft.map { RepsText.exerciseName($0.workoutExercise.exercise.name, language: store.userProfile.preferredLanguage) },
-            exerciseIndex: exerciseDrafts.isEmpty ? nil : selectedExerciseIndex + 1,
-            totalExercises: exerciseDrafts.count,
-            currentExerciseCompletedSets: selectedDraft?.sets.filter(\.completed).count,
-            currentExerciseTotalSets: selectedDraft?.sets.count,
-            currentSetWeightKg: currentSet?.weightKg,
-            currentSetReps: currentSet?.reps,
-            restSeconds: restSeconds,
-            restDurationSeconds: currentRestDuration,
-            estimatedRemainingSeconds: estimatedRemainingSeconds,
-            waterLiters: waterLiters,
-            musicTitle: musicPlayer.currentSongTitle ?? playlist?.title,
-            musicArtist: musicPlayer.currentSongArtist ?? playlist?.provider.rawValue.capitalized,
-            isMusicPlaying: playlist.map { $0.provider == .appleMusic ? musicPlayer.isPlaying : musicPlayer.isSpotifyPlaying },
-            nextExerciseName: nextExerciseTitle,
-            exerciseHistorySummary: selectedExerciseHistorySummary,
-            gymPass: selectedGymPass,
-            lastPausedAt: lastPausedAt,
-            isRouteWorkout: isCardioMovementCandidate,
-            isOutdoorRoute: isRouteCandidate,
-            routeDistanceKm: isRouteCandidate ? routeTracker.distanceKm : store.activeWorkoutStatus?.routeDistanceKm,
-            routePaceSecondsPerKm: isRouteCandidate ? routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds) : store.activeWorkoutStatus?.routePaceSecondsPerKm,
-            routeSpeedKmh: isRouteCandidate ? routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds) : store.activeWorkoutStatus?.routeSpeedKmh,
-            routePointCount: isRouteCandidate ? routeTracker.routePoints.count : nil,
-            routeSteps: workoutSensorSummary?.steps
-        )
+        store.updateActiveWorkout(ActiveWorkoutStatusBuilder.update(
+            from: ActiveWorkoutStatusBuilder.Input(
+                elapsedSeconds: elapsedSeconds,
+                pausedSeconds: pausedSeconds,
+                isPaused: isPaused,
+                selectedExerciseName: selectedDraft.map { RepsText.exerciseName($0.workoutExercise.exercise.name, language: store.userProfile.preferredLanguage) },
+                selectedExerciseIndex: selectedExerciseIndex,
+                drafts: exerciseDrafts,
+                currentSet: currentSet,
+                restSeconds: restSeconds,
+                restDurationSeconds: currentRestDuration,
+                estimatedRemainingSeconds: estimatedRemainingSeconds,
+                waterLiters: waterLiters,
+                musicTitle: musicPlayer.currentSongTitle ?? playlist?.title,
+                musicArtist: musicPlayer.currentSongArtist ?? playlist?.provider.rawValue.capitalized,
+                isMusicPlaying: playlist.map { $0.provider == .appleMusic ? musicPlayer.isPlaying : musicPlayer.isSpotifyPlaying },
+                nextExerciseName: nextExerciseTitle,
+                exerciseHistorySummary: selectedExerciseContext.historySummary,
+                gymPass: selectedGymPass,
+                lastPausedAt: lastPausedAt,
+                isRouteWorkout: isCardioMovementCandidate,
+                isOutdoorRoute: isRouteCandidate,
+                routeDistanceKm: routeTracker.distanceKm,
+                routePaceSecondsPerKm: routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds),
+                routeSpeedKmh: routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds),
+                routePointCount: routeTracker.routePoints.count,
+                previousRouteDistanceKm: store.activeWorkoutStatus?.routeDistanceKm,
+                previousRoutePaceSecondsPerKm: store.activeWorkoutStatus?.routePaceSecondsPerKm,
+                previousRouteSpeedKmh: store.activeWorkoutStatus?.routeSpeedKmh,
+                previousRoutePointCount: store.activeWorkoutStatus?.routePointCount,
+                routeSteps: workoutSensorSummary?.steps
+            )
+        ))
     }
 
     private func publishActiveWorkoutStatusIfNeeded(currentElapsedSeconds: Int? = nil) {
@@ -857,95 +753,21 @@ struct ActiveWorkoutView: View {
     private var sessionProgressCard: some View {
         PulseCard {
             VStack(spacing: 16) {
-                HStack(alignment: .center, spacing: 16) {
-                    // Circular progress ring
-                    ZStack {
-                        Circle()
-                            .stroke(PulseTheme.grouped, lineWidth: 6)
-                        Circle()
-                            .trim(from: 0, to: setCompletion)
-                            .stroke(PulseTheme.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                            .animation(.snappy(duration: 0.35), value: setCompletion)
-                        VStack(spacing: 0) {
-                            Text("\(completedSets)")
-                                .font(.system(size: 20, weight: .black, design: .rounded).monospacedDigit())
-                                .foregroundStyle(PulseTheme.accent)
-                            Text("/\(totalSets)")
-                                .font(.caption2.weight(.bold).monospacedDigit())
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                    }
-                    .frame(width: 68, height: 68)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(isSessionStarted ? (isPaused ? "SESIÓN PAUSADA" : "SESIÓN ACTIVA") : "SESIÓN PREPARADA")
-                            .font(.system(size: 10, weight: .black, design: .rounded))
-                            .tracking(1.6)
-                            .foregroundStyle(isSessionStarted ? (isPaused ? PulseTheme.warning : PulseTheme.primary) : PulseTheme.secondaryText)
-                        WorkoutElapsedText(
-                            startedAt: startedAt,
-                            basePausedSeconds: basePausedSeconds,
-                            lastPausedAt: lastPausedAt,
-                            isPaused: isPaused,
-                            fallbackElapsedSeconds: elapsedSeconds
-                        )
-                        HStack(spacing: 6) {
-                            Text("\(totalVolume) kg volumen")
-                            if pausedSeconds > 0 {
-                                Text("· pausa \(timeString(pausedSeconds))")
-                            }
-                        }
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    Spacer()
-                }
-
-                // Thicker gradient progress bar
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(PulseTheme.grouped)
-                            .frame(height: 8)
-                        Capsule()
-                            .fill(PulseTheme.accent)
-                            .frame(width: max(geo.size.width * setCompletion, setCompletion > 0 ? 16 : 0), height: 8)
-                            .animation(.snappy(duration: 0.35), value: setCompletion)
-                    }
-                }
-                .frame(height: 8)
-
-                // CTA with gradient + bounce feedback
-                Button {
-                    completeNextAvailableSet()
-                 } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: completedSets == totalSets ? "checkmark.circle.fill" : "arrow.right.circle.fill")
-                            .font(.title3.weight(.bold))
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(completedSets == totalSets ? "Completado" : "Siguiente serie")
-                                .font(.headline.weight(.bold))
-                            if completedSets < totalSets {
-                                Text(nextLoggingTitle)
-                                    .font(.caption.weight(.semibold))
-                                    .opacity(0.78)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.68)
-                            }
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal, 18)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-                    .foregroundStyle(.black)
-                    .background(PulseTheme.accent)
-                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    .shadow(color: PulseTheme.accent.opacity(0.22), radius: 8, x: 0, y: 4)
-                }
-                .disabled(!isSessionStarted || completedSets == totalSets)
-                .opacity(!isSessionStarted || completedSets == totalSets ? 0.55 : 1)
+                ActiveWorkoutProgressSummary(
+                    completedSets: completedSets,
+                    totalSets: totalSets,
+                    setCompletion: setCompletion,
+                    isSessionStarted: isSessionStarted,
+                    isPaused: isPaused,
+                    startedAt: startedAt,
+                    basePausedSeconds: basePausedSeconds,
+                    lastPausedAt: lastPausedAt,
+                    fallbackElapsedSeconds: elapsedSeconds,
+                    totalVolume: totalVolume,
+                    pausedSeconds: pausedSeconds,
+                    nextLoggingTitle: nextLoggingTitle,
+                    onCompleteNext: completeNextAvailableSet
+                )
 
                 if let playlist = planPlaylist {
                     Divider()
@@ -1156,203 +978,56 @@ struct ActiveWorkoutView: View {
     }
 
     private var sessionExerciseOrderCard: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Label("Orden de ejercicios", systemImage: "arrow.up.arrow.down")
-                        .font(.headline)
-                    Spacer()
-                    Button {
-                        showAddExercise = true
-                    } label: {
-                        Label("Añadir", systemImage: "plus")
-                            .font(.subheadline.weight(.bold))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(PulseTheme.primary)
-                }
-
-                if exerciseDrafts.isEmpty {
-                    Text("Añade al menos un ejercicio para poder iniciar la sesión.")
-                        .font(.subheadline)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    VStack(spacing: 8) {
-                        ForEach(Array(exerciseDrafts.enumerated()), id: \.element.workoutExercise.id) { index, draft in
-                            HStack(spacing: 10) {
-                                Text("\(index + 1)")
-                                    .font(.caption.weight(.black).monospacedDigit())
-                                    .foregroundStyle(PulseTheme.primary)
-                                    .frame(width: 26, height: 26)
-                                    .background(PulseTheme.primary.opacity(0.12))
-                                    .clipShape(Circle())
-
-                                Text(RepsText.exerciseName(draft.workoutExercise.exercise.name, language: store.userProfile.preferredLanguage))
-                                    .font(.subheadline.weight(.bold))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.72)
-
-                                Spacer()
-
-                                Button {
-                                    moveDraft(from: index, to: index - 1)
-                                } label: {
-                                    Image(systemName: "chevron.up")
-                                        .frame(width: 32, height: 32)
-                                }
-                                .disabled(index == 0)
-
-                                Button {
-                                    moveDraft(from: index, to: index + 1)
-                                } label: {
-                                    Image(systemName: "chevron.down")
-                                        .frame(width: 32, height: 32)
-                                }
-                                .disabled(index == exerciseDrafts.count - 1)
-                            }
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal, 10)
-                            .frame(height: 44)
-                            .background(selectedExerciseIndex == index ? PulseTheme.accentMuted : PulseTheme.grouped)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
+        ActiveExerciseOrderCard(
+            drafts: exerciseDrafts,
+            selectedExerciseIndex: selectedExerciseIndex,
+            language: store.userProfile.preferredLanguage,
+            onAdd: {
+                HapticService.selection()
+                showAddExercise = true
+            },
+            onMove: moveDraft
+        )
     }
 
     private var restCard: some View {
-        PulseCard {
-            if lastSetCompletedAtSeconds == nil {
-                // Inactive — compact placeholder
-                HStack(spacing: 14) {
-                    Image(systemName: "hourglass")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(PulseTheme.tertiaryText)
-                        .frame(width: 44, height: 44)
-                        .background(PulseTheme.grouped)
-                        .clipShape(Circle())
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Descanso")
-                            .font(.headline.weight(.bold))
-                        Text("Completa una serie para activar")
-                            .font(.caption)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    Spacer()
-                }
-            } else {
-                // Active countdown ring
-                let currentRestSeconds = currentRestRemainingSeconds()
-
-                HStack(spacing: 18) {
-                    RestCountdownRing(
-                        restStartedAt: restStartedAt,
-                        restDuration: restDuration,
-                        fallbackRestSeconds: currentRestSeconds
-                    )
-                    .frame(width: 78, height: 78)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(currentRestSeconds == 0 ? "Listo para continuar" : "Descansando")
-                            .font(.headline.weight(.bold))
-                        Text(currentRestSeconds == 0 ? "La batería deja de recargar cuando saltas el descanso." : "Completar el descanso reduce la fatiga de la siguiente serie.")
-                            .font(.caption)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        HStack(spacing: 8) {
-                            Button {
-                                withAnimation(.snappy(duration: 0.18)) {
-                                    let remaining = currentRestRemainingSeconds()
-                                    // Shift anchor forward 15 s so remaining decreases.
-                                    if let rsa = restStartedAt {
-                                        restStartedAt = rsa.addingTimeInterval(-15)
-                                        restSeconds = max(0, remaining - 15)
-                                    } else {
-                                        restSeconds = max(0, remaining - 15)
-                                    }
-                                }
-                            } label: {
-                                Text("−15s")
-                                    .font(.subheadline.weight(.bold))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 38)
-                                    .foregroundStyle(PulseTheme.primary)
-                                    .background(PulseTheme.primary.opacity(0.10))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            }
-                            .accessibilityLabel("Reducir descanso 15 segundos")
-
-                            Button {
-                                withAnimation(.snappy(duration: 0.18)) {
-                                    let remaining = currentRestRemainingSeconds()
-                                    // Shift anchor backward 15 s so remaining increases.
-                                    if let rsa = restStartedAt {
-                                        restStartedAt = rsa.addingTimeInterval(15)
-                                        restSeconds = min(600, remaining + 15)
-                                    } else {
-                                        startRest(duration: 15)
-                                    }
-                                }
-                            } label: {
-                                Text("+15s")
-                                    .font(.subheadline.weight(.bold))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 38)
-                                    .foregroundStyle(PulseTheme.primary)
-                                    .background(PulseTheme.primary.opacity(0.10))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            }
-                            .accessibilityLabel("Ampliar descanso 15 segundos")
-
-                            Button(currentRestSeconds == 0 ? "Reiniciar" : "Saltar") {
-                                if currentRestRemainingSeconds() == 0 {
-                                    startRest(duration: currentRestDuration)
-                                } else {
-                                    stopRest()
-                                }
-                            }
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 38)
-                            .background(PulseTheme.grouped)
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .accessibilityLabel(currentRestSeconds == 0 ? "Reiniciar descanso" : "Saltar descanso")
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
+        ActiveRestPanel(
+            isRestActive: lastSetCompletedAtSeconds != nil,
+            currentRestSeconds: currentRestRemainingSeconds(),
+            restStartedAt: restStartedAt,
+            restDuration: restDuration,
+            onDecrease: { adjustRest(by: -15) },
+            onIncrease: { adjustRest(by: 15) },
+            onSkipOrRestart: toggleRestTimer
+        )
     }
 
     private var routeProgressCard: some View {
-        PulseCard {
+        let progress = routeProgressSnapshot
+        let progressColor = routeProgressColor(for: progress.visualState)
+
+        return PulseCard {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .center, spacing: 16) {
                     ZStack {
                         Circle()
                             .stroke(PulseTheme.grouped, lineWidth: 7)
                         Circle()
-                            .trim(from: 0, to: routeDurationProgress)
-                            .stroke(routeProgressColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                            .trim(from: 0, to: progress.progress)
+                            .stroke(progressColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
                             .rotationEffect(.degrees(-90))
-                            .animation(.snappy(duration: 0.35), value: routeDurationProgress)
-                        Image(systemName: routeProgressIcon)
+                            .animation(.snappy(duration: 0.35), value: progress.progress)
+                        Image(systemName: progress.icon)
                             .font(.title2.weight(.bold))
-                            .foregroundStyle(routeProgressColor)
+                            .foregroundStyle(progressColor)
                     }
                     .frame(width: 68, height: 68)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(routeProgressStatus)
+                        Text(progress.status)
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.6)
-                            .foregroundStyle(routeProgressColor)
+                            .foregroundStyle(progressColor)
 
                         if isSessionStarted {
                             WorkoutElapsedText(
@@ -1367,7 +1042,7 @@ struct ActiveWorkoutView: View {
                                 .font(.system(size: 42, weight: .black, design: .rounded).monospacedDigit())
                         }
 
-                        Text(routeProgressSubtitle)
+                        Text(progress.subtitle)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -1382,15 +1057,15 @@ struct ActiveWorkoutView: View {
                             .fill(PulseTheme.grouped)
                             .frame(height: 8)
                         Capsule()
-                            .fill(routeProgressColor)
-                            .frame(width: max(geo.size.width * routeDurationProgress, routeDurationProgress > 0 ? 16 : 0), height: 8)
-                            .animation(.snappy(duration: 0.35), value: routeDurationProgress)
+                            .fill(progressColor)
+                            .frame(width: max(geo.size.width * progress.progress, progress.progress > 0 ? 16 : 0), height: 8)
+                            .animation(.snappy(duration: 0.35), value: progress.progress)
                     }
                 }
                 .frame(height: 8)
 
                 if !isSessionStarted {
-                    Label(cardioStartHint, systemImage: isRouteCandidate ? "location.fill" : "figure.run.treadmill")
+                    Label(progress.startHint, systemImage: progress.startHintSystemImage)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .padding(12)
@@ -1402,130 +1077,58 @@ struct ActiveWorkoutView: View {
         }
     }
 
-    private var routeDurationProgress: Double {
-        guard workout.durationMinutes > 0 else { return 0 }
-        return min(Double(elapsedSeconds) / Double(workout.durationMinutes * 60), 1)
+    private var routeProgressSnapshot: RouteProgressBuilder.Snapshot {
+        RouteProgressBuilder.snapshot(
+            from: RouteProgressBuilder.Input(
+                isTreadmill: isTreadmillCandidate,
+                isSessionStarted: isSessionStarted,
+                isPaused: isPaused,
+                plannedDurationMinutes: workout.durationMinutes,
+                elapsedSeconds: elapsedSeconds,
+                pausedSeconds: pausedSeconds,
+                distanceKm: displayedRouteMetrics.distanceKm,
+                paceText: displayedRouteMetrics.paceText
+            )
+        )
     }
 
-    private var routeProgressColor: Color {
-        if !isSessionStarted { return PulseTheme.secondaryText }
-        return isPaused ? PulseTheme.warning : PulseTheme.primary
-    }
-
-    private var routeProgressIcon: String {
-        if isTreadmillCandidate {
-            return isPaused ? "pause.fill" : "figure.run.treadmill"
+    private func routeProgressColor(for state: RouteProgressBuilder.VisualState) -> Color {
+        switch state {
+        case .inactive:
+            return PulseTheme.secondaryText
+        case .active:
+            return PulseTheme.primary
+        case .paused:
+            return PulseTheme.warning
         }
-        if !isSessionStarted { return "location" }
-        return isPaused ? "pause.fill" : "figure.walk"
-    }
-
-    private var routeProgressStatus: String {
-        if isTreadmillCandidate {
-            if !isSessionStarted { return "CINTA PREPARADA" }
-            return isPaused ? "CINTA PAUSADA" : "CINTA ACTIVA"
-        }
-        if !isSessionStarted { return "RUTA PREPARADA" }
-        return isPaused ? "RUTA PAUSADA" : "RUTA ACTIVA"
-    }
-
-    private var routeProgressSubtitle: String {
-        if !isSessionStarted {
-            return "\(workout.durationMinutes) min planificados"
-        }
-        var parts = [
-            String(format: "%.2f km", displayedRouteDistanceKm),
-            displayedRoutePaceText
-        ]
-        if pausedSeconds > 0 {
-            parts.append("pausa \(timeString(pausedSeconds))")
-        }
-        return parts.joined(separator: " · ")
-    }
-
-    private var cardioStartHint: String {
-        if isTreadmillCandidate {
-            return "Pulsa Iniciar arriba para registrar tiempo, pasos, pulso, kcal y distancia si está disponible."
-        }
-        return "Pulsa Iniciar arriba para empezar a registrar GPS, distancia y sensores."
     }
 
     private var routeTrackingCard: some View {
         PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 14) {
-                    Image(systemName: routeTracker.isTracking ? "location.fill" : "map")
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 54, height: 54)
-                        .background(routeTracker.isTracking ? PulseTheme.primary : PulseTheme.secondaryText)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("GPS y ruta")
-                            .font(.headline)
-                        Text(routeTracker.statusText)
-                            .font(.subheadline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    Spacer()
-                    Text(routeTrackerStatusBadge)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(routeTracker.isTracking ? PulseTheme.primary : PulseTheme.secondaryText)
-                        .padding(.horizontal, 12)
-                        .frame(height: 32)
-                        .background((routeTracker.isTracking ? PulseTheme.primary : PulseTheme.secondaryText).opacity(0.12))
-                        .clipShape(Capsule())
-                }
-
-                HStack(spacing: 10) {
-                    MiniSessionPill(title: "Distancia", value: String(format: "%.2f km", displayedRouteDistanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up")
-                    MiniSessionPill(title: "Puntos", value: "\(displayedRoutePointCount)", icon: "map.fill")
-                    MiniSessionPill(title: "Ritmo", value: displayedRoutePaceText, icon: "speedometer")
-                }
-
-                HStack(spacing: 10) {
-                    MiniSessionPill(title: "Velocidad", value: displayedRouteSpeedText, icon: "gauge.with.needle")
-                    MiniSessionPill(title: "Pasos", value: displayedRouteStepsText, icon: "shoeprints.fill")
-                    MiniSessionPill(title: "Pulso", value: displayedRouteHeartRateText, icon: "heart.fill")
-                }
-            }
+            RouteTrackingPanel(
+                isTracking: routeTracker.isTracking,
+                statusText: routeTracker.statusText,
+                statusBadge: routeTrackerStatusBadge,
+                primaryMetrics: [
+                    .init(title: "Distancia", value: String(format: "%.2f km", displayedRouteMetrics.distanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up"),
+                    .init(title: "Puntos", value: "\(displayedRouteMetrics.pointCount)", icon: "map.fill"),
+                    .init(title: "Ritmo", value: displayedRouteMetrics.paceText, icon: "speedometer")
+                ],
+                secondaryMetrics: [
+                    .init(title: "Velocidad", value: displayedRouteMetrics.speedText, icon: "gauge.with.needle"),
+                    .init(title: "Pasos", value: displayedRouteMetrics.stepsText, icon: "shoeprints.fill"),
+                    .init(title: "Pulso", value: displayedRouteMetrics.heartRateText, icon: "heart.fill")
+                ]
+            )
         }
     }
 
     private var liveRouteMapCard: some View {
         PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Label("Mapa en vivo", systemImage: "map.fill")
-                        .font(.headline)
-                    Spacer()
-                    Text(routeTracker.routePoints.isEmpty ? "Esperando GPS" : "\(routeTracker.routePoints.count) puntos")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                }
-
-                ZStack {
-                    RouteMapPreview(routePoints: routeTracker.routePoints)
-                        .frame(height: 240)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                    if routeTracker.routePoints.count < 2 {
-                        VStack(spacing: 10) {
-                            Image(systemName: "location.magnifyingglass")
-                                .font(.title2.weight(.bold))
-                                .foregroundStyle(PulseTheme.primary)
-                            Text(isSessionStarted ? "La ruta se dibujará aquí en cuanto entren puntos GPS." : "Al iniciar, la ruta se irá dibujando aquí.")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 18)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                }
-            }
+            LiveRouteMapPanel(
+                routePoints: routeTracker.routePoints,
+                isSessionStarted: isSessionStarted
+            )
         }
     }
 
@@ -1543,62 +1146,18 @@ struct ActiveWorkoutView: View {
         return routeTrackerStatusBadge
     }
 
-    private var displayedRouteDistanceKm: Double {
-        max(routeTracker.distanceKm, store.activeWorkoutStatus?.routeDistanceKm ?? 0)
-    }
-
-    private var displayedRoutePaceSecondsPerKm: Double? {
-        if let pace = store.activeWorkoutStatus?.routePaceSecondsPerKm, pace > 0 {
-            return pace
-        }
-        return routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds)
-    }
-
-    private var displayedRouteSpeedKmh: Double? {
-        if let speed = store.activeWorkoutStatus?.routeSpeedKmh, speed > 0 {
-            return speed
-        }
-        return routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds)
-    }
-
-    private var displayedRoutePointCount: Int {
-        max(routeTracker.routePoints.count, store.activeWorkoutStatus?.routePointCount ?? 0)
-    }
-
-    private var displayedRoutePaceText: String {
-        guard let pace = displayedRoutePaceSecondsPerKm, pace.isFinite, pace > 0 else {
-            return "--"
-        }
-        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
-    }
-
-    private var displayedRouteSpeedText: String {
-        guard let speed = displayedRouteSpeedKmh, speed.isFinite, speed > 0 else {
-            return "--"
-        }
-        return String(format: "%.1f km/h", speed)
-    }
-
-    private var displayedRouteStepsText: String {
-        if let steps = store.activeWorkoutStatus?.routeSteps ?? workoutSensorSummary?.steps, steps > 0 {
-            return "\(Int(steps))"
-        }
-        return "--"
-    }
-
-    private var displayedRouteHeartRateText: String {
-        if let heartRate = store.activeWorkoutStatus?.liveHeartRate ?? workoutSensorSummary?.averageHeartRate, heartRate > 0 {
-            return "\(Int(heartRate)) lpm"
-        }
-        return "--"
-    }
-
-    private var displayedRouteEnergyText: String {
-        if let activeEnergy = store.activeWorkoutStatus?.liveActiveEnergyKcal ?? workoutSensorSummary?.activeEnergyKcal ?? store.todayHealthMetric?.activeEnergyKcal,
-           activeEnergy > 0 {
-            return "\(Int(activeEnergy))"
-        }
-        return "--"
+    private var displayedRouteMetrics: RouteMetricsBuilder.Metrics {
+        RouteMetricsBuilder.metrics(
+            from: RouteMetricsBuilder.Input(
+                trackerDistanceKm: routeTracker.distanceKm,
+                trackerPaceSecondsPerKm: routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds),
+                trackerSpeedKmh: routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds),
+                trackerPointCount: routeTracker.routePoints.count,
+                activeStatus: store.activeWorkoutStatus,
+                sensorSummary: workoutSensorSummary,
+                todayHealthMetric: store.todayHealthMetric
+            )
+        )
     }
 
 
@@ -1637,8 +1196,8 @@ struct ActiveWorkoutView: View {
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
-                        if let selectedSuggestionText {
-                            Label(selectedSuggestionText, systemImage: "sparkles")
+                        if let suggestionText = selectedExerciseContext.suggestionText {
+                            Label(suggestionText, systemImage: "sparkles")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.primary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -1659,11 +1218,7 @@ struct ActiveWorkoutView: View {
                         }
 
                         Button {
-                            if selectedExerciseIndex < exerciseDrafts.count - 1 {
-                                withAnimation(.snappy) {
-                                    selectedExerciseIndex += 1
-                                }
-                            }
+                            skipSelectedExercise()
                         } label: {
                             Label("Saltar ejercicio", systemImage: "forward.end")
                         }
@@ -1671,21 +1226,7 @@ struct ActiveWorkoutView: View {
                         Divider()
 
                         Button(role: .destructive) {
-                            if exerciseDrafts.count > 1 {
-                                withAnimation(.snappy(duration: 0.24)) {
-                                    exerciseDrafts.remove(at: selectedExerciseIndex)
-                                    selectedExerciseIndex = max(0, min(selectedExerciseIndex, exerciseDrafts.count - 1))
-                                    syncActiveWorkoutExercises()
-                                    publishActiveWorkoutStatus()
-                                }
-                            } else {
-                                withAnimation(.snappy(duration: 0.24)) {
-                                    exerciseDrafts.removeAll()
-                                    selectedExerciseIndex = 0
-                                    syncActiveWorkoutExercises()
-                                    publishActiveWorkoutStatus()
-                                }
-                            }
+                            removeSelectedExercise()
                         } label: {
                             Label("Quitar de la sesión", systemImage: "trash")
                         }
@@ -1706,55 +1247,26 @@ struct ActiveWorkoutView: View {
 
                 if exerciseDrafts.indices.contains(selectedExerciseIndex) {
                     let sets = exerciseDrafts.indices.contains(selectedExerciseIndex) ? exerciseDrafts[selectedExerciseIndex].sets : []
-                    ForEach(sets.indices, id: \.self) { setIndex in
-                        SetRow(set: Binding(
-                            get: {
-                                guard exerciseDrafts.indices.contains(selectedExerciseIndex),
-                                      exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
-                                    return SetLog(setNumber: setIndex + 1, weightKg: 0, reps: 0, completed: false)
-                                }
-                                return exerciseDrafts[selectedExerciseIndex].sets[setIndex]
-                            },
-                            set: { newValue in
-                                guard exerciseDrafts.indices.contains(selectedExerciseIndex),
-                                      exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
-                                    return
-                                }
-                                exerciseDrafts[selectedExerciseIndex].sets[setIndex] = newValue
-                            }
-                        )) { completed in
-                            guard completed else { return }
-                            handleSetCompleted(exerciseIndex: selectedExerciseIndex, setIndex: setIndex)
-                        }
-                        .disabled(!isSessionStarted)
-                    }
+                    ActiveSetRowsList(
+                        setIndices: Array(sets.indices),
+                        isSessionStarted: isSessionStarted,
+                        setBinding: selectedSetBinding,
+                        onCompletionChanged: completeSelectedSetIfNeeded
+                    )
                 }
 
                 if hasVisibleAdvancedFields {
                     DisclosureGroup(isExpanded: $showAdvancedFields) {
                         if exerciseDrafts.indices.contains(selectedExerciseIndex) {
                             let sets = exerciseDrafts.indices.contains(selectedExerciseIndex) ? exerciseDrafts[selectedExerciseIndex].sets : []
-                            VStack(spacing: 10) {
-                                ForEach(sets.indices, id: \.self) { setIndex in
-                                    AdvancedSetFields(set: Binding(
-                                        get: {
-                                            guard exerciseDrafts.indices.contains(selectedExerciseIndex),
-                                                  exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
-                                                return SetLog(setNumber: setIndex + 1, weightKg: 0, reps: 0, completed: false)
-                                            }
-                                            return exerciseDrafts[selectedExerciseIndex].sets[setIndex]
-                                        },
-                                        set: { newValue in
-                                            guard exerciseDrafts.indices.contains(selectedExerciseIndex),
-                                                  exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
-                                                return
-                                            }
-                                            exerciseDrafts[selectedExerciseIndex].sets[setIndex] = newValue
-                                        }
-                                    ), showSetType: store.userProfile.showSetType, showRPE: store.userProfile.showRPE, showRIR: store.userProfile.showRIR, showTempo: store.userProfile.showTempo)
-                                }
-                            }
-                            .padding(.top, 8)
+                            ActiveAdvancedSetFieldsList(
+                                setIndices: Array(sets.indices),
+                                showSetType: store.userProfile.showSetType,
+                                showRPE: store.userProfile.showRPE,
+                                showRIR: store.userProfile.showRIR,
+                                showTempo: store.userProfile.showTempo,
+                                setBinding: selectedSetBinding
+                            )
                         }
                     } label: {
                         Label("Campos Pro", systemImage: "slider.horizontal.3")
@@ -1785,81 +1297,15 @@ struct ActiveWorkoutView: View {
                 }
 
                 DisclosureGroup(isExpanded: $showExerciseNotes) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        TextField("Sensaciones del ejercicio", text: Binding(
-                            get: { selectedDraft?.notes ?? "" },
-                            set: { newValue in
-                                guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return }
-                                exerciseDrafts[selectedExerciseIndex].notes = newValue
-                            }
-                        ), axis: .vertical)
-                            .lineLimit(2...4)
-                            .padding(12)
-                            .background(PulseTheme.grouped)
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                        HStack(spacing: 10) {
-                            Button {
-                                Task {
-                                    if audioRecorder.isRecording {
-                                        if let attachment = audioRecorder.stopRecording(note: selectedDraft?.voiceNote),
-                                           exerciseDrafts.indices.contains(selectedExerciseIndex) {
-                                            exerciseDrafts[selectedExerciseIndex].mediaAttachments.append(attachment)
-                                        }
-                                    } else {
-                                        let granted = await PermissionService.shared.requestMicrophone()
-                                        if granted {
-                                            audioRecorder.startRecording()
-                                        } else {
-                                            permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actiúva en Ajustes → Reps."
-                                            showPermissionDenied = true
-                                        }
-                                    }
-                                }
-                            } label: {
-                                Label(audioRecorder.isRecording ? "Guardar audio" : "Grabar audio", systemImage: audioRecorder.isRecording ? "stop.fill" : "mic.fill")
-                                    .font(.subheadline.weight(.bold))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 46)
-                                    .foregroundStyle(audioRecorder.isRecording ? .white : PulseTheme.primary)
-                                    .background(audioRecorder.isRecording ? Color.red : PulseTheme.primary.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                            }
-
-                            if audioRecorder.isRecording {
-                                Text(timeString(Int(audioRecorder.elapsedSeconds)))
-                                    .font(.subheadline.monospacedDigit().weight(.bold))
-                                    .foregroundStyle(.red)
-                                    .frame(width: 72, height: 46)
-                                    .background(Color.red.opacity(0.10))
-                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                            }
-
-                            MediaSourceMenu(
-                                maxSelectionCount: 6,
-                                photoPickerItems: $exercisePhotoItems,
-                                onCameraCapture: { image in
-                                    guard exerciseDrafts.indices.contains(selectedExerciseIndex),
-                                          let data = image.jpegData(compressionQuality: 0.82) else { return }
-                                    exerciseDrafts[selectedExerciseIndex].mediaAttachments.append(
-                                        WorkoutMediaAttachment(kind: .image, data: data)
-                                    )
-                                }
-                            ) {
-                                Image(systemName: "camera.fill")
-                                    .font(.headline)
-                                    .frame(width: 46, height: 46)
-                                    .foregroundStyle(PulseTheme.primary)
-                                    .background(PulseTheme.primary.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                            }
-                        }
-
-                        if let attachments = selectedDraft?.mediaAttachments, !attachments.isEmpty {
-                            AttachmentPreviewStrip(attachments: attachments)
-                        }
-                    }
-                    .padding(.top, 10)
+                    ExerciseMediaNotesPanel(
+                        notes: selectedExerciseNotesBinding,
+                        isRecording: audioRecorder.isRecording,
+                        elapsedSeconds: Int(audioRecorder.elapsedSeconds),
+                        photoPickerItems: $exercisePhotoItems,
+                        attachments: selectedDraft?.mediaAttachments ?? [],
+                        onToggleAudio: toggleExerciseAudioNote,
+                        onCameraCapture: appendExerciseCameraImage
+                    )
                 } label: {
                     Label("Notas y media", systemImage: "note.text")
                         .font(.headline)
@@ -1917,61 +1363,43 @@ struct ActiveWorkoutView: View {
     private var sessionControlCenterCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Label("Central de sesión", systemImage: "applewatch.radiowaves.left.and.right")
-                        .font(.headline)
-                    Spacer()
-                    Label("Sync Watch", systemImage: "arrow.triangle.2.circlepath")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.primary)
-                }
+                SessionControlHeader(
+                    title: "Central de sesión",
+                    systemImage: "applewatch.radiowaves.left.and.right",
+                    statusTitle: "Sync Watch",
+                    statusImage: "arrow.triangle.2.circlepath",
+                    statusColor: PulseTheme.primary
+                )
+
+                SessionMetricStrip(metrics: [
+                    .init(title: "Restante", value: timeString(estimatedRemainingSeconds), icon: "hourglass"),
+                    .init(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill"),
+                    .init(title: "Kcal", value: store.todayHealthMetric.map { "\(Int($0.activeEnergyKcal))" } ?? "--", icon: "flame.fill")
+                ])
 
                 HStack(spacing: 10) {
-                    MiniSessionPill(title: "Restante", value: timeString(estimatedRemainingSeconds), icon: "hourglass")
-                    MiniSessionPill(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill")
-                    MiniSessionPill(title: "Kcal", value: store.todayHealthMetric.map { "\(Int($0.activeEnergyKcal))" } ?? "--", icon: "flame.fill")
-                }
-
-                HStack(spacing: 10) {
-                    Button {
+                    SessionIconButton(systemImage: "chevron.backward") {
                         moveExercise(by: -1)
-                    } label: {
-                        Image(systemName: "chevron.backward")
-                            .font(.headline.weight(.bold))
-                            .frame(width: 48, height: 48)
-                            .foregroundStyle(PulseTheme.primary)
-                            .background(PulseTheme.primary.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     .disabled(selectedExerciseIndex == 0)
 
-                    Button {
+                    SessionControlButton(
+                        title: "+250 ml",
+                        systemImage: "waterbottle.fill",
+                        foregroundStyle: .white,
+                        backgroundStyle: PulseTheme.primary
+                    ) {
                         addWater()
-                    } label: {
-                        Label("+250 ml", systemImage: "waterbottle.fill")
-                            .font(.headline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .foregroundStyle(.white)
-                            .background(PulseTheme.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
 
-                    Button {
+                    SessionIconButton(systemImage: "chevron.forward") {
                         moveExercise(by: 1)
-                    } label: {
-                        Image(systemName: "chevron.forward")
-                            .font(.headline.weight(.bold))
-                            .frame(width: 48, height: 48)
-                            .foregroundStyle(PulseTheme.primary)
-                            .background(PulseTheme.primary.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     .disabled(exerciseDrafts.isEmpty || selectedExerciseIndex >= exerciseDrafts.count - 1)
                 }
 
-                if let selectedExerciseHistorySummary {
-                    Label(selectedExerciseHistorySummary, systemImage: "clock.arrow.circlepath")
+                if let historySummary = selectedExerciseContext.historySummary {
+                    Label(historySummary, systemImage: "clock.arrow.circlepath")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -1986,202 +1414,77 @@ struct ActiveWorkoutView: View {
     private var routeSessionControlCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Label(isTreadmillCandidate ? "Control de cinta" : "Control de ruta", systemImage: isTreadmillCandidate ? "figure.run.treadmill" : "figure.walk")
-                        .font(.headline)
-                    Spacer()
-                    Label(cardioControlStatus, systemImage: routeTracker.isTracking ? "location.fill" : (isTreadmillCandidate ? "figure.run.treadmill" : "pause.circle"))
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(routeTracker.isTracking || isTreadmillCandidate ? PulseTheme.primary : PulseTheme.warning)
-                }
+                SessionControlHeader(
+                    title: isTreadmillCandidate ? "Control de cinta" : "Control de ruta",
+                    systemImage: isTreadmillCandidate ? "figure.run.treadmill" : "figure.walk",
+                    statusTitle: cardioControlStatus,
+                    statusImage: routeTracker.isTracking ? "location.fill" : (isTreadmillCandidate ? "figure.run.treadmill" : "pause.circle"),
+                    statusColor: routeTracker.isTracking || isTreadmillCandidate ? PulseTheme.primary : PulseTheme.warning
+                )
 
                 if showResumeSuggestion {
-                    HStack(spacing: 12) {
-                        Image(systemName: "figure.walk")
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(.black)
-                            .frame(width: 34, height: 34)
-                            .background(PulseTheme.accent)
-                            .clipShape(Circle())
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Movimiento detectado")
-                                .font(.subheadline.weight(.bold))
-                            Text("Reanuda para seguir sumando ruta y distancia.")
-                                .font(.caption)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                        Spacer()
-                        Button("Reanudar") {
-                            setWorkoutPaused(false)
-                        }
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 12)
-                        .frame(height: 34)
-                        .background(PulseTheme.accent)
-                        .clipShape(Capsule())
+                    RouteResumePrompt {
+                        setWorkoutPaused(false)
                     }
-                    .padding(12)
-                    .background(PulseTheme.accent.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
 
-                HStack(spacing: 10) {
-                    MiniSessionPill(title: "Tiempo", value: timeString(elapsedSeconds), icon: "timer")
-                    MiniSessionPill(title: "Distancia", value: String(format: "%.2f km", displayedRouteDistanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up")
-                    MiniSessionPill(title: "Ritmo", value: displayedRoutePaceText, icon: "speedometer")
-                }
+                SessionMetricStrip(metrics: [
+                    .init(title: "Tiempo", value: timeString(elapsedSeconds), icon: "timer"),
+                    .init(title: "Distancia", value: String(format: "%.2f km", displayedRouteMetrics.distanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up"),
+                    .init(title: "Ritmo", value: displayedRouteMetrics.paceText, icon: "speedometer")
+                ])
 
                 HStack(spacing: 10) {
-                    Button {
+                    SessionControlButton(
+                        title: isPaused ? "Reanudar" : "Pausar",
+                        systemImage: isPaused ? "play.fill" : "pause.fill",
+                        foregroundStyle: isPaused ? .black : .white,
+                        backgroundStyle: isPaused ? PulseTheme.accent : PulseTheme.warning,
+                        height: 50
+                    ) {
                         setWorkoutPaused(!isPaused)
-                    } label: {
-                        Label(isPaused ? "Reanudar" : "Pausar", systemImage: isPaused ? "play.fill" : "pause.fill")
-                            .font(.headline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .foregroundStyle(isPaused ? .black : .white)
-                            .background(isPaused ? PulseTheme.accent : PulseTheme.warning)
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     .disabled(!isSessionStarted)
 
-                    Button {
+                    SessionControlButton(
+                        title: "+250 ml",
+                        systemImage: "waterbottle.fill",
+                        foregroundStyle: PulseTheme.primary,
+                        backgroundStyle: PulseTheme.primary.opacity(0.12),
+                        height: 50
+                    ) {
                         addWater()
-                    } label: {
-                        Label("+250 ml", systemImage: "waterbottle.fill")
-                            .font(.headline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .foregroundStyle(PulseTheme.primary)
-                            .background(PulseTheme.primary.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                 }
 
-                HStack(spacing: 10) {
-                    MiniSessionPill(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill")
-                    MiniSessionPill(title: "Kcal", value: displayedRouteEnergyText, icon: "flame.fill")
-                    MiniSessionPill(title: "Pulso", value: displayedRouteHeartRateText, icon: "heart.fill")
-                }
+                SessionMetricStrip(metrics: [
+                    .init(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill"),
+                    .init(title: "Kcal", value: displayedRouteMetrics.energyText, icon: "flame.fill"),
+                    .init(title: "Pulso", value: displayedRouteMetrics.heartRateText, icon: "heart.fill")
+                ])
             }
         }
     }
 
     private var routeSessionFeedbackCard: some View {
         PulseCard {
-            DisclosureGroup(isExpanded: $showSessionFeedback) {
-                VStack(alignment: .leading, spacing: 14) {
-                    VStack(spacing: 18) {
-                        HStack {
-                            Label("Esfuerzo (RPE)", systemImage: "flame.fill")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Spacer()
-                            InlineStepper(
-                                value: $sessionRPE,
-                                range: 1...10,
-                                step: 0.5,
-                                formatter: { String(format: "%.1f", $0) }
-                            )
-                            .frame(width: 156)
-                        }
-
-                        Divider()
-
-                        HStack {
-                            Label("Energía antes", systemImage: "battery.50")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Spacer()
-                            InlineStepper(
-                                value: $energyBefore,
-                                range: 1...5,
-                                step: 1,
-                                formatter: { "\(Int($0))/5" }
-                            )
-                            .frame(width: 156)
-                        }
-
-                        Divider()
-
-                        HStack {
-                            Label("Energía después", systemImage: "battery.100")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Spacer()
-                            InlineStepper(
-                                value: $energyAfter,
-                                range: 1...5,
-                                step: 1,
-                                formatter: { "\(Int($0))/5" }
-                            )
-                            .frame(width: 156)
-                        }
-                    }
-                    .padding(.vertical, 4)
-
-                    TextField(isTreadmillCandidate ? "Notas de cinta, ritmo o sensaciones" : "Notas de ruta, molestias o terreno", text: $sessionNotes, axis: .vertical)
-                        .lineLimit(2...4)
-                        .padding(12)
-                        .background(PulseTheme.grouped)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                    HStack(spacing: 10) {
-                        Button {
-                            Task {
-                                if audioRecorder.isRecording {
-                                    if let attachment = audioRecorder.stopRecording(note: sessionVoiceNote) {
-                                        sessionMediaAttachments.append(attachment)
-                                    }
-                                } else {
-                                    let granted = await PermissionService.shared.requestMicrophone()
-                                    if granted {
-                                        audioRecorder.startRecording()
-                                    } else {
-                                        permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actívalo en Ajustes → Reps."
-                                        showPermissionDenied = true
-                                    }
-                                }
-                            }
-                        } label: {
-                            Label(audioRecorder.isRecording ? "Guardar audio" : "Nota de voz", systemImage: audioRecorder.isRecording ? "stop.fill" : "mic.fill")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .foregroundStyle(audioRecorder.isRecording ? .white : PulseTheme.primary)
-                                .background(audioRecorder.isRecording ? Color.red : PulseTheme.primary.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                        }
-
-                        MediaSourceMenu(
-                            maxSelectionCount: 8,
-                            photoPickerItems: $sessionPhotoItems,
-                            onCameraCapture: { image in
-                                guard let data = image.jpegData(compressionQuality: 0.82) else { return }
-                                sessionMediaAttachments.append(
-                                    WorkoutMediaAttachment(kind: .image, data: data)
-                                )
-                            }
-                        ) {
-                            Label("\(sessionMediaAttachments.filter { $0.kind == .image }.count)", systemImage: "photo.badge.plus")
-                                .font(.headline)
-                                .frame(width: 72, height: 48)
-                                .foregroundStyle(PulseTheme.primary)
-                                .background(PulseTheme.primary.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                        }
-                    }
-
-                    if !sessionMediaAttachments.isEmpty {
-                        AttachmentPreviewStrip(attachments: sessionMediaAttachments)
-                    }
-                }
-                .padding(.top, 12)
-            } label: {
-                Label(isTreadmillCandidate ? "Cierre de cinta" : "Cierre de ruta", systemImage: "flag.checkered")
-                    .font(.headline)
-            }
+            SessionFeedbackPanel(
+                isExpanded: $showSessionFeedback,
+                title: isTreadmillCandidate ? "Cierre de cinta" : "Cierre de ruta",
+                systemImage: "flag.checkered",
+                notesPrompt: isTreadmillCandidate ? "Notas de cinta, ritmo o sensaciones" : "Notas de ruta, molestias o terreno",
+                audioIdleTitle: "Nota de voz",
+                audioRecordingTitle: "Guardar audio",
+                sessionRPE: $sessionRPE,
+                energyBefore: $energyBefore,
+                energyAfter: $energyAfter,
+                notes: $sessionNotes,
+                photoItems: $sessionPhotoItems,
+                attachments: sessionMediaAttachments,
+                isRecordingAudio: audioRecorder.isRecording,
+                onToggleAudio: toggleSessionAudioNote,
+                onCameraCapture: appendSessionCameraImage
+            )
         }
     }
 
@@ -2212,8 +1515,8 @@ struct ActiveWorkoutView: View {
                     .font(.headline.weight(.bold))
                     .foregroundStyle(PulseTheme.primary)
                 Spacer()
-                if let selectedPlateLoadSummary {
-                    Text("Lado: \(selectedPlateLoadSummary)")
+                if let plateLoadSummary = selectedExerciseContext.plateLoadSummary {
+                    Text("Lado: \(plateLoadSummary)")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(2)
@@ -2225,20 +1528,20 @@ struct ActiveWorkoutView: View {
                 workoutToolButton(title: "Warm-up", systemImage: "flame.fill") {
                     insertWarmUpSetsForSelectedExercise()
                 }
-                .disabled(!canInsertWarmUpSets)
+                .disabled(!selectedExerciseContext.canInsertWarmUpSets)
 
                 workoutToolButton(title: "Back-off", systemImage: "arrow.down.forward.circle.fill") {
                     appendBackOffSetToSelectedExercise()
                 }
-                .disabled(!canAppendAdvancedSet)
+                .disabled(!selectedExerciseContext.canAppendAdvancedSet)
 
                 workoutToolButton(title: "Dropset", systemImage: "arrow.down.circle.fill") {
                     appendDropSetToSelectedExercise()
                 }
-                .disabled(!canAppendAdvancedSet)
+                .disabled(!selectedExerciseContext.canAppendAdvancedSet)
             }
 
-            Text(activeWorkoutToolsCaption)
+            Text(selectedExerciseContext.toolsCaption)
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -2261,142 +1564,25 @@ struct ActiveWorkoutView: View {
         .buttonStyle(.plain)
     }
 
-    private var activeWorkoutToolsCaption: String {
-        if selectedPlateLoadSummary != nil {
-            return "Carga recomendada por lado con barra de 20 kg. Los botones insertan series especiales sin cerrar el entrenamiento."
-        }
-
-        if canAppendAdvancedSet {
-            return "Inserta calentamientos, back-off o dropsets desde la misma pantalla y deja el tipo de serie registrado."
-        }
-
-        return "Añade peso a la serie objetivo para activar herramientas de calentamiento y carga."
-    }
-
-    private var canInsertWarmUpSets: Bool {
-        guard let selectedDraft, let target = selectedTargetWeightKg else { return false }
-        return target >= 20 && !selectedDraft.sets.contains(where: { $0.setType == .warmUp })
-    }
-
-    private var canAppendAdvancedSet: Bool {
-        selectedDraft?.sets.isEmpty == false && selectedTargetWeightKg != nil
-    }
-
     private var sessionFeedbackCard: some View {
         PulseCard {
-            DisclosureGroup(isExpanded: $showSessionFeedback) {
-                VStack(alignment: .leading, spacing: 14) {
-                    // Spacious vertical list for RPE + energy
-                    VStack(spacing: 18) {
-                        HStack {
-                            Label("Esfuerzo (RPE)", systemImage: "flame.fill")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Spacer()
-                            InlineStepper(
-                                value: $sessionRPE,
-                                range: 1...10,
-                                step: 0.5,
-                                formatter: { String(format: "%.1f", $0) }
-                            )
-                            .frame(width: 156)
-                        }
-
-                        Divider()
-
-                        HStack {
-                            Label("Energía antes", systemImage: "battery.50")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Spacer()
-                            InlineStepper(
-                                value: $energyBefore,
-                                range: 1...5,
-                                step: 1,
-                                formatter: { "\(Int($0))/5" }
-                            )
-                            .frame(width: 156)
-                        }
-
-                        Divider()
-
-                        HStack {
-                            Label("Energía después", systemImage: "battery.100")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Spacer()
-                            InlineStepper(
-                                value: $energyAfter,
-                                range: 1...5,
-                                step: 1,
-                                formatter: { "\(Int($0))/5" }
-                            )
-                            .frame(width: 156)
-                        }
-                    }
-                    .padding(.vertical, 4)
-
-                    TextField("Notas globales, molestias o contexto", text: $sessionNotes, axis: .vertical)
-                        .lineLimit(2...4)
-                        .padding(12)
-                        .background(PulseTheme.grouped)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                    HStack(spacing: 10) {
-                        Button {
-                            Task {
-                                if audioRecorder.isRecording {
-                                    if let attachment = audioRecorder.stopRecording(note: sessionVoiceNote) {
-                                        sessionMediaAttachments.append(attachment)
-                                    }
-                                } else {
-                                    let granted = await PermissionService.shared.requestMicrophone()
-                                    if granted {
-                                        audioRecorder.startRecording()
-                                    } else {
-                                        permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actiúva en Ajustes → Reps."
-                                        showPermissionDenied = true
-                                    }
-                                }
-                            }
-                        } label: {
-                            Label(audioRecorder.isRecording ? "Guardar nota de audio" : "Grabar nota de audio", systemImage: audioRecorder.isRecording ? "stop.fill" : "mic.fill")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .foregroundStyle(audioRecorder.isRecording ? .white : PulseTheme.primary)
-                                .background(audioRecorder.isRecording ? Color.red : PulseTheme.primary.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                        }
-
-                        MediaSourceMenu(
-                            maxSelectionCount: 8,
-                            photoPickerItems: $sessionPhotoItems,
-                            onCameraCapture: { image in
-                                guard let data = image.jpegData(compressionQuality: 0.82) else { return }
-                                sessionMediaAttachments.append(
-                                    WorkoutMediaAttachment(kind: .image, data: data)
-                                )
-                            }
-                        ) {
-                            Label("\(sessionMediaAttachments.filter { $0.kind == .image }.count)", systemImage: "photo.badge.plus")
-                                .font(.headline)
-                                .frame(width: 72, height: 48)
-                                .foregroundStyle(PulseTheme.primary)
-                                .background(PulseTheme.primary.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                        }
-                    }
-
-                    if !sessionMediaAttachments.isEmpty {
-                        AttachmentPreviewStrip(attachments: sessionMediaAttachments)
-                    }
-                }
-                .padding(.top, 12)
-            } label: {
-                Label("Cierre de sesión", systemImage: "waveform.path.ecg")
-                    .font(.headline)
-            }
+            SessionFeedbackPanel(
+                isExpanded: $showSessionFeedback,
+                title: "Cierre de sesión",
+                systemImage: "waveform.path.ecg",
+                notesPrompt: "Notas globales, molestias o contexto",
+                audioIdleTitle: "Grabar nota de audio",
+                audioRecordingTitle: "Guardar nota de audio",
+                sessionRPE: $sessionRPE,
+                energyBefore: $energyBefore,
+                energyAfter: $energyAfter,
+                notes: $sessionNotes,
+                photoItems: $sessionPhotoItems,
+                attachments: sessionMediaAttachments,
+                isRecordingAudio: audioRecorder.isRecording,
+                onToggleAudio: toggleSessionAudioNote,
+                onCameraCapture: appendSessionCameraImage
+            )
         }
     }
 
@@ -2453,26 +1639,6 @@ struct ActiveWorkoutView: View {
         return "Registrar \(RepsText.exerciseName(next.exerciseName, language: store.userProfile.preferredLanguage)), serie \(next.setNumber)"
     }
 
-    private var selectedSuggestionText: String? {
-        guard store.hasFeatureAccess(.configurableProgression),
-              store.userProfile.autoProgressionEnabled,
-              let selectedDraft else {
-            return nil
-        }
-
-        let recentSets = recentSets(for: selectedDraft.workoutExercise.exercise)
-        guard !recentSets.isEmpty else {
-            return nil
-        }
-
-        let suggestion = ProgressionEngine.nextSuggestion(
-            for: selectedDraft.workoutExercise,
-            recentSets: recentSets,
-            weightIncrementKg: store.userProfile.weightIncrementKg
-        )
-        return suggestion.explanation
-    }
-
     private var selectedMediaBookmarks: [ExerciseMediaBookmark] {
         guard let selectedDraft else {
             return []
@@ -2481,19 +1647,80 @@ struct ActiveWorkoutView: View {
         return selectedDraft.workoutExercise.mediaBookmarks + selectedDraft.workoutExercise.exercise.mediaBookmarks
     }
 
-    private var nextIncompleteSet: (exerciseIndex: Int, setIndex: Int, exerciseName: String, setNumber: Int)? {
-        for exerciseIndex in exerciseDrafts.indices {
-            if let setIndex = exerciseDrafts[exerciseIndex].sets.firstIndex(where: { !$0.completed }) {
-                let draft = exerciseDrafts[exerciseIndex]
-                return (exerciseIndex, setIndex, draft.workoutExercise.exercise.name, draft.sets[setIndex].setNumber)
+    private var nextIncompleteSet: WorkoutDraftController.PendingSet? {
+        WorkoutDraftController.nextIncompleteSet(in: exerciseDrafts)
+    }
+
+    private func selectedSetBinding(at setIndex: Int) -> Binding<SetLog> {
+        Binding(
+            get: {
+                guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+                      exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
+                    return SetLog(setNumber: setIndex + 1, weightKg: 0, reps: 0, completed: false)
+                }
+                return exerciseDrafts[selectedExerciseIndex].sets[setIndex]
+            },
+            set: { newValue in
+                guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+                      exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
+                    return
+                }
+                exerciseDrafts[selectedExerciseIndex].sets[setIndex] = newValue
+            }
+        )
+    }
+
+    private func completeSelectedSetIfNeeded(setIndex: Int, completed: Bool) {
+        guard completed else { return }
+        handleSetCompleted(exerciseIndex: selectedExerciseIndex, setIndex: setIndex)
+    }
+
+    private var selectedExerciseNotesBinding: Binding<String> {
+        Binding(
+            get: { selectedDraft?.notes ?? "" },
+            set: { newValue in
+                guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return }
+                exerciseDrafts[selectedExerciseIndex].notes = newValue
+            }
+        )
+    }
+
+    private func toggleExerciseAudioNote() {
+        Task {
+            if audioRecorder.isRecording {
+                if let attachment = audioRecorder.stopRecording(note: selectedDraft?.voiceNote),
+                   exerciseDrafts.indices.contains(selectedExerciseIndex) {
+                    exerciseDrafts[selectedExerciseIndex].mediaAttachments.append(attachment)
+                    HapticService.notification(.success)
+                }
+            } else {
+                let granted = await PermissionService.shared.requestMicrophone()
+                if granted {
+                    audioRecorder.startRecording()
+                    HapticService.selection()
+                } else {
+                    permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actívalo en Ajustes → Reps."
+                    showPermissionDenied = true
+                    HapticService.notification(.warning)
+                }
             }
         }
+    }
 
-        return nil
+    private func appendExerciseCameraImage(_ image: UIImage) {
+        guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+              let data = image.jpegData(compressionQuality: 0.82) else {
+            return
+        }
+        exerciseDrafts[selectedExerciseIndex].mediaAttachments.append(
+            WorkoutMediaAttachment(kind: .image, data: data)
+        )
+        HapticService.notification(.success)
     }
 
     private func completeNextAvailableSet() {
         guard isSessionStarted else {
+            HapticService.impact(.medium)
             startPreparedSession()
             return
         }
@@ -2503,8 +1730,12 @@ struct ActiveWorkoutView: View {
 
         withAnimation(.snappy(duration: 0.22)) {
             selectedExerciseIndex = next.exerciseIndex
-            exerciseDrafts[next.exerciseIndex].sets[next.setIndex].completed = true
             handleSetCompleted(exerciseIndex: next.exerciseIndex, setIndex: next.setIndex)
+        }
+        if completedSets == totalSets {
+            HapticService.notification(.success)
+        } else {
+            HapticService.impact(.light)
         }
     }
 
@@ -2512,6 +1743,33 @@ struct ActiveWorkoutView: View {
         guard !exerciseDrafts.isEmpty else { return }
         withAnimation(.snappy(duration: 0.2)) {
             selectedExerciseIndex = min(max(selectedExerciseIndex + offset, 0), exerciseDrafts.count - 1)
+        }
+    }
+
+    private func adjustRest(by seconds: Int) {
+        HapticService.selection()
+        withAnimation(.snappy(duration: 0.18)) {
+            let adjusted = WorkoutRestController.adjustedRest(
+                current: WorkoutRestController.RestState(
+                    restSeconds: restSeconds,
+                    restDuration: restDuration,
+                    restStartedAt: restStartedAt
+                ),
+                remainingSeconds: currentRestRemainingSeconds(),
+                deltaSeconds: seconds
+            )
+            restSeconds = adjusted.restSeconds
+            restDuration = adjusted.restDuration
+            restStartedAt = adjusted.restStartedAt
+        }
+    }
+
+    private func toggleRestTimer() {
+        HapticService.selection()
+        if currentRestRemainingSeconds() == 0 {
+            startRest(duration: currentRestDuration)
+        } else {
+            stopRest()
         }
     }
 
@@ -2526,22 +1784,50 @@ struct ActiveWorkoutView: View {
         publishActiveWorkoutStatus()
     }
 
+    private func toggleSessionAudioNote() {
+        Task {
+            if audioRecorder.isRecording {
+                if let attachment = audioRecorder.stopRecording(note: sessionVoiceNote) {
+                    sessionMediaAttachments.append(attachment)
+                    HapticService.notification(.success)
+                }
+            } else {
+                let granted = await PermissionService.shared.requestMicrophone()
+                if granted {
+                    audioRecorder.startRecording()
+                    HapticService.selection()
+                } else {
+                    permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actívalo en Ajustes → Reps."
+                    showPermissionDenied = true
+                    HapticService.notification(.warning)
+                }
+            }
+        }
+    }
+
+    private func appendSessionCameraImage(_ image: UIImage) {
+        guard let data = image.jpegData(compressionQuality: 0.82) else { return }
+        sessionMediaAttachments.append(
+            WorkoutMediaAttachment(kind: .image, data: data)
+        )
+        HapticService.notification(.success)
+    }
+
     private func moveDraft(from source: Int, to destination: Int) {
         guard exerciseDrafts.indices.contains(source),
               exerciseDrafts.indices.contains(destination),
-              source != destination else {
-            return
-        }
+              source != destination else { return }
 
+        HapticService.selection()
         let selectedID = selectedDraft?.workoutExercise.id
         withAnimation(.snappy(duration: 0.22)) {
-            let draft = exerciseDrafts.remove(at: source)
-            exerciseDrafts.insert(draft, at: destination)
-            if let selectedID,
-               let newIndex = exerciseDrafts.firstIndex(where: { $0.workoutExercise.id == selectedID }) {
+            if let newIndex = WorkoutDraftController.moveExercise(
+                from: source,
+                to: destination,
+                in: &store.activeWorkoutDrafts,
+                selectedWorkoutExerciseID: selectedID
+            ) {
                 selectedExerciseIndex = newIndex
-            } else {
-                selectedExerciseIndex = min(max(destination, 0), exerciseDrafts.count - 1)
             }
         }
         syncActiveWorkoutExercises()
@@ -2580,8 +1866,7 @@ struct ActiveWorkoutView: View {
 
     private func addExercise(_ exercise: Exercise) {
         withAnimation(.snappy(duration: 0.24)) {
-            exerciseDrafts.append(Self.makeDraft(for: exercise))
-            selectedExerciseIndex = max(exerciseDrafts.count - 1, 0)
+            selectedExerciseIndex = WorkoutDraftController.addExercise(exercise, to: &store.activeWorkoutDrafts)
         }
         syncActiveWorkoutExercises()
     }
@@ -2589,29 +1874,34 @@ struct ActiveWorkoutView: View {
     private func replaceExercise(at index: Int, with exercise: Exercise) {
         guard exerciseDrafts.indices.contains(index) else { return }
         withAnimation(.snappy(duration: 0.24)) {
-            var replacement = Self.makeDraft(for: exercise)
-            let currentSets = exerciseDrafts[index].sets
-            if !currentSets.isEmpty {
-                replacement.sets = currentSets.enumerated().map { offset, set in
-                    SetLog(
-                        setNumber: offset + 1,
-                        weightKg: set.weightKg,
-                        reps: set.reps,
-                        completed: set.completed,
-                        setType: set.setType,
-                        rpe: set.rpe,
-                        rir: set.rir,
-                        tempo: set.tempo,
-                        previousRestSeconds: set.previousRestSeconds,
-                        isPersonalRecord: false,
-                        notes: set.notes
-                    )
-                }
+            if WorkoutDraftController.replaceExercise(at: index, with: exercise, in: &store.activeWorkoutDrafts) {
+                selectedExerciseIndex = index
             }
-            exerciseDrafts[index] = replacement
-            selectedExerciseIndex = index
         }
         syncActiveWorkoutExercises()
+    }
+
+    private func skipSelectedExercise() {
+        guard selectedExerciseIndex < exerciseDrafts.count - 1 else { return }
+
+        withAnimation(.snappy) {
+            selectedExerciseIndex += 1
+        }
+    }
+
+    private func removeSelectedExercise() {
+        guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return }
+
+        withAnimation(.snappy(duration: 0.24)) {
+            if let newIndex = WorkoutDraftController.removeExercise(
+                at: selectedExerciseIndex,
+                from: &store.activeWorkoutDrafts
+            ) {
+                selectedExerciseIndex = newIndex
+            }
+            syncActiveWorkoutExercises()
+            publishActiveWorkoutStatus()
+        }
     }
 
     private func syncActiveWorkoutExercises() {
@@ -2623,76 +1913,42 @@ struct ActiveWorkoutView: View {
 
     private func addSetToSelectedExercise() {
         withAnimation(.snappy(duration: 0.25)) {
-            guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return }
-            let previous = exerciseDrafts[selectedExerciseIndex].sets.last
-            exerciseDrafts[selectedExerciseIndex].sets.append(
-                SetLog(
-                    setNumber: exerciseDrafts[selectedExerciseIndex].sets.count + 1,
-                    weightKg: previous?.weightKg ?? 0,
-                    reps: previous?.reps ?? 8,
-                    completed: false
-                )
-            )
+            _ = WorkoutDraftController.addSet(to: &store.activeWorkoutDrafts, selectedIndex: selectedExerciseIndex)
         }
     }
 
     private func insertWarmUpSetsForSelectedExercise() {
         withAnimation(.snappy(duration: 0.25)) {
-            guard exerciseDrafts.indices.contains(selectedExerciseIndex),
-                  let targetSet = currentWorkingSet,
-                  targetSet.weightKg >= 20,
-                  !exerciseDrafts[selectedExerciseIndex].sets.contains(where: { $0.setType == .warmUp }) else {
-                return
-            }
-
-            let warmUps = WorkoutSetBuilder.warmUpSets(
-                targetWeightKg: targetSet.weightKg,
-                targetReps: targetSet.reps
-            )
-            guard !warmUps.isEmpty else { return }
-
-            let existing = exerciseDrafts[selectedExerciseIndex].sets
-            let firstWorkIndex = existing.firstIndex { $0.setType != .warmUp } ?? 0
-            let updated = Array(existing[..<firstWorkIndex]) + warmUps + Array(existing[firstWorkIndex...])
-            exerciseDrafts[selectedExerciseIndex].sets = WorkoutSetBuilder.renumbered(updated)
+            guard WorkoutDraftController.insertWarmUpSets(
+                to: &store.activeWorkoutDrafts,
+                selectedIndex: selectedExerciseIndex,
+                targetSet: selectedExerciseContext.currentWorkingSet
+            ) else { return }
             syncActiveWorkoutExercises()
             publishActiveWorkoutStatus()
         }
     }
 
     private func appendDropSetToSelectedExercise() {
-        appendSpecialSet { WorkoutSetBuilder.dropSet(after: $0) }
-    }
-
-    private func appendBackOffSetToSelectedExercise() {
-        appendSpecialSet { WorkoutSetBuilder.backOffSet(after: $0) }
-    }
-
-    private func appendSpecialSet(_ build: (SetLog) -> SetLog) {
         withAnimation(.snappy(duration: 0.25)) {
-            guard exerciseDrafts.indices.contains(selectedExerciseIndex),
-                  let reference = exerciseDrafts[selectedExerciseIndex].sets.last(where: { $0.weightKg > 0 }) ?? exerciseDrafts[selectedExerciseIndex].sets.last else {
-                return
-            }
-
-            var next = build(reference)
-            next.completed = false
-            exerciseDrafts[selectedExerciseIndex].sets.append(next)
-            exerciseDrafts[selectedExerciseIndex].sets = WorkoutSetBuilder.renumbered(exerciseDrafts[selectedExerciseIndex].sets)
+            guard WorkoutDraftController.appendDropSet(
+                to: &store.activeWorkoutDrafts,
+                selectedIndex: selectedExerciseIndex
+            ) else { return }
             syncActiveWorkoutExercises()
             publishActiveWorkoutStatus()
         }
     }
 
-    private func isBarbellLoadedExercise(_ exercise: Exercise) -> Bool {
-        let searchable = "\(exercise.name) \(exercise.equipment) \(exercise.requiredEquipment.joined(separator: " "))"
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .lowercased()
-
-        return searchable.contains("barbell") ||
-            searchable.contains("barra") ||
-            searchable.contains("smith")
+    private func appendBackOffSetToSelectedExercise() {
+        withAnimation(.snappy(duration: 0.25)) {
+            guard WorkoutDraftController.appendBackOffSet(
+                to: &store.activeWorkoutDrafts,
+                selectedIndex: selectedExerciseIndex
+            ) else { return }
+            syncActiveWorkoutExercises()
+            publishActiveWorkoutStatus()
+        }
     }
 
     @MainActor
@@ -2737,26 +1993,6 @@ struct ActiveWorkoutView: View {
         return attachments
     }
 
-    private func voiceAttachments(from text: String) -> [WorkoutMediaAttachment] {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return []
-        }
-
-        return [WorkoutMediaAttachment(kind: .audio, note: trimmed, durationSeconds: nil)]
-    }
-
-    private func sessionNotesText(from logs: [ExerciseLog]) -> String? {
-        let exerciseNotes = logs.compactMap { $0.notes.isEmpty ? nil : "\($0.exercise.name): \($0.notes)" }
-        let global = sessionNotes.trimmingCharacters(in: .whitespacesAndNewlines)
-        let sessionMediaSummary = sessionMediaAttachments.isEmpty ? nil : "\(sessionMediaAttachments.count) fotos adjuntas de sesión"
-        let exerciseMediaSummary = logs
-            .filter { !$0.mediaAttachments.isEmpty }
-            .map { "\($0.exercise.name): \($0.mediaAttachments.count) adjuntos" }
-        let allNotes = (global.isEmpty ? [] : [global]) + exerciseNotes + (sessionMediaSummary.map { [$0] } ?? []) + exerciseMediaSummary
-        return allNotes.isEmpty ? nil : allNotes.joined(separator: "\n")
-    }
-
     private func substitutionCandidates(for index: Int) -> [Exercise] {
         guard exerciseDrafts.indices.contains(index) else {
             return store.exercises
@@ -2778,28 +2014,21 @@ struct ActiveWorkoutView: View {
         }
 
         elapsedSeconds = elapsedWorkoutSeconds()
-        if let lastSetCompletedAtSeconds {
-            exerciseDrafts[exerciseIndex].sets[setIndex].previousRestSeconds = max(elapsedSeconds - lastSetCompletedAtSeconds, 0)
-        }
-
         let completedSet = exerciseDrafts[exerciseIndex].sets[setIndex]
         let exercise = exerciseDrafts[exerciseIndex].workoutExercise.exercise
-        exerciseDrafts[exerciseIndex].sets[setIndex].isPersonalRecord = isPersonalRecord(completedSet, for: exercise)
+        let outcome = WorkoutDraftController.completeSet(
+            in: &store.activeWorkoutDrafts,
+            exerciseIndex: exerciseIndex,
+            setIndex: setIndex,
+            elapsedSeconds: elapsedSeconds,
+            lastSetCompletedAtSeconds: lastSetCompletedAtSeconds,
+            isPersonalRecord: ExerciseHistoryAnalyzer.isPersonalRecord(completedSet, for: exercise, in: store.workoutSessions),
+            betweenExercisesRestSeconds: workout.restBetweenExercisesSeconds
+        )
         lastSetCompletedAtSeconds = elapsedSeconds
-        let nextIndex = setIndex + 1
-        if exerciseDrafts[exerciseIndex].sets.indices.contains(nextIndex),
-           !exerciseDrafts[exerciseIndex].sets[nextIndex].completed {
-            startRest(duration: exerciseDrafts[exerciseIndex].workoutExercise.restSeconds)
-            exerciseDrafts[exerciseIndex].sets[nextIndex].weightKg = completedSet.weightKg
-            exerciseDrafts[exerciseIndex].sets[nextIndex].reps = completedSet.reps
-            publishActiveWorkoutStatus()
-            return
-        }
 
-        let nextExerciseIndex = exerciseIndex + 1
-        if exerciseDrafts.indices.contains(nextExerciseIndex),
-           exerciseDrafts[nextExerciseIndex].sets.contains(where: { !$0.completed }) {
-            startRest(duration: workout.restBetweenExercisesSeconds)
+        if let duration = outcome?.restDurationSeconds {
+            startRest(duration: duration)
         } else {
             stopRest()
         }
@@ -2828,59 +2057,11 @@ struct ActiveWorkoutView: View {
         }
 
         hasAppliedProgression = true
-        for index in exerciseDrafts.indices {
-            let item = exerciseDrafts[index].workoutExercise
-            let recentSets = recentSets(for: item.exercise)
-            guard !recentSets.isEmpty else {
-                continue
-            }
-
-            let suggestion = ProgressionEngine.nextSuggestion(
-                for: item,
-                recentSets: recentSets,
-                weightIncrementKg: store.userProfile.weightIncrementKg
-            )
-
-            guard suggestion.targetWeightKg > 0 else {
-                continue
-            }
-
-            for setIndex in exerciseDrafts[index].sets.indices where !exerciseDrafts[index].sets[setIndex].completed {
-                exerciseDrafts[index].sets[setIndex].weightKg = suggestion.targetWeightKg
-                exerciseDrafts[index].sets[setIndex].reps = suggestion.targetReps
-            }
-        }
-    }
-
-    private func recentSets(for exercise: Exercise) -> [SetLog] {
-        store.workoutSessions
-            .sorted { $0.date > $1.date }
-            .flatMap { session in
-                (session.exerciseLogs ?? []).filter { log in
-                    log.exercise.id == exercise.id || normalizedExerciseName(log.exercise.name) == normalizedExerciseName(exercise.name)
-                }
-                .flatMap(\.sets)
-            }
-            .filter(\.completed)
-            .prefix(12)
-            .map { $0 }
-    }
-
-    private func normalizedExerciseName(_ name: String) -> String {
-        name.trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "_", with: " ")
-            .split(separator: " ")
-            .joined(separator: " ")
-    }
-
-    private func isPersonalRecord(_ set: SetLog, for exercise: Exercise) -> Bool {
-        let points = FitnessMetrics.progressPoints(for: exercise, in: store.workoutSessions)
-        let previousBestWeight = points.map(\.maxWeightKg).max() ?? 0
-        let previousBestOneRepMax = points.map(\.estimatedOneRepMaxKg).max() ?? 0
-        let estimatedOneRepMax = FitnessMetrics.estimatedOneRepMax(weightKg: set.weightKg, reps: set.reps)
-        return set.weightKg > previousBestWeight || estimatedOneRepMax > previousBestOneRepMax
+        _ = WorkoutDraftController.applyAutoProgression(
+            to: &store.activeWorkoutDrafts,
+            sessions: store.workoutSessions,
+            weightIncrementKg: store.userProfile.weightIncrementKg
+        )
     }
 
     private func timeString(_ seconds: Int) -> String {
@@ -2889,44 +2070,6 @@ struct ActiveWorkoutView: View {
         return String(format: "%02d:%02d", minutes, secs)
     }
 
-    private static func makeDrafts(for workout: WorkoutDay) -> [ExerciseSessionDraft] {
-        workout.exercises.map(makeDraft(for:))
-    }
-
-    private static func makeDraft(for exercise: Exercise) -> ExerciseSessionDraft {
-        makeDraft(for: WorkoutExercise(exercise: exercise, targetSets: 3, repRange: defaultRepRange(for: exercise), previous: "-"))
-    }
-
-    private static func makeDraft(for item: WorkoutExercise) -> ExerciseSessionDraft {
-        let sets = (1...max(item.targetSets, 1)).map { index in
-            SetLog(setNumber: index, weightKg: defaultWeight(from: item.previous), reps: defaultReps(from: item.repRange), completed: false)
-        }
-        return ExerciseSessionDraft(workoutExercise: item, notes: "", sets: sets)
-    }
-
-    private static func defaultRepRange(for exercise: Exercise) -> String {
-        switch exercise.trackingType {
-        case .weightReps: "8-12"
-        case .repsOnly: "8-15"
-        case .duration: "30-45 sec"
-        }
-    }
-
-    private static func defaultWeight(from previous: String) -> Double {
-        let normalized = previous.replacingOccurrences(of: ",", with: ".")
-        let number = normalized
-            .split { character in
-                !(character.isNumber || character == ".")
-            }
-            .compactMap { Double($0) }
-            .first
-        return number ?? 0
-    }
-
-    private static func defaultReps(from repRange: String) -> Int {
-        let digits = repRange.split { !$0.isNumber }.compactMap { Int($0) }
-        return digits.first ?? 8
-    }
 }
 
 private struct ExerciseReplacementTarget: Identifiable {
@@ -3252,6 +2395,238 @@ private struct ReplacementExerciseRow: View {
     }
 }
 
+private struct ActiveSetRowsList: View {
+    let setIndices: [Int]
+    let isSessionStarted: Bool
+    let setBinding: (Int) -> Binding<SetLog>
+    let onCompletionChanged: (Int, Bool) -> Void
+
+    var body: some View {
+        ForEach(setIndices, id: \.self) { setIndex in
+            SetRow(set: setBinding(setIndex)) { completed in
+                onCompletionChanged(setIndex, completed)
+            }
+            .disabled(!isSessionStarted)
+        }
+    }
+}
+
+private struct ActiveAdvancedSetFieldsList: View {
+    let setIndices: [Int]
+    let showSetType: Bool
+    let showRPE: Bool
+    let showRIR: Bool
+    let showTempo: Bool
+    let setBinding: (Int) -> Binding<SetLog>
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ForEach(setIndices, id: \.self) { setIndex in
+                AdvancedSetFields(
+                    set: setBinding(setIndex),
+                    showSetType: showSetType,
+                    showRPE: showRPE,
+                    showRIR: showRIR,
+                    showTempo: showTempo
+                )
+            }
+        }
+        .padding(.top, 8)
+    }
+}
+
+private struct SessionControlHeader: View {
+    let title: String
+    let systemImage: String
+    let statusTitle: String
+    let statusImage: String
+    let statusColor: Color
+
+    var body: some View {
+        HStack {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+            Spacer()
+            Label(statusTitle, systemImage: statusImage)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(statusColor)
+        }
+    }
+}
+
+private struct SessionMetricStrip: View {
+    struct Metric: Identifiable {
+        let title: String
+        let value: String
+        let icon: String
+
+        var id: String { title }
+    }
+
+    let metrics: [Metric]
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(metrics) { metric in
+                MiniSessionPill(title: metric.title, value: metric.value, icon: metric.icon)
+            }
+        }
+    }
+}
+
+private struct RouteTrackingPanel: View {
+    let isTracking: Bool
+    let statusText: String
+    let statusBadge: String
+    let primaryMetrics: [SessionMetricStrip.Metric]
+    let secondaryMetrics: [SessionMetricStrip.Metric]
+
+    private var statusColor: Color {
+        isTracking ? PulseTheme.primary : PulseTheme.secondaryText
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 14) {
+                Image(systemName: isTracking ? "location.fill" : "map")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 54, height: 54)
+                    .background(statusColor)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("GPS y ruta")
+                        .font(.headline)
+                    Text(statusText)
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                Spacer()
+                Text(statusBadge)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(statusColor)
+                    .padding(.horizontal, 12)
+                    .frame(height: 32)
+                    .background(statusColor.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+
+            SessionMetricStrip(metrics: primaryMetrics)
+            SessionMetricStrip(metrics: secondaryMetrics)
+        }
+    }
+}
+
+private struct LiveRouteMapPanel: View {
+    let routePoints: [RoutePoint]
+    let isSessionStarted: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Label("Mapa en vivo", systemImage: "map.fill")
+                    .font(.headline)
+                Spacer()
+                Text(routePoints.isEmpty ? "Esperando GPS" : "\(routePoints.count) puntos")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+
+            ZStack {
+                RouteMapPreview(routePoints: routePoints)
+                    .frame(height: 240)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                if routePoints.count < 2 {
+                    VStack(spacing: 10) {
+                        Image(systemName: "location.magnifyingglass")
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(PulseTheme.primary)
+                        Text(isSessionStarted ? "La ruta se dibujará aquí en cuanto entren puntos GPS." : "Al iniciar, la ruta se irá dibujando aquí.")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 18)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+            }
+        }
+    }
+}
+
+private struct SessionIconButton: View {
+    let systemImage: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.headline.weight(.bold))
+                .frame(width: 48, height: 48)
+                .foregroundStyle(PulseTheme.primary)
+                .background(PulseTheme.primary.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        }
+    }
+}
+
+private struct SessionControlButton: View {
+    let title: String
+    let systemImage: String
+    let foregroundStyle: Color
+    let backgroundStyle: Color
+    var height: CGFloat = 48
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.headline.weight(.bold))
+                .frame(maxWidth: .infinity)
+                .frame(height: height)
+                .foregroundStyle(foregroundStyle)
+                .background(backgroundStyle)
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        }
+    }
+}
+
+private struct RouteResumePrompt: View {
+    let onResume: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "figure.walk")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.black)
+                .frame(width: 34, height: 34)
+                .background(PulseTheme.accent)
+                .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Movimiento detectado")
+                    .font(.subheadline.weight(.bold))
+                Text("Reanuda para seguir sumando ruta y distancia.")
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            Spacer()
+            Button("Reanudar", action: onResume)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.black)
+                .padding(.horizontal, 12)
+                .frame(height: 34)
+                .background(PulseTheme.accent)
+                .clipShape(Capsule())
+        }
+        .padding(12)
+        .background(PulseTheme.accent.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
 private struct MiniSessionPill: View {
     let title: String
     let value: String
@@ -3335,57 +2710,119 @@ private struct ActiveCodePreview: View {
     }
 }
 
-private struct AttachmentPreviewStrip: View {
+private struct SessionFeedbackPanel: View {
+    @Binding var isExpanded: Bool
+    let title: String
+    let systemImage: String
+    let notesPrompt: String
+    let audioIdleTitle: String
+    let audioRecordingTitle: String
+    @Binding var sessionRPE: Double
+    @Binding var energyBefore: Double
+    @Binding var energyAfter: Double
+    @Binding var notes: String
+    @Binding var photoItems: [PhotosPickerItem]
     let attachments: [WorkoutMediaAttachment]
+    let isRecordingAudio: Bool
+    let onToggleAudio: () -> Void
+    let onCameraCapture: (UIImage) -> Void
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                ForEach(attachments) { attachment in
-                    AttachmentPreview(attachment: attachment)
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: 14) {
+                effortFields
+
+                TextField(notesPrompt, text: $notes, axis: .vertical)
+                    .lineLimit(2...4)
+                    .padding(12)
+                    .background(PulseTheme.grouped)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                HStack(spacing: 10) {
+                    Button(action: onToggleAudio) {
+                        Label(isRecordingAudio ? audioRecordingTitle : audioIdleTitle, systemImage: isRecordingAudio ? "stop.fill" : "mic.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .foregroundStyle(isRecordingAudio ? .white : PulseTheme.primary)
+                            .background(isRecordingAudio ? Color.red : PulseTheme.primary.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+
+                    MediaSourceMenu(
+                        maxSelectionCount: 8,
+                        photoPickerItems: $photoItems,
+                        onCameraCapture: onCameraCapture
+                    ) {
+                        Label("\(attachments.filter { $0.kind == .image }.count)", systemImage: "photo.badge.plus")
+                            .font(.headline)
+                            .frame(width: 72, height: 48)
+                            .foregroundStyle(PulseTheme.primary)
+                            .background(PulseTheme.primary.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                }
+
+                if !attachments.isEmpty {
+                    AttachmentPreviewStrip(attachments: attachments)
                 }
             }
-            .padding(.horizontal, 1)
+            .padding(.top, 12)
+        } label: {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
         }
     }
-}
 
-private struct AttachmentPreview: View {
-    let attachment: WorkoutMediaAttachment
-
-    var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            if attachment.kind == .image,
-               let data = attachment.data,
-               let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                VStack(spacing: 8) {
-                    Image(systemName: "mic.fill")
-                        .font(.title2)
-                    Text("Audio")
-                        .font(.caption.weight(.bold))
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .foregroundStyle(PulseTheme.primary)
-                .background(PulseTheme.primary.opacity(0.10))
+    private var effortFields: some View {
+        VStack(spacing: 18) {
+            HStack {
+                Label("Esfuerzo (RPE)", systemImage: "flame.fill")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Spacer()
+                InlineStepper(
+                    value: $sessionRPE,
+                    range: 1...10,
+                    step: 0.5,
+                    formatter: { String(format: "%.1f", $0) }
+                )
+                .frame(width: 156)
             }
 
-            if let note = attachment.note, !note.isEmpty {
-                Text(note)
-                    .font(.caption2.weight(.bold))
-                    .lineLimit(2)
-                    .padding(6)
-                    .foregroundStyle(.white)
-                    .background(.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .padding(6)
+            Divider()
+
+            HStack {
+                Label("Energía antes", systemImage: "battery.50")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Spacer()
+                InlineStepper(
+                    value: $energyBefore,
+                    range: 1...5,
+                    step: 1,
+                    formatter: { "\(Int($0))/5" }
+                )
+                .frame(width: 156)
+            }
+
+            Divider()
+
+            HStack {
+                Label("Energía después", systemImage: "battery.100")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Spacer()
+                InlineStepper(
+                    value: $energyAfter,
+                    range: 1...5,
+                    step: 1,
+                    formatter: { "\(Int($0))/5" }
+                )
+                .frame(width: 156)
             }
         }
-        .frame(width: 96, height: 116)
-        .background(PulseTheme.grouped)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .padding(.vertical, 4)
     }
 }
 
@@ -4025,86 +3462,6 @@ struct WorkoutSummaryView: View {
                 ActivityViewController(activityItems: [image])
             }
         }
-    }
-}
-
-private struct WorkoutElapsedText: View, Equatable {
-    let startedAt: Date
-    let basePausedSeconds: Int
-    let lastPausedAt: Date?
-    let isPaused: Bool
-    let fallbackElapsedSeconds: Int
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { timeline in
-            Text(timeString(elapsedSeconds(at: timeline.date)))
-                .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
-        }
-    }
-
-    private func elapsedSeconds(at date: Date) -> Int {
-        guard startedAt.timeIntervalSince1970 > 0 else {
-            return fallbackElapsedSeconds
-        }
-
-        let effectiveDate = isPaused ? (lastPausedAt ?? date) : date
-        return max(Int(effectiveDate.timeIntervalSince(startedAt)) - basePausedSeconds, 0)
-    }
-
-    private func timeString(_ seconds: Int) -> String {
-        let hours = seconds / 3600
-        let minutes = (seconds % 3600) / 60
-        let secs = seconds % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, secs)
-        }
-        return String(format: "%02d:%02d", minutes, secs)
-    }
-}
-
-private struct RestCountdownRing: View, Equatable {
-    let restStartedAt: Date?
-    let restDuration: Int
-    let fallbackRestSeconds: Int
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { timeline in
-            let seconds = remainingSeconds(at: timeline.date)
-            let progress = restDuration > 0 ? Double(seconds) / Double(restDuration) : 0
-            let ringColor: Color = seconds > 30 ? PulseTheme.primaryBright : (seconds > 0 ? PulseTheme.warning : Color.red)
-
-            ZStack {
-                Circle()
-                    .stroke(PulseTheme.grouped, lineWidth: 7)
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(ringColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 1), value: seconds)
-                VStack(spacing: 1) {
-                    Text(timeString(seconds))
-                        .font(.system(size: 18, weight: .black, design: .rounded).monospacedDigit())
-                        .foregroundStyle(ringColor)
-                        .animation(.none, value: seconds)
-                    Text(seconds == 0 ? "¡Listo!" : "desc.")
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                }
-            }
-        }
-    }
-
-    private func remainingSeconds(at date: Date) -> Int {
-        guard let restStartedAt else {
-            return fallbackRestSeconds
-        }
-        return max(restDuration - Int(date.timeIntervalSince(restStartedAt)), 0)
-    }
-
-    private func timeString(_ seconds: Int) -> String {
-        let minutes = seconds / 60
-        let secs = seconds % 60
-        return String(format: "%02d:%02d", minutes, secs)
     }
 }
 

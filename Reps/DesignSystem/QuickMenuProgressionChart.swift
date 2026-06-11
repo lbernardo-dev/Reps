@@ -63,7 +63,6 @@ struct QuickMenuProgressionChart: View {
     
     @State private var selectedMetric: ProgressionMetricType = .exercises
     @State private var activeWeek: Int? = nil // Drag gesture active week selection
-    @State private var showProfile = false
     
     private var isSpanish: Bool {
         store.userProfile.preferredLanguage.hasPrefix("es")
@@ -195,7 +194,7 @@ struct QuickMenuProgressionChart: View {
                 Spacer()
                 Button {
                     HapticService.selection()
-                    showProfile = true
+                    selectedMetric = .weight
                 } label: {
                     let avatarData = store.userProfile.avatarImageData
                     if let avatarData, let image = UIImage(data: avatarData) {
@@ -220,7 +219,7 @@ struct QuickMenuProgressionChart: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(isSpanish ? "Perfil" : "Profile")
+                .accessibilityLabel(isSpanish ? "Ver peso corporal" : "Show body weight")
             }
             .padding(.horizontal, 4)
             
@@ -481,9 +480,6 @@ struct QuickMenuProgressionChart: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(Color.clear)
-        .sheet(isPresented: $showProfile) {
-            ProfileView()
-        }
     }
     
     // MARK: - Helpers

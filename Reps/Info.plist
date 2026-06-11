@@ -49,6 +49,10 @@
 	<string>StreakRep necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>StreakRep necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos.</string>
+	<key>RepsProICloudRecordIDHashes</key>
+	<array>
+		<string>69c0dc20d15124f24860efa6345787972b5cc2ebe6f3646fe44cdfe1a5e37ca9</string>
+	</array>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
