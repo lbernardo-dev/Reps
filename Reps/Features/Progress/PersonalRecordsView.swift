@@ -113,8 +113,9 @@ struct PRCardView: View {
     var body: some View {
         PulseCard {
             HStack(spacing: 16) {
-                // Exercise anatomy indicator thumbnail if available
-                ExerciseAnatomyThumbnail(exercise: item.exercise, size: 58)
+                ExerciseMediaThumbnail(exercise: item.exercise, gender: store.userProfile.muscleMapGender)
+                    .frame(width: 58, height: 58)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.exercise.name)

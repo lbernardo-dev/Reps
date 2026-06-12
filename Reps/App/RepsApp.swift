@@ -66,6 +66,7 @@ struct RepsApp: App {
                     }
 
                     store.syncWidgets()
+                    store.refreshHealthKitDataIfNeeded(reason: "app_task")
                     TelemetryService.shared.updateUserProperties(store.userProfile)
                     TelemetryService.shared.log(.appOpen, parameters: [
                         "onboarding_completed": store.userProfile.onboardingCompleted,
@@ -86,6 +87,7 @@ struct RepsApp: App {
             if newPhase == .active {
                 store.syncWidgets()
                 store.refreshNotificationSchedule()
+                store.refreshHealthKitDataIfNeeded(reason: "foreground")
                 Task {
                     await store.refreshStoreKitEntitlements()
                     await store.refreshICloudProEntitlement()

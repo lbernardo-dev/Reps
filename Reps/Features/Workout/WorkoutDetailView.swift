@@ -338,23 +338,13 @@ private struct WorkoutExercisePreviewRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            ZStack(alignment: .bottomTrailing) {
-                ExerciseMediaThumbnail(exercise: item.exercise, gender: gender)
-                    .frame(width: 88, height: 88)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                    )
-
-                ExerciseAnatomyThumbnail(exercise: item.exercise, gender: gender, size: 34)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .stroke(PulseTheme.card.opacity(0.95), lineWidth: 2)
-                    )
-                    .offset(x: 5, y: 5)
-            }
-            .frame(width: 94, height: 94)
+            ExerciseMediaThumbnail(exercise: item.exercise, gender: gender)
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
 
             VStack(alignment: .leading, spacing: 5) {
                 Text("\(index). \(RepsText.exerciseName(item.exercise.name, language: language))")
@@ -425,25 +415,17 @@ private struct WorkoutMusclePreview: View {
         let isSelected = selectedSide == side
         return BodyView(gender: gender, side: side, style: .repsDark)
             .heatmap(heatmap, configuration: .repsVolume)
-            .frame(width: size.width * 0.78, height: size.height * 0.88)
+            .frame(width: size.width * 0.66, height: size.height * 1.05)
             .allowsHitTesting(false)
-            .scaleEffect(isSelected ? 1.08 : 0.58)
-            .opacity(isSelected ? 1 : 0.34)
-            .saturation(isSelected ? 1.1 : 0.58)
-            .brightness(isSelected ? 0 : -0.08)
-            .shadow(color: selectedTint.opacity(isSelected ? 0.34 : 0.04), radius: isSelected ? 22 : 6, x: 0, y: 10)
-            .overlay(alignment: .bottom) {
-                Text(sideLabel(side))
-                    .font(.system(size: 10, weight: .black))
-                    .tracking(1.2)
-                    .foregroundStyle(isSelected ? .black : PulseTheme.secondaryText)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(isSelected ? selectedTint : Color.white.opacity(0.06), in: Capsule())
-                    .opacity(isSelected ? 1 : 0.75)
-            }
-        .offset(x: isSelected ? 0 : backgroundOffset(for: side, width: size.width),
-                y: isSelected ? 0 : 34)
+            .scaleEffect(isSelected ? 1.08 : 1.0)
+            .opacity(isSelected ? 1 : 0.62)
+            .saturation(isSelected ? 1.08 : 0.72)
+            .brightness(isSelected ? 0 : -0.10)
+            .shadow(color: selectedTint.opacity(isSelected ? 0.28 : 0.05), radius: isSelected ? 20 : 8, x: 0, y: 10)
+        .offset(
+            x: side == .front ? -size.width * 0.16 : size.width * 0.16,
+            y: isSelected ? -4 : 12
+        )
         .zIndex(isSelected ? 2 : 1)
         .animation(.spring(response: 0.42, dampingFraction: 0.82), value: selectedSide)
         .accessibilityLabel(sideLabel(side))
@@ -463,12 +445,19 @@ private struct WorkoutMusclePreview: View {
 
     private var heatmap: [MuscleIntensity] {
         let descriptors = exercises.map(ExerciseAnatomyDescriptor.init(exercise:))
-        let muscles = Array(Set(descriptors.flatMap(\.muscles)))
-        let counts = Dictionary(grouping: descriptors.flatMap(\.muscles), by: { $0 }).mapValues(\.count)
-        let maxCount = max(counts.values.max() ?? 1, 1)
+        var scores: [Muscle: Double] = [:]
+        for descriptor in descriptors {
+            for muscle in descriptor.primaryMuscles {
+                scores[muscle, default: 0] += 1
+            }
+            for muscle in descriptor.secondaryMuscles {
+                scores[muscle, default: 0] += 0.35
+            }
+        }
+        let maxScore = max(scores.values.max() ?? 1, 1)
 
-        return muscles.map { muscle in
-            let load = Double(counts[muscle, default: 1]) / Double(maxCount)
+        return scores.map { muscle, score in
+            let load = score / maxScore
             return MuscleIntensity(muscle: muscle, intensity: 0.42 + (load * 0.58))
         }
     }
@@ -482,10 +471,6 @@ private struct WorkoutMusclePreview: View {
             return PulseTheme.primaryBright
         }
         return PulseTheme.primary
-    }
-
-    private func backgroundOffset(for side: BodySide, width: CGFloat) -> CGFloat {
-        side == .front ? -width * 0.30 : width * 0.30
     }
 
     private func sideLabel(_ side: BodySide) -> String {

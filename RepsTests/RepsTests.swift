@@ -52,6 +52,57 @@ struct RepsTests {
         #expect(descriptor.region.side == .front)
     }
 
+    @Test func exerciseAnatomyDoesNotTreatBarbellAsAbs() {
+        let exercise = Exercise(
+            name: "Barbell Bench Press",
+            muscleGroup: "Chest",
+            secondaryMuscles: ["Shoulders", "Arms"],
+            equipment: "Barbell",
+            instructions: "Brace your core and keep your shoulder blades tight."
+        )
+
+        let descriptor = ExerciseAnatomyDescriptor(exercise: exercise)
+
+        #expect(descriptor.muscles.contains(.chest))
+        #expect(descriptor.muscles.contains(.deltoids))
+        #expect(descriptor.muscles.contains(.triceps))
+        #expect(descriptor.primaryMuscles == [.chest])
+        #expect(!descriptor.secondaryMuscles.contains(.biceps))
+        #expect(!descriptor.muscles.contains(.abs))
+        #expect(!descriptor.muscles.contains(.upperAbs))
+        #expect(!descriptor.muscles.contains(.lowerAbs))
+    }
+
+    @Test func muscleGroupAnatomySupportsLocalizedGroups() {
+        let chest = ExerciseAnatomyDescriptor(muscleGroup: "Pecho", secondaryMuscles: [])
+        let arms = ExerciseAnatomyDescriptor(muscleGroup: "Brazos", secondaryMuscles: [])
+        let pressingArms = ExerciseAnatomyDescriptor(muscleGroup: "Brazos", exerciseName: "Barbell Bench Press", secondaryMuscles: [])
+
+        #expect(chest.muscles.contains(.chest))
+        #expect(!chest.muscles.contains(.abs))
+        #expect(arms.muscles.contains(.biceps))
+        #expect(arms.muscles.contains(.triceps))
+        #expect(!arms.muscles.contains(.abs))
+        #expect(pressingArms.muscles == [.triceps])
+    }
+
+    @Test func gluteExercisesKeepGlutesAsPrimaryAnatomy() {
+        let exercise = Exercise(
+            name: "Glute Bridge",
+            muscleGroup: "Glutes",
+            secondaryMuscles: ["Legs", "Core"],
+            equipment: "Bodyweight"
+        )
+
+        let descriptor = ExerciseAnatomyDescriptor(exercise: exercise)
+
+        #expect(descriptor.primaryMuscles == [.gluteal])
+        #expect(descriptor.secondaryMuscles.contains(.hamstring))
+        #expect(descriptor.secondaryMuscles.contains(.quadriceps))
+        #expect(!descriptor.primaryMuscles.contains(.quadriceps))
+        #expect(descriptor.region.side == .back)
+    }
+
     @Test func exerciseAnatomyUsesSpecificLegMuscles() {
         let legExtension = Exercise(name: "Machine Seated Leg Extension", muscleGroup: "Legs", equipment: "Machine")
         let legCurl = Exercise(name: "Lying Leg Curl", muscleGroup: "Legs", equipment: "Machine")

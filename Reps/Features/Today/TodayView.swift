@@ -192,16 +192,22 @@ struct TodayView: View {
     private var recentActivityPoints: [DailyActivityPoint] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
-        let daysWithSessions = Set(recentSessions.map { calendar.startOfDay(for: $0.date) })
+        let loadByDay = Dictionary(grouping: recentSessions, by: { calendar.startOfDay(for: $0.date) })
+            .mapValues { sessions in
+                sessions.reduce(0.0) { $0 + AnalyticsEngine.sessionLoad(for: $1) }
+            }
+        let maxDailyLoad = loadByDay.values.max() ?? 0
 
         return (0..<30).compactMap { offset in
             guard let date = calendar.date(byAdding: .day, value: offset - 29, to: today) else {
                 return nil
             }
+            let dailyLoad = loadByDay[date] ?? 0
             return DailyActivityPoint(
                 date: date,
-                isCompleted: daysWithSessions.contains(date),
-                isToday: calendar.isDateInToday(date)
+                isCompleted: dailyLoad > 0,
+                isToday: calendar.isDateInToday(date),
+                intensity: maxDailyLoad > 0 ? min(dailyLoad / maxDailyLoad, 1) : 0
             )
         }
     }
@@ -1857,6 +1863,7 @@ private struct DailyActivityPoint: Identifiable {
     let date: Date
     let isCompleted: Bool
     let isToday: Bool
+    let intensity: Double
 
     var id: Date { date }
 }
@@ -1945,6 +1952,38 @@ private struct ActivityMatrixCard: View {
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 10)
 
+    private func fill(for point: DailyActivityPoint) -> LinearGradient {
+        guard point.isCompleted else {
+            return LinearGradient(
+                colors: [
+                    PulseTheme.grouped.opacity(0.82),
+                    PulseTheme.grouped.opacity(0.96)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
+
+        let intensity = max(0.18, min(point.intensity, 1))
+        return LinearGradient(
+            colors: [
+                color.opacity(0.42 + (0.38 * intensity)),
+                PulseTheme.primaryBright.opacity(0.58 + (0.30 * intensity)),
+                PulseTheme.accent.opacity(0.28 + (0.50 * intensity))
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+
+    private func accessibilityLabel(for point: DailyActivityPoint) -> String {
+        guard point.isCompleted else {
+            return "No workout"
+        }
+
+        return "Workout completed, intensity \(Int((point.intensity * 100).rounded())) percent"
+    }
+
     var body: some View {
         PulseCard(contentPadding: 16, backgroundColor: color.opacity(0.07)) {
             VStack(alignment: .leading, spacing: 12) {
@@ -1961,13 +2000,13 @@ private struct ActivityMatrixCard: View {
                 LazyVGrid(columns: columns, spacing: 7) {
                     ForEach(points) { point in
                         RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(point.isCompleted ? color : PulseTheme.grouped)
+                            .fill(fill(for: point))
                             .frame(height: 17)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 7, style: .continuous)
                                     .stroke(point.isToday ? PulseTheme.accent : PulseTheme.separator, style: StrokeStyle(lineWidth: point.isToday ? 2 : 1, dash: point.isCompleted ? [] : [4, 3]))
                             )
-                            .accessibilityLabel(point.isCompleted ? "Workout completed" : "No workout")
+                            .accessibilityLabel(accessibilityLabel(for: point))
                     }
                 }
             }

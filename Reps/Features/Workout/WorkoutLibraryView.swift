@@ -10,6 +10,9 @@ struct WorkoutLibraryView: View {
         StickyHeaderScaffold(
             title: "Rutinas",
             subtitle: "Crea, programa y reutiliza",
+            backAction: {
+                dismiss()
+            },
             accessory: {
                 Button {
                     showCreate = true

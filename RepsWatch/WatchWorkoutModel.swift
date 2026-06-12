@@ -52,12 +52,17 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
     }
 
     func startWorkout() {
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .traditionalStrengthTraining
+        configuration.locationType = .indoor
+        startWorkout(configuration: configuration)
+    }
+
+    func startWorkout(configuration: HKWorkoutConfiguration) {
+        guard session == nil else { return }
         Task {
             do {
                 try await requestHealthAuthorization()
-                let configuration = HKWorkoutConfiguration()
-                configuration.activityType = .traditionalStrengthTraining
-                configuration.locationType = .indoor
 
                 let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
                 let workoutBuilder = workoutSession.associatedWorkoutBuilder()
@@ -65,13 +70,30 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 workoutSession.delegate = self
                 workoutBuilder.delegate = self
 
+                let startDate = Date()
                 session = workoutSession
                 builder = workoutBuilder
-                startedAt = .now
+                startedAt = startDate
+                endedAt = nil
                 state = .running
-                send(command: .resume)
-                workoutSession.startActivity(with: .now)
-                try await workoutBuilder.beginCollection(at: .now)
+                isLocalRouteWorkout = Self.isRouteConfiguration(configuration)
+                isStandaloneRouteWorkout = false
+                standaloneActivity = Self.routeWorkoutActivity(for: configuration)
+                standaloneWorkoutID = UUID()
+                accumulatedPausedSeconds = 0
+                pauseStartedAt = nil
+                resetRouteMetrics()
+                prepareSnapshotForCompanionLaunch(configuration: configuration, startedAt: startDate)
+
+                workoutSession.startActivity(with: startDate)
+                try await workoutBuilder.beginCollection(at: startDate)
+                try? await workoutSession.startMirroringToCompanionDevice()
+                if isLocalRouteWorkout {
+                    startPedometer()
+                    if configuration.locationType != .indoor {
+                        startLocation()
+                    }
+                }
                 startTimer()
             } catch {
                 message = error.localizedDescription
@@ -150,6 +172,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
 
                 workoutSession.startActivity(with: startDate)
                 try await workoutBuilder.beginCollection(at: startDate)
+                try? await workoutSession.startMirroringToCompanionDevice()
                 startPedometer()
                 startLocation()
                 startTimer()
@@ -202,7 +225,11 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             HKQuantityType(.distanceWalkingRunning),
             HKQuantityType(.stepCount)
         ]
-        let shareTypes: Set<HKSampleType> = [HKWorkoutType.workoutType()]
+        let shareTypes: Set<HKSampleType> = [
+            HKWorkoutType.workoutType(),
+            HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.distanceWalkingRunning)
+        ]
         try await healthStore.requestAuthorization(toShare: shareTypes, read: readTypes)
     }
 
@@ -251,17 +278,25 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
         }
     }
 
-    private func startLocalRouteWorkoutIfNeeded(for snapshot: SharedWorkoutSnapshot) {
-        guard snapshot.hasActiveWorkout, snapshot.isRouteWorkout else { return }
+    private func startLocalWorkoutIfNeeded(for snapshot: SharedWorkoutSnapshot) {
+        guard snapshot.hasActiveWorkout else { return }
         guard session == nil else {
             if snapshot.isPaused, state == .running {
                 session?.pause()
                 state = .paused
-                stopPedometer()
+                if isLocalRouteWorkout {
+                    stopPedometer()
+                    stopLocation()
+                }
             } else if !snapshot.isPaused, state == .paused {
                 session?.resume()
                 state = .running
-                startPedometer()
+                if isLocalRouteWorkout {
+                    startPedometer()
+                    if snapshot.isOutdoorRoute != false {
+                        startLocation()
+                    }
+                }
             }
             return
         }
@@ -270,8 +305,10 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             do {
                 try await requestHealthAuthorization()
                 let configuration = HKWorkoutConfiguration()
-                configuration.activityType = Self.routeActivityType(for: snapshot)
-                configuration.locationType = snapshot.isOutdoorRoute == false ? .indoor : .outdoor
+                configuration.activityType = Self.activityType(for: snapshot)
+                configuration.locationType = snapshot.isRouteWorkout
+                    ? (snapshot.isOutdoorRoute == false ? .indoor : .outdoor)
+                    : .indoor
 
                 let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
                 let workoutBuilder = workoutSession.associatedWorkoutBuilder()
@@ -284,17 +321,18 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 startedAt = snapshot.updatedAt.addingTimeInterval(-TimeInterval(snapshot.elapsedSeconds))
                 elapsedSeconds = snapshot.elapsedSeconds
                 state = snapshot.isPaused ? .paused : .running
-                isLocalRouteWorkout = true
+                isLocalRouteWorkout = snapshot.isRouteWorkout
                 isStandaloneRouteWorkout = false
-                standaloneActivity = Self.routeWorkoutActivity(for: snapshot)
+                standaloneActivity = snapshot.isRouteWorkout ? Self.routeWorkoutActivity(for: snapshot) : nil
                 standaloneWorkoutID = UUID()
                 resetRouteMetrics()
 
                 workoutSession.startActivity(with: .now)
                 try await workoutBuilder.beginCollection(at: .now)
+                try? await workoutSession.startMirroringToCompanionDevice()
                 if snapshot.isPaused {
                     workoutSession.pause()
-                } else {
+                } else if snapshot.isRouteWorkout {
                     startPedometer()
                     if snapshot.isOutdoorRoute != false {
                         startLocation()
@@ -308,7 +346,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
     }
 
     private func stopLocalRouteWorkoutIfNeeded() {
-        guard isLocalRouteWorkout else { return }
+        guard session != nil, !isStandaloneRouteWorkout else { return }
         stopSession(sendsCommand: false)
     }
 
@@ -368,8 +406,19 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
         routeSpeedKmh = routeDistanceKm / (Double(elapsedSeconds) / 3_600)
     }
 
-    private static func routeActivityType(for snapshot: SharedWorkoutSnapshot) -> HKWorkoutActivityType {
-        routeWorkoutActivity(for: snapshot) == .running ? .running : .walking
+    private static func activityType(for snapshot: SharedWorkoutSnapshot) -> HKWorkoutActivityType {
+        if snapshot.isRouteWorkout {
+            return routeWorkoutActivity(for: snapshot) == .running ? .running : .walking
+        }
+
+        let title = snapshot.workoutTitle.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        if title.localizedCaseInsensitiveContains("yoga") ||
+            title.localizedCaseInsensitiveContains("pilates") ||
+            title.localizedCaseInsensitiveContains("flex") ||
+            title.localizedCaseInsensitiveContains("movilidad") {
+            return .flexibility
+        }
+        return .traditionalStrengthTraining
     }
 
     private static func routeWorkoutActivity(for snapshot: SharedWorkoutSnapshot) -> WatchRouteWorkoutActivity {
@@ -378,6 +427,93 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             return .running
         }
         return .walking
+    }
+
+    private static func routeWorkoutActivity(for configuration: HKWorkoutConfiguration) -> WatchRouteWorkoutActivity? {
+        switch configuration.activityType {
+        case .running:
+            return .running
+        case .walking:
+            return .walking
+        default:
+            return nil
+        }
+    }
+
+    private static func isRouteConfiguration(_ configuration: HKWorkoutConfiguration) -> Bool {
+        routeWorkoutActivity(for: configuration) != nil
+    }
+
+    private static func workoutTitle(for configuration: HKWorkoutConfiguration) -> String {
+        switch configuration.activityType {
+        case .running:
+            return "Carrera"
+        case .walking:
+            return "Caminata"
+        case .flexibility:
+            return "Movilidad"
+        default:
+            return "Entreno"
+        }
+    }
+
+    private func prepareSnapshotForCompanionLaunch(configuration: HKWorkoutConfiguration, startedAt: Date) {
+        guard !snapshot.hasActiveWorkout else { return }
+        let title = Self.workoutTitle(for: configuration)
+        snapshot = SharedWorkoutSnapshot(
+            hasActiveWorkout: true,
+            planTitle: nil,
+            workoutTitle: title,
+            sessionTitle: "Iniciado desde iPhone",
+            elapsedSeconds: 0,
+            pausedSeconds: 0,
+            completedSets: 0,
+            totalSets: 0,
+            volumeKg: 0,
+            isPaused: false,
+            exerciseName: nil,
+            exerciseIndex: nil,
+            totalExercises: nil,
+            currentExerciseCompletedSets: nil,
+            currentExerciseTotalSets: nil,
+            currentSetWeightKg: nil,
+            currentSetReps: nil,
+            restSeconds: nil,
+            restDurationSeconds: nil,
+            estimatedRemainingSeconds: nil,
+            waterLiters: nil,
+            musicTitle: nil,
+            musicArtist: nil,
+            isMusicPlaying: nil,
+            nextExerciseName: nil,
+            exerciseHistorySummary: nil,
+            gymPassName: nil,
+            gymMembershipID: nil,
+            gymCodeValue: nil,
+            gymCodeType: nil,
+            heartRate: heartRate,
+            activeEnergyKcal: activeEnergy,
+            isRouteWorkout: Self.isRouteConfiguration(configuration),
+            isOutdoorRoute: configuration.locationType == .outdoor,
+            routeDistanceKm: routeDistanceKm,
+            routePaceSecondsPerKm: routePaceSecondsPerKm,
+            routeSpeedKmh: routeSpeedKmh,
+            routePointCount: routePointCount,
+            routeSteps: routeSteps,
+            summary: "\(title) iniciado desde iPhone",
+            updatedAt: startedAt,
+            streakDays: snapshot.streakDays,
+            weeklyCompletion: snapshot.weeklyCompletion,
+            trainingBatteryLevel: snapshot.trainingBatteryLevel,
+            trainingBatteryState: snapshot.trainingBatteryState,
+            trainingBatteryTitle: snapshot.trainingBatteryTitle,
+            trainingBatterySuggestion: snapshot.trainingBatterySuggestion,
+            trainingBatterySystemImage: snapshot.trainingBatterySystemImage,
+            nextWorkoutDayName: snapshot.nextWorkoutDayName,
+            nextWorkoutDayDescription: snapshot.nextWorkoutDayDescription,
+            widgetAccentColorName: snapshot.widgetAccentColorName
+        )
+        SharedWorkoutStore.save(snapshot)
     }
 
     private func sendRouteMetricsIfNeeded() {
@@ -658,8 +794,8 @@ extension WatchWorkoutModel: WCSessionDelegate {
         }
         self.snapshot = snapshot
         SharedWorkoutStore.save(snapshot)
-        if snapshot.hasActiveWorkout, snapshot.isRouteWorkout {
-            startLocalRouteWorkoutIfNeeded(for: snapshot)
+        if snapshot.hasActiveWorkout {
+            startLocalWorkoutIfNeeded(for: snapshot)
         } else if !snapshot.hasActiveWorkout {
             stopLocalRouteWorkoutIfNeeded()
         }

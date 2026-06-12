@@ -14,7 +14,7 @@ settings:
     CURRENT_PROJECT_VERSION: 100202606111
     SWIFT_VERSION: 6.0
     DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
-    LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION: "NO"
+    LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION: "YES"
 packages:
   MuscleMap:
     url: https://github.com/melihcolpan/MuscleMap.git

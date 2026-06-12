@@ -328,6 +328,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
     let title: String
     let subtitle: String?
     let topContentPadding: CGFloat
+    let backAction: (() -> Void)?
     let accessory: Accessory
     let content: Content
 
@@ -337,12 +338,14 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
         title: String,
         subtitle: String? = nil,
         topContentPadding: CGFloat = 86,
+        backAction: (() -> Void)? = nil,
         @ViewBuilder accessory: () -> Accessory,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.subtitle = subtitle
         self.topContentPadding = topContentPadding
+        self.backAction = backAction
         self.accessory = accessory()
         self.content = content()
         _activeTitle = State(initialValue: title)
@@ -375,6 +378,22 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
     private var stickyHeader: some View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
+                if let backAction {
+                    Button {
+                        HapticService.selection()
+                        backAction()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(PulseTheme.primary)
+                            .frame(width: 42, height: 42)
+                            .background(PulseTheme.primary.opacity(0.10))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Atrás")
+                }
+
                 VStack(alignment: .leading, spacing: 3) {
                     if let subtitle {
                         Text(subtitle)

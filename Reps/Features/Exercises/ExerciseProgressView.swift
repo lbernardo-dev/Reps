@@ -140,7 +140,7 @@ struct ExerciseProgressView: View {
 
     private var instructionsContent: some View {
         VStack(spacing: 18) {
-            ExerciseHeroMedia(exercise: currentExercise, height: 260)
+            ExerciseHeroMedia(exercise: currentExercise, gender: store.userProfile.muscleMapGender, height: 260)
             personalizationCard
             exerciseTechniqueCard
         }
@@ -224,11 +224,11 @@ struct ExerciseProgressView: View {
 
             PulseCard {
                 VStack(spacing: 0) {
-                    ExerciseMuscleTargetRow(title: localizedMuscle(currentExercise.muscleGroup), subtitle: "1 serie", exercise: currentExercise, gender: store.userProfile.muscleMapGender)
+                    ExerciseMuscleTargetRow(title: localizedMuscle(currentExercise.muscleGroup), subtitle: "1 serie", muscleGroup: currentExercise.muscleGroup, exerciseName: currentExercise.name, gender: store.userProfile.muscleMapGender)
                     if !currentExercise.secondaryMuscles.isEmpty {
                         Divider()
                         ForEach(currentExercise.secondaryMuscles, id: \.self) { muscle in
-                            ExerciseMuscleTargetRow(title: localizedMuscle(muscle), subtitle: "0,35 series indirectas", exercise: currentExercise, gender: store.userProfile.muscleMapGender)
+                            ExerciseMuscleTargetRow(title: localizedMuscle(muscle), subtitle: "0,35 series indirectas", muscleGroup: muscle, exerciseName: currentExercise.name, gender: store.userProfile.muscleMapGender)
                             if muscle != currentExercise.secondaryMuscles.last {
                                 Divider()
                             }
@@ -680,9 +680,11 @@ struct ExerciseMuscleInfoPanel: View {
         HStack(spacing: 28) {
             BodyView(gender: gender, side: .front, style: .repsDark)
                 .heatmap(frontHeatmap, configuration: .repsVolume)
+                .showSubGroups()
                 .frame(maxWidth: .infinity)
             BodyView(gender: gender, side: .back, style: .repsDark)
                 .heatmap(backHeatmap, configuration: .repsVolume)
+                .showSubGroups()
                 .frame(maxWidth: .infinity)
         }
         .frame(height: 280)
@@ -691,23 +693,24 @@ struct ExerciseMuscleInfoPanel: View {
     }
 
     private var frontHeatmap: [MuscleIntensity] {
-        descriptor.muscles.map { MuscleIntensity(muscle: $0, intensity: 0.72) }
+        descriptor.thumbnailHeatmap(primaryIntensity: 0.92)
     }
 
     private var backHeatmap: [MuscleIntensity] {
-        descriptor.muscles.map { MuscleIntensity(muscle: $0, intensity: 0.72) }
+        descriptor.thumbnailHeatmap(primaryIntensity: 0.92)
     }
 }
 
 struct ExerciseMuscleTargetRow: View {
     let title: String
     let subtitle: String
-    let exercise: Exercise
+    let muscleGroup: String
+    var exerciseName = ""
     let gender: BodyGender
 
     var body: some View {
         HStack(spacing: 14) {
-            ExerciseAnatomyThumbnail(exercise: exercise, gender: gender, size: 58)
+            MuscleGroupAnatomyThumbnail(muscleGroup: muscleGroup, exerciseName: exerciseName, gender: gender, size: 58)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.title3.weight(.bold))

@@ -59,6 +59,15 @@ final class AppStore: ObservableObject {
             SharedWorkoutStore.save(snapshot, reloadTimelines: shouldReloadWidgets)
             WatchSyncService.shared.publish(snapshot: snapshot)
             RepsWorkoutLiveActivityController.shared.sync(snapshot)
+            guard !isRestoring else { return }
+            if #available(iOS 26.0, *),
+               let nativeWorkoutSessionService = nativeWorkoutSessionService as? NativeWorkoutSessionService {
+                nativeWorkoutSessionService.reconcile(
+                    status: activeWorkoutStatus,
+                    workout: activeWorkout,
+                    preferCompanionWorkout: WatchSyncService.shared.canStartCompanionWorkout
+                )
+            }
         }
     }
     @Published var activeWorkout: WorkoutDay? { didSet { save() } }
@@ -83,11 +92,15 @@ final class AppStore: ObservableObject {
     private let persistence: SwiftDataPersistence
     private let iCloudProEntitlementService: ICloudProEntitlementService
     private let shareImageRenderer: (WorkoutSession?) -> UIImage
+    private let healthKitService = HealthKitService()
+    private var nativeWorkoutSessionService: Any?
     private var isRestoring = false
     private var hasAttemptedExerciseLibrarySync = false
     private var saveTask: Task<Void, Never>?
     private var pendingPaywallDismissReason: PaywallDismissReason?
     private var transactionUpdatesTask: Task<Void, Never>?
+    private var isAutomaticHealthSyncInProgress = false
+    private var lastAutomaticHealthRefreshDate: Date?
 
     init(
         persistence: SwiftDataPersistence = SwiftDataPersistence(),
@@ -115,6 +128,21 @@ final class AppStore: ObservableObject {
                 self?.importWatchRouteWorkout(summary)
             }
         )
+        if #available(iOS 26.0, *) {
+            let nativeWorkoutSessionService = NativeWorkoutSessionService()
+            nativeWorkoutSessionService.configure(
+                metricsHandler: { [weak self] metrics in
+                    self?.handleNativeWorkoutMetrics(metrics)
+                },
+                mirroredStartHandler: { [weak self] payload in
+                    self?.handleMirroredNativeWorkoutStart(payload)
+                },
+                endedHandler: { [weak self] in
+                    self?.handleNativeWorkoutEnded()
+                }
+            )
+            self.nativeWorkoutSessionService = nativeWorkoutSessionService
+        }
         if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
             restore(snapshot)
         } else {
@@ -137,6 +165,11 @@ final class AppStore: ObservableObject {
             }
 
             startHealthKitWorkoutObserverIfAuthorized()
+            if #available(iOS 26.0, *),
+               let nativeWorkoutSessionService = nativeWorkoutSessionService as? NativeWorkoutSessionService {
+                nativeWorkoutSessionService.startMirroringListener()
+            }
+            refreshHealthKitDataIfNeeded(reason: "launch")
         }
     }
 
@@ -713,7 +746,7 @@ final class AppStore: ObservableObject {
         }
 
         let image = WorkoutShareImageRenderer.render(payload: payload)
-        if let data = image.pngData() {
+        if let data = image.pngData(), !data.isEmpty {
             UIPasteboard.general.image = image
 
             if !alreadySaved {
@@ -761,11 +794,7 @@ final class AppStore: ObservableObject {
         ])
         
         // Render virtual receipt image and auto-save it to our profile gallery
-        let image = WorkoutShareImageRenderer.render(session: session)
-        if let data = image.pngData() {
-            let savedCard = SavedShareCard(date: session.date, workoutTitle: session.workoutTitle, imageData: data)
-            self.savedShareCards.append(savedCard)
-        }
+        saveReceiptCard(for: session)
         
         self.finishedSessionForSummary = session
         activeWorkoutStatus = nil
@@ -801,6 +830,28 @@ final class AppStore: ObservableObject {
         }
     }
 
+    private func saveReceiptCard(for session: WorkoutSession, replacingExisting: Bool = false) {
+        let image = WorkoutShareImageRenderer.render(session: session)
+        guard let data = image.pngData(), !data.isEmpty else {
+            TelemetryService.shared.log(.nonFatalError, parameters: ["context": "receipt_render_empty_png"])
+            return
+        }
+
+        let card = SavedShareCard(date: session.date, workoutTitle: session.workoutTitle, imageData: data)
+        if replacingExisting, let existingIndex = receiptCardIndex(for: session) {
+            savedShareCards[existingIndex] = card
+        } else {
+            savedShareCards.append(card)
+        }
+    }
+
+    private func receiptCardIndex(for session: WorkoutSession) -> Int? {
+        savedShareCards.firstIndex { card in
+            card.workoutTitle == session.workoutTitle &&
+            abs(card.date.timeIntervalSince(session.date)) < 2
+        }
+    }
+
     @discardableResult
     func finishActiveWorkoutFromSummaryCard() -> WorkoutSession? {
         guard let status = activeWorkoutStatus else {
@@ -822,7 +873,14 @@ final class AppStore: ObservableObject {
             )
         }
         let allSets = logs.flatMap(\.sets)
-        let location: WorkoutSession.Location = activePlan.location == .home ? .home : .gym
+        let location: WorkoutSession.Location
+        if status.isOutdoorRoute == true {
+            location = .outdoor
+        } else if activeWorkout?.sessionType == .free {
+            location = userProfile.trainingLocation == .home ? .home : .gym
+        } else {
+            location = activePlan.location == .home ? .home : .gym
+        }
         let startedAt = status.startedAt == .distantPast
             ? Date().addingTimeInterval(TimeInterval(-elapsedSeconds))
             : status.startedAt
@@ -832,7 +890,7 @@ final class AppStore: ObservableObject {
             date: .now,
             startedAt: startedAt,
             endedAt: .now,
-            origin: .routine,
+            origin: activeWorkout?.sessionType == .free ? .free : .routine,
             location: location,
             contextTag: .normal,
             durationMinutes: max(elapsedSeconds / 60, 1),
@@ -1130,10 +1188,6 @@ final class AppStore: ObservableObject {
 
     private func importWatchRouteWorkout(_ summary: WatchRouteWorkoutSummary) {
         let healthKitID = "watch-\(summary.id.uuidString)"
-        guard !workoutSessions.contains(where: { $0.id == summary.id || $0.healthKitUUIDString == healthKitID }) else {
-            return
-        }
-
         let routePoints = summary.routePoints.map {
             RoutePoint(
                 latitude: $0.latitude,
@@ -1142,6 +1196,21 @@ final class AppStore: ObservableObject {
                 horizontalAccuracy: $0.horizontalAccuracy,
                 timestamp: $0.timestamp
             )
+        }
+
+        if let duplicateIndex = workoutSessions.firstIndex(where: { $0.id == summary.id || $0.healthKitUUIDString == healthKitID }) {
+            var existing = workoutSessions[duplicateIndex]
+            if existing.routePoints.isEmpty {
+                existing.routePoints = routePoints
+            }
+            if !routePoints.isEmpty {
+                existing.location = .outdoor
+            }
+            existing.distanceKm = Self.bestRouteDistance(existing.distanceKm, summary.distanceKm)
+            existing.averagePaceSecondsPerKm = existing.averagePaceSecondsPerKm ?? summary.averagePaceSecondsPerKm
+            workoutSessions[duplicateIndex] = existing
+            saveReceiptCard(for: existing, replacingExisting: true)
+            return
         }
 
         if let existingIndex = workoutSessions.firstIndex(where: { session in
@@ -1155,6 +1224,9 @@ final class AppStore: ObservableObject {
             existing.healthKitUUIDString = existing.healthKitUUIDString ?? healthKitID
             existing.healthKitActivityTypes = existing.healthKitActivityTypes.isEmpty ? [summary.activity == .running ? "Running" : "Walking"] : existing.healthKitActivityTypes
             existing.routePoints = existing.routePoints.isEmpty ? routePoints : existing.routePoints
+            if !routePoints.isEmpty {
+                existing.location = .outdoor
+            }
             existing.distanceKm = Self.bestRouteDistance(existing.distanceKm, summary.distanceKm)
             existing.averagePaceSecondsPerKm = existing.averagePaceSecondsPerKm ?? summary.averagePaceSecondsPerKm
             existing.steps = Self.bestRouteMetric(existing.steps, summary.steps)
@@ -1163,6 +1235,7 @@ final class AppStore: ObservableObject {
             existing.averageHeartRate = existing.averageHeartRate ?? summary.averageHeartRate
             existing.maxHeartRate = Self.bestRouteMetric(existing.maxHeartRate, summary.maxHeartRate)
             workoutSessions[existingIndex] = existing
+            saveReceiptCard(for: existing, replacingExisting: true)
 
             let mergedActivityType: CardioLog.ActivityType = summary.activity == .running
                 ? (existing.location == .outdoor || !routePoints.isEmpty ? .outdoorRun : .treadmill)
@@ -1245,10 +1318,7 @@ final class AppStore: ObservableObject {
         )
         _ = importCardioLogs([cardioLog])
 
-        let image = WorkoutShareImageRenderer.render(session: session)
-        if let data = image.pngData() {
-            savedShareCards.append(SavedShareCard(date: session.date, workoutTitle: session.workoutTitle, imageData: data))
-        }
+        saveReceiptCard(for: session)
 
         TelemetryService.shared.log(.workoutFinished, parameters: [
             "origin": session.origin.rawValue,
@@ -1258,6 +1328,70 @@ final class AppStore: ObservableObject {
             "set_count": 0,
             "source": "apple_watch"
         ])
+    }
+
+    private func handleNativeWorkoutMetrics(_ metrics: NativeWorkoutMetrics) {
+        guard var status = activeWorkoutStatus else { return }
+
+        if let heartRate = metrics.heartRate {
+            status.liveHeartRate = heartRate
+        }
+        if let activeEnergyKcal = metrics.activeEnergyKcal {
+            status.liveActiveEnergyKcal = activeEnergyKcal
+        }
+        if status.isRouteWorkout || metrics.distanceKm != nil {
+            status.isRouteWorkout = true
+            status.routeDistanceKm = Self.bestRouteDistance(status.routeDistanceKm, metrics.distanceKm)
+            status.routeSteps = Self.bestRouteMetric(status.routeSteps, metrics.steps)
+        }
+
+        activeWorkoutStatus = status
+    }
+
+    private func handleMirroredNativeWorkoutStart(_ payload: NativeWorkoutStartPayload) {
+        guard activeWorkoutStatus == nil else { return }
+
+        let workout = Self.workoutDay(for: payload)
+        startPreparedActiveWorkout(workout, drafts: [], isPaused: false, startedAt: payload.startedAt)
+        if var status = activeWorkoutStatus {
+            status.planTitle = String(localized: "Apple Watch")
+            status.isRouteWorkout = workout.isCardioMovement
+            status.isOutdoorRoute = payload.locationType == .outdoor
+            activeWorkoutStatus = status
+        }
+        health.message = String(localized: "Entreno iniciado desde Apple Watch.")
+    }
+
+    private func handleNativeWorkoutEnded() {
+        guard activeWorkoutStatus != nil else { return }
+        _ = finishActiveWorkoutFromSummaryCard()
+        refreshHealthKitDataIfNeeded(force: true, reason: "native_workout_ended")
+    }
+
+    private static func workoutDay(for payload: NativeWorkoutStartPayload) -> WorkoutDay {
+        WorkoutDay(
+            title: nameForActivityType(payload.activityType),
+            subtitle: String(localized: "Iniciado desde Apple Watch"),
+            durationMinutes: 45,
+            exercises: [],
+            sessionType: sessionType(for: payload.activityType),
+            cardioEnvironment: payload.locationType == .indoor ? .treadmill : .outdoor
+        )
+    }
+
+    private static func sessionType(for activityType: HKWorkoutActivityType) -> WorkoutDay.SessionType {
+        switch activityType {
+        case .running:
+            return .cardioRun
+        case .walking, .hiking:
+            return .cardioWalk
+        case .traditionalStrengthTraining, .functionalStrengthTraining, .coreTraining:
+            return .free
+        case .yoga, .pilates, .flexibility:
+            return .mobility
+        default:
+            return .free
+        }
     }
 
     private func sharedWorkoutSnapshot() -> SharedWorkoutSnapshot {
@@ -1850,6 +1984,7 @@ final class AppStore: ObservableObject {
     }
 
     func disconnectHealth() {
+        stopHealthKitObservers()
         health = HealthSyncState(
             isAvailable: health.isAvailable,
             isAuthorized: false,
@@ -1936,7 +2071,7 @@ final class AppStore: ObservableObject {
         let selected = session ?? workoutSessions.sorted { $0.date > $1.date }.first
         let url = exportURL(fileName: "reps-share-\(Self.exportDateStamp()).png")
         let image = shareImageRenderer(selected)
-        guard let data = image.pngData() else {
+        guard let data = image.pngData(), !data.isEmpty else {
             throw CocoaError(.fileWriteUnknown)
         }
         try writeProtected(data, to: url)
@@ -2189,9 +2324,29 @@ final class AppStore: ObservableObject {
     
     private let healthStore = HKHealthStore()
     private var healthKitWorkoutObserverStarted = false
+    private var healthKitDailyMetricsObserverStarted = false
+    private var healthKitWorkoutObserverQuery: HKObserverQuery?
+    private var healthKitDailyMetricObserverQueries: [HKObserverQuery] = []
+    private static let automaticHealthSyncMinimumInterval: TimeInterval = 10 * 60
+    private static var observedDailyHealthSampleTypes: [HKSampleType] {
+        [
+            HKQuantityType(.stepCount),
+            HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.distanceWalkingRunning),
+            HKQuantityType(.appleExerciseTime),
+            HKQuantityType(.dietaryEnergyConsumed),
+            HKQuantityType(.dietaryWater),
+            HKQuantityType(.restingHeartRate),
+            HKQuantityType(.heartRateVariabilitySDNN),
+            HKCategoryType(.sleepAnalysis)
+        ]
+    }
     
     func startHealthKitWorkoutObserverIfAuthorized() {
+        health.isAvailable = HKHealthStore.isHealthDataAvailable()
         guard HKHealthStore.isHealthDataAvailable() else { return }
+        guard health.isAuthorized else { return }
+        startHealthKitDailyMetricsObserverIfAuthorized()
         guard !healthKitWorkoutObserverStarted else { return }
         
         let workoutType = HKWorkoutType.workoutType()
@@ -2217,6 +2372,7 @@ final class AppStore: ObservableObject {
             }
         }
         healthStore.execute(query)
+        healthKitWorkoutObserverQuery = query
         healthKitWorkoutObserverStarted = true
         
         // Habilitar envío en segundo plano
@@ -2227,6 +2383,114 @@ final class AppStore: ObservableObject {
                     TelemetryService.shared.record(error, context: "healthkit_enable_background_delivery")
                 }
             }
+        }
+    }
+
+    func refreshHealthKitDataIfNeeded(force: Bool = false, reason: String = "foreground") {
+        Task { @MainActor [weak self] in
+            await self?.performAutomaticHealthSyncIfNeeded(force: force, reason: reason)
+        }
+    }
+
+    private func startHealthKitDailyMetricsObserverIfAuthorized() {
+        guard HKHealthStore.isHealthDataAvailable(), health.isAuthorized else { return }
+        guard !healthKitDailyMetricsObserverStarted else { return }
+
+        for sampleType in Self.observedDailyHealthSampleTypes {
+            let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completionHandler, error in
+                struct SendableHealthCompletion: @unchecked Sendable {
+                    let handler: () -> Void
+                }
+
+                let wrapped = SendableHealthCompletion(handler: completionHandler)
+
+                Task { @MainActor in
+                    defer { wrapped.handler() }
+
+                    if let error {
+                        TelemetryService.shared.record(error, context: "healthkit_daily_metric_observer")
+                        return
+                    }
+
+                    guard let self else { return }
+                    await self.performAutomaticHealthSyncIfNeeded(reason: "background_metric_observer")
+                }
+            }
+
+            healthStore.execute(query)
+            healthKitDailyMetricObserverQueries.append(query)
+            healthStore.enableBackgroundDelivery(for: sampleType, frequency: .hourly) { _, error in
+                if let error {
+                    Task { @MainActor in
+                        TelemetryService.shared.record(error, context: "healthkit_daily_background_delivery")
+                    }
+                }
+            }
+        }
+
+        healthKitDailyMetricsObserverStarted = true
+    }
+
+    private func stopHealthKitObservers() {
+        if let healthKitWorkoutObserverQuery {
+            healthStore.stop(healthKitWorkoutObserverQuery)
+        }
+        for query in healthKitDailyMetricObserverQueries {
+            healthStore.stop(query)
+        }
+
+        healthKitWorkoutObserverQuery = nil
+        healthKitDailyMetricObserverQueries = []
+        healthKitWorkoutObserverStarted = false
+        healthKitDailyMetricsObserverStarted = false
+        isAutomaticHealthSyncInProgress = false
+        lastAutomaticHealthRefreshDate = nil
+
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        healthStore.disableBackgroundDelivery(for: HKWorkoutType.workoutType()) { _, error in
+            if let error {
+                Task { @MainActor in
+                    TelemetryService.shared.record(error, context: "healthkit_disable_workout_background_delivery")
+                }
+            }
+        }
+        for sampleType in Self.observedDailyHealthSampleTypes {
+            healthStore.disableBackgroundDelivery(for: sampleType) { _, error in
+                if let error {
+                    Task { @MainActor in
+                        TelemetryService.shared.record(error, context: "healthkit_disable_daily_background_delivery")
+                    }
+                }
+            }
+        }
+    }
+
+    private func performAutomaticHealthSyncIfNeeded(force: Bool = false, reason: String) async {
+        health.isAvailable = HKHealthStore.isHealthDataAvailable()
+        guard health.isAvailable, health.isAuthorized else { return }
+        startHealthKitWorkoutObserverIfAuthorized()
+        guard !isAutomaticHealthSyncInProgress else { return }
+
+        let now = Date()
+        let mostRecentRefresh = lastAutomaticHealthRefreshDate ?? health.lastSyncDate
+        if !force,
+           let mostRecentRefresh,
+           now.timeIntervalSince(mostRecentRefresh) < Self.automaticHealthSyncMinimumInterval {
+            return
+        }
+
+        isAutomaticHealthSyncInProgress = true
+        lastAutomaticHealthRefreshDate = now
+        defer { isAutomaticHealthSyncInProgress = false }
+
+        do {
+            let dailyMetrics = try await healthKitService.fetchDailyMetrics()
+            health.latestDailyMetrics = dailyMetrics
+            health.lastSyncDate = .now
+            await syncWorkoutsFromHealthKit()
+        } catch {
+            TelemetryService.shared.record(error, context: "healthkit_automatic_sync_\(reason)")
+            TelemetryService.shared.log(.nonFatalError, parameters: ["context": "healthkit_automatic_sync"])
         }
     }
     
@@ -2258,8 +2522,10 @@ final class AppStore: ObservableObject {
     private func processHealthKitWorkout(_ workout: HKWorkout) async {
         let uuidString = workout.uuid.uuidString
         
-        // 1. Evitar duplicados
+        // 1. Avoid duplicates, but still refresh routes because HealthKit can publish
+        // the workout before its HKWorkoutRoute samples are available.
         if workoutSessions.contains(where: { $0.healthKitUUIDString == uuidString }) {
+            await refreshExistingHealthKitRouteIfNeeded(for: workout, uuidString: uuidString)
             return
         }
         
@@ -2358,6 +2624,9 @@ final class AppStore: ObservableObject {
                 existing.location = .outdoor
             }
             workoutSessions[index] = existing
+            if existing.isRouteSession {
+                saveReceiptCard(for: existing, replacingExisting: true)
+            }
             return
         }
         
@@ -2396,11 +2665,37 @@ final class AppStore: ObservableObject {
         workoutSessions.append(importedSession)
         
         // También generar recibo para la galería de este entreno importado de salud
-        let image = WorkoutShareImageRenderer.render(session: importedSession)
-        if let data = image.pngData() {
-            let savedCard = SavedShareCard(date: importedSession.date, workoutTitle: importedSession.workoutTitle, imageData: data)
-            self.savedShareCards.append(savedCard)
+        saveReceiptCard(for: importedSession)
+    }
+
+    private func refreshExistingHealthKitRouteIfNeeded(for workout: HKWorkout, uuidString: String) async {
+        guard let existing = workoutSessions.first(where: { $0.healthKitUUIDString == uuidString }) else {
+            return
         }
+        if existing.routePoints.count >= 2 {
+            saveReceiptCard(for: existing, replacingExisting: true)
+            return
+        }
+
+        let routePoints = await workoutRoutePoints(for: workout)
+        guard !routePoints.isEmpty,
+              let index = workoutSessions.firstIndex(where: { $0.healthKitUUIDString == uuidString }) else {
+            return
+        }
+
+        var updated = workoutSessions[index]
+        updated.routePoints = routePoints
+        updated.location = .outdoor
+        updated.distanceKm = Self.bestRouteDistance(
+            updated.distanceKm,
+            workout.totalDistance?.doubleValue(for: .meterUnit(with: .kilo))
+        )
+        updated.averagePaceSecondsPerKm = updated.averagePaceSecondsPerKm ?? Self.averagePaceSecondsPerKm(
+            duration: workout.duration,
+            distanceKm: updated.distanceKm
+        )
+        workoutSessions[index] = updated
+        saveReceiptCard(for: updated, replacingExisting: true)
     }
     
     private func heartRateSummary(for workout: HKWorkout) async -> (average: Double?, max: Double?) {
@@ -2774,6 +3069,337 @@ private final class RouteLocationAccumulator: @unchecked Sendable {
     }
 }
 
+struct NativeWorkoutMetrics: Sendable {
+    var heartRate: Double?
+    var activeEnergyKcal: Double?
+    var distanceKm: Double?
+    var steps: Double?
+}
+
+struct NativeWorkoutStartPayload: Sendable {
+    var activityType: HKWorkoutActivityType
+    var locationType: HKWorkoutSessionLocationType
+    var startedAt: Date
+}
+
+@available(iOS 26.0, *)
+@MainActor
+final class NativeWorkoutSessionService: NSObject {
+    private let healthStore = HKHealthStore()
+    private var session: HKWorkoutSession?
+    private var builder: HKLiveWorkoutBuilder?
+    private var activeStatusID: UUID?
+    private var pendingFallbackStartTask: Task<Void, Never>?
+    private var isStartingPrimarySession = false
+    private var isEndingFromAppState = false
+    private var metricsHandler: (@MainActor @Sendable (NativeWorkoutMetrics) -> Void)?
+    private var mirroredStartHandler: (@MainActor @Sendable (NativeWorkoutStartPayload) -> Void)?
+    private var endedHandler: (@MainActor @Sendable () -> Void)?
+    private var companionLaunchStatusID: UUID?
+    private var isLaunchingCompanionWorkout = false
+
+    func configure(
+        metricsHandler: (@MainActor @Sendable (NativeWorkoutMetrics) -> Void)?,
+        mirroredStartHandler: (@MainActor @Sendable (NativeWorkoutStartPayload) -> Void)?,
+        endedHandler: (@MainActor @Sendable () -> Void)?
+    ) {
+        self.metricsHandler = metricsHandler
+        self.mirroredStartHandler = mirroredStartHandler
+        self.endedHandler = endedHandler
+    }
+
+    func startMirroringListener() {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+
+        healthStore.workoutSessionMirroringStartHandler = { [weak self] mirroredSession in
+            Task { @MainActor in
+                await self?.attachMirroredSession(mirroredSession)
+            }
+        }
+
+        healthStore.recoverActiveWorkoutSession { [weak self] recoveredSession, error in
+            guard let recoveredSession else {
+                if let error {
+                    Task { @MainActor in
+                        TelemetryService.shared.record(error, context: "healthkit_recover_active_workout")
+                    }
+                }
+                return
+            }
+
+            Task { @MainActor in
+                await self?.attachMirroredSession(recoveredSession)
+            }
+        }
+    }
+
+    func reconcile(status: ActiveWorkoutStatus?, workout: WorkoutDay?, preferCompanionWorkout: Bool) {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+
+        guard let status else {
+            pendingFallbackStartTask?.cancel()
+            pendingFallbackStartTask = nil
+            companionLaunchStatusID = nil
+            isLaunchingCompanionWorkout = false
+            endCurrentSession(notifyApp: false)
+            return
+        }
+
+        if activeStatusID != status.id {
+            activeStatusID = status.id
+        }
+
+        if session == nil {
+            if preferCompanionWorkout {
+                startCompanionWorkout(status: status, workout: workout)
+                schedulePrimaryFallback(status: status, workout: workout)
+            } else {
+                startPrimarySession(status: status, workout: workout)
+            }
+            return
+        }
+
+        if status.isPaused, session?.state == .running {
+            session?.pause()
+        } else if !status.isPaused, session?.state == .paused {
+            session?.resume()
+        }
+    }
+
+    private func startCompanionWorkout(status: ActiveWorkoutStatus, workout: WorkoutDay?) {
+        guard companionLaunchStatusID != status.id, !isLaunchingCompanionWorkout else { return }
+        companionLaunchStatusID = status.id
+        isLaunchingCompanionWorkout = true
+
+        let configuration = Self.configuration(status: status, workout: workout)
+        Task {
+            do {
+                try await requestAuthorization()
+                healthStore.startWatchApp(with: configuration) { [weak self] success, error in
+                    Task { @MainActor in
+                        guard let self else { return }
+                        self.isLaunchingCompanionWorkout = false
+                        if let error {
+                            TelemetryService.shared.record(error, context: "healthkit_start_watch_app")
+                        }
+                        if !success {
+                            self.companionLaunchStatusID = nil
+                        }
+                    }
+                }
+            } catch {
+                TelemetryService.shared.record(error, context: "healthkit_start_watch_app_authorization")
+                isLaunchingCompanionWorkout = false
+                if companionLaunchStatusID == status.id {
+                    self.companionLaunchStatusID = nil
+                }
+            }
+        }
+    }
+
+    private func schedulePrimaryFallback(status: ActiveWorkoutStatus, workout: WorkoutDay?) {
+        guard pendingFallbackStartTask == nil else { return }
+        pendingFallbackStartTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard let self, self.session == nil else { return }
+                self.startPrimarySession(status: status, workout: workout)
+                self.pendingFallbackStartTask = nil
+            }
+        }
+    }
+
+    private func startPrimarySession(status: ActiveWorkoutStatus, workout: WorkoutDay?) {
+        guard session == nil, !isStartingPrimarySession else { return }
+        isStartingPrimarySession = true
+
+        Task {
+            do {
+                try await requestAuthorization()
+                let configuration = Self.configuration(status: status, workout: workout)
+                let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
+                let workoutBuilder = workoutSession.associatedWorkoutBuilder()
+                workoutBuilder.dataSource = HKLiveWorkoutDataSource(
+                    healthStore: healthStore,
+                    workoutConfiguration: configuration
+                )
+                workoutSession.delegate = self
+                workoutBuilder.delegate = self
+
+                session = workoutSession
+                builder = workoutBuilder
+                let startDate = status.startedAt == .distantPast ? Date() : status.startedAt
+                workoutSession.startActivity(with: startDate)
+                try await workoutBuilder.beginCollection(at: startDate)
+                if status.isPaused {
+                    workoutSession.pause()
+                }
+            } catch {
+                TelemetryService.shared.record(error, context: "healthkit_start_native_workout")
+            }
+            isStartingPrimarySession = false
+        }
+    }
+
+    private func attachMirroredSession(_ mirroredSession: HKWorkoutSession) async {
+        pendingFallbackStartTask?.cancel()
+        pendingFallbackStartTask = nil
+        companionLaunchStatusID = nil
+        isLaunchingCompanionWorkout = false
+
+        if let existingSession = session, existingSession !== mirroredSession {
+            session = existingSession
+            endCurrentSession(notifyApp: false)
+        }
+
+        let workoutBuilder = mirroredSession.associatedWorkoutBuilder()
+        mirroredSession.delegate = self
+        workoutBuilder.delegate = self
+        session = mirroredSession
+        builder = workoutBuilder
+
+        let configuration = mirroredSession.workoutConfiguration
+        mirroredStartHandler?(NativeWorkoutStartPayload(
+            activityType: configuration.activityType,
+            locationType: configuration.locationType,
+            startedAt: mirroredSession.startDate ?? Date()
+        ))
+    }
+
+    private func endCurrentSession(notifyApp: Bool) {
+        guard let session else { return }
+        isEndingFromAppState = !notifyApp
+        let workoutBuilder = builder
+        let endDate = Date()
+
+        session.end()
+        Task {
+            try? await workoutBuilder?.endCollection(at: endDate)
+            _ = try? await workoutBuilder?.finishWorkout()
+        }
+        self.session = nil
+        builder = nil
+        activeStatusID = nil
+        isStartingPrimarySession = false
+    }
+
+    private func requestAuthorization() async throws {
+        let shareTypes: Set<HKSampleType> = [
+            HKWorkoutType.workoutType(),
+            HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.distanceWalkingRunning)
+        ]
+        let readTypes: Set<HKObjectType> = [
+            HKWorkoutType.workoutType(),
+            HKQuantityType(.heartRate),
+            HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.distanceWalkingRunning),
+            HKQuantityType(.stepCount)
+        ]
+        try await healthStore.requestAuthorization(toShare: shareTypes, read: readTypes)
+    }
+
+    private static func configuration(status: ActiveWorkoutStatus, workout: WorkoutDay?) -> HKWorkoutConfiguration {
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = activityType(status: status, workout: workout)
+        if status.isOutdoorRoute == true {
+            configuration.locationType = .outdoor
+        } else {
+            configuration.locationType = .indoor
+        }
+        return configuration
+    }
+
+    private static func activityType(status: ActiveWorkoutStatus, workout: WorkoutDay?) -> HKWorkoutActivityType {
+        if let workout {
+            switch workout.sessionType {
+            case .cardioRun:
+                return .running
+            case .cardioWalk:
+                return .walking
+            case .mobility:
+                return .flexibility
+            case .mixedRoute:
+                return status.workoutTitle.localizedCaseInsensitiveContains("run") ||
+                    status.workoutTitle.localizedCaseInsensitiveContains("carrera") ? .running : .walking
+            case .strength, .free:
+                break
+            }
+        }
+
+        let title = status.workoutTitle.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        if title.localizedCaseInsensitiveContains("carrera") || title.localizedCaseInsensitiveContains("run") {
+            return .running
+        }
+        if title.localizedCaseInsensitiveContains("camina") || title.localizedCaseInsensitiveContains("walk") {
+            return .walking
+        }
+        return .traditionalStrengthTraining
+    }
+}
+
+@available(iOS 26.0, *)
+extension NativeWorkoutSessionService: HKWorkoutSessionDelegate {
+    nonisolated func workoutSession(
+        _ workoutSession: HKWorkoutSession,
+        didChangeTo toState: HKWorkoutSessionState,
+        from fromState: HKWorkoutSessionState,
+        date: Date
+    ) {
+        guard toState == .ended || toState == .stopped else { return }
+        Task { @MainActor in
+            let shouldNotify = !isEndingFromAppState
+            isEndingFromAppState = false
+            session = nil
+            builder = nil
+            activeStatusID = nil
+            if shouldNotify {
+                endedHandler?()
+            }
+        }
+    }
+
+    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+        Task { @MainActor in
+            TelemetryService.shared.record(error, context: "healthkit_native_workout_session")
+        }
+    }
+}
+
+@available(iOS 26.0, *)
+extension NativeWorkoutSessionService: HKLiveWorkoutBuilderDelegate {
+    nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
+
+    nonisolated func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {
+        Task { @MainActor in
+            var metrics = NativeWorkoutMetrics()
+            for sampleType in collectedTypes {
+                guard let quantityType = sampleType as? HKQuantityType,
+                      let statistics = workoutBuilder.statistics(for: quantityType) else {
+                    continue
+                }
+
+                switch quantityType {
+                case HKQuantityType(.heartRate):
+                    metrics.heartRate = statistics.mostRecentQuantity()?
+                        .doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+                case HKQuantityType(.activeEnergyBurned):
+                    metrics.activeEnergyKcal = statistics.sumQuantity()?.doubleValue(for: .kilocalorie())
+                case HKQuantityType(.distanceWalkingRunning):
+                    metrics.distanceKm = statistics.sumQuantity()?.doubleValue(for: .meterUnit(with: .kilo))
+                case HKQuantityType(.stepCount):
+                    metrics.steps = statistics.sumQuantity()?.doubleValue(for: .count())
+                default:
+                    break
+                }
+            }
+
+            metricsHandler?(metrics)
+        }
+    }
+}
+
 final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
     static let shared = WatchSyncService()
     private var commandHandler: (@MainActor @Sendable (WatchCommand) -> Void)?
@@ -2782,6 +3408,15 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
 
     private override init() {
         super.init()
+    }
+
+    var canStartCompanionWorkout: Bool {
+        guard WCSession.isSupported() else { return false }
+        let session = WCSession.default
+        return session.activationState == .activated &&
+            session.isPaired &&
+            session.isWatchAppInstalled &&
+            HKHealthStore.isHealthDataAvailable()
     }
 
     func configure(

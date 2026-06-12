@@ -1,22 +1,128 @@
 import SwiftUI
 
+private enum WatchDestination: Hashable {
+    case session
+    case controls
+    case progress
+    case metrics
+    case utilities
+
+    var title: String {
+        switch self {
+        case .session:
+            return "Sesión"
+        case .controls:
+            return "Controles"
+        case .progress:
+            return "Progreso"
+        case .metrics:
+            return "Métricas"
+        case .utilities:
+            return "Extras"
+        }
+    }
+}
+
 struct WatchWorkoutView: View {
     @EnvironmentObject private var model: WatchWorkoutModel
 
     var body: some View {
         NavigationStack {
-            TabView {
-                summaryPage
-                controlsPage
-                if model.snapshot.isRouteWorkout {
-                    routePage
-                } else {
-                    timersPage
+            homePage
+                .navigationTitle(model.snapshot.hasActiveWorkout ? "Reps Live" : "Reps")
+                .navigationDestination(for: WatchDestination.self) { destination in
+                    destinationView(for: destination)
+                        .navigationTitle(destination.title)
                 }
-                gymAndMusicPage
+        }
+    }
+
+    private var homePage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 9) {
+                homeStatusCard
+                navigationGrid
             }
-            .tabViewStyle(.verticalPage)
-            .navigationTitle(model.snapshot.hasActiveWorkout ? "Reps Live" : "Reps")
+            .padding(.horizontal, 6)
+            .padding(.bottom, 10)
+        }
+    }
+
+    private var navigationGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            NavigationLink(value: WatchDestination.session) {
+                WatchNavigationTile(title: "Sesión", subtitle: sessionTileSubtitle, icon: "figure.strengthtraining.traditional", color: accentColor)
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink(value: WatchDestination.controls) {
+                WatchNavigationTile(title: "Controles", subtitle: model.snapshot.hasActiveWorkout ? "Acciones rápidas" : "Iniciar ruta", icon: "slider.horizontal.3", color: .orange)
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink(value: WatchDestination.progress) {
+                WatchNavigationTile(title: "Progreso", subtitle: "\(Int(model.snapshot.weeklyCompletion * 100))% semana", icon: "chart.line.uptrend.xyaxis", color: .green)
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink(value: WatchDestination.metrics) {
+                WatchNavigationTile(title: model.snapshot.isRouteWorkout ? "Ruta" : "Timers", subtitle: model.snapshot.isRouteWorkout ? routeDistanceText : liveElapsedText, icon: model.snapshot.isRouteWorkout ? "point.topleft.down.curvedto.point.bottomright.up" : "timer", color: .blue)
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink(value: WatchDestination.utilities) {
+                WatchNavigationTile(title: "Extras", subtitle: utilitiesTileSubtitle, icon: "ellipsis.circle.fill", color: .pink)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var homeStatusCard: some View {
+        HStack(alignment: .center, spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(accentColor.opacity(0.12))
+                    .frame(width: 42, height: 42)
+                Image(systemName: model.snapshot.hasActiveWorkout ? "applewatch.radiowaves.left.and.right" : "figure.strengthtraining.traditional")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(accentColor)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(model.snapshot.hasActiveWorkout ? model.snapshot.workoutTitle : "Reps")
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(homeStatusText)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .watchCard(borderColor: accentColor.opacity(0.12))
+    }
+
+    @ViewBuilder
+    private func destinationView(for destination: WatchDestination) -> some View {
+        switch destination {
+        case .session:
+            summaryPage
+        case .controls:
+            controlsPage
+        case .progress:
+            progressPage
+        case .metrics:
+            if model.snapshot.isRouteWorkout {
+                routePage
+            } else {
+                timersPage
+            }
+        case .utilities:
+            gymAndMusicPage
         }
     }
 
@@ -163,6 +269,61 @@ struct WatchWorkoutView: View {
         }
     }
 
+    private var progressPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 9) {
+                progressHeroCard
+
+                WatchProgressRow(
+                    title: "Sesión",
+                    value: sessionProgressValue,
+                    detail: sessionProgressDetail,
+                    progress: model.snapshot.progress,
+                    color: accentColor
+                )
+
+                WatchProgressRow(
+                    title: "Semana",
+                    value: "\(Int(model.snapshot.weeklyCompletion * 100))%",
+                    detail: weeklyProgressDetail,
+                    progress: model.snapshot.weeklyCompletion,
+                    color: .green
+                )
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    WatchMetric(title: "Racha", value: "\(model.snapshot.streakDays)", unit: model.snapshot.streakDays == 1 ? "día" : "días", icon: "flame.fill", color: .orange)
+                    WatchMetric(title: "Batería", value: "\(model.snapshot.trainingBatteryLevel)", unit: "%", icon: model.snapshot.trainingBatterySystemImage, color: batteryColor)
+                    WatchMetric(title: "Volumen", value: "\(model.snapshot.volumeKg)", unit: "kg", icon: "chart.bar.fill", color: accentColor)
+                    WatchMetric(title: "Series", value: "\(model.snapshot.completedSets)/\(model.snapshot.totalSets)", unit: "hechas", icon: "checkmark.seal.fill", color: .green)
+                }
+
+                if model.snapshot.isRouteWorkout {
+                    routeProgressCard
+                } else {
+                    strengthProgressCard
+                }
+
+                if let nextWorkout = model.snapshot.nextWorkoutDayName {
+                    WatchInfoCard(
+                        icon: "calendar.badge.clock",
+                        title: "Próximo entreno",
+                        value: model.snapshot.nextWorkoutDayDescription.map { "\(nextWorkout)\n\($0)" } ?? nextWorkout,
+                        color: .blue
+                    )
+                }
+
+                WatchInfoCard(
+                    icon: model.snapshot.trainingBatterySystemImage,
+                    title: model.snapshot.trainingBatteryTitle,
+                    value: model.snapshot.trainingBatterySuggestion.isEmpty ? model.snapshot.summary : model.snapshot.trainingBatterySuggestion,
+                    color: batteryColor
+                )
+            }
+            .padding(.horizontal, 6)
+            .padding(.bottom, 10)
+        }
+    }
+
     private var inactiveControlsState: some View {
         VStack(spacing: 12) {
             ZStack {
@@ -289,6 +450,82 @@ struct WatchWorkoutView: View {
             }
             .padding(.horizontal, 4)
         }
+    }
+
+    private var progressHeroCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
+                WatchMiniRing(
+                    value: model.snapshot.weeklyCompletion,
+                    label: "\(Int(model.snapshot.weeklyCompletion * 100))%",
+                    caption: "semana",
+                    color: .green
+                )
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Progreso")
+                        .font(.system(size: 19, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    Text(progressSummaryText)
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
+            }
+        }
+        .watchCard(borderColor: Color.green.opacity(0.18))
+    }
+
+    private var strengthProgressCard: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                Label("Fuerza", systemImage: "dumbbell.fill")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(accentColor)
+                Spacer()
+                Text("\(model.snapshot.completedSets)/\(model.snapshot.totalSets)")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+
+            WatchProgressRow(
+                title: model.snapshot.exerciseName ?? "Ejercicio",
+                value: currentExerciseSetValue,
+                detail: model.snapshot.nextExerciseName.map { "Siguiente: \($0)" } ?? "Completa series para alimentar tu historial.",
+                progress: currentExerciseProgress,
+                color: accentColor
+            )
+
+            if let history = model.snapshot.exerciseHistorySummary {
+                WatchInfoCard(icon: "clock.arrow.circlepath", title: "Histórico", value: history, color: .green)
+            }
+        }
+        .watchCard(borderColor: accentColor.opacity(0.14))
+    }
+
+    private var routeProgressCard: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                Label(model.snapshot.isOutdoorRoute == false ? "Cardio en cinta" : "Cardio exterior", systemImage: model.snapshot.isOutdoorRoute == false ? "figure.run.treadmill" : "map.fill")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(accentColor)
+                Spacer()
+                Text(routePaceText)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                WatchMetric(title: "Distancia", value: String(format: "%.2f", routeDistanceKm), unit: "km", icon: "point.topleft.down.curvedto.point.bottomright.up", color: accentColor)
+                WatchMetric(title: "Pasos", value: routeSteps.map { "\(Int($0))" } ?? "--", unit: "", icon: "shoeprints.fill", color: .green)
+                WatchMetric(title: "Velocidad", value: routeSpeedKmh.map { String(format: "%.1f", $0) } ?? "--", unit: "km/h", icon: "gauge.with.needle", color: .blue)
+                WatchMetric(title: "GPS", value: "\(model.snapshot.routePointCount ?? model.routePointCount)", unit: "pts", icon: "location.fill", color: .orange)
+            }
+        }
+        .watchCard(borderColor: accentColor.opacity(0.14))
     }
 
     private var liveHeroCard: some View {
@@ -739,6 +976,86 @@ struct WatchWorkoutView: View {
         return [previous, current, next].compactMap(\.self).joined(separator: "\n")
     }
 
+    private var homeStatusText: String {
+        if model.snapshot.hasActiveWorkout {
+            return model.snapshot.isPaused ? "Sesión pausada" : "Sesión activa"
+        }
+        if let nextWorkout = model.snapshot.nextWorkoutDayName {
+            return "Próximo: \(nextWorkout)"
+        }
+        return model.snapshot.summary
+    }
+
+    private var sessionTileSubtitle: String {
+        if model.snapshot.hasActiveWorkout {
+            return "\(model.snapshot.completedSets)/\(model.snapshot.totalSets) series"
+        }
+        return model.snapshot.nextWorkoutDayName ?? "Resumen"
+    }
+
+    private var utilitiesTileSubtitle: String {
+        if model.snapshot.musicTitle != nil {
+            return "Música"
+        }
+        if model.snapshot.gymPassName != nil {
+            return "Gym pass"
+        }
+        return "Sync"
+    }
+
+    private var progressSummaryText: String {
+        if model.snapshot.hasActiveWorkout {
+            return "\(model.snapshot.workoutTitle): \(model.snapshot.completedSets) de \(model.snapshot.totalSets) series completadas."
+        }
+        if let nextWorkout = model.snapshot.nextWorkoutDayName {
+            return "Semana al \(Int(model.snapshot.weeklyCompletion * 100))%. Próximo: \(nextWorkout)."
+        }
+        return model.snapshot.summary
+    }
+
+    private var sessionProgressValue: String {
+        guard model.snapshot.totalSets > 0 else {
+            return model.snapshot.hasActiveWorkout ? "En curso" : "Sin sesión"
+        }
+        return "\(Int(model.snapshot.progress * 100))%"
+    }
+
+    private var sessionProgressDetail: String {
+        if model.snapshot.totalSets > 0 {
+            return "\(model.snapshot.completedSets) de \(model.snapshot.totalSets) series · \(model.snapshot.volumeKg) kg"
+        }
+        if model.snapshot.hasActiveWorkout {
+            return model.snapshot.isRouteWorkout ? "Cardio en curso · \(routeDistanceText)" : "Entreno sincronizado desde el iPhone."
+        }
+        return model.snapshot.nextWorkoutDayDescription ?? "Inicia un entreno para ver avance en directo."
+    }
+
+    private var weeklyProgressDetail: String {
+        let streak = model.snapshot.streakDays == 1 ? "1 día de racha" : "\(model.snapshot.streakDays) días de racha"
+        if let nextWorkout = model.snapshot.nextWorkoutDayName {
+            return "\(streak) · Próximo: \(nextWorkout)"
+        }
+        return streak
+    }
+
+    private var currentExerciseSetValue: String {
+        guard let completed = model.snapshot.currentExerciseCompletedSets,
+              let total = model.snapshot.currentExerciseTotalSets,
+              total > 0 else {
+            return "--"
+        }
+        return "\(completed)/\(total)"
+    }
+
+    private var currentExerciseProgress: Double {
+        guard let completed = model.snapshot.currentExerciseCompletedSets,
+              let total = model.snapshot.currentExerciseTotalSets,
+              total > 0 else {
+            return 0
+        }
+        return min(max(Double(completed) / Double(total), 0), 1)
+    }
+
     private func commandButton(_ command: WatchCommand, icon: String, tint: Color) -> some View {
         let isEnabled = model.snapshot.hasActiveWorkout || command == .resume
         return Button {
@@ -776,6 +1093,77 @@ struct WatchWorkoutView: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct WatchNavigationTile: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(color)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(title)
+                .font(.system(size: 12, weight: .black, design: .rounded))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+
+            Text(subtitle)
+                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+        .watchCard(borderColor: color.opacity(0.14))
+    }
+}
+
+private struct WatchProgressRow: View {
+    let title: String
+    let value: String
+    let detail: String
+    let progress: Double
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(title)
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Spacer(minLength: 4)
+                Text(value)
+                    .font(.system(size: 13, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(color)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+
+            ProgressView(value: min(max(progress, 0), 1))
+                .progressViewStyle(LinearTintProgressStyle(color: color))
+
+            Text(detail)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+                .minimumScaleFactor(0.86)
+        }
+        .watchCard(borderColor: color.opacity(0.14))
     }
 }
 
@@ -925,7 +1313,7 @@ private struct WatchMetric: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             
-            Text("\(title) · \(unit)")
+            Text(unit.isEmpty ? title : "\(title) · \(unit)")
                 .font(.system(size: 9, weight: .semibold, design: .rounded))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)

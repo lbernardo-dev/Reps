@@ -23,24 +23,22 @@ struct ExerciseAnatomyThumbnail: View {
             } else if let image = renderedImage ?? AnatomyThumbnailImageCache.shared.image(for: cacheKey) {
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFit()
-                    .padding(3)
+                    .scaledToFill()
             } else {
                 AnatomyThumbnailCanvas(
                     gender: gender,
                     primarySide: descriptor.region.side,
                     region: descriptor.region,
-                    muscles: descriptor.muscles,
-                    minimumIntensity: 0.62
+                    intensities: descriptor.thumbnailHeatmap
                 )
             }
         }
         .frame(width: size, height: size)
         .background(anatomyThumbnailBackground)
-        .clipShape(RoundedRectangle(cornerRadius: min(18, size * 0.22), style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: min(16, size * 0.20), style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: min(18, size * 0.22), style: .continuous)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: min(16, size * 0.20), style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Musculos trabajados por \(exercise.name)")
@@ -51,16 +49,14 @@ struct ExerciseAnatomyThumbnail: View {
                 gender: gender,
                 primarySide: descriptor.region.side,
                 region: descriptor.region,
-                muscles: descriptor.muscles,
                 size: size,
-                minimumIntensity: 0.62
+                intensities: descriptor.thumbnailHeatmap
             )
         }
     }
 
     private var cacheKey: String {
-        let musclesKey = descriptor.muscles.map { String(describing: $0) }.joined(separator: "-")
-        return "v2-\(exercise.id.uuidString)-\(gender)-\(Int(size.rounded()))-\(descriptor.region.side)-\(musclesKey)"
+        return "v5-\(exercise.id.uuidString)-\(gender)-\(Int(size.rounded()))-\(descriptor.region.side)-\(descriptor.cacheKey)"
     }
 
     private var cardioFallback: some View {
@@ -74,12 +70,13 @@ struct ExerciseAnatomyThumbnail: View {
 
 struct MuscleGroupAnatomyThumbnail: View {
     let muscleGroup: String
+    var exerciseName: String = ""
     var gender: BodyGender = .male
     var size: CGFloat = 58
     var intensity: Double = 1
 
     private var descriptor: ExerciseAnatomyDescriptor {
-        ExerciseAnatomyDescriptor(muscleGroup: muscleGroup, secondaryMuscles: [])
+        ExerciseAnatomyDescriptor(muscleGroup: muscleGroup, exerciseName: exerciseName, secondaryMuscles: [])
     }
 
     var body: some View {
@@ -87,8 +84,7 @@ struct MuscleGroupAnatomyThumbnail: View {
             gender: gender,
             primarySide: descriptor.region.side,
             region: descriptor.region,
-            muscles: descriptor.muscles,
-            minimumIntensity: max(0.35, min(intensity, 1))
+            intensities: descriptor.thumbnailHeatmap(primaryIntensity: max(0.35, min(intensity, 1)))
         )
         .frame(width: size, height: size)
         .background(anatomyThumbnailBackground)
@@ -101,42 +97,42 @@ private struct AnatomyThumbnailCanvas: View {
     let gender: BodyGender
     let primarySide: BodySide
     let region: AnatomyRegion
-    let muscles: [Muscle]
-    var minimumIntensity: Double = 0.55
+    let intensities: [MuscleIntensity]
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
                 BodyView(gender: gender, side: primarySide == .front ? .back : .front, style: .thumbnailAnatomy)
                     .heatmap(heatmap, configuration: .thumbnailAnatomy)
-                    .opacity(0.36)
-                    .frame(width: proxy.size.width * 0.82, height: proxy.size.height)
-                    .scaleEffect(max(effectiveScale * 0.92, 1.1), anchor: region.anchor)
-                    .offset(x: -proxy.size.width * 0.17, y: proxy.size.height * region.offset.height)
+                    .showSubGroups()
+                    .opacity(0.22)
+                    .frame(width: proxy.size.width * 0.92, height: proxy.size.height * 1.05)
+                    .scaleEffect(max(effectiveScale * 0.86, 1.14), anchor: region.anchor)
+                    .offset(x: -proxy.size.width * 0.30, y: proxy.size.height * (region.offset.height + 0.01))
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
 
                 BodyView(gender: gender, side: primarySide, style: .thumbnailAnatomy)
                     .heatmap(heatmap, configuration: .thumbnailAnatomy)
-                    .frame(width: proxy.size.width * 0.82, height: proxy.size.height)
+                    .showSubGroups()
+                    .frame(width: proxy.size.width * 0.94, height: proxy.size.height * 1.05)
                     .scaleEffect(effectiveScale, anchor: region.anchor)
-                    .offset(x: proxy.size.width * (0.15 + region.offset.width), y: proxy.size.height * region.offset.height)
+                    .offset(x: proxy.size.width * (0.18 + region.offset.width), y: proxy.size.height * region.offset.height)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .padding(2)
         .clipped()
         .accessibilityHidden(true)
     }
 
     private var effectiveScale: CGFloat {
-        min(max(region.scale, 1.22), 2.85)
+        min(max(region.scale, 1.28), 3.18)
     }
 
     private var heatmap: [MuscleIntensity] {
-        muscles.map { MuscleIntensity(muscle: $0, intensity: minimumIntensity) }
+        intensities
     }
 }
 
@@ -155,9 +151,8 @@ private final class AnatomyThumbnailImageCache {
         gender: BodyGender,
         primarySide: BodySide,
         region: AnatomyRegion,
-        muscles: [Muscle],
         size: CGFloat,
-        minimumIntensity: Double
+        intensities: [MuscleIntensity]
     ) -> UIImage? {
         let nsKey = key as NSString
         if let image = cache.object(forKey: nsKey) {
@@ -168,8 +163,7 @@ private final class AnatomyThumbnailImageCache {
             gender: gender,
             primarySide: primarySide,
             region: region,
-            muscles: muscles,
-            minimumIntensity: minimumIntensity
+            intensities: intensities
         )
         .frame(width: size, height: size)
         .background(anatomyThumbnailBackground)
@@ -185,21 +179,59 @@ private final class AnatomyThumbnailImageCache {
 }
 
 struct ExerciseAnatomyDescriptor {
+    let primaryMuscles: [Muscle]
+    let secondaryMuscles: [Muscle]
     let muscles: [Muscle]
     let region: AnatomyRegion
 
     init(exercise: Exercise) {
-        self.init(
-            muscleGroup: exercise.muscleGroup,
-            secondaryMuscles: exercise.secondaryMuscles + exercise.tags + [exercise.name, exercise.instructions ?? ""]
-        )
+        let primaryFocus = ExerciseAnatomyFocus(exerciseName: exercise.name, muscleGroup: exercise.muscleGroup)
+        let secondaryMuscles = exercise.secondaryMuscles.flatMap { secondary in
+            ExerciseAnatomyFocus(exerciseName: exercise.name, muscleGroup: secondary).secondaryMuscles(forPrimary: primaryFocus)
+        }
+        self.primaryMuscles = primaryFocus.primaryMuscles
+        self.secondaryMuscles = Self.unique(secondaryMuscles).filter { !primaryFocus.primaryMuscles.contains($0) }
+        muscles = Self.unique(self.primaryMuscles + self.secondaryMuscles)
+        region = primaryFocus.region
     }
 
     init(muscleGroup: String, secondaryMuscles: [String]) {
-        let text = ([muscleGroup] + secondaryMuscles).joined(separator: " ").lowercased()
-        let focus = ExerciseAnatomyFocus(text: text)
-        muscles = focus.muscles
-        region = focus.region
+        self.init(muscleGroup: muscleGroup, exerciseName: "", secondaryMuscles: secondaryMuscles)
+    }
+
+    init(muscleGroup: String, exerciseName: String, secondaryMuscles: [String]) {
+        let focus = ExerciseAnatomyFocus(muscleGroupOnly: muscleGroup)
+        let contextualFocus = ExerciseAnatomyFocus(exerciseName: exerciseName, muscleGroup: muscleGroup)
+        let primaryFocus = exerciseName.isEmpty ? focus : contextualFocus
+        let secondary = secondaryMuscles.flatMap { ExerciseAnatomyFocus(exerciseName: exerciseName, muscleGroup: $0).secondaryMuscles(forPrimary: primaryFocus) }
+        self.primaryMuscles = primaryFocus.primaryMuscles
+        self.secondaryMuscles = Self.unique(secondary).filter { !primaryFocus.primaryMuscles.contains($0) }
+        muscles = Self.unique(self.primaryMuscles + self.secondaryMuscles)
+        region = primaryFocus.region
+    }
+
+    var cacheKey: String {
+        let primary = primaryMuscles.map { String(describing: $0) }.joined(separator: "-")
+        let secondary = secondaryMuscles.map { String(describing: $0) }.joined(separator: "-")
+        return "p:\(primary)|s:\(secondary)"
+    }
+
+    var thumbnailHeatmap: [MuscleIntensity] {
+        thumbnailHeatmap(primaryIntensity: 0.92)
+    }
+
+    func thumbnailHeatmap(primaryIntensity: Double) -> [MuscleIntensity] {
+        let secondaryIntensity = min(primaryIntensity * 0.42, 0.36)
+        return primaryMuscles.map {
+            MuscleIntensity(muscle: $0, intensity: primaryIntensity, color: PulseTheme.primaryBright)
+        } + secondaryMuscles.map {
+            MuscleIntensity(muscle: $0, intensity: secondaryIntensity, color: PulseTheme.primary.opacity(0.40))
+        }
+    }
+
+    private static func unique(_ muscles: [Muscle]) -> [Muscle] {
+        var seen = Set<Muscle>()
+        return muscles.filter { seen.insert($0).inserted }
     }
 }
 
@@ -219,7 +251,9 @@ private enum ExerciseAnatomyFocus {
     case lats
     case traps
     case lowerBack
+    case neck
     case shoulders
+    case arms
     case biceps
     case triceps
     case forearms
@@ -235,80 +269,186 @@ private enum ExerciseAnatomyFocus {
     case fullBody
     case cardio
 
-    init(text: String) {
-        if text.contains("cardio") || text.contains("run") || text.contains("bike") || text.contains("rower") {
+    init(exerciseName: String, muscleGroup: String) {
+        let name = Self.normalized(exerciseName)
+        let group = Self.normalized(muscleGroup)
+
+        if Self.hasAny(group, ["cardio"]) || Self.hasAny(name, ["run", "bike", "rower", "treadmill"]) {
             self = .cardio
-        } else if text.contains("upper body") || text.contains("superior") || text.contains("torso") {
+        } else if Self.hasAny(group, ["upper body", "superior", "torso"]) {
             self = .upperBody
-        } else if text.contains("full") {
+        } else if Self.hasAny(group, ["full", "cuerpo completo"]) {
             self = .fullBody
-        } else if text.contains("tricep") || text.contains("pushdown") || text.contains("skullcrusher") || text.contains("skull crusher") {
-            self = .triceps
-        } else if text.contains("forearm") || text.contains("wrist") {
-            self = .forearms
-        } else if text.contains("leg curl") || text.contains("hamstring curl") || text.contains("hamstring") || text.contains("romanian") || text.contains("stiff-leg") {
-            self = .hamstrings
-        } else if text.contains("leg extension") || text.contains("quad") {
-            self = .quadriceps
-        } else if text.contains("calf") {
-            self = .calves
-        } else if text.contains("adductor") || text.contains("abductor") {
-            self = .adductors
-        } else if text.contains("hip flexor") || text.contains("psoas") {
-            self = .hipFlexors
-        } else if text.contains("glute") || text.contains("hip thrust") {
-            self = .glutes
-        } else if text.contains("oblique") || text.contains("twist") || text.contains("side plank") {
-            self = .obliques
-        } else if text.contains("core") || text.contains("ab") || text.contains("crunch") || text.contains("sit-up") || text.contains("plank") || text.contains("climber") {
-            self = .core
-        } else if text.contains("bicep") || text.contains("curl") {
-            self = .biceps
-        } else if text.contains("shoulder") || text.contains("delt") || text.contains("overhead") || text.contains("face pull") {
+        } else if Self.hasAny(group, ["chest", "pec", "pecho"]) {
+            if Self.hasAny(name, ["incline", "inclinado", "upper chest"]) {
+                self = .chestUpper
+            } else if Self.hasAny(name, ["decline", "declinado", "lower chest"]) {
+                self = .chestLower
+            } else {
+                self = .chest
+            }
+        } else if Self.hasAny(group, ["arm", "brazo", "brazos"]) {
+            if Self.hasAny(name, ["tricep", "triceps", "pushdown", "skullcrusher", "skull crusher", "extension", "press", "push", "dip"]) {
+                self = .triceps
+            } else if Self.hasAny(name, ["bicep", "biceps", "curl", "row", "remo", "pull-up", "pullup", "pulldown"]) {
+                self = .biceps
+            } else if Self.hasAny(name, ["forearm", "antebrazo", "wrist", "muneca"]) {
+                self = .forearms
+            } else {
+                self = .arms
+            }
+        } else if Self.hasAny(group, ["shoulder", "delt", "hombro", "hombros", "deltoide"]) {
             self = .shoulders
-        } else if text.contains("lower back") || text.contains("lumbar") || text.contains("hyperextension") || text.contains("back extension") {
-            self = .lowerBack
-        } else if text.contains("trap") || text.contains("shrug") {
+        } else if Self.hasAny(group, ["back", "espalda", "lat", "dorsal"]) {
+            if Self.hasAny(name, ["deadlift", "hinge", "peso muerto"]) {
+                self = .lowerBack
+            } else if Self.hasAny(name, ["shrug", "encogimiento"]) {
+                self = .traps
+            } else if Self.hasAny(name, ["pulldown", "pull-up", "pullup", "dominada", "lat"]) {
+                self = .lats
+            } else {
+                self = .back
+            }
+        } else if Self.hasAny(group, ["trap", "trapecio"]) {
             self = .traps
-        } else if text.contains("lat") || text.contains("pulldown") || text.contains("pull-up") || text.contains("pullup") {
-            self = .lats
-        } else if text.contains("back") || text.contains("row") || text.contains("pull") || text.contains("deadlift") {
-            self = .back
-        } else if text.contains("upper chest") || text.contains("incline") {
-            self = .chestUpper
-        } else if text.contains("lower chest") || text.contains("decline") {
-            self = .chestLower
-        } else if text.contains("chest") || text.contains("press") || text.contains("push") {
-            self = .chest
-        } else if text.contains("leg") || text.contains("squat") || text.contains("lunge") {
-            self = .legs
-        } else if text.contains("arm") {
+        } else if Self.hasAny(group, ["lower back", "lumbar"]) {
+            self = .lowerBack
+        } else if Self.hasAny(group, ["neck", "cuello"]) {
+            self = .neck
+        } else if Self.hasAny(group, ["leg", "pierna", "piernas"]) {
+            if Self.hasAny(name, ["leg extension", "extension de pierna", "extension de piernas", "quad", "cuadriceps"]) {
+                self = .quadriceps
+            } else if Self.hasAny(name, ["leg curl", "hamstring curl", "hamstring", "romanian", "stiff-leg", "isquio"]) {
+                self = .hamstrings
+            } else if Self.hasAny(name, ["calf", "gemelo", "pantorrilla"]) {
+                self = .calves
+            } else if Self.hasAny(name, ["abductor"]) {
+                self = .glutes
+            } else if Self.hasAny(name, ["adductor", "aductor"]) {
+                self = .adductors
+            } else {
+                self = .legs
+            }
+        } else if Self.hasAny(group, ["quad", "cuadriceps"]) {
+            self = .quadriceps
+        } else if Self.hasAny(group, ["hamstring", "isquio"]) {
+            self = .hamstrings
+        } else if Self.hasAny(group, ["calf", "gemelo", "pantorrilla"]) {
+            self = .calves
+        } else if Self.hasAny(group, ["abductor"]) {
+            self = .glutes
+        } else if Self.hasAny(group, ["adductor", "aductor"]) {
+            self = .adductors
+        } else if Self.hasAny(group, ["glute", "gluteo", "gluteos"]) {
+            self = .glutes
+        } else if Self.hasAny(group, ["core", "abs", "abdominal", "abdominales"]) {
+            self = .core
+        } else if Self.hasAny(group, ["oblique", "oblicuo"]) {
+            self = .obliques
+        } else {
+            self.init(text: name)
+        }
+    }
+
+    init(muscleGroupOnly muscleGroup: String) {
+        self.init(exerciseName: "", muscleGroup: muscleGroup)
+    }
+
+    init(text: String) {
+        let text = Self.normalized(text)
+        if Self.hasAny(text, ["cardio", "run", "bike", "rower", "treadmill"]) {
+            self = .cardio
+        } else if Self.hasAny(text, ["upper body", "superior", "torso"]) {
             self = .upperBody
+        } else if Self.hasAny(text, ["full", "cuerpo completo"]) {
+            self = .fullBody
+        } else if Self.hasAny(text, ["tricep", "triceps", "pushdown", "skullcrusher", "skull crusher"]) {
+            self = .triceps
+        } else if Self.hasAny(text, ["forearm", "antebrazo", "wrist", "muneca"]) {
+            self = .forearms
+        } else if Self.hasAny(text, ["leg curl", "hamstring curl", "hamstring", "romanian", "stiff-leg", "isquio"]) {
+            self = .hamstrings
+        } else if Self.hasAny(text, ["leg extension", "extension de pierna", "extension de piernas", "quad", "cuadriceps"]) {
+            self = .quadriceps
+        } else if Self.hasAny(text, ["calf", "gemelo", "pantorrilla"]) {
+            self = .calves
+        } else if Self.hasAny(text, ["abductor"]) {
+            self = .glutes
+        } else if Self.hasAny(text, ["adductor", "aductor"]) {
+            self = .adductors
+        } else if Self.hasAny(text, ["hip flexor", "psoas"]) {
+            self = .hipFlexors
+        } else if Self.hasAny(text, ["glute", "gluteo", "gluteos", "hip thrust"]) {
+            self = .glutes
+        } else if Self.hasAny(text, ["oblique", "oblicuo", "twist", "side plank"]) {
+            self = .obliques
+        } else if Self.hasAny(text, ["core", "abs", "abdominal", "abdominales", "crunch", "sit-up", "plank", "climber"]) {
+            self = .core
+        } else if Self.hasAny(text, ["bicep", "biceps", "curl"]) {
+            self = .biceps
+        } else if Self.hasAny(text, ["shoulder", "delt", "hombro", "hombros", "overhead", "face pull"]) {
+            self = .shoulders
+        } else if Self.hasAny(text, ["lower back", "lumbar", "hyperextension", "back extension"]) {
+            self = .lowerBack
+        } else if Self.hasAny(text, ["neck", "cuello"]) {
+            self = .neck
+        } else if Self.hasAny(text, ["trap", "trapecio", "shrug"]) {
+            self = .traps
+        } else if Self.hasAny(text, ["lat", "dorsal", "pulldown", "pull-up", "pullup"]) {
+            self = .lats
+        } else if Self.hasAny(text, ["back", "espalda", "row", "remo", "pull", "deadlift"]) {
+            self = .back
+        } else if Self.hasAny(text, ["upper chest", "incline", "inclinado"]) {
+            self = .chestUpper
+        } else if Self.hasAny(text, ["lower chest", "decline", "declinado"]) {
+            self = .chestLower
+        } else if Self.hasAny(text, ["chest", "pec", "pecho", "press", "push"]) {
+            self = .chest
+        } else if Self.hasAny(text, ["leg", "pierna", "squat", "sentadilla", "lunge"]) {
+            self = .legs
+        } else if Self.hasAny(text, ["arm", "brazo", "brazos"]) {
+            self = .arms
         } else {
             self = .fullBody
         }
     }
 
-    var muscles: [Muscle] {
+    private static func normalized(_ text: String) -> String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    private static func hasAny(_ text: String, _ terms: [String]) -> Bool {
+        terms.contains { term in
+            text.range(of: normalized(term), options: [.caseInsensitive, .diacriticInsensitive]) != nil
+        }
+    }
+
+    var primaryMuscles: [Muscle] {
         switch self {
         case .upperBody:
-            [.chest, .upperChest, .upperBack, .deltoids, .frontDeltoid, .rearDeltoid, .triceps, .biceps, .abs]
+            [.chest, .upperBack, .deltoids, .triceps, .biceps]
         case .chest:
-            [.chest, .upperChest, .lowerChest, .frontDeltoid, .triceps]
+            [.chest]
         case .chestUpper:
-            [.upperChest, .frontDeltoid, .triceps]
+            [.upperChest]
         case .chestLower:
-            [.lowerChest, .triceps]
+            [.lowerChest]
         case .back:
-            [.upperBack, .rhomboids, .trapezius, .lowerBack, .biceps]
+            [.upperBack, .rhomboids, .trapezius]
         case .lats:
-            [.upperBack, .rhomboids, .biceps]
+            [.upperBack, .rhomboids]
         case .traps:
-            [.trapezius, .upperTrapezius, .lowerTrapezius]
+            [.trapezius]
         case .lowerBack:
             [.lowerBack]
+        case .neck:
+            [.neck]
         case .shoulders:
-            [.deltoids, .frontDeltoid, .rearDeltoid, .rotatorCuff, .upperTrapezius]
+            [.deltoids, .frontDeltoid, .rearDeltoid]
+        case .arms:
+            [.biceps, .triceps, .forearm]
         case .biceps:
             [.biceps]
         case .triceps:
@@ -316,11 +456,11 @@ private enum ExerciseAnatomyFocus {
         case .forearms:
             [.forearm]
         case .legs:
-            [.quadriceps, .innerQuad, .outerQuad, .hamstring, .calves, .adductors]
+            [.quadriceps, .hamstring, .gluteal]
         case .quadriceps:
-            [.quadriceps, .innerQuad, .outerQuad]
+            [.quadriceps]
         case .hamstrings:
-            [.hamstring, .gluteal]
+            [.hamstring]
         case .calves:
             [.calves, .tibialis]
         case .adductors:
@@ -328,11 +468,11 @@ private enum ExerciseAnatomyFocus {
         case .hipFlexors:
             [.hipFlexors]
         case .glutes:
-            [.gluteal, .hamstring]
+            [.gluteal]
         case .core:
-            [.abs, .upperAbs, .lowerAbs, .obliques, .serratus]
+            [.abs]
         case .obliques:
-            [.obliques, .serratus]
+            [.obliques]
         case .fullBody:
             [.chest, .upperBack, .deltoids, .quadriceps, .gluteal, .abs]
         case .cardio:
@@ -340,26 +480,53 @@ private enum ExerciseAnatomyFocus {
         }
     }
 
+    var muscles: [Muscle] {
+        primaryMuscles
+    }
+
+    func secondaryMuscles(forPrimary primary: ExerciseAnatomyFocus) -> [Muscle] {
+        switch self {
+        case .legs where primary == .glutes:
+            [.hamstring, .quadriceps]
+        case .core:
+            [.abs, .obliques]
+        case .arms where [.chest, .chestUpper, .chestLower, .shoulders].contains(primary):
+            [.triceps]
+        case .arms where [.back, .lats, .traps].contains(primary):
+            [.biceps]
+        case .shoulders where [.chest, .chestUpper, .chestLower].contains(primary):
+            [.frontDeltoid, .deltoids]
+        case .legs:
+            [.quadriceps, .hamstring, .gluteal]
+        case .glutes where primary == .legs:
+            [.gluteal]
+        default:
+            primaryMuscles
+        }
+    }
+
     var region: AnatomyRegion {
         switch self {
         case .upperBody:
-            AnatomyRegion(side: .front, scale: 2.05, anchor: .center, offset: CGSize(width: 0, height: 0.22))
+            AnatomyRegion(side: .front, scale: 2.24, anchor: .center, offset: CGSize(width: -0.01, height: 0.22))
         case .chest, .chestUpper, .chestLower:
-            AnatomyRegion(side: .front, scale: 2.55, anchor: .center, offset: CGSize(width: 0, height: 0.29))
+            AnatomyRegion(side: .front, scale: 2.90, anchor: .center, offset: CGSize(width: -0.02, height: 0.30))
         case .back, .lats, .traps, .lowerBack:
-            AnatomyRegion(side: .back, scale: 2.45, anchor: .center, offset: CGSize(width: 0, height: 0.25))
+            AnatomyRegion(side: .back, scale: 2.82, anchor: .center, offset: CGSize(width: -0.02, height: 0.25))
+        case .neck:
+            AnatomyRegion(side: .front, scale: 2.95, anchor: .top, offset: CGSize(width: -0.02, height: 0.48))
         case .shoulders:
-            AnatomyRegion(side: .front, scale: 2.50, anchor: .center, offset: CGSize(width: 0, height: 0.28))
-        case .biceps, .triceps, .forearms:
-            AnatomyRegion(side: .front, scale: 2.15, anchor: .center, offset: CGSize(width: 0, height: 0.12))
+            AnatomyRegion(side: .front, scale: 2.82, anchor: .center, offset: CGSize(width: -0.02, height: 0.28))
+        case .arms, .biceps, .triceps, .forearms:
+            AnatomyRegion(side: .front, scale: 2.72, anchor: .center, offset: CGSize(width: 0.02, height: 0.15))
         case .legs, .quadriceps, .hamstrings, .calves, .adductors, .hipFlexors:
-            AnatomyRegion(side: .front, scale: 1.90, anchor: .bottom, offset: CGSize(width: 0, height: -0.08))
+            AnatomyRegion(side: .front, scale: 2.18, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.12))
         case .glutes:
-            AnatomyRegion(side: .back, scale: 2.05, anchor: .bottom, offset: CGSize(width: 0, height: -0.24))
+            AnatomyRegion(side: .back, scale: 2.42, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.26))
         case .core, .obliques:
-            AnatomyRegion(side: .front, scale: 2.20, anchor: .center, offset: CGSize(width: 0, height: -0.03))
+            AnatomyRegion(side: .front, scale: 2.62, anchor: .center, offset: CGSize(width: -0.02, height: 0.00))
         case .fullBody:
-            AnatomyRegion(side: .front, scale: 1.55, anchor: .center, offset: CGSize(width: 0, height: 0))
+            AnatomyRegion(side: .front, scale: 1.72, anchor: .center, offset: CGSize(width: -0.01, height: 0.01))
         case .cardio:
             AnatomyRegion(side: .front, scale: 1, anchor: .center, offset: .zero)
         }
@@ -399,16 +566,16 @@ private extension HeatmapConfiguration {
 private extension HeatmapColorScale {
     static let repsThumbnail = HeatmapColorScale(colors: [
         PulseTheme.primary,
-        PulseTheme.primaryBright,
-        PulseTheme.accent
+        PulseTheme.primary.opacity(0.92),
+        PulseTheme.primaryBright
     ])
 }
 
 private var anatomyThumbnailBackground: some ShapeStyle {
     LinearGradient(
         colors: [
-            Color(red: 0.19, green: 0.20, blue: 0.23),
-            Color(red: 0.10, green: 0.11, blue: 0.13)
+            Color(red: 0.11, green: 0.12, blue: 0.14),
+            Color(red: 0.04, green: 0.05, blue: 0.07)
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing

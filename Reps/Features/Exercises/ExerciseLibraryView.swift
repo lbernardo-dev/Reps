@@ -461,7 +461,13 @@ private struct ExerciseLibraryRow: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            ExerciseAnatomyThumbnail(exercise: exercise, gender: gender, size: 72)
+            ExerciseMediaThumbnail(exercise: exercise, gender: gender)
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
             VStack(alignment: .leading, spacing: 3) {
                 Text(exercise.name).font(.headline)
                     .lineLimit(2)
@@ -863,7 +869,7 @@ struct ExerciseDetailView: View {
 
     private var instructionsTabContent: some View {
         VStack(alignment: .leading, spacing: 20) {
-            ExerciseHeroMedia(exercise: currentExercise)
+            ExerciseHeroMedia(exercise: currentExercise, gender: store.userProfile.muscleMapGender)
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
@@ -1093,7 +1099,8 @@ struct ExerciseDetailView: View {
                     ExerciseMuscleTargetRow(
                         title: localizedMuscle(currentExercise.muscleGroup),
                         subtitle: isSpanish ? "1 serie de trabajo directo" : "1 direct work set",
-                        exercise: currentExercise,
+                        muscleGroup: currentExercise.muscleGroup,
+                        exerciseName: currentExercise.name,
                         gender: store.userProfile.muscleMapGender
                     )
                     if !currentExercise.secondaryMuscles.isEmpty {
@@ -1102,7 +1109,8 @@ struct ExerciseDetailView: View {
                             ExerciseMuscleTargetRow(
                                 title: localizedMuscle(muscle),
                                 subtitle: isSpanish ? "0,35 series indirectas" : "0.35 indirect work set",
-                                exercise: currentExercise,
+                                muscleGroup: muscle,
+                                exerciseName: currentExercise.name,
                                 gender: store.userProfile.muscleMapGender
                             )
                             if muscle != currentExercise.secondaryMuscles.last {
@@ -1253,12 +1261,15 @@ private struct ExerciseThumbnail: View {
     var gender: BodyGender = .male
 
     var body: some View {
-        ExerciseAnatomyThumbnail(exercise: exercise, gender: gender, size: size)
+        ExerciseMediaThumbnail(exercise: exercise, gender: gender)
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: min(16, size * 0.20), style: .continuous))
     }
 }
 
 struct ExerciseHeroMedia: View {
     let exercise: Exercise
+    var gender: BodyGender = .male
     var height: CGFloat = 320
 
     var body: some View {
@@ -1267,26 +1278,11 @@ struct ExerciseHeroMedia: View {
             ZStack(alignment: .bottomLeading) {
                 if let data = exercise.customImageData,
                    let image = UIImage(data: data) {
-                    ZStack {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: size.width, height: size.height)
-                            .blur(radius: 18, opaque: true)
-                            .opacity(0.45)
-                            .clipped()
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: size.width, height: size.height)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .clipped()
-                    }
+                    ExerciseHeroFillImage(image: image, size: size)
                 } else if let url = exercise.mediaAssetURL {
-                    ExerciseReferenceImage(exercise: exercise, url: url, size: size)
+                    ExerciseReferenceImage(exercise: exercise, url: url, size: size, gender: gender)
                 } else {
-                    ExerciseHeroFallback(exercise: exercise)
+                    ExerciseHeroFallback(exercise: exercise, gender: gender)
                         .frame(width: size.width, height: size.height)
                 }
 
@@ -1324,42 +1320,37 @@ struct ExerciseHeroMedia: View {
 
 }
 
+private struct ExerciseHeroFillImage: View {
+    let image: UIImage
+    let size: CGSize
+
+    var body: some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFill()
+            .frame(width: size.width, height: size.height)
+            .clipped()
+    }
+}
+
 struct ExerciseReferenceImage: View {
     let exercise: Exercise
     let url: URL
     let size: CGSize
+    let gender: BodyGender
     @State private var image: UIImage?
     @State private var isLoading = true
 
     var body: some View {
         ZStack {
             if let image {
-                ZStack {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: size.width, height: size.height)
-                        .blur(radius: 18, opaque: true)
-                        .saturation(0.88)
-                        .opacity(0.48)
-                        .clipped()
-
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: size.width, height: size.height, alignment: .center)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .clipped()
-                }
-                .frame(width: size.width, height: size.height)
-                .clipped()
+                ExerciseHeroFillImage(image: image, size: size)
             } else if isLoading {
                 ProgressView()
                     .tint(PulseTheme.accent)
                     .frame(width: size.width, height: size.height)
             } else {
-                ExerciseHeroFallback(exercise: exercise)
+                ExerciseHeroFallback(exercise: exercise, gender: gender)
                     .frame(width: size.width, height: size.height)
             }
         }
@@ -1373,15 +1364,21 @@ struct ExerciseReferenceImage: View {
 
 private struct ExerciseHeroFallback: View {
     let exercise: Exercise
+    let gender: BodyGender
 
     var body: some View {
-        ZStack {
-            ExerciseAnatomyThumbnail(exercise: exercise, gender: .male, size: max(260, 1))
-                .scaledToFill()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
+        GeometryReader { proxy in
+            let coverSize = max(proxy.size.width, proxy.size.height) * 1.08
 
-            PulseTheme.primary.opacity(0.08)
+            ZStack {
+                ExerciseAnatomyThumbnail(exercise: exercise, gender: gender, size: coverSize)
+                    .frame(width: coverSize, height: coverSize)
+                    .clipped()
+
+                PulseTheme.primary.opacity(0.08)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
         }
     }
 }

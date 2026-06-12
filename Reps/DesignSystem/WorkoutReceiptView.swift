@@ -221,12 +221,21 @@ struct WorkoutReceiptView: View {
         completedLogs.map(\.exercise)
     }
     
-    private var musclesTrained: [Muscle] {
-        Array(Set(exercises.flatMap { ExerciseAnatomyDescriptor(exercise: $0).muscles }))
-    }
-    
     private var heatmap: [MuscleIntensity] {
-        musclesTrained.map { MuscleIntensity(muscle: $0, intensity: 0.76) }
+        var primary = Set<Muscle>()
+        var secondary = Set<Muscle>()
+        for exercise in exercises {
+            let descriptor = ExerciseAnatomyDescriptor(exercise: exercise)
+            primary.formUnion(descriptor.primaryMuscles)
+            secondary.formUnion(descriptor.secondaryMuscles)
+        }
+        secondary.subtract(primary)
+
+        return primary.map {
+            MuscleIntensity(muscle: $0, intensity: 0.92, color: PulseTheme.primaryBright)
+        } + secondary.map {
+            MuscleIntensity(muscle: $0, intensity: 0.34, color: PulseTheme.primary.opacity(0.38))
+        }
     }
 
     private var routePoints: [RoutePoint] {
@@ -439,11 +448,13 @@ struct WorkoutReceiptView: View {
                 Spacer()
                 BodyView(gender: gender, side: .front, style: .repsReceipt)
                     .heatmap(heatmap, configuration: .repsVolumeReceipt)
+                    .showSubGroups()
                     .frame(width: 80, height: 165)
                     .scaleEffect(1.08)
 
                 BodyView(gender: gender, side: .back, style: .repsReceipt)
                     .heatmap(heatmap, configuration: .repsVolumeReceipt)
+                    .showSubGroups()
                     .frame(width: 80, height: 165)
                     .scaleEffect(1.08)
                 Spacer()
