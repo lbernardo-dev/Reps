@@ -43,8 +43,16 @@ enum PulseTheme {
         traits.userInterfaceStyle == .light ? UIColor.black.withAlphaComponent(0.06) : UIColor.white.withAlphaComponent(0.08)
     })
 
+    static let controlRadius: CGFloat = 10
     static let compactRadius: CGFloat = 14
     static let cardRadius: CGFloat = 26
+
+    static let minTapTarget: CGFloat = 44
+
+    static let spotify = Color(red: 0.11, green: 0.73, blue: 0.33)
+    static let appleMusic = Color(red: 0.98, green: 0.24, blue: 0.34)
+
+    static let heroGradientColors: [Color] = [primary, primaryBright]
 }
 
 enum RepsText {
@@ -526,7 +534,7 @@ struct HeaderAvatarButton: View {
                         .foregroundStyle(PulseTheme.primary)
                 }
             }
-            .frame(width: 40, height: 40)
+            .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
             .clipShape(Circle())
             .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 2))
             .shadow(color: .black.opacity(0.16), radius: 5, y: 2)
@@ -610,6 +618,53 @@ struct PulseEmptyState: View {
                 .foregroundStyle(PulseTheme.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct PulseSkeleton: View {
+    var height: CGFloat = 16
+    var cornerRadius: CGFloat = PulseTheme.controlRadius
+
+    @State private var phase: CGFloat = -1
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(PulseTheme.grouped)
+            .frame(height: height)
+            .overlay {
+                GeometryReader { proxy in
+                    LinearGradient(
+                        colors: [.clear, PulseTheme.elevated.opacity(0.9), .clear],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: proxy.size.width * 0.6)
+                    .offset(x: proxy.size.width * phase)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .onAppear {
+                withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
+                    phase = 1.4
+                }
+            }
+            .accessibilityHidden(true)
+    }
+}
+
+struct PulseSkeletonCard: View {
+    var lines: Int = 3
+
+    var body: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 12) {
+                PulseSkeleton(height: 20)
+                    .frame(maxWidth: 160)
+                ForEach(0..<max(lines - 1, 0), id: \.self) { _ in
+                    PulseSkeleton()
+                }
+            }
+        }
     }
 }
 

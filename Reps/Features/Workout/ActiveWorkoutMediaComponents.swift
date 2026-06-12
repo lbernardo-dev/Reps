@@ -67,6 +67,54 @@ struct ExerciseMediaNotesPanel: View {
     }
 }
 
+struct MusicTransportControls: View {
+    let provider: PlanPlaylist.Provider
+    let isPlaying: Bool
+    let onBack: () -> Void
+    let onPlayPause: () -> Void
+    let onForward: () -> Void
+
+    private var tint: Color {
+        provider == .appleMusic ? PulseTheme.appleMusic : PulseTheme.spotify
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Button(action: onBack) {
+                Image(systemName: "backward.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(PulseTheme.primary)
+                    .frame(width: 32, height: PulseTheme.minTapTarget)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Anterior")
+
+            Button(action: onPlayPause) {
+                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                    .background(tint)
+                    .clipShape(Circle())
+                    .shadow(color: tint.opacity(0.35), radius: 6, x: 0, y: 3)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isPlaying ? "Pausar" : "Reproducir")
+
+            Button(action: onForward) {
+                Image(systemName: "forward.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(PulseTheme.primary)
+                    .frame(width: 32, height: PulseTheme.minTapTarget)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Siguiente")
+        }
+    }
+}
+
 struct AttachmentPreviewStrip: View {
     let attachments: [WorkoutMediaAttachment]
 
