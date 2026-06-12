@@ -2214,21 +2214,30 @@ private struct ExercisePickerSheet: View {
                     }
                     .font(.subheadline.weight(.semibold))
 
-                    LazyVStack(spacing: 10) {
-                        ForEach(filteredExercises) { exercise in
-                            Button {
-                                onSelect(exercise)
-                                dismiss()
-                            } label: {
-                                ReplacementExerciseRow(
-                                    exercise: exercise,
-                                    currentExercise: currentExercise,
-                                    availableEquipment: store.userProfile.availableEquipment,
-                                    gender: store.userProfile.muscleMapGender,
-                                    language: store.userProfile.preferredLanguage
-                                )
+                    if filteredExercises.isEmpty {
+                        PulseEmptyState(
+                            title: "Sin ejercicios",
+                            message: "Ajusta la búsqueda o los filtros de músculo y equipo para ver más resultados.",
+                            systemImage: "magnifyingglass"
+                        )
+                        .padding(.top, 24)
+                    } else {
+                        LazyVStack(spacing: 10) {
+                            ForEach(filteredExercises) { exercise in
+                                Button {
+                                    onSelect(exercise)
+                                    dismiss()
+                                } label: {
+                                    ReplacementExerciseRow(
+                                        exercise: exercise,
+                                        currentExercise: currentExercise,
+                                        availableEquipment: store.userProfile.availableEquipment,
+                                        gender: store.userProfile.muscleMapGender,
+                                        language: store.userProfile.preferredLanguage
+                                    )
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }

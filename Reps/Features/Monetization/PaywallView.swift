@@ -60,31 +60,38 @@ struct PaywallView: View {
                         Text("Elige tu acceso")
                             .font(.headline)
 
-                        ForEach(availablePlans) { cycle in
-                            Button {
-                                selectedPlan = cycle
-                                store.trackPaywallPlanSelection(cycle, source: presentation.source)
-                            } label: {
-                                let product = store.storeKitProduct(for: cycle)
-                                PaywallPlanCard(
-                                    title: cycle.title,
-                                    subtitle: planSubtitle(for: cycle, product: product),
-                                    price: product?.displayPrice ?? fallbackPrice(for: cycle),
-                                    badge: badge(for: cycle),
-                                    isSelected: selectedPlan == cycle
-                                )
+                        if store.isLoadingStoreKitProducts && store.storeKitProducts.isEmpty {
+                            ForEach(0..<3, id: \.self) { _ in
+                                PulseSkeletonCard(lines: 2)
                             }
-                            .buttonStyle(.plain)
-                        }
-
-                        if store.isLoadingStoreKitProducts {
-                            ProgressView("Cargando planes de App Store...")
-                                .font(.footnote)
-                                .foregroundStyle(PulseTheme.secondaryText)
                         } else if store.storeKitProducts.isEmpty {
-                            Text("No se pudieron cargar los productos de App Store. Revisa conectividad, sandbox o configuración de productos.")
-                                .font(.footnote)
-                                .foregroundStyle(PulseTheme.secondaryText)
+                            PulseCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("No se pudieron cargar los productos de App Store. Revisa conectividad, sandbox o configuración de productos.")
+                                        .font(.footnote)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                    SecondaryButton("Reintentar", systemImage: "arrow.clockwise") {
+                                        Task { await store.refreshStoreKitProducts() }
+                                    }
+                                }
+                            }
+                        } else {
+                            ForEach(availablePlans) { cycle in
+                                Button {
+                                    selectedPlan = cycle
+                                    store.trackPaywallPlanSelection(cycle, source: presentation.source)
+                                } label: {
+                                    let product = store.storeKitProduct(for: cycle)
+                                    PaywallPlanCard(
+                                        title: cycle.title,
+                                        subtitle: planSubtitle(for: cycle, product: product),
+                                        price: product?.displayPrice ?? fallbackPrice(for: cycle),
+                                        badge: badge(for: cycle),
+                                        isSelected: selectedPlan == cycle
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
 
