@@ -38,6 +38,7 @@ struct ActiveWorkoutView: View {
     @State private var selectedExerciseIndex = 0
     @State private var showAdvancedFields = false
     @State private var lastSetCompletedAtSeconds: Int?
+    @State private var lastCompletedSetUndoContext: UndoSetContext?
     @State private var hasAppliedProgression = false
     @State private var showAddExercise = false
     @State private var replacementExerciseIndex: Int?
@@ -711,6 +712,7 @@ struct ActiveWorkoutView: View {
                 if remaining == 0 {
                     restSeconds = 0
                     restStartedAt = nil
+                    HapticService.notification(.success)
                 }
             }
         }
@@ -1000,15 +1002,37 @@ struct ActiveWorkoutView: View {
     }
 
     private var restCard: some View {
-        ActiveRestPanel(
+        let undoAction: (() -> Void)? = lastCompletedSetUndoContext == nil
+            ? nil
+            : { undoLastCompletedSet() }
+        return ActiveRestPanel(
             isRestActive: lastSetCompletedAtSeconds != nil,
             currentRestSeconds: currentRestRemainingSeconds(),
             restStartedAt: restStartedAt,
             restDuration: restDuration,
             onDecrease: { adjustRest(by: -15) },
             onIncrease: { adjustRest(by: 15) },
-            onSkipOrRestart: toggleRestTimer
+            onSkipOrRestart: toggleRestTimer,
+            onUndo: undoAction
         )
+    }
+
+    private func undoLastCompletedSet() {
+        guard let context = lastCompletedSetUndoContext else { return }
+        guard WorkoutDraftController.uncompleteSet(
+            in: &store.activeWorkoutDrafts,
+            exerciseIndex: context.exerciseIndex,
+            setIndex: context.setIndex
+        ) else {
+            lastCompletedSetUndoContext = nil
+            return
+        }
+
+        lastSetCompletedAtSeconds = context.previousLastSetCompletedAtSeconds
+        lastCompletedSetUndoContext = nil
+        stopRest()
+        publishActiveWorkoutStatus()
+        HapticService.impact(.rigid)
     }
 
     private var routeProgressCard: some View {
@@ -2043,6 +2067,11 @@ struct ActiveWorkoutView: View {
         elapsedSeconds = elapsedWorkoutSeconds()
         let completedSet = exerciseDrafts[exerciseIndex].sets[setIndex]
         let exercise = exerciseDrafts[exerciseIndex].workoutExercise.exercise
+        lastCompletedSetUndoContext = UndoSetContext(
+            exerciseIndex: exerciseIndex,
+            setIndex: setIndex,
+            previousLastSetCompletedAtSeconds: lastSetCompletedAtSeconds
+        )
         let outcome = WorkoutDraftController.completeSet(
             in: &store.activeWorkoutDrafts,
             exerciseIndex: exerciseIndex,
@@ -2107,6 +2136,12 @@ struct ActiveWorkoutView: View {
 private struct ExerciseReplacementTarget: Identifiable {
     let index: Int
     var id: Int { index }
+}
+
+private struct UndoSetContext {
+    let exerciseIndex: Int
+    let setIndex: Int
+    let previousLastSetCompletedAtSeconds: Int?
 }
 
 private struct ExercisePickerSheet: View {

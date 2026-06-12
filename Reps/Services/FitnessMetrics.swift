@@ -1487,6 +1487,24 @@ enum WorkoutDraftController {
     }
 
     @discardableResult
+    static func uncompleteSet(
+        in drafts: inout [ExerciseSessionDraft],
+        exerciseIndex: Int,
+        setIndex: Int
+    ) -> Bool {
+        guard drafts.indices.contains(exerciseIndex),
+              drafts[exerciseIndex].sets.indices.contains(setIndex),
+              drafts[exerciseIndex].sets[setIndex].completed else {
+            return false
+        }
+
+        drafts[exerciseIndex].sets[setIndex].completed = false
+        drafts[exerciseIndex].sets[setIndex].isPersonalRecord = false
+        drafts[exerciseIndex].sets[setIndex].previousRestSeconds = nil
+        return true
+    }
+
+    @discardableResult
     static func addSet(to drafts: inout [ExerciseSessionDraft], selectedIndex: Int) -> Bool {
         guard drafts.indices.contains(selectedIndex) else { return false }
 
