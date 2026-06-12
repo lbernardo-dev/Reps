@@ -2,7 +2,7 @@ import MuscleMap
 import SwiftUI
 
 struct CalendarView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var showSchedule = false
     @State private var visibleMonth = Date()
     @State private var selectedDate = Date()
@@ -399,7 +399,7 @@ private func calendarSessionTypeTitle(_ type: WorkoutDay.SessionType) -> String 
 
 struct ScheduleWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     @State private var selectedWorkoutID: WorkoutDay.ID?
     @State private var date = Date()

@@ -3,7 +3,7 @@ import MuscleMap
 import SwiftUI
 
 struct ProgressDashboardView: View {
-  @EnvironmentObject private var store: AppStore
+  @Environment(AppStore.self) private var store
   @State private var selectedRange: ProgressRange = .week
   @State private var selectedSection: ProgressSection = .muscles
   @State private var activeDestination: ProgressDestination?
@@ -806,7 +806,7 @@ private extension CardioLog.ActivityType {
 
 private struct ExerciseProgressRow: View {
   let exercise: Exercise
-  @EnvironmentObject private var store: AppStore
+  @Environment(AppStore.self) private var store
 
   private var points: [FitnessMetrics.ExerciseProgressPoint] {
     FitnessMetrics.progressPoints(for: exercise, in: store.workoutSessions)

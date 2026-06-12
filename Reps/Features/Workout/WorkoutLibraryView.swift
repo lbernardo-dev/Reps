@@ -2,7 +2,7 @@ import SwiftUI
 
 struct WorkoutLibraryView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var showCreate = false
     @State private var editingWorkout: WorkoutDay?
 
@@ -61,7 +61,7 @@ struct WorkoutLibraryView: View {
 }
 
 private struct WorkoutTemplateRow: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     let workout: WorkoutDay
     let onEdit: () -> Void
 
@@ -142,7 +142,7 @@ struct WorkoutEditorView: View {
     }
 
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     let mode: Mode
 

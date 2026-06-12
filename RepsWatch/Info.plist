@@ -28,8 +28,16 @@
 	<string>StreakRep Watch usa tu ubicación para dibujar la ruta de caminatas y carreras iniciadas desde el reloj.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>StreakRep Watch usa el movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>WKApplication</key>
 	<true/>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.romerodev.repsfitness</string>
 </dict>

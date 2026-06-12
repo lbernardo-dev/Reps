@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PlateCalculatorView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var targetWeightInput: String = "60"
     @State private var barbellWeight: Double = 20.0
     

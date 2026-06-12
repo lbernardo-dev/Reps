@@ -39,6 +39,7 @@
 		3CAE41B17E3ED1DB65A4C116 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9055371D6F3FC5EB8456BF60 /* Assets.xcassets */; };
 		3D10070D4B99F825EADAF29C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 993ED47C6A26814D8131BB84 /* Localizable.xcstrings */; };
 		3D2BBDC31437CC6C56128448 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130E4F75D706852645E5A1F1 /* HapticService.swift */; };
+		CF749CA510F3468BA35EC902 /* RepsAppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072FCDF5572B4C6AB3747803 /* RepsAppShortcuts.swift */; };
 		3D2D711B864AB7E3566E4453 /* WatchWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCEDBC86A7D5517EE1DEEFFE /* WatchWorkoutView.swift */; };
 		485D38B631E3EF7773340D83 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F998B9C72A27863842809A33 /* AppStore.swift */; };
 		4A941FA423A34C543F601E83 /* Monetization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA1565353516FCB4247FD1D /* Monetization.swift */; };
@@ -161,6 +162,7 @@
 		0ECBBCF60B8C5057CAB72E32 /* TelemetryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryService.swift; sourceTree = "<group>"; };
 		12DAAE09638B4291B3E89483 /* RepsBatteryWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsBatteryWidget.swift; sourceTree = "<group>"; };
 		130E4F75D706852645E5A1F1 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
+		072FCDF5572B4C6AB3747803 /* RepsAppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsAppShortcuts.swift; sourceTree = "<group>"; };
 		139C9662D78E951B54E33A7E /* RepsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsApp.swift; sourceTree = "<group>"; };
 		14586CFEF76851389015CC51 /* OneRepMaxCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneRepMaxCalculatorView.swift; sourceTree = "<group>"; };
 		1AACCD6E1BE104C3FD7B706C /* ProfileDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileDetailView.swift; sourceTree = "<group>"; };
@@ -282,6 +284,7 @@
 				A61FC8F7F687BB47F7F6932E /* CSVService.swift */,
 				8AE6FC6EDB425205F8F3592B /* FitnessMetrics.swift */,
 				130E4F75D706852645E5A1F1 /* HapticService.swift */,
+				072FCDF5572B4C6AB3747803 /* RepsAppShortcuts.swift */,
 				005DB2151835E5ACB3D3C20D /* ICloudProEntitlementService.swift */,
 				FBE400159890F89819FDFC36 /* NotificationService.swift */,
 				CCD6E9727C891B41CB538DE6 /* PermissionService.swift */,
@@ -774,6 +777,7 @@
 				571B9B9626B8C28B2BCAD209 /* FitnessMetrics.swift in Sources */,
 				090341499DBA89962BE3533C /* FreeWorkoutStartView.swift in Sources */,
 				3D2BBDC31437CC6C56128448 /* HapticService.swift in Sources */,
+				CF749CA510F3468BA35EC902 /* RepsAppShortcuts.swift in Sources */,
 				990133AA0AC6E04F09815E16 /* HealthKitService.swift in Sources */,
 				50BC6D3A9E7FB93D1D0E0656 /* ICloudProEntitlementService.swift in Sources */,
 				35FAA03EF8B2445CA6A24D09 /* Models.swift in Sources */,

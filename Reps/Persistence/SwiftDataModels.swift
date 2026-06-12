@@ -8,7 +8,7 @@ final class UserProfileRecord {
     var email: String?
     var sex: String?
     var dateOfBirth: Date?
-    var avatarImageData: Data?
+    @Attribute(.externalStorage) var avatarImageData: Data?
     var preferredLanguage: String
     var units: String
     var distanceUnit: String?
@@ -161,7 +161,7 @@ final class ExerciseRecord {
     var environment: String?
     var tagsData: Data?
     var mediaURL: String?
-    var customImageData: Data?
+    @Attribute(.externalStorage) var customImageData: Data?
     var videoURL: String?
     var mediaBookmarksData: Data?
     var instructions: String?
@@ -728,7 +728,7 @@ final class CardioLogRecord {
 final class ProgressPhotoRecord {
     var id: UUID
     var date: Date
-    var imageData: Data
+    @Attribute(.externalStorage) var imageData: Data
     var weightKg: Double?
     var note: String?
 
@@ -750,7 +750,7 @@ final class SavedShareCardRecord {
     var id: UUID
     var date: Date
     var workoutTitle: String
-    var imageData: Data
+    @Attribute(.externalStorage) var imageData: Data
 
     init(card: SavedShareCard) {
         id = card.id

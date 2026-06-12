@@ -247,7 +247,7 @@ struct WorkoutLogRow: View {
 }
 
 struct WorkoutSessionDetailView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     let session: WorkoutSession
     @State private var isShowingShareSheet = false
     @State private var shareImage: UIImage?

@@ -7,7 +7,7 @@ private enum WatchDestination: Hashable {
     case metrics
     case utilities
 
-    var title: String {
+    var title: LocalizedStringKey {
         switch self {
         case .session:
             return "Sesión"
@@ -25,15 +25,39 @@ private enum WatchDestination: Hashable {
 
 struct WatchWorkoutView: View {
     @EnvironmentObject private var model: WatchWorkoutModel
+    @State private var activePage: WatchDestination = .session
 
     var body: some View {
+        if model.snapshot.hasActiveWorkout {
+            activeWorkoutPages
+        } else {
+            NavigationStack {
+                homePage
+                    .navigationTitle("Reps")
+                    .navigationDestination(for: WatchDestination.self) { destination in
+                        destinationView(for: destination)
+                            .navigationTitle(destination.title)
+                    }
+            }
+        }
+    }
+
+    /// Standard watchOS workout layout: vertically paged screens
+    /// (session, metrics, controls, extras) driven by crown or swipe.
+    private var activeWorkoutPages: some View {
         NavigationStack {
-            homePage
-                .navigationTitle(model.snapshot.hasActiveWorkout ? "Reps Live" : "Reps")
-                .navigationDestination(for: WatchDestination.self) { destination in
-                    destinationView(for: destination)
-                        .navigationTitle(destination.title)
-                }
+            TabView(selection: $activePage) {
+                summaryPage
+                    .tag(WatchDestination.session)
+                destinationView(for: .metrics)
+                    .tag(WatchDestination.metrics)
+                controlsPage
+                    .tag(WatchDestination.controls)
+                gymAndMusicPage
+                    .tag(WatchDestination.utilities)
+            }
+            .tabViewStyle(.verticalPage)
+            .navigationTitle(activePage.title)
         }
     }
 
@@ -56,7 +80,7 @@ struct WatchWorkoutView: View {
             .buttonStyle(.plain)
 
             NavigationLink(value: WatchDestination.controls) {
-                WatchNavigationTile(title: "Controles", subtitle: model.snapshot.hasActiveWorkout ? "Acciones rápidas" : "Iniciar ruta", icon: "slider.horizontal.3", color: .orange)
+                WatchNavigationTile(title: "Controles", subtitle: model.snapshot.hasActiveWorkout ? String(localized: "Acciones rápidas") : String(localized: "Iniciar ruta"), icon: "slider.horizontal.3", color: .orange)
             }
             .buttonStyle(.plain)
 
@@ -230,7 +254,7 @@ struct WatchWorkoutView: View {
                 .padding(.bottom, 10)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    WatchInfoCard(icon: "timer", title: "Timers", value: "Los cronómetros de sesión, descanso y volumen aparecen al iniciar un entreno.", color: accentColor)
+                    WatchInfoCard(icon: "timer", title: "Timers", value: String(localized: "Los cronómetros de sesión, descanso y volumen aparecen al iniciar un entreno."), color: accentColor)
                     metricsGrid
                 }
                 .padding(.horizontal, 6)
@@ -314,7 +338,7 @@ struct WatchWorkoutView: View {
 
                 WatchInfoCard(
                     icon: model.snapshot.trainingBatterySystemImage,
-                    title: model.snapshot.trainingBatteryTitle,
+                    title: LocalizedStringKey(model.snapshot.trainingBatteryTitle),
                     value: model.snapshot.trainingBatterySuggestion.isEmpty ? model.snapshot.summary : model.snapshot.trainingBatterySuggestion,
                     color: batteryColor
                 )
@@ -426,7 +450,7 @@ struct WatchWorkoutView: View {
                 if let gymName = model.snapshot.gymPassName {
                     WatchInfoCard(
                         icon: model.snapshot.gymCodeType == "barcode" ? "barcode" : "qrcode",
-                        title: gymName,
+                        title: LocalizedStringKey(gymName),
                         value: model.snapshot.gymMembershipID ?? model.snapshot.gymCodeValue ?? "Tarjeta gym",
                         color: .yellow
                     )
@@ -767,7 +791,7 @@ struct WatchWorkoutView: View {
                 .buttonStyle(.plain)
             }
 
-            WatchInfoCard(icon: "applewatch", title: "Fuente", value: model.isStandaloneRouteWorkout ? "El reloj registra ruta, pasos, distancia, pulso y kcal; Reps lo importará al reconectar." : "El reloj lee pulso, kcal, pasos y distancia en vivo; el iPhone mantiene la ruta y el mapa.", color: .blue)
+            WatchInfoCard(icon: "applewatch", title: "Fuente", value: model.isStandaloneRouteWorkout ? String(localized: "El reloj registra ruta, pasos, distancia, pulso y kcal; Reps lo importará al reconectar.") : String(localized: "El reloj lee pulso, kcal, pasos y distancia en vivo; el iPhone mantiene la ruta y el mapa."), color: .blue)
         }
     }
 
@@ -832,7 +856,7 @@ struct WatchWorkoutView: View {
             }
             .watchCard(borderColor: Color.orange.opacity(0.22))
         } else {
-            WatchInfoCard(icon: "hourglass", title: "Descanso", value: "Sin descanso activo. Completa una serie para iniciar el siguiente timer.", color: .orange)
+            WatchInfoCard(icon: "hourglass", title: "Descanso", value: String(localized: "Sin descanso activo. Completa una serie para iniciar el siguiente timer."), color: .orange)
         }
     }
 
@@ -1097,7 +1121,7 @@ struct WatchWorkoutView: View {
 }
 
 private struct WatchNavigationTile: View {
-    let title: String
+    let title: LocalizedStringKey
     let subtitle: String
     let icon: String
     let color: Color
@@ -1326,7 +1350,7 @@ private struct WatchMetric: View {
 
 private struct WatchInfoCard: View {
     let icon: String
-    let title: String
+    let title: LocalizedStringKey
     let value: String
     let color: Color
 

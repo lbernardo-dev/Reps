@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FreeWorkoutStartView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     private var isSpanish: Bool {
         store.userProfile.preferredLanguage.hasPrefix("es")

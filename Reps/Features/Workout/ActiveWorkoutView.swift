@@ -14,7 +14,7 @@ import SwiftUI
 struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     let workout: WorkoutDay
 
     @StateObject private var routeTracker = WorkoutRouteTracker()
@@ -263,7 +263,8 @@ struct ActiveWorkoutView: View {
             if isRouteCandidate {
                 routeTracker.requestAuthorization()
             }
-            if isSessionStarted {
+            if isSessionStarted, #unavailable(iOS 26.0) {
+                // On iOS 26+ the native HKWorkoutSession keeps the app alive.
                 WorkoutBackgroundKeepAlive.shared.startIfNeeded()
             }
         }
@@ -517,7 +518,10 @@ struct ActiveWorkoutView: View {
         if isRouteCandidate {
             routeTracker.startNewRoute(startedAt: startDate)
         }
-        WorkoutBackgroundKeepAlive.shared.startIfNeeded()
+        if #unavailable(iOS 26.0) {
+            // On iOS 26+ the native HKWorkoutSession keeps the app alive.
+            WorkoutBackgroundKeepAlive.shared.startIfNeeded()
+        }
         publishActiveWorkoutStatus()
     }
 
@@ -577,6 +581,7 @@ struct ActiveWorkoutView: View {
         let finishedAt = Date()
         routeTracker.stop()
         motionResumeDetector.stop()
+        NotificationService.cancelRestEndNotification()
         let startDate = startedAt
         let sensorSummary = try? await healthKit.fetchWorkoutSensorSummary(start: startDate, end: finishedAt)
         workoutSensorSummary = sensorSummary
@@ -1802,6 +1807,15 @@ struct ActiveWorkoutView: View {
             restDuration = adjusted.restDuration
             restStartedAt = adjusted.restStartedAt
         }
+        let remaining = currentRestRemainingSeconds()
+        if remaining > 0 {
+            NotificationService.scheduleRestEndNotification(
+                after: remaining,
+                nextExerciseName: store.activeWorkoutStatus?.nextExerciseName
+            )
+        } else {
+            NotificationService.cancelRestEndNotification()
+        }
     }
 
     private func toggleRestTimer() {
@@ -2081,12 +2095,17 @@ struct ActiveWorkoutView: View {
         restDuration  = duration
         restStartedAt = Date()
         restSeconds   = duration
+        NotificationService.scheduleRestEndNotification(
+            after: duration,
+            nextExerciseName: store.activeWorkoutStatus?.nextExerciseName
+        )
     }
 
     private func stopRest() {
         restSeconds   = 0
         restStartedAt = nil
         restDuration  = 0
+        NotificationService.cancelRestEndNotification()
     }
 
     private func applyAutoProgressionIfNeeded() {
@@ -2119,7 +2138,7 @@ private struct ExerciseReplacementTarget: Identifiable {
 
 private struct ExercisePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     let title: String
     let exercises: [Exercise]
     let currentExercise: Exercise?
@@ -3310,6 +3329,11 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
         }
         shouldStartAfterAuthorization = false
         isTracking = true
+        // Requires the "location" UIBackgroundMode; keeps GPS samples flowing
+        // while the screen is locked or the app is in the background mid-route.
+        manager.allowsBackgroundLocationUpdates = true
+        manager.pausesLocationUpdatesAutomatically = false
+        manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
     }
 
@@ -3317,6 +3341,7 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
         shouldStartAfterAuthorization = false
         isTracking = false
         manager.stopUpdatingLocation()
+        manager.allowsBackgroundLocationUpdates = false
     }
 
     func paceText(elapsedSeconds: Int) -> String {
@@ -3539,7 +3564,7 @@ private struct BatteryMicroMetric: View {
 }
 
 struct WorkoutSummaryView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     let session: WorkoutSession
     let onDone: () -> Void
 

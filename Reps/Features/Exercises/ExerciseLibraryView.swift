@@ -6,7 +6,7 @@ import Charts
 
 struct ExerciseLibraryView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     @State private var searchText = ""
     @State private var selectedMuscle = "All"
@@ -647,7 +647,7 @@ private enum ExerciseInstructionParser {
 }
 
 struct ExerciseDetailView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     let exercise: Exercise
     
     @State private var selectedTab: ExerciseTab = .instructions
@@ -824,17 +824,17 @@ struct ExerciseDetailView: View {
             AddExerciseToPlanView(exercise: currentExercise) {
                 feedbackMessage = String(localized: "Exercise added to the active plan.")
             }
-            .environmentObject(store)
+            .environment(store)
         }
         .sheet(isPresented: $showSchedule) {
             ScheduleExerciseView(exercise: currentExercise) {
                 feedbackMessage = String(localized: "Exercise scheduled.")
             }
-            .environmentObject(store)
+            .environment(store)
         }
         .sheet(isPresented: $showBookmarkEditor) {
             ExerciseBookmarkEditor(exercise: currentExercise)
-                .environmentObject(store)
+                .environment(store)
         }
         .onChange(of: customImageItem) { _, item in
             Task {
@@ -1436,7 +1436,7 @@ private actor ExerciseReferenceImageCache {
 
 private struct AddExerciseToPlanView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     let exercise: Exercise
     let onSaved: () -> Void
@@ -1509,7 +1509,7 @@ private struct AddExerciseToPlanView: View {
 
 private struct ScheduleExerciseView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     let exercise: Exercise
     let onSaved: () -> Void
@@ -1564,7 +1564,7 @@ private struct ScheduleExerciseView: View {
 
 private struct ExerciseBookmarkEditor: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     let exercise: Exercise
 
     @State private var bookmarks: [ExerciseMediaBookmark]
@@ -1725,7 +1725,7 @@ private struct ExerciseBookmarkEditor: View {
 
 struct AddCustomExerciseView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     @State private var name = ""
     @State private var muscleGroup = "Chest"

@@ -1,64 +1,32 @@
 import UIKit
 
-/// Keeps a UIBackgroundTaskIdentifier alive for the duration of an active
-/// workout so iOS does not suspend the process while the user is resting
-/// between sets, has the screen off, or has navigated to the home screen.
+/// Holds a single UIBackgroundTaskIdentifier while a workout is active so the
+/// app gets the standard grace period (~30 s) to finish persisting state when
+/// the user backgrounds it mid-session.
 ///
-/// Usage:
-///   WorkoutBackgroundKeepAlive.shared.startIfNeeded()
-///   WorkoutBackgroundKeepAlive.shared.stop()
-///
-/// The system will call the expiration handler after the allowed background
-/// time (~30 s for standard tasks, can chain on watchOS). We renew it every
-/// 20 seconds to avoid expiry interrupting a rest period.
+/// On iOS 26+ this is unnecessary: the active HKWorkoutSession owned by
+/// NativeWorkoutSessionService keeps the process running for the whole
+/// workout, so callers skip this service entirely there. Renewing/chaining
+/// background tasks to extend runtime is not supported by the system (the
+/// background-time budget is global) and violates App Review guidelines, so
+/// no renewal is attempted.
 @MainActor
 final class WorkoutBackgroundKeepAlive {
     static let shared = WorkoutBackgroundKeepAlive()
     private init() {}
 
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
-    private var renewalTimer: Timer?
-
-    // MARK: - Public API
 
     func startIfNeeded() {
         guard backgroundTaskID == .invalid else { return }
-        beginTask()
-        scheduleRenewal()
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "WorkoutSession") { [weak self] in
+            self?.stop()
+        }
     }
 
     func stop() {
-        renewalTimer?.invalidate()
-        renewalTimer = nil
-        endTask()
-    }
-
-    // MARK: - Private helpers
-
-    private func beginTask() {
-        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "WorkoutSession") { [weak self] in
-            // Expiration handler — system is about to suspend. Clean up.
-            self?.endTask()
-        }
-    }
-
-    private func endTask() {
         guard backgroundTaskID != .invalid else { return }
         UIApplication.shared.endBackgroundTask(backgroundTaskID)
         backgroundTaskID = .invalid
-    }
-
-    /// Renew the background task before it expires so long rest periods
-    /// (e.g. 3 min) don't get cut off.
-    private func scheduleRenewal() {
-        renewalTimer?.invalidate()
-        renewalTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            Task { @MainActor in
-                // End the current task and begin a fresh one to reset the timer.
-                self.endTask()
-                self.beginTask()
-            }
-        }
     }
 }

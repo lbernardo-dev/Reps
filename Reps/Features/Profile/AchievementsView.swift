@@ -23,7 +23,7 @@ struct AchievementBadge: Identifiable {
 }
 
 struct AchievementsView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     
     @State private var selectedReceiptForPreview: SavedShareCard? = nil
@@ -149,7 +149,7 @@ struct AchievementsView: View {
                 store.trackPaywallDismissal(presentation, reason: reason)
                 localPaywall = nil
             }
-            .environmentObject(store)
+            .environment(store)
         }
     }
     
@@ -481,5 +481,5 @@ struct SerratedThumbnailShape: Shape {
 
 #Preview {
     AchievementsView()
-        .environmentObject(AppStore())
+        .environment(AppStore())
 }

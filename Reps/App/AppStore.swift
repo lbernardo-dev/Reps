@@ -2,80 +2,79 @@ import ActivityKit
 import CoreLocation
 import Foundation
 import HealthKit
+import Observation
 import StoreKit
 import UIKit
 import UserNotifications
 import WatchConnectivity
 
+@Observable
 @MainActor
-final class AppStore: ObservableObject {
+final class AppStore {
     struct NotificationDestination: Equatable {
         let tab: AppTab
         let focusDate: Date?
         let scheduledWorkoutID: UUID?
     }
 
-    @Published var userProfile = UserProfile() {
+    var userProfile = UserProfile() {
         didSet {
             if oldValue.remindersEnabled != userProfile.remindersEnabled {
                 reconcileNotificationStateIfNeeded()
             }
-            save()
+            save(scope: .profile)
         }
     }
-    @Published var monetization = MonetizationState() { didSet { save() } }
-    @Published private(set) var storeKitProducts: [Product] = []
-    @Published private(set) var isLoadingStoreKitProducts = false
-    @Published private(set) var storeKitErrorMessage: String?
-    @Published private(set) var iCloudProRecordHash: String?
-    @Published private(set) var iCloudProEntitlementMessage: String?
-    @Published var activePlan = WorkoutPlan.empty { didSet { save() } }
-    @Published var plans: [WorkoutPlan] = [] { didSet { save() } }
-    @Published var workoutTemplates: [WorkoutDay] = SeedData.workoutTemplates { didSet { save() } }
-    @Published var exercises: [Exercise] = SeedData.exercises { didSet { save() } }
-    @Published var scheduledWorkouts: [ScheduledWorkout] = [] {
+    var monetization = MonetizationState() { didSet { save(scope: .monetization) } }
+    private(set) var storeKitProducts: [Product] = []
+    private(set) var isLoadingStoreKitProducts = false
+    private(set) var storeKitErrorMessage: String?
+    private(set) var iCloudProRecordHash: String?
+    private(set) var iCloudProEntitlementMessage: String?
+    var activePlan = WorkoutPlan.empty { didSet { save(scope: .plans) } }
+    var plans: [WorkoutPlan] = [] { didSet { save(scope: .plans) } }
+    var workoutTemplates: [WorkoutDay] = SeedData.workoutTemplates { didSet { save(scope: .workoutTemplates) } }
+    var exercises: [Exercise] = SeedData.exercises { didSet { save(scope: .exerciseLibrary) } }
+    var scheduledWorkouts: [ScheduledWorkout] = [] {
         didSet {
             reconcileNotificationStateIfNeeded()
-            save()
+            save(scope: .scheduledWorkouts)
         }
     }
-    @Published var workoutSessions: [WorkoutSession] = [] { didSet { save() } }
-    @Published var cardioLogs: [CardioLog] = [] { didSet { save() } }
-    @Published var bodyMetrics: [BodyMetric] = [] { didSet { save() } }
-    @Published var progressPhotos: [ProgressPhoto] = [] { didSet { save() } }
-    @Published var gymPasses: [GymPass] = [] { didSet { save() } }
-    @Published var gymVisits: [GymVisit] = [] { didSet { save() } }
-    @Published var goals: [Goal] = [] { didSet { save() } }
-    @Published var health = HealthSyncState() { didSet { save() } }
-    @Published var isSyncingExerciseLibrary = false
-    @Published var exerciseLibrarySyncMessage: String?
-    @Published var savedShareCards: [SavedShareCard] = [] { didSet { save() } }
-    @Published var finishedSessionForSummary: WorkoutSession? = nil
-    @Published var activeWorkoutStatus: ActiveWorkoutStatus? {
+    var workoutSessions: [WorkoutSession] = [] { didSet { save(scope: .workoutSessions) } }
+    var cardioLogs: [CardioLog] = [] { didSet { save(scope: .cardioLogs) } }
+    var bodyMetrics: [BodyMetric] = [] { didSet { save(scope: .bodyMetrics) } }
+    var progressPhotos: [ProgressPhoto] = [] { didSet { save(scope: .progressPhotos) } }
+    var gymPasses: [GymPass] = [] { didSet { save(scope: .gymPasses) } }
+    var gymVisits: [GymVisit] = [] { didSet { save(scope: .gymVisits) } }
+    var goals: [Goal] = [] { didSet { save(scope: .goals) } }
+    var health = HealthSyncState() { didSet { save(scope: .health) } }
+    var isSyncingExerciseLibrary = false
+    var exerciseLibrarySyncMessage: String?
+    var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
+    var finishedSessionForSummary: WorkoutSession? = nil
+    var activeWorkoutStatus: ActiveWorkoutStatus? {
         didSet {
             let shouldReloadWidgets = shouldReloadWidgetTimelines(from: oldValue, to: activeWorkoutStatus)
-            save(reloadWidgetTimelines: shouldReloadWidgets)
+            save(reloadWidgetTimelines: shouldReloadWidgets, scope: .profile)
             let snapshot = sharedWorkoutSnapshot()
             SharedWorkoutStore.save(snapshot, reloadTimelines: shouldReloadWidgets)
             WatchSyncService.shared.publish(snapshot: snapshot)
             RepsWorkoutLiveActivityController.shared.sync(snapshot)
             guard !isRestoring else { return }
-            if #available(iOS 26.0, *),
-               let nativeWorkoutSessionService = nativeWorkoutSessionService as? NativeWorkoutSessionService {
-                nativeWorkoutSessionService.reconcile(
-                    status: activeWorkoutStatus,
-                    workout: activeWorkout,
-                    preferCompanionWorkout: WatchSyncService.shared.canStartCompanionWorkout
-                )
-            }
+            nativeWorkoutSessionService?.reconcile(
+                status: activeWorkoutStatus,
+                workout: activeWorkout,
+                preferCompanionWorkout: WatchSyncService.shared.canStartCompanionWorkout
+            )
         }
     }
-    @Published var activeWorkout: WorkoutDay? { didSet { save() } }
-    @Published var activeWorkoutDrafts: [ExerciseSessionDraft] = [] { didSet { save() } }
-    @Published var isUsingFallbackStorage = false
-    @Published var notificationDestination: NotificationDestination?
-    @Published var calendarFocusedDate: Date?
-    @Published var activePaywall: PaywallPresentation? {
+    var activeWorkout: WorkoutDay? { didSet { save(scope: .profile) } }
+    var activeWorkoutDrafts: [ExerciseSessionDraft] = [] { didSet { save(scope: .profile) } }
+    var isUsingFallbackStorage = false
+    var notificationDestination: NotificationDestination?
+    var calendarFocusedDate: Date?
+    var activePaywall: PaywallPresentation? {
         didSet {
             if activePaywall == nil, let previous = oldValue {
                 monetization.lastPaywallDismissDate = .now
@@ -89,18 +88,22 @@ final class AppStore: ObservableObject {
         }
     }
 
-    private let persistence: SwiftDataPersistence
-    private let iCloudProEntitlementService: ICloudProEntitlementService
-    private let shareImageRenderer: (WorkoutSession?) -> UIImage
-    private let healthKitService = HealthKitService()
-    private var nativeWorkoutSessionService: Any?
-    private var isRestoring = false
-    private var hasAttemptedExerciseLibrarySync = false
-    private var saveTask: Task<Void, Never>?
-    private var pendingPaywallDismissReason: PaywallDismissReason?
-    private var transactionUpdatesTask: Task<Void, Never>?
-    private var isAutomaticHealthSyncInProgress = false
-    private var lastAutomaticHealthRefreshDate: Date?
+    @ObservationIgnored private let persistence: SwiftDataPersistence
+    @ObservationIgnored private let iCloudProEntitlementService: ICloudProEntitlementService
+    @ObservationIgnored private let shareImageRenderer: (WorkoutSession?) -> UIImage
+    @ObservationIgnored private let healthKitService = HealthKitService()
+    @ObservationIgnored private var nativeWorkoutSessionService: NativeWorkoutSessionService?
+    @ObservationIgnored private var isRestoring = false
+    @ObservationIgnored private var hasAttemptedExerciseLibrarySync = false
+    @ObservationIgnored private var saveTask: Task<Void, Never>?
+    @ObservationIgnored private var pendingSaveScopes: Set<PersistenceScope> = []
+    @ObservationIgnored private var pendingWidgetTimelineReload = false
+    @ObservationIgnored private var pendingPaywallDismissReason: PaywallDismissReason?
+    @ObservationIgnored private var transactionUpdatesTask: Task<Void, Never>?
+    @ObservationIgnored private var isAutomaticHealthSyncInProgress = false
+    @ObservationIgnored private var lastAutomaticHealthRefreshDate: Date?
+    // Written once during init (MainActor) and read in deinit for cleanup.
+    @ObservationIgnored nonisolated(unsafe) private var liveActivityCommandObserver: NSObjectProtocol?
 
     init(
         persistence: SwiftDataPersistence = SwiftDataPersistence(),
@@ -128,21 +131,19 @@ final class AppStore: ObservableObject {
                 self?.importWatchRouteWorkout(summary)
             }
         )
-        if #available(iOS 26.0, *) {
-            let nativeWorkoutSessionService = NativeWorkoutSessionService()
-            nativeWorkoutSessionService.configure(
-                metricsHandler: { [weak self] metrics in
-                    self?.handleNativeWorkoutMetrics(metrics)
-                },
-                mirroredStartHandler: { [weak self] payload in
-                    self?.handleMirroredNativeWorkoutStart(payload)
-                },
-                endedHandler: { [weak self] in
-                    self?.handleNativeWorkoutEnded()
-                }
-            )
-            self.nativeWorkoutSessionService = nativeWorkoutSessionService
-        }
+        let nativeWorkoutSessionService = NativeWorkoutSessionService()
+        nativeWorkoutSessionService.configure(
+            metricsHandler: { [weak self] metrics in
+                self?.handleNativeWorkoutMetrics(metrics)
+            },
+            mirroredStartHandler: { [weak self] payload in
+                self?.handleMirroredNativeWorkoutStart(payload)
+            },
+            endedHandler: { [weak self] in
+                self?.handleNativeWorkoutEnded()
+            }
+        )
+        self.nativeWorkoutSessionService = nativeWorkoutSessionService
         if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
             restore(snapshot)
         } else {
@@ -165,16 +166,27 @@ final class AppStore: ObservableObject {
             }
 
             startHealthKitWorkoutObserverIfAuthorized()
-            if #available(iOS 26.0, *),
-               let nativeWorkoutSessionService = nativeWorkoutSessionService as? NativeWorkoutSessionService {
-                nativeWorkoutSessionService.startMirroringListener()
-            }
+            nativeWorkoutSessionService.startMirroringListener()
             refreshHealthKitDataIfNeeded(reason: "launch")
+
+            liveActivityCommandObserver = NotificationCenter.default.addObserver(
+                forName: LiveActivityCommandBridge.notificationName,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                guard let command = LiveActivityCommandBridge.command(from: notification) else { return }
+                Task { @MainActor in
+                    self?.handleWatchCommand(command)
+                }
+            }
         }
     }
 
     deinit {
         transactionUpdatesTask?.cancel()
+        if let liveActivityCommandObserver {
+            NotificationCenter.default.removeObserver(liveActivityCommandObserver)
+        }
     }
 
     /// Immediately writes the latest computed snapshot to shared UserDefaults
@@ -2157,30 +2169,49 @@ final class AppStore: ObservableObject {
             .lowercased()
     }
 
-    private func save(reloadWidgetTimelines: Bool = true) {
+    private func save(reloadWidgetTimelines: Bool = true, scope: PersistenceScope? = nil) {
         guard !isRestoring else {
             return
         }
 
+        if let scope {
+            pendingSaveScopes.insert(scope)
+        } else {
+            pendingSaveScopes = PersistenceScope.all
+        }
+        pendingWidgetTimelineReload = pendingWidgetTimelineReload || reloadWidgetTimelines
+
         saveTask?.cancel()
         saveTask = Task {
-            do {
-                try await Task.sleep(nanoseconds: 500_000_000) // 500ms debounce
-                guard !Task.isCancelled else { return }
-                persistence.save(currentSnapshot)
-                
-                // Keep shared widgets & watch in sync with data mutations
-                let snapshot = sharedWorkoutSnapshot()
-                SharedWorkoutStore.save(snapshot, reloadTimelines: reloadWidgetTimelines)
-                WatchSyncService.shared.publish(snapshot: snapshot)
-            } catch {
-                // Cancelled or slept error
-                if !Task.isCancelled {
-                    TelemetryService.shared.record(error, context: "snapshot_save")
-                    TelemetryService.shared.log(.nonFatalError, parameters: ["context": "snapshot_save"])
-                }
-            }
+            try? await Task.sleep(nanoseconds: 500_000_000) // 500ms debounce
+            guard !Task.isCancelled else { return }
+            commitPendingSave()
         }
+    }
+
+    /// Writes any debounced changes to disk immediately. Called when the app
+    /// resigns active so a suspension/termination inside the debounce window
+    /// cannot drop the user's latest data.
+    func flushPendingSave() {
+        guard !pendingSaveScopes.isEmpty else { return }
+        saveTask?.cancel()
+        saveTask = nil
+        commitPendingSave()
+    }
+
+    private func commitPendingSave() {
+        let scopes = pendingSaveScopes
+        let reloadTimelines = pendingWidgetTimelineReload
+        pendingSaveScopes = []
+        pendingWidgetTimelineReload = false
+        guard !scopes.isEmpty else { return }
+
+        persistence.save(currentSnapshot, scopes: scopes)
+
+        // Keep shared widgets & watch in sync with data mutations
+        let snapshot = sharedWorkoutSnapshot()
+        SharedWorkoutStore.save(snapshot, reloadTimelines: reloadTimelines)
+        WatchSyncService.shared.publish(snapshot: snapshot)
     }
 
     private func shouldReloadWidgetTimelines(
@@ -3082,12 +3113,22 @@ struct NativeWorkoutStartPayload: Sendable {
     var startedAt: Date
 }
 
-@available(iOS 26.0, *)
+/// Drives HealthKit workout sessions from the iPhone.
+///
+/// Mirroring (receiving the watch session), remote control (pause/resume/end)
+/// and launching the watch app are available from iOS 17. Running a primary
+/// session on the iPhone itself (HKLiveWorkoutBuilder) and session recovery
+/// require iOS 26, so those paths are gated individually.
 @MainActor
 final class NativeWorkoutSessionService: NSObject {
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
-    private var builder: HKLiveWorkoutBuilder?
+    private var builderStorage: Any?
+    @available(iOS 26.0, *)
+    private var builder: HKLiveWorkoutBuilder? {
+        get { builderStorage as? HKLiveWorkoutBuilder }
+        set { builderStorage = newValue }
+    }
     private var activeStatusID: UUID?
     private var pendingFallbackStartTask: Task<Void, Never>?
     private var isStartingPrimarySession = false
@@ -3117,6 +3158,7 @@ final class NativeWorkoutSessionService: NSObject {
             }
         }
 
+        guard #available(iOS 26.0, *) else { return }
         healthStore.recoverActiveWorkoutSession { [weak self] recoveredSession, error in
             guard let recoveredSession else {
                 if let error {
@@ -3153,7 +3195,7 @@ final class NativeWorkoutSessionService: NSObject {
             if preferCompanionWorkout {
                 startCompanionWorkout(status: status, workout: workout)
                 schedulePrimaryFallback(status: status, workout: workout)
-            } else {
+            } else if #available(iOS 26.0, *) {
                 startPrimarySession(status: status, workout: workout)
             }
             return
@@ -3198,6 +3240,7 @@ final class NativeWorkoutSessionService: NSObject {
     }
 
     private func schedulePrimaryFallback(status: ActiveWorkoutStatus, workout: WorkoutDay?) {
+        guard #available(iOS 26.0, *) else { return }
         guard pendingFallbackStartTask == nil else { return }
         pendingFallbackStartTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(4))
@@ -3210,6 +3253,7 @@ final class NativeWorkoutSessionService: NSObject {
         }
     }
 
+    @available(iOS 26.0, *)
     private func startPrimarySession(status: ActiveWorkoutStatus, workout: WorkoutDay?) {
         guard session == nil, !isStartingPrimarySession else { return }
         isStartingPrimarySession = true
@@ -3253,11 +3297,13 @@ final class NativeWorkoutSessionService: NSObject {
             endCurrentSession(notifyApp: false)
         }
 
-        let workoutBuilder = mirroredSession.associatedWorkoutBuilder()
         mirroredSession.delegate = self
-        workoutBuilder.delegate = self
         session = mirroredSession
-        builder = workoutBuilder
+        if #available(iOS 26.0, *) {
+            let workoutBuilder = mirroredSession.associatedWorkoutBuilder()
+            workoutBuilder.delegate = self
+            builder = workoutBuilder
+        }
 
         let configuration = mirroredSession.workoutConfiguration
         mirroredStartHandler?(NativeWorkoutStartPayload(
@@ -3270,16 +3316,18 @@ final class NativeWorkoutSessionService: NSObject {
     private func endCurrentSession(notifyApp: Bool) {
         guard let session else { return }
         isEndingFromAppState = !notifyApp
-        let workoutBuilder = builder
         let endDate = Date()
 
         session.end()
-        Task {
-            try? await workoutBuilder?.endCollection(at: endDate)
-            _ = try? await workoutBuilder?.finishWorkout()
+        if #available(iOS 26.0, *) {
+            let workoutBuilder = builder
+            Task {
+                try? await workoutBuilder?.endCollection(at: endDate)
+                _ = try? await workoutBuilder?.finishWorkout()
+            }
         }
         self.session = nil
-        builder = nil
+        builderStorage = nil
         activeStatusID = nil
         isStartingPrimarySession = false
     }
@@ -3339,7 +3387,6 @@ final class NativeWorkoutSessionService: NSObject {
     }
 }
 
-@available(iOS 26.0, *)
 extension NativeWorkoutSessionService: HKWorkoutSessionDelegate {
     nonisolated func workoutSession(
         _ workoutSession: HKWorkoutSession,
@@ -3352,7 +3399,7 @@ extension NativeWorkoutSessionService: HKWorkoutSessionDelegate {
             let shouldNotify = !isEndingFromAppState
             isEndingFromAppState = false
             session = nil
-            builder = nil
+            builderStorage = nil
             activeStatusID = nil
             if shouldNotify {
                 endedHandler?()

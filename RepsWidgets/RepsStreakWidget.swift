@@ -144,13 +144,13 @@ private struct SmallStreakView: View {
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
                 
-                Text(streak == 1 ? "día" : "días")
+                Text(streak == 1 ? "día" : "días" as LocalizedStringKey)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(theme.secondaryForeground)
             }
             .padding(.vertical, -4)
 
-            Text(hasPlan ? "COMPLETADOS" : "SIN PLAN")
+            Text(hasPlan ? "COMPLETADOS" : "SIN PLAN" as LocalizedStringKey)
                 .font(.system(size: 8, weight: .black))
                 .foregroundStyle(theme.secondaryForeground)
 
@@ -214,7 +214,7 @@ private struct MediumStreakView: View {
                         .foregroundStyle(theme.foreground)
                         .minimumScaleFactor(0.8)
                         .lineLimit(1)
-                    Text(streak == 1 ? "día" : "días")
+                    Text(streak == 1 ? "día" : "días" as LocalizedStringKey)
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(theme.secondaryForeground)
                 }
@@ -228,7 +228,7 @@ private struct MediumStreakView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
-                Text(streak > 0 ? "¡Excelente constancia!" : (hasPlan ? "Empieza tu racha hoy" : "Crea tu primer plan"))
+                Text(streak > 0 ? "¡Excelente constancia!" : (hasPlan ? "Empieza tu racha hoy" : "Crea tu primer plan") as LocalizedStringKey)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.foreground)
                     .lineLimit(1)
@@ -236,7 +236,13 @@ private struct MediumStreakView: View {
 
                 Spacer(minLength: 2)
 
-                Text(hasPlan ? "Has completado el \(Int(completion * 100))% de tus entrenos planificados esta semana." : "Cuando tengas un plan activo, aquí verás tu progreso semanal.")
+                Group {
+                    if hasPlan {
+                        Text("Has completado el \(Int(completion * 100))% de tus entrenos planificados esta semana.")
+                    } else {
+                        Text("Cuando tengas un plan activo, aquí verás tu progreso semanal.")
+                    }
+                }
                     .font(.system(size: 10))
                     .foregroundStyle(theme.secondaryForeground)
                     .lineLimit(2)

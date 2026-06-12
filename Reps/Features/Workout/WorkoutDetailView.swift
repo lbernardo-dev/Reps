@@ -2,7 +2,7 @@ import MuscleMap
 import SwiftUI
 
 struct WorkoutDetailView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     let workout: WorkoutDay
     
     @State private var selectedWorkout: WorkoutDay

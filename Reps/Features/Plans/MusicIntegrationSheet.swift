@@ -3,7 +3,7 @@ import MusicKit
 
 struct MusicIntegrationSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     
     let onSelect: (PlanPlaylist) -> Void
     

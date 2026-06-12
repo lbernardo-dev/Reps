@@ -32,7 +32,7 @@ enum BatteryStyle: String, CaseIterable, Identifiable {
 }
 
 struct TrainingBatteryView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedStyle: BatteryStyle = .liquid
@@ -945,5 +945,5 @@ struct VerticalSegmentedPowerCell: View {
 #Preview {
     let store = AppStore()
     return TrainingBatteryView()
-        .environmentObject(store)
+        .environment(store)
 }

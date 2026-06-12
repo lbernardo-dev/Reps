@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct OneRepMaxCalculatorView: View {
-  @EnvironmentObject private var store: AppStore
+  @Environment(AppStore.self) private var store
   @State private var weightInput: String = ""
   @State private var repsInput: Int = 5
 

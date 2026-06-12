@@ -4,7 +4,7 @@ import SwiftUI
 import PhotosUI
 
 struct ExerciseProgressView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     let exercise: Exercise
 
     @State private var metric = ProgressMetric.weight

@@ -66,10 +66,18 @@ struct RepsWorkoutLiveActivity: Widget {
                         .font(.headline.weight(.bold))
                         .foregroundStyle(theme.foreground)
                         .lineLimit(1)
-                    Text(snapshot.isPaused ? (snapshot.isOutdoorRoute == false ? "Cinta pausada" : "Ruta pausada") : routeSubtitle(snapshot))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(theme.secondaryForeground)
-                        .lineLimit(1)
+                    Group {
+                        if snapshot.isPaused, snapshot.isOutdoorRoute == false {
+                            Text("Cinta pausada")
+                        } else if snapshot.isPaused {
+                            Text("Ruta pausada")
+                        } else {
+                            Text(verbatim: routeSubtitle(snapshot))
+                        }
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.secondaryForeground)
+                    .lineLimit(1)
                 }
                 Spacer(minLength: 8)
                 statusBadge(snapshot, theme: theme, isStale: isStale)
@@ -89,7 +97,7 @@ struct RepsWorkoutLiveActivity: Widget {
 
             HStack(spacing: 10) {
                 compactMetric("Pulso", icon: "heart.fill", theme: theme) {
-                    Text(snapshot.heartRate.map { "\(Int($0)) lpm" } ?? "--")
+                    Text(snapshot.heartRate.map { String(localized: "\(Int($0)) lpm") } ?? "--")
                 }
                 compactMetric("Kcal", icon: "flame.fill", theme: theme) {
                     Text(snapshot.activeEnergyKcal.map { "\(Int($0))" } ?? "--")
@@ -98,6 +106,8 @@ struct RepsWorkoutLiveActivity: Widget {
                     Text(snapshot.routeSteps.map { "\(Int($0))" } ?? "--")
                 }
             }
+
+            actionButtons(snapshot, theme: theme, includesCompleteSet: false)
         }
         .padding()
         .background(theme.background)
@@ -156,10 +166,16 @@ struct RepsWorkoutLiveActivity: Widget {
                 HStack(spacing: 6) {
                     Image(systemName: snapshot.restEndDate == nil ? "dumbbell.fill" : "arrow.forward.circle.fill")
                         .foregroundStyle(theme.tint)
-                    Text(snapshot.restEndDate == nil ? nextExercise : "Siguiente: \(nextExercise)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(theme.secondaryForeground)
-                        .lineLimit(1)
+                    Group {
+                        if snapshot.restEndDate == nil {
+                            Text(verbatim: nextExercise)
+                        } else {
+                            Text("Siguiente: \(nextExercise)")
+                        }
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.secondaryForeground)
+                    .lineLimit(1)
                     Spacer(minLength: 4)
                     Text("\(snapshot.completedSets)/\(max(snapshot.totalSets, 1)) series")
                         .font(.caption2.weight(.black))
@@ -169,9 +185,35 @@ struct RepsWorkoutLiveActivity: Widget {
                         .background(theme.badgeBackground, in: Capsule())
                 }
             }
+
+            actionButtons(snapshot, theme: theme, includesCompleteSet: true)
         }
         .padding()
         .background(theme.background)
+    }
+
+    private func actionButtons(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme, includesCompleteSet: Bool) -> some View {
+        let pauseTitle: LocalizedStringKey = snapshot.isPaused ? "Reanudar" : "Pausa"
+        return HStack(spacing: 8) {
+            Button(intent: ToggleWorkoutPauseLiveActivityIntent()) {
+                Label(pauseTitle, systemImage: snapshot.isPaused ? "play.fill" : "pause.fill")
+                    .font(.caption.weight(.bold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(theme.tint)
+
+            if includesCompleteSet {
+                Button(intent: CompleteSetLiveActivityIntent()) {
+                    Label("Serie hecha", systemImage: "checkmark.circle.fill")
+                        .font(.caption.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(theme.tint)
+            }
+        }
+        .controlSize(.small)
     }
 
     private func islandExpandedBottom(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme, isStale: Bool) -> some View {
@@ -197,14 +239,29 @@ struct RepsWorkoutLiveActivity: Widget {
             }
 
             HStack(spacing: 6) {
+                Button(intent: ToggleWorkoutPauseLiveActivityIntent()) {
+                    Image(systemName: snapshot.isPaused ? "play.fill" : "pause.fill")
+                        .font(.system(size: 13, weight: .bold))
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .tint(theme.tint)
+
                 if snapshot.isRouteWorkout {
-                    islandCompactMetric(icon: "timer", value: snapshot.isPaused ? snapshot.elapsedText : "En curso", theme: theme)
+                    islandCompactMetric(icon: "timer", value: snapshot.isPaused ? snapshot.elapsedText : String(localized: "En curso"), theme: theme)
                     islandCompactMetric(icon: "point.topleft.down.curvedto.point.bottomright.up", value: routeDistanceText(snapshot), theme: theme)
                     islandCompactMetric(icon: "speedometer", value: routePaceText(snapshot), theme: theme)
                 } else {
                     islandCompactMetric(icon: "hourglass", value: snapshot.restEndDate == nil ? snapshot.remainingText : snapshot.restText, theme: theme)
-                    islandCompactMetric(icon: "scalemass", value: "\(snapshot.volumeKg) kg", theme: theme)
                     islandCompactMetric(icon: "dumbbell.fill", value: "\(snapshot.completedSets)/\(max(snapshot.totalSets, 1))", theme: theme)
+
+                    Button(intent: CompleteSetLiveActivityIntent()) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.circle)
+                    .tint(theme.tint)
                 }
             }
         }
@@ -215,7 +272,7 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func statusBadge(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme, isStale: Bool) -> some View {
-        let title = isStale ? "ACTUALIZANDO" : statusTitle(snapshot)
+        let title: LocalizedStringKey = isStale ? "ACTUALIZANDO" : statusTitle(snapshot)
         let icon = isStale ? "arrow.triangle.2.circlepath" : compactLeadingSystemImage(snapshot)
 
         return Label(title, systemImage: icon)
@@ -228,7 +285,7 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func compactMetric<Content: View>(
-        _ title: String,
+        _ title: LocalizedStringKey,
         icon: String,
         theme: WidgetTheme,
         @ViewBuilder value: () -> Content
@@ -252,7 +309,7 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func islandMetric<Content: View>(
-        _ title: String,
+        _ title: LocalizedStringKey,
         icon: String,
         tint: Color,
         @ViewBuilder value: () -> Content
@@ -314,7 +371,7 @@ struct RepsWorkoutLiveActivity: Widget {
         }
     }
 
-    private func statusTitle(_ snapshot: SharedWorkoutSnapshot) -> String {
+    private func statusTitle(_ snapshot: SharedWorkoutSnapshot) -> LocalizedStringKey {
         if snapshot.isRouteWorkout {
             if snapshot.isPaused { return "PAUSA" }
             return snapshot.isOutdoorRoute == false ? "CINTA" : "RUTA"

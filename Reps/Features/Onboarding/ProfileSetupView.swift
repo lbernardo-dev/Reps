@@ -2,7 +2,7 @@ import MuscleMap
 import SwiftUI
 
 struct ProfileSetupView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var profile = UserProfile()
     @State private var step: OnboardingStep = .presentation
     @State private var selectedSex: OnboardingSex?

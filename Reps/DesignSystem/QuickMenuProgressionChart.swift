@@ -58,7 +58,7 @@ enum ProgressionMetricType: String, CaseIterable, Identifiable {
 }
 
 struct QuickMenuProgressionChart: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @Namespace private var tabNamespace
     
     @State private var selectedMetric: ProgressionMetricType = .exercises

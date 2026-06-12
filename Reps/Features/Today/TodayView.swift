@@ -2,7 +2,7 @@ import MuscleMap
 import SwiftUI
 
 struct TodayView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var showScheduleWorkout = false
     @State private var showCreatePlan = false
     @State private var showProfile = false

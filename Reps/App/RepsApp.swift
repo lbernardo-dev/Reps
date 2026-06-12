@@ -41,19 +41,19 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
 @main
 struct RepsApp: App {
     @UIApplicationDelegateAdaptor(RepsApplicationDelegate.self) private var appDelegate
-    @StateObject private var store: AppStore
+    @State private var store: AppStore
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
         FirebaseBootstrap.configureIfNeeded()
         TelemetryService.shared.configure()
-        _store = StateObject(wrappedValue: AppStore())
+        _store = State(initialValue: AppStore())
     }
 
     var body: some Scene {
         WindowGroup {
             RootView()
-                .environmentObject(store)
+                .environment(store)
                 .environment(\.locale, Locale(identifier: store.userProfile.preferredLanguage))
                 .tint(PulseTheme.accent)
                 .task {
@@ -84,6 +84,9 @@ struct RepsApp: App {
                 }
         }
         .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background || newPhase == .inactive {
+                store.flushPendingSave()
+            }
             if newPhase == .active {
                 store.syncWidgets()
                 store.refreshNotificationSchedule()

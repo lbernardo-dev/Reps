@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PlansView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var showCreatePlan = false
     @State private var showExerciseLibrary = false
     @State private var planToEdit: WorkoutPlan?
@@ -874,7 +874,7 @@ private struct PlanExercisePickerTarget: Identifiable {
 
 struct CreatePlanView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     @State private var step: PlanWizardStep = .basics
     @State private var planName = ""
@@ -1321,7 +1321,7 @@ struct CreatePlanView: View {
 
 struct EditPlanView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     let plan: WorkoutPlan
 
@@ -1627,7 +1627,7 @@ private struct PlanEditorActionRow: View {
 
 struct LegacyCreatePlanView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     @State private var planName = ""
     @State private var location: UserProfile.TrainingLocation = .gym
@@ -1904,7 +1904,7 @@ private struct CompactStepper: View {
 private struct EditableWorkoutExerciseRow: View {
     @Binding var item: WorkoutExercise
     let onDelete: () -> Void
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -2036,7 +2036,7 @@ private struct PlanExercisePickerSheet: View {
     let exercises: [Exercise]
     let onSelect: (Exercise) -> Void
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     @State private var searchText = ""
     @State private var selectedMuscle = "Todos"

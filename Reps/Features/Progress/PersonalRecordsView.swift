@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PersonalRecordsView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     
     struct PersonalRecordItem: Identifiable {
@@ -105,7 +105,7 @@ struct PersonalRecordsView: View {
 }
 
 struct PRCardView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     let item: PersonalRecordsView.PersonalRecordItem
     @State private var isShowingShareSheet = false
     @State private var shareImage: UIImage?

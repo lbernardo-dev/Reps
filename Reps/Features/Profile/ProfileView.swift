@@ -9,7 +9,7 @@ struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.requestReview) private var requestReview
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     var onOpenPlans: (() -> Void)?
     @StateObject private var healthKit = HealthKitService()
     @State private var weightText = ""
@@ -1248,14 +1248,14 @@ struct ProfileView: View {
                     store.trackPaywallDismissal(presentation, reason: reason)
                     localPaywall = nil
                 }
-                .environmentObject(store)
+                .environment(store)
             }
     }
 }
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     @State private var activeDestination: SettingsDestination?
     @State private var localPaywall: PaywallPresentation?
@@ -1309,12 +1309,13 @@ struct SettingsView: View {
                 store.trackPaywallDismissal(presentation, reason: reason)
                 localPaywall = nil
             }
-            .environmentObject(store)
+            .environment(store)
         }
     }
 
     private var appPreferences: some View {
-        PulseCard {
+        @Bindable var store = store
+        return PulseCard {
             VStack(alignment: .leading, spacing: 16) {
                 Label(isSpanish ? "Preferencias de app" : "App Preferences", systemImage: "app.badge")
                     .font(.headline)
@@ -1342,7 +1343,8 @@ struct SettingsView: View {
     }
 
     private var trainingPreferences: some View {
-        PulseCard {
+        @Bindable var store = store
+        return PulseCard {
             VStack(alignment: .leading, spacing: 16) {
                 Label(isSpanish ? "Medición" : "Measurement", systemImage: "ruler")
                     .font(.headline)
@@ -2101,7 +2103,7 @@ private struct GymVisitRow: View {
 
 struct GoalEditorView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     @State private var kind: Goal.Kind = .strength
     @State private var title = ""
@@ -2150,7 +2152,7 @@ struct GoalEditorView: View {
 
 struct QuickBodyMetricEditorView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var weight = ""
     @State private var height = ""
 
@@ -2198,7 +2200,7 @@ struct QuickBodyMetricEditorView: View {
 
 struct ProgressPhotoEditorView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var date = Date()
     @State private var note = ""
     @State private var photoItem: PhotosPickerItem?
@@ -2415,7 +2417,7 @@ private struct ProgressPhotoEmptyPreview: View {
 
 struct GymPassEditorView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var gymName = ""
     @State private var membershipID = ""
     @State private var codeValue = ""
@@ -2474,7 +2476,7 @@ struct GymPassEditorView: View {
 
 struct GymVisitEditorView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var gymName = ""
     @State private var date = Date()
     @State private var locationNote = ""
@@ -2527,7 +2529,7 @@ struct GymVisitEditorView: View {
 
 struct CardioLogEditorView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     @State private var activityType: CardioLog.ActivityType = .treadmill
     @State private var date = Date()
@@ -2613,7 +2615,7 @@ struct CardioLogEditorView: View {
 
 struct BodyWellnessEditorView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @StateObject private var healthKit = HealthKitService()
 
     @State private var date = Date()
@@ -2771,12 +2773,13 @@ struct BodyWellnessEditorView: View {
 
 struct ProPreferencesView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     var onShowPaywall: ((PaywallPresentation) -> Void)?
     private let equipmentOptions = ["Barbell", "Dumbbells", "Kettlebell", "Resistance Band", "Cable", "Machine", "Bench", "Rack", "Pullup Bar", "Cardio Machine"]
 
     var body: some View {
-        NavigationStack {
+        @Bindable var store = store
+        return NavigationStack {
             Group {
                 if store.hasFeatureAccess(.configurableProgression) {
                     Form {

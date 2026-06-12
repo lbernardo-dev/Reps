@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct WelcomeView: View {
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     @State private var showSplash = true
 
     var body: some View {

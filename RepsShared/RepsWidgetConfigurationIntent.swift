@@ -250,3 +250,50 @@ public struct RepsWidgetConfigurationIntent: WidgetConfigurationIntent {
 
     public init() {}
 }
+
+#if os(iOS)
+/// Bridges Live Activity button taps (which run inside the main app process
+/// via LiveActivityIntent) to the same command pipeline the watch uses.
+enum LiveActivityCommandBridge {
+    static let notificationName = Notification.Name("RepsLiveActivityCommand")
+    static let commandKey = "command"
+
+    @MainActor
+    static func post(_ command: WatchCommand) {
+        NotificationCenter.default.post(
+            name: notificationName,
+            object: nil,
+            userInfo: [commandKey: command.rawValue]
+        )
+    }
+
+    static func command(from notification: Notification) -> WatchCommand? {
+        (notification.userInfo?[commandKey] as? String).flatMap(WatchCommand.init(rawValue:))
+    }
+}
+
+public struct ToggleWorkoutPauseLiveActivityIntent: LiveActivityIntent {
+    public static let title: LocalizedStringResource = "Pausar o reanudar entreno"
+    public static let description = IntentDescription("Pausa o reanuda el entreno en curso.")
+
+    public init() {}
+
+    public func perform() async throws -> some IntentResult {
+        let isPaused = SharedWorkoutStore.load().isPaused
+        await LiveActivityCommandBridge.post(isPaused ? .resume : .pause)
+        return .result()
+    }
+}
+
+public struct CompleteSetLiveActivityIntent: LiveActivityIntent {
+    public static let title: LocalizedStringResource = "Completar serie"
+    public static let description = IntentDescription("Marca la serie actual como completada.")
+
+    public init() {}
+
+    public func perform() async throws -> some IntentResult {
+        await LiveActivityCommandBridge.post(.completeSet)
+        return .result()
+    }
+}
+#endif

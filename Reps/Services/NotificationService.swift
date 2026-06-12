@@ -30,6 +30,35 @@ enum NotificationService {
         try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
     }
 
+    private static let restTimerIdentifier = "rest-timer-end"
+
+    /// Schedules a local alert for the end of the current rest period so the
+    /// user gets notified even if the app is suspended in the background.
+    /// Replaces any previously scheduled rest alert.
+    static func scheduleRestEndNotification(after seconds: Int, nextExerciseName: String? = nil) {
+        guard seconds > 1 else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Descanso terminado")
+        if let nextExerciseName, !nextExerciseName.isEmpty {
+            content.body = String(localized: "Siguiente: \(nextExerciseName)")
+        } else {
+            content.body = String(localized: "Hora de la siguiente serie.")
+        }
+        content.sound = .default
+        content.threadIdentifier = "rest-timer"
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
+        let request = UNNotificationRequest(identifier: restTimerIdentifier, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    static func cancelRestEndNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [restTimerIdentifier])
+        center.removeDeliveredNotifications(withIdentifiers: [restTimerIdentifier])
+    }
+
     static func scheduleWorkoutReminder(for scheduledWorkout: ScheduledWorkout) async throws {
         guard let request = workoutReminderRequest(for: scheduledWorkout, now: .now) else {
             return

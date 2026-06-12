@@ -49,6 +49,56 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
         configureLocation()
         configureConnectivity()
         snapshot = SharedWorkoutStore.load()
+        recoverActiveSessionIfNeeded()
+    }
+
+    /// Reattaches a workout session left running by HealthKit if the app was
+    /// terminated mid-workout, so the user does not lose the session.
+    private func recoverActiveSessionIfNeeded() {
+        guard HKHealthStore.isHealthDataAvailable(), session == nil else { return }
+        healthStore.recoverActiveWorkoutSession { [weak self] recoveredSession, _ in
+            guard let recoveredSession else { return }
+            Task { @MainActor in
+                self?.attachRecoveredSession(recoveredSession)
+            }
+        }
+    }
+
+    private func attachRecoveredSession(_ recoveredSession: HKWorkoutSession) {
+        guard session == nil,
+              recoveredSession.state == .running || recoveredSession.state == .paused else {
+            return
+        }
+
+        let configuration = recoveredSession.workoutConfiguration
+        let workoutBuilder = recoveredSession.associatedWorkoutBuilder()
+        recoveredSession.delegate = self
+        workoutBuilder.delegate = self
+        if workoutBuilder.dataSource == nil {
+            workoutBuilder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
+        }
+
+        session = recoveredSession
+        builder = workoutBuilder
+        startedAt = recoveredSession.startDate ?? Date()
+        endedAt = nil
+        state = recoveredSession.state == .paused ? .paused : .running
+        isLocalRouteWorkout = Self.isRouteConfiguration(configuration)
+        standaloneActivity = Self.routeWorkoutActivity(for: configuration)
+        standaloneWorkoutID = UUID()
+        // The standalone snapshot writer tags sessions started on the watch;
+        // a recovered route session without an iPhone-driven workout is standalone.
+        let wasStandalone = snapshot.sessionTitle == "Iniciado desde Apple Watch"
+        isStandaloneRouteWorkout = isLocalRouteWorkout && (wasStandalone || !snapshot.hasActiveWorkout)
+
+        if isLocalRouteWorkout, state == .running {
+            startPedometer()
+            if configuration.locationType != .indoor {
+                startLocation()
+            }
+        }
+        startTimer()
+        updateStandaloneSnapshotIfNeeded()
     }
 
     func startWorkout() {
@@ -373,6 +423,9 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
         case .authorizedAlways, .authorizedWhenInUse:
+            // Requires the "location" UIBackgroundMode so the route keeps
+            // recording with the wrist down during the workout session.
+            locationManager.allowsBackgroundLocationUpdates = true
             locationManager.startUpdatingLocation()
         default:
             break

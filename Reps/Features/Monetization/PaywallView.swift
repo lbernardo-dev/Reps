@@ -4,7 +4,7 @@ import UIKit
 
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     let presentation: PaywallPresentation
     let onDismissReason: ((PaywallDismissReason) -> Void)?
@@ -388,7 +388,7 @@ struct PaywallView: View {
 
 struct SubscriptionCenterView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
 
     var body: some View {
         NavigationStack {

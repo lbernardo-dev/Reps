@@ -207,7 +207,7 @@ private struct RepsWorkoutWidgetView: View {
 }
 
 private extension SharedWorkoutSnapshot {
-    var stateLabel: String {
+    var stateLabel: LocalizedStringKey {
         if isRouteWorkout {
             if isPaused { return "PAUSA" }
             return isOutdoorRoute == false ? "CINTA" : "RUTA"
@@ -616,7 +616,7 @@ private struct InactiveWorkoutView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.tint)
                 Spacer()
-                Text(entry.snapshot.hasUpcomingWorkout ? "PRÓXIMO" : "SIN PLAN")
+                Text(entry.snapshot.hasUpcomingWorkout ? "PRÓXIMO" : "SIN PLAN" as LocalizedStringKey)
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(theme.badgeText)
                     .padding(.horizontal, 6)

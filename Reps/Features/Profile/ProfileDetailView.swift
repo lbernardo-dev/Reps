@@ -3,7 +3,7 @@ import PhotosUI
 
 struct ProfileDetailView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: AppStore
+    @Environment(AppStore.self) private var store
     
     @State private var displayName = ""
     @State private var email = ""
