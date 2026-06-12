@@ -40,9 +40,9 @@ struct ProfileView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 40, height: 40)
-                                .background(Color.white.opacity(0.12))
+                                .foregroundStyle(PulseTheme.primary)
+                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                .background(PulseTheme.primary.opacity(0.10))
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
@@ -599,9 +599,9 @@ struct ProfileView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 40, height: 40)
-                                .background(Color.white.opacity(0.12))
+                                .foregroundStyle(PulseTheme.primary)
+                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                .background(PulseTheme.primary.opacity(0.10))
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
@@ -742,9 +742,9 @@ struct ProfileView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 40, height: 40)
-                                .background(Color.white.opacity(0.12))
+                                .foregroundStyle(PulseTheme.primary)
+                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                .background(PulseTheme.primary.opacity(0.10))
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)

@@ -481,7 +481,7 @@ struct PaywallLockedCard: View {
                         .frame(height: 44)
                         .foregroundStyle(.black)
                         .background(PulseTheme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
             }
@@ -510,7 +510,7 @@ private struct PaywallBenefitRow: View {
         }
         .padding(14)
         .background(PulseTheme.card)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
 
@@ -562,7 +562,7 @@ private struct LockedFeatureSummary: View {
         }
         .padding(14)
         .background(PulseTheme.grouped)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
 
@@ -736,9 +736,9 @@ private struct PaywallPlanCard: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(isSelected ? PulseTheme.accentMuted : PulseTheme.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
                 .stroke(isSelected ? PulseTheme.accent : PulseTheme.separator, lineWidth: isSelected ? 1.5 : 1)
         }
     }

@@ -90,8 +90,8 @@ struct MusicIntegrationSheet: View {
                     .background {
                         if selectedProvider == provider {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(provider == .spotify ? Color.green : Color.pink)
-                                .shadow(color: (provider == .spotify ? Color.green : Color.pink).opacity(0.35), radius: 6, y: 3)
+                                .fill(provider == .spotify ? PulseTheme.spotify : PulseTheme.appleMusic)
+                                .shadow(color: (provider == .spotify ? PulseTheme.spotify : PulseTheme.appleMusic).opacity(0.35), radius: 6, y: 3)
                         } else {
                             Color.clear
                         }
@@ -114,7 +114,7 @@ struct MusicIntegrationSheet: View {
                 VStack(spacing: 16) {
                     // Apple Music branding card
                     LinearGradient(
-                        colors: [Color.pink, Color.purple, Color.orange],
+                        colors: [PulseTheme.appleMusic, Color.purple, Color.orange],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -133,7 +133,7 @@ struct MusicIntegrationSheet: View {
                                 .foregroundStyle(.white.opacity(0.85))
                         }
                     )
-                    .shadow(color: Color.pink.opacity(0.3), radius: 12, y: 6)
+                    .shadow(color: PulseTheme.appleMusic.opacity(0.3), radius: 12, y: 6)
                     
                     Text("Si tienes una suscripción de Apple Music activa en este dispositivo, Reps puede conectarse a tu biblioteca local y cargar tus playlists al instante sin copiar URLs.")
                         .font(.subheadline)
@@ -152,7 +152,7 @@ struct MusicIntegrationSheet: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .foregroundStyle(.white)
-                        .background(Color.pink)
+                        .background(PulseTheme.appleMusic)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
@@ -166,13 +166,13 @@ struct MusicIntegrationSheet: View {
                 VStack(spacing: 14) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Color.pink)
+                            .foregroundStyle(PulseTheme.appleMusic)
                         Text("Apple Music conectado")
                             .font(.headline)
                         Spacer()
                     }
                     .padding(14)
-                    .background(Color.pink.opacity(0.12))
+                    .background(PulseTheme.appleMusic.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             }
@@ -234,7 +234,7 @@ struct MusicIntegrationSheet: View {
                                     
                                     Image(systemName: "plus.circle.fill")
                                         .font(.title3)
-                                        .foregroundStyle(Color.pink)
+                                        .foregroundStyle(PulseTheme.appleMusic)
                                 }
                                 .padding(12)
                                 .background(PulseTheme.card)
@@ -321,7 +321,7 @@ struct MusicIntegrationSheet: View {
                                     
                                     Image(systemName: "plus.circle.fill")
                                         .font(.title3)
-                                        .foregroundStyle(Color.pink)
+                                        .foregroundStyle(PulseTheme.appleMusic)
                                 }
                                 .padding(12)
                                 .background(PulseTheme.card)
@@ -362,7 +362,7 @@ struct MusicIntegrationSheet: View {
                                 
                                 Image(systemName: "plus.circle.fill")
                                     .font(.title3)
-                                    .foregroundStyle(Color.pink)
+                                    .foregroundStyle(PulseTheme.appleMusic)
                             }
                             .padding(12)
                             .background(PulseTheme.card)
@@ -403,7 +403,7 @@ struct MusicIntegrationSheet: View {
                                 .foregroundStyle(.white.opacity(0.85))
                         }
                     )
-                    .shadow(color: Color.green.opacity(0.3), radius: 12, y: 6)
+                    .shadow(color: PulseTheme.spotify.opacity(0.3), radius: 12, y: 6)
                     
                     Text("Conecta Reps con tu cuenta de Spotify mediante el flujo seguro oficial para ver tus playlists creadas y sincronizarlas al instante sin salir de la app.")
                         .font(.subheadline)
@@ -422,7 +422,7 @@ struct MusicIntegrationSheet: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .foregroundStyle(.white)
-                        .background(Color.green)
+                        .background(PulseTheme.spotify)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
@@ -431,7 +431,7 @@ struct MusicIntegrationSheet: View {
                 VStack(spacing: 14) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Color.green)
+                            .foregroundStyle(PulseTheme.spotify)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Spotify Conectado")
                                 .font(.headline)
@@ -452,7 +452,7 @@ struct MusicIntegrationSheet: View {
                         .background(Color.red.opacity(0.12), in: Capsule())
                     }
                     .padding(14)
-                    .background(Color.green.opacity(0.12))
+                    .background(PulseTheme.spotify.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
             }
@@ -495,7 +495,7 @@ struct MusicIntegrationSheet: View {
                             
                             Image(systemName: "plus.circle.fill")
                                 .font(.title3)
-                                .foregroundStyle(Color.green)
+                                .foregroundStyle(PulseTheme.spotify)
                         }
                         .padding(12)
                         .background(PulseTheme.card)
@@ -670,7 +670,7 @@ struct PlaylistArtMock: View {
             LinearGradient(
                 colors: provider == .spotify 
                     ? [Color(red: 0.1, green: 0.8, blue: 0.3), Color(red: 0.05, green: 0.35, blue: 0.12)]
-                    : [Color.pink, Color.purple],
+                    : [PulseTheme.appleMusic, Color.purple],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -706,7 +706,7 @@ struct SpotifyLoginModal: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "dot.radiowaves.left.and.right")
                                     .font(.title.weight(.black))
-                                    .foregroundStyle(Color.green)
+                                    .foregroundStyle(PulseTheme.spotify)
                                 Text("Spotify")
                                     .font(.title.weight(.bold))
                                     .foregroundStyle(.white)
@@ -746,7 +746,7 @@ struct SpotifyLoginModal: View {
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 50)
                                 .foregroundStyle(.black)
-                                .background(Color.green)
+                                .background(PulseTheme.spotify)
                                 .clipShape(Capsule())
                             }
                             .disabled(username.isEmpty || password.isEmpty || isLoading)
@@ -766,7 +766,7 @@ struct SpotifyLoginModal: View {
                     VStack(spacing: 24) {
                         Image(systemName: "personalhotspot")
                             .font(.system(size: 68))
-                            .foregroundStyle(Color.green)
+                            .foregroundStyle(PulseTheme.spotify)
                             .padding(.top, 40)
                         
                         Text("¿Permitir a Reps conectarse a Spotify?")
@@ -798,7 +798,7 @@ struct SpotifyLoginModal: View {
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 52)
                                     .foregroundStyle(.black)
-                                    .background(Color.green)
+                                    .background(PulseTheme.spotify)
                                     .clipShape(Capsule())
                             }
                             .buttonStyle(.plain)
@@ -838,7 +838,7 @@ struct SpotifyLoginModal: View {
         HStack(alignment: .top, spacing: 8) {
             Text("•")
                 .font(.headline)
-                .foregroundStyle(Color.green)
+                .foregroundStyle(PulseTheme.spotify)
             Text(text)
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)

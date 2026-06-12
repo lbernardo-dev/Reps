@@ -713,12 +713,12 @@ struct ProfileSetupView: View {
                 .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
                 .padding(12)
                 .background(isSelected ? PulseTheme.elevated : PulseTheme.grouped)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
                         .stroke(isSelected ? option.tint.opacity(0.7) : PulseTheme.separator, lineWidth: isSelected ? 1.5 : 1)
                 )
-                .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(option.title)
@@ -938,9 +938,9 @@ struct ProfileSetupView: View {
                                     // Left: Image or Anatomy Map Thumbnail
                                     ExerciseMediaThumbnail(exercise: item.exercise, gender: selectedGender)
                                         .frame(width: 76, height: 76)
-                                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                                         .overlay(
-                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
                                                 .stroke(PulseTheme.separator, lineWidth: 1)
                                         )
                                         .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 1.5)
@@ -1725,7 +1725,7 @@ private struct OnboardingRulerMetric: View {
                         .foregroundStyle(.black)
                         .frame(width: 40, height: 40)
                         .background(PulseTheme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(title)

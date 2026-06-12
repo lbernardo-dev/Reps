@@ -478,7 +478,7 @@ private struct PlanMusicCard: View {
                             Image(systemName: playButtonIcon(for: primaryPlaylist))
                                 .foregroundStyle(.white)
                                 .frame(width: 44, height: 44)
-                                .background(primaryPlaylist.provider == .appleMusic ? Color.pink : PulseTheme.accent)
+                                .background(primaryPlaylist.provider == .appleMusic ? PulseTheme.appleMusic : PulseTheme.accent)
                                 .clipShape(Circle())
                         }
                         .accessibilityLabel(primaryPlaylist.provider == .appleMusic ? "Reproducir en Reps" : "Abrir playlist")
@@ -538,7 +538,7 @@ private struct PlaylistProviderBadge: View {
             .font(.title3.weight(.bold))
             .foregroundStyle(.white)
             .frame(width: 52, height: 52)
-            .background(provider == .spotify ? Color.green : Color.pink)
+            .background(provider == .spotify ? PulseTheme.spotify : PulseTheme.appleMusic)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
@@ -591,7 +591,7 @@ private struct PlanPlaylistEditor: View {
                     .foregroundStyle(.white)
                     .background(
                         LinearGradient(
-                            colors: [Color.pink, Color.green],
+                            colors: [PulseTheme.appleMusic, PulseTheme.spotify],
                             startPoint: .leading,
                             endPoint: .trailing
                         )

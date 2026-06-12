@@ -8,6 +8,7 @@ struct ActiveRestPanel: View {
     let onDecrease: () -> Void
     let onIncrease: () -> Void
     let onSkipOrRestart: () -> Void
+    var onUndo: (() -> Void)? = nil
 
     var body: some View {
         PulseCard {
@@ -39,37 +40,55 @@ struct ActiveRestPanel: View {
     }
 
     private var activeRestContent: some View {
-        HStack(spacing: 18) {
-            RestCountdownRing(
-                restStartedAt: restStartedAt,
-                restDuration: restDuration,
-                fallbackRestSeconds: currentRestSeconds
-            )
-            .frame(width: 78, height: 78)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 18) {
+                RestCountdownRing(
+                    restStartedAt: restStartedAt,
+                    restDuration: restDuration,
+                    fallbackRestSeconds: currentRestSeconds
+                )
+                .frame(width: 92, height: 92)
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text(currentRestSeconds == 0 ? "Listo para continuar" : "Descansando")
-                    .font(.headline.weight(.bold))
-                Text(currentRestSeconds == 0 ? "La batería deja de recargar cuando saltas el descanso." : "Completar el descanso reduce la fatiga de la siguiente serie.")
-                    .font(.caption)
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(currentRestSeconds == 0 ? "Listo para continuar" : "Descansando")
+                        .font(.headline.weight(.bold))
+                    Text(currentRestSeconds == 0 ? "La batería deja de recargar cuando saltas el descanso." : "Completar el descanso reduce la fatiga de la siguiente serie.")
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: 8) {
-                    restAdjustmentButton(title: "-15s", action: onDecrease)
-                        .accessibilityLabel("Reducir descanso 15 segundos")
-                    restAdjustmentButton(title: "+15s", action: onIncrease)
-                        .accessibilityLabel("Ampliar descanso 15 segundos")
+                    HStack(spacing: 8) {
+                        restAdjustmentButton(title: "-15s", action: onDecrease)
+                            .accessibilityLabel("Reducir descanso 15 segundos")
+                        restAdjustmentButton(title: "+15s", action: onIncrease)
+                            .accessibilityLabel("Ampliar descanso 15 segundos")
 
-                    Button(currentRestSeconds == 0 ? "Reiniciar" : "Saltar", action: onSkipOrRestart)
+                        Button(currentRestSeconds == 0 ? "Reiniciar" : "Saltar", action: onSkipOrRestart)
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: PulseTheme.minTapTarget)
+                            .background(PulseTheme.grouped)
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
+                            .accessibilityLabel(currentRestSeconds == 0 ? "Reiniciar descanso" : "Saltar descanso")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if let onUndo {
+                Button {
+                    onUndo()
+                } label: {
+                    Label("Deshacer serie", systemImage: "arrow.uturn.backward")
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 38)
-                        .background(PulseTheme.grouped)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .accessibilityLabel(currentRestSeconds == 0 ? "Reiniciar descanso" : "Saltar descanso")
+                        .frame(height: PulseTheme.minTapTarget)
+                        .background(PulseTheme.grouped.opacity(0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Deshacer la última serie completada")
             }
         }
     }
@@ -79,10 +98,10 @@ struct ActiveRestPanel: View {
             Text(title)
                 .font(.subheadline.weight(.bold))
                 .frame(maxWidth: .infinity)
-                .frame(height: 38)
+                .frame(height: PulseTheme.minTapTarget)
                 .foregroundStyle(PulseTheme.primary)
                 .background(PulseTheme.primary.opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
         }
     }
 }
@@ -96,7 +115,7 @@ private struct RestCountdownRing: View, Equatable {
         TimelineView(.periodic(from: .now, by: 1)) { timeline in
             let seconds = remainingSeconds(at: timeline.date)
             let progress = restDuration > 0 ? Double(seconds) / Double(restDuration) : 0
-            let ringColor: Color = seconds > 30 ? PulseTheme.primaryBright : (seconds > 0 ? PulseTheme.warning : Color.red)
+            let ringColor: Color = seconds > 30 ? PulseTheme.primaryBright : (seconds > 0 ? PulseTheme.warning : PulseTheme.recovery)
 
             ZStack {
                 Circle()
@@ -108,11 +127,11 @@ private struct RestCountdownRing: View, Equatable {
                     .animation(.linear(duration: 1), value: seconds)
                 VStack(spacing: 1) {
                     Text(timeString(seconds))
-                        .font(.system(size: 18, weight: .black, design: .rounded).monospacedDigit())
+                        .font(.system(size: 23, weight: .black, design: .rounded).monospacedDigit())
                         .foregroundStyle(ringColor)
                         .animation(.none, value: seconds)
-                    Text(seconds == 0 ? "¡Listo!" : "desc.")
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                    Text(seconds == 0 ? "¡Listo!" : "descanso")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
             }

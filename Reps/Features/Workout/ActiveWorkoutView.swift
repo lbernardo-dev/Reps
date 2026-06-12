@@ -807,7 +807,7 @@ struct ActiveWorkoutView: View {
 
                 if let playlist = planPlaylist {
                     Divider()
-                        .background(Color.white.opacity(0.12))
+                        .background(PulseTheme.separator)
                         .padding(.vertical, 4)
                     
                     HStack(spacing: 12) {
@@ -830,7 +830,7 @@ struct ActiveWorkoutView: View {
                             // Spotify
                             ZStack {
                                 LinearGradient(
-                                    colors: [Color(red: 0.1, green: 0.8, blue: 0.3), Color(red: 0.05, green: 0.35, blue: 0.12)],
+                                    colors: [PulseTheme.spotify, PulseTheme.spotify.opacity(0.45)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -857,40 +857,13 @@ struct ActiveWorkoutView: View {
                         
                         Spacer(minLength: 8)
                         
-                        // Player Controls
-                        HStack(spacing: 16) {
-                            Button {
-                                Task { await musicPlayer.skipBackward(playlist) }
-                            } label: {
-                                Image(systemName: "backward.fill")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(PulseTheme.primary)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button {
-                                Task { await musicPlayer.playOrPause(playlist) }
-                            } label: {
-                                let isPlaying = playlist.provider == .appleMusic ? musicPlayer.isPlaying : musicPlayer.isSpotifyPlaying
-                                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundStyle(.white)
-                                    .frame(width: 38, height: 38)
-                                    .background(playlist.provider == .appleMusic ? Color.pink : Color.green)
-                                    .clipShape(Circle())
-                                    .shadow(color: (playlist.provider == .appleMusic ? Color.pink : Color.green).opacity(0.35), radius: 6, x: 0, y: 3)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button {
-                                Task { await musicPlayer.skipForward(playlist) }
-                            } label: {
-                                Image(systemName: "forward.fill")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(PulseTheme.primary)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        MusicTransportControls(
+                            provider: playlist.provider,
+                            isPlaying: playlist.provider == .appleMusic ? musicPlayer.isPlaying : musicPlayer.isSpotifyPlaying,
+                            onBack: { Task { await musicPlayer.skipBackward(playlist) } },
+                            onPlayPause: { Task { await musicPlayer.playOrPause(playlist) } },
+                            onForward: { Task { await musicPlayer.skipForward(playlist) } }
+                        )
                     }
                 }
             }
@@ -965,8 +938,8 @@ struct ActiveWorkoutView: View {
                                     fallbackSize: .caption.weight(.bold)
                                 )
                                 .equatable()
-                                .frame(width: 40, height: 40)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
                                 .overlay(alignment: .topTrailing) {
                                     ZStack {
                                         Circle()
@@ -2912,7 +2885,7 @@ private struct SessionFeedbackPanel: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
                             .foregroundStyle(isRecordingAudio ? .white : PulseTheme.primary)
-                            .background(isRecordingAudio ? Color.red : PulseTheme.primary.opacity(0.12))
+                            .background(isRecordingAudio ? PulseTheme.destructive : PulseTheme.primary.opacity(0.12))
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
 

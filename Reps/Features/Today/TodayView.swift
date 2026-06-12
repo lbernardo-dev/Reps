@@ -709,7 +709,7 @@ struct TodayView: View {
         let setsWord = isSpanish ? "series" : "sets"
         let progress: Double = status.totalSets > 0 ? Double(status.completedSets) / Double(status.totalSets) : 0
         let activeGradient: [Color] = isPaused
-            ? [PulseTheme.card, Color(red: 0.24, green: 0.15, blue: 0.03)]
+            ? [PulseTheme.card, PulseTheme.warning.opacity(0.22)]
             : [PulseTheme.card, PulseTheme.accentMuted]
 
         return VStack(alignment: .leading, spacing: 18) {
@@ -881,10 +881,10 @@ struct TodayView: View {
                 Text(badgeText)
                     .font(.system(size: 11, weight: .black, design: .rounded))
                     .tracking(1.5)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.accent)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(.white.opacity(0.18))
+                    .background(PulseTheme.accent.opacity(0.14))
                     .clipShape(Capsule())
                     .padding(.bottom, 2)
                 
@@ -940,7 +940,7 @@ struct TodayView: View {
                         } label: {
                             Image(systemName: "chevron.down.circle.fill")
                                 .font(.system(size: 20, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.8))
+                                .foregroundStyle(PulseTheme.secondaryText)
                         }
                         .layoutPriority(1)
                     }
@@ -948,7 +948,7 @@ struct TodayView: View {
                 
                 Text(subtitleText)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.84))
+                    .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.trailing, 124)
             }
@@ -984,11 +984,11 @@ struct TodayView: View {
                     Image(systemName: "calendar.badge.plus")
                         .font(.headline.weight(.bold))
                         .frame(width: 58, height: 54)
-                        .foregroundStyle(.white)
-                        .background(.white.opacity(0.18))
+                        .foregroundStyle(.primary)
+                        .background(PulseTheme.grouped)
                         .overlay(
                             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                .stroke(.white.opacity(0.25), lineWidth: 1)
+                                .stroke(PulseTheme.separator, lineWidth: 1)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
@@ -997,7 +997,7 @@ struct TodayView: View {
             }
         }
         .padding(18)
-        .foregroundStyle(.white)
+        .foregroundStyle(.primary)
         .background(
                 LinearGradient(
                     colors: [PulseTheme.accentMuted, PulseTheme.card],
@@ -1599,10 +1599,10 @@ private struct HeroPill: View {
             .minimumScaleFactor(0.85)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(.white.opacity(0.12))
+            .background(PulseTheme.grouped.opacity(0.8))
             .overlay(
                 RoundedRectangle(cornerRadius: PulseTheme.compactRadius - 2, style: .continuous)
-                    .stroke(.white.opacity(0.18), lineWidth: 1)
+                    .stroke(PulseTheme.separator, lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius - 2, style: .continuous))
     }
