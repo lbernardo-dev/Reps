@@ -259,8 +259,8 @@ struct TodayView: View {
                     }
                 }
             ) {
-                summaryDashboard
-                    .stickyHeaderTitle(isSpanish ? "Resumen" : "Summary")
+                focusHeroSection
+                    .stickyHeaderTitle(isSpanish ? "Hoy" : "Today")
                 activationChecklist
                     .stickyHeaderTitle(isSpanish ? "Siguiente acción" : "Next Action")
                 if !focusProgressionRecommendations.isEmpty {
@@ -271,12 +271,14 @@ struct TodayView: View {
                     )
                     .stickyHeaderTitle(isSpanish ? "Progresión" : "Progression")
                 }
+                summaryMetrics
+                    .stickyHeaderTitle(isSpanish ? "Métricas" : "Metrics")
                 wellnessWidgets
                     .stickyHeaderTitle(isSpanish ? "Recuperación" : "Recovery")
-                coachingCard
-                    .stickyHeaderTitle(isSpanish ? "Coach" : "Coach")
                 planSection
                     .stickyHeaderTitle(isSpanish ? "Plan" : "Plan")
+                coachingCard
+                    .stickyHeaderTitle(isSpanish ? "Coach" : "Coach")
                 progressAndRecovery
                     .stickyHeaderTitle(isSpanish ? "Progreso" : "Progress")
                 smartShortcuts
@@ -308,14 +310,17 @@ struct TodayView: View {
         }
     }
 
-    private var summaryDashboard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if let activeStatus = store.activeWorkoutStatus {
-                activeSessionHero(activeStatus)
-            } else {
-                dashboardWorkoutCard
-            }
+    @ViewBuilder
+    private var focusHeroSection: some View {
+        if let activeStatus = store.activeWorkoutStatus {
+            activeSessionHero(activeStatus)
+        } else {
+            dashboardWorkoutCard
+        }
+    }
 
+    private var summaryMetrics: some View {
+        VStack(alignment: .leading, spacing: 14) {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
                 SummaryMetricTile(
                     title: isSpanish ? "Entrenos" : "Workouts",
@@ -563,143 +568,57 @@ struct TodayView: View {
     }
 
     private var activationChecklist: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "checklist.checked")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 42, height: 42)
-                        .background(PulseTheme.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        let missionProgress = min(max(store.weeklyCompletion, 0), 1)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(isSpanish ? "Siguiente mejor acción" : "Next Best Action")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(PulseTheme.primary)
-                            .textCase(.uppercase)
+        return PulseCard(contentPadding: 18) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .center, spacing: 16) {
+                    ProgressMissionRing(
+                        progress: missionProgress,
+                        color: batteryColor,
+                        centerValue: "\(Int(missionProgress * 100))%"
+                    )
+                    .frame(width: 92, height: 92)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Label(isSpanish ? "Siguiente mejor acción" : "Next Best Action", systemImage: "flag.checkered")
+                                .font(.caption.weight(.black))
+                                .textCase(.uppercase)
+                                .foregroundStyle(PulseTheme.primary)
+                            Spacer(minLength: 0)
+                            Text("\(streakDays)🔥")
+                                .font(.caption.weight(.bold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 5)
+                                .background(PulseTheme.accent.opacity(0.12))
+                                .foregroundStyle(PulseTheme.accent)
+                                .clipShape(Capsule())
+                        }
+
                         Text(isSpanish ? "Haz lo mínimo que más mueve tu progreso hoy." : "Do the smallest useful thing for today's progress.")
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
-                    }
 
-                    Spacer()
+                        HStack(spacing: 8) {
+                            MissionSignal(title: isSpanish ? "Semana" : "Week", value: weekTargetText, color: PulseTheme.primary)
+                            MissionSignal(title: isSpanish ? "Batería" : "Battery", value: "\(Int(batteryStatus.level))%", color: batteryColor)
+                        }
+                    }
                 }
 
-                ForEach(Array(nextBestSteps.enumerated()), id: \.element.id) { index, step in
+                Divider()
+
+                ForEach(Array(nextBestSteps.prefix(3).enumerated()), id: \.element.id) { index, step in
                     TodayActivationStepRow(step: step, isSpanish: isSpanish) {
                         perform(step.action)
                     }
-                    if index < nextBestSteps.count - 1 {
+                    if index < min(nextBestSteps.count, 3) - 1 {
                         Divider()
                     }
                 }
             }
-        }
-    }
-
-    private var dailyMissionCard: some View {
-        let missionProgress = min(max(store.weeklyCompletion, 0), 1)
-        let action = nextBestSteps.first { !$0.isCompleted } ?? nextBestSteps.first
-
-        return PulseCard(contentPadding: 18) {
-            HStack(alignment: .center, spacing: 16) {
-                ProgressMissionRing(
-                    progress: missionProgress,
-                    color: batteryColor,
-                    centerValue: "\(Int(missionProgress * 100))%"
-                )
-                .frame(width: 92, height: 92)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) {
-                        Label(isSpanish ? "Misión de hoy" : "Today's Mission", systemImage: "flag.checkered")
-                            .font(.caption.weight(.black))
-                            .textCase(.uppercase)
-                            .foregroundStyle(PulseTheme.primary)
-                        Spacer(minLength: 0)
-                        Text("\(streakDays)🔥")
-                            .font(.caption.weight(.bold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(PulseTheme.accent.opacity(0.12))
-                            .foregroundStyle(PulseTheme.accent)
-                            .clipShape(Capsule())
-                    }
-
-                    Text(action?.title ?? (isSpanish ? "Mantén el ritmo" : "Keep Momentum"))
-                        .font(.title3.weight(.bold))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.8)
-
-                    Text(action?.message ?? coachInsight.message)
-                        .font(.subheadline)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.82)
-
-                    HStack(spacing: 8) {
-                        MissionSignal(title: isSpanish ? "Semana" : "Week", value: weekTargetText, color: PulseTheme.primary)
-                        MissionSignal(title: isSpanish ? "Batería" : "Battery", value: "\(Int(batteryStatus.level))%", color: batteryColor)
-                    }
-                }
-            }
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(currentDateTitle)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(PulseTheme.secondaryText)
-                Text("Summary")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.78)
-            }
-
-            Spacer()
-
-            Button {
-                HapticService.selection()
-                showProfile = true
-            } label: {
-                let avatarData = store.userProfile.avatarImageData
-                if let avatarData, let image = UIImage(data: avatarData) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 38, height: 38)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(.white, lineWidth: 2))
-                        .shadow(color: .black.opacity(0.20), radius: 4)
-                } else {
-                    ZStack {
-                        Circle()
-                            .fill(PulseTheme.primary.opacity(0.12))
-                            .frame(width: 38, height: 38)
-                        Image(systemName: "person.crop.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundStyle(PulseTheme.primary)
-                    }
-                    .overlay(Circle().stroke(.white, lineWidth: 2))
-                    .shadow(color: .black.opacity(0.20), radius: 4)
-                }
-            }
-            .padding(.top, 4)
-            .buttonStyle(.plain)
-            .accessibilityLabel(isSpanish ? "Perfil" : "Profile")
-        }
-    }
-
-    @ViewBuilder
-    private var focusHero: some View {
-        if let activeStatus = store.activeWorkoutStatus {
-            activeSessionHero(activeStatus)
-        } else {
-            idleHero
         }
     }
 
@@ -840,203 +759,6 @@ struct TodayView: View {
             color: (isPaused ? PulseTheme.warning : PulseTheme.accent).opacity(0.14),
             radius: 20, x: 0, y: 10
         )
-    }
-
-    // MARK: – Idle / pre-session hero (refined design)
-    private var idleHero: some View {
-        let hasActivePlanSession = todaysScheduledWorkout != nil || hasActivePlan
-        let badgeText: String = {
-            if todaysScheduledWorkout != nil {
-                return isSpanish ? "SESIÓN PROGRAMADA" : "TODAY'S SESSION"
-            } else if hasActivePlan {
-                return isSpanish ? "SESIÓN SUGERIDA" : "SUGGESTED SESSION"
-            } else {
-                return isSpanish ? "SIN SESIÓN FIJADA" : "NO SESSION FIXED"
-            }
-        }()
-        let titleText: String = {
-            if hasActivePlanSession {
-                return RepsText.workoutTitle(focusWorkout.title, language: store.userProfile.preferredLanguage)
-            } else {
-                return isSpanish ? "Elige tu entrenamiento" : "Choose Next Move"
-            }
-        }()
-        let subtitleText: String = {
-            if hasActivePlanSession {
-                return RepsText.localizedWorkoutSubtitle(focusWorkout.subtitle, language: store.userProfile.preferredLanguage)
-            } else {
-                return isSpanish ? "Registra un entreno libre, crea una rutina o programa una sesión cuando estés listo." : "Log a free workout, create a routine, or schedule a session when you are ready."
-            }
-        }()
-        let playButtonTitle: String = {
-            if hasActivePlanSession {
-                return isSpanish ? "Empezar" : "Start"
-            } else {
-                return isSpanish ? "Entrenar libre" : "Free Workout"
-            }
-        }()
-
-        return VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(badgeText)
-                    .font(.system(size: 11, weight: .black, design: .rounded))
-                    .tracking(1.5)
-                    .foregroundStyle(PulseTheme.accent)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(PulseTheme.accent.opacity(0.14))
-                    .clipShape(Capsule())
-                    .padding(.bottom, 2)
-                
-                HStack(alignment: .center, spacing: 6) {
-                    Text(titleText)
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.72)
-                    
-                    if !store.activePlan.days.isEmpty {
-                        Menu {
-                            Section(header: Text(isSpanish ? "Cambiar día" : "Change day")) {
-                                ForEach(store.activePlan.days) { day in
-                                    Button {
-                                        store.selectWorkoutDayForToday(day)
-                                    } label: {
-                                        HStack {
-                                            Text(RepsText.workoutTitle(day.title, language: store.userProfile.preferredLanguage))
-                                            if day.id == focusWorkout.id {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            Section(header: Text(isSpanish ? "Cambiar plan" : "Change plan")) {
-                                ForEach(store.plans) { plan in
-                                    Button {
-                                        store.activatePlan(plan)
-                                    } label: {
-                                        HStack {
-                                            Text(plan.name)
-                                            if plan.id == store.activePlan.id {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            let count = store.activePlan.days.count
-                            let index = ((store.activePlan.activeDayIndex % count) + count) % count
-                            let suggestedDay = store.activePlan.days[index]
-                            if focusWorkout.id != suggestedDay.id {
-                                Divider()
-                                Button(role: .destructive) {
-                                    store.restoreSuggestedWorkoutForToday()
-                                } label: {
-                                    Text(isSpanish ? "Restaurar sugerido" : "Restore suggested")
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "chevron.down.circle.fill")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                        .layoutPriority(1)
-                    }
-                }
-                
-                Text(subtitleText)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.trailing, 124)
-            }
-
-            HStack(spacing: 8) {
-                HeroPill(title: "\(focusWorkout.durationMinutes) min", systemImage: "timer")
-                let exercisesWord = isSpanish ? "ejercicios" : "exercises"
-                HeroPill(title: "\(focusWorkout.exercises.count) \(exercisesWord)", systemImage: "list.bullet")
-                HeroPill(title: locationLabel, systemImage: "mappin.and.ellipse")
-            }
-
-            HStack(spacing: 10) {
-                NavigationLink {
-                    if hasActivePlanSession {
-                        ActiveWorkoutView(workout: focusWorkout)
-                    } else {
-                        FreeWorkoutStartView()
-                    }
-                } label: {
-                    Label(playButtonTitle, systemImage: "play.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                        .foregroundStyle(.black)
-                        .background(PulseTheme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    showScheduleWorkout = true
-                } label: {
-                    Image(systemName: "calendar.badge.plus")
-                        .font(.headline.weight(.bold))
-                        .frame(width: 58, height: 54)
-                        .foregroundStyle(.primary)
-                        .background(PulseTheme.grouped)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                .stroke(PulseTheme.separator, lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Programar entrenamiento")
-            }
-        }
-        .padding(18)
-        .foregroundStyle(.primary)
-        .background(
-                LinearGradient(
-                    colors: [PulseTheme.accentMuted, PulseTheme.card],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                .stroke(PulseTheme.accent.opacity(0.25), lineWidth: 1)
-        )
-        .shadow(color: PulseTheme.accent.opacity(0.12), radius: 18, x: 0, y: 10)
-        .overlay(alignment: .topTrailing) {
-            if hasActivePlan {
-                Button {
-                    HapticService.selection()
-                    planToEdit = store.activePlan
-                } label: {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .shadow(color: .black.opacity(0.12), radius: 4)
-                }
-                .buttonStyle(.plain)
-                .padding(14)
-                .accessibilityLabel(isSpanish ? "Editar plan" : "Edit plan")
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            WorkoutImageStack(
-                exercises: focusPreviewExercises,
-                gender: store.userProfile.muscleMapGender,
-                fallbackSystemImage: hasActivePlanSession ? "figure.strengthtraining.traditional" : "sparkles"
-            )
-            .padding(.top, 40)
-            .padding(.trailing, 8)
-            .allowsHitTesting(false)
-        }
     }
 
     private func timeString(_ seconds: Int) -> String {
@@ -1585,26 +1307,6 @@ struct TodayView: View {
         }
         
         return formatter.localizedString(for: date, relativeTo: .now)
-    }
-}
-
-private struct HeroPill: View {
-    let title: String
-    let systemImage: String
-
-    var body: some View {
-        Label(title, systemImage: systemImage)
-            .font(.system(size: 12, weight: .bold, design: .rounded))
-            .lineLimit(1)
-            .minimumScaleFactor(0.85)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(PulseTheme.grouped.opacity(0.8))
-            .overlay(
-                RoundedRectangle(cornerRadius: PulseTheme.compactRadius - 2, style: .continuous)
-                    .stroke(PulseTheme.separator, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius - 2, style: .continuous))
     }
 }
 
