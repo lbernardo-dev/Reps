@@ -569,8 +569,12 @@ struct ProfileView: View {
             GymVisitEditorView()
         case .receiptPreview(let card):
             ReceiptPreviewSheet(card: card)
-        case .support(let supportSheet):
-            supportSheetDestination(supportSheet)
+        case .feedback:
+            FeedbackSheet { message in
+                sendFeedback(message)
+            }
+        case .subscription:
+            SubscriptionCenterView()
         }
     }
 
@@ -583,6 +587,16 @@ struct ProfileView: View {
             dataPrivacyCenter
         case .supportProduct:
             supportProductCenter
+        case .help:
+            helpInfoScreen
+        case .privacy:
+            privacyInfoScreen
+        case .roadmap:
+            roadmapInfoScreen
+        case .version:
+            VersionInfoScreen(appVersionText: appVersionText) {
+                activeDestination = nil
+            }
         }
     }
 
@@ -776,8 +790,8 @@ struct ProfileView: View {
                             systemImage: "bubble.left.and.text.bubble.right",
                             color: PulseTheme.primary
                         ) {
-                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.feedback.rawValue])
-                            activeSheet = .support(.feedback)
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "feedback"])
+                            activeSheet = .feedback
                         }
                     }
                 }
@@ -791,8 +805,8 @@ struct ProfileView: View {
                             systemImage: "questionmark.circle",
                             color: PulseTheme.primaryBright
                         ) {
-                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.help.rawValue])
-                            activeSheet = .support(.help)
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "help"])
+                            activeDestination = .help
                         }
 
                         ProfileToolButton(
@@ -801,8 +815,8 @@ struct ProfileView: View {
                             systemImage: "hand.raised",
                             color: .purple
                         ) {
-                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.privacy.rawValue])
-                            activeSheet = .support(.privacy)
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "privacy"])
+                            activeDestination = .privacy
                         }
 
                         ProfileToolButton(
@@ -811,8 +825,8 @@ struct ProfileView: View {
                             systemImage: "creditcard",
                             color: .orange
                         ) {
-                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.subscription.rawValue])
-                            activeSheet = .support(.subscription)
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "subscription"])
+                            activeSheet = .subscription
                         }
 
                         ProfileToolButton(
@@ -821,8 +835,8 @@ struct ProfileView: View {
                             systemImage: "sparkles",
                             color: .teal
                         ) {
-                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.roadmap.rawValue])
-                            activeSheet = .support(.roadmap)
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "roadmap"])
+                            activeDestination = .roadmap
                         }
 
                         ProfileToolButton(
@@ -831,8 +845,8 @@ struct ProfileView: View {
                             systemImage: "info.circle",
                             color: PulseTheme.secondaryText
                         ) {
-                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": ProfileSupportSheet.version.rawValue])
-                            activeSheet = .support(.version)
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "version"])
+                            activeDestination = .version
                         }
                     }
                 }
@@ -843,77 +857,75 @@ struct ProfileView: View {
         .mainTabBarHidden()
     }
 
-    @ViewBuilder
-    private func supportSheetDestination(_ sheet: ProfileSupportSheet) -> some View {
-        switch sheet {
-        case .feedback:
-            FeedbackSheet { message in
-                sendFeedback(message)
-            }
-        case .help:
-            SupportInfoSheet(
-                title: "Ayuda",
-                systemImage: "questionmark.circle",
-                sections: [
-                    SupportInfoSection(title: "Entrenar", rows: [
-                        "Empieza desde Today o desde una rutina programada.",
-                        "Durante el entreno puedes pausar, completar series, añadir notas, fotos y agua.",
-                        "El resumen actualiza progreso, widgets y recibos."
-                    ]),
-                    SupportInfoSection(title: "Datos", rows: [
-                        "El backup JSON guarda una copia completa.",
-                        "El CSV permite exportar sesiones, cardio y métricas corporales.",
-                        "Apple Health se conecta desde Perfil cuando das permiso."
-                    ])
-                ]
-            )
-        case .privacy:
-            SupportInfoSheet(
-                title: "Privacidad",
-                systemImage: "hand.raised",
-                sections: [
-                    SupportInfoSection(title: "Datos locales", rows: [
-                        "Reps guarda tus entrenos, rutinas, métricas, fotos y tarjetas en almacenamiento local.",
-                        "Puedes exportar backup, importar backup y borrar todos los datos desde Perfil."
-                    ]),
-                    SupportInfoSection(title: "Permisos", rows: [
-                        "Apple Health solo se usa si lo conectas.",
-                        "Fotos, cámara, música, notificaciones y ubicación se solicitan solo cuando usas esas funciones.",
-                        "Los widgets leen un resumen mínimo desde el App Group para mostrar progreso y entrenos."
-                    ]),
-                    SupportInfoSection(title: "Privacidad y telemetría", rows: [
-                        "La app registra eventos mínimos de producto para mejorar estabilidad y experiencia.",
-                        "No se envían nombres de entrenos, notas, fotos ni datos de Apple Health a analítica.",
-                        "Puedes borrar los datos locales y exportar una copia desde Perfil."
-                    ])
-                ]
-            )
-        case .subscription:
-            SubscriptionCenterView()
-        case .roadmap:
-            SupportInfoSheet(
-                title: "Novedades",
-                systemImage: "sparkles",
-                sections: [
-                    SupportInfoSection(title: "Entrenamiento", rows: [
-                        "Rutinas listas con días, ejercicios, series, descansos y progresión.",
-                        "Registro libre con notas, fotos, agua, RPE, RIR, tempo y descansos.",
-                        "Resumen final con volumen, récords y recibos visuales."
-                    ]),
-                    SupportInfoSection(title: "Integraciones", rows: [
-                        "Apple Health para importar métricas y guardar entrenamientos cuando das permiso.",
-                        "Widgets, Watch y Live Activities para seguir tu sesión fuera de la app.",
-                        "Apple Music para reproducir playlists durante los entrenos."
-                    ]),
-                    SupportInfoSection(title: "Progreso", rows: [
-                        "Analítica por ejercicio, músculo, carga, rachas y batería de entrenamiento.",
-                        "Backups JSON, exportación CSV y tarjetas compartibles.",
-                        "Pases de gimnasio y visitas para tener tus accesos a mano."
-                    ])
-                ]
-            )
-        case .version:
-            VersionInfoSheet(appVersionText: appVersionText)
+    private var helpInfoScreen: some View {
+        SupportInfoScreen(
+            title: "Ayuda",
+            systemImage: "questionmark.circle",
+            sections: [
+                SupportInfoSection(title: "Entrenar", rows: [
+                    "Empieza desde Today o desde una rutina programada.",
+                    "Durante el entreno puedes pausar, completar series, añadir notas, fotos y agua.",
+                    "El resumen actualiza progreso, widgets y recibos."
+                ]),
+                SupportInfoSection(title: "Datos", rows: [
+                    "El backup JSON guarda una copia completa.",
+                    "El CSV permite exportar sesiones, cardio y métricas corporales.",
+                    "Apple Health se conecta desde Perfil cuando das permiso."
+                ])
+            ]
+        ) {
+            activeDestination = nil
+        }
+    }
+
+    private var privacyInfoScreen: some View {
+        SupportInfoScreen(
+            title: "Privacidad",
+            systemImage: "hand.raised",
+            sections: [
+                SupportInfoSection(title: "Datos locales", rows: [
+                    "Reps guarda tus entrenos, rutinas, métricas, fotos y tarjetas en almacenamiento local.",
+                    "Puedes exportar backup, importar backup y borrar todos los datos desde Perfil."
+                ]),
+                SupportInfoSection(title: "Permisos", rows: [
+                    "Apple Health solo se usa si lo conectas.",
+                    "Fotos, cámara, música, notificaciones y ubicación se solicitan solo cuando usas esas funciones.",
+                    "Los widgets leen un resumen mínimo desde el App Group para mostrar progreso y entrenos."
+                ]),
+                SupportInfoSection(title: "Privacidad y telemetría", rows: [
+                    "La app registra eventos mínimos de producto para mejorar estabilidad y experiencia.",
+                    "No se envían nombres de entrenos, notas, fotos ni datos de Apple Health a analítica.",
+                    "Puedes borrar los datos locales y exportar una copia desde Perfil."
+                ])
+            ]
+        ) {
+            activeDestination = nil
+        }
+    }
+
+    private var roadmapInfoScreen: some View {
+        SupportInfoScreen(
+            title: "Novedades",
+            systemImage: "sparkles",
+            sections: [
+                SupportInfoSection(title: "Entrenamiento", rows: [
+                    "Rutinas listas con días, ejercicios, series, descansos y progresión.",
+                    "Registro libre con notas, fotos, agua, RPE, RIR, tempo y descansos.",
+                    "Resumen final con volumen, récords y recibos visuales."
+                ]),
+                SupportInfoSection(title: "Integraciones", rows: [
+                    "Apple Health para importar métricas y guardar entrenamientos cuando das permiso.",
+                    "Widgets, Watch y Live Activities para seguir tu sesión fuera de la app.",
+                    "Apple Music para reproducir playlists durante los entrenos."
+                ]),
+                SupportInfoSection(title: "Progreso", rows: [
+                    "Analítica por ejercicio, músculo, carga, rachas y batería de entrenamiento.",
+                    "Backups JSON, exportación CSV y tarjetas compartibles.",
+                    "Pases de gimnasio y visitas para tener tus accesos a mano."
+                ])
+            ]
+        ) {
+            activeDestination = nil
         }
     }
 
@@ -1579,6 +1591,10 @@ private enum ProfileDestination: String, Identifiable {
     case exerciseLibrary
     case dataPrivacy
     case supportProduct
+    case help
+    case privacy
+    case roadmap
+    case version
 
     var id: String { rawValue }
 }
@@ -1592,7 +1608,8 @@ private enum ProfileSheet: Identifiable {
     case addGymPass
     case addGymVisit
     case receiptPreview(SavedShareCard)
-    case support(ProfileSupportSheet)
+    case feedback
+    case subscription
 
     var id: String {
         switch self {
@@ -1604,20 +1621,10 @@ private enum ProfileSheet: Identifiable {
         case .addGymPass: "addGymPass"
         case .addGymVisit: "addGymVisit"
         case .receiptPreview(let card): "receiptPreview-\(card.id.uuidString)"
-        case .support(let sheet): "support-\(sheet.id)"
+        case .feedback: "feedback"
+        case .subscription: "subscription"
         }
     }
-}
-
-private enum ProfileSupportSheet: String, Identifiable {
-    case feedback
-    case help
-    case privacy
-    case subscription
-    case roadmap
-    case version
-
-    var id: String { rawValue }
 }
 
 private struct SupportInfoSection: Identifiable {
@@ -1638,64 +1645,53 @@ private struct SuggestedPlanConfirmation: Identifiable {
     }
 }
 
-private struct SupportInfoSheet: View {
-    @Environment(\.dismiss) private var dismiss
+private struct SupportInfoScreen: View {
     let title: String
     let systemImage: String
     let sections: [SupportInfoSection]
+    let onBack: () -> Void
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(spacing: 12) {
-                        Image(systemName: systemImage)
-                            .font(.title2.weight(.bold))
-                            .frame(width: 44, height: 44)
-                            .foregroundStyle(.white)
-                            .background(PulseTheme.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        StickyHeaderScaffold(
+            title: title,
+            subtitle: "Soporte",
+            backAction: onBack,
+            accessory: {
+                Image(systemName: systemImage)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(PulseTheme.primary)
+                    .clipShape(Circle())
+            }
+        ) {
+            ForEach(sections) { section in
+                PulseCard(backgroundColor: PulseTheme.grouped) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(section.title)
+                            .font(.headline)
 
-                        Text(title)
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                    }
-
-                    ForEach(sections) { section in
-                        PulseCard(backgroundColor: PulseTheme.grouped) {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(section.title)
-                                    .font(.headline)
-
-                                VStack(alignment: .leading, spacing: 10) {
-                                    ForEach(section.rows, id: \.self) { row in
-                                        HStack(alignment: .top, spacing: 10) {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .font(.subheadline.weight(.bold))
-                                                .foregroundStyle(PulseTheme.primary)
-                                                .padding(.top, 1)
-                                            Text(row)
-                                                .font(.subheadline)
-                                                .foregroundStyle(PulseTheme.secondaryText)
-                                                .fixedSize(horizontal: false, vertical: true)
-                                        }
-                                    }
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(section.rows, id: \.self) { row in
+                                HStack(alignment: .top, spacing: 10) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.subheadline.weight(.bold))
+                                        .foregroundStyle(PulseTheme.primary)
+                                        .padding(.top, 1)
+                                    Text(row)
+                                        .font(.subheadline)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
                         }
                     }
                 }
-                .padding(20)
-                .padding(.bottom, 24)
-            }
-            .profileSupportSheetBackground()
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cerrar") {
-                        dismiss()
-                    }
-                }
+                .stickyHeaderTitle(section.title)
             }
         }
+        .toolbar(.hidden, for: .navigationBar)
+        .mainTabBarHidden()
     }
 }
 
@@ -1777,75 +1773,64 @@ private struct FeedbackSheet: View {
     }
 }
 
-private struct VersionInfoSheet: View {
-    @Environment(\.dismiss) private var dismiss
+private struct VersionInfoScreen: View {
     let appVersionText: String
+    let onBack: () -> Void
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "info.circle")
-                            .font(.title2.weight(.bold))
-                            .frame(width: 44, height: 44)
+        StickyHeaderScaffold(
+            title: "Versión",
+            subtitle: "Soporte",
+            backAction: onBack,
+            accessory: {
+                Image(systemName: "info.circle")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(PulseTheme.primary)
+                    .clipShape(Circle())
+            }
+        ) {
+            PulseCard(backgroundColor: PulseTheme.grouped) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Build")
+                        .font(.headline)
+
+                    supportRow("Versión: \(appVersionText)")
+                    supportRow("Bundle ID: \(Bundle.main.bundleIdentifier ?? "com.romerodev.repsfitness")")
+                }
+            }
+            .stickyHeaderTitle("Build")
+
+            #if DEBUG
+            PulseCard(backgroundColor: PulseTheme.grouped) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Crashlytics")
+                        .font(.headline)
+
+                    Text("Este botón fuerza un crash de prueba para validar Firebase Crashlytics en dispositivo o TestFlight interno.")
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button(role: .destructive) {
+                        TelemetryService.shared.triggerTestCrash()
+                    } label: {
+                        Label("Enviar crash de prueba", systemImage: "exclamationmark.triangle.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
                             .foregroundStyle(.white)
-                            .background(PulseTheme.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                        Text("Versión")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .background(PulseTheme.destructive)
+                            .clipShape(Capsule())
                     }
-
-                    PulseCard(backgroundColor: PulseTheme.grouped) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Build")
-                                .font(.headline)
-
-                            supportRow("Versión: \(appVersionText)")
-                            supportRow("Bundle ID: \(Bundle.main.bundleIdentifier ?? "com.romerodev.repsfitness")")
-                        }
-                    }
-
-                    #if DEBUG
-                    PulseCard(backgroundColor: PulseTheme.grouped) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Crashlytics")
-                                .font(.headline)
-
-                            Text("Este botón fuerza un crash de prueba para validar Firebase Crashlytics en dispositivo o TestFlight interno.")
-                                .font(.subheadline)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            Button(role: .destructive) {
-                                TelemetryService.shared.triggerTestCrash()
-                            } label: {
-                                Label("Enviar crash de prueba", systemImage: "exclamationmark.triangle.fill")
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 48)
-                                    .foregroundStyle(.white)
-                                    .background(Color.red)
-                                    .clipShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    #endif
-                }
-                .padding(20)
-                .padding(.bottom, 24)
-            }
-            .profileSupportSheetBackground()
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cerrar") {
-                        dismiss()
-                    }
+                    .buttonStyle(.plain)
                 }
             }
+            #endif
         }
+        .toolbar(.hidden, for: .navigationBar)
+        .mainTabBarHidden()
     }
 
     private func supportRow(_ text: String) -> some View {
