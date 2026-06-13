@@ -5,6 +5,7 @@ struct ProfileSetupView: View {
     @Environment(AppStore.self) private var store
     @State private var profile = UserProfile()
     @State private var step: OnboardingStep = .presentation
+    @FocusState private var isEventNameFocused: Bool
     @State private var selectedSex: OnboardingSex?
     @State private var age = 32
     @State private var heightCm = 178.0
@@ -70,6 +71,7 @@ struct ProfileSetupView: View {
                 .padding(20)
                 .padding(.bottom, bottomContentPadding)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
         .screenBackground()
         .safeAreaInset(edge: .bottom) {
@@ -77,6 +79,7 @@ struct ProfileSetupView: View {
         }
         .animation(.snappy(duration: 0.25), value: step)
         .onChange(of: step) { _, newStep in
+            isEventNameFocused = false
             if newStep == .generating {
                 generationPulse = false
                 withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
@@ -1453,6 +1456,10 @@ struct ProfileSetupView: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                         TextField("Ej. Boda, Vacaciones, Maratón", text: $targetEventName)
                             .textFieldStyle(.roundedBorder)
+                            .focused($isEventNameFocused)
+                            .submitLabel(.done)
+                            .autocorrectionDisabled()
+                            .onSubmit { isEventNameFocused = false }
                         
                         DatePicker(
                             "Fecha del evento",
