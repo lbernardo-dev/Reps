@@ -205,7 +205,6 @@ enum SubscriptionBillingCycle: String, Codable, CaseIterable, Identifiable {
 
 enum SubscriptionProvider: String, Codable {
     case local
-    case revenueCat
     case storeKit
     case iCloudOwner
 }
@@ -369,7 +368,6 @@ struct MonetizationState: Codable, Equatable {
     var lastPaywallSource: PaywallSource?
     var paywallPresentationCount = 0
     var lastEntitlementSyncDate: Date?
-    var revenueCatConfigured = false
 
     var hasProAccess: Bool {
         entitlement == .pro && status.grantsAccess

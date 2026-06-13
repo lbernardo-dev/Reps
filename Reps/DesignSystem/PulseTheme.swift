@@ -49,7 +49,6 @@ enum PulseTheme {
 
     static let minTapTarget: CGFloat = 44
 
-    static let spotify = Color(red: 0.11, green: 0.73, blue: 0.33)
     static let appleMusic = Color(red: 0.98, green: 0.24, blue: 0.34)
 
     static let heroGradientColors: [Color] = [primary, primaryBright]

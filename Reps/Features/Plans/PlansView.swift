@@ -490,7 +490,7 @@ private struct PlanMusicCard: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
                 } else {
-                    Text("Añade una playlist de Spotify o Apple Music para arrancarla desde el entrenamiento.")
+                    Text("Añade una playlist de Apple Music para arrancarla desde el entrenamiento.")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                     Button(action: onEdit) {
@@ -534,11 +534,11 @@ private struct PlaylistProviderBadge: View {
     let provider: PlanPlaylist.Provider
 
     var body: some View {
-        Image(systemName: provider == .spotify ? "dot.radiowaves.left.and.right" : "music.note")
+        Image(systemName: "music.note")
             .font(.title3.weight(.bold))
             .foregroundStyle(.white)
             .frame(width: 52, height: 52)
-            .background(provider == .spotify ? PulseTheme.spotify : PulseTheme.appleMusic)
+            .background(PulseTheme.appleMusic)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
@@ -546,17 +546,16 @@ private struct PlaylistProviderBadge: View {
 private struct PlanPlaylistEditor: View {
     @Binding var playlists: [PlanPlaylist]
     @Binding var showMusicConnector: Bool
-    @State private var provider: PlanPlaylist.Provider = .spotify
     @State private var title = ""
     @State private var urlString = ""
     @State private var notes = ""
-    
+
     @State private var showManualForm = false
 
     var body: some View {
         Section("Música") {
             if playlists.isEmpty {
-                Text("Guarda playlists de Spotify o Apple Music para abrirlas durante el entrenamiento.")
+                Text("Guarda playlists de Apple Music para abrirlas durante el entrenamiento.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
@@ -589,13 +588,7 @@ private struct PlanPlaylistEditor: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 46)
                     .foregroundStyle(.white)
-                    .background(
-                        LinearGradient(
-                            colors: [PulseTheme.appleMusic, PulseTheme.spotify],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .background(PulseTheme.appleMusic)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .shadow(color: Color.black.opacity(0.12), radius: 4, y: 2)
             }
@@ -604,17 +597,9 @@ private struct PlanPlaylistEditor: View {
 
             DisclosureGroup(isExpanded: $showManualForm) {
                 VStack(spacing: 12) {
-                    Picker("Servicio", selection: $provider) {
-                        ForEach(PlanPlaylist.Provider.allCases) { provider in
-                            Text(providerTitle(provider)).tag(provider)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.top, 4)
-
                     TextField("Nombre de la playlist", text: $title)
                         .textFieldStyle(.roundedBorder)
-                    TextField(provider == .spotify ? "https://open.spotify.com/playlist/..." : "https://music.apple.com/...", text: $urlString)
+                    TextField("https://music.apple.com/...", text: $urlString)
                         .textFieldStyle(.roundedBorder)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
@@ -656,7 +641,7 @@ private struct PlanPlaylistEditor: View {
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         playlists.append(
             PlanPlaylist(
-                provider: provider,
+                provider: .appleMusic,
                 title: trimmedTitle,
                 urlString: trimmedURL,
                 notes: trimmedNotes.isEmpty ? nil : trimmedNotes
@@ -671,7 +656,6 @@ private struct PlanPlaylistEditor: View {
 private func providerTitle(_ provider: PlanPlaylist.Provider) -> String {
     switch provider {
     case .appleMusic: "Apple Music"
-    case .spotify: "Spotify"
     }
 }
 

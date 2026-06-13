@@ -13,26 +13,8 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
     @Published var currentSongArtist: String?
     @Published var currentSongArtwork: Artwork?
 
-    @Published var isSpotifyPlaying = false
-    @Published var spotifyTrackIndex = 0
-
     private var currentPlaylistID: PlanPlaylist.ID?
     private var cancellables = Set<AnyCancellable>()
-
-    struct MockTrack {
-        let title: String
-        let artist: String
-    }
-
-    private let mockSpotifyTracks = [
-        MockTrack(title: "Metamorphosis", artist: "INTERWORLD"),
-        MockTrack(title: "Rapture", artist: "RVDY"),
-        MockTrack(title: "Override", artist: "KSLV Noh"),
-        MockTrack(title: "Vendetta", artist: "MUPP, Sadfriendd"),
-        MockTrack(title: "Neon Blade", artist: "MoonDeity"),
-        MockTrack(title: "Disaster", artist: "KSLV Noh"),
-        MockTrack(title: "Close Eyes", artist: "DVRST")
-    ]
 
     private init() {
         ApplicationMusicPlayer.shared.state.objectWillChange
@@ -54,10 +36,6 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
     }
 
     func statusText(for playlist: PlanPlaylist) -> String {
-        if playlist.provider == .spotify {
-            return isSpotifyPlaying ? "Reproduciendo con Spotify (Interno)" : "Pausado (Spotify)"
-        }
-
         if isPlaying(playlist) {
             return "Reproduciendo con Apple Music"
         }
@@ -66,7 +44,7 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
     }
 
     func isPlaying(_ playlist: PlanPlaylist) -> Bool {
-        playlist.provider == .appleMusic && currentPlaylistID == playlist.id && isPlaying
+        currentPlaylistID == playlist.id && isPlaying
     }
 
     private func updateAppleMusicState() {
@@ -87,15 +65,6 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
     }
 
     func playOrPause(_ playlist: PlanPlaylist) async {
-        if playlist.provider == .spotify {
-            isSpotifyPlaying.toggle()
-            if isSpotifyPlaying {
-                currentSongTitle = mockSpotifyTracks[spotifyTrackIndex].title
-                currentSongArtist = mockSpotifyTracks[spotifyTrackIndex].artist
-            }
-            return
-        }
-
         if currentPlaylistID != playlist.id {
             await play(playlist)
         } else if isPlaying {
@@ -114,15 +83,6 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
     }
 
     func skipForward(_ playlist: PlanPlaylist? = nil) async {
-        if let playlist, playlist.provider == .spotify {
-            spotifyTrackIndex = (spotifyTrackIndex + 1) % mockSpotifyTracks.count
-            if isSpotifyPlaying {
-                currentSongTitle = mockSpotifyTracks[spotifyTrackIndex].title
-                currentSongArtist = mockSpotifyTracks[spotifyTrackIndex].artist
-            }
-            return
-        }
-
         do {
             try await ApplicationMusicPlayer.shared.skipToNextEntry()
             updateNowPlaying()
@@ -132,15 +92,6 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
     }
 
     func skipBackward(_ playlist: PlanPlaylist? = nil) async {
-        if let playlist, playlist.provider == .spotify {
-            spotifyTrackIndex = (spotifyTrackIndex - 1 + mockSpotifyTracks.count) % mockSpotifyTracks.count
-            if isSpotifyPlaying {
-                currentSongTitle = mockSpotifyTracks[spotifyTrackIndex].title
-                currentSongArtist = mockSpotifyTracks[spotifyTrackIndex].artist
-            }
-            return
-        }
-
         do {
             try await ApplicationMusicPlayer.shared.skipToPreviousEntry()
             updateNowPlaying()

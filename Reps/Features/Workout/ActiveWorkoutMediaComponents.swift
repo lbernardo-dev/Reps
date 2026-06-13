@@ -75,7 +75,7 @@ struct MusicTransportControls: View {
     let onForward: () -> Void
 
     private var tint: Color {
-        provider == .appleMusic ? PulseTheme.appleMusic : PulseTheme.spotify
+        PulseTheme.appleMusic
     }
 
     var body: some View {

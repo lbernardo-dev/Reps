@@ -1036,9 +1036,9 @@ struct ProfileSetupView: View {
     private var forecastStep: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Pronostico de evolucion muscular")
+                Text("Proyeccion orientativa de estimulo")
                     .font(.headline)
-                Text("Estimacion basada en el volumen semanal del plan generado y tu constancia.")
+                Text("Proyeccion orientativa calculada a partir del volumen semanal del plan y la constancia que elijas. No es una prediccion garantizada: tu progreso real dependera de la ejecucion, alimentacion y descanso.")
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
 
@@ -1424,9 +1424,9 @@ struct ProfileSetupView: View {
         let week1Sets = Int(Double(total) * factor)
         let week4Diff = Int(Double(max(2, total / 6)) * factor)
         return [
-            ("Semana 1", "\(week1Sets) series productivas estimadas", PulseTheme.primary),
-            ("Semana 4", "+\(week4Diff) series ajustadas", PulseTheme.primaryBright),
-            ("Semana 8", factor > 0.6 ? "Evolución óptima (deload o nuevo bloque)" : "Evolución moderada (continuar bloque)", PulseTheme.accent)
+            ("Semana 1", "~\(week1Sets) series productivas/sem aprox.", PulseTheme.primary),
+            ("Semana 4", "+\(week4Diff) series aprox. si mantienes constancia", PulseTheme.primaryBright),
+            ("Semana 8", factor > 0.6 ? "Buen momento para deload o nuevo bloque" : "Evolución gradual: continuar bloque", PulseTheme.accent)
         ]
     }
 

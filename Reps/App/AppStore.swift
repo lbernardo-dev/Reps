@@ -446,7 +446,6 @@ final class AppStore {
                 storeKitSortIndex(for: lhs.id) < storeKitSortIndex(for: rhs.id)
             }
             storeKitErrorMessage = nil
-            monetization.revenueCatConfigured = false
         } catch {
             storeKitErrorMessage = error.localizedDescription
         }
@@ -640,8 +639,7 @@ final class AppStore {
     }
 
     func resetProAccessForDebug() {
-        let revenueCatConfigured = monetization.revenueCatConfigured
-        monetization = MonetizationState(revenueCatConfigured: revenueCatConfigured)
+        monetization = MonetizationState()
     }
     #endif
 
@@ -660,7 +658,7 @@ final class AppStore {
         var profile = UserProfile()
         profile.onboardingCompleted = true
         userProfile = profile
-        monetization = MonetizationState(revenueCatConfigured: monetization.revenueCatConfigured)
+        monetization = MonetizationState()
         activePlan = .empty
         plans = []
         scheduledWorkouts = []

@@ -108,7 +108,6 @@ final class MonetizationStateRecord {
     var lastPaywallSource: String?
     var paywallPresentationCount: Int
     var lastEntitlementSyncDate: Date?
-    var revenueCatConfigured: Bool
 
     init(state: MonetizationState, id: String = "current") {
         self.id = id
@@ -124,7 +123,6 @@ final class MonetizationStateRecord {
         lastPaywallSource = state.lastPaywallSource?.rawValue
         paywallPresentationCount = state.paywallPresentationCount
         lastEntitlementSyncDate = state.lastEntitlementSyncDate
-        revenueCatConfigured = state.revenueCatConfigured
     }
 
     var domain: MonetizationState {
@@ -140,8 +138,7 @@ final class MonetizationStateRecord {
             lastPaywallDismissDate: lastPaywallDismissDate,
             lastPaywallSource: lastPaywallSource.flatMap(PaywallSource.init(rawValue:)),
             paywallPresentationCount: paywallPresentationCount,
-            lastEntitlementSyncDate: lastEntitlementSyncDate,
-            revenueCatConfigured: revenueCatConfigured
+            lastEntitlementSyncDate: lastEntitlementSyncDate
         )
     }
 }

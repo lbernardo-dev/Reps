@@ -645,7 +645,7 @@ struct ActiveWorkoutView: View {
                 waterLiters: waterLiters,
                 musicTitle: musicPlayer.currentSongTitle ?? playlist?.title,
                 musicArtist: musicPlayer.currentSongArtist ?? playlist?.provider.rawValue.capitalized,
-                isMusicPlaying: playlist.map { $0.provider == .appleMusic ? musicPlayer.isPlaying : musicPlayer.isSpotifyPlaying },
+                isMusicPlaying: playlist.map { _ in musicPlayer.isPlaying },
                 nextExerciseName: nextExerciseTitle,
                 exerciseHistorySummary: selectedExerciseContext.historySummary,
                 gymPass: selectedGymPass,
@@ -814,54 +814,38 @@ struct ActiveWorkoutView: View {
                     
                     HStack(spacing: 12) {
                         // Artwork
-                        if playlist.provider == .appleMusic {
-                            if let artwork = musicPlayer.currentSongArtwork {
-                                ArtworkImage(artwork, width: 48, height: 48)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            } else {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(PulseTheme.grouped)
-                                        .frame(width: 48, height: 48)
-                                    Image(systemName: "music.note")
-                                        .font(.title3.weight(.bold))
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                }
-                            }
+                        if let artwork = musicPlayer.currentSongArtwork {
+                            ArtworkImage(artwork, width: 48, height: 48)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         } else {
-                            // Spotify
                             ZStack {
-                                LinearGradient(
-                                    colors: [PulseTheme.spotify, PulseTheme.spotify.opacity(0.45)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                .frame(width: 48, height: 48)
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(PulseTheme.grouped)
+                                    .frame(width: 48, height: 48)
                                 Image(systemName: "music.note")
                                     .font(.title3.weight(.bold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(PulseTheme.secondaryText)
                             }
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
-                        
+
                         // Text info
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(playlist.provider == .appleMusic ? (musicPlayer.currentSongTitle ?? playlist.title) : (musicPlayer.isSpotifyPlaying ? (musicPlayer.currentSongTitle ?? playlist.title) : playlist.title))
+                            Text(musicPlayer.currentSongTitle ?? playlist.title)
                                 .font(.subheadline.weight(.bold))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
-                            
-                            Text(playlist.provider == .appleMusic ? (musicPlayer.currentSongArtist ?? musicPlayer.statusText(for: playlist)) : (musicPlayer.isSpotifyPlaying ? (musicPlayer.currentSongArtist ?? "Spotify") : "Spotify"))
+
+                            Text(musicPlayer.currentSongArtist ?? musicPlayer.statusText(for: playlist))
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .lineLimit(1)
                         }
-                        
+
                         Spacer(minLength: 8)
-                        
+
                         MusicTransportControls(
                             provider: playlist.provider,
-                            isPlaying: playlist.provider == .appleMusic ? musicPlayer.isPlaying : musicPlayer.isSpotifyPlaying,
+                            isPlaying: musicPlayer.isPlaying,
                             onBack: { Task { await musicPlayer.skipBackward(playlist) } },
                             onPlayPause: { Task { await musicPlayer.playOrPause(playlist) } },
                             onForward: { Task { await musicPlayer.skipForward(playlist) } }
