@@ -44,6 +44,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
     private var lastLocation: CLLocation?
     private var totalDistanceMeters: CLLocationDistance = 0
     private var heartRateSamples: [Double] = []
+    private var currentCadenceSpm: Double?
 
     override init() {
         super.init()
@@ -407,6 +408,9 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             Task { @MainActor in
                 guard let self, let data else { return }
                 self.routeSteps = data.numberOfSteps.doubleValue
+                if let cadence = data.currentCadence?.doubleValue, cadence > 0 {
+                    self.currentCadenceSpm = cadence * 60 // steps/sec -> steps/min
+                }
                 if self.routeDistanceKm == nil, let meters = data.distance?.doubleValue, meters > 0 {
                     self.routeDistanceKm = meters / 1_000
                 }
@@ -448,6 +452,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
         lastLocation = nil
         totalDistanceMeters = 0
         heartRateSamples = []
+        currentCadenceSpm = nil
     }
 
     private func updateRouteDerivedMetrics() {
@@ -751,7 +756,9 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                         longitude: location.coordinate.longitude,
                         altitude: location.altitude,
                         horizontalAccuracy: location.horizontalAccuracy,
-                        timestamp: location.timestamp
+                        timestamp: location.timestamp,
+                        heartRate: heartRate,
+                        cadenceSpm: currentCadenceSpm
                     )
                 )
                 routePointCount = routePoints.count

@@ -2223,3 +2223,98 @@ enum RouteProgressBuilder {
         return String(format: "%02d:%02d", minutes, secs)
     }
 }
+
+// MARK: - Strength standards (estimated 1RM vs. bodyweight)
+
+enum StrengthLevel: String, CaseIterable, Identifiable {
+    case beginner
+    case novice
+    case intermediate
+    case advanced
+    case elite
+    var id: String { rawValue }
+
+    func title(isSpanish: Bool) -> String {
+        switch self {
+        case .beginner: return isSpanish ? "Principiante" : "Beginner"
+        case .novice: return isSpanish ? "Novato" : "Novice"
+        case .intermediate: return isSpanish ? "Intermedio" : "Intermediate"
+        case .advanced: return isSpanish ? "Avanzado" : "Advanced"
+        case .elite: return isSpanish ? "Élite" : "Elite"
+        }
+    }
+
+    /// 0...1 progress through the strength continuum, for progress bars.
+    var fraction: Double {
+        switch self {
+        case .beginner: return 0.15
+        case .novice: return 0.35
+        case .intermediate: return 0.55
+        case .advanced: return 0.78
+        case .elite: return 1.0
+        }
+    }
+}
+
+enum StrengthStandards {
+    /// Male bodyweight-multiple thresholds. Below `novice` is beginner.
+    private struct Standard {
+        let novice: Double
+        let intermediate: Double
+        let advanced: Double
+        let elite: Double
+    }
+
+    private static func standard(forExerciseName name: String) -> Standard? {
+        let n = name.lowercased()
+        if n.contains("deadlift") {
+            return Standard(novice: 1.25, intermediate: 1.75, advanced: 2.5, elite: 3.0)
+        }
+        if n.contains("squat") {
+            return Standard(novice: 1.0, intermediate: 1.5, advanced: 2.25, elite: 2.75)
+        }
+        if n.contains("bench") {
+            return Standard(novice: 0.75, intermediate: 1.0, advanced: 1.5, elite: 2.0)
+        }
+        if n.contains("overhead") || n.contains("ohp")
+            || (n.contains("shoulder") && n.contains("press")) {
+            return Standard(novice: 0.55, intermediate: 0.8, advanced: 1.1, elite: 1.4)
+        }
+        if n.contains("row") {
+            return Standard(novice: 0.7, intermediate: 1.0, advanced: 1.4, elite: 1.8)
+        }
+        return nil
+    }
+
+    /// True when this exercise maps to a known strength standard.
+    static func hasStandard(forExerciseName name: String) -> Bool {
+        standard(forExerciseName: name) != nil
+    }
+
+    /// Classifies an estimated 1RM (kg) for a lift against bodyweight (kg) and sex.
+    /// Returns the strength level and the bodyweight ratio, or nil when unknown.
+    static func level(
+        exerciseName: String,
+        oneRepMaxKg: Double,
+        bodyWeightKg: Double,
+        sex: UserProfile.Sex?
+    ) -> (level: StrengthLevel, ratio: Double)? {
+        guard oneRepMaxKg > 0, bodyWeightKg > 0,
+              let base = standard(forExerciseName: exerciseName) else { return nil }
+        let sexFactor = sex == .female ? 0.66 : 1.0
+        let ratio = oneRepMaxKg / bodyWeightKg
+        let novice = base.novice * sexFactor
+        let intermediate = base.intermediate * sexFactor
+        let advanced = base.advanced * sexFactor
+        let elite = base.elite * sexFactor
+        let level: StrengthLevel
+        switch ratio {
+        case ..<novice: level = .beginner
+        case ..<intermediate: level = .novice
+        case ..<advanced: level = .intermediate
+        case ..<elite: level = .advanced
+        default: level = .elite
+        }
+        return (level, ratio)
+    }
+}

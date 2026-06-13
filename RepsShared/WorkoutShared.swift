@@ -55,6 +55,8 @@ struct SharedRoutePoint: Codable, Hashable, Sendable {
     var altitude: Double?
     var horizontalAccuracy: Double?
     var timestamp: Date
+    var heartRate: Double? = nil
+    var cadenceSpm: Double? = nil
 }
 
 struct WatchRouteWorkoutSummary: Codable, Hashable, Sendable {

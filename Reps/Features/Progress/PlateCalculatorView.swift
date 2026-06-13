@@ -3,10 +3,40 @@ import SwiftUI
 struct PlateCalculatorView: View {
     @Environment(AppStore.self) private var store
     @State private var targetWeightInput: String = "60"
-    @State private var barbellWeight: Double = 20.0
-    
-    private let availablePlates: [Double] = [25.0, 20.0, 15.0, 10.0, 5.0, 2.5, 1.25, 0.5]
-    
+    @AppStorage("plateCalc.barWeight") private var barbellWeight: Double = 20.0
+    @AppStorage("plateCalc.disabledPlates") private var disabledPlatesRaw: String = ""
+
+    // Full universe of plates the calculator knows about (kg).
+    private let allPlates: [Double] = [25.0, 20.0, 15.0, 10.0, 5.0, 2.5, 2.0, 1.5, 1.25, 1.0, 0.5]
+
+    private struct BarOption: Identifiable {
+        var id: Double { weight }
+        let name: String
+        let weight: Double
+    }
+
+    private let barOptions: [BarOption] = [
+        BarOption(name: "Olímpica", weight: 20.0),
+        BarOption(name: "Femenina", weight: 15.0),
+        BarOption(name: "Técnica", weight: 7.0),
+        BarOption(name: "Barra Z", weight: 10.0)
+    ]
+
+    private var disabledPlates: Set<Double> {
+        Set(disabledPlatesRaw.split(separator: ",").compactMap { Double($0) })
+    }
+
+    // Plates the user actually owns, largest first (used for the load math).
+    private var availablePlates: [Double] {
+        allPlates.filter { !disabledPlates.contains($0) }
+    }
+
+    private func togglePlate(_ plate: Double) {
+        var set = disabledPlates
+        if set.contains(plate) { set.remove(plate) } else { set.insert(plate) }
+        disabledPlatesRaw = set.sorted().map { String($0) }.joined(separator: ",")
+    }
+
     private var unit: String {
         store.userProfile.units == .metric ? "kg" : "lb"
     }
@@ -15,10 +45,10 @@ struct PlateCalculatorView: View {
         Double(targetWeightInput.replacingOccurrences(of: ",", with: ".")) ?? 0.0
     }
     
-    private var barbellDisplay: String {
-        String(format: "%.1f %@", barbellWeight, unit)
+    private var smallestAvailablePlate: Double {
+        availablePlates.min() ?? 0.0
     }
-    
+
     private struct PlateStackItem: Identifiable {
         let id = UUID()
         let weight: Double
@@ -95,50 +125,83 @@ struct PlateCalculatorView: View {
                             .foregroundStyle(PulseTheme.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        HStack(spacing: 16) {
-                            // Target Weight input
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Peso objetivo")
-                                    .font(.caption.weight(.semibold))
+                        // Target Weight input
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Peso objetivo")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            HStack {
+                                TextField("60", text: $targetWeightInput)
+                                    .keyboardType(.decimalPad)
+                                    .font(.title3.monospacedDigit().weight(.bold))
+
+                                Text(unit)
+                                    .font(.subheadline.weight(.bold))
                                     .foregroundStyle(PulseTheme.secondaryText)
-                                
-                                HStack {
-                                    TextField("60", text: $targetWeightInput)
-                                        .keyboardType(.decimalPad)
-                                        .font(.title3.monospacedDigit().weight(.bold))
-                                    
-                                    Text(unit)
-                                        .font(.subheadline.weight(.bold))
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                }
-                                .padding()
-                                .background(PulseTheme.grouped)
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             }
-                            
-                            // Barbell Selection
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Barra")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(PulseTheme.secondaryText)
-                                
-                                Menu {
-                                    Button("Barra Olímpica (20 kg)") { barbellWeight = 20.0 }
-                                    Button("Barra Femenina (15 kg)") { barbellWeight = 15.0 }
-                                    Button("Barra Técnica (10 kg)") { barbellWeight = 10.0 }
-                                    Button("Sin barra (0 kg)") { barbellWeight = 0.0 }
-                                } label: {
-                                    HStack {
-                                        Text(barbellDisplay)
-                                            .font(.title3.weight(.bold))
-                                            .foregroundStyle(.white)
-                                        Spacer()
-                                        Image(systemName: "chevron.down")
-                                            .foregroundStyle(PulseTheme.secondaryText)
+                            .padding()
+                            .background(PulseTheme.grouped)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+
+                        // Barbell type selector
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Barra")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(barOptions) { bar in
+                                        let selected = barbellWeight == bar.weight
+                                        Button {
+                                            barbellWeight = bar.weight
+                                        } label: {
+                                            Text("\(bar.name) \(bar.weight.formatted()) \(unit)")
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundStyle(selected ? .white : PulseTheme.secondaryText)
+                                                .padding(.horizontal, 14)
+                                                .padding(.vertical, 8)
+                                                .background(selected ? PulseTheme.primaryBright : PulseTheme.grouped)
+                                                .clipShape(Capsule())
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .padding()
-                                    .background(PulseTheme.grouped)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                }
+                            }
+                        }
+
+                        // Available plates (which plates you own)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Discos disponibles")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(allPlates, id: \.self) { plate in
+                                        let enabled = !disabledPlates.contains(plate)
+                                        Button {
+                                            togglePlate(plate)
+                                        } label: {
+                                            Text(plate.formatted())
+                                                .font(.subheadline.weight(.bold).monospacedDigit())
+                                                .foregroundStyle(enabled ? .white : PulseTheme.secondaryText)
+                                                .frame(minWidth: 40)
+                                                .padding(.vertical, 8)
+                                                .background(enabled ? PulseTheme.primary.opacity(0.85) : PulseTheme.grouped)
+                                                .clipShape(Capsule())
+                                                .overlay(
+                                                    Capsule()
+                                                        .strokeBorder(enabled ? Color.clear : PulseTheme.secondaryText.opacity(0.3), lineWidth: 1)
+                                                )
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                 }
                             }
                         }
@@ -217,7 +280,7 @@ struct PlateCalculatorView: View {
                                 }
                                 
                                 if calculatedPlatesPerSide.isEmpty && targetWeight > barbellWeight {
-                                    Text("El peso sobrante es menor que el disco más pequeño disponible (0.5 \(unit))")
+                                    Text("El peso sobrante es menor que el disco más pequeño disponible (\(smallestAvailablePlate.formatted()) \(unit))")
                                         .font(.caption)
                                         .foregroundStyle(PulseTheme.warning)
                                         .multilineTextAlignment(.center)

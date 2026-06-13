@@ -658,6 +658,7 @@ struct ExerciseDetailView: View {
     @State private var showCamera = false
     @State private var showPermissionDenied = false
     @State private var showBookmarkEditor = false
+    @State private var showSecondaryEditor = false
 
     // History and progress state
     @State private var metric = ProgressMetric.weight
@@ -835,6 +836,14 @@ struct ExerciseDetailView: View {
         .sheet(isPresented: $showBookmarkEditor) {
             ExerciseBookmarkEditor(exercise: currentExercise)
                 .environment(store)
+        }
+        .sheet(isPresented: $showSecondaryEditor) {
+            SecondaryMuscleEditorView(exercise: currentExercise) { weights in
+                var updated = currentExercise
+                updated.secondaryMuscleWeights = weights
+                store.updateExercise(updated)
+            }
+            .environment(store)
         }
         .onChange(of: customImageItem) { _, item in
             Task {
@@ -1106,9 +1115,10 @@ struct ExerciseDetailView: View {
                     if !currentExercise.secondaryMuscles.isEmpty {
                         Divider()
                         ForEach(currentExercise.secondaryMuscles, id: \.self) { muscle in
+                            let pct = Int((currentExercise.secondaryInvolvement(muscle) * 100).rounded())
                             ExerciseMuscleTargetRow(
                                 title: localizedMuscle(muscle),
-                                subtitle: isSpanish ? "0,35 series indirectas" : "0.35 indirect work set",
+                                subtitle: isSpanish ? "\(pct)% serie indirecta" : "\(pct)% indirect work set",
                                 muscleGroup: muscle,
                                 exerciseName: currentExercise.name,
                                 gender: store.userProfile.muscleMapGender
@@ -1120,10 +1130,83 @@ struct ExerciseDetailView: View {
                     }
                 }
             }
+
+            if !currentExercise.secondaryMuscles.isEmpty {
+                Button {
+                    showSecondaryEditor = true
+                } label: {
+                    Label(
+                        isSpanish ? "Ajustar músculos secundarios" : "Edit Secondary Muscles",
+                        systemImage: "slider.horizontal.3"
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PulseTheme.primaryBright)
+                }
+            }
             
             ResistanceCurveCard(profile: ResistanceCurveProfile(exercise: currentExercise))
             
             FatigueRatingCard(score: fatigueScore, description: fatigueDescription)
+        }
+    }
+
+    @ViewBuilder
+    private var strengthLevelCard: some View {
+        let best1RM = rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0
+        if let result = StrengthStandards.level(
+            exerciseName: currentExercise.name,
+            oneRepMaxKg: best1RM,
+            bodyWeightKg: store.currentWeight,
+            sex: store.userProfile.sex
+        ) {
+            PulseCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text(isSpanish ? "Nivel de fuerza" : "Strength Level")
+                            .font(.headline)
+                        Spacer()
+                        Text(result.level.title(isSpanish: isSpanish))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(strengthLevelColor(result.level))
+                            .clipShape(Capsule())
+                    }
+                    SwiftUI.ProgressView(value: result.level.fraction)
+                        .tint(strengthLevelColor(result.level))
+                    HStack {
+                        Text(String(format: isSpanish ? "%.2f× peso corporal" : "%.2f× bodyweight", result.ratio))
+                        Spacer()
+                        Text("1RM \(Int(best1RM)) kg · \(isSpanish ? "PC" : "BW") \(Int(store.currentWeight)) kg")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+        } else if StrengthStandards.hasStandard(forExerciseName: currentExercise.name),
+                  store.currentWeight <= 0 {
+            PulseCard {
+                HStack(spacing: 10) {
+                    Image(systemName: "scalemass")
+                        .foregroundStyle(PulseTheme.accent)
+                    Text(isSpanish
+                         ? "Registra tu peso corporal en Perfil para ver tu nivel de fuerza."
+                         : "Log your bodyweight in Profile to see your strength level.")
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+        }
+    }
+
+    private func strengthLevelColor(_ level: StrengthLevel) -> Color {
+        switch level {
+        case .beginner: return PulseTheme.secondaryText
+        case .novice: return Color(red: 0.0, green: 0.48, blue: 1.0)
+        case .intermediate: return Color(red: 0.20, green: 0.80, blue: 0.35)
+        case .advanced: return .orange
+        case .elite: return .red
         }
     }
 
@@ -1147,6 +1230,8 @@ struct ExerciseDetailView: View {
                     MetricCard(title: isSpanish ? "Sobrecarga" : "Overload", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: isSpanish ? "cambio 1RM" : "1RM delta", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
                     MetricCard(title: isSpanish ? "Volumen medio" : "Avg Volume", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg/sesión", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
                 }
+
+                strengthLevelCard
 
                 Picker("Rango", selection: $selectedHistoryRange) {
                     ForEach(ExerciseHistoryRange.allCases) { range in
@@ -1784,6 +1869,82 @@ struct AddCustomExerciseView: View {
                         dismiss()
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+    }
+}
+
+private struct SecondaryMuscleEditorView: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let exercise: Exercise
+    let onSave: ([String: Double]) -> Void
+
+    @State private var weights: [String: Double]
+
+    init(exercise: Exercise, onSave: @escaping ([String: Double]) -> Void) {
+        self.exercise = exercise
+        self.onSave = onSave
+        var initial: [String: Double] = [:]
+        for muscle in exercise.secondaryMuscles {
+            initial[muscle] = exercise.secondaryInvolvement(muscle)
+        }
+        _weights = State(initialValue: initial)
+    }
+
+    private var isSpanish: Bool { store.userProfile.preferredLanguage.hasPrefix("es") }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    Text(isSpanish
+                         ? "Define cuánto cuenta cada músculo secundario para el volumen y las series por músculo a la semana."
+                         : "Set how much each secondary muscle counts toward volume and weekly sets per muscle.")
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    ForEach(exercise.secondaryMuscles, id: \.self) { muscle in
+                        PulseCard {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text(ExerciseTextLocalizer.muscle(muscle, language: store.userProfile.preferredLanguage))
+                                        .font(.headline)
+                                    Spacer()
+                                    Text("\(Int(((weights[muscle] ?? Exercise.defaultSecondaryInvolvement) * 100).rounded()))%")
+                                        .font(.headline.monospacedDigit())
+                                        .foregroundStyle(PulseTheme.primaryBright)
+                                }
+                                Slider(
+                                    value: Binding(
+                                        get: { weights[muscle] ?? Exercise.defaultSecondaryInvolvement },
+                                        set: { weights[muscle] = $0 }
+                                    ),
+                                    in: 0...1,
+                                    step: 0.05
+                                )
+                                .tint(PulseTheme.primaryBright)
+                            }
+                        }
+                    }
+                }
+                .padding(20)
+            }
+            .screenBackground()
+            .navigationTitle(isSpanish ? "Músculos secundarios" : "Secondary Muscles")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(isSpanish ? "Cancelar" : "Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isSpanish ? "Guardar" : "Save") {
+                        onSave(weights)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
                 }
             }
         }

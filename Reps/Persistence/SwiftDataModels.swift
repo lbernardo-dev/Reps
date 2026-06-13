@@ -153,6 +153,7 @@ final class ExerciseRecord {
     var aliasesData: Data?
     var muscleGroup: String
     var secondaryMusclesData: Data?
+    var secondaryMuscleWeightsData: Data?
     var equipment: String
     var requiredEquipmentData: Data?
     var trackingType: String
@@ -179,6 +180,7 @@ final class ExerciseRecord {
         aliasesData = encodeStrings(exercise.aliases)
         muscleGroup = exercise.muscleGroup
         secondaryMusclesData = encodeStrings(exercise.secondaryMuscles)
+        secondaryMuscleWeightsData = encodeStringDoubleMap(exercise.secondaryMuscleWeights)
         equipment = exercise.equipment
         requiredEquipmentData = encodeStrings(exercise.requiredEquipment)
         trackingType = exercise.trackingType.rawValue
@@ -207,6 +209,7 @@ final class ExerciseRecord {
             aliases: decodeStrings(aliasesData),
             muscleGroup: muscleGroup,
             secondaryMuscles: decodeStrings(secondaryMusclesData),
+            secondaryMuscleWeights: decodeStringDoubleMap(secondaryMuscleWeightsData),
             equipment: equipment,
             requiredEquipment: decodeStrings(requiredEquipmentData),
             trackingType: Exercise.TrackingType(rawValue: trackingType) ?? .weightReps,
@@ -861,6 +864,22 @@ private func decodeStrings(_ data: Data?) -> [String] {
     }
 
     return (try? JSONDecoder().decode([String].self, from: data)) ?? []
+}
+
+private func encodeStringDoubleMap(_ values: [String: Double]) -> Data? {
+    guard !values.isEmpty else {
+        return nil
+    }
+
+    return try? JSONEncoder().encode(values)
+}
+
+private func decodeStringDoubleMap(_ data: Data?) -> [String: Double] {
+    guard let data else {
+        return [:]
+    }
+
+    return (try? JSONDecoder().decode([String: Double].self, from: data)) ?? [:]
 }
 
 private func encodeWorkoutMediaAttachments(_ attachments: [WorkoutMediaAttachment]) -> Data? {

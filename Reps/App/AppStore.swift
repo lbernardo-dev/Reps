@@ -1206,7 +1206,9 @@ final class AppStore {
                 longitude: $0.longitude,
                 altitude: $0.altitude,
                 horizontalAccuracy: $0.horizontalAccuracy,
-                timestamp: $0.timestamp
+                timestamp: $0.timestamp,
+                heartRate: $0.heartRate,
+                cadenceSpm: $0.cadenceSpm
             )
         }
 
@@ -2794,7 +2796,104 @@ final class AppStore {
                 )
             })
         }
-        return routePoints.sorted { $0.timestamp < $1.timestamp }
+
+        let sorted = routePoints.sorted { $0.timestamp < $1.timestamp }
+        return await enrichRoutePoints(sorted, for: workout)
+    }
+
+    /// Aligns per-point heart-rate and cadence samples to the route's GPS points.
+    private func enrichRoutePoints(_ points: [RoutePoint], for workout: HKWorkout) async -> [RoutePoint] {
+        guard !points.isEmpty else { return points }
+
+        let heartRates = await heartRateSamples(for: workout)
+        let cadences = await cadenceSamples(for: workout)
+        guard !heartRates.isEmpty || !cadences.isEmpty else { return points }
+
+        return points.map { point in
+            var enriched = point
+            enriched.heartRate = Self.nearestValue(in: heartRates, to: point.timestamp, tolerance: 30)
+            enriched.cadenceSpm = Self.cadenceValue(in: cadences, at: point.timestamp)
+            return enriched
+        }
+    }
+
+    /// Discrete heart-rate samples (date, bpm) for the workout, sorted by time.
+    private func heartRateSamples(for workout: HKWorkout) async -> [(date: Date, value: Double)] {
+        let type = HKQuantityType(.heartRate)
+        let predicate = HKQuery.predicateForObjects(from: workout)
+        let unit = HKUnit.count().unitDivided(by: .minute())
+        let samples: [HKQuantitySample] = await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
+            ) { _, samples, _ in
+                continuation.resume(returning: samples as? [HKQuantitySample] ?? [])
+            }
+            healthStore.execute(query)
+        }
+        return samples.map { sample in
+            let mid = sample.startDate.addingTimeInterval(sample.endDate.timeIntervalSince(sample.startDate) / 2)
+            return (mid, sample.quantity.doubleValue(for: unit))
+        }
+    }
+
+    /// Step-count samples mapped to cadence (steps/min) over each sample's interval.
+    private func cadenceSamples(for workout: HKWorkout) async -> [(start: Date, end: Date, value: Double)] {
+        let type = HKQuantityType(.stepCount)
+        let predicate = HKQuery.predicateForObjects(from: workout)
+        let samples: [HKQuantitySample] = await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
+            ) { _, samples, _ in
+                continuation.resume(returning: samples as? [HKQuantitySample] ?? [])
+            }
+            healthStore.execute(query)
+        }
+        return samples.compactMap { sample in
+            let duration = sample.endDate.timeIntervalSince(sample.startDate)
+            guard duration > 0 else { return nil }
+            let steps = sample.quantity.doubleValue(for: .count())
+            let spm = steps / (duration / 60.0)
+            guard spm > 0, spm < 400 else { return nil }
+            return (sample.startDate, sample.endDate, spm)
+        }
+    }
+
+    /// Nearest sample value to `target`, within `tolerance` seconds; samples sorted by date.
+    private static func nearestValue(
+        in samples: [(date: Date, value: Double)],
+        to target: Date,
+        tolerance: TimeInterval
+    ) -> Double? {
+        guard !samples.isEmpty else { return nil }
+        var best: (gap: TimeInterval, value: Double)?
+        for sample in samples {
+            let gap = abs(sample.date.timeIntervalSince(target))
+            if best == nil || gap < best!.gap {
+                best = (gap, sample.value)
+            } else if sample.date > target {
+                break // sorted: gaps only grow once we pass the target
+            }
+        }
+        guard let best, best.gap <= tolerance else { return nil }
+        return best.value
+    }
+
+    /// Cadence covering `target` (interval containing it, else nearest by start).
+    private static func cadenceValue(
+        in samples: [(start: Date, end: Date, value: Double)],
+        at target: Date
+    ) -> Double? {
+        guard !samples.isEmpty else { return nil }
+        if let containing = samples.first(where: { $0.start <= target && target <= $0.end }) {
+            return containing.value
+        }
+        return samples.min { abs($0.start.timeIntervalSince(target)) < abs($1.start.timeIntervalSince(target)) }?.value
     }
 
     private func locations(for route: HKWorkoutRoute) async -> [CLLocation] {

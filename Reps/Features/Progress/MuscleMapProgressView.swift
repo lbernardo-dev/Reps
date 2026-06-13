@@ -587,11 +587,14 @@ private struct MuscleActivitySummary {
                     let completed = log.sets.filter(\.completed)
                     guard !completed.isEmpty else { return nil }
                     let direct = MuscleLoadCalculator.segments(for: log.exercise).contains(segment)
-                    let indirect = !direct && log.exercise.secondaryMuscles.contains { secondary in
+                    let indirectMuscles = log.exercise.secondaryMuscles.filter { secondary in
                         MuscleLoadCalculator.segments(forMuscleName: secondary).contains(segment)
                     }
+                    let indirect = !direct && !indirectMuscles.isEmpty
                     guard direct || indirect else { return nil }
-                    let multiplier = direct ? 1.0 : 0.35
+                    let multiplier = direct
+                        ? 1.0
+                        : (indirectMuscles.map { log.exercise.secondaryInvolvement($0) }.max() ?? Exercise.defaultSecondaryInvolvement)
                     return MuscleExerciseContribution(
                         exercise: log.exercise,
                         date: session.date,
@@ -1088,9 +1091,10 @@ private enum MuscleLoadCalculator {
         }
 
         for secondary in exercise.secondaryMuscles {
+            let involvement = exercise.secondaryInvolvement(secondary)
             for segment in segments(forMuscleName: secondary) {
-                setBuckets[segment, default: 0] += sets * 0.35
-                volumeBuckets[segment, default: 0] += volume * 0.35
+                setBuckets[segment, default: 0] += sets * involvement
+                volumeBuckets[segment, default: 0] += volume * involvement
             }
         }
     }

@@ -467,7 +467,133 @@ enum SeedData {
         upperLower4DayPlan.days[0],
         strength5x5Plan.days[0],
         express30Plan.days[0]
+    ] + hyroxTemplates
+
+    // MARK: - HYROX templates
+    //
+    // HYROX is a fixed-format fitness race: 8 × 1 km runs, each followed by a
+    // functional station (SkiErg 1000 m, Sled Push 50 m, Sled Pull 50 m,
+    // Burpee Broad Jump 80 m, Row 1000 m, Farmers Carry 200 m, Sandbag Lunges
+    // 100 m, Wall Balls 100 reps). The block below mirrors how coaches program
+    // for it: a polarized aerobic base, two functional-strength days, a
+    // "compromised running" session (running on fatigued legs), a race
+    // simulation, and a taper session for race week.
+    static let hyroxTemplates: [WorkoutDay] = [
+        hyroxBaseRun, hyroxRunIntervals, hyroxStrengthA, hyroxStrengthB,
+        hyroxCompromisedRunning, hyroxRaceSimulation, hyroxTaper
     ]
+
+    private static let hyroxBaseRun = programDay(
+        "HYROX · Carrera Base Z2",
+        subtitle: "Base aeróbica conversacional (Z2)",
+        durationMinutes: 45,
+        [
+            station("Running", sets: 1, reps: "45 min", rest: 0, priority: .primary)
+        ],
+        sessionType: .cardioRun
+    )
+
+    private static let hyroxRunIntervals = programDay(
+        "HYROX · Intervalos de Carrera",
+        subtitle: "Ritmo umbral / ritmo de carrera",
+        durationMinutes: 45,
+        [
+            station("Running", sets: 6, reps: "1000 m", rest: 90, priority: .primary)
+        ],
+        sessionType: .cardioRun
+    )
+
+    private static let hyroxStrengthA = programDay(
+        "HYROX · Fuerza Funcional A",
+        subtitle: "Piernas, empuje y estaciones",
+        durationMinutes: 60,
+        [
+            item("Barbell Squat", sets: 4, reps: "6-10", rest: 150, priority: .primary, progression: .doubleProgression),
+            station("Sled Push", sets: 5, reps: "50 m", rest: 120, priority: .primary),
+            station("Wall Ball", sets: 4, reps: "25 reps", rest: 60),
+            station("SkiErg", sets: 4, reps: "250 m", rest: 60),
+            station("Walking Lunge", sets: 3, reps: "20 m", rest: 75),
+            station("Plank", sets: 3, reps: "45 s", rest: 45)
+        ]
+    )
+
+    private static let hyroxStrengthB = programDay(
+        "HYROX · Fuerza Funcional B",
+        subtitle: "Cadena posterior, tracción y acarreos",
+        durationMinutes: 60,
+        [
+            item("Romanian Deadlift", sets: 4, reps: "6-10", rest: 150, priority: .primary, progression: .doubleProgression),
+            station("Sled Pull", sets: 5, reps: "50 m", rest: 120, priority: .primary),
+            item("Pull Up", sets: 4, reps: "6-10", rest: 90, priority: .primary, progression: .doubleProgression),
+            station("Farmer Carry", sets: 4, reps: "100 m", rest: 75),
+            station("Rowing Machine", sets: 4, reps: "500 m", rest: 60),
+            station("Sandbag Lunge", sets: 3, reps: "50 m", rest: 75)
+        ]
+    )
+
+    private static let hyroxCompromisedRunning = programDay(
+        "HYROX · Compromised Running",
+        subtitle: "Correr fatigado tras cada estación",
+        durationMinutes: 50,
+        [
+            station("Running", sets: 8, reps: "400 m", rest: 30, priority: .primary),
+            station("Wall Ball", sets: 4, reps: "25 reps", rest: 30),
+            station("Burpee Broad Jump", sets: 4, reps: "40 m", rest: 30),
+            station("Sled Push", sets: 4, reps: "25 m", rest: 30)
+        ],
+        sessionType: .mixedRoute
+    )
+
+    private static let hyroxRaceSimulation = programDay(
+        "HYROX · Simulación de Carrera",
+        subtitle: "Las 8 estaciones, 1 km de carrera antes de cada una",
+        durationMinutes: 75,
+        [
+            station("Running", sets: 8, reps: "1000 m", rest: 0, priority: .primary),
+            station("SkiErg", sets: 1, reps: "1000 m", rest: 0),
+            station("Sled Push", sets: 1, reps: "50 m", rest: 0),
+            station("Sled Pull", sets: 1, reps: "50 m", rest: 0),
+            station("Burpee Broad Jump", sets: 1, reps: "80 m", rest: 0),
+            station("Rowing Machine", sets: 1, reps: "1000 m", rest: 0),
+            station("Farmer Carry", sets: 1, reps: "200 m", rest: 0),
+            station("Sandbag Lunge", sets: 1, reps: "100 m", rest: 0),
+            station("Wall Ball", sets: 1, reps: "100 reps", rest: 0)
+        ],
+        sessionType: .mixedRoute
+    )
+
+    private static let hyroxTaper = programDay(
+        "HYROX · Afinamiento (Taper)",
+        subtitle: "Semana de carrera: agudeza, bajo volumen",
+        durationMinutes: 35,
+        [
+            station("Running", sets: 3, reps: "1000 m", rest: 120, priority: .primary),
+            station("Wall Ball", sets: 2, reps: "20 reps", rest: 60),
+            station("Sled Push", sets: 2, reps: "25 m", rest: 90),
+            station("Plank", sets: 2, reps: "30 s", rest: 45)
+        ],
+        sessionType: .mixedRoute
+    )
+
+    /// Station/interval item: distance- or time-based, no load progression.
+    private static func station(
+        _ name: String,
+        sets: Int,
+        reps: String,
+        rest: Int,
+        priority: WorkoutExercise.Priority = .secondary
+    ) -> WorkoutExercise {
+        WorkoutExercise(
+            exercise: exercise(named: name),
+            targetSets: sets,
+            repRange: reps,
+            previous: "-",
+            restSeconds: rest,
+            priority: priority,
+            progressionType: .none,
+            incrementKg: 0
+        )
+    }
 
     private static func programPushDay(name: String) -> WorkoutDay {
         programDay(name, subtitle: "Chest, shoulders and triceps", durationMinutes: 55, [
@@ -546,6 +672,7 @@ enum SeedData {
                 muscleGroup: inferredMuscleGroup(for: name),
                 equipment: inferredEquipment(for: name),
                 requiredEquipment: [inferredEquipment(for: name)],
+                exerciseType: inferredExerciseType(for: name),
                 sourceName: "StreakRep seed catalog",
                 sourceLicense: "Internal generated catalog"
             )
@@ -553,6 +680,10 @@ enum SeedData {
 
     private static func inferredMuscleGroup(for name: String) -> String {
         let lower = name.lowercased()
+        // HYROX-specific patterns first (avoid "sled push" mapping to chest, etc.)
+        if lower.contains("sled") || lower.contains("wall ball") || lower.contains("wall-ball") { return "Legs" }
+        if lower.contains("ski") { return "Back" }
+        if lower.contains("run") || lower.contains("burpee") || lower.contains("carry") || lower.contains("farmer") { return "Full Body" }
         if lower.contains("squat") || lower.contains("lunge") || lower.contains("leg") || lower.contains("calf") { return "Legs" }
         if lower.contains("hip") || lower.contains("glute") { return "Glutes" }
         if lower.contains("row") || lower.contains("pull") || lower.contains("deadlift") || lower.contains("pulldown") { return "Back" }
@@ -564,12 +695,26 @@ enum SeedData {
 
     private static func inferredEquipment(for name: String) -> String {
         let lower = name.lowercased()
+        if lower.contains("sled") { return "Sled" }
+        if lower.contains("ski") { return "Machine" }
+        if lower.contains("wall ball") || lower.contains("medicine") { return "Medicine Ball" }
+        if lower.contains("sandbag") { return "Sandbag" }
+        if lower.contains("carry") || lower.contains("farmer") { return "Kettlebell" }
+        if lower.contains("run") || lower.contains("burpee") || lower.contains("broad jump") { return "Bodyweight" }
         if lower.contains("barbell") { return "Barbell" }
         if lower.contains("dumbbell") { return "Dumbbells" }
         if lower.contains("cable") || lower.contains("pulldown") { return "Cable" }
         if lower.contains("machine") || lower.contains("leg press") || lower.contains("hack squat") { return "Machine" }
         if lower.contains("kettlebell") { return "Kettlebell" }
         return "Bodyweight"
+    }
+
+    private static func inferredExerciseType(for name: String) -> Exercise.ExerciseType {
+        let lower = name.lowercased()
+        if lower.contains("run") || lower.contains("ski") || lower.contains("erg")
+            || lower.contains("rowing") || lower.contains("row machine") { return .cardio }
+        if lower.contains("burpee") || lower.contains("broad jump") { return .hiit }
+        return .strength
     }
 
     static let sessions: [WorkoutSession] = []

@@ -148,6 +148,10 @@ struct Exercise: Codable, Identifiable, Hashable {
     var aliases: [String] = []
     var muscleGroup: String
     var secondaryMuscles: [String] = []
+    /// Per-secondary-muscle involvement as a fraction (0...1) of how much each
+    /// secondary muscle counts toward set/volume tallies. Missing entries fall
+    /// back to `Exercise.defaultSecondaryInvolvement`.
+    var secondaryMuscleWeights: [String: Double] = [:]
     var equipment: String
     var requiredEquipment: [String] = []
     var trackingType: TrackingType = .weightReps
@@ -169,6 +173,15 @@ struct Exercise: Codable, Identifiable, Hashable {
 }
 
 extension Exercise {
+    /// Default involvement applied to a secondary muscle when the exercise has
+    /// no explicit weight for it.
+    static let defaultSecondaryInvolvement: Double = 0.5
+
+    /// Involvement fraction (0...1) of a secondary muscle for this exercise.
+    func secondaryInvolvement(_ muscle: String) -> Double {
+        secondaryMuscleWeights[muscle] ?? Self.defaultSecondaryInvolvement
+    }
+
     var mediaAssetURL: URL? {
         guard let mediaURL,
               !mediaURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -286,9 +299,15 @@ extension WorkoutDay {
 struct PlanPlaylist: Codable, Identifiable, Hashable {
     enum Provider: String, Codable, CaseIterable, Identifiable {
         case appleMusic
-        case spotify
 
         var id: String { rawValue }
+
+        init(from decoder: Decoder) throws {
+            // Map any legacy/unknown provider (e.g. the removed "spotify") to Apple Music
+            // so previously saved playlists are migrated instead of dropped.
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            self = Provider(rawValue: raw) ?? .appleMusic
+        }
     }
 
     var id = UUID()
@@ -407,6 +426,10 @@ struct RoutePoint: Codable, Identifiable, Hashable {
     var altitude: Double?
     var horizontalAccuracy: Double?
     var timestamp: Date
+    /// Instantaneous heart rate (bpm) sampled nearest this point, when available.
+    var heartRate: Double? = nil
+    /// Instantaneous running cadence (steps per minute) covering this point, when available.
+    var cadenceSpm: Double? = nil
 }
 
 struct ExerciseLog: Codable, Identifiable, Hashable {

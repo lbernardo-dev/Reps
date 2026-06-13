@@ -682,7 +682,7 @@ private struct RouteWorkoutDetailsCard: View {
             RouteWorkoutMetric(title: "Active Kilocalories", value: session.activeKilocaloriesText, color: Color(red: 1.0, green: 0.08, blue: 0.34))
             RouteWorkoutMetric(title: "Total Kilocalories", value: session.totalKilocaloriesText, color: Color(red: 1.0, green: 0.08, blue: 0.34))
             RouteWorkoutMetric(title: "Elevation Gain", value: "--", color: Color(red: 0.33, green: 1.0, blue: 0.36))
-            RouteWorkoutMetric(title: "Avg. Power", value: "--", color: Color(red: 0.62, green: 1.0, blue: 0.03))
+            RouteWorkoutMetric(title: "HR Recovery", value: session.heartRateRecoveryText, color: Color(red: 1.0, green: 0.55, blue: 0.0))
             RouteWorkoutMetric(title: "Avg. Cadence", value: session.averageCadenceText, color: Color(red: 0.0, green: 0.86, blue: 0.90))
             RouteWorkoutMetric(title: "Avg. Pace", value: session.averagePaceSecondsPerKm.map(Self.paceText) ?? "--", color: Color(red: 0.0, green: 0.86, blue: 0.90))
             RouteWorkoutMetric(title: "Avg. Heart Rate", value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: Color(red: 1.0, green: 0.20, blue: 0.30))
@@ -709,6 +709,10 @@ private struct RouteWorkoutDetailsCard: View {
 private struct RouteWorkoutSplitsCard: View {
     let splits: [RouteSplit]
 
+    private var showsHeartRate: Bool { splits.contains { $0.averageHeartRate != nil } }
+    private var showsCadence: Bool { splits.contains { $0.cadenceSpm != nil } }
+    private var showsSensors: Bool { showsHeartRate || showsCadence }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
@@ -723,11 +727,21 @@ private struct RouteWorkoutSplitsCard: View {
             VStack(spacing: 0) {
                 HStack {
                     Text("")
-                        .frame(width: 28, alignment: .leading)
-                    Text("Time")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(width: 26, alignment: .leading)
+                    if !showsSensors {
+                        Text("Time")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     Text("Pace")
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    if showsHeartRate {
+                        Image(systemName: "heart.fill")
+                            .frame(width: 52, alignment: .trailing)
+                    }
+                    if showsCadence {
+                        Image(systemName: "figure.run")
+                            .frame(width: 52, alignment: .trailing)
+                    }
                     Text("Distance")
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
@@ -739,18 +753,30 @@ private struct RouteWorkoutSplitsCard: View {
                     HStack {
                         Text("\(split.index)")
                             .foregroundStyle(Color.white.opacity(0.48))
-                            .frame(width: 28, alignment: .leading)
-                        Text(Self.timeText(split.elapsedSeconds))
-                            .foregroundStyle(Color(red: 1.0, green: 0.90, blue: 0.03))
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(width: 26, alignment: .leading)
+                        if !showsSensors {
+                            Text(Self.timeText(split.elapsedSeconds))
+                                .foregroundStyle(Color(red: 1.0, green: 0.90, blue: 0.03))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         Text(Self.paceText(split.paceSecondsPerKm))
                             .foregroundStyle(Color(red: 0.0, green: 0.86, blue: 0.90))
                             .frame(maxWidth: .infinity, alignment: .leading)
+                        if showsHeartRate {
+                            Text(split.averageHeartRate.map { "\(Int($0.rounded()))" } ?? "--")
+                                .foregroundStyle(Color(red: 1.0, green: 0.20, blue: 0.30))
+                                .frame(width: 52, alignment: .trailing)
+                        }
+                        if showsCadence {
+                            Text(split.cadenceSpm.map { "\(Int($0.rounded()))" } ?? "--")
+                                .foregroundStyle(Color(red: 0.62, green: 1.0, blue: 0.30))
+                                .frame(width: 52, alignment: .trailing)
+                        }
                         Text(split.distanceText)
                             .foregroundStyle(Color.white.opacity(0.58))
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
-                    .font(.system(size: 18, weight: .medium, design: .rounded).monospacedDigit())
+                    .font(.system(size: showsSensors ? 16 : 18, weight: .medium, design: .rounded).monospacedDigit())
                     .padding(.vertical, 8)
 
                     if split.id != splits.last?.id {
@@ -996,6 +1022,8 @@ private struct RouteSplit: Identifiable, Hashable {
     let index: Int
     let distanceMeters: CLLocationDistance
     let elapsedSeconds: TimeInterval
+    var averageHeartRate: Double? = nil
+    var cadenceSpm: Double? = nil
 
     var paceSecondsPerKm: TimeInterval {
         guard distanceMeters > 0 else { return 0 }
@@ -1086,6 +1114,14 @@ private extension WorkoutSession {
         return "\(Int(steps / Double(durationMinutes)))SPM"
     }
 
+    /// Heart-rate recovery: drop from peak (or average) HR to the post-workout HR.
+    var heartRateRecoveryText: String {
+        guard let after = heartRateAfter else { return "--" }
+        let peak = maxHeartRate ?? averageHeartRate
+        guard let peak, peak > after else { return "--" }
+        return "\(Int((peak - after).rounded()))BPM"
+    }
+
     var hasRouteSensorSummary: Bool {
         averageHeartRate != nil || steps != nil
     }
@@ -1118,10 +1154,13 @@ private extension WorkoutSession {
                 let ratio = min(max((needed - previousDistance) / segmentDistance, 0), 1)
                 let segmentDuration = point.timestamp.timeIntervalSince(previousPoint.timestamp)
                 let splitEndTime = previousPoint.timestamp.addingTimeInterval(segmentDuration * ratio)
+                let metrics = sensorMetrics(from: splitStartTime, to: splitEndTime)
                 splits.append(RouteSplit(
                     index: splitIndex,
                     distanceMeters: targetMeters,
-                    elapsedSeconds: splitEndTime.timeIntervalSince(splitStartTime)
+                    elapsedSeconds: splitEndTime.timeIntervalSince(splitStartTime),
+                    averageHeartRate: metrics.heartRate,
+                    cadenceSpm: metrics.cadence
                 ))
                 splitIndex += 1
                 splitStartDistance = needed
@@ -1133,14 +1172,27 @@ private extension WorkoutSession {
 
         let remainder = cumulativeDistance - splitStartDistance
         if remainder >= 50, let last = routePoints.last {
+            let metrics = sensorMetrics(from: splitStartTime, to: last.timestamp)
             splits.append(RouteSplit(
                 index: splitIndex,
                 distanceMeters: remainder,
-                elapsedSeconds: last.timestamp.timeIntervalSince(splitStartTime)
+                elapsedSeconds: last.timestamp.timeIntervalSince(splitStartTime),
+                averageHeartRate: metrics.heartRate,
+                cadenceSpm: metrics.cadence
             ))
         }
 
         return splits
+    }
+
+    /// Average heart rate and cadence of route points whose timestamp falls in [start, end].
+    private func sensorMetrics(from start: Date, to end: Date) -> (heartRate: Double?, cadence: Double?) {
+        let window = routePoints.filter { $0.timestamp >= start && $0.timestamp <= end }
+        let heartRates = window.compactMap(\.heartRate)
+        let cadences = window.compactMap(\.cadenceSpm)
+        let avgHR = heartRates.isEmpty ? nil : heartRates.reduce(0, +) / Double(heartRates.count)
+        let avgCadence = cadences.isEmpty ? nil : cadences.reduce(0, +) / Double(cadences.count)
+        return (avgHR, avgCadence)
     }
 }
 
