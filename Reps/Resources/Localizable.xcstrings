@@ -59291,6 +59291,70 @@
         }
       }
     },
+    "Ajusta la búsqueda o los filtros de músculo y equipo para ver más resultados." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjust your search or the muscle and equipment filters to see more results."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajusta la búsqueda o los filtros de músculo y equipo para ver más resultados."
+          }
+        }
+      }
+    },
+    "Deshacer la última serie completada" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo the last completed set"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deshacer la última serie completada"
+          }
+        }
+      }
+    },
+    "Deshacer serie" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo set"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deshacer serie"
+          }
+        }
+      }
+    },
+    "descanso" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rest"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "descanso"
+          }
+        }
+      }
+    },
     "Saltar descanso" : {
       "extractionState" : "stale",
       "localizations" : {
