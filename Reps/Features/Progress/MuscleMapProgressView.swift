@@ -7,11 +7,14 @@ struct MuscleMapProgressView: View {
     let plannedWorkout: WorkoutDay
     let startDate: Date
     let gender: BodyGender
+    let catalog: [Exercise]
 
     @State private var selectedFilter: MuscleRegionFilter = .all
     @State private var selectedMode: MuscleMapMode = .actual
     @State private var selectedSegment: MuscleSegment?
     @State private var detailSegment: MuscleSegment?
+
+    private let heatmapHeight: CGFloat = 520
 
     private var loads: [MuscleLoad] {
         MuscleLoadCalculator.loads(
@@ -34,19 +37,20 @@ struct MuscleMapProgressView: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             Text(selectedMode.subtitle)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.bottom, 6)
 
             InteractiveBodyHeatmap(
                 loads: loads,
                 gender: gender,
                 selectedSegment: $selectedSegment
             )
-            .frame(height: 410)
-            .padding(.vertical, 4)
+            .frame(height: heatmapHeight)
+            .padding(.vertical, 10)
 
             modeControl
 
@@ -87,7 +91,8 @@ struct MuscleMapProgressView: View {
                 load: loads.first(where: { $0.segment == segment }) ?? MuscleLoad(segment: segment, actualSets: 0, predictedSets: 0, totalVolumeKg: 0),
                 sessions: sessions,
                 startDate: startDate,
-                gender: gender
+                gender: gender,
+                catalog: catalog
             )
         }
     }
@@ -203,25 +208,27 @@ private struct InteractiveBodyHeatmap: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let bodyWidth = proxy.size.width * 0.66
-            let visualScale = min(1.24, max(1.12, proxy.size.width / 330))
+            let bodyWidth = proxy.size.width * 0.62
+            let bodyHeight = proxy.size.height * 0.88
+            let visualScale = min(1.1, max(1.0, proxy.size.width / 390))
 
             ZStack {
                 bodyView(side: .back)
-                    .frame(width: bodyWidth, height: proxy.size.height * 1.03)
+                    .frame(width: bodyWidth, height: bodyHeight)
                     .scaleEffect(visualScale, anchor: .center)
                     .offset(x: proxy.size.width * 0.17, y: 4)
                     .opacity(selectedSegment == nil ? 0.88 : 0.72)
                     .zIndex(1)
 
                 bodyView(side: .front)
-                    .frame(width: bodyWidth, height: proxy.size.height * 1.06)
+                    .frame(width: bodyWidth, height: bodyHeight)
                     .scaleEffect(visualScale, anchor: .center)
                     .offset(x: -proxy.size.width * 0.16, y: -2)
                     .zIndex(2)
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .center)
             .compositingGroup()
+            .clipped()
             .contentShape(Rectangle())
         }
         .accessibilityLabel("Mapa muscular interactivo")
@@ -368,6 +375,7 @@ private struct MuscleSegmentDetailSheet: View {
     let sessions: [WorkoutSession]
     let startDate: Date
     let gender: BodyGender
+    let catalog: [Exercise]
 
     private var activity: MuscleActivitySummary {
         MuscleActivitySummary(segment: segment, sessions: sessions, startDate: startDate)
@@ -431,7 +439,7 @@ private struct MuscleSegmentDetailSheet: View {
                         SectionHeader(title: "Ejercicios indirectos")
                         VStack(spacing: 10) {
                             ForEach(activity.indirectExercises) { item in
-                                MuscleExerciseContributionRow(item: item, gender: gender, isIndirect: true)
+                                MuscleExerciseContributionRow(item: item, gender: gender, isIndirect: true, catalog: catalog)
                             }
                         }
                     }
@@ -440,7 +448,7 @@ private struct MuscleSegmentDetailSheet: View {
                         SectionHeader(title: "Ejercicios directos")
                         VStack(spacing: 10) {
                             ForEach(activity.directExercises) { item in
-                                MuscleExerciseContributionRow(item: item, gender: gender, isIndirect: false)
+                                MuscleExerciseContributionRow(item: item, gender: gender, isIndirect: false, catalog: catalog)
                             }
                         }
                     }
@@ -513,10 +521,11 @@ private struct MuscleExerciseContributionRow: View {
     let item: MuscleExerciseContribution
     let gender: BodyGender
     let isIndirect: Bool
+    let catalog: [Exercise]
 
     var body: some View {
         HStack(spacing: 14) {
-            ExerciseMediaThumbnail(exercise: item.exercise, gender: gender)
+            ExerciseMediaThumbnail(exercise: item.exercise, gender: gender, catalog: catalog)
                 .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
 
@@ -680,16 +689,15 @@ private struct MuscleAnatomyThumbnail: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                body(side: segment.preferredSide == .front ? .back : .front)
-                    .opacity(0.22)
-                    .frame(width: proxy.size.width * 0.92, height: proxy.size.height * 1.05)
-                    .scaleEffect(max(region.scale * 0.86, 1.14), anchor: region.anchor)
-                    .offset(x: -proxy.size.width * 0.30, y: proxy.size.height * (region.offset.height + 0.01))
-
-                body(side: segment.preferredSide)
-                    .frame(width: proxy.size.width * 0.94, height: proxy.size.height * 1.05)
-                    .scaleEffect(region.scale, anchor: region.anchor)
-                    .offset(x: proxy.size.width * (0.18 + region.offset.width), y: proxy.size.height * region.offset.height)
+                ForEach(Array(segment.visibleSides.enumerated()), id: \.offset) { index, side in
+                    body(side: side)
+                        .frame(width: proxy.size.width * thumbnailBodyWidthMultiplier, height: proxy.size.height * 1.05)
+                        .scaleEffect(region.scale, anchor: region.anchor)
+                        .offset(
+                            x: thumbnailXOffset(for: index, in: proxy.size),
+                            y: proxy.size.height * region.offset.height
+                        )
+                }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
@@ -704,12 +712,26 @@ private struct MuscleAnatomyThumbnail: View {
     private func body(side: BodySide) -> some View {
         BodyView(gender: gender, side: side, style: .repsThumbnail)
             .heatmap(thumbnailData, configuration: .repsVolume)
+            .showSubGroups()
     }
 
     private var thumbnailData: [MuscleIntensity] {
         segment.muscles.map {
             MuscleIntensity(muscle: $0, intensity: min(max(intensity, 0.18), 1))
         }
+    }
+
+    private var thumbnailBodyWidthMultiplier: CGFloat {
+        segment.visibleSides.count == 1 ? 0.96 : 0.62
+    }
+
+    private func thumbnailXOffset(for index: Int, in size: CGSize) -> CGFloat {
+        guard segment.visibleSides.count > 1 else {
+            return size.width * region.offset.width
+        }
+
+        let sideSpacing = size.width * 0.18
+        return (index == 0 ? -sideSpacing : sideSpacing) + size.width * region.offset.width
     }
 
     private var region: MuscleThumbnailRegion {
@@ -726,10 +748,14 @@ private struct MuscleAnatomyThumbnail: View {
             MuscleThumbnailRegion(scale: 2.72, anchor: .center, offset: CGSize(width: 0.02, height: 0.15))
         case .abs, .obliques:
             MuscleThumbnailRegion(scale: 2.62, anchor: .center, offset: CGSize(width: -0.02, height: 0.00))
-        case .quads, .hamstrings, .calves, .adductors:
-            MuscleThumbnailRegion(scale: 2.18, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.12))
+        case .quads, .adductors:
+            MuscleThumbnailRegion(scale: 2.28, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.16))
+        case .hamstrings:
+            MuscleThumbnailRegion(scale: 2.24, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.10))
+        case .calves:
+            MuscleThumbnailRegion(scale: 2.18, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.06))
         case .glutes:
-            MuscleThumbnailRegion(scale: 2.42, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.26))
+            MuscleThumbnailRegion(scale: 2.50, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.24))
         }
     }
 }
@@ -742,21 +768,18 @@ private struct MuscleSegmentHero: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                BodyView(gender: gender, side: oppositeSide, style: .repsDark)
-                    .heatmap(heatmapData, configuration: .repsVolume)
-                    .opacity(0.22)
-                    .frame(width: proxy.size.width * 0.88, height: proxy.size.height * 1.18)
-                    .scaleEffect(max(region.scale * 0.78, 1.06), anchor: region.anchor)
-                    .offset(x: -proxy.size.width * 0.20, y: proxy.size.height * (region.offset.height + 0.03))
-                    .allowsHitTesting(false)
-
-                BodyView(gender: gender, side: segment.preferredSide, style: .repsDark)
-                    .heatmap(heatmapData, configuration: .repsVolume)
-                    .selected(Set(segment.muscles))
-                    .frame(width: proxy.size.width * 0.88, height: proxy.size.height * 1.18)
-                    .scaleEffect(region.scale, anchor: region.anchor)
-                    .offset(x: proxy.size.width * (0.13 + region.offset.width), y: proxy.size.height * region.offset.height)
-                    .allowsHitTesting(false)
+                ForEach(Array(segment.visibleSides.enumerated()), id: \.offset) { index, side in
+                    BodyView(gender: gender, side: side, style: .repsDark)
+                        .heatmap(heatmapData, configuration: .repsVolume)
+                        .selected(Set(segment.muscles))
+                        .frame(width: proxy.size.width * heroBodyWidthMultiplier, height: proxy.size.height * 1.18)
+                        .scaleEffect(region.scale, anchor: region.anchor)
+                        .offset(
+                            x: heroXOffset(for: index, in: proxy.size),
+                            y: proxy.size.height * region.offset.height
+                        )
+                        .allowsHitTesting(false)
+                }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
             .overlay(alignment: .bottom) {
@@ -779,8 +802,17 @@ private struct MuscleSegmentHero: View {
         }
     }
 
-    private var oppositeSide: BodySide {
-        segment.preferredSide == .front ? .back : .front
+    private var heroBodyWidthMultiplier: CGFloat {
+        segment.visibleSides.count == 1 ? 0.88 : 0.58
+    }
+
+    private func heroXOffset(for index: Int, in size: CGSize) -> CGFloat {
+        guard segment.visibleSides.count > 1 else {
+            return size.width * region.offset.width
+        }
+
+        let sideSpacing = size.width * 0.18
+        return (index == 0 ? -sideSpacing : sideSpacing) + size.width * region.offset.width
     }
 
     private var region: MuscleThumbnailRegion {
@@ -1031,6 +1063,15 @@ private enum MuscleSegment: String, CaseIterable, Identifiable {
             .back
         default:
             .front
+        }
+    }
+
+    var visibleSides: [BodySide] {
+        switch self {
+        case .deltoids, .traps, .forearms, .calves, .adductors:
+            [.back, .front]
+        default:
+            [preferredSide]
         }
     }
 

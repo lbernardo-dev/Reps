@@ -56,7 +56,7 @@ struct ExerciseAnatomyThumbnail: View {
     }
 
     private var cacheKey: String {
-        return "v5-\(exercise.id.uuidString)-\(gender)-\(Int(size.rounded()))-\(descriptor.region.side)-\(descriptor.cacheKey)"
+        return "v6-\(exercise.id.uuidString)-\(gender)-\(Int(size.rounded()))-\(descriptor.region.side)-\(descriptor.cacheKey)"
     }
 
     private var cardioFallback: some View {
@@ -519,10 +519,16 @@ private enum ExerciseAnatomyFocus {
             AnatomyRegion(side: .front, scale: 2.82, anchor: .center, offset: CGSize(width: -0.02, height: 0.28))
         case .arms, .biceps, .triceps, .forearms:
             AnatomyRegion(side: .front, scale: 2.72, anchor: .center, offset: CGSize(width: 0.02, height: 0.15))
-        case .legs, .quadriceps, .hamstrings, .calves, .adductors, .hipFlexors:
-            AnatomyRegion(side: .front, scale: 2.18, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.12))
+        case .legs:
+            AnatomyRegion(side: .front, scale: 2.08, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.10))
+        case .quadriceps, .adductors, .hipFlexors:
+            AnatomyRegion(side: .front, scale: 2.28, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.16))
+        case .hamstrings:
+            AnatomyRegion(side: .back, scale: 2.24, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.10))
+        case .calves:
+            AnatomyRegion(side: .back, scale: 2.18, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.06))
         case .glutes:
-            AnatomyRegion(side: .back, scale: 2.42, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.26))
+            AnatomyRegion(side: .back, scale: 2.50, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.24))
         case .core, .obliques:
             AnatomyRegion(side: .front, scale: 2.62, anchor: .center, offset: CGSize(width: -0.02, height: 0.00))
         case .fullBody:

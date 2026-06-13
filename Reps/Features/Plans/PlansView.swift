@@ -1894,7 +1894,7 @@ private struct EditableWorkoutExerciseRow: View {
         VStack(alignment: .leading, spacing: 12) {
             // Row 1 — identity + delete
             HStack(spacing: 12) {
-                ExerciseMediaThumbnail(exercise: item.exercise, gender: store.userProfile.muscleMapGender)
+                ExerciseMediaThumbnail(exercise: item.exercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                     .frame(width: 56, height: 56)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
@@ -2122,7 +2122,7 @@ private struct PlanExercisePickerSheet: View {
                                 dismiss()
                             } label: {
                                 VStack(alignment: .leading, spacing: 10) {
-                                    ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender)
+                                    ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                                         .frame(height: 118)
                                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                                     Text(exercise.name)

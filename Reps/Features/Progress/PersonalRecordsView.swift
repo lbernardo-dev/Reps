@@ -113,7 +113,7 @@ struct PRCardView: View {
     var body: some View {
         PulseCard {
             HStack(spacing: 16) {
-                ExerciseMediaThumbnail(exercise: item.exercise, gender: store.userProfile.muscleMapGender)
+                ExerciseMediaThumbnail(exercise: item.exercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                     .frame(width: 58, height: 58)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 

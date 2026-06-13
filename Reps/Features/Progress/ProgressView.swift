@@ -558,12 +558,13 @@ struct ProgressDashboardView: View {
                 )
               }
             } else {
-              MuscleMapProgressView(
-                sessions: store.workoutSessions,
-                plannedWorkout: store.todaysWorkout,
-                startDate: selectedRange.startDate,
-                gender: store.userProfile.muscleMapGender
-              )
+	              MuscleMapProgressView(
+	                sessions: store.workoutSessions,
+	                plannedWorkout: store.todaysWorkout,
+	                startDate: selectedRange.startDate,
+	                gender: store.userProfile.muscleMapGender,
+	                catalog: store.exercises
+	              )
               .stickyHeaderTitle(isSpanish ? "Mapa muscular" : "Muscle Map")
             }
           }

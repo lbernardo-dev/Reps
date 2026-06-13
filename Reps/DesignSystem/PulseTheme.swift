@@ -755,38 +755,42 @@ struct ExerciseMediaThumbnail: View, Equatable {
     let exercise: Exercise
     var gender: BodyGender = .male
     var fallbackSize: Font = .title3.weight(.bold)
+    var catalog: [Exercise] = []
 
     nonisolated static func == (lhs: ExerciseMediaThumbnail, rhs: ExerciseMediaThumbnail) -> Bool {
-        lhs.exercise.id == rhs.exercise.id
-            && lhs.exercise.name == rhs.exercise.name
-            && lhs.exercise.muscleGroup == rhs.exercise.muscleGroup
-            && lhs.exercise.secondaryMuscles == rhs.exercise.secondaryMuscles
-            && lhs.exercise.tags == rhs.exercise.tags
-            && lhs.exercise.mediaURL == rhs.exercise.mediaURL
-            && Self.customImageFingerprint(for: lhs.exercise.customImageData) == Self.customImageFingerprint(for: rhs.exercise.customImageData)
+        let lhsExercise = ExerciseVisualResolver.resolved(lhs.exercise, catalog: lhs.catalog)
+        let rhsExercise = ExerciseVisualResolver.resolved(rhs.exercise, catalog: rhs.catalog)
+        return lhsExercise.id == rhsExercise.id
+            && lhsExercise.name == rhsExercise.name
+            && lhsExercise.muscleGroup == rhsExercise.muscleGroup
+            && lhsExercise.secondaryMuscles == rhsExercise.secondaryMuscles
+            && lhsExercise.tags == rhsExercise.tags
+            && lhsExercise.mediaURL == rhsExercise.mediaURL
+            && Self.customImageFingerprint(for: lhsExercise.customImageData) == Self.customImageFingerprint(for: rhsExercise.customImageData)
             && lhs.gender == rhs.gender
     }
 
     var body: some View {
+        let visualExercise = ExerciseVisualResolver.resolved(exercise, catalog: catalog)
         ZStack {
-            if let data = exercise.customImageData,
-               let image = ExerciseThumbnailImageCache.shared.image(for: data, exerciseID: exercise.id) {
+            if let data = visualExercise.customImageData,
+               let image = ExerciseThumbnailImageCache.shared.image(for: data, exerciseID: visualExercise.id) {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
-            } else if let url = exercise.mediaAssetURL {
+            } else if let url = visualExercise.mediaAssetURL {
                 RemoteExerciseImage(url: url) {
-                    fallback
+                    fallback(for: visualExercise)
                 }
             } else {
-                fallback
+                fallback(for: visualExercise)
             }
         }
         .background(PulseTheme.grouped)
         .clipped()
     }
 
-    private var fallback: some View {
+    private func fallback(for exercise: Exercise) -> some View {
         GeometryReader { proxy in
             let side = max(proxy.size.width, proxy.size.height)
             ExerciseAnatomyThumbnail(exercise: exercise, gender: gender, size: max(side, 1))
@@ -797,6 +801,72 @@ struct ExerciseMediaThumbnail: View, Equatable {
 
     nonisolated private static func customImageFingerprint(for data: Data?) -> CustomImageFingerprint? {
         data.map(CustomImageFingerprint.init)
+    }
+}
+
+enum ExerciseVisualResolver {
+    static func resolved(_ exercise: Exercise, catalog: [Exercise]) -> Exercise {
+        var resolved = catalog.first(where: { $0.id == exercise.id }) ?? exercise
+        if !hasValidCustomImage(resolved.customImageData) {
+            resolved.customImageData = nil
+        }
+
+        guard let catalogExercise = catalogExerciseMatch(for: resolved, in: catalog) else {
+            return resolved
+        }
+
+        if resolved.customImageData == nil, hasValidCustomImage(catalogExercise.customImageData) {
+            resolved.customImageData = catalogExercise.customImageData
+        }
+
+        if resolved.mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
+            resolved.mediaURL = catalogExercise.mediaURL
+        }
+
+        return resolved
+    }
+
+    private static func catalogExerciseMatch(for resolved: Exercise, in catalog: [Exercise]) -> Exercise? {
+        let candidates = catalog.filter { candidate in
+            candidate.id != resolved.id && hasVisualReference(candidate)
+        }
+        let resolvedName = normalized(resolved.name)
+        let resolvedEquipment = normalized(resolved.equipment)
+        let resolvedMuscleGroup = normalized(resolved.muscleGroup)
+
+        return candidates.first { candidate in
+            normalized(candidate.name) == resolvedName
+                && normalized(candidate.equipment) == resolvedEquipment
+        } ?? candidates.first { candidate in
+            normalized(candidate.name) == resolvedName
+                && normalized(candidate.muscleGroup) == resolvedMuscleGroup
+        } ?? candidates.first { candidate in
+            let candidateNames = ([candidate.name] + candidate.aliases).map(normalized)
+            return candidateNames.contains(resolvedName)
+                && normalized(candidate.equipment) == resolvedEquipment
+        } ?? candidates.first { candidate in
+            let candidateName = normalized(candidate.name)
+            return candidateName.contains(resolvedName)
+                && normalized(candidate.equipment) == resolvedEquipment
+                && normalized(candidate.muscleGroup) == resolvedMuscleGroup
+        }
+    }
+
+    private static func hasVisualReference(_ exercise: Exercise) -> Bool {
+        hasValidCustomImage(exercise.customImageData)
+            || !(exercise.mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+    }
+
+    static func hasValidCustomImage(_ data: Data?) -> Bool {
+        guard let data else { return false }
+        return UIImage(data: data) != nil
+    }
+
+    private static func normalized(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
     }
 }
 

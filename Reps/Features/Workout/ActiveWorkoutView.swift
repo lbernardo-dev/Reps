@@ -921,7 +921,8 @@ struct ActiveWorkoutView: View {
                                 ExerciseMediaThumbnail(
                                     exercise: draft.workoutExercise.exercise,
                                     gender: store.userProfile.muscleMapGender,
-                                    fallbackSize: .caption.weight(.bold)
+                                    fallbackSize: .caption.weight(.bold),
+                                    catalog: store.exercises
                                 )
                                 .equatable()
                                 .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
@@ -1196,7 +1197,7 @@ struct ActiveWorkoutView: View {
                         NavigationLink {
                             ExerciseProgressView(exercise: exercise)
                         } label: {
-                            ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender)
+                            ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                                 .equatable()
                                 .frame(width: 92, height: 104)
                                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
@@ -2252,7 +2253,8 @@ private struct ExercisePickerSheet: View {
                                         currentExercise: currentExercise,
                                         availableEquipment: store.userProfile.availableEquipment,
                                         gender: store.userProfile.muscleMapGender,
-                                        language: store.userProfile.preferredLanguage
+                                        language: store.userProfile.preferredLanguage,
+                                        catalog: store.exercises
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -2305,7 +2307,7 @@ private struct ExercisePickerSheet: View {
                 .background(PulseTheme.grouped, in: Capsule())
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender)
+            ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                 .frame(maxWidth: .infinity)
                 .frame(height: 210)
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
@@ -2372,10 +2374,11 @@ private struct ReplacementExerciseRow: View {
     let availableEquipment: [String]
     let gender: BodyGender
     let language: String
+    let catalog: [Exercise]
 
     var body: some View {
         HStack(spacing: 14) {
-            ExerciseMediaThumbnail(exercise: exercise, gender: gender)
+            ExerciseMediaThumbnail(exercise: exercise, gender: gender, catalog: catalog)
                 .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 

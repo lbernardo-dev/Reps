@@ -98,7 +98,8 @@ struct CalendarView: View {
                                     } label: {
                                         CalendarPlannedWorkoutRow(
                                             scheduled: scheduled,
-                                            gender: store.userProfile.muscleMapGender
+                                            gender: store.userProfile.muscleMapGender,
+                                            catalog: store.exercises
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -359,10 +360,11 @@ private struct CalendarSummaryPill: View {
 private struct CalendarPlannedWorkoutRow: View {
     let scheduled: ScheduledWorkout
     let gender: BodyGender
+    let catalog: [Exercise]
 
     var body: some View {
         HStack(spacing: 12) {
-            ExerciseMediaThumbnail(exercise: scheduled.workoutDay.exercises.first?.exercise ?? SeedData.bench, gender: gender)
+            ExerciseMediaThumbnail(exercise: scheduled.workoutDay.exercises.first?.exercise ?? SeedData.bench, gender: gender, catalog: catalog)
                 .frame(width: 58, height: 58)
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
             VStack(alignment: .leading, spacing: 4) {

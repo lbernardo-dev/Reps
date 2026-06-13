@@ -939,7 +939,7 @@ struct ProfileSetupView: View {
                                 
                                 HStack(spacing: 16) {
                                     // Left: Image or Anatomy Map Thumbnail
-                                    ExerciseMediaThumbnail(exercise: item.exercise, gender: selectedGender)
+                                    ExerciseMediaThumbnail(exercise: item.exercise, gender: selectedGender, catalog: store.exercises)
                                         .frame(width: 76, height: 76)
                                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                                         .overlay(

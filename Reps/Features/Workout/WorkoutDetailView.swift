@@ -311,7 +311,8 @@ struct WorkoutDetailView: View {
                             index: index + 1,
                             item: item,
                             gender: store.userProfile.muscleMapGender,
-                            language: store.userProfile.preferredLanguage
+                            language: store.userProfile.preferredLanguage,
+                            catalog: store.exercises
                         )
                     }
                     .buttonStyle(.plain)
@@ -335,10 +336,11 @@ private struct WorkoutExercisePreviewRow: View {
     let item: WorkoutExercise
     let gender: BodyGender
     let language: String
+    let catalog: [Exercise]
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            ExerciseMediaThumbnail(exercise: item.exercise, gender: gender)
+            ExerciseMediaThumbnail(exercise: item.exercise, gender: gender, catalog: catalog)
                 .frame(width: 72, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
@@ -505,11 +507,12 @@ private struct WorkoutStatTile: View {
 private struct ExerciseImageStack: View {
     let exercises: [Exercise]
     var gender: BodyGender = .male
+    var catalog: [Exercise] = []
 
     var body: some View {
         ZStack {
             ForEach(Array(exercises.prefix(3).enumerated()), id: \.element.id) { offset, exercise in
-                ExerciseMediaThumbnail(exercise: exercise, gender: gender)
+                ExerciseMediaThumbnail(exercise: exercise, gender: gender, catalog: catalog)
                     .frame(width: 96, height: 116)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(

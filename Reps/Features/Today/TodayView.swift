@@ -420,15 +420,16 @@ struct TodayView: View {
                             WorkoutExerciseAvatarStrip(
                                 exercises: focusMediaExercises,
                                 gender: store.userProfile.muscleMapGender,
-                                tint: PulseTheme.primary
+                                tint: PulseTheme.primary,
+                                catalog: store.exercises
                             )
                     }
 
                     HStack(alignment: .center, spacing: 8) {
                         Text(titleText)
-                            .font(.system(size: 38, weight: .black, design: .rounded))
+                            .font(.system(size: 34, weight: .black, design: .rounded))
                             .foregroundStyle(.primary)
-                            .lineLimit(2)
+                            .lineLimit(1)
                             .minimumScaleFactor(0.68)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
@@ -1112,7 +1113,8 @@ struct TodayView: View {
                                 PlanMicroCard(
                                     day: day,
                                     language: store.userProfile.preferredLanguage,
-                                    gender: store.userProfile.muscleMapGender
+                                    gender: store.userProfile.muscleMapGender,
+                                    catalog: store.exercises
                                 )
                             }
                             .buttonStyle(.plain)
@@ -1247,7 +1249,8 @@ struct TodayView: View {
                             VisualExerciseCard(
                                 exercise: exercise,
                                 language: store.userProfile.preferredLanguage,
-                                gender: store.userProfile.muscleMapGender
+                                gender: store.userProfile.muscleMapGender,
+                                catalog: store.exercises
                             )
                         }
                         .buttonStyle(.plain)
@@ -1371,6 +1374,7 @@ private struct WorkoutImageStack: View {
     let exercises: [Exercise]
     let gender: BodyGender
     let fallbackSystemImage: String
+    var catalog: [Exercise] = []
 
     var body: some View {
         ZStack {
@@ -1383,7 +1387,7 @@ private struct WorkoutImageStack: View {
                     .clipShape(Circle())
             } else {
                 ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
-                    ExerciseCardImage(exercise: exercise, gender: gender)
+                    ExerciseMediaThumbnail(exercise: exercise, gender: gender, catalog: catalog)
                         .frame(width: 52, height: 52)
                         .clipShape(Circle())
                         .overlay(Circle().stroke(.white.opacity(0.95), lineWidth: 1.8))
@@ -1401,6 +1405,7 @@ private struct WorkoutExerciseAvatarStrip: View {
     let exercises: [Exercise]
     let gender: BodyGender
     let tint: Color
+    let catalog: [Exercise]
 
     private let maxDiameter: CGFloat = 58
     private let minDiameter: CGFloat = 46
@@ -1422,7 +1427,7 @@ private struct WorkoutExerciseAvatarStrip: View {
 
             ZStack(alignment: .leading) {
                 ForEach(Array(exercises.prefix(visibleCount).enumerated()), id: \.element.id) { index, exercise in
-                    ExerciseMediaThumbnail(exercise: exercise, gender: gender)
+                    ExerciseMediaThumbnail(exercise: exercise, gender: gender, catalog: catalog)
                         .frame(width: diameter, height: diameter)
                         .clipShape(Circle())
                         .overlay(Circle().stroke(.white.opacity(0.92), lineWidth: 2))
@@ -1986,6 +1991,7 @@ private struct PlanMicroCard: View {
     let day: WorkoutDay
     let language: String
     let gender: BodyGender
+    let catalog: [Exercise]
 
     private var leadingExercise: Exercise? {
         day.exercises.first?.exercise
@@ -1995,7 +2001,7 @@ private struct PlanMicroCard: View {
         VStack(alignment: .leading, spacing: 7) {
             ZStack(alignment: .bottomTrailing) {
                 if let leadingExercise {
-                    ExerciseCardImage(exercise: leadingExercise, gender: gender)
+                    ExerciseMediaThumbnail(exercise: leadingExercise, gender: gender, catalog: catalog)
                         .frame(width: 108, height: 58)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 } else {
@@ -2079,12 +2085,13 @@ private struct VisualExerciseCard: View {
     let exercise: Exercise
     let language: String
     let gender: BodyGender
+    let catalog: [Exercise]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Image container (edge-to-edge top)
             ZStack(alignment: .bottomLeading) {
-                ExerciseCardImage(exercise: exercise, gender: gender)
+                ExerciseMediaThumbnail(exercise: exercise, gender: gender, catalog: catalog)
                     .frame(width: 156, height: 100)
                 
                 LinearGradient(
@@ -2186,34 +2193,5 @@ private struct VisualExerciseCard: View {
         case .gym: return language.hasPrefix("es") ? "Gym" : "Gym"
         case .both: return language.hasPrefix("es") ? "Mixto" : "Mixed"
         }
-    }
-}
-
-private struct ExerciseCardImage: View {
-    let exercise: Exercise
-    var gender: BodyGender = .male
-
-    var body: some View {
-        ZStack {
-            if let data = exercise.customImageData,
-               let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else if let url = exercise.mediaAssetURL {
-                RemoteExerciseImage(url: url) {
-                    fallback
-                }
-            } else {
-                fallback
-            }
-        }
-        .background(PulseTheme.grouped)
-        .clipped()
-    }
-
-    private var fallback: some View {
-        ExerciseAnatomyThumbnail(exercise: exercise, gender: gender, size: 96)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

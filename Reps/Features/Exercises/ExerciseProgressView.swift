@@ -31,6 +31,17 @@ struct ExerciseProgressView: View {
         case history = "Historial"
 
         var id: String { rawValue }
+
+        func localizedTitle(isSpanish: Bool) -> String {
+            switch self {
+            case .instructions:
+                isSpanish ? "Instrucciones" : "Instructions"
+            case .info:
+                "Info"
+            case .history:
+                isSpanish ? "Historial" : "History"
+            }
+        }
     }
 
     private enum ExerciseHistoryRange: String, CaseIterable, Identifiable {
@@ -63,7 +74,7 @@ struct ExerciseProgressView: View {
     }
 
     private var currentExercise: Exercise {
-        store.exercises.first(where: { $0.id == exercise.id }) ?? exercise
+        ExerciseVisualResolver.resolved(exercise, catalog: store.exercises)
     }
 
     private var points: [FitnessMetrics.ExerciseProgressPoint] {
@@ -84,12 +95,7 @@ struct ExerciseProgressView: View {
                     .minimumScaleFactor(0.72)
                     .frame(maxWidth: .infinity)
 
-                Picker("Sección", selection: $selectedTab) {
-                    ForEach(ExerciseDetailTab.allCases) { tab in
-                        Text(tab.rawValue).tag(tab)
-                    }
-                }
-                .pickerStyle(.segmented)
+                exerciseTabControl
 
                 Group {
                     switch selectedTab {
@@ -111,7 +117,8 @@ struct ExerciseProgressView: View {
         .mainTabBarHidden()
         .onChange(of: customImageItem) { _, item in
             Task {
-                guard let data = try? await item?.loadTransferable(type: Data.self) else { return }
+                guard let data = try? await item?.loadTransferable(type: Data.self),
+                      ExerciseVisualResolver.hasValidCustomImage(data) else { return }
                 var updated = currentExercise
                 updated.customImageData = data
                 store.updateExercise(updated)
@@ -144,6 +151,42 @@ struct ExerciseProgressView: View {
             personalizationCard
             exerciseTechniqueCard
         }
+    }
+
+    private var exerciseTabControl: some View {
+        HStack(spacing: 4) {
+            ForEach(ExerciseDetailTab.allCases) { tab in
+                Button {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.74)) {
+                        selectedTab = tab
+                    }
+                } label: {
+                    Text(tab.localizedTitle(isSpanish: isSpanish))
+                        .font(.system(size: 15, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .foregroundStyle(selectedTab == tab ? .white : PulseTheme.secondaryText)
+                        .background {
+                            if selectedTab == tab {
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .fill(Color.white.opacity(0.26))
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityValue(selectedTab == tab ? "Seleccionada" : "")
+            }
+        }
+        .padding(4)
+        .background(PulseTheme.card, in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Color.white.opacity(0.07), lineWidth: 1)
+        )
+        .accessibilityElement(children: .contain)
     }
 
     private var personalizationCard: some View {
@@ -186,7 +229,7 @@ struct ExerciseProgressView: View {
                             Label("Elegir de galería", systemImage: "photo.on.rectangle")
                         }
                         
-                        if currentExercise.customImageData != nil {
+                        if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
                             Button(role: .destructive) {
                                 var updated = currentExercise
                                 updated.customImageData = nil
@@ -206,7 +249,7 @@ struct ExerciseProgressView: View {
                     }
                 }
 
-                if currentExercise.customImageData != nil {
+                if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
                     Label("Imagen propia guardada offline", systemImage: "checkmark.seal.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.primary)
@@ -381,6 +424,10 @@ struct ExerciseProgressView: View {
         case "shoulders": "Hombros"
         default: value
         }
+    }
+
+    private var isSpanish: Bool {
+        store.userProfile.preferredLanguage.hasPrefix("es")
     }
 
     private var exerciseTechniqueCard: some View {

@@ -158,7 +158,8 @@ struct ExerciseLibraryView: View {
                                     ExerciseLibraryRow(
                                         exercise: exercise,
                                         language: store.userProfile.preferredLanguage,
-                                        gender: store.userProfile.muscleMapGender
+                                        gender: store.userProfile.muscleMapGender,
+                                        catalog: store.exercises
                                     )
                                 }
                             }
@@ -458,10 +459,11 @@ private struct ExerciseLibraryRow: View {
     let exercise: Exercise
     let language: String
     let gender: BodyGender
+    let catalog: [Exercise]
 
     var body: some View {
         HStack(spacing: 16) {
-            ExerciseMediaThumbnail(exercise: exercise, gender: gender)
+            ExerciseMediaThumbnail(exercise: exercise, gender: gender, catalog: catalog)
                 .frame(width: 72, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
@@ -847,7 +849,8 @@ struct ExerciseDetailView: View {
         }
         .onChange(of: customImageItem) { _, item in
             Task {
-                guard let data = try? await item?.loadTransferable(type: Data.self) else { return }
+                guard let data = try? await item?.loadTransferable(type: Data.self),
+                      ExerciseVisualResolver.hasValidCustomImage(data) else { return }
                 var updated = currentExercise
                 updated.customImageData = data
                 store.updateExercise(updated)
@@ -967,7 +970,7 @@ struct ExerciseDetailView: View {
                                 Label("Elegir de galería", systemImage: "photo.on.rectangle")
                             }
 
-                            if currentExercise.customImageData != nil {
+                            if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
                                 Button(role: .destructive) {
                                     var updated = currentExercise
                                     updated.customImageData = nil
@@ -999,7 +1002,7 @@ struct ExerciseDetailView: View {
                         }
                     }
 
-                    if currentExercise.customImageData != nil {
+                    if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
                         Label("Imagen propia guardada offline", systemImage: "checkmark.seal.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.primary)
@@ -1396,7 +1399,9 @@ struct ExerciseHeroMedia: View {
             .frame(width: size.width, height: size.height)
             .background(PulseTheme.grouped)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .contentShape(Rectangle())
             .clipped()
+            .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
@@ -1465,6 +1470,7 @@ private struct ExerciseHeroFallback: View {
             .frame(width: proxy.size.width, height: proxy.size.height)
             .clipped()
         }
+        .allowsHitTesting(false)
     }
 }
 
