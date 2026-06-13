@@ -141,7 +141,7 @@ private struct SmallStreakView: View {
                             startPoint: .top, endPoint: .bottom
                         )
                     )
-                    .minimumScaleFactor(0.6)
+                    .minimumScaleFactor(0.7)
                     .lineLimit(1)
                 
                 Text(streak == 1 ? "día" : "días" as LocalizedStringKey)

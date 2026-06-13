@@ -141,7 +141,7 @@ private struct SmallBatteryView: View {
             Text("\(level)%")
                 .font(.system(size: 54, weight: .black, design: .rounded))
                 .foregroundStyle(percentageColor)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.7)
                 .lineLimit(1)
                 .padding(.top, -4)
 
