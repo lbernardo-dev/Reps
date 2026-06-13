@@ -3,6 +3,7 @@ import CoreLocation
 import CoreMotion
 import HealthKit
 import WatchConnectivity
+import WatchKit
 
 @MainActor
 final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDelegate {
@@ -845,8 +846,14 @@ extension WatchWorkoutModel: WCSessionDelegate {
         if isStandaloneRouteWorkout {
             return
         }
+        let restJustEnded = snapshot.hasActiveWorkout
+            && (self.snapshot.restSeconds ?? 0) > 0
+            && (snapshot.restSeconds ?? 0) == 0
         self.snapshot = snapshot
         SharedWorkoutStore.save(snapshot)
+        if restJustEnded {
+            WKInterfaceDevice.current().play(.notification)
+        }
         if snapshot.hasActiveWorkout {
             startLocalWorkoutIfNeeded(for: snapshot)
         } else if !snapshot.hasActiveWorkout {

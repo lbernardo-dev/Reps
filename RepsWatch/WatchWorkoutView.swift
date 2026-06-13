@@ -117,7 +117,7 @@ struct WatchWorkoutView: View {
                     .font(.system(size: 18, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(WatchTheme.minScale)
                 Text(homeStatusText)
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
@@ -185,6 +185,7 @@ struct WatchWorkoutView: View {
                         routeControls
                     } else {
                         Button {
+                            WatchTheme.haptic(.success)
                             WatchCommandRouter.send(WatchCommand.completeSet.rawValue)
                         } label: {
                             HStack(spacing: 8) {
@@ -194,21 +195,15 @@ struct WatchWorkoutView: View {
                                     .font(.system(.headline, design: .rounded).bold())
                             }
                             .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color(red: 0.15, green: 0.68, blue: 0.37), Color(red: 0.18, green: 0.8, blue: 0.44)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .frame(height: WatchTheme.primaryActionHeight)
+                            .background(WatchTheme.success)
                             .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous)
+                                    .stroke(WatchTheme.success.opacity(0.4), lineWidth: 1)
                             )
-                            .shadow(color: Color.green.opacity(0.2), radius: 4, x: 0, y: 2)
+                            .shadow(color: WatchTheme.success.opacity(0.2), radius: 4, x: 0, y: 2)
                         }
                         .buttonStyle(.plain)
 
@@ -378,10 +373,10 @@ struct WatchWorkoutView: View {
                     Label("Caminata", systemImage: "figure.walk")
                         .font(.system(.headline, design: .rounded).bold())
                         .frame(maxWidth: .infinity)
-                        .frame(height: 46)
-                        .background(Color.green)
+                        .frame(height: WatchTheme.buttonHeight)
+                        .background(WatchTheme.success)
                         .foregroundStyle(.black)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
 
@@ -391,10 +386,10 @@ struct WatchWorkoutView: View {
                     Label("Carrera", systemImage: "figure.run")
                         .font(.system(.headline, design: .rounded).bold())
                         .frame(maxWidth: .infinity)
-                        .frame(height: 46)
+                        .frame(height: WatchTheme.buttonHeight)
                         .background(accentColor.opacity(0.16))
                         .foregroundStyle(accentColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
             }
@@ -458,7 +453,7 @@ struct WatchWorkoutView: View {
                         Text(code)
                             .font(.caption2.monospaced())
                             .lineLimit(3)
-                            .minimumScaleFactor(0.6)
+                            .minimumScaleFactor(WatchTheme.minScale)
                             .padding(8)
                             .frame(maxWidth: .infinity)
                             .background(.white.opacity(0.04))
@@ -498,7 +493,7 @@ struct WatchWorkoutView: View {
                 }
             }
         }
-        .watchCard(borderColor: Color.green.opacity(0.18))
+        .watchCard(borderColor: WatchTheme.success.opacity(0.18))
     }
 
     private var strengthProgressCard: some View {
@@ -539,7 +534,7 @@ struct WatchWorkoutView: View {
                     .font(.system(size: 10, weight: .bold, design: .rounded))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(WatchTheme.minScale)
             }
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
@@ -570,7 +565,7 @@ struct WatchWorkoutView: View {
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(2)
-                        .minimumScaleFactor(0.72)
+                        .minimumScaleFactor(WatchTheme.minScale)
                 }
 
                 Spacer(minLength: 4)
@@ -632,7 +627,7 @@ struct WatchWorkoutView: View {
                         .font(.system(size: 12, weight: .bold, design: .rounded))
                         .foregroundStyle(batteryColor)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.75)
+                        .minimumScaleFactor(WatchTheme.minScale)
 
                     Text(model.snapshot.trainingBatterySuggestion.isEmpty ? model.snapshot.summary : model.snapshot.trainingBatterySuggestion)
                         .font(.system(size: 10, weight: .medium, design: .rounded))
@@ -662,7 +657,7 @@ struct WatchWorkoutView: View {
             Text(model.snapshot.exerciseName ?? "Esperando ejercicio")
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .lineLimit(2)
-                .minimumScaleFactor(0.78)
+                .minimumScaleFactor(WatchTheme.minScale)
 
             WatchSetRow(value: currentSetText, color: accentColor)
             
@@ -678,7 +673,7 @@ struct WatchWorkoutView: View {
                                 .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
                                 .foregroundStyle(.orange)
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.65)
+                                .minimumScaleFactor(WatchTheme.minScale)
                         } else {
                             Text(model.snapshot.restText)
                                 .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
@@ -690,6 +685,7 @@ struct WatchWorkoutView: View {
                         .progressViewStyle(LinearTintProgressStyle(color: .orange))
 
                     Button {
+                        WatchTheme.haptic(.click)
                         WatchCommandRouter.send(WatchCommand.completeSet.rawValue)
                     } label: {
                         Text("Saltar")
@@ -738,7 +734,7 @@ struct WatchWorkoutView: View {
                 .font(.system(size: 34, weight: .black, design: .rounded).monospacedDigit())
                 .foregroundStyle(.white)
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .minimumScaleFactor(WatchTheme.minScale)
 
             HStack(spacing: 6) {
                 WatchTimePill(title: "Tiempo", value: liveElapsedText, icon: "timer", color: accentColor)
@@ -764,10 +760,10 @@ struct WatchWorkoutView: View {
                 Label(model.snapshot.isPaused ? "Reanudar" : "Pausar", systemImage: model.snapshot.isPaused ? "play.fill" : "pause.fill")
                     .font(.system(.headline, design: .rounded).bold())
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(model.snapshot.isPaused ? Color.green : Color.orange)
+                    .frame(height: WatchTheme.primaryActionHeight)
+                    .background(model.snapshot.isPaused ? WatchTheme.success : WatchTheme.warning)
                     .foregroundStyle(model.snapshot.isPaused ? .black : .white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
             }
             .buttonStyle(.plain)
 
@@ -779,13 +775,13 @@ struct WatchWorkoutView: View {
                 } label: {
                     Image(systemName: "stop.fill")
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.red)
-                        .frame(width: 46, height: 46)
-                        .background(Color.red.opacity(0.12))
+                        .foregroundStyle(WatchTheme.destructive)
+                        .frame(width: WatchTheme.buttonHeight, height: WatchTheme.buttonHeight)
+                        .background(WatchTheme.destructive.opacity(0.12))
                         .clipShape(Circle())
                         .overlay(
                             Circle()
-                                .stroke(Color.red.opacity(0.25), lineWidth: 1.5)
+                                .stroke(WatchTheme.destructive.opacity(0.25), lineWidth: 1.5)
                         )
                 }
                 .buttonStyle(.plain)
@@ -833,7 +829,7 @@ struct WatchWorkoutView: View {
                         .font(.system(size: 22, weight: .black, design: .rounded).monospacedDigit())
                         .foregroundStyle(.orange)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .minimumScaleFactor(WatchTheme.minScale)
                 }
 
                 ProgressView(value: model.snapshot.restProgress)
@@ -842,6 +838,7 @@ struct WatchWorkoutView: View {
                 HStack(spacing: 8) {
                     WatchTimePill(title: "Total", value: SharedWorkoutSnapshot.durationText(model.snapshot.restDurationSeconds ?? 0), icon: "clock", color: .orange)
                     Button {
+                        WatchTheme.haptic(.click)
                         WatchCommandRouter.send(WatchCommand.completeSet.rawValue)
                     } label: {
                         Image(systemName: "forward.end.fill")
@@ -881,28 +878,11 @@ struct WatchWorkoutView: View {
     }
 
     private var accentColor: Color {
-        switch model.snapshot.widgetAccentColorName.lowercased() {
-        case "green":
-            return Color(red: 0.33, green: 0.86, blue: 0.32)
-        case "orange":
-            return Color(red: 1.0, green: 0.60, blue: 0.14)
-        case "purple":
-            return Color(red: 0.52, green: 0.14, blue: 0.86)
-        case "red":
-            return Color(red: 0.93, green: 0.24, blue: 0.22)
-        case "yellow":
-            return Color(red: 1.0, green: 0.80, blue: 0.14)
-        default:
-            return Color(red: 0.23, green: 0.52, blue: 0.96)
-        }
+        WatchTheme.accent(for: model.snapshot.widgetAccentColorName)
     }
 
     private var batteryColor: Color {
-        let level = model.snapshot.trainingBatteryLevel
-        if level >= 75 { return Color(red: 0.33, green: 0.86, blue: 0.32) }
-        if level >= 40 { return Color(red: 1.0, green: 0.80, blue: 0.14) }
-        if level >= 20 { return Color(red: 1.0, green: 0.60, blue: 0.14) }
-        return Color(red: 0.93, green: 0.24, blue: 0.22)
+        WatchTheme.batteryColor(for: model.snapshot.trainingBatteryLevel)
     }
 
     private var sessionStateText: String {
@@ -1083,12 +1063,13 @@ struct WatchWorkoutView: View {
     private func commandButton(_ command: WatchCommand, icon: String, tint: Color) -> some View {
         let isEnabled = model.snapshot.hasActiveWorkout || command == .resume
         return Button {
+            WatchTheme.haptic(.click)
             WatchCommandRouter.send(command.rawValue)
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(tint)
-                .frame(width: 46, height: 46)
+                .frame(width: WatchTheme.buttonHeight, height: WatchTheme.buttonHeight)
                 .background(tint.opacity(isEnabled ? 0.12 : 0.04))
                 .clipShape(Circle())
                 .overlay(
@@ -1103,6 +1084,7 @@ struct WatchWorkoutView: View {
 
     private func musicButton(_ command: WatchCommand, icon: String) -> some View {
         Button {
+            WatchTheme.haptic(.click)
             WatchCommandRouter.send(command.rawValue)
         } label: {
             Image(systemName: icon)
@@ -1142,13 +1124,13 @@ private struct WatchNavigationTile: View {
                 .font(.system(size: 12, weight: .black, design: .rounded))
                 .foregroundStyle(.white)
                 .lineLimit(1)
-                .minimumScaleFactor(0.78)
+                .minimumScaleFactor(WatchTheme.minScale)
 
             Text(subtitle)
                 .font(.system(size: 9, weight: .semibold, design: .rounded))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.72)
+                .minimumScaleFactor(WatchTheme.minScale)
         }
         .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
         .watchCard(borderColor: color.opacity(0.14))
@@ -1169,13 +1151,13 @@ private struct WatchProgressRow: View {
                     .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(WatchTheme.minScale)
                 Spacer(minLength: 4)
                 Text(value)
                     .font(.system(size: 13, weight: .black, design: .rounded).monospacedDigit())
                     .foregroundStyle(color)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(WatchTheme.minScale)
             }
 
             ProgressView(value: min(max(progress, 0), 1))
@@ -1263,7 +1245,7 @@ private struct WatchTimePill: View {
                     .font(.system(size: 15, weight: .black, design: .rounded).monospacedDigit())
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.65)
+                    .minimumScaleFactor(WatchTheme.minScale)
                     .allowsTightening(true)
             }
         }
@@ -1288,7 +1270,7 @@ private struct WatchSetRow: View {
                 .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
                 .foregroundStyle(.white.opacity(0.86))
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(WatchTheme.minScale)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 8)
@@ -1335,7 +1317,7 @@ private struct WatchMetric: View {
                 .font(.system(size: 17, weight: .black, design: .rounded).monospacedDigit())
                 .foregroundStyle(color)
                 .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(WatchTheme.minScale)
             
             Text(unit.isEmpty ? title : "\(title) · \(unit)")
                 .font(.system(size: 9, weight: .semibold, design: .rounded))
@@ -1383,15 +1365,15 @@ private struct WatchInfoCard: View {
 }
 
 private extension View {
-    func watchCard(borderColor: Color = .white.opacity(0.08)) -> some View {
+    func watchCard(borderColor: Color = WatchTheme.cardBorder) -> some View {
         self
-            .padding(10)
+            .padding(WatchTheme.cardPadding)
             .background(
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                    .fill(.white.opacity(0.04))
+                RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous)
+                    .fill(WatchTheme.cardFill)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous)
                     .stroke(borderColor, lineWidth: 1)
             )
     }

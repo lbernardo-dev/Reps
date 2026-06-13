@@ -41,6 +41,7 @@
 		3D2BBDC31437CC6C56128448 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130E4F75D706852645E5A1F1 /* HapticService.swift */; };
 		CF749CA510F3468BA35EC902 /* RepsAppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072FCDF5572B4C6AB3747803 /* RepsAppShortcuts.swift */; };
 		3D2D711B864AB7E3566E4453 /* WatchWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCEDBC86A7D5517EE1DEEFFE /* WatchWorkoutView.swift */; };
+		AA0000000000000000000001 /* WatchTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000002 /* WatchTheme.swift */; };
 		485D38B631E3EF7773340D83 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F998B9C72A27863842809A33 /* AppStore.swift */; };
 		4A941FA423A34C543F601E83 /* Monetization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA1565353516FCB4247FD1D /* Monetization.swift */; };
 		4CD65496EEC8073CAFB0BF44 /* PermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD6E9727C891B41CB538DE6 /* PermissionService.swift */; };
@@ -212,6 +213,7 @@
 		B91792D967FC5B2EDAE59ACD /* PulseTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulseTheme.swift; sourceTree = "<group>"; };
 		BC2E966C3D2F2713A83D63E5 /* ActiveWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutView.swift; sourceTree = "<group>"; };
 		BCEDBC86A7D5517EE1DEEFFE /* WatchWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000002 /* WatchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchTheme.swift; sourceTree = "<group>"; };
 		BE3B39142A43DB573171B14F /* RepsWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RepsWidgets.entitlements; sourceTree = "<group>"; };
 		BE6D0F0B234F59F0C8C83FC9 /* ExerciseLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLibraryView.swift; sourceTree = "<group>"; };
 		C050D0A2463DEAE5070D1A87 /* TrainingBatteryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingBatteryView.swift; sourceTree = "<group>"; };
@@ -274,6 +276,7 @@
 				5DC383781C9E3DFE49567082 /* WatchCommandRouter.swift */,
 				5C82B397520A9BD1BF35FC73 /* WatchWorkoutModel.swift */,
 				BCEDBC86A7D5517EE1DEEFFE /* WatchWorkoutView.swift */,
+				AA0000000000000000000002 /* WatchTheme.swift */,
 			);
 			path = RepsWatch;
 			sourceTree = "<group>";
@@ -845,6 +848,7 @@
 				2A9BF5CDB17A991E28B3A74B /* WatchCommandRouter.swift in Sources */,
 				01986F1197C2BEEAD218F119 /* WatchWorkoutModel.swift in Sources */,
 				3D2D711B864AB7E3566E4453 /* WatchWorkoutView.swift in Sources */,
+				AA0000000000000000000001 /* WatchTheme.swift in Sources */,
 				B5F42E50161D32803CDFDC11 /* WorkoutShared.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
