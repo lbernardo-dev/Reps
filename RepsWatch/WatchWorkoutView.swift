@@ -33,7 +33,7 @@ struct WatchWorkoutView: View {
         } else {
             NavigationStack {
                 homePage
-                    .navigationTitle("Reps")
+                    .navigationTitle("reps_4")
                     .navigationDestination(for: WatchDestination.self) { destination in
                         destinationView(for: destination)
                             .navigationTitle(destination.title)
@@ -80,7 +80,7 @@ struct WatchWorkoutView: View {
             .buttonStyle(.plain)
 
             NavigationLink(value: WatchDestination.controls) {
-                WatchNavigationTile(title: "Controles", subtitle: model.snapshot.hasActiveWorkout ? String(localized: "Acciones rápidas") : String(localized: "Iniciar ruta"), icon: "slider.horizontal.3", color: .orange)
+                WatchNavigationTile(title: "Controles", subtitle: model.snapshot.hasActiveWorkout ? String(localized: "quick_actions") : String(localized: "start_route"), icon: "slider.horizontal.3", color: .orange)
             }
             .buttonStyle(.plain)
 
@@ -191,7 +191,7 @@ struct WatchWorkoutView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 18, weight: .bold))
-                                Text("Serie hecha")
+                                Text("set_done")
                                     .font(.system(.headline, design: .rounded).bold())
                             }
                             .frame(maxWidth: .infinity)
@@ -249,7 +249,7 @@ struct WatchWorkoutView: View {
                 .padding(.bottom, 10)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    WatchInfoCard(icon: "timer", title: "Timers", value: String(localized: "Los cronómetros de sesión, descanso y volumen aparecen al iniciar un entreno."), color: accentColor)
+                    WatchInfoCard(icon: "timer", title: "Timers", value: String(localized: "session_rest_and_volume_timers_appear_when_you_start_a_workout"), color: accentColor)
                     metricsGrid
                 }
                 .padding(.horizontal, 6)
@@ -355,11 +355,11 @@ struct WatchWorkoutView: View {
             }
 
             VStack(spacing: 5) {
-                Text("Sin sesión activa")
+                Text("no_active_session")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
-                Text("Inicia caminata o carrera aquí, o sincroniza un entreno abierto desde el iPhone.")
+                Text("start_a_walk_or_run_here_or_sync_an_open_workout_from_the_iphone")
                     .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -370,7 +370,7 @@ struct WatchWorkoutView: View {
                 Button {
                     model.startStandaloneRouteWorkout(activity: .walking)
                 } label: {
-                    Label("Caminata", systemImage: "figure.walk")
+                    Label("caminata", systemImage: "figure.walk")
                         .font(.system(.headline, design: .rounded).bold())
                         .frame(maxWidth: .infinity)
                         .frame(height: WatchTheme.buttonHeight)
@@ -383,7 +383,7 @@ struct WatchWorkoutView: View {
                 Button {
                     model.startStandaloneRouteWorkout(activity: .running)
                 } label: {
-                    Label("Carrera", systemImage: "figure.run")
+                    Label("carrera_2", systemImage: "figure.run")
                         .font(.system(.headline, design: .rounded).bold())
                         .frame(maxWidth: .infinity)
                         .frame(height: WatchTheme.buttonHeight)
@@ -482,7 +482,7 @@ struct WatchWorkoutView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Progreso")
+                    Text("progress_2")
                         .font(.system(size: 19, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(1)
@@ -499,7 +499,7 @@ struct WatchWorkoutView: View {
     private var strengthProgressCard: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
-                Label("Fuerza", systemImage: "dumbbell.fill")
+                Label("fuerza", systemImage: "dumbbell.fill")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundStyle(accentColor)
                 Spacer()
@@ -605,7 +605,7 @@ struct WatchWorkoutView: View {
     private var evolutionCard: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
-                Label("Evolución", systemImage: "chart.line.uptrend.xyaxis")
+                Label("evolution", systemImage: "chart.line.uptrend.xyaxis")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundStyle(accentColor)
                 Spacer()
@@ -664,7 +664,7 @@ struct WatchWorkoutView: View {
             if let rest = model.snapshot.restSeconds, rest > 0 {
                 VStack(alignment: .leading, spacing: 7) {
                     HStack {
-                        Label("Descanso", systemImage: "hourglass")
+                        Label("rest", systemImage: "hourglass")
                             .font(.system(size: 10, weight: .heavy, design: .rounded))
                             .foregroundStyle(.orange)
                         Spacer()
@@ -688,7 +688,7 @@ struct WatchWorkoutView: View {
                         WatchTheme.haptic(.click)
                         WatchCommandRouter.send(WatchCommand.completeSet.rawValue)
                     } label: {
-                        Text("Saltar")
+                        Text("saltar")
                             .font(.system(size: 11, weight: .bold, design: .rounded))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
@@ -787,14 +787,14 @@ struct WatchWorkoutView: View {
                 .buttonStyle(.plain)
             }
 
-            WatchInfoCard(icon: "applewatch", title: "Fuente", value: model.isStandaloneRouteWorkout ? String(localized: "El reloj registra ruta, pasos, distancia, pulso y kcal; Reps lo importará al reconectar.") : String(localized: "El reloj lee pulso, kcal, pasos y distancia en vivo; el iPhone mantiene la ruta y el mapa."), color: .blue)
+            WatchInfoCard(icon: "applewatch", title: "Fuente", value: model.isStandaloneRouteWorkout ? String(localized: "the_watch_logs_route_steps_distance_heart_rate_and_kcal_reps_will_import_it_upon") : String(localized: "the_watch_reads_heart_rate_kcal_steps_and_distance_live_the_iphone_maintains_the"), color: .blue)
         }
     }
 
     private var timersHeader: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
-                Label("Timers", systemImage: "timer")
+                Label("timers", systemImage: "timer")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundStyle(accentColor)
                 Spacer()
@@ -821,7 +821,7 @@ struct WatchWorkoutView: View {
         if let rest = model.snapshot.restSeconds, rest > 0 {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Label("Descanso activo", systemImage: "hourglass")
+                    Label("active_rest", systemImage: "hourglass")
                         .font(.system(size: 11, weight: .heavy, design: .rounded))
                         .foregroundStyle(.orange)
                     Spacer()
@@ -853,7 +853,7 @@ struct WatchWorkoutView: View {
             }
             .watchCard(borderColor: Color.orange.opacity(0.22))
         } else {
-            WatchInfoCard(icon: "hourglass", title: "Descanso", value: String(localized: "Sin descanso activo. Completa una serie para iniciar el siguiente timer."), color: .orange)
+            WatchInfoCard(icon: "hourglass", title: "Descanso", value: String(localized: "no_active_rest_complete_a_series_to_start_the_next_timer"), color: .orange)
         }
     }
 
@@ -1126,7 +1126,7 @@ private struct WatchNavigationTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(WatchTheme.minScale)
 
-            Text(subtitle)
+            Text(localizedKey(subtitle))
                 .font(.system(size: 9, weight: .semibold, design: .rounded))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -1163,7 +1163,7 @@ private struct WatchProgressRow: View {
             ProgressView(value: min(max(progress, 0), 1))
                 .progressViewStyle(LinearTintProgressStyle(color: color))
 
-            Text(detail)
+            Text(localizedKey(detail))
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
@@ -1189,11 +1189,11 @@ private struct WatchMiniRing: View {
                 .rotationEffect(.degrees(-90))
 
             VStack(spacing: 0) {
-                Text(label)
+                Text(localizedKey(label))
                     .font(.system(size: 16, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                Text(caption)
+                Text(localizedKey(caption))
                     .font(.system(size: 8, weight: .bold, design: .rounded))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

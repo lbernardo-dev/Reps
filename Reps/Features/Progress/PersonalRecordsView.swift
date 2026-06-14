@@ -68,7 +68,7 @@ struct PersonalRecordsView: View {
                     Text("\(personalRecords.count) Récords Personales")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                     
-                    Text("Tus mejores marcas registradas en cada ejercicio")
+                    Text("your_best_trademarks_in_each_exercise")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .multilineTextAlignment(.center)
@@ -98,7 +98,7 @@ struct PersonalRecordsView: View {
             .padding(.bottom, 30)
         }
         .screenBackground()
-        .navigationTitle("Muro de Récords")
+        .navigationTitle("wall_of_records")
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
     }
@@ -131,7 +131,7 @@ struct PRCardView: View {
                         HStack(spacing: 3) {
                             Image(systemName: "trophy.fill")
                                 .font(.system(size: 10))
-                            Text("PR")
+                            Text("pr_2")
                                 .font(.system(size: 10, weight: .black))
                         }
                         .padding(.horizontal, 6)

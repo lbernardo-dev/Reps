@@ -82,7 +82,7 @@ struct WorkoutHistoryView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(PulseTheme.secondaryText)
-                    TextField("Buscar por título o notas...", text: $searchText)
+                    TextField("search_by_title_or_notes", text: $searchText)
                         .font(.subheadline)
                     if !searchText.isEmpty {
                         Button {
@@ -104,10 +104,10 @@ struct WorkoutHistoryView: View {
                 HStack(spacing: 10) {
                     // Location filter
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Lugar")
+                        Text("lugar")
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(PulseTheme.tertiaryText)
-                        Picker("Lugar", selection: $selectedLocationFilter) {
+                        Picker("lugar", selection: $selectedLocationFilter) {
                             ForEach(LocationFilter.allCases) { filter in
                                 Text(filter.rawValue).tag(filter)
                             }
@@ -117,10 +117,10 @@ struct WorkoutHistoryView: View {
                     
                     // Origin filter
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Tipo")
+                        Text("training_type")
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(PulseTheme.tertiaryText)
-                        Picker("Origen", selection: $selectedOriginFilter) {
+                        Picker("origen", selection: $selectedOriginFilter) {
                             ForEach(OriginFilter.allCases) { filter in
                                 Text(filter.rawValue).tag(filter)
                             }
@@ -174,7 +174,7 @@ struct WorkoutHistoryView: View {
             }
         }
         .screenBackground()
-        .navigationTitle("Historial")
+        .navigationTitle("history")
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
     }
@@ -321,7 +321,7 @@ struct WorkoutSessionDetailView: View {
                 if let notes = session.notes, !notes.isEmpty {
                     PulseCard {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Notas de la sesión")
+                            Text("session_notes")
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                             Text(notes)
@@ -333,7 +333,7 @@ struct WorkoutSessionDetailView: View {
 
                 PulseCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        Text("Ejercicios")
+                        Text("exercises_3")
                             .font(.headline)
 
                         if exerciseLogs.isEmpty {
@@ -425,7 +425,7 @@ struct RouteWorkoutSummaryView: View {
 
                 VStack(alignment: .leading, spacing: 14) {
                     HStack(spacing: 8) {
-                        Text("Workout Details")
+                        Text("workout_details")
                             .font(.system(size: 30, weight: .black, design: .rounded))
                             .foregroundStyle(.white)
                         Image(systemName: "chevron.right")
@@ -630,7 +630,7 @@ private struct RouteHeroSensor: View {
             }
             .font(.system(size: 20, weight: .semibold, design: .rounded))
 
-            Text(label)
+            Text(localizedKey(label))
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(Color.white.opacity(0.48))
         }
@@ -716,7 +716,7 @@ private struct RouteWorkoutSplitsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
-                Text("Splits")
+                Text("splits")
                     .font(.system(size: 30, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
                 Image(systemName: "chevron.right")
@@ -729,10 +729,10 @@ private struct RouteWorkoutSplitsCard: View {
                     Text("")
                         .frame(width: 26, alignment: .leading)
                     if !showsSensors {
-                        Text("Time")
+                        Text("time_2")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    Text("Pace")
+                    Text("pace_2")
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if showsHeartRate {
                         Image(systemName: "heart.fill")
@@ -742,7 +742,7 @@ private struct RouteWorkoutSplitsCard: View {
                         Image(systemName: "figure.run")
                             .frame(width: 52, alignment: .trailing)
                     }
-                    Text("Distance")
+                    Text("distance_3")
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .font(.caption.weight(.semibold))
@@ -809,7 +809,7 @@ private struct RouteWorkoutMapCard: View {
         VStack(alignment: .leading, spacing: 14) {
             Button(action: onExpand) {
                 HStack(spacing: 8) {
-                    Text("Map")
+                    Text("map_2")
                         .font(.system(size: 30, weight: .black, design: .rounded))
                     Image(systemName: "chevron.right")
                         .font(.system(size: 24, weight: .bold))
@@ -899,7 +899,7 @@ private struct RouteWorkoutMetric: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.system(size: 22, weight: .regular, design: .rounded))
                 .foregroundStyle(.white)
                 .lineLimit(2)
@@ -920,7 +920,7 @@ private struct RouteWorkoutNotesCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Notes")
+            Text("notes_2")
                 .font(.headline)
                 .foregroundStyle(.white)
             Text(notes)

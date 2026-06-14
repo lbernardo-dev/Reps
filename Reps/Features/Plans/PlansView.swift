@@ -11,12 +11,12 @@ struct PlansView: View {
         NavigationStack {
             let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
             StickyHeaderScaffold(
-                title: isSpanish ? "Plan" : "Plan",
-                subtitle: isSpanish ? "Crea y ajusta tu rutina" : "Create and tune your routine",
+                title: "plan_3",
+                subtitle: "create_and_tune_your_routine",
                 accessory: {
                     HeaderAvatarButton(
                         imageData: store.userProfile.avatarImageData,
-                        accessibilityLabel: isSpanish ? "Perfil" : "Profile"
+                        accessibilityLabel: "profile"
                     ) {
                         showProfile = true
                     }
@@ -24,9 +24,9 @@ struct PlansView: View {
             ) {
                 PulseCard {
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("Bibliotecas")
+                            Text("bibliotecas")
                                 .font(.headline)
-                            Text("Busca ejercicios reales o reutiliza rutinas completas.")
+                            Text("find_real_exercises_or_reuse_complete_routines")
                                 .font(.subheadline)
                                 .foregroundStyle(PulseTheme.secondaryText)
 
@@ -55,18 +55,18 @@ struct PlansView: View {
                             }
                         }
                     }
-                    .stickyHeaderTitle(isSpanish ? "Bibliotecas" : "Libraries")
+                    .stickyHeaderTitle(String(localized: "libraries"))
 
                     if hasActivePlan {
                         activePlanSection
-                            .stickyHeaderTitle(isSpanish ? "Plan activo" : "Active Plan")
+                            .stickyHeaderTitle(String(localized: "active_plan"))
                     } else {
                         emptyPlanSection
-                            .stickyHeaderTitle(isSpanish ? "Crear plan" : "Create Plan")
+                            .stickyHeaderTitle(String(localized: "create_plan_2"))
                     }
 
                     SectionHeader(title: "TUS PLANES")
-                        .stickyHeaderTitle(isSpanish ? "Tus planes" : "Your Plans")
+                        .stickyHeaderTitle(String(localized: "your_plans"))
 
                     PulseCard {
                         VStack(spacing: 0) {
@@ -91,14 +91,14 @@ struct PlansView: View {
                                     .buttonStyle(.plain)
 
                                     Menu {
-                                        Button("Activar") {
+                                        Button("activar") {
                                             HapticService.selection()
                                             store.activatePlan(plan)
                                         }
-                                        Button("Editar plan") {
+                                        Button("edit_plan") {
                                             planToEdit = plan
                                         }
-                                        Button("Eliminar", role: .destructive) {
+                                        Button("delete", role: .destructive) {
                                             store.deletePlan(plan)
                                         }
                                     } label: {
@@ -110,14 +110,14 @@ struct PlansView: View {
                                     }
                                 }
                                 .contextMenu {
-                                    Button("Activar") {
+                                    Button("activar") {
                                         HapticService.selection()
                                         store.activatePlan(plan)
                                     }
-                                    Button("Editar plan") {
+                                    Button("edit_plan") {
                                         planToEdit = plan
                                     }
-                                    Button("Eliminar", role: .destructive) {
+                                    Button("delete", role: .destructive) {
                                         store.deletePlan(plan)
                                     }
                                 }
@@ -167,10 +167,10 @@ struct PlansView: View {
                     PulseChip(title: "En progreso", isSelected: true)
                     Spacer()
                     Menu {
-                        Button("Editar plan") {
+                        Button("edit_plan") {
                             planToEdit = store.activePlan
                         }
-                        Button("Desactivar plan") {
+                        Button("deactivate_plan") {
                             store.deactivatePlan(store.activePlan)
                         }
                     } label: {
@@ -179,7 +179,7 @@ struct PlansView: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                             .frame(width: 44, height: 44)
                     }
-                    .accessibilityLabel("Acciones del plan")
+                    .accessibilityLabel("plan_actions")
                 }
 
                 Text(store.activePlan.name)
@@ -249,9 +249,9 @@ struct PlansView: View {
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Sin plan activo")
+                        Text("no_active_plan")
                             .font(.headline)
-                        Text("Crea tu primera rutina, usa una plantilla o abre la biblioteca para elegir ejercicios.")
+                        Text("create_your_first_routine_use_a_template_or_open_the_library_to_choose_exercises")
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -262,7 +262,7 @@ struct PlansView: View {
                     Button {
                         showCreatePlan = true
                     } label: {
-                        Label("Crear plan", systemImage: "plus")
+                        Label("create_plan", systemImage: "plus")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -275,7 +275,7 @@ struct PlansView: View {
                     NavigationLink {
                         WorkoutLibraryView()
                     } label: {
-                        Label("Ver rutinas", systemImage: "list.clipboard")
+                        Label("ver_rutinas", systemImage: "list.clipboard")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -307,7 +307,7 @@ private struct LibraryShortcut: View {
                 .font(.headline)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
-            Text(subtitle)
+            Text(localizedKey(subtitle))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .lineLimit(1)
@@ -448,7 +448,7 @@ private struct PlanMusicCard: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Label("Música del plan", systemImage: "music.note.list")
+                    Label("plan_music", systemImage: "music.note.list")
                         .font(.headline)
                     Spacer()
                     Button(action: onEdit) {
@@ -490,11 +490,11 @@ private struct PlanMusicCard: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
                 } else {
-                    Text("Añade una playlist de Apple Music para arrancarla desde el entrenamiento.")
+                    Text("add_an_apple_music_playlist_to_start_it_from_the_workout")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                     Button(action: onEdit) {
-                        Label("Conectar playlist", systemImage: "link.badge.plus")
+                        Label("conectar_playlist", systemImage: "link.badge.plus")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
@@ -553,9 +553,9 @@ private struct PlanPlaylistEditor: View {
     @State private var showManualForm = false
 
     var body: some View {
-        Section("Música") {
+        Section("music") {
             if playlists.isEmpty {
-                Text("Guarda playlists de Apple Music para abrirlas durante el entrenamiento.")
+                Text("save_apple_music_playlists_to_open_them_during_workouts")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
@@ -583,7 +583,7 @@ private struct PlanPlaylistEditor: View {
             Button {
                 showMusicConnector = true
             } label: {
-                Label("Conectar desde Biblioteca", systemImage: "music.note.list")
+                Label("connect_from_library", systemImage: "music.note.list")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 46)
@@ -597,20 +597,20 @@ private struct PlanPlaylistEditor: View {
 
             DisclosureGroup(isExpanded: $showManualForm) {
                 VStack(spacing: 12) {
-                    TextField("Nombre de la playlist", text: $title)
+                    TextField("playlist_name", text: $title)
                         .textFieldStyle(.roundedBorder)
                     TextField("https://music.apple.com/...", text: $urlString)
                         .textFieldStyle(.roundedBorder)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    TextField("Nota opcional: fuerza, cardio, focus...", text: $notes)
+                    TextField("nota_opcional_fuerza_cardio_focus", text: $notes)
                         .textFieldStyle(.roundedBorder)
 
                     Button {
                         addPlaylist()
                     } label: {
-                        Label("Añadir playlist manual", systemImage: "plus.circle.fill")
+                        Label("add_manual_playlist", systemImage: "plus.circle.fill")
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 38)
@@ -623,7 +623,7 @@ private struct PlanPlaylistEditor: View {
                 }
                 .padding(.vertical, 8)
             } label: {
-                Text("Añadir manualmente por URL")
+                Text("add_manually_by_url")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -681,9 +681,9 @@ private struct PlanExerciseBookmarkEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Marcadores del ejercicio") {
+                Section("exercise_markers") {
                     if bookmarks.isEmpty {
-                        Text("Guarda referencias de técnica con minuto exacto para este ejercicio dentro del plan.")
+                        Text("save_technique_references_with_exact_minutes_for_this_exercise_within_the_plan")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -719,47 +719,47 @@ private struct PlanExerciseBookmarkEditor: View {
                     }
                 }
 
-                Section("Añadir") {
-                    TextField("Título", text: $title)
-                    Picker("Fuente", selection: $source) {
+                Section("add") {
+                    TextField("qualification", text: $title)
+                    Picker("fuente", selection: $source) {
                         ForEach(ExerciseMediaBookmark.Source.allCases) { source in
                             Text(bookmarkSourceTitle(source)).tag(source)
                         }
                     }
-                    TextField("URL", text: $urlString)
+                    TextField("url", text: $urlString)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     
-                    Text("Punto de inicio en video")
+                    Text("video_start_point")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
                     Stepper("Min \(minutes)", value: $minutes, in: 0...240)
                     Stepper("Seg \(seconds)", value: $seconds, in: 0...59)
                     
-                    Text("Duración de reproducción")
+                    Text("playback_duration")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
                     Stepper("Min Duración \(durationMinutes)", value: $durationMinutes, in: 0...60)
                     Stepper("Seg Duración \(durationSeconds)", value: $durationSeconds, in: 0...59)
                     
-                    TextField("Nota", text: $note, axis: .vertical)
+                    TextField("nota", text: $note, axis: .vertical)
                         .lineLimit(2...4)
                     Button {
                         add()
                     } label: {
-                        Label("Añadir marcador", systemImage: "bookmark.fill")
+                        Label("add_bookmark", systemImage: "bookmark.fill")
                     }
                     .disabled(!canAdd)
                 }
             }
-            .navigationTitle("Marcadores")
+            .navigationTitle("marcadores")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Listo") { dismiss() }
+                    Button("listo_2") { dismiss() }
                 }
             }
         }
@@ -901,17 +901,17 @@ struct CreatePlanView: View {
                 }
                 .screenBackground()
             }
-            .navigationTitle("Crear plan")
+            .navigationTitle("create_plan")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancelar") { dismiss() }
+                    Button("cancel") { dismiss() }
                 }
             }
             .safeAreaInset(edge: .bottom) {
                 HStack(spacing: 12) {
                     Button { previousStep() } label: {
-                        Label("Atrás", systemImage: "chevron.left")
+                        Label("back_2", systemImage: "chevron.left")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
@@ -973,16 +973,16 @@ struct CreatePlanView: View {
         VStack(spacing: 16) {
             PulseCard {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Identidad del plan").font(.headline)
-                    TextField("Nombre del plan", text: $planName)
+                    Text("plan_identity").font(.headline)
+                    TextField("plan_name", text: $planName)
                         .textFieldStyle(.roundedBorder)
-                    Picker("Entorno", selection: $location) {
+                    Picker("environment_2", selection: $location) {
                         ForEach(UserProfile.TrainingLocation.allCases) { location in
                             Text(locationPickerTitle(location)).tag(location)
                         }
                     }
                     .pickerStyle(.segmented)
-                    Toggle("Activar al guardar", isOn: $activateImmediately)
+                    Toggle("activate_on_save", isOn: $activateImmediately)
                 }
             }
 
@@ -993,9 +993,9 @@ struct CreatePlanView: View {
                             Image(systemName: "calendar.badge.clock")
                                 .foregroundStyle(PulseTheme.primary)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("¿Tienes un evento objetivo?")
+                                Text("do_you_have_a_target_event")
                                     .font(.headline)
-                                Text("Adaptar duración según fecha límite.")
+                                Text("adapt_duration_according_to_deadline")
                                     .font(.caption)
                                     .foregroundStyle(PulseTheme.secondaryText)
                             }
@@ -1006,14 +1006,14 @@ struct CreatePlanView: View {
                         Divider()
 
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Nombre del evento")
+                            Text("event_name")
                                 .font(.caption.bold())
                                 .foregroundStyle(PulseTheme.secondaryText)
-                            TextField("Ej. Boda, Vacaciones, Maratón", text: $targetEventName)
+                            TextField("ex_wedding_vacation_marathon", text: $targetEventName)
                                 .textFieldStyle(.roundedBorder)
 
                             DatePicker(
-                                "Fecha del evento",
+                                "event_date",
                                 selection: $targetEventDate,
                                 in: Date.now...,
                                 displayedComponents: .date
@@ -1061,8 +1061,8 @@ struct CreatePlanView: View {
         VStack(spacing: 16) {
             PulseCard {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Distribución").font(.headline)
-                    Picker("Modo", selection: $scheduleMode) {
+                    Text("distribution").font(.headline)
+                    Picker("modo", selection: $scheduleMode) {
                         ForEach(PlanScheduleMode.allCases) { mode in
                             Text(mode.title).tag(mode)
                         }
@@ -1077,7 +1077,7 @@ struct CreatePlanView: View {
             if scheduleMode == .weekdays {
                 PulseCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Días fijos").font(.headline)
+                        Text("fixed_days").font(.headline)
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
                             ForEach(1...7, id: \.self) { day in
                                 Button { toggleWeekday(day) } label: {
@@ -1107,7 +1107,7 @@ struct CreatePlanView: View {
             }
 
             if !sessionsAreReady {
-                Label("Añade título y al menos un ejercicio a cada sesión para poder guardar un plan iniciable.", systemImage: "exclamationmark.circle.fill")
+                Label("add_a_title_and_at_least_one_exercise_to_each_session_to_save_a_startable_plan", systemImage: "exclamationmark.circle.fill")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(PulseTheme.warning)
                     .padding(12)
@@ -1117,7 +1117,7 @@ struct CreatePlanView: View {
             }
 
             Button { addDay() } label: {
-                Label("Añadir sesión", systemImage: "plus")
+                Label("add_session", systemImage: "plus")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
@@ -1143,7 +1143,7 @@ struct CreatePlanView: View {
             PlanPlaylistEditor(playlists: $playlists, showMusicConnector: $showMusicConnector)
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Resumen").font(.headline)
+                    Text("resumen").font(.headline)
                     PlanPreviewDay(title: planName.isEmpty ? "Plan sin nombre" : planName, workout: "\(days.count) sesiones · \(daysPerWeek) días/semana", exercises: days.reduce(0) { $0 + $1.exercises.count })
                     ForEach(days) { day in
                         HStack {
@@ -1333,16 +1333,16 @@ struct EditPlanView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Información básica") {
-                    TextField("Nombre del plan", text: $name)
-                    Picker("Entorno de entrenamiento", selection: $location) {
+                Section("basic_information") {
+                    TextField("plan_name", text: $name)
+                    Picker("training_environment", selection: $location) {
                         ForEach(UserProfile.TrainingLocation.allCases) { location in
                             Text(locationPickerTitle(location)).tag(location)
                         }
                     }
                 }
 
-                Section("Calendario") {
+                Section("calendar_2") {
                     Stepper("\(daysPerWeek) días por semana", value: $daysPerWeek, in: 1...7)
                     Stepper("Semana \(currentWeek) de \(totalWeeks)", value: $currentWeek, in: 1...max(totalWeeks, 1))
                     Stepper("\(totalWeeks) semanas", value: $totalWeeks, in: max(currentWeek, 1)...24)
@@ -1352,11 +1352,11 @@ struct EditPlanView: View {
 
                 ForEach(days.indices, id: \.self) { dayIndex in
                     Section("Entrenamiento \(dayIndex + 1)") {
-                        TextField("Título", text: Binding(
+                        TextField("qualification", text: Binding(
                             get: { days[dayIndex].title },
                             set: { days[dayIndex].title = $0 }
                         ))
-                        TextField("Subtítulo", text: Binding(
+                        TextField("caption", text: Binding(
                             get: { days[dayIndex].subtitle },
                             set: { days[dayIndex].subtitle = $0 }
                         ))
@@ -1440,7 +1440,7 @@ struct EditPlanView: View {
                                     )
 
                                     VStack(alignment: .leading, spacing: 6) {
-                                        Text("Reps")
+                                        Text("reps_4")
                                             .font(.caption.weight(.semibold))
                                             .foregroundStyle(PulseTheme.secondaryText)
                                         TextField("8-12", text: Binding(
@@ -1500,7 +1500,7 @@ struct EditPlanView: View {
                     Button {
                         days.append(WorkoutDay(title: "Entrenamiento \(days.count + 1)", subtitle: "Fuerza", durationMinutes: 45, exercises: []))
                     } label: {
-                        Label("Añadir día", systemImage: "plus")
+                        Label("add_day", systemImage: "plus")
                     }
 
                     Menu {
@@ -1510,18 +1510,18 @@ struct EditPlanView: View {
                             }
                         }
                     } label: {
-                        Label("Añadir rutina existente", systemImage: "list.clipboard")
+                        Label("add_existing_routine", systemImage: "list.clipboard")
                     }
                 }
             }
-            .navigationTitle("Editar plan")
+            .navigationTitle("edit_plan")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancelar") { dismiss() }
+                    Button("cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Guardar") { save() }
+                    Button("save") { save() }
                         .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
@@ -1626,25 +1626,25 @@ struct LegacyCreatePlanView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Información básica") {
-                    TextField("Nombre del plan", text: $planName)
-                    Picker("Entorno de entrenamiento", selection: $location) {
+                Section("basic_information") {
+                    TextField("plan_name", text: $planName)
+                    Picker("training_environment", selection: $location) {
                         ForEach(UserProfile.TrainingLocation.allCases) { location in
                             Text(locationPickerTitle(location)).tag(location)
                         }
                     }
                 }
 
-                Section("Calendario") {
+                Section("calendar_2") {
                     Stepper("\(daysPerWeek) días por semana", value: $daysPerWeek, in: 1...7)
                     Stepper("\(totalWeeks) semanas", value: $totalWeeks, in: 1...16)
-                    Toggle("Activar al guardar", isOn: $activateImmediately)
+                    Toggle("activate_on_save", isOn: $activateImmediately)
                 }
 
                 PlanPlaylistEditor(playlists: $playlists, showMusicConnector: $showMusicConnector)
 
-                Section("Entrenamiento") {
-                    TextField("Título del entrenamiento", text: $workoutTitle)
+                Section("training_2") {
+                    TextField("training_title", text: $workoutTitle)
                     ForEach(store.exercises) { exercise in
                         Button {
                             toggle(exercise)
@@ -1665,21 +1665,21 @@ struct LegacyCreatePlanView: View {
                     }
                 }
 
-                Section("Vista previa") {
+                Section("vista_previa") {
                     PlanPreviewDay(title: "Entrenamiento A", workout: workoutTitle.isEmpty ? "Full body" : workoutTitle, exercises: selectedExerciseIDs.count)
                     Text("Reps creará \(daysPerWeek) días editables a partir de esta plantilla.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Crear plan")
+            .navigationTitle("create_plan")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancelar") { dismiss() }
+                    Button("cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Guardar") {
+                    Button("save") {
                         save()
                     }
                     .disabled(planName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -1788,12 +1788,12 @@ private struct SessionBuilderCard: View {
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
 
-                TextField("Título", text: $day.title)
+                TextField("qualification", text: $day.title)
                     .textFieldStyle(.roundedBorder)
-                TextField("Subtítulo", text: $day.subtitle)
+                TextField("caption", text: $day.subtitle)
                     .textFieldStyle(.roundedBorder)
 
-                Picker("Tipo", selection: $day.sessionType) {
+                Picker("training_type", selection: $day.sessionType) {
                     ForEach(WorkoutDay.SessionType.allCases) { type in
                         Text(sessionTypeTitle(type)).tag(type)
                     }
@@ -1806,7 +1806,7 @@ private struct SessionBuilderCard: View {
                 }
 
                 if day.sessionType == .cardioRun || day.sessionType == .cardioWalk || day.sessionType == .mixedRoute {
-                    Label("Esta sesión mostrará GPS, ruta y mapa durante el entrenamiento.", systemImage: "map.fill")
+                    Label("this_session_will_show_gps_route_and_map_during_training", systemImage: "map.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.primary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1819,7 +1819,7 @@ private struct SessionBuilderCard: View {
                 }
 
                 Button(action: onAddExercise) {
-                    Label("Añadir desde catálogo visual", systemImage: "plus")
+                    Label("add_from_visual_catalog", systemImage: "plus")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
@@ -1943,7 +1943,7 @@ private struct EditableWorkoutExerciseRow: View {
 
                 // Rep range (text input tile)
                 VStack(spacing: 4) {
-                    Text("Reps")
+                    Text("reps_4")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
 
@@ -1955,7 +1955,7 @@ private struct EditableWorkoutExerciseRow: View {
                         .background(PulseTheme.background)
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .keyboardType(.default)
-                        .accessibilityLabel("Rango de repeticiones")
+                        .accessibilityLabel("rep_range")
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -1974,7 +1974,7 @@ private struct ExerciseMetricTile: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Text(label)
+            Text(localizedKey(label))
                 .font(.caption.weight(.bold))
                 .foregroundStyle(PulseTheme.secondaryText)
 
@@ -2066,16 +2066,16 @@ private struct PlanExercisePickerSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    TextField("Buscar por nombre, músculo o equipo", text: $searchText)
+                    TextField("search_by_name_muscle_or_team", text: $searchText)
                         .textFieldStyle(.roundedBorder)
                         .padding(.horizontal, 20)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            Picker("Músculo", selection: $selectedMuscle) {
+                            Picker("muscle", selection: $selectedMuscle) {
                                 ForEach(muscles, id: \.self) { Text($0).tag($0) }
                             }
                             .pickerStyle(.menu)
-                            Picker("Equipo", selection: $selectedEquipment) {
+                            Picker("equipo", selection: $selectedEquipment) {
                                 ForEach(equipment, id: \.self) { Text($0).tag($0) }
                             }
                             .pickerStyle(.menu)
@@ -2084,31 +2084,31 @@ private struct PlanExercisePickerSheet: View {
                     }
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            Picker("Tipo", selection: $selectedType) {
-                                Text("Todo").tag(Optional<Exercise.ExerciseType>.none)
+                            Picker("training_type", selection: $selectedType) {
+                                Text("all").tag(Optional<Exercise.ExerciseType>.none)
                                 ForEach(Exercise.ExerciseType.allCases) { type in
                                     Text(type.planPickerTitle(language: store.userProfile.preferredLanguage)).tag(Optional(type))
                                 }
                             }
                             .pickerStyle(.menu)
 
-                            Picker("Dificultad", selection: $selectedDifficulty) {
-                                Text("Cualquiera").tag(Optional<Exercise.Difficulty>.none)
+                            Picker("difficulty_2", selection: $selectedDifficulty) {
+                                Text("any").tag(Optional<Exercise.Difficulty>.none)
                                 ForEach(Exercise.Difficulty.allCases) { difficulty in
                                     Text(difficulty.planPickerTitle(language: store.userProfile.preferredLanguage)).tag(Optional(difficulty))
                                 }
                             }
                             .pickerStyle(.menu)
 
-                            Picker("Entorno", selection: $selectedEnvironment) {
-                                Text("Cualquiera").tag(Optional<Exercise.Environment>.none)
+                            Picker("environment_2", selection: $selectedEnvironment) {
+                                Text("any").tag(Optional<Exercise.Environment>.none)
                                 ForEach(Exercise.Environment.allCases) { environment in
                                     Text(environment.planPickerTitle(language: store.userProfile.preferredLanguage)).tag(Optional(environment))
                                 }
                             }
                             .pickerStyle(.menu)
 
-                            Toggle("Mi equipo", isOn: $onlyAvailableEquipment)
+                            Toggle("mi_equipo", isOn: $onlyAvailableEquipment)
                                 .toggleStyle(.button)
                         }
                         .padding(.horizontal, 20)
@@ -2146,11 +2146,11 @@ private struct PlanExercisePickerSheet: View {
                 .padding(.vertical, 20)
             }
             .screenBackground()
-            .navigationTitle("Elegir ejercicio")
+            .navigationTitle("choose_exercise")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cerrar") { dismiss() }
+                    Button("close") { dismiss() }
                 }
             }
         }

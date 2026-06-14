@@ -29,11 +29,11 @@ struct MusicIntegrationSheet: View {
                 .padding(.bottom, 32)
             }
             .screenBackground()
-            .navigationTitle("Conectar música")
+            .navigationTitle("connect_music")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cerrar") { dismiss() }
+                    Button("close") { dismiss() }
                         .font(.body.weight(.semibold))
                 }
             }
@@ -65,17 +65,17 @@ struct MusicIntegrationSheet: View {
                             Image(systemName: "music.note.house.fill")
                                 .font(.system(size: 48))
                                 .foregroundStyle(.white)
-                            Text("Apple Music Integrado")
+                            Text("apple_music_integrado")
                                 .font(.title3.bold())
                                 .foregroundStyle(.white)
-                            Text("Sincroniza y busca tus playlists del sistema")
+                            Text("sync_and_search_your_system_playlists")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.white.opacity(0.85))
                         }
                     )
                     .shadow(color: PulseTheme.appleMusic.opacity(0.3), radius: 12, y: 6)
                     
-                    Text("Si tienes una suscripción de Apple Music activa en este dispositivo, Reps puede conectarse a tu biblioteca local y cargar tus playlists al instante sin copiar URLs.")
+                    Text("if_you_have_an_active_apple_music_subscription_on_this_device_reps_can_connect_t")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .multilineTextAlignment(.center)
@@ -86,7 +86,7 @@ struct MusicIntegrationSheet: View {
                     } label: {
                         HStack {
                             Image(systemName: "apple.logo")
-                            Text("Conectar Apple Music")
+                            Text("conectar_apple_music")
                         }
                         .font(.headline)
                         .frame(maxWidth: .infinity)
@@ -97,7 +97,7 @@ struct MusicIntegrationSheet: View {
                     }
                     .buttonStyle(.plain)
                     
-                    Text("O bien, selecciona una de nuestras playlists de entrenamiento recomendadas a continuación.")
+                    Text("or_select_one_of_our_recommended_workout_playlists_below")
                         .font(.caption)
                         .foregroundStyle(PulseTheme.tertiaryText)
                         .padding(.top, 8)
@@ -107,7 +107,7 @@ struct MusicIntegrationSheet: View {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(PulseTheme.appleMusic)
-                        Text("Apple Music conectado")
+                        Text("apple_music_conectado")
                             .font(.headline)
                         Spacer()
                     }
@@ -123,7 +123,7 @@ struct MusicIntegrationSheet: View {
                     .font(.caption.weight(.bold))
                     .foregroundStyle(PulseTheme.secondaryText)
                 
-                TextField("Buscar playlist...", text: $searchText)
+                TextField("buscar_playlist", text: $searchText)
                     .textFieldStyle(.roundedBorder)
             }
             
@@ -165,7 +165,7 @@ struct MusicIntegrationSheet: View {
                                             .font(.headline)
                                             .foregroundStyle(.primary)
                                             .lineLimit(1)
-                                        Text("Biblioteca local")
+                                        Text("local_library")
                                             .font(.caption)
                                             .foregroundStyle(PulseTheme.secondaryText)
                                     }
@@ -198,7 +198,7 @@ struct MusicIntegrationSheet: View {
                 
                 // 2. Catalog Search Results
                 if !searchText.isEmpty {
-                    Text("Resultados en Apple Music")
+                    Text("resultados_en_apple_music")
                         .font(.headline)
                         .padding(.horizontal, 2)
                         .padding(.top, 8)
@@ -215,7 +215,7 @@ struct MusicIntegrationSheet: View {
                         )
                         .padding(.top, 4)
                     } else if searchedCatalogPlaylists.isEmpty {
-                        Text("Sin resultados para esta búsqueda.")
+                        Text("no_results_for_this_search")
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .padding(.horizontal, 2)
@@ -251,7 +251,7 @@ struct MusicIntegrationSheet: View {
                                                 .foregroundStyle(PulseTheme.secondaryText)
                                                 .lineLimit(1)
                                         } else {
-                                            Text("Apple Music")
+                                            Text("apple_music")
                                                 .font(.caption)
                                                 .foregroundStyle(PulseTheme.secondaryText)
                                         }
@@ -272,7 +272,7 @@ struct MusicIntegrationSheet: View {
                     }
                 } else {
                     // Curated recommended playlists (shown only when not searching)
-                    Text("Recomendadas para ti")
+                    Text("recommended_for_you")
                         .font(.headline)
                         .padding(.horizontal, 2)
                         .padding(.top, 8)

@@ -78,8 +78,8 @@ struct TodayView: View {
     private var coachInsight: FitnessMetrics.TrainingInsight {
         FitnessMetrics.insightCards(for: store.workoutSessions, goals: store.goals, since: weekStart).first
             ?? FitnessMetrics.TrainingInsight(
-                title: String(localized: "Log Workouts to Activate Insights"),
-                message: String(localized: "Complete a session with sets and reps to unlock practical signals."),
+                title: "log_workouts_to_activate_insights",
+                message: "complete_a_session_with_sets_and_reps_to_unlock_practical_signals",
                 systemImage: "sparkles"
             )
     }
@@ -144,7 +144,7 @@ struct TodayView: View {
     private var currentDateTitle: String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: store.userProfile.preferredLanguage)
-        formatter.dateFormat = isSpanish ? "EEEE, d MMMM" : "EEEE, d MMMM"
+        formatter.dateFormat = String(localized: "eeee_d_mmmm")
         return formatter.string(from: .now).capitalized(with: formatter.locale)
     }
 
@@ -247,44 +247,44 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             StickyHeaderScaffold(
-                title: isSpanish ? "Resumen" : "Summary",
+                title: "summary_2",
                 subtitle: currentDateTitle,
                 topContentPadding: 104,
                 accessory: {
                     HeaderAvatarButton(
                         imageData: store.userProfile.avatarImageData,
-                        accessibilityLabel: isSpanish ? "Perfil" : "Profile"
+                        accessibilityLabel: "profile"
                     ) {
                         showProfile = true
                     }
                 }
             ) {
                 focusHeroSection
-                    .stickyHeaderTitle(isSpanish ? "Hoy" : "Today")
+                    .stickyHeaderTitle(String(localized: "today_3"))
                 activationChecklist
-                    .stickyHeaderTitle(isSpanish ? "Siguiente acción" : "Next Action")
+                    .stickyHeaderTitle(String(localized: "next_action"))
                 if !focusProgressionRecommendations.isEmpty {
                     ProgressionRecommendationCard(
                         recommendations: focusProgressionRecommendations,
                         language: store.userProfile.preferredLanguage,
-                        title: isSpanish ? "Qué progresar hoy" : "What to Progress Today"
+                        title: "what_to_progress_today"
                     )
-                    .stickyHeaderTitle(isSpanish ? "Progresión" : "Progression")
+                    .stickyHeaderTitle(String(localized: "progression"))
                 }
                 summaryMetrics
-                    .stickyHeaderTitle(isSpanish ? "Métricas" : "Metrics")
+                    .stickyHeaderTitle(String(localized: "metrics_2"))
                 wellnessWidgets
-                    .stickyHeaderTitle(isSpanish ? "Recuperación" : "Recovery")
+                    .stickyHeaderTitle(String(localized: "recovery_2"))
                 planSection
-                    .stickyHeaderTitle(isSpanish ? "Plan" : "Plan")
+                    .stickyHeaderTitle(String(localized: "plan_3"))
                 coachingCard
-                    .stickyHeaderTitle(isSpanish ? "Coach" : "Coach")
+                    .stickyHeaderTitle(String(localized: "coach"))
                 progressAndRecovery
-                    .stickyHeaderTitle(isSpanish ? "Progreso" : "Progress")
+                    .stickyHeaderTitle(String(localized: "progress_2"))
                 smartShortcuts
-                    .stickyHeaderTitle(isSpanish ? "Atajos" : "Shortcuts")
+                    .stickyHeaderTitle(String(localized: "shortcuts"))
                 visualLibraryStrip
-                    .stickyHeaderTitle(isSpanish ? "Biblioteca visual" : "Visual Library")
+                    .stickyHeaderTitle(String(localized: "visual_library"))
             }
             .sheet(isPresented: $showScheduleWorkout) {
                 ScheduleWorkoutView()
@@ -323,23 +323,23 @@ struct TodayView: View {
         VStack(alignment: .leading, spacing: 14) {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
                 SummaryMetricTile(
-                    title: isSpanish ? "Entrenos" : "Workouts",
+                    title: "workouts_2",
                     value: "\(recentSessions.count)",
-                    subtitle: isSpanish ? "30 días" : "30 days",
+                    subtitle: "value_30_days",
                     systemImage: "figure.strengthtraining.traditional",
                     trendText: workoutTrendText,
                     color: PulseTheme.primary
                 )
                 SummaryMetricTile(
-                    title: isSpanish ? "Series" : "Sets",
+                    title: "sets_4",
                     value: "\(recentCompletedSets.count)",
-                    subtitle: isSpanish ? "completadas" : "completed",
+                    subtitle: "completed_2",
                     systemImage: "square.stack.3d.up.fill",
                     trendText: nil,
                     color: PulseTheme.accent
                 )
                 SummaryMetricTile(
-                    title: isSpanish ? "Volumen" : "Volume",
+                    title: "volume_3",
                     value: compactNumber(displayedRecentVolume),
                     subtitle: displayedVolumeUnit,
                     systemImage: "scalemass.fill",
@@ -349,7 +349,7 @@ struct TodayView: View {
             }
 
             ActivityMatrixCard(
-                title: isSpanish ? "Últimos 30 días" : "Last 30 Days",
+                title: "last_30_days",
                 progressText: isSpanish ? "\(recentSessions.count) sesiones" : "\(recentSessions.count) sessions",
                 points: recentActivityPoints,
                 color: PulseTheme.primary
@@ -357,8 +357,8 @@ struct TodayView: View {
 
             HStack(spacing: 12) {
                 MiniTrendCard(
-                    title: isSpanish ? "Volumen" : "Volume",
-                    subtitle: isSpanish ? "tendencia semanal" : "weekly trend",
+                    title: "volume_3",
+                    subtitle: "weekly_trend",
                     value: "\(compactNumber(displayedWeight(fromKilograms: FitnessMetrics.totalVolumeKg(for: weekSessions)))) \(displayedVolumeUnit)",
                     systemImage: "scalemass.fill",
                     trendText: volumeTrendText,
@@ -369,8 +369,8 @@ struct TodayView: View {
                 }
 
                 MiniTrendCard(
-                    title: isSpanish ? "Esta semana" : "This Week",
-                    subtitle: isSpanish ? "reps diarias" : "daily reps",
+                    title: "this_week",
+                    subtitle: "daily_reps",
                     value: "\(weekCompletedSets.reduce(0) { $0 + $1.reps }) reps",
                     systemImage: "arrow.up.right",
                     trendText: weekRepsTrendText,
@@ -383,9 +383,9 @@ struct TodayView: View {
 
             if latestMetric != nil {
                 BodyWeightSummaryRow(
-                    title: isSpanish ? "Peso corporal" : "Body Weight",
+                    title: "body_weight_3",
                     value: String(format: "%.1f %@", store.displayedWeight.value, store.displayedWeight.unit),
-                    subtitle: isSpanish ? "último registro" : "latest log",
+                    subtitle: "latest_log",
                     goalText: weightGoalText
                 )
             }
@@ -396,18 +396,18 @@ struct TodayView: View {
         let hasActivePlanSession = todaysScheduledWorkout != nil || hasActivePlan
         let titleText = hasActivePlanSession
             ? RepsText.workoutTitle(focusWorkout.title, language: store.userProfile.preferredLanguage)
-            : (isSpanish ? "Elige tu entrenamiento" : "Choose Next Move")
+            : (String(localized: "choose_next_move"))
         let subtitleText = hasActivePlanSession
             ? RepsText.localizedWorkoutSubtitle(focusWorkout.subtitle, language: store.userProfile.preferredLanguage)
-            : (isSpanish ? "Entreno libre, rutina o sesión programada." : "Free workout, routine, or scheduled session.")
+            : (String(localized: "free_workout_routine_or_scheduled_session"))
         let playButtonTitle = hasActivePlanSession
-            ? (isSpanish ? "Empezar entreno" : "Start Workout")
-            : (isSpanish ? "Entrenar libre" : "Free Workout")
+            ? (String(localized: "start_workout_2"))
+            : (String(localized: "free_workout"))
 
         return VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(isSpanish ? "HOY" : "TODAY")
+                    Text(String(localized: "today_2"))
                         .font(.system(size: 13, weight: .black, design: .rounded))
                         .tracking(1.6)
                         .foregroundStyle(.white)
@@ -465,13 +465,13 @@ struct TodayView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(isSpanish ? "Editar plan" : "Edit plan")
+                    .accessibilityLabel(String(localized: "edit_plan"))
                 }
             }
 
             HStack(spacing: 8) {
                 SummaryChip(title: "~\(focusWorkout.durationMinutes) min", systemImage: "clock", color: PulseTheme.primary)
-                let exercisesWord = isSpanish ? "ejercicios" : "exercises"
+                let exercisesWord = String(localized: "exercises_2")
                 SummaryChip(title: "\(focusWorkout.exercises.count) \(exercisesWord)", systemImage: "dumbbell.fill", color: PulseTheme.accent)
                 SummaryChip(title: locationLabel, systemImage: "mappin.and.ellipse", color: PulseTheme.primaryBright)
             }
@@ -517,7 +517,7 @@ struct TodayView: View {
 
     private var focusWorkoutMenu: some View {
         Menu {
-            Section(header: Text(isSpanish ? "Cambiar día" : "Change day")) {
+            Section(header: Text(String(localized: "change_day"))) {
                 ForEach(store.activePlan.days) { day in
                     Button {
                         store.selectWorkoutDayForToday(day)
@@ -532,7 +532,7 @@ struct TodayView: View {
                 }
             }
 
-            Section(header: Text(isSpanish ? "Cambiar plan" : "Change plan")) {
+            Section(header: Text(String(localized: "change_plan"))) {
                 ForEach(store.plans) { plan in
                     Button {
                         store.activatePlan(plan)
@@ -556,7 +556,7 @@ struct TodayView: View {
                     Button(role: .destructive) {
                         store.restoreSuggestedWorkoutForToday()
                     } label: {
-                        Text(isSpanish ? "Restaurar sugerido" : "Restore suggested")
+                        Text(String(localized: "restore_suggested"))
                     }
                 }
             }
@@ -583,7 +583,7 @@ struct TodayView: View {
 
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 8) {
-                            Label(isSpanish ? "Siguiente mejor acción" : "Next Best Action", systemImage: "flag.checkered")
+                            Label(String(localized: "next_best_action"), systemImage: "flag.checkered")
                                 .font(.caption.weight(.black))
                                 .textCase(.uppercase)
                                 .foregroundStyle(PulseTheme.primary)
@@ -597,14 +597,14 @@ struct TodayView: View {
                                 .clipShape(Capsule())
                         }
 
-                        Text(isSpanish ? "Haz lo mínimo que más mueve tu progreso hoy." : "Do the smallest useful thing for today's progress.")
+                        Text(String(localized: "do_the_smallest_useful_thing_for_today_s_progress"))
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
 
                         HStack(spacing: 8) {
-                            MissionSignal(title: isSpanish ? "Semana" : "Week", value: weekTargetText, color: PulseTheme.primary)
-                            MissionSignal(title: isSpanish ? "Batería" : "Battery", value: "\(Int(batteryStatus.level))%", color: batteryColor)
+                            MissionSignal(title: "week", value: weekTargetText, color: PulseTheme.primary)
+                            MissionSignal(title: "battery", value: "\(Int(batteryStatus.level))%", color: batteryColor)
                         }
                     }
                 }
@@ -626,7 +626,7 @@ struct TodayView: View {
     // MARK: – Active session hero (replaces the old separate banner)
     private func activeSessionHero(_ status: ActiveWorkoutStatus) -> some View {
         let isPaused = status.isPaused
-        let setsWord = isSpanish ? "series" : "sets"
+        let setsWord = String(localized: "sets_3")
         let progress: Double = status.totalSets > 0 ? Double(status.completedSets) / Double(status.totalSets) : 0
         let activeGradient: [Color] = isPaused
             ? [PulseTheme.card, PulseTheme.warning.opacity(0.22)]
@@ -671,7 +671,7 @@ struct TodayView: View {
                 TimelineView(.periodic(from: .now, by: 1)) { timeline in
                     StatPill(
                         value: timeString(status.effectiveElapsedSeconds(at: timeline.date)),
-                        label: isSpanish ? "tiempo" : "time",
+                        label: String(localized: "time_3"),
                         systemImage: "timer"
                     )
                 }
@@ -679,7 +679,7 @@ struct TodayView: View {
                 StatPill(value: "\(status.completedSets)/\(status.totalSets)", label: setsWord,
                          systemImage: "checkmark.circle")
                 Divider().frame(height: 32).opacity(0.3).padding(.horizontal, 8)
-                StatPill(value: "\(status.volumeKg) kg", label: isSpanish ? "volumen" : "volume",
+                StatPill(value: "\(status.volumeKg) kg", label: String(localized: "volume_2"),
                          systemImage: "scalemass")
             }
             .foregroundStyle(.primary)
@@ -701,7 +701,7 @@ struct TodayView: View {
                 NavigationLink {
                     ActiveWorkoutView(workout: store.activeWorkout ?? focusWorkout)
                 } label: {
-                    Label(isSpanish ? "Volver" : "Return", systemImage: "arrow.right.circle.fill")
+                    Label(String(localized: "return"), systemImage: "arrow.right.circle.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
@@ -739,7 +739,7 @@ struct TodayView: View {
                         .background(Color.red.opacity(0.85))
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
-                .accessibilityLabel("Stop workout")
+                .accessibilityLabel("stop_workout")
             }
         }
         .padding(18)
@@ -877,9 +877,9 @@ struct TodayView: View {
 
     private var weeklyCommandGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            HomeMetricTile(title: "Week", value: weekTargetText, subtitle: isSpanish ? "sesiones" : "sessions", systemImage: "calendar", color: PulseTheme.primary)
-            HomeMetricTile(title: "Volume", value: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: isSpanish ? "kg esta semana" : "kg this week", systemImage: "scalemass", color: PulseTheme.primaryBright)
-            HomeMetricTile(title: "Streak", value: "\(streakDays)", subtitle: isSpanish ? "días seguidos" : "days in a row", systemImage: "flame", color: PulseTheme.accent)
+            HomeMetricTile(title: "Week", value: weekTargetText, subtitle: "sessions_2", systemImage: "calendar", color: PulseTheme.primary)
+            HomeMetricTile(title: "Volume", value: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg_this_week", systemImage: "scalemass", color: PulseTheme.primaryBright)
+            HomeMetricTile(title: "Streak", value: "\(streakDays)", subtitle: "days_in_a_row", systemImage: "flame", color: PulseTheme.accent)
         }
     }
 
@@ -890,7 +890,7 @@ struct TodayView: View {
                     TrainingBatteryView()
                 } label: {
                     WellnessWidget(
-                        title: isSpanish ? "Batería de entreno" : "Battery",
+                        title: "battery_2",
                         value: "\(batteryStatus.level)%",
                         subtitle: batteryStatus.suggestion,
                         systemImage: batteryStatus.systemImage,
@@ -900,7 +900,7 @@ struct TodayView: View {
                 .buttonStyle(.plain)
 
                 WellnessWidget(
-                    title: isSpanish ? "Ejercicio" : "Exercise",
+                    title: "exercise_2",
                     value: store.todayHealthMetric.map { "\(Int($0.exerciseMinutes ?? 0)) min" } ?? "--",
                     subtitle: "Apple Watch / Health",
                     systemImage: "applewatch",
@@ -908,9 +908,9 @@ struct TodayView: View {
                 )
 
                 WellnessWidget(
-                    title: isSpanish ? "Hidratación" : "Hydration",
+                    title: "hydration",
                     value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
-                    subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en Reps", $0) } ?? (isSpanish ? "Sin registro local" : "No local log"),
+                    subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en Reps", $0) } ?? (String(localized: "no_local_log")),
                     systemImage: "drop.fill",
                     color: PulseTheme.primaryBright
                 )
@@ -918,7 +918,7 @@ struct TodayView: View {
                 WellnessWidget(
                     title: "HRV",
                     value: store.todayHealthMetric?.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--",
-                    subtitle: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? (isSpanish ? "Sin pulso de reposo" : "No resting HR"),
+                    subtitle: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? (String(localized: "no_resting_hr")),
                     systemImage: "waveform.path.ecg",
                     color: PulseTheme.accent
                 )
@@ -938,7 +938,7 @@ struct TodayView: View {
                         .background(batteryStatus.level < 55 ? batteryColor : PulseTheme.primary)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Today's Insight")
+                        Text("today_s_insight")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(batteryStatus.level < 55 ? batteryColor : PulseTheme.primary)
                             .textCase(.uppercase)
@@ -975,9 +975,9 @@ struct TodayView: View {
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(isSpanish ? "Sin plan activo" : "No active plan")
+                        Text(String(localized: "no_active_plan"))
                             .font(.headline)
-                        Text(isSpanish ? "Crea una rutina o programa una sesión cuando estés listo." : "Create a routine or schedule a session when you are ready.")
+                        Text(String(localized: "create_a_routine_or_schedule_a_session_when_you_are_ready"))
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -988,7 +988,7 @@ struct TodayView: View {
                     Button {
                         showCreatePlan = true
                     } label: {
-                        Label(isSpanish ? "Crear plan" : "Create plan", systemImage: "plus")
+                        Label(String(localized: "create_plan"), systemImage: "plus")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -1001,7 +1001,7 @@ struct TodayView: View {
                     Button {
                         showScheduleWorkout = true
                     } label: {
-                        Label(isSpanish ? "Programar" : "Schedule", systemImage: "calendar")
+                        Label(String(localized: "schedule"), systemImage: "calendar")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -1055,7 +1055,7 @@ struct TodayView: View {
                                     .background(PulseTheme.primaryBright.opacity(0.12))
                                     .clipShape(Capsule())
                             } else if daysDiff == 0 {
-                                Text(isSpanish ? "¡Hoy es el día!" : "Today is the day!")
+                                Text(String(localized: "today_is_the_day"))
                                     .font(.caption.bold())
                                     .foregroundStyle(PulseTheme.accent)
                                     .padding(.horizontal, 8)
@@ -1063,7 +1063,7 @@ struct TodayView: View {
                                     .background(PulseTheme.accent.opacity(0.12))
                                     .clipShape(Capsule())
                             } else {
-                                Text(isSpanish ? "Completado" : "Completed")
+                                Text(String(localized: "completed_3"))
                                     .font(.caption.bold())
                                     .foregroundStyle(PulseTheme.secondaryText)
                                     .padding(.horizontal, 8)
@@ -1075,21 +1075,13 @@ struct TodayView: View {
                         
                         let adviceText: String = {
                             if daysDiff < 0 {
-                                return isSpanish 
-                                    ? "¡Llegó el día de tu evento! Esperamos que hayas alcanzado tus objetivos."
-                                    : "The event day has arrived! We hope you achieved your goals."
+                                return String(localized: "the_event_day_has_arrived_we_hope_you_achieved_your_goals")
                             } else if weeks < 6 {
-                                return isSpanish
-                                    ? "Plazo corto. Sugerimos maximizar intensidad ahora y evitar fatiga excesiva justo antes de tu evento. Considera extender tu plan más adelante."
-                                    : "Short target. We suggest maximizing intensity now and avoiding excessive fatigue just before your event. Consider extending your plan later."
+                                return String(localized: "short_target_we_suggest_maximizing_intensity_now_and_avoiding_excessive_fatigue")
                             } else if weeks <= 12 {
-                                return isSpanish
-                                    ? "¡Plazo óptimo! Tienes el tiempo perfecto para completar un ciclo completo de entrenamiento y llegar en tu mejor forma."
-                                    : "Optimal timeline! You have the perfect amount of time to complete a full training block and arrive in peak shape."
+                                return String(localized: "optimal_timeline_you_have_the_perfect_amount_of_time_to_complete_a_full_training")
                             } else {
-                                return isSpanish
-                                    ? "Plazo largo. Te sugerimos realizar un bloque de fuerza/hipertrofia de 8-12 semanas y luego un plan de mantenimiento o definición secundario para afinar detalles."
-                                    : "Long timeline. We suggest completing an 8-12 week strength/hypertrophy block, followed by a secondary definition/maintenance cycle."
+                                return String(localized: "long_timeline_we_suggest_completing_an_8_12_week_strength_hypertrophy_block_foll")
                             }
                         }()
                         
@@ -1129,11 +1121,11 @@ struct TodayView: View {
         HStack(spacing: 12) {
             PulseCard(minHeight: 125) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label(isSpanish ? "Último entreno" : "Last Workout", systemImage: "clock.arrow.circlepath")
+                    Label(String(localized: "last_workout"), systemImage: "clock.arrow.circlepath")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
                     Spacer(minLength: 0)
-                    Text(lastWorkout.map { RepsText.workoutTitle($0.workoutTitle, language: store.userProfile.preferredLanguage) } ?? (isSpanish ? "Sin entrenos" : "No Workouts"))
+                    Text(lastWorkout.map { RepsText.workoutTitle($0.workoutTitle, language: store.userProfile.preferredLanguage) } ?? (String(localized: "no_workouts")))
                         .font(.headline)
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
@@ -1146,13 +1138,13 @@ struct TodayView: View {
 
             PulseCard(minHeight: 125) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label(isSpanish ? "Salud" : "Health", systemImage: "heart.fill")
+                    Label(String(localized: "health"), systemImage: "heart.fill")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
                     Spacer(minLength: 0)
                     Text(store.todayHealthMetric.map { "\($0.steps, specifier: "%.0f")" } ?? "--")
                         .font(.title2.bold().monospacedDigit())
-                    Text(isSpanish ? "pasos hoy" : "steps today")
+                    Text(String(localized: "steps_today"))
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
@@ -1163,7 +1155,7 @@ struct TodayView: View {
 
     private var smartShortcuts: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(isSpanish ? "Accesos directos" : "Smart Shortcuts")
+            Text(String(localized: "smart_shortcuts"))
                 .font(.headline)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 NavigationLink {
@@ -1172,7 +1164,7 @@ struct TodayView: View {
                     let exercisesCount = store.exercises.count
                     let sub = isSpanish ? "\(exercisesCount) ejercicios" : "\(exercisesCount) exercises"
                     ShortcutTile(
-                        title: isSpanish ? "Biblioteca" : "Library",
+                        title: "library",
                         subtitle: LocalizedStringKey(sub),
                         systemImage: "photo.stack",
                         color: PulseTheme.primary
@@ -1187,8 +1179,8 @@ struct TodayView: View {
                     }
                 } label: {
                     ShortcutTile(
-                        title: isSpanish ? "Progreso" : "Progress",
-                        subtitle: isSpanish ? "gráficas e insights" : "charts & insights",
+                        title: "progress_2",
+                        subtitle: "charts_and_insights",
                         systemImage: "chart.line.uptrend.xyaxis",
                         color: PulseTheme.primaryBright
                     )
@@ -1200,8 +1192,8 @@ struct TodayView: View {
                     showCreatePlan = true
                 } label: {
                     ShortcutTile(
-                        title: isSpanish ? "Nueva rutina" : "New Plan",
-                        subtitle: isSpanish ? "diseño editable" : "editable routine",
+                        title: "new_plan",
+                        subtitle: "editable_routine",
                         systemImage: "square.stack.3d.up",
                         color: PulseTheme.accent
                     )
@@ -1214,7 +1206,7 @@ struct TodayView: View {
                     let templatesCount = store.workoutTemplates.count
                     let sub = isSpanish ? "\(templatesCount) plantillas" : "\(templatesCount) templates"
                     ShortcutTile(
-                        title: isSpanish ? "Plantillas" : "Routines",
+                        title: "routines",
                         subtitle: LocalizedStringKey(sub),
                         systemImage: "list.clipboard",
                         color: PulseTheme.primary
@@ -1228,13 +1220,13 @@ struct TodayView: View {
     private var visualLibraryStrip: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Visual References")
+                Text("visual_references")
                     .font(.headline)
                 Spacer()
                 NavigationLink {
                     ExerciseLibraryView()
                 } label: {
-                    Text("View All")
+                    Text("view_all")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.accent)
                 }
@@ -1263,7 +1255,7 @@ struct TodayView: View {
 
     private var locationLabel: String {
         guard hasActivePlan else {
-            return isSpanish ? "libre" : "free"
+            return String(localized: "free_2")
         }
 
         if isSpanish {
@@ -1283,7 +1275,7 @@ struct TodayView: View {
 
     private var lastWorkoutSubtitle: String {
         guard let lastWorkout else {
-            return String(localized: "Complete your first session")
+            return String(localized: "complete_your_first_session")
         }
         return "\(relativeDateTitle(for: lastWorkout.date)) · \(lastWorkout.durationMinutes) min"
     }
@@ -1296,10 +1288,10 @@ struct TodayView: View {
         
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
-            return isSpanish ? "hoy" : "today"
+            return String(localized: "today_4")
         }
         if calendar.isDateInYesterday(date) {
-            return isSpanish ? "ayer" : "yesterday"
+            return String(localized: "yesterday_2")
         }
         
         let startToday = calendar.startOfDay(for: .now)
@@ -1328,7 +1320,7 @@ private struct StatPill: View {
                 Text(value)
                     .font(.system(size: 15, weight: .bold, design: .rounded).monospacedDigit())
             }
-            Text(label)
+            Text(localizedKey(label))
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .opacity(0.7)
         }
@@ -1449,7 +1441,7 @@ private struct WorkoutExerciseAvatarStrip: View {
             .frame(width: availableWidth, height: diameter, alignment: .leading)
         }
         .frame(height: maxDiameter)
-        .accessibilityLabel("Ejercicios del plan")
+        .accessibilityLabel("plan_exercises")
     }
 }
 
@@ -1476,7 +1468,7 @@ private struct TodayActivationStepRow: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.86)
                     if step.isCompleted {
-                        Text(isSpanish ? "Hecho" : "Done")
+                        Text(String(localized: "done"))
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(PulseTheme.recovery)
                             .padding(.horizontal, 7)
@@ -1535,7 +1527,7 @@ private struct ProgressMissionRing: View {
             VStack(spacing: 0) {
                 Text(centerValue)
                     .font(.system(size: 20, weight: .black, design: .rounded))
-                Text("GO")
+                Text("go")
                     .font(.system(size: 9, weight: .black, design: .rounded))
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -1588,7 +1580,7 @@ private struct SummaryChip: View {
     let color: Color
 
     var body: some View {
-        Label(title, systemImage: systemImage)
+        Label(localizedKey(title), systemImage: systemImage)
             .font(.system(size: 12, weight: .bold, design: .rounded))
             .lineLimit(1)
             .minimumScaleFactor(0.78)

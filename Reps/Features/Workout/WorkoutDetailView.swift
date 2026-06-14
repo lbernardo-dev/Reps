@@ -48,12 +48,10 @@ struct WorkoutDetailView: View {
                 ProgressionRecommendationCard(
                     recommendations: progressionRecommendations,
                     language: store.userProfile.preferredLanguage,
-                    title: store.userProfile.preferredLanguage.hasPrefix("es") ? "Plan de progresión" : "Progression Plan"
+                    title: "progression_plan"
                 )
                 
-                let adjustWord = store.userProfile.preferredLanguage.hasPrefix("es")
-                    ? "El entrenamiento se adaptará según tu rendimiento."
-                    : "The workout will adjust based on your performance."
+                let adjustWord = String(localized: "the_workout_will_adjust_based_on_your_performance")
                 Text(adjustWord)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PulseTheme.tertiaryText)
@@ -74,7 +72,7 @@ struct WorkoutDetailView: View {
             selectedWorkout = newWorkout
         }
         .safeAreaInset(edge: .bottom) {
-            let startWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Iniciar entrenamiento" : "Start Workout"
+            let startWord = String(localized: "start_workout")
             NavigationLink {
                 ActiveWorkoutView(workout: selectedWorkout)
             } label: {
@@ -151,9 +149,9 @@ struct WorkoutDetailView: View {
 
     private var heroCard: some View {
         let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
-        let todayWord = isSpanish ? "Entrenamiento de hoy" : "Today's Workout"
-        let exercisesWord = isSpanish ? "ejercicios" : "exercises"
-        let minutesWord = isSpanish ? "minutos" : "minutes"
+        let todayWord = String(localized: "today_s_workout")
+        let exercisesWord = String(localized: "exercises_2")
+        let minutesWord = String(localized: "minutes_2")
         
         return VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 12) {
@@ -162,7 +160,7 @@ struct WorkoutDetailView: View {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(PulseTheme.primaryBright)
-                    Text(isSpanish ? "ACTIVO" : "ACTIVE")
+                    Text(String(localized: "active"))
                         .font(.system(size: 9, weight: .black))
                         .tracking(0.5)
                         .foregroundStyle(PulseTheme.primaryBright)
@@ -262,10 +260,10 @@ struct WorkoutDetailView: View {
     }
 
     private var preparationCard: some View {
-        let prepWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Preparación" : "Preparation"
-        let photoWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Fotos de sesión" : "Session Photos"
-        let notesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Notas" : "Notes"
-        let audioWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "Audio/Dictado" : "Audio/Dictation"
+        let prepWord = String(localized: "preparation")
+        let photoWord = String(localized: "session_photos")
+        let notesWord = String(localized: "notes_2")
+        let audioWord = String(localized: "audio_dictation")
         
         return PulseCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -410,7 +408,7 @@ private struct WorkoutMusclePreview: View {
             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
                 .stroke(PulseTheme.primaryBright.opacity(0.08), lineWidth: 1)
         )
-        .accessibilityLabel("Resumen muscular del entrenamiento")
+        .accessibilityLabel("muscle_training_summary")
     }
 
     private func bodyLayer(side: BodySide, in size: CGSize) -> some View {
@@ -493,7 +491,7 @@ private struct WorkoutStatTile: View {
             Text(value)
                 .font(.title2.bold())
                 .monospacedDigit()
-            Text(title)
+            Text(localizedKey(title))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
         }

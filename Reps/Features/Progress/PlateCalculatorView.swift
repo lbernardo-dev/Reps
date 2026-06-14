@@ -120,14 +120,14 @@ struct PlateCalculatorView: View {
                 // Inputs Card
                 PulseCard {
                     VStack(spacing: 20) {
-                        Text("Calculadora de Discos")
+                        Text("plate_calculator")
                             .font(.headline)
                             .foregroundStyle(PulseTheme.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
                         // Target Weight input
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Peso objetivo")
+                            Text("target_weight")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -148,7 +148,7 @@ struct PlateCalculatorView: View {
 
                         // Barbell type selector
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Barra")
+                            Text("barra_2")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -176,7 +176,7 @@ struct PlateCalculatorView: View {
 
                         // Available plates (which plates you own)
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Discos disponibles")
+                            Text("discos_disponibles")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -213,7 +213,7 @@ struct PlateCalculatorView: View {
                     // Barbell Visual Stack Card
                     PulseCard {
                         VStack(spacing: 22) {
-                            Text("Discos por lado (Cargar en cada extremo)")
+                            Text("plates_per_side_loaded_on_each_end")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                             
@@ -292,7 +292,7 @@ struct PlateCalculatorView: View {
                             // Totals summary
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Peso total cargado")
+                                    Text("total_loaded_weight")
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(PulseTheme.secondaryText)
                                     Text("\(totalCalculatedWeight, specifier: "%.1f") \(unit)")
@@ -304,7 +304,7 @@ struct PlateCalculatorView: View {
                                 
                                 if totalCalculatedWeight != targetWeight {
                                     VStack(alignment: .trailing, spacing: 4) {
-                                        Text("Diferencia")
+                                        Text("diferencia")
                                             .font(.caption.weight(.semibold))
                                             .foregroundStyle(PulseTheme.secondaryText)
                                         Text(String(format: "%+.1f %@", totalCalculatedWeight - targetWeight, unit))
@@ -321,7 +321,7 @@ struct PlateCalculatorView: View {
             .padding(.vertical, 10)
         }
         .screenBackground()
-        .navigationTitle("Calculadora de Discos")
+        .navigationTitle("plate_calculator")
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
     }

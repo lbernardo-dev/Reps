@@ -277,7 +277,7 @@ struct RepsBrandLockup: View {
         VStack(spacing: 16 * scale) {
             RepsBarbellMark(scale: scale)
 
-            Text("REPS")
+            Text("reps_2")
                 .font(.system(size: 48 * scale, weight: .black, design: .rounded))
                 .foregroundStyle(
                     LinearGradient(
@@ -288,7 +288,7 @@ struct RepsBrandLockup: View {
                 )
                 .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
 
-            Text("INTELIGENCIA MUSCULAR")
+            Text("inteligencia_muscular")
                 .font(.system(size: 12 * scale, weight: .black, design: .rounded))
                 .foregroundStyle(PulseTheme.accent)
                 .lineLimit(1)

@@ -11,11 +11,11 @@ struct ActiveExerciseOrderCard: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Label("Orden de ejercicios", systemImage: "arrow.up.arrow.down")
+                    Label("exercise_order", systemImage: "arrow.up.arrow.down")
                         .font(.headline)
                     Spacer()
                     Button(action: onAdd) {
-                        Label("Añadir", systemImage: "plus")
+                        Label("add", systemImage: "plus")
                             .font(.subheadline.weight(.bold))
                     }
                     .buttonStyle(.plain)
@@ -23,7 +23,7 @@ struct ActiveExerciseOrderCard: View {
                 }
 
                 if drafts.isEmpty {
-                    Text("Añade al menos un ejercicio para poder iniciar la sesión.")
+                    Text("add_at_least_one_exercise_to_start_the_session")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)

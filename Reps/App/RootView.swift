@@ -29,13 +29,13 @@ struct RootView: View {
                 WelcomeView()
             }
         }
-        .alert("Error de Almacenamiento", isPresented: Binding(
+        .alert("storage_error", isPresented: Binding(
             get: { store.isUsingFallbackStorage },
             set: { store.isUsingFallbackStorage = $0 }
         )) {
-            Button("Aceptar", role: .cancel) {}
+            Button("aceptar", role: .cancel) {}
         } message: {
-            Text("Hubo un problema al cargar tus datos guardados. La aplicación está en modo temporal y no guardará los datos permanentemente.")
+            Text("there_was_a_problem_loading_your_saved_data_the_app_is_in_temporary_mode_and_wil")
         }
         .fullScreenCover(item: $store.activePaywall) { presentation in
             PaywallView(presentation: presentation)
@@ -209,10 +209,45 @@ struct MainTabView: View {
     }
 
     private var quickMenuOverlay: some View {
-        ZStack(alignment: .bottomTrailing) {
+        VStack(spacing: 0) {
+            QuickMenuProgressionChart()
+                .padding(.top, 10)
+                .padding(.horizontal, 16)
+                .transition(.move(edge: .top).combined(with: .opacity))
+
+            Spacer(minLength: 16)
+
+            VStack(alignment: .trailing, spacing: 11) {
+                Text("quick_actions")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .tracking(2)
+                    .textCase(.uppercase)
+                    .foregroundStyle(.white.opacity(0.45))
+                    .padding(.trailing, 8)
+                    .padding(.bottom, 2)
+
+                ForEach(Array(QuickAction.allCases.enumerated()), id: \.element.id) { index, action in
+                    Button {
+                        open(action)
+                    } label: {
+                        QuickActionRow(action: action)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(
+                        .move(edge: .trailing)
+                        .combined(with: .opacity)
+                        .animation(.spring(response: 0.36, dampingFraction: 0.78).delay(Double(index) * 0.05))
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.trailing, 20)
+            .padding(.bottom, 172)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+        .background {
             ZStack {
                 Color.black
-                    .ignoresSafeArea()
 
                 Circle()
                     .fill(PulseTheme.accent.opacity(0.07))
@@ -228,48 +263,13 @@ struct MainTabView: View {
             }
             .background(.ultraThinMaterial)
             .ignoresSafeArea()
+            .contentShape(Rectangle())
             .onTapGesture {
                 withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                     isQuickMenuExpanded = false
                 }
             }
             .transition(.opacity)
-
-            VStack(spacing: 0) {
-                QuickMenuProgressionChart()
-                    .padding(.top, 10)
-                    .padding(.horizontal, 16)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-
-                Spacer(minLength: 16)
-
-                VStack(alignment: .trailing, spacing: 11) {
-                    Text("Acciones rápidas")
-                        .font(.system(size: 10, weight: .black, design: .rounded))
-                        .tracking(2)
-                        .textCase(.uppercase)
-                        .foregroundStyle(.white.opacity(0.45))
-                        .padding(.trailing, 8)
-                        .padding(.bottom, 2)
-
-                    ForEach(Array(QuickAction.allCases.enumerated()), id: \.element.id) { index, action in
-                        Button {
-                            open(action)
-                        } label: {
-                            QuickActionRow(action: action)
-                        }
-                        .buttonStyle(.plain)
-                        .transition(
-                            .move(edge: .trailing)
-                            .combined(with: .opacity)
-                            .animation(.spring(response: 0.36, dampingFraction: 0.78).delay(Double(index) * 0.05))
-                        )
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.trailing, 20)
-                .padding(.bottom, 172)
-            }
         }
     }
 

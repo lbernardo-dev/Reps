@@ -52,7 +52,7 @@ struct OneRepMaxCalculatorView: View {
         // Calculator Card
         PulseCard {
           VStack(spacing: 20) {
-            Text("Calculadora de 1RM (Fórmula Epley)")
+            Text("value_1rm_calculator_epley_formula")
               .font(.headline)
               .foregroundStyle(PulseTheme.primary)
               .frame(maxWidth: .infinity, alignment: .leading)
@@ -80,7 +80,7 @@ struct OneRepMaxCalculatorView: View {
 
               // Reps input field
               VStack(alignment: .leading, spacing: 6) {
-                Text("Repeticiones")
+                Text("repeticiones")
                   .font(.caption.weight(.semibold))
                   .foregroundStyle(PulseTheme.secondaryText)
 
@@ -106,7 +106,7 @@ struct OneRepMaxCalculatorView: View {
 
               // Hero result
               VStack(spacing: 4) {
-                Text("Máximo Estimado (1RM)")
+                Text("estimated_maximum_1rm")
                   .font(.caption.weight(.semibold))
                   .foregroundStyle(PulseTheme.accent)
 
@@ -124,18 +124,18 @@ struct OneRepMaxCalculatorView: View {
         // Percentage Breakdown List
         if !percentageBreakdown.isEmpty {
           VStack(alignment: .leading, spacing: 10) {
-            Text("Tabla de porcentajes de intensidad")
+            Text("intensity_percentage_table")
               .font(.headline)
               .padding(.horizontal, 22)
 
             PulseCard {
               VStack(spacing: 0) {
                 HStack {
-                  Text("Porcentaje").fontWeight(.bold)
+                  Text("porcentaje").fontWeight(.bold)
                   Spacer()
-                  Text("Reps aprox.").fontWeight(.bold)
+                  Text("reps_aprox").fontWeight(.bold)
                   Spacer()
-                  Text("Peso").fontWeight(.bold)
+                  Text("weight_2").fontWeight(.bold)
                 }
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
@@ -172,7 +172,7 @@ struct OneRepMaxCalculatorView: View {
       .padding(.vertical, 10)
     }
     .screenBackground()
-    .navigationTitle("Calculadora 1RM")
+    .navigationTitle("calculadora_1rm")
     .navigationBarTitleDisplayMode(.inline)
     .mainTabBarHidden()
   }

@@ -1,5 +1,9 @@
 import Foundation
 
+#if canImport(SwiftUI)
+import SwiftUI
+#endif
+
 #if canImport(ActivityKit)
 import ActivityKit
 #endif
@@ -8,6 +12,15 @@ import ActivityKit
 import WidgetKit
 #endif
 
+#if canImport(SwiftUI)
+func localizedKey(_ key: String) -> LocalizedStringKey {
+    LocalizedStringKey(key)
+}
+
+func localizedKey(_ key: LocalizedStringKey) -> LocalizedStringKey {
+    key
+}
+#endif
 
 enum RepsAppGroup {
     static let identifier = "group.com.romerodev.repsfitness"

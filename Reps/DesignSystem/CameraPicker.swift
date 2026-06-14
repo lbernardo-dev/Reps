@@ -74,7 +74,7 @@ struct MediaSourceMenu<LabelContent: View>: View {
                         }
                     }
                 } label: {
-                    Label("Tomar foto", systemImage: "camera.fill")
+                    Label("take_photo", systemImage: "camera.fill")
                 }
             } else {
                 #if targetEnvironment(simulator)
@@ -84,13 +84,13 @@ struct MediaSourceMenu<LabelContent: View>: View {
                         HapticService.notification(.success)
                     }
                 } label: {
-                    Label("Simular foto", systemImage: "camera.badge.ellipsis")
+                    Label("simulate_photo", systemImage: "camera.badge.ellipsis")
                 }
                 #endif
             }
 
             PhotosPicker(selection: $photoPickerItems, maxSelectionCount: maxSelectionCount, matching: .images) {
-                Label("Elegir de galería", systemImage: "photo.on.rectangle")
+                Label("choose_from_gallery", systemImage: "photo.on.rectangle")
             }
         } label: {
             label()
@@ -101,11 +101,11 @@ struct MediaSourceMenu<LabelContent: View>: View {
             }
             .ignoresSafeArea()
         }
-        .alert("Permiso denegado", isPresented: $showPermissionDenied) {
-            Button("Abrir Ajustes") {
+        .alert("permission_denied", isPresented: $showPermissionDenied) {
+            Button("abrir_ajustes") {
                 permissions.openSettings()
             }
-            Button("Cancelar", role: .cancel) {}
+            Button("cancel", role: .cancel) {}
         } message: {
             Text(permissions.deniedMessage ?? "El acceso a la cámara está bloqueado. Actívalo en Ajustes.")
         }

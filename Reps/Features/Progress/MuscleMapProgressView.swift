@@ -183,7 +183,7 @@ private struct QuietFilterChip: View {
     var isSelected = false
 
     var body: some View {
-        Text(title)
+        Text(localizedKey(title))
             .font(.system(size: 13, weight: .bold))
             .lineLimit(1)
             .padding(.horizontal, 14)
@@ -231,7 +231,7 @@ private struct InteractiveBodyHeatmap: View {
             .clipped()
             .contentShape(Rectangle())
         }
-        .accessibilityLabel("Mapa muscular interactivo")
+        .accessibilityLabel("mapa_muscular_interactivo")
     }
 
     private func bodyView(side: BodySide) -> some View {
@@ -296,7 +296,7 @@ private struct MuscleLoadCard: View {
                         Text("/")
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(Color.white.opacity(0.3))
-                        Text("12 \(isSpanish ? "semanales" : "weekly")")
+                        Text("12 \(String(localized: "weekly"))")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -305,7 +305,7 @@ private struct MuscleLoadCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "sparkles")
                                 .font(.system(size: 10))
-                            Text("+\(load.predictedSets) \(isSpanish ? "previstas" : "predicted")")
+                            Text("+\(load.predictedSets) \(String(localized: "predicted"))")
                                 .font(.system(size: 11, weight: .bold))
                         }
                         .foregroundStyle(PulseTheme.primaryBright)
@@ -348,7 +348,7 @@ private struct MuscleLoadCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chart.xyaxis.line")
                         .font(.system(size: 11, weight: .bold))
-                    Text(isSpanish ? "Ver frecuencia y contribuciones" : "View frequency & contributions")
+                    Text(String(localized: "view_frequency_and_contributions"))
                         .font(.system(size: 11, weight: .bold))
                 }
                 .foregroundStyle(PulseTheme.primaryBright)
@@ -400,7 +400,7 @@ private struct MuscleSegmentDetailSheet: View {
 
                     PulseCard {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Frecuencia y volumen")
+                            Text("frequency_and_volume")
                                 .font(.title3.weight(.bold))
                             Text("Has entrenado \(segment.title.lowercased()) \(activity.trainingDays) \(activity.trainingDays == 1 ? "vez" : "veces") (\(activity.directDays) directas) en los últimos 7 días. Se recomienda una frecuencia de al menos 2.")
                                 .font(.body)
@@ -463,7 +463,7 @@ private struct MuscleSegmentDetailSheet: View {
                 Button {
                     dismiss()
                 } label: {
-                    Text("Cerrar")
+                    Text("close")
                         .font(.headline)
                         .frame(width: 142, height: 58)
                         .foregroundStyle(.black)
@@ -488,7 +488,7 @@ private struct MuscleWeeklyVolumeCard: View {
             HStack(alignment: .firstTextBaseline) {
                 (Text("\(load.displaySets)")
                     .foregroundStyle(.white)
-                 + Text(" de 12 series semanales")
+                 + Text("of_12_weekly_sets")
                     .foregroundStyle(PulseTheme.secondaryText))
                     .font(.system(size: 20, weight: .black, design: .rounded))
 

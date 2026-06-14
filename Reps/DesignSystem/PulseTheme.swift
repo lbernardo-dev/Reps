@@ -398,19 +398,19 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Atrás")
+                    .accessibilityLabel("back_2")
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
                     if let subtitle {
-                        Text(subtitle)
+                        Text(localizedKey(subtitle))
                             .font(.caption.weight(.bold))
                             .textCase(.uppercase)
                             .foregroundStyle(PulseTheme.primary)
                             .lineLimit(1)
                     }
 
-                    Text(activeTitle)
+                    Text(LocalizedStringKey(activeTitle))
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.76)
@@ -1036,8 +1036,8 @@ extension View {
     VStack(spacing: 16) {
         SectionHeader(title: "Today")
         MetricCard(title: "Streak", value: "5", subtitle: "Days in a row", systemImage: "flame")
-        PrimaryButton("Start Workout", systemImage: "play.fill") {}
-        SecondaryButton("Schedule Workout", systemImage: "calendar.badge.plus") {}
+        PrimaryButton("start_workout", systemImage: "play.fill") {}
+        SecondaryButton("schedule_workout", systemImage: "calendar.badge.plus") {}
         PulseListRow(title: "Exercise Library", subtitle: "Browse and add movements", systemImage: "magnifyingglass")
         HStack {
             PulseChip(title: "Gym", isSelected: true)
@@ -1054,8 +1054,8 @@ extension View {
     VStack(spacing: 16) {
         SectionHeader(title: "Today")
         MetricCard(title: "Streak", value: "5", subtitle: "Days in a row", systemImage: "flame")
-        PrimaryButton("Start Workout", systemImage: "play.fill") {}
-        SecondaryButton("Schedule Workout", systemImage: "calendar.badge.plus") {}
+        PrimaryButton("start_workout", systemImage: "play.fill") {}
+        SecondaryButton("schedule_workout", systemImage: "calendar.badge.plus") {}
         PulseListRow(title: "Exercise Library", subtitle: "Browse and add movements", systemImage: "magnifyingglass")
         HStack {
             PulseChip(title: "Gym", isSelected: true)

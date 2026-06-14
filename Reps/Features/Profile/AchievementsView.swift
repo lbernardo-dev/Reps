@@ -163,7 +163,7 @@ struct AchievementsView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
-                    Text(isSpanish ? "Perfil" : "Profile")
+                    Text(String(localized: "profile"))
                         .font(.headline)
                 }
                 .foregroundStyle(PulseTheme.primary)
@@ -172,7 +172,7 @@ struct AchievementsView: View {
             
             Spacer()
             
-            Text(isSpanish ? "Logros y Recibos" : "Achievements & Tickets")
+            Text(String(localized: "achievements_and_tickets"))
                 .font(.system(size: 19, weight: .bold, design: .rounded))
             
             Spacer()
@@ -192,14 +192,12 @@ struct AchievementsView: View {
                 Image(systemName: "trophy.fill")
                     .font(.headline)
                     .foregroundStyle(PulseTheme.accent)
-                Text(isSpanish ? "Logros Automáticos" : "Automatic Milestones")
+                Text(String(localized: "automatic_milestones"))
                     .font(.headline)
             }
             .padding(.horizontal, 4)
             
-            Text(isSpanish 
-                 ? "Hitos enlazados y calculados automáticamente con tus entrenamientos y datos de Apple Health."
-                 : "Milestones tracked and calculated automatically using your workouts and Apple Health data.")
+            Text(String(localized: "milestones_tracked_and_calculated_automatically_using_your_workouts_and_apple_he"))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -220,14 +218,12 @@ struct AchievementsView: View {
                 Image(systemName: "doc.text.image.fill")
                     .font(.headline)
                     .foregroundStyle(PulseTheme.primary)
-                Text(isSpanish ? "Galería de Recibos" : "Virtual Ticket Gallery")
+                Text(String(localized: "virtual_ticket_gallery"))
                     .font(.headline)
             }
             .padding(.horizontal, 4)
             
-            Text(isSpanish 
-                 ? "Tus recibos de entrenamiento se generan y guardan aquí automáticamente al completar entrenamientos."
-                 : "Your virtual training tickets are rendered and saved here automatically when you complete workouts.")
+            Text(String(localized: "your_virtual_training_tickets_are_rendered_and_saved_here_automatically_when_you"))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -235,19 +231,17 @@ struct AchievementsView: View {
             
             if !store.hasFeatureAccess(.shareCards) {
                 PaywallLockedCard(
-                    title: isSpanish ? "Recibos Pro" : "Pro receipts",
-                    message: isSpanish ? "La galería de recibos y las tarjetas compartibles se desbloquean con Reps Pro." : "Receipt gallery and shareable cards unlock with Reps Pro.",
-                    buttonTitle: isSpanish ? "Ver Reps Pro" : "See Reps Pro"
+                    title: "pro_receipts",
+                    message: "receipt_gallery_and_shareable_cards_unlock_with_reps_pro",
+                    buttonTitle: String(localized: "see_reps_pro")
                 ) {
                     localPaywall = store.makePaywallPresentation(source: .receiptGallery, feature: .shareCards)
                 }
             } else if store.savedShareCards.isEmpty {
                 PulseCard {
                     PulseEmptyState(
-                        title: isSpanish ? "Sin recibos aún" : "No receipts yet",
-                        message: isSpanish 
-                            ? "Completa y registra una sesión de entrenamiento para generar tu primer recibo virtual con corte de sierra."
-                            : "Complete and log a training session to generate your first virtual saw-tooth ticket here.",
+                        title: "no_receipts_yet",
+                        message: "complete_and_log_a_training_session_to_generate_your_first_virtual_saw_tooth_tic",
                         systemImage: "doc.text.image"
                     )
                     .padding(.vertical, 8)
@@ -343,7 +337,7 @@ private struct AchievementTile: View {
                     Spacer()
                     
                     if badge.isCompleted {
-                        Text(isSpanish ? "COMPLETADO" : "UNLOCKED")
+                        Text(String(localized: "unlocked"))
                             .font(.system(size: 8, weight: .bold, design: .rounded))
                             .foregroundStyle(badge.color)
                             .padding(.horizontal, 6)
@@ -413,7 +407,7 @@ private struct LocalReceiptPreviewSheet: View {
                     ShareLink(item: Image(uiImage: img), preview: SharePreview(card.workoutTitle, image: Image(uiImage: img))) {
                         HStack(spacing: 8) {
                             Image(systemName: "square.and.arrow.up")
-                            Text(isSpanish ? "Compartir recibo" : "Share Ticket")
+                            Text(String(localized: "share_ticket"))
                         }
                         .font(.headline)
                         .foregroundColor(.black)
@@ -432,7 +426,7 @@ private struct LocalReceiptPreviewSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(isSpanish ? "Cerrar" : "Close") {
+                    Button(String(localized: "close")) {
                         dismiss()
                     }
                 }

@@ -143,8 +143,8 @@ struct ExerciseLibraryView: View {
                 if filteredExercises.isEmpty {
                     Section {
                         PulseEmptyState(
-                            title: isSpanish ? "No hay ejercicios" : "No exercises found",
-                            message: isSpanish ? "Prueba a quitar filtros o busca por músculo, equipo o nombre." : "Try removing a filter or searching by muscle, equipment, or exercise name.",
+                            title: "no_exercises_found",
+                            message: "try_removing_a_filter_or_searching_by_muscle_equipment_or_exercise_name",
                             systemImage: "line.3.horizontal.decrease.circle"
                         )
                     }
@@ -186,7 +186,7 @@ struct ExerciseLibraryView: View {
                     .padding(.vertical, 10)
                     .background(.ultraThinMaterial)
                 } else if let message = store.exerciseLibrarySyncMessage {
-                    Text(message)
+                    Text(localizedKey(message))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .padding(.horizontal, 14)
@@ -240,24 +240,24 @@ struct ExerciseLibraryView: View {
 
     private func displayName(forMuscle muscle: String) -> String {
         guard muscle != "All" else {
-            return store.userProfile.preferredLanguage.hasPrefix("es") ? "Todo" : "All"
+            return String(localized: "all")
         }
         return ExerciseTextLocalizer.muscle(muscle, language: store.userProfile.preferredLanguage)
     }
 
     private func displayName(forEquipment equipment: String) -> String {
         guard equipment != "All" else {
-            return store.userProfile.preferredLanguage.hasPrefix("es") ? "Todo" : "All"
+            return String(localized: "all")
         }
         return ExerciseTextLocalizer.equipment(equipment, language: store.userProfile.preferredLanguage)
     }
 
     private var environmentFilterTitle: String {
-        selectedEnvironment?.localizedString(language: store.userProfile.preferredLanguage) ?? (store.userProfile.preferredLanguage.hasPrefix("es") ? "Cualquier entorno" : "Any environment")
+        selectedEnvironment?.localizedString(language: store.userProfile.preferredLanguage) ?? (String(localized: "any_environment"))
     }
 
     private var difficultyFilterTitle: String {
-        selectedDifficulty?.localizedString(language: store.userProfile.preferredLanguage) ?? (store.userProfile.preferredLanguage.hasPrefix("es") ? "Cualquier dificultad" : "Any difficulty")
+        selectedDifficulty?.localizedString(language: store.userProfile.preferredLanguage) ?? (String(localized: "any_difficulty"))
     }
 
     private func ui(en: String, es: String) -> String {
@@ -506,7 +506,7 @@ private struct FilterMenuRow<Content: View>: View {
             content
         } label: {
             HStack {
-                Text(title)
+                Text(localizedKey(title))
                     .foregroundStyle(.primary)
                 Spacer()
                 Text(value)
@@ -542,7 +542,7 @@ private struct MetadataChip: View {
     let systemImage: String
 
     var body: some View {
-        Label(title, systemImage: systemImage)
+        Label(localizedKey(title), systemImage: systemImage)
             .font(.caption.weight(.semibold))
             .lineLimit(1)
             .padding(.horizontal, 10)
@@ -558,7 +558,7 @@ private struct ExerciseActionButton: View {
     let systemImage: String
 
     var body: some View {
-        Label(title, systemImage: systemImage)
+        Label(localizedKey(title), systemImage: systemImage)
             .font(.subheadline.weight(.bold))
             .lineLimit(2)
             .minimumScaleFactor(0.82)
@@ -674,9 +674,9 @@ struct ExerciseDetailView: View {
         
         func localizedTitle(isSpanish: Bool) -> String {
             switch self {
-            case .instructions: return isSpanish ? "Instrucciones" : "Instructions"
-            case .info: return isSpanish ? "Información" : "Info"
-            case .history: return isSpanish ? "Historial" : "History"
+            case .instructions: return String(localized: "instructions")
+            case .info: return String(localized: "info")
+            case .history: return String(localized: "history")
             }
         }
     }
@@ -825,13 +825,13 @@ struct ExerciseDetailView: View {
         .mainTabBarHidden()
         .sheet(isPresented: $showAddToPlan) {
             AddExerciseToPlanView(exercise: currentExercise) {
-                feedbackMessage = String(localized: "Exercise added to the active plan.")
+                feedbackMessage = String(localized: "exercise_added_to_the_active_plan")
             }
             .environment(store)
         }
         .sheet(isPresented: $showSchedule) {
             ScheduleExerciseView(exercise: currentExercise) {
-                feedbackMessage = String(localized: "Exercise scheduled.")
+                feedbackMessage = String(localized: "exercise_scheduled")
             }
             .environment(store)
         }
@@ -867,11 +867,11 @@ struct ExerciseDetailView: View {
             }
             .ignoresSafeArea()
         }
-        .alert("Permiso denegado", isPresented: $showPermissionDenied) {
-            Button("Abrir Ajustes") {
+        .alert("permission_denied", isPresented: $showPermissionDenied) {
+            Button("abrir_ajustes") {
                 PermissionService.shared.openSettings()
             }
-            Button("Cancelar", role: .cancel) {}
+            Button("cancel", role: .cancel) {}
         } message: {
             Text(PermissionService.shared.deniedMessage ?? "El acceso a la cámara está bloqueado. Actívalo en Ajustes.")
         }
@@ -933,7 +933,7 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Personalización").font(.headline)
+                    Text("personalization").font(.headline)
                     HStack(spacing: 10) {
                         Menu {
                             if CameraPicker.isAvailable {
@@ -947,7 +947,7 @@ struct ExerciseDetailView: View {
                                         }
                                     }
                                 } label: {
-                                    Label("Tomar foto", systemImage: "camera.fill")
+                                    Label("take_photo", systemImage: "camera.fill")
                                 }
                             } else {
                                 #if targetEnvironment(simulator)
@@ -961,13 +961,13 @@ struct ExerciseDetailView: View {
                                         HapticService.notification(.success)
                                     }
                                 } label: {
-                                    Label("Simular foto", systemImage: "camera.badge.ellipsis")
+                                    Label("simulate_photo", systemImage: "camera.badge.ellipsis")
                                 }
                                 #endif
                             }
 
                             PhotosPicker(selection: $customImageItem, matching: .images) {
-                                Label("Elegir de galería", systemImage: "photo.on.rectangle")
+                                Label("choose_from_gallery", systemImage: "photo.on.rectangle")
                             }
 
                             if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
@@ -976,11 +976,11 @@ struct ExerciseDetailView: View {
                                     updated.customImageData = nil
                                     store.updateExercise(updated)
                                 } label: {
-                                    Label("Eliminar foto propia", systemImage: "trash")
+                                    Label("delete_custom_photo", systemImage: "trash")
                                 }
                             }
                         } label: {
-                            Label("Cambiar imagen", systemImage: "photo.badge.plus")
+                            Label("cambiar_imagen", systemImage: "photo.badge.plus")
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
@@ -992,7 +992,7 @@ struct ExerciseDetailView: View {
                         Button {
                             showBookmarkEditor = true
                         } label: {
-                            Label("Marcadores", systemImage: "bookmark.fill")
+                            Label("marcadores", systemImage: "bookmark.fill")
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
@@ -1003,7 +1003,7 @@ struct ExerciseDetailView: View {
                     }
 
                     if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
-                        Label("Imagen propia guardada offline", systemImage: "checkmark.seal.fill")
+                        Label("imagen_propia_guardada_offline", systemImage: "checkmark.seal.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.primary)
                     }
@@ -1063,7 +1063,7 @@ struct ExerciseDetailView: View {
                     }
                     if !currentExercise.mediaBookmarks.isEmpty {
                         Divider()
-                        Text("Marcadores multimedia").font(.headline)
+                        Text("marcadores_multimedia").font(.headline)
                         ForEach(currentExercise.mediaBookmarks) { bookmark in
                             Link(destination: URL(string: bookmark.urlString) ?? URL(string: "https://www.youtube.com")!) {
                                 HStack {
@@ -1110,7 +1110,7 @@ struct ExerciseDetailView: View {
                 VStack(spacing: 0) {
                     ExerciseMuscleTargetRow(
                         title: localizedMuscle(currentExercise.muscleGroup),
-                        subtitle: isSpanish ? "1 serie de trabajo directo" : "1 direct work set",
+                        subtitle: "value_1_direct_work_set",
                         muscleGroup: currentExercise.muscleGroup,
                         exerciseName: currentExercise.name,
                         gender: store.userProfile.muscleMapGender
@@ -1139,7 +1139,7 @@ struct ExerciseDetailView: View {
                     showSecondaryEditor = true
                 } label: {
                     Label(
-                        isSpanish ? "Ajustar músculos secundarios" : "Edit Secondary Muscles",
+                        String(localized: "edit_secondary_muscles"),
                         systemImage: "slider.horizontal.3"
                     )
                     .font(.subheadline.weight(.semibold))
@@ -1165,7 +1165,7 @@ struct ExerciseDetailView: View {
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text(isSpanish ? "Nivel de fuerza" : "Strength Level")
+                        Text(String(localized: "strength_level"))
                             .font(.headline)
                         Spacer()
                         Text(result.level.title(isSpanish: isSpanish))
@@ -1179,9 +1179,9 @@ struct ExerciseDetailView: View {
                     SwiftUI.ProgressView(value: result.level.fraction)
                         .tint(strengthLevelColor(result.level))
                     HStack {
-                        Text(String(format: isSpanish ? "%.2f× peso corporal" : "%.2f× bodyweight", result.ratio))
+                        Text(String(format: String(localized: "bodyweight_2"), result.ratio))
                         Spacer()
-                        Text("1RM \(Int(best1RM)) kg · \(isSpanish ? "PC" : "BW") \(Int(store.currentWeight)) kg")
+                        Text("1RM \(Int(best1RM)) kg · \(String(localized: "bw")) \(Int(store.currentWeight)) kg")
                     }
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
@@ -1193,9 +1193,7 @@ struct ExerciseDetailView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "scalemass")
                         .foregroundStyle(PulseTheme.accent)
-                    Text(isSpanish
-                         ? "Registra tu peso corporal en Perfil para ver tu nivel de fuerza."
-                         : "Log your bodyweight in Profile to see your strength level.")
+                    Text(String(localized: "log_your_bodyweight_in_profile_to_see_your_strength_level"))
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -1218,32 +1216,32 @@ struct ExerciseDetailView: View {
             if rangedPoints.isEmpty {
                 PulseCard {
                     PulseEmptyState(
-                        title: isSpanish ? "Ejercicio todavía no realizado" : "Exercise not performed yet",
-                        message: isSpanish ? "Cuando completes series de este ejercicio aparecerán aquí sus tendencias de peso, volumen, repeticiones y 1RM." : "Once you log sets for this exercise, your performance trends will appear here.",
+                        title: "exercise_not_performed_yet",
+                        message: "once_you_log_sets_for_this_exercise_your_performance_trends_will_appear_here",
                         systemImage: "chart.line.uptrend.xyaxis"
                     )
                 }
             } else {
                 HStack(spacing: 14) {
-                    MetricCard(title: isSpanish ? "Mejor peso" : "Best weight", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primary)
-                    MetricCard(title: isSpanish ? "1RM estimada" : "Estimated 1RM", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt", badgeColor: PulseTheme.accent)
+                    MetricCard(title: "best_weight", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primary)
+                    MetricCard(title: "estimated_1rm", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt", badgeColor: PulseTheme.accent)
                 }
 
                 HStack(spacing: 14) {
-                    MetricCard(title: isSpanish ? "Sobrecarga" : "Overload", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: isSpanish ? "cambio 1RM" : "1RM delta", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
-                    MetricCard(title: isSpanish ? "Volumen medio" : "Avg Volume", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg/sesión", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
+                    MetricCard(title: "overload", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: "value_1rm_delta", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
+                    MetricCard(title: "avg_volume", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg/sesión", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
                 }
 
                 strengthLevelCard
 
-                Picker("Rango", selection: $selectedHistoryRange) {
+                Picker("range", selection: $selectedHistoryRange) {
                     ForEach(ExerciseHistoryRange.allCases) { range in
                         Text(range.rawValue).tag(range)
                     }
                 }
                 .pickerStyle(.segmented)
 
-                Picker("Métrica", selection: $metric) {
+                Picker("metrics", selection: $metric) {
                     ForEach(ProgressMetric.allCases) { metric in
                         Text(metric.localizedTitle(isSpanish: isSpanish)).tag(metric)
                     }
@@ -1252,7 +1250,7 @@ struct ExerciseDetailView: View {
 
                 PulseCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        Text(isSpanish ? "Actividad" : "Activity").font(.headline)
+                        Text(String(localized: "activity_2")).font(.headline)
                         Chart(rangedPoints) { point in
                             LineMark(
                                 x: .value("Fecha", point.date),
@@ -1271,7 +1269,7 @@ struct ExerciseDetailView: View {
 
                 PulseCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(isSpanish ? "Sesiones recientes" : "Recent sessions").font(.headline)
+                        Text(String(localized: "recent_sessions")).font(.headline)
                         ForEach(rangedPoints.reversed()) { point in
                             HStack {
                                 VStack(alignment: .leading, spacing: 3) {
@@ -1300,9 +1298,9 @@ struct ExerciseDetailView: View {
     private var trackingLabel: String {
         let spanish = store.userProfile.preferredLanguage.hasPrefix("es")
         return switch currentExercise.trackingType {
-        case .weightReps: spanish ? "Peso y repeticiones" : "Weight and reps"
-        case .repsOnly: spanish ? "Solo repeticiones" : "Reps only"
-        case .duration: spanish ? "Duración" : "Duration"
+        case .weightReps: String(localized: "weight_and_reps")
+        case .repsOnly: String(localized: "reps_only")
+        case .duration: String(localized: "duration_4")
         }
     }
 
@@ -1382,7 +1380,7 @@ struct ExerciseHeroMedia: View {
                 .frame(width: size.width, height: size.height)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Referencia visual")
+                    Text("referencia_visual")
                         .font(.caption.weight(.bold))
                         .textCase(.uppercase)
                         .foregroundStyle(.white.opacity(0.78))
@@ -1545,33 +1543,33 @@ private struct AddExerciseToPlanView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Exercise") {
+                Section("exercise_2") {
                     Text(exercise.name)
                     Text("\(ExerciseTextLocalizer.muscle(exercise.muscleGroup, language: store.userProfile.preferredLanguage)) · \(ExerciseTextLocalizer.equipment(exercise.equipment, language: store.userProfile.preferredLanguage))")
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Active plan") {
-                    Picker("Workout day", selection: $selectedDayID) {
+                Section("activate_plan") {
+                    Picker("workout_day", selection: $selectedDayID) {
                         ForEach(store.activePlan.days) { day in
                             Text(day.title).tag(Optional(day.id))
                         }
                     }
                     Stepper("\(targetSets) sets", value: $targetSets, in: 1...10)
-                    TextField("Rep range", text: $repRange)
+                    TextField("rep_range", text: $repRange)
                 }
             }
-            .navigationTitle("Add to plan")
+            .navigationTitle("add_to_plan")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 selectedDayID = selectedDayID ?? store.activePlan.days.first?.id
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
+                    Button("save") {
                         if let selectedDayID {
                             store.addExerciseToActivePlanDay(
                                 exercise,
@@ -1618,26 +1616,26 @@ private struct ScheduleExerciseView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Exercise") {
+                Section("exercise_2") {
                     Text(exercise.name)
                     Text("\(ExerciseTextLocalizer.muscle(exercise.muscleGroup, language: store.userProfile.preferredLanguage)) · \(ExerciseTextLocalizer.equipment(exercise.equipment, language: store.userProfile.preferredLanguage))")
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Schedule") {
-                    DatePicker("Training day", selection: $date, displayedComponents: [.date])
+                Section("schedule") {
+                    DatePicker("training_day_2", selection: $date, displayedComponents: [.date])
                     Stepper("\(targetSets) sets", value: $targetSets, in: 1...10)
-                    TextField("Rep range", text: $repRange)
+                    TextField("rep_range", text: $repRange)
                 }
             }
-            .navigationTitle("Schedule exercise")
+            .navigationTitle("schedule_exercise")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
+                    Button("save") {
                         store.scheduleSingleExercise(
                             exercise,
                             date: date,
@@ -1676,9 +1674,9 @@ private struct ExerciseBookmarkEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Marcadores guardados") {
+                Section("marcadores_guardados") {
                     if bookmarks.isEmpty {
-                        Text("Añade referencias de YouTube, Shorts, TikTok o Instagram para enriquecer tu biblioteca offline.")
+                        Text("add_references_from_youtube_shorts_tiktok_or_instagram_to_enrich_your_offline_li")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -1714,50 +1712,50 @@ private struct ExerciseBookmarkEditor: View {
                     }
                 }
 
-                Section("Nuevo marcador") {
-                    TextField("Título rápido", text: $title)
-                    Picker("Fuente", selection: $source) {
+                Section("nuevo_marcador") {
+                    TextField("quick_title", text: $title)
+                    Picker("fuente", selection: $source) {
                         ForEach(ExerciseMediaBookmark.Source.allCases) { source in
                             Text(sourceTitle(source)).tag(source)
                         }
                     }
-                    TextField("URL del video o post", text: $urlString)
+                    TextField("video_or_post_url", text: $urlString)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     
-                    Text("Punto de inicio en video")
+                    Text("video_start_point")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
                     Stepper("Min \(minutes)", value: $minutes, in: 0...240)
                     Stepper("Seg \(seconds)", value: $seconds, in: 0...59)
                     
-                    Text("Duración de reproducción")
+                    Text("playback_duration")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
                     Stepper("Min Duración \(durationMinutes)", value: $durationMinutes, in: 0...60)
                     Stepper("Seg Duración \(durationSeconds)", value: $durationSeconds, in: 0...59)
                     
-                    TextField("Nota: técnica, setup, error a evitar...", text: $note, axis: .vertical)
+                    TextField("note_technique_setup_error_to_avoid", text: $note, axis: .vertical)
                         .lineLimit(2...4)
                     Button {
                         addBookmark()
                     } label: {
-                        Label("Añadir marcador", systemImage: "bookmark.fill")
+                        Label("add_bookmark", systemImage: "bookmark.fill")
                     }
                     .disabled(!canAdd)
                 }
             }
-            .navigationTitle("Marcadores")
+            .navigationTitle("marcadores")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancelar") { dismiss() }
+                    Button("cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Guardar") {
+                    Button("save") {
                         var updated = exercise
                         updated.mediaBookmarks = bookmarks
                         store.updateExercise(updated)
@@ -1829,38 +1827,38 @@ struct AddCustomExerciseView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Ejercicio") {
-                    TextField("Nombre", text: $name)
-                    TextField("Grupo muscular", text: $muscleGroup)
-                    TextField("Equipamiento", text: $equipment)
+                Section("exercise_2") {
+                    TextField("name_2", text: $name)
+                    TextField("muscle_group_2", text: $muscleGroup)
+                    TextField("equipment_2", text: $equipment)
                 }
 
-                Section("Registro") {
-                    Picker("Tipo", selection: $trackingType) {
-                        Text("Peso + reps").tag(Exercise.TrackingType.weightReps)
-                        Text("Reps").tag(Exercise.TrackingType.repsOnly)
-                        Text("Duracion").tag(Exercise.TrackingType.duration)
+                Section("registro") {
+                    Picker("training_type", selection: $trackingType) {
+                        Text("weight_reps").tag(Exercise.TrackingType.weightReps)
+                        Text("reps_4").tag(Exercise.TrackingType.repsOnly)
+                        Text("duration_3").tag(Exercise.TrackingType.duration)
                     }
                 }
 
-                Section("Imagen y guia") {
-                    TextField("URL de imagen o video", text: $mediaURL)
+                Section("imagen_y_guia") {
+                    TextField("image_or_video_url", text: $mediaURL)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
-                    TextField("Instrucciones", text: $instructions, axis: .vertical)
+                    TextField("instructions", text: $instructions, axis: .vertical)
                         .lineLimit(3...6)
-                    TextField("Notas", text: $notes, axis: .vertical)
+                    TextField("notes_2", text: $notes, axis: .vertical)
                         .lineLimit(2...5)
                 }
             }
-            .navigationTitle("Ejercicio propio")
+            .navigationTitle("own_exercise")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancelar") { dismiss() }
+                    Button("cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Guardar") {
+                    Button("save") {
                         store.addExercise(
                             Exercise(
                                 name: name,
@@ -1905,9 +1903,7 @@ private struct SecondaryMuscleEditorView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    Text(isSpanish
-                         ? "Define cuánto cuenta cada músculo secundario para el volumen y las series por músculo a la semana."
-                         : "Set how much each secondary muscle counts toward volume and weekly sets per muscle.")
+                    Text(String(localized: "set_how_much_each_secondary_muscle_counts_toward_volume_and_weekly_sets_per_musc"))
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1939,14 +1935,14 @@ private struct SecondaryMuscleEditorView: View {
                 .padding(20)
             }
             .screenBackground()
-            .navigationTitle(isSpanish ? "Músculos secundarios" : "Secondary Muscles")
+            .navigationTitle(String(localized: "secondary_muscles"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(isSpanish ? "Cancelar" : "Cancel") { dismiss() }
+                    Button(String(localized: "cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isSpanish ? "Guardar" : "Save") {
+                    Button(String(localized: "save")) {
                         onSave(weights)
                         dismiss()
                     }

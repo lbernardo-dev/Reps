@@ -29,9 +29,9 @@ struct ActiveRestPanel: View {
                 .background(PulseTheme.grouped)
                 .clipShape(Circle())
             VStack(alignment: .leading, spacing: 2) {
-                Text("Descanso")
+                Text("rest")
                     .font(.headline.weight(.bold))
-                Text("Completa una serie para activar")
+                Text("complete_a_series_to_activate")
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -59,9 +59,9 @@ struct ActiveRestPanel: View {
 
                     HStack(spacing: 8) {
                         restAdjustmentButton(title: "-15s", action: onDecrease)
-                            .accessibilityLabel("Reducir descanso 15 segundos")
+                            .accessibilityLabel("reduce_rest_by_15_seconds")
                         restAdjustmentButton(title: "+15s", action: onIncrease)
-                            .accessibilityLabel("Ampliar descanso 15 segundos")
+                            .accessibilityLabel("extend_rest_15_seconds")
 
                         Button(currentRestSeconds == 0 ? "Reiniciar" : "Saltar", action: onSkipOrRestart)
                             .font(.subheadline.weight(.semibold))
@@ -79,7 +79,7 @@ struct ActiveRestPanel: View {
                 Button {
                     onUndo()
                 } label: {
-                    Label("Deshacer serie", systemImage: "arrow.uturn.backward")
+                    Label("undo_set", systemImage: "arrow.uturn.backward")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .frame(maxWidth: .infinity)
@@ -88,14 +88,14 @@ struct ActiveRestPanel: View {
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Deshacer la última serie completada")
+                .accessibilityLabel("undo_the_last_completed_set")
             }
         }
     }
 
     private func restAdjustmentButton(title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.subheadline.weight(.bold))
                 .frame(maxWidth: .infinity)
                 .frame(height: PulseTheme.minTapTarget)

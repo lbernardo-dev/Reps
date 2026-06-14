@@ -302,7 +302,7 @@ private struct ActiveWorkoutView: View {
 
                 // Next/Current exercise preview
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("SIGUIENTE")
+                    Text("siguiente")
                         .font(.system(size: 8, weight: .black))
                         .foregroundStyle(theme.secondaryForeground)
                     Text(entry.snapshot.nextExerciseName ?? entry.snapshot.exerciseName ?? "Siguiente serie")
@@ -378,7 +378,7 @@ private struct ActiveWorkoutView: View {
                        let total = entry.snapshot.currentExerciseTotalSets,
                        total > 0 {
                         HStack(spacing: 6) {
-                            Text("Ejercicio")
+                            Text("exercise_2")
                             ProgressView(value: Double(current) / Double(total))
                                 .progressViewStyle(RepsProgressStyle(tintColor: theme.tint, isDarkBackground: theme.isDarkBackground))
                             Text("\(current)/\(total)")
@@ -582,7 +582,7 @@ private struct ActiveWorkoutView: View {
         HStack(spacing: 4) {
             Image(systemName: icon)
             VStack(alignment: .leading, spacing: 0) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.system(size: 7, weight: .black))
                     .foregroundStyle(theme.secondaryForeground)
                 Text(value)

@@ -132,7 +132,7 @@ private struct SmallBatteryView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(percentageColor)
                 Spacer()
-                Text("BATERÍA")
+                Text("battery_3")
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(theme.tint)
             }
@@ -213,7 +213,7 @@ private struct MediumBatteryView: View {
 
             // Right column
             VStack(alignment: .leading, spacing: 4) {
-                Text("BATERÍA DE RECUPERACIÓN")
+                Text("recovery_battery")
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(theme.tint)
                     .lineLimit(1)

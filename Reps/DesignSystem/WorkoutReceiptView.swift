@@ -60,7 +60,7 @@ struct WorkoutReceiptSharePayload: Codable, Hashable {
             completedSetsCount: FitnessMetrics.completedSets(in: session).count,
             exercises: logs.prefix(6).map { log in
                 WorkoutReceiptExerciseLine(
-                    name: RepsText.exerciseName(log.exercise.name, language: isSpanish ? "es" : "en"),
+                    name: RepsText.exerciseName(log.exercise.name, language: String(localized: "en_2")),
                     sets: log.sets.count
                 )
             }
@@ -121,7 +121,7 @@ enum WorkoutReceiptDeepLink {
             sets: (0..<payload.completedSetsCount).map { index in
                 SetLog(setNumber: index + 1, weightKg: 0, reps: 0, completed: true)
             },
-            notes: String(localized: "Importado desde un QR de recibo Reps."),
+            notes: String(localized: "imported_from_a_reps_receipt_qr"),
             exerciseLogs: payload.exercises.map { line in
                 ExerciseLog(
                     exercise: Exercise(
@@ -194,7 +194,7 @@ struct WorkoutReceiptView: View {
     private var dateString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd MMM yyyy"
-        formatter.locale = Locale(identifier: isSpanish ? "es_ES" : "en_US")
+        formatter.locale = Locale(identifier: String(localized: "en_us"))
         return formatter.string(from: sharePayload.date).uppercased()
     }
     
@@ -251,7 +251,7 @@ struct WorkoutReceiptView: View {
     }
 
     private var routeTitle: String {
-        session?.routeKindTitle.uppercased() ?? (isSpanish ? "RUTA" : "ROUTE")
+        session?.routeKindTitle.uppercased() ?? (String(localized: "route"))
     }
 
     private var isTreadmillReceipt: Bool {
@@ -287,12 +287,12 @@ struct WorkoutReceiptView: View {
         VStack(spacing: 12) {
             // Header Logo
             VStack(spacing: 4) {
-                Text("REPS®")
+                Text("reps_3")
                     .font(.system(size: 32, weight: .black, design: .monospaced))
                     .tracking(6)
                     .foregroundStyle(Color.black.opacity(0.85))
                 
-                Text("VIRTUAL TRAINING TICKET")
+                Text("virtual_training_ticket")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .tracking(2)
                     .foregroundStyle(Color.black.opacity(0.55))
@@ -333,7 +333,7 @@ struct WorkoutReceiptView: View {
 
                             Spacer(minLength: 2)
 
-                            let setsLabel = isSpanish ? "SERIES" : "SETS"
+                            let setsLabel = String(localized: "sets_2")
                             Text("\(line.sets) \(setsLabel)")
                                 .font(.system(size: 13, weight: .bold, design: .monospaced))
                         }
@@ -350,7 +350,7 @@ struct WorkoutReceiptView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                 } else {
-                    Text(isSpanish ? "NINGÚN EJERCICIO COMPLETADO" : "NO EXERCISES COMPLETED")
+                    Text(String(localized: "no_exercises_completed"))
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundStyle(Color.black.opacity(0.45))
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -362,33 +362,33 @@ struct WorkoutReceiptView: View {
             
             // Stats section
             VStack(alignment: .leading, spacing: 6) {
-                Text("*STATS")
+                Text("stats")
                     .font(.system(size: 14, weight: .bold, design: .monospaced))
                     .foregroundStyle(Color.black.opacity(0.85))
                     .padding(.bottom, 2)
                 
-                statRow(title: isSpanish ? "DURACIÓN" : "DURATION", value: "\(sharePayload.durationMinutes) MIN")
+                statRow(title: "duration_2", value: "\(sharePayload.durationMinutes) MIN")
                 if !isRouteReceipt || totalVolume > 0 {
-                    statRow(title: isSpanish ? "VOLUMEN TOTAL" : "TOTAL VOLUME", value: "\(totalVolume) KG")
+                    statRow(title: "total_volume", value: "\(totalVolume) KG")
                 }
                 if !isRouteReceipt || completedSetsCount > 0 {
-                    statRow(title: isSpanish ? "SERIES COMPLETADAS" : "COMPLETED SETS", value: "\(completedSetsCount) SRS")
+                    statRow(title: "completed_sets", value: "\(completedSetsCount) SRS")
                 }
                 if isRouteReceipt, let session {
                     if let distanceKm = session.distanceKm {
-                        statRow(title: isSpanish ? "DISTANCIA" : "DISTANCE", value: String(format: "%.2f KM", distanceKm))
+                        statRow(title: "distance_2", value: String(format: "%.2f KM", distanceKm))
                     }
                     if let pace = session.averagePaceSecondsPerKm {
-                        statRow(title: isSpanish ? "RITMO" : "PACE", value: paceText(pace).uppercased())
+                        statRow(title: "pace", value: paceText(pace).uppercased())
                     }
                     if let steps = session.steps {
-                        statRow(title: isSpanish ? "PASOS" : "STEPS", value: "\(Int(steps))")
+                        statRow(title: "steps_2", value: "\(Int(steps))")
                     }
                     if let heartRate = session.averageHeartRate {
-                        statRow(title: isSpanish ? "PULSO MEDIO" : "AVG HR", value: "\(Int(heartRate)) LPM")
+                        statRow(title: "avg_hr_2", value: "\(Int(heartRate)) LPM")
                     }
                     if let before = session.heartRateBefore, let after = session.heartRateAfter {
-                        statRow(title: isSpanish ? "ANTES/DESPUÉS" : "BEFORE/AFTER", value: "\(Int(before))/\(Int(after)) LPM")
+                        statRow(title: "before_after", value: "\(Int(before))/\(Int(after)) LPM")
                     }
                 }
             }
@@ -464,17 +464,17 @@ struct WorkoutReceiptView: View {
 
     private var routeStatusText: String {
         if routePoints.count >= 2 {
-            return isSpanish ? "MAPA GPS REGISTRADO" : "GPS MAP RECORDED"
+            return String(localized: "gps_map_recorded")
         }
         if isTreadmillReceipt {
-            return isSpanish ? "SIN GPS · CINTA" : "NO GPS · TREADMILL"
+            return String(localized: "no_gps_treadmill")
         }
-        return isSpanish ? "SIN TRAZADO GPS GUARDADO" : "NO GPS TRACE SAVED"
+        return String(localized: "no_gps_trace_saved")
     }
     
     private func statRow(title: String, value: String) -> some View {
         HStack(alignment: .bottom, spacing: 2) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
             Text(String(repeating: ".", count: max(2, 28 - title.count)))
                 .font(.system(size: 10, design: .monospaced))
@@ -558,7 +558,7 @@ private struct ReceiptRouteTrace: View {
 
             VStack {
                 HStack {
-                    Text("ROUTE")
+                    Text("route")
                         .font(.system(size: 8, weight: .black, design: .monospaced))
                         .foregroundStyle(Color.black.opacity(0.5))
                     Spacer()
@@ -626,7 +626,7 @@ private struct ReceiptRoutePanel: View {
 
             VStack {
                 HStack {
-                    Text(title)
+                    Text(localizedKey(title))
                         .font(.system(size: 9, weight: .black, design: .monospaced))
                         .foregroundStyle(Color.black.opacity(0.58))
                     Spacer()
@@ -642,23 +642,23 @@ private struct ReceiptRoutePanel: View {
 
     private var emptyTitle: String {
         if isTreadmill {
-            return isSpanish ? "CINTA · SIN GPS" : "TREADMILL · NO GPS"
+            return String(localized: "treadmill_no_gps")
         }
-        return isSpanish ? "SIN MAPA GPS" : "NO GPS MAP"
+        return String(localized: "no_gps_map")
     }
 
     private var emptySubtitle: String {
         if isTreadmill {
-            return isSpanish ? "Entrenamiento en lugar" : "Stationary workout"
+            return String(localized: "stationary_workout")
         }
-        return isSpanish ? "No hay puntos de ruta guardados" : "No saved route points"
+        return String(localized: "no_saved_route_points")
     }
 
     private var emptyBadge: String {
         if isTreadmill {
-            return isSpanish ? "CINTA" : "TREADMILL"
+            return String(localized: "treadmill")
         }
-        return isSpanish ? "SIN GPS" : "NO GPS"
+        return String(localized: "no_gps")
     }
 }
 

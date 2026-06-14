@@ -115,7 +115,7 @@ private struct SmallStreakView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(alignment: .center) {
-                Text("RACHA")
+                Text("streak")
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(theme.tint)
                 Spacer()
@@ -222,7 +222,7 @@ private struct MediumStreakView: View {
 
             // Right: stats
             VStack(alignment: .leading, spacing: 4) {
-                Text("CONSISTENCIA SEMANAL")
+                Text("weekly_consistency")
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(theme.tint)
                     .lineLimit(1)
@@ -240,7 +240,7 @@ private struct MediumStreakView: View {
                     if hasPlan {
                         Text("Has completado el \(Int(completion * 100))% de tus entrenos planificados esta semana.")
                     } else {
-                        Text("Cuando tengas un plan activo, aquí verás tu progreso semanal.")
+                        Text("when_you_have_an_active_plan_you_ll_see_your_weekly_progress_here")
                     }
                 }
                     .font(.system(size: 10))

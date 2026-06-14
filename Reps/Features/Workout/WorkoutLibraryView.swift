@@ -26,7 +26,7 @@ struct WorkoutLibraryView: View {
                         .shadow(color: PulseTheme.primary.opacity(0.24), radius: 8, x: 0, y: 4)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Crear rutina")
+                .accessibilityLabel("create_routine")
             }
         ) {
             if store.workoutTemplates.isEmpty {
@@ -37,7 +37,7 @@ struct WorkoutLibraryView: View {
                         systemImage: "list.clipboard"
                     )
                 }
-                .stickyHeaderTitle("Sin rutinas")
+                .stickyHeaderTitle("no_routines")
             } else {
                 ForEach(store.workoutTemplates) { workout in
                     PulseCard {
@@ -76,12 +76,12 @@ private struct WorkoutTemplateRow: View {
                 }
                 Spacer()
                 Menu {
-                    Button("Editar") { onEdit() }
-                    Button("Anadir al plan activo") { store.addWorkoutToActivePlan(workout) }
-                    Button("Programar") {
+                    Button("editar") { onEdit() }
+                    Button("add_to_active_plan") { store.addWorkoutToActivePlan(workout) }
+                    Button("schedule") {
                         store.addScheduledWorkout(workout, date: .now)
                     }
-                    Button("Eliminar", role: .destructive) {
+                    Button("delete", role: .destructive) {
                         store.deleteWorkoutTemplate(workout)
                     }
                 } label: {
@@ -90,21 +90,21 @@ private struct WorkoutTemplateRow: View {
                         .frame(width: 40, height: 40)
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
-                .accessibilityLabel("Acciones de rutina")
+                .accessibilityLabel("routine_actions")
             }
 
             HStack(spacing: 10) {
                 NavigationLink {
                     WorkoutDetailView(workout: workout)
                 } label: {
-                    Label("Abrir", systemImage: "chevron.right")
+                    Label("abrir", systemImage: "chevron.right")
                 }
                 .buttonStyle(WorkoutPillButtonStyle())
 
                 Button {
                     store.addScheduledWorkout(workout, date: .now)
                 } label: {
-                    Label("Programar hoy", systemImage: "calendar.badge.plus")
+                    Label("schedule_today", systemImage: "calendar.badge.plus")
                 }
                 .buttonStyle(WorkoutPillButtonStyle())
             }
@@ -171,15 +171,15 @@ struct WorkoutEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Rutina") {
-                    TextField("Nombre", text: $title)
-                    TextField("Enfoque", text: $subtitle)
+                Section("routine") {
+                    TextField("name_2", text: $title)
+                    TextField("enfoque", text: $subtitle)
                     Stepper("\(durationMinutes) min", value: $durationMinutes, in: 10...180, step: 5)
                 }
 
-                Section("Ejercicios") {
+                Section("exercises_3") {
                     if exercises.isEmpty {
-                        Text("Anade ejercicios desde la biblioteca o crea uno propio.")
+                        Text("add_exercises_from_the_library_or_create_your_own")
                             .foregroundStyle(.secondary)
                     }
 
@@ -197,13 +197,13 @@ struct WorkoutEditorView: View {
                             }
                         }
                     } label: {
-                        Label("Anadir desde biblioteca", systemImage: "plus")
+                        Label("add_from_library", systemImage: "plus")
                     }
 
                     Button {
                         showCustomExercise = true
                     } label: {
-                        Label("Crear ejercicio propio", systemImage: "sparkles")
+                        Label("create_your_own_exercise", systemImage: "sparkles")
                     }
                 }
             }
@@ -211,10 +211,10 @@ struct WorkoutEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancelar") { dismiss() }
+                    Button("cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Guardar") { save() }
+                    Button("save") { save() }
                         .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || exercises.isEmpty)
                 }
             }
@@ -276,8 +276,8 @@ private struct WorkoutExerciseEditorRow: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Stepper("\(item.targetSets) series", value: $item.targetSets, in: 1...10)
-            TextField("Rango de reps", text: $item.repRange)
-            TextField("Marca anterior", text: $item.previous)
+            TextField("rep_range_2", text: $item.repRange)
+            TextField("marca_anterior", text: $item.previous)
         }
         .padding(.vertical, 4)
     }

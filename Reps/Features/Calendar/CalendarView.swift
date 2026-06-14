@@ -12,19 +12,19 @@ struct CalendarView: View {
         NavigationStack {
             let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
             StickyHeaderScaffold(
-                title: isSpanish ? "Calendario" : "Calendar",
-                subtitle: isSpanish ? "Planifica y revisa carga" : "Plan and review load",
+                title: "calendar_2",
+                subtitle: "plan_and_review_load",
                 accessory: {
                     HeaderAvatarButton(
                         imageData: store.userProfile.avatarImageData,
-                        accessibilityLabel: isSpanish ? "Perfil" : "Profile"
+                        accessibilityLabel: "profile"
                     ) {
                         showProfile = true
                     }
                 }
             ) {
                     calendarCommandCard
-                        .stickyHeaderTitle(isSpanish ? "Esta semana" : "This Week")
+                        .stickyHeaderTitle(String(localized: "this_week"))
 
                     HStack {
                         Button { changeMonth(by: -1) } label: { Image(systemName: "chevron.left") }
@@ -89,7 +89,7 @@ struct CalendarView: View {
                             let daySessions = loggedWorkouts(on: selectedDate)
                             let plannedSessions = scheduledWorkouts(on: selectedDate)
                             if !plannedSessions.isEmpty {
-                                Text("Scheduled")
+                                Text("scheduled_2")
                                     .font(.caption.weight(.bold))
                                     .foregroundStyle(PulseTheme.accent)
                                 ForEach(plannedSessions) { scheduled in
@@ -107,12 +107,12 @@ struct CalendarView: View {
                             }
                             if !daySessions.isEmpty {
                                 HStack(spacing: 12) {
-                                    let sessionsWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "sesiones" : "sessions"
+                                    let sessionsWord = String(localized: "sessions_2")
                                     CalendarSummaryPill(title: "\(daySessions.count)", subtitle: LocalizedStringKey(sessionsWord), systemImage: "checkmark.circle")
                                     if dayRouteDistanceKm(on: selectedDate) > 0 {
                                         CalendarSummaryPill(title: String(format: "%.1f", dayRouteDistanceKm(on: selectedDate)), subtitle: "km", systemImage: "figure.walk")
                                     } else {
-                                        let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
+                                        let exercisesWord = String(localized: "exercises_2")
                                         CalendarSummaryPill(title: "\(dayExerciseCount(on: selectedDate))", subtitle: LocalizedStringKey(exercisesWord), systemImage: "dumbbell")
                                     }
                                     let volume = Int(FitnessMetrics.totalVolumeKg(for: daySessions))
@@ -149,12 +149,12 @@ struct CalendarView: View {
                                                 Text(RepsText.exerciseName(log.exercise.name, language: store.userProfile.preferredLanguage))
                                                     .font(.headline)
                                                 Spacer()
-                                                let setsWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "series" : "sets"
+                                                let setsWord = String(localized: "sets_3")
                                                 Text("\(log.sets.count) \(setsWord)")
                                                     .font(.subheadline.weight(.semibold))
                                                     .foregroundStyle(PulseTheme.primary)
                                             }
-                                            let volumeWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "volumen" : "volume"
+                                            let volumeWord = String(localized: "volume_2")
                                             Text("\(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg \(volumeWord)")
                                                 .font(.subheadline)
                                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -170,8 +170,8 @@ struct CalendarView: View {
                                     EmptyView()
                                 } else {
                                     PulseEmptyState(
-                                        title: store.userProfile.preferredLanguage.hasPrefix("es") ? "Sin actividad registrada" : "No activity recorded",
-                                        message: store.userProfile.preferredLanguage.hasPrefix("es") ? "Programa una sesión o inicia un entreno libre para este día." : "Schedule a session or start a free workout for this day.",
+                                        title: "no_activity_recorded",
+                                        message: "schedule_a_session_or_start_a_free_workout_for_this_day",
                                         systemImage: "calendar.badge.clock"
                                     )
                                 }
@@ -200,7 +200,7 @@ struct CalendarView: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Label("This Week", systemImage: "calendar")
+                    Label("this_week", systemImage: "calendar")
                         .font(.headline)
                     Spacer()
                     Text(store.activePlan.daysPerWeek > 0 ? "\(weekSessions.count)/\(store.activePlan.daysPerWeek)" : "\(weekSessions.count)")
@@ -208,7 +208,7 @@ struct CalendarView: View {
                         .foregroundStyle(PulseTheme.primary)
                 }
                 HStack(spacing: 10) {
-                    let scheduledWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "programadas" : "scheduled"
+                    let scheduledWord = String(localized: "scheduled_3")
                     CalendarSummaryPill(title: "\(weekScheduled.count)", subtitle: LocalizedStringKey(scheduledWord), systemImage: "calendar.badge.clock")
                     CalendarSummaryPill(title: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg", systemImage: "scalemass")
                     CalendarSummaryPill(title: "\(weekSessions.reduce(0) { $0 + $1.durationMinutes })", subtitle: "min", systemImage: "timer")
@@ -216,7 +216,7 @@ struct CalendarView: View {
                 Button {
                     showSchedule = true
                 } label: {
-                    Label("Programar sesión", systemImage: "calendar.badge.plus")
+                    Label("schedule_session", systemImage: "calendar.badge.plus")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
@@ -311,7 +311,7 @@ struct CalendarView: View {
             return parts.joined(separator: " · ")
         }
 
-        let exercisesWord = store.userProfile.preferredLanguage.hasPrefix("es") ? "ejercicios" : "exercises"
+        let exercisesWord = String(localized: "exercises_2")
         return "\(session.durationMinutes) min · \(exerciseCount(for: session)) \(exercisesWord)"
     }
 
@@ -343,10 +343,10 @@ private struct CalendarSummaryPill: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Label(title, systemImage: systemImage)
+            Label(localizedKey(title), systemImage: systemImage)
                 .font(.headline)
                 .foregroundStyle(PulseTheme.primary)
-            Text(subtitle)
+            Text(localizedKey(subtitle))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
         }
@@ -417,36 +417,36 @@ struct ScheduleWorkoutView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Entreno") {
+                Section("training") {
                     if hasActivePlan {
-                        Picker("Entreno", selection: $selectedWorkoutID) {
+                        Picker("training", selection: $selectedWorkoutID) {
                             ForEach(store.activePlan.days) { workout in
                                 Text(workout.title).tag(Optional(workout.id))
                             }
                         }
                     } else {
                         LabeledContent("Tipo") {
-                            Text("Entreno libre")
+                            Text("free_training")
                                 .foregroundStyle(.secondary)
                         }
                     }
                 }
 
-                Section("Fecha") {
-                    DatePicker("Día de entrenamiento", selection: $date, displayedComponents: [.date])
+                Section("date_2") {
+                    DatePicker("training_day", selection: $date, displayedComponents: [.date])
                 }
             }
-            .navigationTitle("Programar entreno")
+            .navigationTitle("schedule_training")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 selectedWorkoutID = hasActivePlan ? store.activePlan.days.first?.id : nil
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancelar") { dismiss() }
+                    Button("cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Guardar") {
+                    Button("save") {
                         store.addScheduledWorkout(selectedWorkout, date: date)
                         dismiss()
                     }

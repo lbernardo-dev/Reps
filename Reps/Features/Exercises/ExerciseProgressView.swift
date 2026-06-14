@@ -35,11 +35,11 @@ struct ExerciseProgressView: View {
         func localizedTitle(isSpanish: Bool) -> String {
             switch self {
             case .instructions:
-                isSpanish ? "Instrucciones" : "Instructions"
+                String(localized: "instructions")
             case .info:
                 "Info"
             case .history:
-                isSpanish ? "Historial" : "History"
+                String(localized: "history")
             }
         }
     }
@@ -112,7 +112,7 @@ struct ExerciseProgressView: View {
             .padding(.bottom, 82)
         }
         .screenBackground()
-        .navigationTitle("Ejercicio")
+        .navigationTitle("exercise_2")
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
         .onChange(of: customImageItem) { _, item in
@@ -135,11 +135,11 @@ struct ExerciseProgressView: View {
             }
             .ignoresSafeArea()
         }
-        .alert("Permiso denegado", isPresented: $showPermissionDenied) {
-            Button("Abrir Ajustes") {
+        .alert("permission_denied", isPresented: $showPermissionDenied) {
+            Button("abrir_ajustes") {
                 PermissionService.shared.openSettings()
             }
-            Button("Cancelar", role: .cancel) {}
+            Button("cancel", role: .cancel) {}
         } message: {
             Text(PermissionService.shared.deniedMessage ?? "El acceso a la cámara está bloqueado. Actívalo en Ajustes.")
         }
@@ -192,7 +192,7 @@ struct ExerciseProgressView: View {
     private var personalizationCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Personalización").font(.headline)
+                Text("personalization").font(.headline)
                 HStack(spacing: 10) {
                     Menu {
                         if CameraPicker.isAvailable {
@@ -206,7 +206,7 @@ struct ExerciseProgressView: View {
                                     }
                                 }
                             } label: {
-                                Label("Tomar foto", systemImage: "camera.fill")
+                                Label("take_photo", systemImage: "camera.fill")
                             }
                         } else {
                             #if targetEnvironment(simulator)
@@ -220,13 +220,13 @@ struct ExerciseProgressView: View {
                                     HapticService.notification(.success)
                                 }
                             } label: {
-                                Label("Simular foto", systemImage: "camera.badge.ellipsis")
+                                Label("simulate_photo", systemImage: "camera.badge.ellipsis")
                             }
                             #endif
                         }
 
                         PhotosPicker(selection: $customImageItem, matching: .images) {
-                            Label("Elegir de galería", systemImage: "photo.on.rectangle")
+                            Label("choose_from_gallery", systemImage: "photo.on.rectangle")
                         }
                         
                         if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
@@ -235,11 +235,11 @@ struct ExerciseProgressView: View {
                                 updated.customImageData = nil
                                 store.updateExercise(updated)
                             } label: {
-                                Label("Eliminar foto propia", systemImage: "trash")
+                                Label("delete_custom_photo", systemImage: "trash")
                             }
                         }
                     } label: {
-                        Label("Cambiar imagen", systemImage: "photo.badge.plus")
+                        Label("cambiar_imagen", systemImage: "photo.badge.plus")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -250,7 +250,7 @@ struct ExerciseProgressView: View {
                 }
 
                 if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
-                    Label("Imagen propia guardada offline", systemImage: "checkmark.seal.fill")
+                    Label("imagen_propia_guardada_offline", systemImage: "checkmark.seal.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.primary)
                 }
@@ -284,7 +284,7 @@ struct ExerciseProgressView: View {
 
             PulseCard {
                 HStack {
-                    Text("Incremento")
+                    Text("incremento")
                         .font(.title3.weight(.semibold))
                     Spacer()
                     Text("\(store.userProfile.weightIncrementKg, specifier: "%.1f") kg")
@@ -296,17 +296,17 @@ struct ExerciseProgressView: View {
             PulseCard {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        Text("Prioridad del ejercicio")
+                        Text("exercise_priority")
                             .font(.headline)
                         Spacer()
-                        Label("Preferente", systemImage: "circle.fill")
+                        Label("preferente", systemImage: "circle.fill")
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(PulseTheme.primaryBright)
                             .padding(.horizontal, 12)
                             .frame(height: 36)
                             .background(PulseTheme.grouped, in: Capsule())
                     }
-                    Text("El plan priorizará ejercicios con el mismo patrón, equipo disponible y buen encaje muscular.")
+                    Text("the_plan_will_prioritize_exercises_with_the_same_pattern_available_equipment_and")
                         .foregroundStyle(PulseTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -319,7 +319,7 @@ struct ExerciseProgressView: View {
 
     private var historyContent: some View {
         VStack(spacing: 18) {
-            Picker("Rango", selection: $selectedHistoryRange) {
+            Picker("range", selection: $selectedHistoryRange) {
                 ForEach(ExerciseHistoryRange.allCases) { range in
                     Text(range.rawValue).tag(range)
                 }
@@ -345,7 +345,7 @@ struct ExerciseProgressView: View {
                     MetricCard(title: "Volumen medio", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg/sesión", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
                 }
 
-                Picker("Métrica", selection: $metric) {
+                Picker("metrics", selection: $metric) {
                     ForEach(ProgressMetric.allCases) { metric in
                         Text(metric.rawValue).tag(metric)
                     }
@@ -363,7 +363,7 @@ struct ExerciseProgressView: View {
 
                 PulseCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Sesiones recientes").font(.headline)
+                        Text("recent_sessions").font(.headline)
                         ForEach(rangedPoints.reversed()) { point in
                             HStack {
                                 VStack(alignment: .leading, spacing: 3) {
@@ -434,7 +434,7 @@ struct ExerciseProgressView: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Label("Técnica del ejercicio", systemImage: "list.clipboard")
+                    Label("exercise_technique", systemImage: "list.clipboard")
                         .font(.headline)
                     Spacer()
                     if let videoURL = currentExercise.videoURL, let url = URL(string: videoURL) {
@@ -443,12 +443,12 @@ struct ExerciseProgressView: View {
                                 .font(.title3)
                                 .foregroundStyle(PulseTheme.primary)
                         }
-                        .accessibilityLabel("Abrir vídeo del ejercicio")
+                        .accessibilityLabel("open_exercise_video")
                     }
                 }
 
                 if instructionsText.isEmpty {
-                    Text("Este ejercicio todavía no tiene instrucciones detalladas. Si viene de la fuente abierta, se completará al sincronizar la biblioteca.")
+                    Text("this_exercise_does_not_yet_have_detailed_instructions_if_it_comes_from_open_sour")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                 } else {
@@ -460,7 +460,7 @@ struct ExerciseProgressView: View {
 
                 if !currentExercise.commonMistakes.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Evita")
+                        Text("avoid")
                             .font(.subheadline.weight(.semibold))
                         ForEach(currentExercise.commonMistakes, id: \.self) { mistake in
                             Label(mistake, systemImage: "exclamationmark.triangle")
@@ -482,7 +482,7 @@ struct ExerciseProgressView: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.primary)
                     }
-                    .accessibilityLabel("Abrir fuente del ejercicio")
+                    .accessibilityLabel("open_exercise_source")
                 } else if let sourceName = currentExercise.sourceName {
                     Text(sourceName)
                         .font(.caption)
@@ -567,7 +567,7 @@ private struct ExercisePerformanceChart: View {
         case .reps:
             "reps"
         case .sets:
-            isSpanish ? "series" : "sets"
+            String(localized: "sets_3")
         }
     }
 
@@ -575,7 +575,7 @@ private struct ExercisePerformanceChart: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(isSpanish ? "Evolución del ejercicio" : "Exercise trend")
+                    Text(String(localized: "exercise_trend"))
                         .font(.headline)
                     Text(metric.rawValue)
                         .font(.subheadline.weight(.semibold))
@@ -595,9 +595,9 @@ private struct ExercisePerformanceChart: View {
             }
 
             HStack(spacing: 10) {
-                chartMetric(title: isSpanish ? "Mejor" : "Best", value: bestPoint.map { "\(formatted($0.value)) \(unitLabel)" } ?? "-")
-                chartMetric(title: isSpanish ? "Media" : "Average", value: "\(formatted(averageValue)) \(unitLabel)")
-                chartMetric(title: isSpanish ? "Tendencia" : "Trend", value: trendText)
+                chartMetric(title: "best", value: bestPoint.map { "\(formatted($0.value)) \(unitLabel)" } ?? "-")
+                chartMetric(title: "average", value: "\(formatted(averageValue)) \(unitLabel)")
+                chartMetric(title: "trend", value: trendText)
             }
 
             Chart {
@@ -630,7 +630,7 @@ private struct ExercisePerformanceChart: View {
                     .symbolSize(point.id == latestPoint?.id ? 88 : 42)
                 }
 
-                RuleMark(y: .value(isSpanish ? "Media" : "Average", averageValue))
+                RuleMark(y: .value(String(localized: "average"), averageValue))
                     .foregroundStyle(PulseTheme.secondaryText.opacity(0.45))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
             }
@@ -659,7 +659,7 @@ private struct ExercisePerformanceChart: View {
             .frame(height: 240)
 
             if let latestPoint {
-                Text("\(isSpanish ? "Última sesión" : "Last session"): \(latestPoint.workoutTitle) · \(formatted(latestPoint.value)) \(unitLabel)")
+                Text("\(String(localized: "last_session")): \(latestPoint.workoutTitle) · \(formatted(latestPoint.value)) \(unitLabel)")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(2)
@@ -669,7 +669,7 @@ private struct ExercisePerformanceChart: View {
 
     private func chartMetric(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(PulseTheme.secondaryText)
             Text(value)
@@ -759,9 +759,9 @@ struct ExerciseMuscleTargetRow: View {
         HStack(spacing: 14) {
             MuscleGroupAnatomyThumbnail(muscleGroup: muscleGroup, exerciseName: exerciseName, gender: gender, size: 58)
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.title3.weight(.bold))
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -779,9 +779,9 @@ struct ResistanceCurveCard: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Curva de resistencia")
+                        Text("resistance_curve")
                             .font(.headline)
-                        Text("Presión estimada durante el rango de movimiento.")
+                        Text("estimated_tension_through_the_range_of_motion")
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -1019,7 +1019,7 @@ private struct ResistancePressureGraph: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Curva de resistencia")
+        .accessibilityLabel("resistance_curve")
         .accessibilityValue(points.map { "\($0.phase.rawValue) \(Int(($0.intensity * 100).rounded()))%" }.joined(separator: ", "))
     }
 
@@ -1038,7 +1038,7 @@ private struct PressureLegendDot: View {
             Circle()
                 .fill(color)
                 .frame(width: 8, height: 8)
-            Text(title)
+            Text(localizedKey(title))
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .lineLimit(1)
@@ -1055,7 +1055,7 @@ struct FatigueRatingCard: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text("Fatiga")
+                    Text("fatiga")
                         .font(.headline)
                     Spacer()
                     Text("\(score)/4")

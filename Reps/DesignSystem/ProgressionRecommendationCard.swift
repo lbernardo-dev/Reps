@@ -3,8 +3,8 @@ import SwiftUI
 struct ProgressionRecommendationCard: View {
     let recommendations: [SmartProgressionAdvisor.Recommendation]
     let language: String
-    var title: String? = nil
-    var emptyMessage: String? = nil
+    var title: LocalizedStringKey = "smart_progression"
+    var emptyMessage: LocalizedStringKey = "log_a_few_sessions_to_unlock_weight_rep_and_deload_recommendations"
 
     private var isSpanish: Bool {
         language.hasPrefix("es")
@@ -22,9 +22,9 @@ struct ProgressionRecommendationCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(title ?? (isSpanish ? "Progresión inteligente" : "Smart Progression"))
+                        Text(title)
                             .font(.headline)
-                        Text(isSpanish ? "Siguiente carga sugerida según tu historial reciente." : "Next suggested load based on your recent history.")
+                        Text(String(localized: "next_suggested_load_based_on_your_recent_history"))
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -34,7 +34,7 @@ struct ProgressionRecommendationCard: View {
                 }
 
                 if recommendations.isEmpty {
-                    Text(emptyMessage ?? (isSpanish ? "Registra algunas sesiones para activar recomendaciones de peso, reps y deload." : "Log a few sessions to unlock weight, rep, and deload recommendations."))
+                    Text(emptyMessage)
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)

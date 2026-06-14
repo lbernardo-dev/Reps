@@ -342,37 +342,37 @@ struct ActiveWorkoutView: View {
                 showResumeSuggestion = shouldSuggest
             }
         }
-        .alert("Permiso necesario", isPresented: $showPermissionDenied) {
-            Button("Abrir Ajustes") {
+        .alert("permission_required", isPresented: $showPermissionDenied) {
+            Button("abrir_ajustes") {
                 PermissionService.shared.openSettings()
             }
-            Button("Cancelar", role: .cancel) {}
+            Button("cancel", role: .cancel) {}
         } message: {
             Text(permissionDeniedMessage)
         }
-        .alert("¿Has terminado?", isPresented: $showDurationExhaustedAlert) {
-            Button("Finalizar entrenamiento", role: .destructive) {
+        .alert("are_you_done", isPresented: $showDurationExhaustedAlert) {
+            Button("end_training", role: .destructive) {
                 finishWorkout()
             }
-            Button("Continuar", role: .cancel) {}
+            Button("continuar", role: .cancel) {}
         } message: {
             Text("Has completado el tiempo planificado de tu entrenamiento (\(plannedDurationMinutes) min).")
         }
-        .alert("Añade al menos un ejercicio", isPresented: $showMissingExerciseAlert) {
-            Button("Buscar ejercicio") {
+        .alert("add_at_least_one_exercise", isPresented: $showMissingExerciseAlert) {
+            Button("find_exercise") {
                 showAddExercise = true
             }
-            Button("Cancelar", role: .cancel) {}
+            Button("cancel", role: .cancel) {}
         } message: {
-            Text("No se puede iniciar una sesión sin ejercicios.")
+            Text("cannot_start_a_session_without_exercises")
         }
-        .confirmationDialog("Detener sesión", isPresented: $showStopConfirmation, titleVisibility: .visible) {
-            Button("Detener y descartar", role: .destructive) {
+        .confirmationDialog("stop_session", isPresented: $showStopConfirmation, titleVisibility: .visible) {
+            Button("detener_y_descartar", role: .destructive) {
                 stopWorkout()
             }
-            Button("Cancelar", role: .cancel) {}
+            Button("cancel", role: .cancel) {}
         } message: {
-            Text("Se descartará esta sesión activa y los cambios no finalizados.")
+            Text("this_active_session_and_any_unsaved_changes_will_be_discarded")
         }
         .onDisappear {
             if finishedSession == nil {
@@ -432,7 +432,7 @@ struct ActiveWorkoutView: View {
                                 ProgressionRecommendationCard(
                                     recommendations: selectedProgressionRecommendations,
                                     language: store.userProfile.preferredLanguage,
-                                    title: store.userProfile.preferredLanguage.hasPrefix("es") ? "Siguiente ajuste" : "Next Adjustment"
+                                    title: "next_adjustment"
                                 )
                                 .frame(width: contentWidth)
                             }
@@ -874,7 +874,7 @@ struct ActiveWorkoutView: View {
                     .frame(width: 58, height: 58)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("BATERÍA DE ENTRENO")
+                        Text("training_battery_2")
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.5)
                             .foregroundStyle(batteryColor)
@@ -1235,19 +1235,19 @@ struct ActiveWorkoutView: View {
                         Button {
                             showAddExercise = true
                         } label: {
-                            Label("Añadir ejercicio", systemImage: "plus")
+                            Label("add_exercise", systemImage: "plus")
                         }
 
                         Button {
                             replacementExerciseIndex = selectedExerciseIndex
                         } label: {
-                            Label("Sustituir", systemImage: "arrow.triangle.2.circlepath")
+                            Label("sustituir", systemImage: "arrow.triangle.2.circlepath")
                         }
 
                         Button {
                             skipSelectedExercise()
                         } label: {
-                            Label("Saltar ejercicio", systemImage: "forward.end")
+                            Label("skip_exercise", systemImage: "forward.end")
                         }
 
                         Divider()
@@ -1255,7 +1255,7 @@ struct ActiveWorkoutView: View {
                         Button(role: .destructive) {
                             removeSelectedExercise()
                         } label: {
-                            Label("Quitar de la sesión", systemImage: "trash")
+                            Label("remove_from_session", systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -1296,7 +1296,7 @@ struct ActiveWorkoutView: View {
                             )
                         }
                     } label: {
-                        Label("Campos Pro", systemImage: "slider.horizontal.3")
+                        Label("campos_pro", systemImage: "slider.horizontal.3")
                             .font(.headline)
                             .foregroundStyle(PulseTheme.primary)
                     }
@@ -1307,11 +1307,11 @@ struct ActiveWorkoutView: View {
                         }
                     } label: {
                         HStack {
-                            Label("Campos Pro", systemImage: "slider.horizontal.3")
+                            Label("campos_pro", systemImage: "slider.horizontal.3")
                                 .font(.headline)
                                 .foregroundStyle(PulseTheme.secondaryText)
                             Spacer()
-                            Text("Activar")
+                            Text("activar")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(PulseTheme.primary)
                             Image(systemName: "chevron.right")
@@ -1334,7 +1334,7 @@ struct ActiveWorkoutView: View {
                         onCameraCapture: appendExerciseCameraImage
                     )
                 } label: {
-                    Label("Notas y media", systemImage: "note.text")
+                    Label("notes_and_a_half", systemImage: "note.text")
                         .font(.headline)
                         .foregroundStyle(PulseTheme.primary)
                 }
@@ -1342,7 +1342,7 @@ struct ActiveWorkoutView: View {
                 Button {
                     addSetToSelectedExercise()
                 } label: {
-                    Label("Añadir serie", systemImage: "plus")
+                    Label("add_series", systemImage: "plus")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
@@ -1366,7 +1366,7 @@ struct ActiveWorkoutView: View {
                     .background(PulseTheme.grouped)
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 VStack(alignment: .leading) {
-                    Text("SIGUIENTE").font(.caption.weight(.bold)).foregroundStyle(PulseTheme.primary)
+                    Text("siguiente").font(.caption.weight(.bold)).foregroundStyle(PulseTheme.primary)
                     Text(nextExerciseTitle)
                         .font(.headline)
                     Text(nextExerciseSubtitle).foregroundStyle(PulseTheme.secondaryText)
@@ -1538,7 +1538,7 @@ struct ActiveWorkoutView: View {
     private var activeWorkoutToolsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
-                Label("Herramientas de serie", systemImage: "wrench.and.screwdriver.fill")
+                Label("set_tools", systemImage: "wrench.and.screwdriver.fill")
                     .font(.headline.weight(.bold))
                     .foregroundStyle(PulseTheme.primary)
                 Spacer()
@@ -1580,7 +1580,7 @@ struct ActiveWorkoutView: View {
 
     private func workoutToolButton(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
+            Label(localizedKey(title), systemImage: systemImage)
                 .font(.caption.weight(.bold))
                 .frame(maxWidth: .infinity)
                 .frame(height: 38)
@@ -1619,14 +1619,14 @@ struct ActiveWorkoutView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.largeTitle)
                     .foregroundStyle(PulseTheme.primary)
-                Text("Añade tu primer ejercicio")
+                Text("add_your_first_exercise")
                     .font(.title2.bold())
-                Text("El entrenamiento libre empieza vacío para que registres solo lo que hagas hoy.")
+                Text("free_training_starts_empty_so_you_record_only_what_you_do_today")
                     .foregroundStyle(PulseTheme.secondaryText)
                 Button {
                     showAddExercise = true
                 } label: {
-                    Label("Buscar ejercicio", systemImage: "magnifyingglass")
+                    Label("find_exercise", systemImage: "magnifyingglass")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
@@ -2186,14 +2186,14 @@ private struct ExercisePickerSheet: View {
                     }
 
                     HStack(spacing: 10) {
-                        Picker("Músculo", selection: $selectedMuscle) {
+                        Picker("muscle", selection: $selectedMuscle) {
                             ForEach(muscles, id: \.self) { muscle in
                                 Text(muscle == "Todos" ? muscle : RepsText.muscle(muscle, language: store.userProfile.preferredLanguage)).tag(muscle)
                             }
                         }
                         .pickerStyle(.menu)
 
-                        Picker("Equipo", selection: $selectedEquipment) {
+                        Picker("equipo", selection: $selectedEquipment) {
                             ForEach(equipmentOptions, id: \.self) { equipment in
                                 Text(equipment == "Todos" ? equipment : RepsText.equipment(equipment, language: store.userProfile.preferredLanguage)).tag(equipment)
                             }
@@ -2204,31 +2204,31 @@ private struct ExercisePickerSheet: View {
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            Picker("Tipo", selection: $selectedType) {
-                                Text("Todo").tag(Optional<Exercise.ExerciseType>.none)
+                            Picker("training_type", selection: $selectedType) {
+                                Text("all").tag(Optional<Exercise.ExerciseType>.none)
                                 ForEach(Exercise.ExerciseType.allCases) { type in
                                     Text(type.title(language: store.userProfile.preferredLanguage)).tag(Optional(type))
                                 }
                             }
                             .pickerStyle(.menu)
 
-                            Picker("Dificultad", selection: $selectedDifficulty) {
-                                Text("Cualquiera").tag(Optional<Exercise.Difficulty>.none)
+                            Picker("difficulty_2", selection: $selectedDifficulty) {
+                                Text("any").tag(Optional<Exercise.Difficulty>.none)
                                 ForEach(Exercise.Difficulty.allCases) { difficulty in
                                     Text(difficulty.title(language: store.userProfile.preferredLanguage)).tag(Optional(difficulty))
                                 }
                             }
                             .pickerStyle(.menu)
 
-                            Picker("Entorno", selection: $selectedEnvironment) {
-                                Text("Cualquiera").tag(Optional<Exercise.Environment>.none)
+                            Picker("environment_2", selection: $selectedEnvironment) {
+                                Text("any").tag(Optional<Exercise.Environment>.none)
                                 ForEach(Exercise.Environment.allCases) { environment in
                                     Text(environment.title(language: store.userProfile.preferredLanguage)).tag(Optional(environment))
                                 }
                             }
                             .pickerStyle(.menu)
 
-                            Toggle("Mi equipo", isOn: $onlyAvailableEquipment)
+                            Toggle("mi_equipo", isOn: $onlyAvailableEquipment)
                                 .toggleStyle(.button)
                         }
                     }
@@ -2269,7 +2269,7 @@ private struct ExercisePickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cerrar") {
+                    Button("close") {
                         dismiss()
                     }
                 }
@@ -2299,7 +2299,7 @@ private struct ExercisePickerSheet: View {
 
     private func replacementHeader(for exercise: Exercise) -> some View {
         VStack(spacing: 12) {
-            Text("Actual")
+            Text("actual")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 12)
@@ -2327,7 +2327,7 @@ private struct ExercisePickerSheet: View {
             }
             .frame(maxWidth: .infinity)
 
-            Text("Mejores sustituciones")
+            Text("mejores_sustituciones")
                 .font(.title3.weight(.bold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -2507,7 +2507,7 @@ private struct SessionControlHeader: View {
 
     var body: some View {
         HStack {
-            Label(title, systemImage: systemImage)
+            Label(localizedKey(title), systemImage: systemImage)
                 .font(.headline)
             Spacer()
             Label(statusTitle, systemImage: statusImage)
@@ -2542,7 +2542,7 @@ private struct PlannedDurationEditor: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Label("Duración planificada", systemImage: "timer")
+            Label("planned_duration", systemImage: "timer")
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(PulseTheme.secondaryText)
 
@@ -2559,7 +2559,7 @@ private struct PlannedDurationEditor: View {
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Reducir duración")
+            .accessibilityLabel("reduce_duration")
 
             Text("\(minutes) min")
                 .font(.headline.weight(.black).monospacedDigit())
@@ -2576,7 +2576,7 @@ private struct PlannedDurationEditor: View {
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Aumentar duración")
+            .accessibilityLabel("increase_duration")
         }
         .padding(12)
         .background(PulseTheme.grouped)
@@ -2605,7 +2605,7 @@ private struct RouteTrackingPanel: View {
                     .background(statusColor)
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("GPS y ruta")
+                    Text("gps_y_ruta")
                         .font(.headline)
                     Text(statusText)
                         .font(.subheadline)
@@ -2635,7 +2635,7 @@ private struct LiveRouteMapPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("Mapa en vivo", systemImage: "map.fill")
+                Label("mapa_en_vivo", systemImage: "map.fill")
                     .font(.headline)
                 Spacer()
                 Text(routePoints.isEmpty ? "Esperando GPS" : "\(routePoints.count) puntos")
@@ -2665,7 +2665,7 @@ private struct LiveRouteMapPanel: View {
                 }
 
                 Button(action: onExpand) {
-                    Label("Ampliar mapa", systemImage: "arrow.up.left.and.arrow.down.right")
+                    Label("ampliar_mapa", systemImage: "arrow.up.left.and.arrow.down.right")
                         .font(.caption.weight(.black))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 12)
@@ -2695,7 +2695,7 @@ private struct ExpandedRouteMapView: View {
                 .ignoresSafeArea()
 
             HStack(spacing: 12) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline.weight(.black))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -2754,7 +2754,7 @@ private struct SessionControlButton: View {
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
+            Label(localizedKey(title), systemImage: systemImage)
                 .font(.headline.weight(.bold))
                 .frame(maxWidth: .infinity)
                 .frame(height: height)
@@ -2777,14 +2777,14 @@ private struct RouteResumePrompt: View {
                 .background(PulseTheme.accent)
                 .clipShape(Circle())
             VStack(alignment: .leading, spacing: 2) {
-                Text("Movimiento detectado")
+                Text("movement_detected")
                     .font(.subheadline.weight(.bold))
-                Text("Reanuda para seguir sumando ruta y distancia.")
+                Text("resume_to_continue_tracking_route_and_distance")
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
             Spacer()
-            Button("Reanudar", action: onResume)
+            Button("reanudar", action: onResume)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.black)
                 .padding(.horizontal, 12)
@@ -2812,7 +2812,7 @@ private struct MiniSessionPill: View {
                     .font(.subheadline.weight(.bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-                Text(title)
+                Text(localizedKey(title))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -2835,7 +2835,7 @@ private struct ActiveGymPassCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
-                Label("Tarjeta gym", systemImage: pass.codeType == .qr ? "qrcode" : "barcode")
+                Label("tarjeta_gym", systemImage: pass.codeType == .qr ? "qrcode" : "barcode")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(PulseTheme.primary)
                 Text(pass.gymName)
@@ -2940,7 +2940,7 @@ private struct SessionFeedbackPanel: View {
             }
             .padding(.top, 12)
         } label: {
-            Label(title, systemImage: systemImage)
+            Label(localizedKey(title), systemImage: systemImage)
                 .font(.headline)
         }
     }
@@ -2948,7 +2948,7 @@ private struct SessionFeedbackPanel: View {
     private var effortFields: some View {
         VStack(spacing: 18) {
             HStack {
-                Label("Esfuerzo (RPE)", systemImage: "flame.fill")
+                Label("esfuerzo_rpe", systemImage: "flame.fill")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                 Spacer()
@@ -2964,7 +2964,7 @@ private struct SessionFeedbackPanel: View {
             Divider()
 
             HStack {
-                Label("Energía antes", systemImage: "battery.50")
+                Label("energy_before", systemImage: "battery.50")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                 Spacer()
@@ -2980,7 +2980,7 @@ private struct SessionFeedbackPanel: View {
             Divider()
 
             HStack {
-                Label("Energía después", systemImage: "battery.100")
+                Label("energy_after", systemImage: "battery.100")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                 Spacer()
@@ -3003,7 +3003,7 @@ private struct ExerciseBookmarkStrip: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Marcadores rápidos", systemImage: "bookmark.fill")
+            Label("quick_bookmarks", systemImage: "bookmark.fill")
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(PulseTheme.primary)
             ScrollView(.horizontal, showsIndicators: false) {
@@ -3111,9 +3111,9 @@ struct VideoPlayerSheet: View {
                         Image(systemName: "video.slash.fill")
                             .font(.system(size: 48))
                             .foregroundStyle(.secondary)
-                        Text("No se pudo cargar el video")
+                        Text("could_not_load_the_video")
                             .font(.headline)
-                        Text("La URL del marcador no es válida.")
+                        Text("the_bookmark_url_is_invalid")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -3141,7 +3141,7 @@ struct VideoPlayerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cerrar") {
+                    Button("close") {
                         dismiss()
                     }
                 }
@@ -3553,7 +3553,7 @@ private struct BatteryMicroMetric: View {
                     .font(.subheadline.weight(.bold).monospacedDigit())
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-                Text(title)
+                Text(localizedKey(title))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(1)
@@ -3594,7 +3594,7 @@ struct WorkoutSummaryView: View {
                             Button(action: shareSession) {
                                 HStack {
                                     Image(systemName: "square.and.arrow.up")
-                                    Text("Compartir")
+                                    Text("share")
                                 }
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundStyle(.black)
@@ -3635,7 +3635,7 @@ struct WorkoutSummaryView: View {
 
                         PulseCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Detalles adicionales").font(.headline)
+                                Text("detalles_adicionales").font(.headline)
                                 if !session.mediaAttachments.isEmpty {
                                     AttachmentPreviewStrip(attachments: session.mediaAttachments)
                                 }
@@ -3644,7 +3644,7 @@ struct WorkoutSummaryView: View {
                                     Text(notes)
                                         .foregroundStyle(PulseTheme.secondaryText)
                                 } else {
-                                    Text("Sin notas de entrenamiento adicionales.")
+                                    Text("no_additional_training_notes")
                                         .font(.subheadline)
                                         .foregroundStyle(PulseTheme.tertiaryText)
                                 }
@@ -3669,7 +3669,7 @@ struct WorkoutSummaryView: View {
                     .buttonStyle(.plain)
                     .padding(.top, 14)
                     .padding(.trailing, 16)
-                    .accessibilityLabel("Cerrar resumen")
+                    .accessibilityLabel("close_summary")
                 }
             }
         }
@@ -3708,12 +3708,12 @@ private struct SetRow: View {
                     .animation(.spring(response: 0.25), value: set.completed)
 
                 // Column labels
-                Text("Peso kg")
+                Text("weight_kg_3")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .frame(maxWidth: .infinity)
 
-                Text("Reps")
+                Text("reps_4")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .frame(maxWidth: .infinity)
@@ -3796,7 +3796,7 @@ private struct AdvancedSetFields: View {
                     .font(.subheadline.weight(.bold))
                 Spacer()
                 if set.isPersonalRecord {
-                    Label("PR", systemImage: "trophy.fill")
+                    Label("pr_2", systemImage: "trophy.fill")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.accent)
                 }
@@ -3847,7 +3847,7 @@ private struct AdvancedSetFields: View {
                 }
 
                 if showTempo {
-                TextField("Tempo", text: Binding(
+                TextField("tempo_2", text: Binding(
                     get: { set.tempo ?? "" },
                     set: { set.tempo = $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
                 ))
@@ -3903,7 +3903,7 @@ private struct InlineStepper: View {
                     .background(PulseTheme.primary.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
-            .accessibilityLabel("Bajar valor")
+            .accessibilityLabel("bajar_valor")
 
             Text(formatter(value))
                 .font(.subheadline.monospacedDigit().weight(.bold))
@@ -3924,7 +3924,7 @@ private struct InlineStepper: View {
                     .background(PulseTheme.primary.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
-            .accessibilityLabel("Subir valor")
+            .accessibilityLabel("subir_valor")
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: value)

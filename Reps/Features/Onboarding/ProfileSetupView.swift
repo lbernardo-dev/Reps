@@ -105,10 +105,10 @@ struct ProfileSetupView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Retroceder")
+                    .accessibilityLabel("retroceder")
                 }
 
-                Text("Reps")
+                Text("reps_4")
                     .font(.headline.weight(.bold))
 
                 Spacer(minLength: 8)
@@ -120,7 +120,7 @@ struct ProfileSetupView: View {
                 Button {
                     onSkip()
                 } label: {
-                    Text("Saltar")
+                    Text("saltar")
                         .font(.caption.weight(.bold))
                         .padding(.horizontal, 12)
                         .frame(height: 32)
@@ -129,7 +129,7 @@ struct ProfileSetupView: View {
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Saltar onboarding")
+                .accessibilityLabel("saltar_onboarding")
             }
 
             ProgressView(value: Double(stepIndex + 1), total: Double(steps.count))
@@ -167,11 +167,11 @@ struct ProfileSetupView: View {
     private var presentationStep: some View {
         VStack(alignment: .leading, spacing: 22) {
             VStack(alignment: .leading, spacing: 18) {
-                Text("Entrena con un plan que se adapta a ti.")
+                Text("train_with_a_plan_that_suits_you")
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .lineLimit(4)
                     .minimumScaleFactor(0.75)
-                Text("Reps combina tus métricas, objetivo, equipo y recuperación para crear una rutina base y convertir cada sesión en datos útiles.")
+                Text("reps_combines_your_metrics_goal_team_and_recovery_to_create_a_base_routine_and_t")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -330,7 +330,7 @@ struct ProfileSetupView: View {
                     Image(systemName: iconName)
                         .foregroundStyle(iconColor)
                         .font(.title3.bold())
-                    Text("Análisis de Composición")
+                    Text("composition_analysis")
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
                     Spacer()
@@ -343,7 +343,7 @@ struct ProfileSetupView: View {
                         .clipShape(Capsule())
                 }
 
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline)
 
                 Text(description)
@@ -353,7 +353,7 @@ struct ProfileSetupView: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack {
-                    Text("Recomendación:")
+                    Text("recommendation")
                         .font(.caption.bold())
                         .foregroundStyle(PulseTheme.secondaryText)
                     Text(tag)
@@ -416,7 +416,7 @@ struct ProfileSetupView: View {
                         }
                     }
 
-                    Text("Duración por sesión")
+                    Text("duration_per_session")
                         .font(.headline)
                     HStack(spacing: 8) {
                         ForEach([30, 45, 60, 75, 90], id: \.self) { minutes in
@@ -458,9 +458,9 @@ struct ProfileSetupView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Equipo disponible")
+                    Text("equipo_disponible")
                         .font(.title3.weight(.bold))
-                    Text("Marca todo lo que puedes usar con comodidad. Cuanto más preciso sea, mejor ajustaremos ejercicios, variantes y progresión.")
+                    Text("check_everything_you_can_comfortably_wear_the_more_precise_it_is_the_better_we_w")
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -759,7 +759,7 @@ struct ProfileSetupView: View {
                 Button {
                     toggleAllMuscles()
                 } label: {
-                    Text("Todos")
+                    Text("todos")
                         .font(.caption.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 34)
@@ -865,7 +865,7 @@ struct ProfileSetupView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Plan sugerido")
+                        Text("suggested_plan")
                             .font(.headline)
                         Text("\(generatedPlan.daysPerWeek) días/semana durante \(generatedPlan.totalWeeks) semanas")
                             .font(.subheadline.weight(.semibold))
@@ -958,7 +958,7 @@ struct ProfileSetupView: View {
                                                 .lineLimit(1)
                                             
                                             if item.priority == .primary {
-                                                Text("Foco")
+                                                Text("foco")
                                                     .font(.system(size: 10, weight: .bold))
                                                     .padding(.horizontal, 6)
                                                     .padding(.vertical, 2)
@@ -1036,13 +1036,13 @@ struct ProfileSetupView: View {
     private var forecastStep: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Proyeccion orientativa de estimulo")
+                Text("directional_stimulus_projection")
                     .font(.headline)
-                Text("Proyeccion orientativa calculada a partir del volumen semanal del plan y la constancia que elijas. No es una prediccion garantizada: tu progreso real dependera de la ejecucion, alimentacion y descanso.")
+                Text("directional_projection_calculated_from_the_plan_weekly_volume_and_the_consistenc")
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
 
-                Text("Nivel de constancia estimado:")
+                Text("estimated_consistency_level")
                     .font(.subheadline.bold())
                 
                 HStack(spacing: 8) {
@@ -1056,7 +1056,7 @@ struct ProfileSetupView: View {
                         Button {
                             selectedConsistencyIndex = index
                         } label: {
-                            Text(title)
+                            Text(localizedKey(title))
                                 .font(.caption.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 8)
@@ -1093,10 +1093,10 @@ struct ProfileSetupView: View {
                         .font(.body)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Nota Importante (Alimentación)")
+                        Text("important_note_power")
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(.white)
-                        Text("Este pronóstico estima el estímulo del entrenamiento. Recuerda que los resultados reales de ganancia de masa muscular o pérdida de grasa dependen críticamente de tu alimentación y descanso.")
+                        Text("this_forecast_estimates_the_training_stimulus_remember_that_the_actual_results_o")
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .lineLimit(nil)
@@ -1194,7 +1194,7 @@ struct ProfileSetupView: View {
                     Button {
                         restartPlanningFromScratch()
                     } label: {
-                        Text("Rehacer")
+                        Text("rehacer")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -1207,7 +1207,7 @@ struct ProfileSetupView: View {
                     Button {
                         moveForward()
                     } label: {
-                        Text("Aceptar plan")
+                        Text("accept_plan")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -1222,7 +1222,7 @@ struct ProfileSetupView: View {
                     Button {
                         store.presentPaywall(source: .onboarding, feature: nil, trigger: .onboarding)
                     } label: {
-                        Text("Ver beneficios Pro")
+                        Text("ver_beneficios_pro")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -1237,7 +1237,7 @@ struct ProfileSetupView: View {
                     Button {
                         finishOnboarding()
                     } label: {
-                        Text("Empezar con mi plan")
+                        Text("start_with_my_plan")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -1438,9 +1438,9 @@ struct ProfileSetupView: View {
                         Image(systemName: "calendar.badge.clock")
                             .foregroundStyle(PulseTheme.primary)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("¿Tienes un evento objetivo?")
+                            Text("do_you_have_a_target_event")
                                 .font(.headline)
-                            Text("Ponerte en forma para una fecha específica.")
+                            Text("get_in_shape_for_a_specific_date")
                                 .font(.caption)
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
@@ -1451,10 +1451,10 @@ struct ProfileSetupView: View {
                     Divider()
                     
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Nombre del evento")
+                        Text("event_name")
                             .font(.caption.bold())
                             .foregroundStyle(PulseTheme.secondaryText)
-                        TextField("Ej. Boda, Vacaciones, Maratón", text: $targetEventName)
+                        TextField("ex_wedding_vacation_marathon", text: $targetEventName)
                             .textFieldStyle(.roundedBorder)
                             .focused($isEventNameFocused)
                             .submitLabel(.done)
@@ -1462,7 +1462,7 @@ struct ProfileSetupView: View {
                             .onSubmit { isEventNameFocused = false }
                         
                         DatePicker(
-                            "Fecha del evento",
+                            "event_date",
                             selection: $targetEventDate,
                             in: Date.now...,
                             displayedComponents: .date
@@ -1655,11 +1655,11 @@ private struct OnboardingTitle: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.system(size: 34, weight: .bold, design: .rounded))
                 .lineLimit(4)
                 .minimumScaleFactor(0.75)
-            Text(subtitle)
+            Text(localizedKey(subtitle))
                 .font(.headline)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1678,9 +1678,9 @@ private struct OnboardingBenefit: View {
                 Image(systemName: icon)
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(PulseTheme.primary)
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline)
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1696,7 +1696,7 @@ private struct OnboardingSignal: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
             Text(value)
@@ -1735,9 +1735,9 @@ private struct OnboardingRulerMetric: View {
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(title)
+                        Text(localizedKey(title))
                             .font(.headline)
-                        Text(caption)
+                        Text(localizedKey(caption))
                             .font(.caption.weight(.medium))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -1810,7 +1810,7 @@ private struct MetricStepper: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline)
                 Text("\(value) \(unit)")
                     .font(.title2.weight(.bold))
@@ -1832,7 +1832,7 @@ private struct DoubleMetricStepper: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline)
                 Text("\(value, specifier: step < 1 ? "%.1f" : "%.0f") \(unit)")
                     .font(.title2.weight(.bold))
@@ -1850,7 +1850,7 @@ private struct GenerationPill: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
             Text(value)
@@ -1881,7 +1881,7 @@ private struct OnboardingBodyPair: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .accessibilityLabel("Mapa muscular del sexo seleccionado")
+        .accessibilityLabel("muscle_map_for_the_selected_sex")
     }
 
     private func bodyView(side: BodySide) -> some View {
@@ -1934,9 +1934,9 @@ private struct PaywallBenefit: View {
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline)
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1962,9 +1962,9 @@ private struct TrialTimelineItem: View {
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline)
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

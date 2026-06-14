@@ -22,9 +22,9 @@ struct ActiveWorkoutPinnedHeader: View {
                         .background(PulseTheme.grouped)
                         .clipShape(Circle())
                 }
-                .accessibilityLabel("Volver")
+                .accessibilityLabel("return")
 
-                Text(title)
+                Text(localizedKey(title))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .lineLimit(2)
                     .minimumScaleFactor(0.72)

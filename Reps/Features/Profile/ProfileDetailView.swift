@@ -61,43 +61,43 @@ struct ProfileDetailView: View {
                 .listRowBackground(Color.clear)
             }
             
-            Section("Datos personales") {
-                TextField("Nombre", text: $displayName)
+            Section("datos_personales") {
+                TextField("name_2", text: $displayName)
                     .textInputAutocapitalization(.words)
                     .disableAutocorrection(true)
                 
-                TextField("Email", text: $email)
+                TextField("email", text: $email)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .disableAutocorrection(true)
                 
-                Picker("Sexo", selection: $sex) {
-                    Text("Masculino").tag(UserProfile.Sex.male)
-                    Text("Femenino").tag(UserProfile.Sex.female)
-                    Text("Otro").tag(UserProfile.Sex.other)
+                Picker("sexo", selection: $sex) {
+                    Text("masculino").tag(UserProfile.Sex.male)
+                    Text("femenino").tag(UserProfile.Sex.female)
+                    Text("otro").tag(UserProfile.Sex.other)
                 }
                 
-                DatePicker("Fecha de nacimiento", selection: $dateOfBirth, displayedComponents: [.date])
+                DatePicker("birthdate", selection: $dateOfBirth, displayedComponents: [.date])
             }
             
-            Section("Ajustes de entrenamiento") {
-                Picker("Objetivo principal", selection: $mainGoal) {
-                    Text("Ganar músculo").tag(UserProfile.MainGoal.buildMuscle)
-                    Text("Perder grasa").tag(UserProfile.MainGoal.loseFat)
-                    Text("Más fuerza").tag(UserProfile.MainGoal.getStronger)
-                    Text("Mantener actividad").tag(UserProfile.MainGoal.stayActive)
+            Section("training_settings") {
+                Picker("main_objective", selection: $mainGoal) {
+                    Text("gain_muscle").tag(UserProfile.MainGoal.buildMuscle)
+                    Text("perder_grasa").tag(UserProfile.MainGoal.loseFat)
+                    Text("more_strength").tag(UserProfile.MainGoal.getStronger)
+                    Text("mantener_actividad").tag(UserProfile.MainGoal.stayActive)
                 }
                 
-                Picker("Experiencia", selection: $experience) {
-                    Text("Principiante").tag(UserProfile.Experience.beginner)
-                    Text("Intermedio").tag(UserProfile.Experience.intermediate)
-                    Text("Avanzado").tag(UserProfile.Experience.advanced)
+                Picker("experiencia", selection: $experience) {
+                    Text("principiante").tag(UserProfile.Experience.beginner)
+                    Text("intermedio").tag(UserProfile.Experience.intermediate)
+                    Text("avanzado").tag(UserProfile.Experience.advanced)
                 }
                 
-                Picker("Ubicación", selection: $trainingLocation) {
-                    Text("Gimnasio").tag(UserProfile.TrainingLocation.gym)
-                    Text("Casa").tag(UserProfile.TrainingLocation.home)
-                    Text("Mixto").tag(UserProfile.TrainingLocation.both)
+                Picker("location_2", selection: $trainingLocation) {
+                    Text("gym_2").tag(UserProfile.TrainingLocation.gym)
+                    Text("casa_2").tag(UserProfile.TrainingLocation.home)
+                    Text("mixto_2").tag(UserProfile.TrainingLocation.both)
                 }
                 
                 Stepper("Entrenamientos: \(weeklyTrainingDays) días/semana", value: $weeklyTrainingDays, in: 1...7)
@@ -109,7 +109,7 @@ struct ProfileDetailView: View {
                     .listRowBackground(Color.clear)
             }
         }
-        .navigationTitle("Detalles del Perfil")
+        .navigationTitle("profile_details")
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
         .onAppear {
@@ -136,7 +136,7 @@ struct ProfileDetailView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Guardar") {
+                Button("save") {
                     saveProfile()
                     dismiss()
                 }

@@ -45,7 +45,7 @@ struct PaywallView: View {
 
                     PulseCard {
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("Lo que mantiene tu progreso vivo")
+                            Text("what_keeps_your_progress_alive")
                                 .font(.headline)
 
                             VStack(spacing: 12) {
@@ -57,7 +57,7 @@ struct PaywallView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Elige tu acceso")
+                        Text("choose_your_access")
                             .font(.headline)
 
                         if store.isLoadingStoreKitProducts && store.storeKitProducts.isEmpty {
@@ -67,10 +67,10 @@ struct PaywallView: View {
                         } else if store.storeKitProducts.isEmpty {
                             PulseCard {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    Text("No se pudieron cargar los productos de App Store. Revisa conectividad, sandbox o configuración de productos.")
+                                    Text("app_store_products_could_not_be_loaded_review_connectivity_sandbox_or_product_co")
                                         .font(.footnote)
                                         .foregroundStyle(PulseTheme.secondaryText)
-                                    SecondaryButton("Reintentar", systemImage: "arrow.clockwise") {
+                                    SecondaryButton("reintentar", systemImage: "arrow.clockwise") {
                                         Task { await store.refreshStoreKitProducts() }
                                     }
                                 }
@@ -101,7 +101,7 @@ struct PaywallView: View {
                         Button {
                             close(reason: .notNow)
                         } label: {
-                            Text("Ahora no")
+                            Text("ahora_no")
                                 .font(.subheadline.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
@@ -125,7 +125,7 @@ struct PaywallView: View {
                         Button {
                             store.presentStoreKitCodeRedemption()
                         } label: {
-                            Text("Aplicar código promocional")
+                            Text("apply_promotional_code")
                                 .font(.footnote.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .foregroundStyle(PulseTheme.primary)
@@ -134,23 +134,23 @@ struct PaywallView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("7 días gratis incluidos en semanal, mensual y anual. Después se renueva desde tu cuenta de App Store.", systemImage: "checkmark.seal.fill")
+                        Label("value_7_days_free_included_in_weekly_monthly_and_annual_then_it_is_renewed_from", systemImage: "checkmark.seal.fill")
                             .font(.footnote)
                             .foregroundStyle(PulseTheme.secondaryText)
-                        Label("Lifetime es un pago único y no admite prueba gratis en App Store Connect.", systemImage: "infinity")
+                        Label("lifetime_is_a_one_time_payment_and_does_not_support_a_free_trial_on_app_store_co", systemImage: "infinity")
                             .font(.footnote)
                             .foregroundStyle(PulseTheme.secondaryText)
-                        Text("El acceso se aplica a analítica avanzada, preferencias de progresión, backups y recibos compartibles.")
+                        Text("access_applies_to_advanced_analytics_progression_preferences_backups_and_shareab")
                             .font(.footnote)
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
 
                     #if DEBUG
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Desarrollo")
+                        Text("desarrollo")
                             .font(.headline)
                         if let message = store.iCloudProEntitlementMessage {
-                            Text(message)
+                            Text(localizedKey(message))
                                 .font(.footnote)
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
@@ -159,16 +159,16 @@ struct PaywallView: View {
                                 .font(.caption.monospaced())
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .textSelection(.enabled)
-                            Button("Copiar hash iCloud") {
+                            Button("copiar_hash_icloud") {
                                 UIPasteboard.general.string = hash
                             }
                             .buttonStyle(.bordered)
                         }
-                        Button("Actualizar acceso Pro iCloud") {
+                        Button("actualizar_acceso_pro_icloud") {
                             Task { await store.refreshICloudProEntitlement() }
                         }
                         .buttonStyle(.bordered)
-                        Button("Resetear acceso Pro local") {
+                        Button("resetear_acceso_pro_local") {
                             store.resetProAccessForDebug()
                         }
                         .buttonStyle(.bordered)
@@ -189,7 +189,7 @@ struct PaywallView: View {
                     Button {
                         close(reason: .notNow)
                     } label: {
-                        Text("Ahora no")
+                        Text("ahora_no")
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -200,7 +200,7 @@ struct PaywallView: View {
                 .padding(.bottom, 8)
                 .background(.ultraThinMaterial)
             }
-            .navigationTitle("Suscripción")
+            .navigationTitle("subscription")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -219,8 +219,8 @@ struct PaywallView: View {
                     selectedPlan = firstPlan
                 }
             }
-            .alert("StoreKit", isPresented: $showStoreKitInfo) {
-                Button("Aceptar", role: .cancel) {}
+            .alert("storekit", isPresented: $showStoreKitInfo) {
+                Button("aceptar", role: .cancel) {}
             } message: {
                 Text(storeKitInfoMessage)
             }
@@ -232,7 +232,7 @@ struct PaywallView: View {
     private var paywallHero: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("Reps Pro")
+                Text("reps_pro")
                     .font(.system(size: 46, weight: .black, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -247,10 +247,10 @@ struct PaywallView: View {
                     .clipShape(Circle())
             }
 
-            Text("Entrena una semana completa gratis.")
+            Text("train_for_a_full_week_for_free")
                 .font(.title2.weight(.black))
 
-            Text("Tu plan, analítica avanzada y progresión automática se desbloquean hoy. Cancela desde App Store cuando quieras.")
+            Text("your_plan_advanced_analytics_and_automatic_progression_are_unlocked_today_cancel")
                 .font(.body.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -417,7 +417,7 @@ struct SubscriptionCenterView: View {
 
                     PulseCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Incluye Reps Pro")
+                            Text("incluye_reps_pro")
                                 .font(.headline)
                             ForEach([
                                 ProductFeature.configurableProgression,
@@ -450,7 +450,7 @@ struct SubscriptionCenterView: View {
                 .padding(.bottom, 24)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle("Suscripción")
+            .navigationTitle("subscription")
             .navigationBarTitleDisplayMode(.inline)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -473,16 +473,16 @@ struct PaywallLockedCard: View {
                         .frame(width: 34, height: 34)
                         .background(PulseTheme.accent)
                         .clipShape(Circle())
-                    Text(title)
+                    Text(localizedKey(title))
                         .font(.headline)
                 }
 
-                Text(message)
+                Text(localizedKey(message))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
 
                 Button(action: action) {
-                    Text(buttonTitle)
+                    Text(localizedKey(buttonTitle))
                         .font(.subheadline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
@@ -538,9 +538,9 @@ private struct TrialTimelineRow: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline)
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -623,7 +623,7 @@ private struct PlanComparisonCard: View {
     var body: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Qué queda gratis vs Pro")
+                Text("what_stays_free_vs_pro")
                     .font(.headline)
 
                 HStack(alignment: .top, spacing: 12) {
@@ -654,10 +654,10 @@ private struct FeatureTierColumn: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline)
                     .foregroundStyle(color)
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -700,7 +700,7 @@ private struct PaywallPlanCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text(title)
+                    Text(localizedKey(title))
                         .font(.headline)
                         .lineLimit(1)
                     if let badge {
@@ -716,7 +716,7 @@ private struct PaywallPlanCard: View {
                     }
                 }
 
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -726,7 +726,7 @@ private struct PaywallPlanCard: View {
 
             VStack(alignment: .trailing, spacing: 6) {
                 if title != "Lifetime" {
-                    Text("semana gratis")
+                    Text("free_week")
                         .font(.caption.weight(.black))
                         .foregroundStyle(isSelected ? PulseTheme.accent : .primary)
                         .lineLimit(1)

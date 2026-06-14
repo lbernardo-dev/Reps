@@ -14,8 +14,8 @@ struct FreeWorkoutStartView: View {
                     ActiveWorkoutView(workout: .freeWorkout, origin: .free)
                 } label: {
                     FreeWorkoutStartRow(
-                        title: isSpanish ? "Fuerza libre" : "Free Strength",
-                        subtitle: isSpanish ? "Añade ejercicios y registra series." : "Add exercises and log sets.",
+                        title: "free_strength",
+                        subtitle: "add_exercises_and_log_sets",
                         systemImage: "dumbbell.fill"
                     )
                 }
@@ -24,8 +24,8 @@ struct FreeWorkoutStartView: View {
                     ActiveWorkoutView(workout: .freeOutdoorWalk, origin: .free)
                 } label: {
                     FreeWorkoutStartRow(
-                        title: isSpanish ? "Caminata exterior" : "Outdoor Walk",
-                        subtitle: isSpanish ? "GPS, ruta, pasos, distancia y vitales." : "GPS, route, steps, distance, and vitals.",
+                        title: "outdoor_walk",
+                        subtitle: "gps_route_steps_distance_and_vitals",
                         systemImage: "figure.walk"
                     )
                 }
@@ -34,8 +34,8 @@ struct FreeWorkoutStartView: View {
                     ActiveWorkoutView(workout: .freeTreadmillWalk, origin: .free)
                 } label: {
                     FreeWorkoutStartRow(
-                        title: isSpanish ? "Caminata en cinta" : "Treadmill Walk",
-                        subtitle: isSpanish ? "Sin mapa: tiempo, pasos, pulso, kcal y distancia si la cinta/Watch la aporta." : "No map: time, steps, heart rate, kcal, and distance when available.",
+                        title: "treadmill_walk",
+                        subtitle: "no_map_time_steps_heart_rate_kcal_and_distance_when_available",
                         systemImage: "figure.walk.motion"
                     )
                 }
@@ -44,8 +44,8 @@ struct FreeWorkoutStartView: View {
                     ActiveWorkoutView(workout: .freeOutdoorRun, origin: .free)
                 } label: {
                     FreeWorkoutStartRow(
-                        title: isSpanish ? "Carrera exterior" : "Outdoor Run",
-                        subtitle: isSpanish ? "Ritmo, mapa, pulso y resumen final." : "Pace, map, heart rate, and final summary.",
+                        title: "outdoor_run",
+                        subtitle: "pace_map_heart_rate_and_final_summary",
                         systemImage: "figure.run"
                     )
                 }
@@ -54,18 +54,18 @@ struct FreeWorkoutStartView: View {
                     ActiveWorkoutView(workout: .freeTreadmillRun, origin: .free)
                 } label: {
                     FreeWorkoutStartRow(
-                        title: isSpanish ? "Carrera en cinta" : "Treadmill Run",
-                        subtitle: isSpanish ? "Sin GPS: tiempo, ritmo, pulso y kcal desde sensores." : "No GPS: time, pace, heart rate, and kcal from sensors.",
+                        title: "treadmill_run",
+                        subtitle: "no_gps_time_pace_heart_rate_and_kcal_from_sensors",
                         systemImage: "figure.run.treadmill"
                     )
                 }
             } header: {
-                Text(isSpanish ? "Entrenamiento libre" : "Free Workout")
+                Text(String(localized: "free_workout_2"))
             } footer: {
-                Text(isSpanish ? "Exterior usa GPS y mapa. Cinta no pide ruta ni muestra mapa; guarda sensores y distancia cuando esté disponible." : "Outdoor uses GPS and map. Treadmill skips route tracking and saves sensors plus distance when available.")
+                Text(String(localized: "outdoor_uses_gps_and_map_treadmill_skips_route_tracking_and_saves_sensors_plus_d"))
             }
         }
-        .navigationTitle(isSpanish ? "Empezar" : "Start")
+        .navigationTitle(String(localized: "start"))
         .navigationBarTitleDisplayMode(.inline)
         .screenBackground()
     }
@@ -86,9 +86,9 @@ private struct FreeWorkoutStartRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline)
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

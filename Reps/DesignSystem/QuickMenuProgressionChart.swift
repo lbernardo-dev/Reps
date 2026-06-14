@@ -21,11 +21,11 @@ enum LineType: String, CaseIterable, Identifiable {
     func displayName(isSpanish: Bool) -> String {
         switch self {
         case .expected:
-            return isSpanish ? "Esperado" : "Expected"
+            return String(localized: "expected_2")
         case .planned:
-            return isSpanish ? "Planificado" : "Planned"
+            return String(localized: "planned_2")
         case .real:
-            return isSpanish ? "Real" : "Real"
+            return String(localized: "real_2")
         }
     }
     
@@ -50,9 +50,9 @@ enum ProgressionMetricType: String, CaseIterable, Identifiable {
     func displayName(isSpanish: Bool) -> String {
         switch self {
         case .exercises:
-            return isSpanish ? "Progreso de Ejercicios" : "Exercise Progress"
+            return String(localized: "exercise_progress")
         case .weight:
-            return isSpanish ? "Peso Corporal" : "Body Weight"
+            return String(localized: "body_weight")
         }
     }
 }
@@ -164,9 +164,9 @@ struct QuickMenuProgressionChart: View {
     private var chartTitle: String {
         switch selectedMetric {
         case .exercises:
-            return isSpanish ? "VOLUMEN DE ENTRENAMIENTO" : "TRAINING VOLUME"
+            return String(localized: "training_volume")
         case .weight:
-            return isSpanish ? "PESO CORPORAL" : "BODY WEIGHT"
+            return String(localized: "body_weight_2")
         }
     }
     
@@ -219,13 +219,13 @@ struct QuickMenuProgressionChart: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(isSpanish ? "Ver peso corporal" : "Show body weight")
+                .accessibilityLabel(String(localized: "show_body_weight"))
             }
             .padding(.horizontal, 4)
             
             // Stacked Title Row
             VStack(alignment: .leading, spacing: 3) {
-                Text(isSpanish ? "EVOLUCIÓN TEMPORAL" : "TEMPORAL EVOLUTION")
+                Text(String(localized: "temporal_evolution"))
                     .font(.system(size: 9, weight: .black, design: .rounded))
                     .tracking(2.5)
                     .foregroundStyle(PulseTheme.secondaryText)
@@ -392,7 +392,7 @@ struct QuickMenuProgressionChart: View {
                         .foregroundStyle(Color.white.opacity(0.12))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 4]))
                         .annotation(position: .top, alignment: .center) {
-                            Text(isSpanish ? "HOY" : "TODAY")
+                            Text(String(localized: "today_2"))
                                 .font(.system(size: 8, weight: .black, design: .rounded))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 6)
@@ -463,7 +463,7 @@ struct QuickMenuProgressionChart: View {
             
             // Interactive Drag instructions & Static Legend (ALWAYS visible)
             HStack {
-                Label(allPoints.isEmpty ? dataSourceText : (isSpanish ? "Desliza para explorar" : "Drag to explore values"), systemImage: allPoints.isEmpty ? "lock.shield" : "hand.tap.fill")
+                Label(allPoints.isEmpty ? dataSourceText : (String(localized: "drag_to_explore_values")), systemImage: allPoints.isEmpty ? "lock.shield" : "hand.tap.fill")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
                     .foregroundStyle(.white.opacity(activeWeek != nil ? 0.2 : 0.4))
                 
@@ -493,14 +493,14 @@ struct QuickMenuProgressionChart: View {
     private var emptyStateText: String {
         switch selectedMetric {
         case .exercises:
-            return isSpanish ? "Sin sesiones registradas en las últimas 12 semanas" : "No logged sessions in the last 12 weeks"
+            return String(localized: "no_logged_sessions_in_the_last_12_weeks")
         case .weight:
-            return isSpanish ? "Sin pesos corporales registrados en las últimas 12 semanas" : "No body weights logged in the last 12 weeks"
+            return String(localized: "no_body_weights_logged_in_the_last_12_weeks")
         }
     }
 
     private var dataSourceText: String {
-        isSpanish ? "Solo datos registrados" : "Logged data only"
+        String(localized: "logged_data_only")
     }
 }
 
@@ -527,7 +527,7 @@ private struct LegendItem: View {
                 .frame(width: 6, height: 6)
                 .shadow(color: color.opacity(0.8), radius: 3)
             
-            Text(label)
+            Text(localizedKey(label))
                 .font(.system(size: 9, weight: .bold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.5))
         }
@@ -547,7 +547,7 @@ private struct TooltipBadge: View {
                 .shadow(color: color.opacity(0.8), radius: 4)
             
             VStack(alignment: .leading, spacing: 1) {
-                Text(label)
+                Text(localizedKey(label))
                     .font(.system(size: 8, weight: .black, design: .rounded))
                     .foregroundStyle(.white.opacity(0.4))
                 

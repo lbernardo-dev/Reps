@@ -14,8 +14,8 @@ struct ProgressDashboardView: View {
     NavigationStack {
       let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
       StickyHeaderScaffold(
-        title: isSpanish ? "Progreso" : "Progress",
-        subtitle: isSpanish ? "Rendimiento" : "Performance",
+        title: "progress_2",
+        subtitle: "performance",
         topContentPadding: 128,
         accessory: {
             NavigationLink {
@@ -27,7 +27,7 @@ struct ProgressDashboardView: View {
         }
       ) {
 
-          Picker("Rango", selection: $selectedRange) {
+          Picker("range", selection: $selectedRange) {
             ForEach(ProgressRange.allCases) { range in
               Text(range.title).tag(range)
             }
@@ -54,7 +54,7 @@ struct ProgressDashboardView: View {
               .buttonStyle(.plain)
             }
           }
-          .stickyHeaderTitle(isSpanish ? "Métrica" : "Metric")
+          .stickyHeaderTitle(String(localized: "metric_2"))
 
           ProgressActionPlanCard(
             steps: nextBestSteps,
@@ -65,7 +65,7 @@ struct ProgressDashboardView: View {
           ) { action in
             perform(action)
           }
-          .stickyHeaderTitle(isSpanish ? "Plan de progreso" : "Progress Plan")
+          .stickyHeaderTitle(String(localized: "progress_plan"))
 
           if selectedSection == .general {
             HStack(spacing: 14) {
@@ -91,7 +91,7 @@ struct ProgressDashboardView: View {
               }
               .buttonStyle(.plain)
             }
-            .stickyHeaderTitle(isSpanish ? "Vista general" : "Overview")
+            .stickyHeaderTitle(String(localized: "overview"))
 
             HStack(spacing: 14) {
               MetricCard(
@@ -118,9 +118,9 @@ struct ProgressDashboardView: View {
                       RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                   VStack(alignment: .leading, spacing: 3) {
-                    Text("Calculadora 1RM")
+                    Text("calculadora_1rm")
                       .font(.headline)
-                    Text("Estima tu fuerza máxima y zonas de carga")
+                    Text("estimate_your_maximum_strength_and_load_zones")
                       .font(.subheadline)
                       .foregroundStyle(PulseTheme.secondaryText)
                   }
@@ -146,9 +146,9 @@ struct ProgressDashboardView: View {
                       RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                   VStack(alignment: .leading, spacing: 3) {
-                    Text("Calculadora de Discos")
+                    Text("plate_calculator")
                       .font(.headline)
-                    Text("Sabe qué discos cargar en cada lado de la barra")
+                    Text("knows_which_discs_to_load_on_each_side_of_the_bar")
                       .font(.subheadline)
                       .foregroundStyle(PulseTheme.secondaryText)
                   }
@@ -163,7 +163,7 @@ struct ProgressDashboardView: View {
 
           if selectedSection == .load {
             CompetitiveSummaryCard(summary: competitiveSummary)
-              .stickyHeaderTitle(isSpanish ? "Carga" : "Load")
+              .stickyHeaderTitle(String(localized: "load"))
 
             HStack(spacing: 14) {
               MetricCard(
@@ -188,7 +188,7 @@ struct ProgressDashboardView: View {
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                  Text("Cardio")
+                  Text("cardio_2")
                     .font(.headline)
                   Spacer()
                   Text("\(filteredCardioLogs.count) registros")
@@ -267,7 +267,7 @@ struct ProgressDashboardView: View {
 
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
-                Text("Distribución de intensidad")
+                Text("intensity_distribution")
                   .font(.headline)
 
                 if intensityDistribution.allSatisfy({ $0.count == 0 }) {
@@ -293,7 +293,7 @@ struct ProgressDashboardView: View {
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                  Text("Objetivo vs real")
+                  Text("target_vs_actual")
                     .font(.headline)
                   Spacer()
                   Text("\(competitiveSummary.actualWeeklySets)/\(competitiveSummary.targetWeeklySets) series")
@@ -328,7 +328,7 @@ struct ProgressDashboardView: View {
               PulseCard {
                 VStack(alignment: .leading, spacing: 14) {
                   HStack {
-                    Text("Ejercicios estancados")
+                    Text("stalled_exercises")
                       .font(.headline)
                     Spacer()
                     Text("\(competitiveSummary.stalledExercises.count)")
@@ -348,7 +348,7 @@ struct ProgressDashboardView: View {
 
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
-                Text("Qué ejecutar")
+                Text("what_to_run")
                   .font(.headline)
                 ForEach(competitiveSummary.recommendations) { recommendation in
                   CompetitiveRecommendationRow(recommendation: recommendation) {
@@ -374,7 +374,7 @@ struct ProgressDashboardView: View {
 
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
-                Text("Tendencias de Salud").font(.headline)
+                Text("health_trends").font(.headline)
                 Chart(store.health.latestDailyMetrics) { metric in
                   LineMark(x: .value("Date", metric.date), y: .value("Steps", metric.steps))
                     .foregroundStyle(PulseTheme.primary)
@@ -398,7 +398,7 @@ struct ProgressDashboardView: View {
               PulseCard {
                 HStack {
                   VStack(alignment: .leading, spacing: 22) {
-                    Label("Récords personales", systemImage: "trophy")
+                    Label("personal_records", systemImage: "trophy")
                     Text(
                       "\(Int(FitnessMetrics.personalRecordWeightKg(for: store.workoutSessions) ?? 0))"
                     )
@@ -420,7 +420,7 @@ struct ProgressDashboardView: View {
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                  Text("Progreso por ejercicio")
+                  Text("progress_per_exercise")
                     .font(.headline)
                   Spacer()
                   Text("\(exercisesWithHistory.count)")
@@ -451,12 +451,12 @@ struct ProgressDashboardView: View {
                 }
               }
             }
-            .stickyHeaderTitle(isSpanish ? "Ejercicios" : "Exercises")
+            .stickyHeaderTitle(String(localized: "exercises_3"))
 
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                  Text("Registro de entrenos")
+                  Text("training_log")
                     .font(.headline)
                   Spacer()
                   Text("\(filteredSessions.count)")
@@ -494,7 +494,7 @@ struct ProgressDashboardView: View {
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                  Text("Constancia").font(.headline)
+                  Text("constancia").font(.headline)
                   Spacer()
                   Text("\(consistencyTotal) sesiones")
                     .font(.subheadline.weight(.semibold))
@@ -526,7 +526,7 @@ struct ProgressDashboardView: View {
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                  Text("Máximo estimado")
+                  Text("estimated_maximum")
                     .font(.headline)
                   Spacer()
                   Text("\(store.bestEstimatedOneRepMaxKg, specifier: "%.0f") kg")
@@ -545,7 +545,7 @@ struct ProgressDashboardView: View {
 
           if selectedSection == .body {
             bodyProgressCard
-              .stickyHeaderTitle(isSpanish ? "Cuerpo" : "Body")
+              .stickyHeaderTitle(String(localized: "body_2"))
           }
 
           if selectedSection == .muscles {
@@ -565,14 +565,14 @@ struct ProgressDashboardView: View {
 	                gender: store.userProfile.muscleMapGender,
 	                catalog: store.exercises
 	              )
-              .stickyHeaderTitle(isSpanish ? "Mapa muscular" : "Muscle Map")
+              .stickyHeaderTitle(String(localized: "muscle_map"))
             }
           }
 
           if selectedSection == .general {
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
-                Text("Insights accionables").font(.headline)
+                Text("insights_accionables").font(.headline)
                 ForEach(Array(insightCards.enumerated()), id: \.element.id) { index, insight in
                   InsightRow(insight: insight)
                   if index < insightCards.count - 1 {
@@ -584,7 +584,7 @@ struct ProgressDashboardView: View {
 
             PulseCard {
               VStack(alignment: .leading, spacing: 10) {
-                Label("Resumen diario", systemImage: "doc.text.magnifyingglass")
+                Label("resumen_diario", systemImage: "doc.text.magnifyingglass")
                   .font(.headline)
                 Text(store.dailySummary)
                   .foregroundStyle(PulseTheme.secondaryText)
@@ -697,7 +697,7 @@ struct ProgressDashboardView: View {
     PulseCard {
       VStack(alignment: .leading, spacing: 14) {
         HStack {
-          Text("Cuerpo y bienestar").font(.headline)
+          Text("body_and_wellness").font(.headline)
           Spacer()
           Text(store.hasBodyMetrics ? "\(store.displayedWeight.value, specifier: "%.1f") \(store.displayedWeight.unit)" : "pendiente")
             .font(.headline)
@@ -886,7 +886,7 @@ private struct AnalyticsShortcutCard: View {
         .font(.headline)
         .lineLimit(2)
         .minimumScaleFactor(0.82)
-      Text(subtitle)
+      Text(localizedKey(subtitle))
         .font(.subheadline)
         .foregroundStyle(PulseTheme.secondaryText)
     }
@@ -948,12 +948,12 @@ private struct ProgressActionPlanCard: View {
           .frame(width: 92, height: 92)
 
           VStack(alignment: .leading, spacing: 9) {
-            Label(isSpanish ? "Dirección de progreso" : "Progress Direction", systemImage: "sparkles")
+            Label(String(localized: "progress_direction"), systemImage: "sparkles")
               .font(.caption.weight(.black))
               .textCase(.uppercase)
               .foregroundStyle(PulseTheme.primary)
 
-            Text(pendingStep?.title ?? (isSpanish ? "Mantén la semana estable" : "Keep the Week Stable"))
+            Text(pendingStep?.title ?? (String(localized: "keep_the_week_stable")))
               .font(.title3.weight(.bold))
               .lineLimit(2)
               .minimumScaleFactor(0.82)
@@ -970,17 +970,17 @@ private struct ProgressActionPlanCard: View {
 
         HStack(spacing: 8) {
           ProgressSignalPill(
-            title: isSpanish ? "Adherencia" : "Adherence",
+            title: "adherence",
             value: "\(Int(completionRate * 100))%",
             color: completionRate >= 0.75 ? PulseTheme.recovery : PulseTheme.warning
           )
           ProgressSignalPill(
-            title: isSpanish ? "Batería" : "Battery",
+            title: "battery",
             value: "\(battery.level)%",
             color: batteryColor
           )
           ProgressSignalPill(
-            title: isSpanish ? "Pasos" : "Steps",
+            title: "steps_3",
             value: "\(completedSteps)/\(max(steps.count, 1))",
             color: PulseTheme.primary
           )
@@ -1037,7 +1037,7 @@ private struct ProgressPlanRing: View {
       VStack(spacing: 0) {
         Text(centerValue)
           .font(.system(size: 20, weight: .black, design: .rounded))
-        Text("PLAN")
+        Text("plan_2")
           .font(.system(size: 9, weight: .black, design: .rounded))
           .foregroundStyle(PulseTheme.secondaryText)
       }
@@ -1096,7 +1096,7 @@ private struct ProgressActionStepRow: View {
             .minimumScaleFactor(0.86)
 
           if step.isCompleted {
-            Text(isSpanish ? "Hecho" : "Done")
+            Text(String(localized: "done"))
               .font(.caption2.weight(.bold))
               .foregroundStyle(PulseTheme.recovery)
               .padding(.horizontal, 7)
@@ -1136,9 +1136,9 @@ private struct CompetitiveSummaryCard: View {
       VStack(alignment: .leading, spacing: 14) {
         HStack(alignment: .top) {
           VStack(alignment: .leading, spacing: 4) {
-            Text("Diagnóstico competitivo")
+            Text("competitive_diagnostics")
               .font(.headline)
-            Text("Adherencia, volumen y señales de estancamiento contra el plan activo.")
+            Text("adherence_volume_and_stall_signals_against_the_active_plan")
               .font(.subheadline)
               .foregroundStyle(PulseTheme.secondaryText)
               .fixedSize(horizontal: false, vertical: true)
@@ -1319,7 +1319,7 @@ struct ExerciseAnalyticsListView: View {
       .padding(.bottom, 112)
     }
     .screenBackground()
-    .navigationTitle("Ejercicios")
+    .navigationTitle("exercises_3")
     .navigationBarTitleDisplayMode(.inline)
     .mainTabBarHidden()
   }
@@ -1516,13 +1516,13 @@ private struct StreakBadge: View {
       }
 
       VStack(alignment: .leading, spacing: 2) {
-        Text(isSpanish ? "RACHA" : "STREAK")
+        Text(String(localized: "streak"))
           .font(.system(size: 10, weight: .black, design: .rounded))
           .foregroundStyle(PulseTheme.secondaryText)
           .tracking(1.4)
 
         Text(
-          "\(formattedDays) \(days == 1 ? (isSpanish ? "día" : "day") : (isSpanish ? "días" : "days"))"
+          "\(formattedDays) \(days == 1 ? (String(localized: "day")) : (String(localized: "days")))"
         )
         .font(.system(size: 18, weight: .bold, design: .rounded))
         .foregroundStyle(days > 0 ? .white : PulseTheme.secondaryText)
@@ -1668,10 +1668,10 @@ private struct CardioAnalyticsCard: View {
   var body: some View {
     PulseCard {
       VStack(alignment: .leading, spacing: 14) {
-        Text("Análisis de carrera")
+        Text("run_analysis")
           .font(.headline)
 
-        Picker("Métrica", selection: $metric) {
+        Picker("metrics", selection: $metric) {
           ForEach(Metric.allCases) { Text($0.title).tag($0) }
         }
         .pickerStyle(.segmented)
@@ -1825,7 +1825,7 @@ private struct HRZoneDurationCard: View {
     let total = mins.reduce(0, +)
     PulseCard {
       VStack(alignment: .leading, spacing: 14) {
-        Text("Tiempo en zonas de FC")
+        Text("time_in_hr_zones")
           .font(.headline)
 
         if total == 0 {
@@ -1862,7 +1862,7 @@ private struct HRZoneDurationCard: View {
             }
           }
 
-          Text("Estimación por FC media de cada sesión.")
+          Text("estimated_from_each_session_average_hr")
             .font(.caption2)
             .foregroundStyle(PulseTheme.secondaryText)
         }

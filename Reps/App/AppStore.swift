@@ -1366,12 +1366,12 @@ final class AppStore {
         let workout = Self.workoutDay(for: payload)
         startPreparedActiveWorkout(workout, drafts: [], isPaused: false, startedAt: payload.startedAt)
         if var status = activeWorkoutStatus {
-            status.planTitle = String(localized: "Apple Watch")
+            status.planTitle = String(localized: "apple_watch_2")
             status.isRouteWorkout = workout.isCardioMovement
             status.isOutdoorRoute = payload.locationType == .outdoor
             activeWorkoutStatus = status
         }
-        health.message = String(localized: "Entreno iniciado desde Apple Watch.")
+        health.message = String(localized: "workout_started_from_apple_watch")
     }
 
     private func handleNativeWorkoutEnded() {
@@ -1383,7 +1383,7 @@ final class AppStore {
     private static func workoutDay(for payload: NativeWorkoutStartPayload) -> WorkoutDay {
         WorkoutDay(
             title: nameForActivityType(payload.activityType),
-            subtitle: String(localized: "Iniciado desde Apple Watch"),
+            subtitle: "started_from_apple_watch",
             durationMinutes: 45,
             exercises: [],
             sessionType: sessionType(for: payload.activityType),
@@ -1666,7 +1666,7 @@ final class AppStore {
     func scheduleSingleExercise(_ exercise: Exercise, date: Date, targetSets: Int, repRange: String) {
         let workout = WorkoutDay(
             title: exercise.name,
-            subtitle: String(localized: "Technique practice"),
+            subtitle: "technique_practice",
             durationMinutes: exercise.trackingType == .duration ? 20 : max(20, targetSets * 8),
             exercises: [
                 WorkoutExercise(
@@ -1693,7 +1693,7 @@ final class AppStore {
             scheduleDeloadSession(for: exercise)
             return .calendar
         case .reviewPlan:
-            health.message = String(localized: "Revisa la distribución del plan y programa la siguiente sesión para recuperar adherencia.")
+            health.message = String(localized: "review_plan_distribution_and_schedule_the_next_session_to_recover_adherence")
             return .plans
         case .scheduleRecovery:
             scheduleRecoverySession()
@@ -1721,8 +1721,8 @@ final class AppStore {
         }
 
         let workout = WorkoutDay(
-            title: String(localized: "Foco \(muscleGroup)"),
-            subtitle: String(localized: "Sesión guiada para cerrar la brecha semanal"),
+            title: "Foco \(muscleGroup)",
+            subtitle: "guided_session_to_close_the_weekly_gap",
             durationMinutes: max(24, selected.count * 10),
             exercises: selected.map { exercise in
                 WorkoutExercise(
@@ -1743,8 +1743,8 @@ final class AppStore {
 
     private func scheduleDeloadSession(for exercise: Exercise) {
         let workout = WorkoutDay(
-            title: String(localized: "Descarga: \(exercise.name)"),
-            subtitle: String(localized: "Reduce carga y recupera progresión"),
+            title: "Descarga: \(exercise.name)",
+            subtitle: "reduce_load_and_recover_progression",
             durationMinutes: 24,
             exercises: [
                 WorkoutExercise(
@@ -1774,8 +1774,8 @@ final class AppStore {
         ]
         let selected = Array(mobilityExercises.isEmpty ? fallback.prefix(4) : mobilityExercises)
         let workout = WorkoutDay(
-            title: String(localized: "Recuperación activa"),
-            subtitle: String(localized: "Movilidad suave para absorber el volumen"),
+            title: "active_recovery",
+            subtitle: "easy_mobility_to_absorb_volume",
             durationMinutes: 20,
             exercises: selected.map { exercise in
                 WorkoutExercise(
@@ -1792,7 +1792,7 @@ final class AppStore {
             restBetweenExercisesSeconds: 30
         )
         addScheduledWorkout(workout, date: nextRetentionActionDate())
-        health.message = String(localized: "Recuperación activa programada para mañana.")
+        health.message = String(localized: "active_recovery_scheduled_for_tomorrow")
         scheduleRetentionNudge(title: "Recuperación activa", body: "Mañana tienes una sesión suave para llegar mejor al siguiente entreno.")
     }
 
@@ -1944,12 +1944,12 @@ final class AppStore {
             }
 
             if addedCount == 0 && mergedCount == 0 {
-                exerciseLibrarySyncMessage = String(localized: "La biblioteca de ejercicios está actualizada.")
+                exerciseLibrarySyncMessage = String(localized: "the_exercise_library_is_updated")
             } else {
                 exerciseLibrarySyncMessage = String(localized: "Biblioteca actualizada: \(addedCount) nuevos, \(mergedCount) completados.")
             }
         } catch {
-            exerciseLibrarySyncMessage = String(localized: "No se pudo actualizar la biblioteca. El catálogo offline sigue disponible.")
+            exerciseLibrarySyncMessage = String(localized: "the_library_could_not_be_updated_the_offline_catalog_is_still_available")
             TelemetryService.shared.record(error, context: "exercise_library_sync")
             TelemetryService.shared.log(.nonFatalError, parameters: ["context": "exercise_library_sync"])
         }
@@ -2001,7 +2001,7 @@ final class AppStore {
             isAvailable: health.isAvailable,
             isAuthorized: false,
             lastSyncDate: nil,
-            message: String(localized: "Apple Health desconectado en Reps. Puedes revocar permisos en la app Salud."),
+            message: "apple_health_offline_in_reps_you_can_revoke_permissions_in_the_health_app",
             latestDailyMetrics: []
         )
     }
@@ -2612,7 +2612,7 @@ final class AppStore {
                 contextTag: .normal,
                 durationMinutes: durationMin,
                 sets: allSets,
-                notes: String(localized: "Sincronizado y enriquecido con Apple Health."),
+                notes: String(localized: "synced_and_enriched_with_apple_health"),
                 exerciseLogs: logs,
                 sessionRPE: 7.0,
                 energyBefore: 3,
@@ -2673,7 +2673,7 @@ final class AppStore {
             contextTag: .normal,
             durationMinutes: max(Int(workout.duration / 60), 1),
             sets: [],
-            notes: String(localized: "Importado automáticamente de Apple Health."),
+            notes: String(localized: "automatically_imported_from_apple_health"),
             exerciseLogs: [],
             sessionRPE: nil,
             energyBefore: nil,

@@ -13,7 +13,7 @@ struct ExerciseMediaNotesPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Sensaciones del ejercicio", text: $notes, axis: .vertical)
+            TextField("feelings_of_exercise", text: $notes, axis: .vertical)
                 .lineLimit(2...4)
                 .padding(12)
                 .background(PulseTheme.grouped)
@@ -88,7 +88,7 @@ struct MusicTransportControls: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Anterior")
+            .accessibilityLabel("anterior")
 
             Button(action: onPlayPause) {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
@@ -110,7 +110,7 @@ struct MusicTransportControls: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Siguiente")
+            .accessibilityLabel("next")
         }
     }
 }
@@ -145,7 +145,7 @@ private struct AttachmentPreview: View {
                 VStack(spacing: 8) {
                     Image(systemName: "mic.fill")
                         .font(.title2)
-                    Text("Audio")
+                    Text("audio")
                         .font(.caption.weight(.bold))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -11,11 +11,11 @@ enum BatteryStyle: String, CaseIterable, Identifiable {
     func displayName(isSpanish: Bool) -> String {
         switch self {
         case .liquid:
-            return isSpanish ? "Cápsula Líquida" : "Liquid Capsule"
+            return String(localized: "liquid_capsule")
         case .tech:
-            return isSpanish ? "Anillo Tech" : "Tech Ring"
+            return String(localized: "tech_ring")
         case .grid:
-            return isSpanish ? "Celda Sci-Fi" : "Sci-Fi Grid"
+            return String(localized: "sci_fi_grid")
         }
     }
 
@@ -175,7 +175,7 @@ struct TrainingBatteryView: View {
                     VStack(spacing: 20) {
                         // Title of current state
                         VStack(spacing: 4) {
-                            Text(isSpanish ? "ESTADO DE ENERGÍA" : "ENERGY STATE")
+                            Text(String(localized: "energy_state"))
                                 .font(.system(size: 10, weight: .black, design: .rounded))
                                 .tracking(2.0)
                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -236,7 +236,7 @@ struct TrainingBatteryView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
-                    Text(isSpanish ? "Atrás" : "Back")
+                    Text(String(localized: "back_2"))
                         .font(.headline)
                 }
                 .foregroundStyle(PulseTheme.primary)
@@ -245,7 +245,7 @@ struct TrainingBatteryView: View {
 
             Spacer()
 
-            Text(isSpanish ? "Batería de Entreno" : "Training Battery")
+            Text(String(localized: "training_battery"))
                 .font(.system(size: 19, weight: .bold, design: .rounded))
 
             Spacer()
@@ -277,7 +277,7 @@ struct TrainingBatteryView: View {
     // MARK: - Style Selector Component
     private var styleSelector: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(isSpanish ? "Estilos de visualización" : "Display Styles")
+            Text(String(localized: "display_styles"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -320,11 +320,11 @@ struct TrainingBatteryView: View {
     private var physiologicalBalanceSheet: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 18) {
-                Text(isSpanish ? "Balanza de Rendimiento Fisiológico" : "Physiological Performance Balance")
+                Text(String(localized: "physiological_performance_balance"))
                     .font(.headline)
                     .foregroundStyle(.primary)
 
-                Text(isSpanish ? "Tu batería refleja el balance neto entre recuperación y estrés celular acumulado." : "Your battery reflects the net balance between recovery and accumulated cellular stress.")
+                Text(String(localized: "your_battery_reflects_the_net_balance_between_recovery_and_accumulated_cellular"))
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .padding(.bottom, 4)
@@ -332,11 +332,11 @@ struct TrainingBatteryView: View {
                 // Visual horizontal scale
                 VStack(spacing: 12) {
                     HStack {
-                        Label(isSpanish ? "Recuperación (+)" : "Recovery (+)", systemImage: "sparkles")
+                        Label(String(localized: "recovery_3"), systemImage: "sparkles")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.primaryBright)
                         Spacer()
-                        Label(isSpanish ? "Fatiga (-)" : "Fatigue (-)", systemImage: "bolt.fill")
+                        Label(String(localized: "fatigue_2"), systemImage: "bolt.fill")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.destructive)
                     }
@@ -374,39 +374,39 @@ struct TrainingBatteryView: View {
                 VStack(spacing: 20) {
                     // Recovery metrics (+)
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(isSpanish ? "CRÉDITO DE RECUPERACIÓN (+)" : "RECOVERY CREDITS (+)")
+                        Text(String(localized: "recovery_credits"))
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.5)
                             .foregroundStyle(PulseTheme.primaryBright)
                             .padding(.bottom, 2)
 
-                        BalanceRow(label: isSpanish ? "Días de descanso" : "Rest days", value: String(format: "+%.0f", restDaysCredit), icon: "calendar.badge.clock", color: PulseTheme.primaryBright)
-                        BalanceRow(label: isSpanish ? "Horas de sueño" : "Hours of sleep", value: String(format: "+%.0f", max(0, sleepCredit)), icon: "bed.double.fill", color: PulseTheme.primaryBright, active: sleepCredit > 0)
-                        BalanceRow(label: isSpanish ? "Recuperación HRV" : "HRV recovery", value: String(format: "+%.0f", max(0, hrvCredit)), icon: "waveform.path.ecg", color: PulseTheme.primaryBright, active: hrvCredit > 0)
-                        BalanceRow(label: isSpanish ? "Energía / Estrés percibido" : "Perceived energy / stress", value: String(format: "+%.0f", max(0, fatigueCredit)), icon: "face.smiling", color: PulseTheme.primaryBright, active: fatigueCredit > 0)
+                        BalanceRow(label: String(localized: "rest_days"), value: String(format: "+%.0f", restDaysCredit), icon: "calendar.badge.clock", color: PulseTheme.primaryBright)
+                        BalanceRow(label: String(localized: "hours_of_sleep"), value: String(format: "+%.0f", max(0, sleepCredit)), icon: "bed.double.fill", color: PulseTheme.primaryBright, active: sleepCredit > 0)
+                        BalanceRow(label: String(localized: "hrv_recovery"), value: String(format: "+%.0f", max(0, hrvCredit)), icon: "waveform.path.ecg", color: PulseTheme.primaryBright, active: hrvCredit > 0)
+                        BalanceRow(label: String(localized: "perceived_energy_stress"), value: String(format: "+%.0f", max(0, fatigueCredit)), icon: "face.smiling", color: PulseTheme.primaryBright, active: fatigueCredit > 0)
                     }
 
                     Divider()
 
                     // Fatigue metrics (-)
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(isSpanish ? "CARGAS DE ESTRÉS (-)" : "STRESS LOADS (-)")
+                        Text(String(localized: "stress_loads"))
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.5)
                             .foregroundStyle(PulseTheme.destructive)
                             .padding(.bottom, 2)
 
-                        BalanceRow(label: isSpanish ? "Fatiga acumulada" : "Decayed fatigue", value: String(format: "-%.0f", decayedFatigue), icon: "clock.arrow.circlepath", color: PulseTheme.destructive)
-                        BalanceRow(label: isSpanish ? "Presión del plan activo" : "Active plan pressure", value: String(format: "-%.0f", planPressure), icon: "crown.fill", color: PulseTheme.destructive)
-                        BalanceRow(label: isSpanish ? "Estrés corporal y wellness" : "Body stress & wellness", value: String(format: "-%.0f", wellnessPenalty), icon: "exclamationmark.triangle.fill", color: PulseTheme.destructive)
+                        BalanceRow(label: String(localized: "decayed_fatigue"), value: String(format: "-%.0f", decayedFatigue), icon: "clock.arrow.circlepath", color: PulseTheme.destructive)
+                        BalanceRow(label: String(localized: "active_plan_pressure"), value: String(format: "-%.0f", planPressure), icon: "crown.fill", color: PulseTheme.destructive)
+                        BalanceRow(label: String(localized: "body_stress_and_wellness"), value: String(format: "-%.0f", wellnessPenalty), icon: "exclamationmark.triangle.fill", color: PulseTheme.destructive)
 
                         // Penalties as positive fatigue values
                         if sleepCredit < 0 {
-                            BalanceRow(label: isSpanish ? "Penalización por Sueño" : "Sleep penalty", value: String(format: "-%.0f", -sleepCredit), icon: "moon.fill", color: PulseTheme.destructive)
+                            BalanceRow(label: String(localized: "sleep_penalty"), value: String(format: "-%.0f", -sleepCredit), icon: "moon.fill", color: PulseTheme.destructive)
                         } else if hrvCredit < 0 {
-                            BalanceRow(label: isSpanish ? "Penalización por HRV" : "HRV penalty", value: String(format: "-%.0f", -hrvCredit), icon: "heart.broken.fill", color: PulseTheme.destructive)
+                            BalanceRow(label: String(localized: "hrv_penalty"), value: String(format: "-%.0f", -hrvCredit), icon: "heart.broken.fill", color: PulseTheme.destructive)
                         } else if fatigueCredit < 0 {
-                            BalanceRow(label: isSpanish ? "Fatiga percibida" : "Felt fatigue", value: String(format: "-%.0f", -fatigueCredit), icon: "brain.headprofile", color: PulseTheme.destructive)
+                            BalanceRow(label: String(localized: "felt_fatigue"), value: String(format: "-%.0f", -fatigueCredit), icon: "brain.headprofile", color: PulseTheme.destructive)
                         }
                     }
                 }
@@ -417,7 +417,7 @@ struct TrainingBatteryView: View {
     // MARK: - Detailed Factors Grid
     private var detailedFactorsGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(isSpanish ? "Indicadores de Bienestar" : "Wellness Metrics")
+            Text(String(localized: "wellness_metrics"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -425,27 +425,27 @@ struct TrainingBatteryView: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 // Today's session load
                 MiniMetricTile(
-                    title: isSpanish ? "Carga de Hoy" : "Today's Load",
+                    title: "today_s_load",
                     value: String(format: "%.1f", batteryStatus.todayLoad),
-                    subtitle: isSpanish ? "puntos acumulados" : "points computed",
+                    subtitle: "points_computed",
                     systemImage: "calendar.badge.clock",
                     color: PulseTheme.primary
                 )
 
                 // Weekly aggregate load
                 MiniMetricTile(
-                    title: isSpanish ? "Carga Semanal" : "Weekly Load",
+                    title: "weekly_load",
                     value: String(format: "%.1f", batteryStatus.weeklyLoad),
-                    subtitle: isSpanish ? "volumen + intensidad" : "volume + intensity",
+                    subtitle: "volume_intensity",
                     systemImage: "waveform.path.ecg",
                     color: PulseTheme.primaryBright
                 )
 
                 // Rest days since last workout
                 MiniMetricTile(
-                    title: isSpanish ? "Descanso Real" : "Real Rest",
+                    title: "real_rest",
                     value: isSpanish ? "\(restDays) \(restDays == 1 ? "día" : "días")" : "\(restDays) \(restDays == 1 ? "day" : "days")",
-                    subtitle: isSpanish ? "desde último entreno" : "since last session",
+                    subtitle: "since_last_session",
                     systemImage: "bed.double.fill",
                     color: PulseTheme.accent
                 )
@@ -455,7 +455,7 @@ struct TrainingBatteryView: View {
                 MiniMetricTile(
                     title: "HRV Promedio",
                     value: latestHRV != nil ? "\(Int(latestHRV!)) ms" : "--",
-                    subtitle: isSpanish ? "salud del sist. autónomo" : "autonomic system state",
+                    subtitle: "autonomic_system_state",
                     systemImage: "waveform.path.ecg.rectangle.fill",
                     color: PulseTheme.primaryBright
                 )
@@ -471,7 +471,7 @@ struct TrainingBatteryView: View {
                     Image(systemName: "chart.line.trend.down")
                         .font(.headline)
                         .foregroundStyle(PulseTheme.primary)
-                    Text(isSpanish ? "Simulador de Impacto de Sesión" : "Session Impact Simulator")
+                    Text(String(localized: "session_impact_simulator"))
                         .font(.headline)
                 }
 
@@ -481,9 +481,7 @@ struct TrainingBatteryView: View {
                     let currentSimLevel = max(5, Int(Double(originalLevel) - cost + simulationDelta))
 
                     VStack(alignment: .leading, spacing: 14) {
-                        Text(isSpanish
-                             ? "Calcula cómo afectará tu próximo entrenamiento agendado a tu batería de energía:"
-                             : "Calculate how your next scheduled workout will impact your training battery:")
+                        Text(String(localized: "calculate_how_your_next_scheduled_workout_will_impact_your_training_battery"))
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
 
@@ -550,7 +548,7 @@ struct TrainingBatteryView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 } else {
-                    Text(isSpanish ? "No hay ninguna sesión planificada para hoy. Crea un plan o programa un entreno para simular su impacto." : "No session planned for today. Create a plan or schedule a workout to simulate its impact.")
+                    Text(String(localized: "no_session_planned_for_today_create_a_plan_or_schedule_a_workout_to_simulate_its"))
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -622,7 +620,7 @@ private struct BalanceRow: View {
                     .foregroundStyle(active ? color : PulseTheme.secondaryText.opacity(0.6))
             }
 
-            Text(label)
+            Text(localizedKey(label))
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(active ? .primary : PulseTheme.secondaryText.opacity(0.8))
                 .lineLimit(1)
@@ -658,7 +656,7 @@ private struct MiniMetricTile: View {
                             .foregroundStyle(color)
                     }
 
-                    Text(title)
+                    Text(localizedKey(title))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
@@ -671,7 +669,7 @@ private struct MiniMetricTile: View {
                     .foregroundStyle(color)
                     .lineLimit(1)
 
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.system(size: 9))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(1)
@@ -870,7 +868,7 @@ struct CircularTechGauge: View {
 
             // Central information hub
             VStack(spacing: 2) {
-                Text(isSpanish ? "NIVEL" : "LEVEL")
+                Text(String(localized: "level"))
                     .font(.system(size: 9, weight: .black, design: .rounded))
                     .tracking(1.5)
                     .foregroundStyle(PulseTheme.secondaryText)

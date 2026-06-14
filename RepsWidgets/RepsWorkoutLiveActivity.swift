@@ -68,9 +68,9 @@ struct RepsWorkoutLiveActivity: Widget {
                         .lineLimit(1)
                     Group {
                         if snapshot.isPaused, snapshot.isOutdoorRoute == false {
-                            Text("Cinta pausada")
+                            Text("cinta_pausada")
                         } else if snapshot.isPaused {
-                            Text("Ruta pausada")
+                            Text("ruta_pausada")
                         } else {
                             Text(verbatim: routeSubtitle(snapshot))
                         }
@@ -205,7 +205,7 @@ struct RepsWorkoutLiveActivity: Widget {
 
             if includesCompleteSet {
                 Button(intent: CompleteSetLiveActivityIntent()) {
-                    Label("Serie hecha", systemImage: "checkmark.circle.fill")
+                    Label("set_done", systemImage: "checkmark.circle.fill")
                         .font(.caption.weight(.bold))
                         .frame(maxWidth: .infinity)
                 }
@@ -248,7 +248,7 @@ struct RepsWorkoutLiveActivity: Widget {
                 .tint(theme.tint)
 
                 if snapshot.isRouteWorkout {
-                    islandCompactMetric(icon: "timer", value: snapshot.isPaused ? snapshot.elapsedText : String(localized: "En curso"), theme: theme)
+                    islandCompactMetric(icon: "timer", value: snapshot.isPaused ? snapshot.elapsedText : String(localized: "en_curso"), theme: theme)
                     islandCompactMetric(icon: "point.topleft.down.curvedto.point.bottomright.up", value: routeDistanceText(snapshot), theme: theme)
                     islandCompactMetric(icon: "speedometer", value: routePaceText(snapshot), theme: theme)
                 } else {
