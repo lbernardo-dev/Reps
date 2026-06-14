@@ -72,7 +72,8 @@ struct MainTabView: View {
                 if !isTabBarHidden {
                     quickActionFloatingButton
                         .padding(.trailing, 20)
-                        .padding(.bottom, 96)
+                        .padding(.bottom, quickActionFloatingButtonBottomPadding)
+                        .animation(.spring(response: 0.32, dampingFraction: 0.78), value: isQuickMenuExpanded)
                         .transition(.scale(scale: 0.6, anchor: .bottomTrailing).combined(with: .opacity))
                 }
             }
@@ -182,19 +183,13 @@ struct MainTabView: View {
         } label: {
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [PulseTheme.accent, PulseTheme.primary],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(PulseTheme.fitActionGradient)
                     .frame(width: 58, height: 58)
                     .overlay {
                         Circle()
                             .stroke(.white.opacity(0.26), lineWidth: 1.5)
                     }
-                    .shadow(color: PulseTheme.accent.opacity(0.30), radius: 12, x: 0, y: 7)
+                    .shadow(color: PulseTheme.fitOrange.opacity(0.30), radius: 12, x: 0, y: 7)
 
                 Image(systemName: "plus")
                     .font(.system(size: 25, weight: .heavy))
@@ -208,10 +203,36 @@ struct MainTabView: View {
         .accessibilityLabel(isQuickMenuExpanded ? "Cerrar menú rápido" : "Abrir menú rápido")
     }
 
+    private var quickActionFloatingButtonBottomPadding: CGFloat {
+        isQuickMenuExpanded ? 18 : 96
+    }
+
+    /// The active window's top safe-area inset. The quick-menu overlay can be hosted by views
+    /// that already bleed under the status bar, so geometry alone can occasionally report 0.
+    private var windowTopSafeAreaInset: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .filter { $0.activationState == .foregroundActive }
+            .flatMap(\.windows)
+            .map { $0.safeAreaInsets.top }
+            .max() ?? 0
+    }
+
     private var quickMenuOverlay: some View {
+        GeometryReader { proxy in
+            quickMenuOverlayContent(topInset: max(proxy.safeAreaInsets.top, windowTopSafeAreaInset))
+        }
+        .ignoresSafeArea(.container, edges: .top)
+    }
+
+    private func quickMenuTopPadding(for topInset: CGFloat) -> CGFloat {
+        max(topInset + 32, 96)
+    }
+
+    private func quickMenuOverlayContent(topInset: CGFloat) -> some View {
         VStack(spacing: 0) {
             QuickMenuProgressionChart()
-                .padding(.top, 10)
+                .padding(.top, quickMenuTopPadding(for: topInset))
                 .padding(.horizontal, 16)
                 .transition(.move(edge: .top).combined(with: .opacity))
 
@@ -417,15 +438,9 @@ private struct QuickActionRow: View {
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
-                .background(
-                    LinearGradient(
-                        colors: [PulseTheme.primary, PulseTheme.accent],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .background(PulseTheme.fitActionGradient)
                 .clipShape(Circle())
-                .shadow(color: PulseTheme.primary.opacity(0.35), radius: 8, x: 0, y: 4)
+                .shadow(color: PulseTheme.fitOrange.opacity(0.35), radius: 8, x: 0, y: 4)
         }
         .padding(.leading, 18)
         .padding(.trailing, 6)
@@ -451,4 +466,3 @@ struct MainTabBarHiddenPreferenceKey: PreferenceKey {
         value = value || nextValue()
     }
 }
-

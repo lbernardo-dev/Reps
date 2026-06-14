@@ -113,6 +113,28 @@ struct ActiveWorkoutView: View {
         return exerciseDrafts[selectedExerciseIndex]
     }
 
+    private var selectedExerciseVolume: ExerciseWeeklyVolume? {
+        guard let exercise = selectedDraft?.workoutExercise.exercise else { return nil }
+        let weekStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        return MuscleVolumeService.weeklyVolume(
+            for: exercise,
+            completedSessions: store.workoutSessions,
+            activeDrafts: exerciseDrafts,
+            startDate: weekStart
+        )
+    }
+
+    private var selectedAimForMoreBinding: Binding<Bool> {
+        Binding(
+            get: { selectedDraft?.workoutExercise.aimForMoreSetsNextTime ?? false },
+            set: { newValue in
+                guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return }
+                exerciseDrafts[selectedExerciseIndex].workoutExercise.aimForMoreSetsNextTime = newValue
+                HapticService.selection()
+            }
+        )
+    }
+
     private var hasVisibleAdvancedFields: Bool {
         store.hasFeatureAccess(.configurableProgression) &&
         (store.userProfile.showSetType || store.userProfile.showRPE || store.userProfile.showRIR || store.userProfile.showTempo)
@@ -318,6 +340,10 @@ struct ActiveWorkoutView: View {
         .onReceive(NotificationCenter.default.publisher(for: WatchCommand.completeSet.notificationName)) { _ in
             completeNextAvailableSet()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .watchDidLogSet)) { _ in
+            // AppStore already mutated the shared drafts; recompute & republish.
+            publishActiveWorkoutStatus()
+        }
         .onReceive(NotificationCenter.default.publisher(for: WatchCommand.nextExercise.notificationName)) { _ in
             moveExercise(by: 1)
         }
@@ -356,7 +382,7 @@ struct ActiveWorkoutView: View {
             }
             Button("continuar", role: .cancel) {}
         } message: {
-            Text("Has completado el tiempo planificado de tu entrenamiento (\(plannedDurationMinutes) min).")
+            Text(localizedFormat("planned_workout_time_completed_format", plannedDurationMinutes))
         }
         .alert("add_at_least_one_exercise", isPresented: $showMissingExerciseAlert) {
             Button("find_exercise") {
@@ -611,6 +637,7 @@ struct ActiveWorkoutView: View {
                 displayedRoutePaceSecondsPerKm: displayedRouteMetrics.paceSecondsPerKm
             )
         )
+        store.applyAimForMoreIntent(from: exerciseDrafts, dayID: workout.id)
         store.finishWorkout(session)
         if let cardioLog = WorkoutSessionBuilder.cardioLog(
             from: session,
@@ -878,7 +905,7 @@ struct ActiveWorkoutView: View {
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.5)
                             .foregroundStyle(batteryColor)
-                        Text("\(currentBattery.level)% ahora · \(projectedBatteryLevel)% al terminar")
+                        Text(localizedFormat("battery_now_projected_format", currentBattery.level, projectedBatteryLevel))
                             .font(.headline.weight(.bold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.72)
@@ -948,7 +975,7 @@ struct ActiveWorkoutView: View {
                                     .font(.subheadline.weight(.bold))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.68)
-                                Text("\(completedCount)/\(totalCount) series")
+                                Text(localizedFormat("sets_fraction_format", completedCount, totalCount))
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(PulseTheme.secondaryText)
                             }
@@ -1264,6 +1291,10 @@ struct ActiveWorkoutView: View {
                     }
                 }
 
+                if let volume = selectedExerciseVolume {
+                    InWorkoutVolumeStrip(volume: volume, aimForMore: selectedAimForMoreBinding)
+                }
+
                 executionSummaryStrip
 
                 activeWorkoutToolsCard
@@ -1543,7 +1574,7 @@ struct ActiveWorkoutView: View {
                     .foregroundStyle(PulseTheme.primary)
                 Spacer()
                 if let plateLoadSummary = selectedExerciseContext.plateLoadSummary {
-                    Text("Lado: \(plateLoadSummary)")
+                    Text(localizedFormat("side_value_format", plateLoadSummary))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(2)
@@ -2410,10 +2441,10 @@ private struct ReplacementExerciseRow: View {
             if let badgeText {
                 Text(badgeText)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(PulseTheme.primaryBright)
+                    .foregroundStyle(badgeColor)
                     .padding(.horizontal, 10)
                     .frame(height: 30)
-                    .background(PulseTheme.primaryBright.opacity(0.14), in: Capsule())
+                    .background(badgeColor.opacity(0.14), in: Capsule())
                     .lineLimit(1)
             }
 
@@ -2439,6 +2470,16 @@ private struct ReplacementExerciseRow: View {
             return "Esencial"
         }
         return nil
+    }
+
+    private var badgeColor: Color {
+        guard let currentExercise else { return PulseTheme.primaryBright }
+        // "Essential" (same tracking model) reads as the strongest match → growth green.
+        if normalized(exercise.equipment) != normalized(currentExercise.equipment),
+           exercise.trackingType == currentExercise.trackingType {
+            return PulseTheme.growth
+        }
+        return PulseTheme.primaryBright
     }
 
     private var reasonText: String? {
@@ -3128,7 +3169,7 @@ struct VideoPlayerSheet: View {
                             .tint(PulseTheme.accent)
                             .padding(.horizontal)
                         
-                        Text("Cerrando en \(timeRemaining) s")
+                        Text(localizedFormat("closing_in_seconds_format", timeRemaining))
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -3580,6 +3621,30 @@ struct WorkoutSummaryView: View {
         FitnessMetrics.completedSets(in: session)
     }
 
+    private var weeklyLoads: [MuscleLoad] {
+        let weekStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        return MuscleLoadCalculator.loads(
+            sessions: store.workoutSessions,
+            plannedWorkout: .freeWorkout,
+            startDate: weekStart,
+            includePrediction: false
+        )
+    }
+
+    private var workedMuscleCount: Int {
+        let segments = FitnessMetrics.completedExerciseLogs(in: session)
+            .flatMap { MuscleLoadCalculator.segments(for: $0.exercise) }
+        return Set(segments).count
+    }
+
+    private var durationText: String {
+        let minutes = max(session.durationMinutes, 0)
+        if minutes >= 60 {
+            return "\(minutes / 60)h \(minutes % 60)m"
+        }
+        return "\(minutes)m"
+    }
+
     var body: some View {
         Group {
             if session.isRouteSession {
@@ -3589,6 +3654,16 @@ struct WorkoutSummaryView: View {
                     VStack(spacing: 20) {
                         WorkoutReceiptView(session: session)
                             .padding(.horizontal, 4)
+
+                        if workedMuscleCount > 0 {
+                            SessionMuscleSummaryCard(
+                                loads: weeklyLoads,
+                                gender: store.userProfile.muscleMapGender,
+                                workedMuscleCount: workedMuscleCount,
+                                durationText: durationText
+                            )
+                            .padding(.horizontal, 4)
+                        }
 
                         HStack(spacing: 12) {
                             Button(action: shareSession) {
@@ -3792,7 +3867,7 @@ private struct AdvancedSetFields: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Serie \(set.setNumber)")
+                Text(localizedFormat("set_number_format", set.setNumber))
                     .font(.subheadline.weight(.bold))
                 Spacer()
                 if set.isPersonalRecord {

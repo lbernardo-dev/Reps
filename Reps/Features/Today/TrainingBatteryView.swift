@@ -11,11 +11,11 @@ enum BatteryStyle: String, CaseIterable, Identifiable {
     func displayName(isSpanish: Bool) -> String {
         switch self {
         case .liquid:
-            return String(localized: "liquid_capsule")
+            return localizedString("liquid_capsule")
         case .tech:
-            return String(localized: "tech_ring")
+            return localizedString("tech_ring")
         case .grid:
-            return String(localized: "sci_fi_grid")
+            return localizedString("sci_fi_grid")
         }
     }
 
@@ -175,7 +175,7 @@ struct TrainingBatteryView: View {
                     VStack(spacing: 20) {
                         // Title of current state
                         VStack(spacing: 4) {
-                            Text(String(localized: "energy_state"))
+                            Text(localizedString("energy_state"))
                                 .font(.system(size: 10, weight: .black, design: .rounded))
                                 .tracking(2.0)
                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -236,7 +236,7 @@ struct TrainingBatteryView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
-                    Text(String(localized: "back_2"))
+                    Text(localizedString("back_2"))
                         .font(.headline)
                 }
                 .foregroundStyle(PulseTheme.primary)
@@ -245,7 +245,7 @@ struct TrainingBatteryView: View {
 
             Spacer()
 
-            Text(String(localized: "training_battery"))
+            Text(localizedString("training_battery"))
                 .font(.system(size: 19, weight: .bold, design: .rounded))
 
             Spacer()
@@ -277,7 +277,7 @@ struct TrainingBatteryView: View {
     // MARK: - Style Selector Component
     private var styleSelector: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(String(localized: "display_styles"))
+            Text(localizedString("display_styles"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -320,11 +320,11 @@ struct TrainingBatteryView: View {
     private var physiologicalBalanceSheet: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 18) {
-                Text(String(localized: "physiological_performance_balance"))
+                Text(localizedString("physiological_performance_balance"))
                     .font(.headline)
                     .foregroundStyle(.primary)
 
-                Text(String(localized: "your_battery_reflects_the_net_balance_between_recovery_and_accumulated_cellular"))
+                Text(localizedString("your_battery_reflects_the_net_balance_between_recovery_and_accumulated_cellular"))
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .padding(.bottom, 4)
@@ -332,11 +332,11 @@ struct TrainingBatteryView: View {
                 // Visual horizontal scale
                 VStack(spacing: 12) {
                     HStack {
-                        Label(String(localized: "recovery_3"), systemImage: "sparkles")
+                        Label(localizedString("recovery_3"), systemImage: "sparkles")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.primaryBright)
                         Spacer()
-                        Label(String(localized: "fatigue_2"), systemImage: "bolt.fill")
+                        Label(localizedString("fatigue_2"), systemImage: "bolt.fill")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.destructive)
                     }
@@ -374,39 +374,39 @@ struct TrainingBatteryView: View {
                 VStack(spacing: 20) {
                     // Recovery metrics (+)
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(String(localized: "recovery_credits"))
+                        Text(localizedString("recovery_credits"))
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.5)
                             .foregroundStyle(PulseTheme.primaryBright)
                             .padding(.bottom, 2)
 
-                        BalanceRow(label: String(localized: "rest_days"), value: String(format: "+%.0f", restDaysCredit), icon: "calendar.badge.clock", color: PulseTheme.primaryBright)
-                        BalanceRow(label: String(localized: "hours_of_sleep"), value: String(format: "+%.0f", max(0, sleepCredit)), icon: "bed.double.fill", color: PulseTheme.primaryBright, active: sleepCredit > 0)
-                        BalanceRow(label: String(localized: "hrv_recovery"), value: String(format: "+%.0f", max(0, hrvCredit)), icon: "waveform.path.ecg", color: PulseTheme.primaryBright, active: hrvCredit > 0)
-                        BalanceRow(label: String(localized: "perceived_energy_stress"), value: String(format: "+%.0f", max(0, fatigueCredit)), icon: "face.smiling", color: PulseTheme.primaryBright, active: fatigueCredit > 0)
+                        BalanceRow(label: localizedString("rest_days"), value: String(format: "+%.0f", restDaysCredit), icon: "calendar.badge.clock", color: PulseTheme.primaryBright)
+                        BalanceRow(label: localizedString("hours_of_sleep"), value: String(format: "+%.0f", max(0, sleepCredit)), icon: "bed.double.fill", color: PulseTheme.primaryBright, active: sleepCredit > 0)
+                        BalanceRow(label: localizedString("hrv_recovery"), value: String(format: "+%.0f", max(0, hrvCredit)), icon: "waveform.path.ecg", color: PulseTheme.primaryBright, active: hrvCredit > 0)
+                        BalanceRow(label: localizedString("perceived_energy_stress"), value: String(format: "+%.0f", max(0, fatigueCredit)), icon: "face.smiling", color: PulseTheme.primaryBright, active: fatigueCredit > 0)
                     }
 
                     Divider()
 
                     // Fatigue metrics (-)
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(String(localized: "stress_loads"))
+                        Text(localizedString("stress_loads"))
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.5)
                             .foregroundStyle(PulseTheme.destructive)
                             .padding(.bottom, 2)
 
-                        BalanceRow(label: String(localized: "decayed_fatigue"), value: String(format: "-%.0f", decayedFatigue), icon: "clock.arrow.circlepath", color: PulseTheme.destructive)
-                        BalanceRow(label: String(localized: "active_plan_pressure"), value: String(format: "-%.0f", planPressure), icon: "crown.fill", color: PulseTheme.destructive)
-                        BalanceRow(label: String(localized: "body_stress_and_wellness"), value: String(format: "-%.0f", wellnessPenalty), icon: "exclamationmark.triangle.fill", color: PulseTheme.destructive)
+                        BalanceRow(label: localizedString("decayed_fatigue"), value: String(format: "-%.0f", decayedFatigue), icon: "clock.arrow.circlepath", color: PulseTheme.destructive)
+                        BalanceRow(label: localizedString("active_plan_pressure"), value: String(format: "-%.0f", planPressure), icon: "crown.fill", color: PulseTheme.destructive)
+                        BalanceRow(label: localizedString("body_stress_and_wellness"), value: String(format: "-%.0f", wellnessPenalty), icon: "exclamationmark.triangle.fill", color: PulseTheme.destructive)
 
                         // Penalties as positive fatigue values
                         if sleepCredit < 0 {
-                            BalanceRow(label: String(localized: "sleep_penalty"), value: String(format: "-%.0f", -sleepCredit), icon: "moon.fill", color: PulseTheme.destructive)
+                            BalanceRow(label: localizedString("sleep_penalty"), value: String(format: "-%.0f", -sleepCredit), icon: "moon.fill", color: PulseTheme.destructive)
                         } else if hrvCredit < 0 {
-                            BalanceRow(label: String(localized: "hrv_penalty"), value: String(format: "-%.0f", -hrvCredit), icon: "heart.broken.fill", color: PulseTheme.destructive)
+                            BalanceRow(label: localizedString("hrv_penalty"), value: String(format: "-%.0f", -hrvCredit), icon: "heart.broken.fill", color: PulseTheme.destructive)
                         } else if fatigueCredit < 0 {
-                            BalanceRow(label: String(localized: "felt_fatigue"), value: String(format: "-%.0f", -fatigueCredit), icon: "brain.headprofile", color: PulseTheme.destructive)
+                            BalanceRow(label: localizedString("felt_fatigue"), value: String(format: "-%.0f", -fatigueCredit), icon: "brain.headprofile", color: PulseTheme.destructive)
                         }
                     }
                 }
@@ -417,7 +417,7 @@ struct TrainingBatteryView: View {
     // MARK: - Detailed Factors Grid
     private var detailedFactorsGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(String(localized: "wellness_metrics"))
+            Text(localizedString("wellness_metrics"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -471,7 +471,7 @@ struct TrainingBatteryView: View {
                     Image(systemName: "chart.line.trend.down")
                         .font(.headline)
                         .foregroundStyle(PulseTheme.primary)
-                    Text(String(localized: "session_impact_simulator"))
+                    Text(localizedString("session_impact_simulator"))
                         .font(.headline)
                 }
 
@@ -481,7 +481,7 @@ struct TrainingBatteryView: View {
                     let currentSimLevel = max(5, Int(Double(originalLevel) - cost + simulationDelta))
 
                     VStack(alignment: .leading, spacing: 14) {
-                        Text(String(localized: "calculate_how_your_next_scheduled_workout_will_impact_your_training_battery"))
+                        Text(localizedString("calculate_how_your_next_scheduled_workout_will_impact_your_training_battery"))
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
 
@@ -548,7 +548,7 @@ struct TrainingBatteryView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 } else {
-                    Text(String(localized: "no_session_planned_for_today_create_a_plan_or_schedule_a_workout_to_simulate_its"))
+                    Text(localizedString("no_session_planned_for_today_create_a_plan_or_schedule_a_workout_to_simulate_its"))
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -868,7 +868,7 @@ struct CircularTechGauge: View {
 
             // Central information hub
             VStack(spacing: 2) {
-                Text(String(localized: "level"))
+                Text(localizedString("level"))
                     .font(.system(size: 9, weight: .black, design: .rounded))
                     .tracking(1.5)
                     .foregroundStyle(PulseTheme.secondaryText)

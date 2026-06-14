@@ -136,7 +136,7 @@ struct MusicIntegrationSheet: View {
                     }
                     
                     if !filteredLibrary.isEmpty {
-                        Text("Tus Playlists (\(filteredLibrary.count))")
+                        Text(localizedFormat("your_playlists_count_format", filteredLibrary.count))
                             .font(.headline)
                             .padding(.horizontal, 2)
                         

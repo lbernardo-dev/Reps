@@ -33,8 +33,8 @@ struct RepsWorkoutWidget: Widget {
         AppIntentConfiguration(kind: kind, intent: RepsWidgetConfigurationIntent.self, provider: RepsWorkoutProvider()) { entry in
             RepsWorkoutWidgetView(entry: entry)
         }
-        .configurationDisplayName("Reps Entrenamiento")
-        .description("Entreno activo, progreso, calorías y estado físico.")
+        .configurationDisplayName("reps_workout_widget_name")
+        .description("reps_workout_widget_description")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
         .contentMarginsDisabled()
         .containerBackgroundRemovable(true)
@@ -63,6 +63,7 @@ private struct RepsWorkoutWidgetView: View {
     let entry: RepsWorkoutEntry
 
     var body: some View {
+        let _ = RepsLocalization.use(entry.snapshot.preferredLanguage)
         let contentColor = WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
         let backgroundColor = WidgetColor.resolved(
             appColorName: entry.snapshot.widgetAccentColorName,
@@ -140,11 +141,11 @@ private struct RepsWorkoutWidgetView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 } else {
-                    Text(entry.snapshot.nextWorkoutDayName ?? "Sin plan activo")
+                    Text(entry.snapshot.nextWorkoutDayName ?? localizedKey("no_active_plan"))
                         .font(.headline)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                    Text(entry.snapshot.nextWorkoutDayDescription ?? "Crea o programa tu primera sesión")
+                    Text(entry.snapshot.nextWorkoutDayDescription ?? localizedKey("create_or_schedule_your_first_session"))
                         .font(.caption)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -161,7 +162,7 @@ private struct RepsWorkoutWidgetView: View {
                     elapsedTimerText(prefix: entry.snapshot.workoutTitle)
                 }
                 } else {
-                    Text("Reps: \(entry.snapshot.nextWorkoutDayName ?? "Sin plan")")
+                    Text(localizedFormat("reps_plan_format", entry.snapshot.nextWorkoutDayName ?? localizedString("no_active_plan")))
                 }
             }
             .widgetURL(URL(string: "reps://workout"))
@@ -305,7 +306,7 @@ private struct ActiveWorkoutView: View {
                     Text("siguiente")
                         .font(.system(size: 8, weight: .black))
                         .foregroundStyle(theme.secondaryForeground)
-                    Text(entry.snapshot.nextExerciseName ?? entry.snapshot.exerciseName ?? "Siguiente serie")
+                    Text(entry.snapshot.nextExerciseName ?? entry.snapshot.exerciseName ?? localizedKey("next_set"))
                         .font(.system(size: family == .systemSmall ? 10 : 12, weight: .bold))
                         .foregroundStyle(theme.foreground)
                         .lineLimit(1)
@@ -314,9 +315,9 @@ private struct ActiveWorkoutView: View {
 
                 if family == .systemMedium {
                     HStack(spacing: 8) {
-                        metricPill(title: "Sesión", value: timerValueText(), icon: "timer")
-                        metricPill(title: "Volumen", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
-                        metricPill(title: "Restante", value: entry.snapshot.remainingText, icon: "hourglass.bottomhalf.filled")
+                        metricPill(title: "session", value: timerValueText(), icon: "timer")
+                        metricPill(title: "volume", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
+                        metricPill(title: "remaining", value: entry.snapshot.remainingText, icon: "hourglass.bottomhalf.filled")
                     }
                 }
             } else {
@@ -336,7 +337,7 @@ private struct ActiveWorkoutView: View {
                         HStack(spacing: 5) {
                             if let exerciseIndex = entry.snapshot.exerciseIndex,
                                let totalExercises = entry.snapshot.totalExercises {
-                                Text("\(exerciseIndex)/\(totalExercises) ejercicios")
+                                Text(localizedFormat("exercises_fraction_format", exerciseIndex, totalExercises))
                             }
                             if let currentSetText = entry.snapshot.currentSetText {
                                 Text(currentSetText)
@@ -366,7 +367,7 @@ private struct ActiveWorkoutView: View {
                         Image(systemName: "timer")
                     }
                     Spacer()
-                    Label("\(entry.snapshot.completedSets)/\(entry.snapshot.totalSets) series", systemImage: "checkmark.circle")
+                    Label(localizedFormat("sets_fraction_format", entry.snapshot.completedSets, entry.snapshot.totalSets), systemImage: "checkmark.circle")
                 }
                 .font(.system(size: family == .systemSmall ? 9 : 11, weight: .semibold))
                 .foregroundStyle(theme.secondaryForeground)
@@ -480,7 +481,7 @@ private struct ActiveWorkoutView: View {
                         .foregroundStyle(theme.tint)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
-                    Text(entry.snapshot.nextExerciseName ?? entry.snapshot.exerciseName ?? "Siguiente serie")
+                    Text(entry.snapshot.nextExerciseName ?? entry.snapshot.exerciseName ?? localizedString("next_set"))
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(theme.secondaryForeground)
                         .lineLimit(1)
@@ -554,7 +555,7 @@ private struct ActiveWorkoutView: View {
                   let total = entry.snapshot.totalExercises else {
                 return nil
             }
-            return "\(index)/\(total) ejercicios"
+            return localizedFormat("exercises_fraction_format", index, total)
         }()
 
         return [exerciseProgress, entry.snapshot.currentSetText]
@@ -616,7 +617,7 @@ private struct InactiveWorkoutView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.tint)
                 Spacer()
-                Text(entry.snapshot.hasUpcomingWorkout ? "PRÓXIMO" : "SIN PLAN" as LocalizedStringKey)
+                Text(entry.snapshot.hasUpcomingWorkout ? "next_uppercase" : "no_plan_uppercase" as LocalizedStringKey)
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(theme.badgeText)
                     .padding(.horizontal, 6)
@@ -625,14 +626,14 @@ private struct InactiveWorkoutView: View {
             }
 
             // Next workout title
-            Text(entry.snapshot.nextWorkoutDayName ?? "Sin plan activo")
+            Text(entry.snapshot.nextWorkoutDayName ?? localizedKey("no_active_plan"))
                 .font(.system(size: family == .systemSmall ? 13 : 15, weight: .bold))
                 .foregroundStyle(theme.foreground)
                 .lineLimit(2)
                 .minimumScaleFactor(0.75)
 
             // Subtitle
-            Text(entry.snapshot.nextWorkoutDayDescription ?? "Crea una rutina o programa una sesión")
+            Text(entry.snapshot.nextWorkoutDayDescription ?? localizedKey("create_routine_or_schedule_session"))
                 .font(.system(size: family == .systemSmall ? 9 : 11, weight: .semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -643,7 +644,7 @@ private struct InactiveWorkoutView: View {
             // Stats footer
             if family == .systemMedium {
                 HStack(spacing: 8) {
-                    statPill(value: "\(entry.snapshot.streakDays) días", icon: "flame.fill", color: .orange)
+                    statPill(value: localizedFormat("days_count_format", entry.snapshot.streakDays), icon: "flame.fill", color: .orange)
                     statPill(value: "\(entry.snapshot.trainingBatteryLevel)%", icon: "battery.100percent", color: theme.tint)
                     statPill(value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill", color: theme.secondaryForeground)
                 }
@@ -651,7 +652,7 @@ private struct InactiveWorkoutView: View {
                 HStack(spacing: 3) {
                     Image(systemName: "flame.fill")
                         .foregroundStyle(.orange)
-                    Text("\(entry.snapshot.streakDays) días racha")
+                    Text(localizedFormat("streak_days_count_format", entry.snapshot.streakDays))
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(theme.foreground)
                         .lineLimit(1)

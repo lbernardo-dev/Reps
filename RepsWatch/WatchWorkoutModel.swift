@@ -5,6 +5,80 @@ import HealthKit
 import WatchConnectivity
 import WatchKit
 
+/// What the Watch is currently showing/driving. Route flags on the model stay
+/// authoritative for cardio; this drives the strength/interval UI routing.
+enum WatchWorkoutMode: Equatable {
+    case none
+    case phoneStrength       // strength workout synced/driven from the iPhone
+    case phoneRoute          // cardio route driven from the iPhone
+    case standaloneStrength  // free strength started on the Watch (offline-capable)
+    case standaloneRoute     // walk/run started on the Watch
+    case interval            // intervals / HIIT started on the Watch
+}
+
+/// Set-type raw values mirror `SetLog.SetType` on the iPhone so the String
+/// round-trips through `SharedPlannedSet.setType`.
+enum WatchSetType: String, CaseIterable, Hashable {
+    case warmUp
+    case work
+    case dropSet
+
+    var shortLabel: String {
+        switch self {
+        case .warmUp: return "W"
+        case .work: return "·"
+        case .dropSet: return "D"
+        }
+    }
+}
+
+struct WatchSet: Identifiable, Hashable {
+    var id = UUID()
+    var weightKg: Double = 0
+    var reps: Int = 0
+    var setTypeRaw: String = WatchSetType.work.rawValue
+    var completed: Bool = false
+
+    var type: WatchSetType { WatchSetType(rawValue: setTypeRaw) ?? .work }
+    var volumeKg: Double { weightKg * Double(reps) }
+}
+
+struct WatchExercise: Identifiable, Hashable {
+    var id = UUID()
+    var name: String
+    var trackingType: String = "weightReps"
+    var targetSets: Int = 3
+    var repRange: String = ""
+    var restSeconds: Int = 90
+    var previous: String?
+    var sets: [WatchSet] = []
+
+    var isBodyweight: Bool { trackingType == "repsOnly" }
+    var completedSets: Int { sets.filter(\.completed).count }
+    var volumeKg: Double { sets.filter(\.completed).reduce(0) { $0 + $1.volumeKg } }
+
+    /// Index of the next set to work on (first incomplete), or the last one.
+    var activeSetIndex: Int {
+        sets.firstIndex(where: { !$0.completed }) ?? max(sets.count - 1, 0)
+    }
+}
+
+/// Interval / HIIT preset run entirely on the Watch.
+struct WatchIntervalPreset: Identifiable, Hashable {
+    var id = UUID()
+    var name: String
+    var workSeconds: Int
+    var restSeconds: Int
+    var rounds: Int
+
+    static let presets: [WatchIntervalPreset] = [
+        WatchIntervalPreset(name: "30 / 30", workSeconds: 30, restSeconds: 30, rounds: 10),
+        WatchIntervalPreset(name: "Tabata", workSeconds: 20, restSeconds: 10, rounds: 8),
+        WatchIntervalPreset(name: "40 / 20", workSeconds: 40, restSeconds: 20, rounds: 8),
+        WatchIntervalPreset(name: "60 / 60", workSeconds: 60, restSeconds: 60, rounds: 6)
+    ]
+}
+
 @MainActor
 final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     enum State {
@@ -25,6 +99,23 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
     @Published var message: String?
     @Published var routePointCount = 0
     @Published var isStandaloneRouteWorkout = false
+
+    // MARK: Local strength / interval state
+    @Published var mode: WatchWorkoutMode = .none
+    @Published var exercises: [WatchExercise] = []
+    @Published var currentExerciseIndex = 0
+    @Published var intervalPreset: WatchIntervalPreset?
+    @Published var intervalRound = 0          // 0-based current round
+    @Published var intervalIsWork = true
+    @Published var intervalPhaseRemaining = 0
+    @Published var intervalFinished = false
+    /// Local rest countdown after a set in a standalone strength session.
+    @Published var localRestEndDate: Date?
+
+    /// Structural signature of the last phone-driven hydration, so live edits
+    /// aren't clobbered by routine snapshot republishes.
+    private var hydratedSignature: String?
+    private var standaloneTitle = ""
 
     private let healthStore = HKHealthStore()
     private let pedometer = CMPedometer()
@@ -99,6 +190,18 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 startLocation()
             }
         }
+
+        // Keep the UI coherent for non-route sessions recovered after the app was
+        // terminated mid-workout (the local set/interval state itself is lost).
+        if isStandaloneRouteWorkout {
+            mode = .standaloneRoute
+        } else if isLocalRouteWorkout {
+            mode = .phoneRoute
+        } else if configuration.activityType == .traditionalStrengthTraining {
+            mode = .standaloneStrength
+            standaloneTitle = "Fuerza"
+        }
+
         startTimer()
         updateStandaloneSnapshotIfNeeded()
     }
@@ -192,6 +295,30 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
         }
     }
 
+    /// Unified pause toggle for any mode. Standalone strength/interval sessions
+    /// pause locally without notifying the iPhone; phone-driven sessions relay
+    /// the command so the iPhone stays in sync.
+    func togglePause() {
+        switch mode {
+        case .standaloneStrength, .interval:
+            if state == .paused {
+                if let pauseStartedAt {
+                    accumulatedPausedSeconds += max(Int(Date().timeIntervalSince(pauseStartedAt)), 0)
+                }
+                pauseStartedAt = nil
+                session?.resume()
+                state = .running
+            } else {
+                session?.pause()
+                state = .paused
+                pauseStartedAt = .now
+            }
+            WatchTheme.haptic(.click)
+        default:
+            toggleRoutePause()
+        }
+    }
+
     func startStandaloneRouteWorkout(activity: WatchRouteWorkoutActivity) {
         guard session == nil else { return }
         Task {
@@ -220,6 +347,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 accumulatedPausedSeconds = 0
                 pauseStartedAt = nil
                 resetRouteMetrics()
+                mode = .standaloneRoute
                 updateStandaloneSnapshotIfNeeded()
 
                 workoutSession.startActivity(with: startDate)
@@ -241,8 +369,9 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 accumulatedPausedSeconds += max(Int(endDate.timeIntervalSince(pauseStartedAt)), 0)
             }
             pauseStartedAt = nil
-            let shouldSendRouteSummary = isLocalRouteWorkout
-            let summary = shouldSendRouteSummary ? makeStandaloneSummary(endedAt: endDate) : nil
+            let routeSummary = isLocalRouteWorkout ? makeStandaloneSummary(endedAt: endDate) : nil
+            let strengthSummary = mode == .standaloneStrength ? makeStrengthSummary(endedAt: endDate) : nil
+            let intervalSummary = mode == .interval ? makeIntervalSummary(endedAt: endDate) : nil
             session?.end()
             try? await builder?.endCollection(at: endDate)
             _ = try? await builder?.finishWorkout()
@@ -251,8 +380,12 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             stopLocation()
             state = .idle
             endedAt = endDate
-            if let summary {
-                sendStandaloneSummary(summary)
+            if let routeSummary {
+                sendStandaloneSummary(routeSummary)
+            } else if let strengthSummary {
+                sendStrengthSummary(strengthSummary)
+            } else if let intervalSummary {
+                sendIntervalSummary(intervalSummary)
             } else if sendsCommand {
                 send(command: .stop)
             }
@@ -264,6 +397,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             standaloneWorkoutID = nil
             accumulatedPausedSeconds = 0
             resetRouteMetrics()
+            resetLocalWorkout()
             snapshot = SharedWorkoutSnapshot.empty
             SharedWorkoutStore.save(snapshot)
         }
@@ -307,6 +441,8 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 self.updateRouteDerivedMetrics()
                 self.updateStandaloneSnapshotIfNeeded()
                 self.sendRouteMetricsIfNeeded()
+                self.advanceIntervalIfNeeded()
+                self.clearExpiredLocalRest()
             }
         }
     }
@@ -508,11 +644,11 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
         case .running:
             return "Carrera"
         case .walking:
-            return "Caminata"
+            return localizedString("walking")
         case .flexibility:
-            return "Movilidad"
+            return localizedString("mobility")
         default:
-            return "Entreno"
+            return localizedString("workout")
         }
     }
 
@@ -570,7 +706,8 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             trainingBatterySystemImage: snapshot.trainingBatterySystemImage,
             nextWorkoutDayName: snapshot.nextWorkoutDayName,
             nextWorkoutDayDescription: snapshot.nextWorkoutDayDescription,
-            widgetAccentColorName: snapshot.widgetAccentColorName
+            widgetAccentColorName: snapshot.widgetAccentColorName,
+            preferredLanguage: snapshot.preferredLanguage
         )
         SharedWorkoutStore.save(snapshot)
     }
@@ -665,7 +802,8 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             trainingBatterySystemImage: snapshot.trainingBatterySystemImage,
             nextWorkoutDayName: snapshot.nextWorkoutDayName,
             nextWorkoutDayDescription: snapshot.nextWorkoutDayDescription,
-            widgetAccentColorName: "green"
+            widgetAccentColorName: "green",
+            preferredLanguage: snapshot.preferredLanguage
         )
         SharedWorkoutStore.save(snapshot)
     }
@@ -845,14 +983,19 @@ extension WatchWorkoutModel: WCSessionDelegate {
             trainingBatterySystemImage: context["trainingBatterySystemImage"] as? String ?? "battery.100percent",
             nextWorkoutDayName: context["nextWorkoutDayName"] as? String,
             nextWorkoutDayDescription: context["nextWorkoutDayDescription"] as? String,
-            widgetAccentColorName: context["widgetAccentColorName"] as? String ?? "system"
+            widgetAccentColorName: context["widgetAccentColorName"] as? String ?? "system",
+            preferredLanguage: context["preferredLanguage"] as? String,
+            exercisesData: context["exercisesData"] as? Data,
+            estimatedMaxHeartRate: context["estimatedMaxHeartRate"] as? Double
         )
     }
 
     private func apply(snapshot: SharedWorkoutSnapshot) {
-        if isStandaloneRouteWorkout {
+        // Never let an incoming phone snapshot override a session the watch owns.
+        if isStandaloneRouteWorkout || mode == .standaloneStrength || mode == .interval {
             return
         }
+        RepsLocalization.use(snapshot.preferredLanguage)
         let restJustEnded = snapshot.hasActiveWorkout
             && (self.snapshot.restSeconds ?? 0) > 0
             && (snapshot.restSeconds ?? 0) == 0
@@ -862,10 +1005,465 @@ extension WatchWorkoutModel: WCSessionDelegate {
             WKInterfaceDevice.current().play(.notification)
         }
         if snapshot.hasActiveWorkout {
+            if snapshot.isRouteWorkout {
+                mode = .phoneRoute
+            } else {
+                mode = .phoneStrength
+                hydrateStrengthFromSnapshotIfNeeded(snapshot)
+            }
             startLocalWorkoutIfNeeded(for: snapshot)
-        } else if !snapshot.hasActiveWorkout {
+        } else {
+            mode = .none
+            hydratedSignature = nil
+            exercises = []
             stopLocalRouteWorkoutIfNeeded()
         }
+    }
+
+    // MARK: - Strength / interval derived state
+
+    var currentExercise: WatchExercise? {
+        guard exercises.indices.contains(currentExerciseIndex) else { return nil }
+        return exercises[currentExerciseIndex]
+    }
+
+    var totalVolumeKg: Double { exercises.reduce(0) { $0 + $1.volumeKg } }
+    var totalCompletedSets: Int { exercises.reduce(0) { $0 + $1.completedSets } }
+    var totalSetCount: Int { exercises.reduce(0) { $0 + $1.sets.count } }
+    var isStrengthMode: Bool { mode == .phoneStrength || mode == .standaloneStrength }
+
+    /// 1-based number of the set currently being worked on, for the UI header.
+    var currentSetNumber: Int { (currentExercise?.activeSetIndex ?? 0) + 1 }
+
+    var currentSetWeight: Double {
+        guard let exercise = currentExercise, exercise.sets.indices.contains(exercise.activeSetIndex) else { return 0 }
+        return exercise.sets[exercise.activeSetIndex].weightKg
+    }
+
+    var currentSetReps: Int {
+        guard let exercise = currentExercise, exercise.sets.indices.contains(exercise.activeSetIndex) else { return 0 }
+        return exercise.sets[exercise.activeSetIndex].reps
+    }
+
+    /// HR zone 1…5 from live heart rate and the estimated max pushed by the phone.
+    var heartRateZone: Int? {
+        guard let hr = heartRate ?? snapshot.heartRate,
+              let maxHR = snapshot.estimatedMaxHeartRate, maxHR > 0 else { return nil }
+        switch hr / maxHR {
+        case ..<0.6: return 1
+        case ..<0.7: return 2
+        case ..<0.8: return 3
+        case ..<0.9: return 4
+        default: return 5
+        }
+    }
+
+    // MARK: - Phone-driven strength hydration
+
+    private func structuralSignature(_ exs: [SharedPlannedExercise]) -> String {
+        exs.map { "\($0.name)#\($0.sets.count)" }.joined(separator: "|")
+    }
+
+    private func hydrateStrengthFromSnapshotIfNeeded(_ snapshot: SharedWorkoutSnapshot) {
+        let planned = snapshot.plannedExercises
+        guard !planned.isEmpty else { return }
+        let signature = structuralSignature(planned)
+        let targetIndex = min(max((snapshot.exerciseIndex ?? 1) - 1, 0), max(planned.count - 1, 0))
+
+        if signature == hydratedSignature {
+            // Same structure: mirror phone-side completions, keep local edits.
+            for (i, plan) in planned.enumerated() where exercises.indices.contains(i) {
+                for (j, set) in plan.sets.enumerated() where exercises[i].sets.indices.contains(j) {
+                    if set.completed { exercises[i].sets[j].completed = true }
+                }
+            }
+            currentExerciseIndex = min(max(currentExerciseIndex, 0), max(exercises.count - 1, 0))
+            return
+        }
+
+        hydratedSignature = signature
+        exercises = planned.map { plan in
+            WatchExercise(
+                name: plan.name,
+                trackingType: plan.trackingType,
+                targetSets: plan.targetSets,
+                repRange: plan.repRange,
+                restSeconds: plan.restSeconds,
+                previous: plan.previous,
+                sets: plan.sets.map {
+                    WatchSet(weightKg: $0.weightKg, reps: $0.reps, setTypeRaw: $0.setType, completed: $0.completed)
+                }
+            )
+        }
+        currentExerciseIndex = targetIndex
+    }
+
+    // MARK: - Strength editing
+
+    private var activeSetIndexForCurrent: Int? {
+        guard let exercise = currentExercise else { return nil }
+        let index = exercise.activeSetIndex
+        return exercise.sets.indices.contains(index) ? index : nil
+    }
+
+    func adjustWeight(by delta: Double) {
+        guard exercises.indices.contains(currentExerciseIndex),
+              let setIndex = activeSetIndexForCurrent else { return }
+        let new = max(0, exercises[currentExerciseIndex].sets[setIndex].weightKg + delta)
+        exercises[currentExerciseIndex].sets[setIndex].weightKg = (new * 100).rounded() / 100
+        WatchTheme.haptic(.click)
+    }
+
+    func adjustReps(by delta: Int) {
+        guard exercises.indices.contains(currentExerciseIndex),
+              let setIndex = activeSetIndexForCurrent else { return }
+        let new = max(0, exercises[currentExerciseIndex].sets[setIndex].reps + delta)
+        exercises[currentExerciseIndex].sets[setIndex].reps = new
+        WatchTheme.haptic(.click)
+    }
+
+    func setActiveWeight(_ value: Double) {
+        guard exercises.indices.contains(currentExerciseIndex),
+              let setIndex = activeSetIndexForCurrent else { return }
+        exercises[currentExerciseIndex].sets[setIndex].weightKg = max(0, value)
+    }
+
+    func setActiveReps(_ value: Int) {
+        guard exercises.indices.contains(currentExerciseIndex),
+              let setIndex = activeSetIndexForCurrent else { return }
+        exercises[currentExerciseIndex].sets[setIndex].reps = max(0, value)
+    }
+
+    func completeCurrentSet() {
+        guard exercises.indices.contains(currentExerciseIndex),
+              let setIndex = activeSetIndexForCurrent else { return }
+        exercises[currentExerciseIndex].sets[setIndex].completed = true
+        WatchTheme.haptic(.success)
+        sendLogSet(exerciseIndex: currentExerciseIndex, setIndex: setIndex)
+        if mode == .standaloneStrength {
+            let rest = exercises[currentExerciseIndex].restSeconds
+            if rest > 0 {
+                localRestEndDate = Date().addingTimeInterval(TimeInterval(rest))
+            }
+        }
+        updateStrengthSnapshotIfNeeded()
+    }
+
+    func skipLocalRest() {
+        localRestEndDate = nil
+        WatchTheme.haptic(.click)
+    }
+
+    private func clearExpiredLocalRest() {
+        guard let end = localRestEndDate else { return }
+        if Date() >= end {
+            localRestEndDate = nil
+            WKInterfaceDevice.current().play(.notification)
+        }
+    }
+
+    func addSet(type: WatchSetType = .work) {
+        guard exercises.indices.contains(currentExerciseIndex) else { return }
+        let last = exercises[currentExerciseIndex].sets.last
+        let baseWeight = last?.weightKg ?? 0
+        let weight = type == .dropSet ? (baseWeight * 0.8 * 100).rounded() / 100 : baseWeight
+        exercises[currentExerciseIndex].sets.append(
+            WatchSet(weightKg: weight, reps: last?.reps ?? 0, setTypeRaw: type.rawValue)
+        )
+        // Adding sets changes structure; refresh the signature so phone snapshots
+        // don't wipe the new set on the next republish.
+        if mode == .phoneStrength {
+            hydratedSignature = nil
+        }
+        WatchTheme.haptic(.click)
+    }
+
+    func moveExercise(by delta: Int) {
+        guard !exercises.isEmpty else { return }
+        currentExerciseIndex = min(max(currentExerciseIndex + delta, 0), exercises.count - 1)
+        if mode == .phoneStrength {
+            WatchCommandRouter.send(delta > 0 ? WatchCommand.nextExercise.rawValue : WatchCommand.previousExercise.rawValue)
+        }
+        WatchTheme.haptic(.click)
+    }
+
+    func selectExercise(_ index: Int) {
+        guard exercises.indices.contains(index) else { return }
+        currentExerciseIndex = index
+    }
+
+    static let quickAddExercises: [(name: String, tracking: String)] = [
+        ("Sentadilla", "weightReps"),
+        ("Press de banca", "weightReps"),
+        ("Peso muerto", "weightReps"),
+        ("Press militar", "weightReps"),
+        ("Remo con barra", "weightReps"),
+        ("Dominadas", "repsOnly"),
+        ("Fondos", "repsOnly"),
+        ("Curl de bíceps", "weightReps")
+    ]
+
+    func addExercise(named name: String, trackingType: String) {
+        let starterSet = WatchSet(weightKg: 0, reps: trackingType == "repsOnly" ? 10 : 0)
+        exercises.append(
+            WatchExercise(name: name, trackingType: trackingType, targetSets: 3, sets: [starterSet])
+        )
+        currentExerciseIndex = exercises.count - 1
+        WatchTheme.haptic(.click)
+    }
+
+    private func sendLogSet(exerciseIndex: Int, setIndex: Int) {
+        guard mode == .phoneStrength,
+              exercises.indices.contains(exerciseIndex),
+              exercises[exerciseIndex].sets.indices.contains(setIndex),
+              WCSession.isSupported() else { return }
+        let set = exercises[exerciseIndex].sets[setIndex]
+        let message: [String: Any] = [
+            "kind": "logSet",
+            "exerciseIndex": exerciseIndex,
+            "setIndex": setIndex,
+            "weightKg": set.weightKg,
+            "reps": set.reps,
+            "setType": set.setTypeRaw,
+            "completed": set.completed
+        ]
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(message, replyHandler: nil)
+        } else {
+            WCSession.default.transferUserInfo(message)
+        }
+    }
+
+    // MARK: - Standalone strength
+
+    func startStrengthWorkout(title: String = "Fuerza") {
+        guard session == nil else { return }
+        standaloneTitle = title
+        Task {
+            do {
+                try await requestHealthAuthorization()
+                let configuration = HKWorkoutConfiguration()
+                configuration.activityType = .traditionalStrengthTraining
+                configuration.locationType = .indoor
+                let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
+                let workoutBuilder = workoutSession.associatedWorkoutBuilder()
+                workoutBuilder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
+                workoutSession.delegate = self
+                workoutBuilder.delegate = self
+
+                let startDate = Date()
+                session = workoutSession
+                builder = workoutBuilder
+                startedAt = startDate
+                endedAt = nil
+                state = .running
+                isLocalRouteWorkout = false
+                isStandaloneRouteWorkout = false
+                standaloneWorkoutID = UUID()
+                accumulatedPausedSeconds = 0
+                pauseStartedAt = nil
+                resetRouteMetrics()
+                mode = .standaloneStrength
+                currentExerciseIndex = 0
+
+                workoutSession.startActivity(with: startDate)
+                try await workoutBuilder.beginCollection(at: startDate)
+                startTimer()
+                updateStrengthSnapshotIfNeeded()
+                WatchTheme.haptic(.start)
+            } catch {
+                message = error.localizedDescription
+                mode = .none
+            }
+        }
+    }
+
+    private func updateStrengthSnapshotIfNeeded() {
+        guard mode == .standaloneStrength, startedAt != nil else { return }
+        var snap = SharedWorkoutSnapshot.empty
+        snap.hasActiveWorkout = true
+        snap.workoutTitle = standaloneTitle.isEmpty ? "Fuerza" : standaloneTitle
+        snap.sessionTitle = "Iniciado desde Apple Watch"
+        snap.elapsedSeconds = elapsedSeconds
+        snap.completedSets = totalCompletedSets
+        snap.totalSets = totalSetCount
+        snap.volumeKg = Int(totalVolumeKg)
+        snap.heartRate = heartRate
+        snap.activeEnergyKcal = activeEnergy
+        snap.isRouteWorkout = false
+        snap.widgetAccentColorName = snapshot.widgetAccentColorName
+        snap.preferredLanguage = snapshot.preferredLanguage
+        snap.estimatedMaxHeartRate = snapshot.estimatedMaxHeartRate
+        snap.updatedAt = .now
+        snapshot = snap
+        SharedWorkoutStore.save(snap)
+    }
+
+    private func makeStrengthSummary(endedAt endDate: Date) -> WatchStrengthWorkoutSummary? {
+        guard let startedAt else { return nil }
+        let shared = exercises.map { exercise in
+            SharedPlannedExercise(
+                name: exercise.name,
+                trackingType: exercise.trackingType,
+                targetSets: exercise.targetSets,
+                repRange: exercise.repRange,
+                restSeconds: exercise.restSeconds,
+                previous: exercise.previous,
+                sets: exercise.sets.map {
+                    SharedPlannedSet(weightKg: $0.weightKg, reps: $0.reps, completed: $0.completed, setType: $0.setTypeRaw, rpe: nil)
+                }
+            )
+        }
+        guard shared.contains(where: { $0.sets.contains(where: \.completed) }) else { return nil }
+        return WatchStrengthWorkoutSummary(
+            id: standaloneWorkoutID ?? UUID(),
+            title: standaloneTitle.isEmpty ? "Fuerza" : standaloneTitle,
+            startedAt: startedAt,
+            endedAt: endDate,
+            durationSeconds: max(Int(endDate.timeIntervalSince(startedAt)) - currentPausedSeconds, 1),
+            pausedSeconds: currentPausedSeconds,
+            exercises: shared,
+            activeEnergyKcal: activeEnergy > 0 ? activeEnergy : nil,
+            averageHeartRate: averageHeartRate,
+            maxHeartRate: heartRateSamples.max()
+        )
+    }
+
+    private func sendStrengthSummary(_ summary: WatchStrengthWorkoutSummary) {
+        guard WCSession.isSupported(),
+              let data = try? JSONEncoder().encode(summary) else { return }
+        let context: [String: Any] = [
+            "kind": "strengthWorkoutSummary",
+            "strengthWorkoutSummary": data
+        ]
+        WCSession.default.transferUserInfo(context)
+        try? WCSession.default.updateApplicationContext(context)
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(context, replyHandler: nil)
+        }
+    }
+
+    // MARK: - Intervals / HIIT
+
+    func startIntervalWorkout(preset: WatchIntervalPreset) {
+        guard session == nil else { return }
+        intervalPreset = preset
+        intervalRound = 0
+        intervalIsWork = true
+        intervalPhaseRemaining = preset.workSeconds
+        intervalFinished = false
+        Task {
+            do {
+                try await requestHealthAuthorization()
+                let configuration = HKWorkoutConfiguration()
+                configuration.activityType = .highIntensityIntervalTraining
+                configuration.locationType = .indoor
+                let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
+                let workoutBuilder = workoutSession.associatedWorkoutBuilder()
+                workoutBuilder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
+                workoutSession.delegate = self
+                workoutBuilder.delegate = self
+
+                let startDate = Date()
+                session = workoutSession
+                builder = workoutBuilder
+                startedAt = startDate
+                endedAt = nil
+                state = .running
+                isLocalRouteWorkout = false
+                isStandaloneRouteWorkout = false
+                standaloneWorkoutID = UUID()
+                accumulatedPausedSeconds = 0
+                pauseStartedAt = nil
+                resetRouteMetrics()
+                mode = .interval
+
+                workoutSession.startActivity(with: startDate)
+                try await workoutBuilder.beginCollection(at: startDate)
+                startTimer()
+                WatchTheme.haptic(.start)
+            } catch {
+                message = error.localizedDescription
+                mode = .none
+            }
+        }
+    }
+
+    private func advanceIntervalIfNeeded() {
+        guard mode == .interval, state == .running, let preset = intervalPreset, !intervalFinished else { return }
+        intervalPhaseRemaining -= 1
+        guard intervalPhaseRemaining <= 0 else { return }
+
+        if intervalIsWork {
+            intervalIsWork = false
+            intervalPhaseRemaining = preset.restSeconds
+            WatchTheme.haptic(.stop)
+        } else {
+            let nextRound = intervalRound + 1
+            if nextRound >= preset.rounds {
+                intervalFinished = true
+                WatchTheme.haptic(.success)
+                stop()
+                return
+            }
+            intervalRound = nextRound
+            intervalIsWork = true
+            intervalPhaseRemaining = preset.workSeconds
+            WatchTheme.haptic(.start)
+        }
+    }
+
+    func skipIntervalPhase() {
+        guard mode == .interval else { return }
+        intervalPhaseRemaining = 1
+        advanceIntervalIfNeeded()
+    }
+
+    private func makeIntervalSummary(endedAt endDate: Date) -> WatchIntervalWorkoutSummary? {
+        guard let startedAt, let preset = intervalPreset else { return nil }
+        return WatchIntervalWorkoutSummary(
+            id: standaloneWorkoutID ?? UUID(),
+            name: preset.name,
+            rounds: intervalFinished ? preset.rounds : intervalRound + 1,
+            workSeconds: preset.workSeconds,
+            restSeconds: preset.restSeconds,
+            startedAt: startedAt,
+            endedAt: endDate,
+            durationSeconds: max(Int(endDate.timeIntervalSince(startedAt)) - currentPausedSeconds, 1),
+            pausedSeconds: currentPausedSeconds,
+            activeEnergyKcal: activeEnergy > 0 ? activeEnergy : nil,
+            averageHeartRate: averageHeartRate,
+            maxHeartRate: heartRateSamples.max(),
+            timeInZoneSeconds: nil
+        )
+    }
+
+    private func sendIntervalSummary(_ summary: WatchIntervalWorkoutSummary) {
+        guard WCSession.isSupported(),
+              let data = try? JSONEncoder().encode(summary) else { return }
+        let context: [String: Any] = [
+            "kind": "intervalWorkoutSummary",
+            "intervalWorkoutSummary": data
+        ]
+        WCSession.default.transferUserInfo(context)
+        try? WCSession.default.updateApplicationContext(context)
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(context, replyHandler: nil)
+        }
+    }
+
+    private func resetLocalWorkout() {
+        mode = .none
+        exercises = []
+        currentExerciseIndex = 0
+        hydratedSignature = nil
+        intervalPreset = nil
+        intervalRound = 0
+        intervalIsWork = true
+        intervalPhaseRemaining = 0
+        intervalFinished = false
+        localRestEndDate = nil
+        standaloneTitle = ""
     }
 }
 

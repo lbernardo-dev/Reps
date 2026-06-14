@@ -349,7 +349,7 @@ struct WorkoutSessionDetailView: View {
                                         VStack(alignment: .leading, spacing: 3) {
                                             Text(log.exercise.name)
                                                 .font(.headline)
-                                            Text("\(log.sets.count) series · \(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg")
+                                            Text(localizedFormat("sets_volume_summary_format", log.sets.count, Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })))
                                                 .font(.subheadline)
                                                 .foregroundStyle(PulseTheme.secondaryText)
                                         }
@@ -1214,7 +1214,7 @@ struct WorkoutSessionSetRow: View {
     
     var body: some View {
         HStack {
-            Text("Serie \(set.setNumber)")
+            Text(localizedFormat("set_number_format", set.setNumber))
                 .font(.subheadline)
                 .foregroundStyle(PulseTheme.secondaryText)
             

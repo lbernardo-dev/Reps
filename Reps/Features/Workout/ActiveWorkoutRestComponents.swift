@@ -50,9 +50,9 @@ struct ActiveRestPanel: View {
                 .frame(width: 92, height: 92)
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(currentRestSeconds == 0 ? "Listo para continuar" : "Descansando")
+                    Text(currentRestSeconds == 0 ? localizedString("ready_to_continue") : localizedString("resting"))
                         .font(.headline.weight(.bold))
-                    Text(currentRestSeconds == 0 ? "La batería deja de recargar cuando saltas el descanso." : "Completar el descanso reduce la fatiga de la siguiente serie.")
+                    Text(currentRestSeconds == 0 ? localizedString("battery_stops_recharging_when_rest_is_skipped") : localizedString("completing_rest_reduces_next_set_fatigue"))
                         .font(.caption)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -130,7 +130,7 @@ private struct RestCountdownRing: View, Equatable {
                         .font(.system(size: 23, weight: .black, design: .rounded).monospacedDigit())
                         .foregroundStyle(ringColor)
                         .animation(.none, value: seconds)
-                    Text(seconds == 0 ? "¡Listo!" : "descanso")
+                    Text(seconds == 0 ? localizedString("ready") : localizedString("rest"))
                         .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }

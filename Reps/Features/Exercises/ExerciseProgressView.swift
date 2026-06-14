@@ -35,11 +35,11 @@ struct ExerciseProgressView: View {
         func localizedTitle(isSpanish: Bool) -> String {
             switch self {
             case .instructions:
-                String(localized: "instructions")
+                localizedString("instructions")
             case .info:
                 "Info"
             case .history:
-                String(localized: "history")
+                localizedString("history")
             }
         }
     }
@@ -567,7 +567,7 @@ private struct ExercisePerformanceChart: View {
         case .reps:
             "reps"
         case .sets:
-            String(localized: "sets_3")
+            localizedString("sets_3")
         }
     }
 
@@ -575,7 +575,7 @@ private struct ExercisePerformanceChart: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(String(localized: "exercise_trend"))
+                    Text(localizedString("exercise_trend"))
                         .font(.headline)
                     Text(metric.rawValue)
                         .font(.subheadline.weight(.semibold))
@@ -630,7 +630,7 @@ private struct ExercisePerformanceChart: View {
                     .symbolSize(point.id == latestPoint?.id ? 88 : 42)
                 }
 
-                RuleMark(y: .value(String(localized: "average"), averageValue))
+                RuleMark(y: .value(localizedString("average"), averageValue))
                     .foregroundStyle(PulseTheme.secondaryText.opacity(0.45))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
             }
@@ -659,7 +659,7 @@ private struct ExercisePerformanceChart: View {
             .frame(height: 240)
 
             if let latestPoint {
-                Text("\(String(localized: "last_session")): \(latestPoint.workoutTitle) · \(formatted(latestPoint.value)) \(unitLabel)")
+                Text("\(localizedString("last_session")): \(latestPoint.workoutTitle) · \(formatted(latestPoint.value)) \(unitLabel)")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(2)
@@ -736,7 +736,7 @@ struct ExerciseMuscleInfoPanel: View {
         }
         .frame(height: 280)
         .padding(.horizontal, 20)
-        .accessibilityLabel("Músculos principales trabajados por \(exercise.name)")
+        .accessibilityLabel(localizedFormat("primary_muscles_worked_by_exercise_accessibility_format", exercise.name))
     }
 
     private var frontHeatmap: [MuscleIntensity] {
@@ -795,7 +795,7 @@ struct ResistanceCurveCard: View {
                             .padding(.horizontal, 10)
                             .frame(height: 28)
                             .background(profile.dominantPoint.pressureColor.opacity(0.14), in: Capsule())
-                        Text("\(Int((profile.dominantPoint.intensity * 100).rounded()))% pico")
+                        Text(localizedFormat("peak_percentage_format", Int((profile.dominantPoint.intensity * 100).rounded())))
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }

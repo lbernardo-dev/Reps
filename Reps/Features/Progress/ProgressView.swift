@@ -54,7 +54,7 @@ struct ProgressDashboardView: View {
               .buttonStyle(.plain)
             }
           }
-          .stickyHeaderTitle(String(localized: "metric_2"))
+          .stickyHeaderTitle(localizedString("metric_2"))
 
           ProgressActionPlanCard(
             steps: nextBestSteps,
@@ -65,7 +65,7 @@ struct ProgressDashboardView: View {
           ) { action in
             perform(action)
           }
-          .stickyHeaderTitle(String(localized: "progress_plan"))
+          .stickyHeaderTitle(localizedString("progress_plan"))
 
           if selectedSection == .general {
             HStack(spacing: 14) {
@@ -91,7 +91,7 @@ struct ProgressDashboardView: View {
               }
               .buttonStyle(.plain)
             }
-            .stickyHeaderTitle(String(localized: "overview"))
+            .stickyHeaderTitle(localizedString("overview"))
 
             HStack(spacing: 14) {
               MetricCard(
@@ -161,37 +161,14 @@ struct ProgressDashboardView: View {
             .buttonStyle(.plain)
           }
 
-          if selectedSection == .load {
-            CompetitiveSummaryCard(summary: competitiveSummary)
-              .stickyHeaderTitle(String(localized: "load"))
-
-            HStack(spacing: 14) {
-              MetricCard(
-                title: "Carga", value: "\(Int(workload.acuteLoad))", subtitle: "7 días",
-                systemImage: "waveform.path.ecg", badgeColor: PulseTheme.primary)
-              MetricCard(
-                title: "Series efectivas", value: "\(effectiveSetCount)",
-                subtitle: "\(Int(effectiveVolume)) kg", systemImage: "checkmark.seal",
-                badgeColor: PulseTheme.primaryBright)
-            }
-
-            HStack(spacing: 14) {
-              MetricCard(
-                title: "ACWR", value: String(format: "%.2f", workload.acwr),
-                subtitle: "agudo/crónico", systemImage: "gauge.with.needle",
-                badgeColor: PulseTheme.accent)
-              MetricCard(
-                title: "Fatiga", value: "\(Int(workload.fatigueScore))", subtitle: "0-100",
-                systemImage: "battery.50", badgeColor: PulseTheme.warning)
-            }
-
+          if selectedSection == .cardio {
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
                 HStack {
                   Text("cardio_2")
                     .font(.headline)
                   Spacer()
-                  Text("\(filteredCardioLogs.count) registros")
+                  Text(localizedFormat("records_count_format", filteredCardioLogs.count))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -254,6 +231,7 @@ struct ProgressDashboardView: View {
                 }
               }
             }
+            .stickyHeaderTitle("Cardio")
 
             HRZoneDurationCard(
               logs: filteredCardioLogs,
@@ -264,6 +242,31 @@ struct ProgressDashboardView: View {
               logs: filteredCardioLogs,
               dateOfBirth: store.userProfile.dateOfBirth
             )
+          }
+
+          if selectedSection == .load {
+            CompetitiveSummaryCard(summary: competitiveSummary)
+              .stickyHeaderTitle(localizedString("load"))
+
+            HStack(spacing: 14) {
+              MetricCard(
+                title: "Carga", value: "\(Int(workload.acuteLoad))", subtitle: "7 días",
+                systemImage: "waveform.path.ecg", badgeColor: PulseTheme.primary)
+              MetricCard(
+                title: "Series efectivas", value: "\(effectiveSetCount)",
+                subtitle: "\(Int(effectiveVolume)) kg", systemImage: "checkmark.seal",
+                badgeColor: PulseTheme.primaryBright)
+            }
+
+            HStack(spacing: 14) {
+              MetricCard(
+                title: "ACWR", value: String(format: "%.2f", workload.acwr),
+                subtitle: "agudo/crónico", systemImage: "gauge.with.needle",
+                badgeColor: PulseTheme.accent)
+              MetricCard(
+                title: "Fatiga", value: "\(Int(workload.fatigueScore))", subtitle: "0-100",
+                systemImage: "battery.50", badgeColor: PulseTheme.warning)
+            }
 
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
@@ -296,7 +299,7 @@ struct ProgressDashboardView: View {
                   Text("target_vs_actual")
                     .font(.headline)
                   Spacer()
-                  Text("\(competitiveSummary.actualWeeklySets)/\(competitiveSummary.targetWeeklySets) series")
+                  Text(localizedFormat("sets_fraction_format", competitiveSummary.actualWeeklySets, competitiveSummary.targetWeeklySets))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -451,7 +454,7 @@ struct ProgressDashboardView: View {
                 }
               }
             }
-            .stickyHeaderTitle(String(localized: "exercises_3"))
+            .stickyHeaderTitle(localizedString("exercises_3"))
 
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
@@ -496,7 +499,7 @@ struct ProgressDashboardView: View {
                 HStack {
                   Text("constancia").font(.headline)
                   Spacer()
-                  Text("\(consistencyTotal) sesiones")
+                  Text(localizedFormat("sessions_count_format", consistencyTotal))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -545,7 +548,7 @@ struct ProgressDashboardView: View {
 
           if selectedSection == .body {
             bodyProgressCard
-              .stickyHeaderTitle(String(localized: "body_2"))
+              .stickyHeaderTitle(localizedString("body_2"))
           }
 
           if selectedSection == .muscles {
@@ -565,7 +568,7 @@ struct ProgressDashboardView: View {
 	                gender: store.userProfile.muscleMapGender,
 	                catalog: store.exercises
 	              )
-              .stickyHeaderTitle(String(localized: "muscle_map"))
+              .stickyHeaderTitle(localizedString("muscle_map"))
             }
           }
 
@@ -854,7 +857,7 @@ private struct MetricInline: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text(title)
+      Text(localizedKey(title))
         .font(.caption.weight(.semibold))
         .foregroundStyle(PulseTheme.secondaryText)
       Text(value)
@@ -882,7 +885,7 @@ private struct AnalyticsShortcutCard: View {
         .frame(width: 42, height: 42)
         .background(PulseTheme.primary.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-      Text(title)
+      Text(localizedKey(title))
         .font(.headline)
         .lineLimit(2)
         .minimumScaleFactor(0.82)
@@ -948,12 +951,12 @@ private struct ProgressActionPlanCard: View {
           .frame(width: 92, height: 92)
 
           VStack(alignment: .leading, spacing: 9) {
-            Label(String(localized: "progress_direction"), systemImage: "sparkles")
+            Label(localizedString("progress_direction"), systemImage: "sparkles")
               .font(.caption.weight(.black))
               .textCase(.uppercase)
               .foregroundStyle(PulseTheme.primary)
 
-            Text(pendingStep?.title ?? (String(localized: "keep_the_week_stable")))
+            Text(pendingStep?.title ?? (localizedString("keep_the_week_stable")))
               .font(.title3.weight(.bold))
               .lineLimit(2)
               .minimumScaleFactor(0.82)
@@ -1053,7 +1056,7 @@ private struct ProgressSignalPill: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 2) {
-      Text(title)
+      Text(localizedKey(title))
         .font(.caption2.weight(.bold))
         .foregroundStyle(PulseTheme.secondaryText)
       Text(value)
@@ -1096,7 +1099,7 @@ private struct ProgressActionStepRow: View {
             .minimumScaleFactor(0.86)
 
           if step.isCompleted {
-            Text(String(localized: "done"))
+            Text(localizedString("done"))
               .font(.caption2.weight(.bold))
               .foregroundStyle(PulseTheme.recovery)
               .padding(.horizontal, 7)
@@ -1200,7 +1203,7 @@ private struct CompetitiveMuscleGapRow: View {
         .frame(width: 28, height: 28)
         .background(color.opacity(0.12))
         .clipShape(Circle())
-      Text(title)
+      Text(localizedKey(title))
         .font(.subheadline.weight(.semibold))
       Spacer()
     }
@@ -1222,7 +1225,7 @@ private struct StalledExerciseRow: View {
       VStack(alignment: .leading, spacing: 4) {
         Text(stall.exercise.name)
           .font(.headline)
-        Text("\(stall.loggedSessions) sesiones · mejor previo \(Int(stall.previousBestEstimatedOneRepMaxKg)) kg · actual \(Int(stall.latestEstimatedOneRepMaxKg)) kg")
+        Text(localizedFormat("stall_summary_format", stall.loggedSessions, Int(stall.previousBestEstimatedOneRepMaxKg), Int(stall.latestEstimatedOneRepMaxKg)))
           .font(.subheadline)
           .foregroundStyle(PulseTheme.secondaryText)
           .fixedSize(horizontal: false, vertical: true)
@@ -1329,6 +1332,7 @@ private enum ProgressSection: String, CaseIterable, Identifiable {
   case general
   case exercises
   case muscles
+  case cardio
   case body
   case load
 
@@ -1339,6 +1343,7 @@ private enum ProgressSection: String, CaseIterable, Identifiable {
     case .general: "General"
     case .exercises: "Ejercicios"
     case .muscles: "Músculos"
+    case .cardio: "Cardio"
     case .body: "Cuerpo"
     case .load: "Carga"
     }
@@ -1413,7 +1418,7 @@ private struct MuscleRow: View {
         VStack(alignment: .leading, spacing: 6) {
           Text(point.muscleGroup)
             .font(.title3.weight(.bold))
-          Text("\(point.completedSets) de 12 series semanales")
+          Text(localizedFormat("weekly_sets_of_12_format", point.completedSets))
             .font(.headline.monospacedDigit())
             .foregroundStyle(PulseTheme.secondaryText)
         }
@@ -1516,13 +1521,13 @@ private struct StreakBadge: View {
       }
 
       VStack(alignment: .leading, spacing: 2) {
-        Text(String(localized: "streak"))
+        Text(localizedString("streak"))
           .font(.system(size: 10, weight: .black, design: .rounded))
           .foregroundStyle(PulseTheme.secondaryText)
           .tracking(1.4)
 
         Text(
-          "\(formattedDays) \(days == 1 ? (String(localized: "day")) : (String(localized: "days")))"
+          "\(formattedDays) \(days == 1 ? (localizedString("day")) : (localizedString("days")))"
         )
         .font(.system(size: 18, weight: .bold, design: .rounded))
         .foregroundStyle(days > 0 ? .white : PulseTheme.secondaryText)

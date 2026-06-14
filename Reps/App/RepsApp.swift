@@ -57,6 +57,7 @@ struct RepsApp: App {
                 .environment(\.locale, Locale(identifier: store.userProfile.preferredLanguage))
                 .tint(PulseTheme.accent)
                 .task {
+                    RepsLocalization.use(store.userProfile.preferredLanguage)
                     PermissionService.shared.refreshAll()
 
                     if store.userProfile.onboardingCompleted,
@@ -81,6 +82,10 @@ struct RepsApp: App {
                 }
                 .onOpenURL { url in
                     _ = store.handleReceiptDeepLink(url)
+                }
+                .onChange(of: store.userProfile.preferredLanguage) { _, language in
+                    RepsLocalization.use(language)
+                    store.syncWidgets()
                 }
         }
         .onChange(of: scenePhase) { _, newPhase in

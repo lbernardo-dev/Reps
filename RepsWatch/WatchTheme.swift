@@ -35,6 +35,21 @@ enum WatchTheme {
         return destructive
     }
 
+    // HR zones — same thresholds/colors as the iPhone `ProgressView.zoneColor`.
+    static let zoneColors: [Color] = [
+        Color(red: 0.0, green: 0.48, blue: 1.0),   // Z1 recovery
+        Color(red: 0.20, green: 0.80, blue: 0.35), // Z2 easy
+        Color.yellow,                              // Z3 moderate
+        Color.orange,                              // Z4 hard
+        Color.red                                  // Z5 max
+    ]
+
+    /// Color for an HR zone index (1…5). Returns secondary gray when unknown.
+    static func zoneColor(_ zone: Int?) -> Color {
+        guard let zone, (1...5).contains(zone) else { return Color.white.opacity(0.4) }
+        return zoneColors[zone - 1]
+    }
+
     static func haptic(_ type: WKHapticType) {
         WKInterfaceDevice.current().play(type)
     }

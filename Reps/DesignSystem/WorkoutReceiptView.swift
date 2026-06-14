@@ -60,7 +60,7 @@ struct WorkoutReceiptSharePayload: Codable, Hashable {
             completedSetsCount: FitnessMetrics.completedSets(in: session).count,
             exercises: logs.prefix(6).map { log in
                 WorkoutReceiptExerciseLine(
-                    name: RepsText.exerciseName(log.exercise.name, language: String(localized: "en_2")),
+                    name: RepsText.exerciseName(log.exercise.name, language: localizedString("en_2")),
                     sets: log.sets.count
                 )
             }
@@ -121,7 +121,7 @@ enum WorkoutReceiptDeepLink {
             sets: (0..<payload.completedSetsCount).map { index in
                 SetLog(setNumber: index + 1, weightKg: 0, reps: 0, completed: true)
             },
-            notes: String(localized: "imported_from_a_reps_receipt_qr"),
+            notes: localizedString("imported_from_a_reps_receipt_qr"),
             exerciseLogs: payload.exercises.map { line in
                 ExerciseLog(
                     exercise: Exercise(
@@ -194,7 +194,7 @@ struct WorkoutReceiptView: View {
     private var dateString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd MMM yyyy"
-        formatter.locale = Locale(identifier: String(localized: "en_us"))
+        formatter.locale = Locale(identifier: localizedString("en_us"))
         return formatter.string(from: sharePayload.date).uppercased()
     }
     
@@ -251,7 +251,7 @@ struct WorkoutReceiptView: View {
     }
 
     private var routeTitle: String {
-        session?.routeKindTitle.uppercased() ?? (String(localized: "route"))
+        session?.routeKindTitle.uppercased() ?? (localizedString("route"))
     }
 
     private var isTreadmillReceipt: Bool {
@@ -333,7 +333,7 @@ struct WorkoutReceiptView: View {
 
                             Spacer(minLength: 2)
 
-                            let setsLabel = String(localized: "sets_2")
+                            let setsLabel = localizedString("sets_2")
                             Text("\(line.sets) \(setsLabel)")
                                 .font(.system(size: 13, weight: .bold, design: .monospaced))
                         }
@@ -350,7 +350,7 @@ struct WorkoutReceiptView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                 } else {
-                    Text(String(localized: "no_exercises_completed"))
+                    Text(localizedString("no_exercises_completed"))
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundStyle(Color.black.opacity(0.45))
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -464,12 +464,12 @@ struct WorkoutReceiptView: View {
 
     private var routeStatusText: String {
         if routePoints.count >= 2 {
-            return String(localized: "gps_map_recorded")
+            return localizedString("gps_map_recorded")
         }
         if isTreadmillReceipt {
-            return String(localized: "no_gps_treadmill")
+            return localizedString("no_gps_treadmill")
         }
-        return String(localized: "no_gps_trace_saved")
+        return localizedString("no_gps_trace_saved")
     }
     
     private func statRow(title: String, value: String) -> some View {
@@ -642,23 +642,23 @@ private struct ReceiptRoutePanel: View {
 
     private var emptyTitle: String {
         if isTreadmill {
-            return String(localized: "treadmill_no_gps")
+            return localizedString("treadmill_no_gps")
         }
-        return String(localized: "no_gps_map")
+        return localizedString("no_gps_map")
     }
 
     private var emptySubtitle: String {
         if isTreadmill {
-            return String(localized: "stationary_workout")
+            return localizedString("stationary_workout")
         }
-        return String(localized: "no_saved_route_points")
+        return localizedString("no_saved_route_points")
     }
 
     private var emptyBadge: String {
         if isTreadmill {
-            return String(localized: "treadmill")
+            return localizedString("treadmill")
         }
-        return String(localized: "no_gps")
+        return localizedString("no_gps")
     }
 }
 

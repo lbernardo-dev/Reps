@@ -21,11 +21,11 @@ enum LineType: String, CaseIterable, Identifiable {
     func displayName(isSpanish: Bool) -> String {
         switch self {
         case .expected:
-            return String(localized: "expected_2")
+            return localizedString("expected_2")
         case .planned:
-            return String(localized: "planned_2")
+            return localizedString("planned_2")
         case .real:
-            return String(localized: "real_2")
+            return localizedString("real_2")
         }
     }
     
@@ -50,9 +50,9 @@ enum ProgressionMetricType: String, CaseIterable, Identifiable {
     func displayName(isSpanish: Bool) -> String {
         switch self {
         case .exercises:
-            return String(localized: "exercise_progress")
+            return localizedString("exercise_progress")
         case .weight:
-            return String(localized: "body_weight")
+            return localizedString("body_weight")
         }
     }
 }
@@ -164,9 +164,9 @@ struct QuickMenuProgressionChart: View {
     private var chartTitle: String {
         switch selectedMetric {
         case .exercises:
-            return String(localized: "training_volume")
+            return localizedString("training_volume")
         case .weight:
-            return String(localized: "body_weight_2")
+            return localizedString("body_weight_2")
         }
     }
     
@@ -219,13 +219,13 @@ struct QuickMenuProgressionChart: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(String(localized: "show_body_weight"))
+                .accessibilityLabel(localizedString("show_body_weight"))
             }
             .padding(.horizontal, 4)
             
             // Stacked Title Row
             VStack(alignment: .leading, spacing: 3) {
-                Text(String(localized: "temporal_evolution"))
+                Text(localizedString("temporal_evolution"))
                     .font(.system(size: 9, weight: .black, design: .rounded))
                     .tracking(2.5)
                     .foregroundStyle(PulseTheme.secondaryText)
@@ -392,7 +392,7 @@ struct QuickMenuProgressionChart: View {
                         .foregroundStyle(Color.white.opacity(0.12))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 4]))
                         .annotation(position: .top, alignment: .center) {
-                            Text(String(localized: "today_2"))
+                            Text(localizedString("today_2"))
                                 .font(.system(size: 8, weight: .black, design: .rounded))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 6)
@@ -463,7 +463,7 @@ struct QuickMenuProgressionChart: View {
             
             // Interactive Drag instructions & Static Legend (ALWAYS visible)
             HStack {
-                Label(allPoints.isEmpty ? dataSourceText : (String(localized: "drag_to_explore_values")), systemImage: allPoints.isEmpty ? "lock.shield" : "hand.tap.fill")
+                Label(allPoints.isEmpty ? dataSourceText : (localizedString("drag_to_explore_values")), systemImage: allPoints.isEmpty ? "lock.shield" : "hand.tap.fill")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
                     .foregroundStyle(.white.opacity(activeWeek != nil ? 0.2 : 0.4))
                 
@@ -493,14 +493,14 @@ struct QuickMenuProgressionChart: View {
     private var emptyStateText: String {
         switch selectedMetric {
         case .exercises:
-            return String(localized: "no_logged_sessions_in_the_last_12_weeks")
+            return localizedString("no_logged_sessions_in_the_last_12_weeks")
         case .weight:
-            return String(localized: "no_body_weights_logged_in_the_last_12_weeks")
+            return localizedString("no_body_weights_logged_in_the_last_12_weeks")
         }
     }
 
     private var dataSourceText: String {
-        String(localized: "logged_data_only")
+        localizedString("logged_data_only")
     }
 }
 

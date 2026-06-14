@@ -263,7 +263,7 @@ final class HealthKitService: ObservableObject {
                 heartRateBefore: sensors?.heartRateBefore,
                 heartRateAfter: sensors?.heartRateAfter,
                 rpe: nil,
-                notes: String(localized: "Importado desde Apple Health")
+                notes: localizedString("imported_from_apple_health")
             ))
         }
 

@@ -270,7 +270,7 @@ struct PlateCalculatorView: View {
                                         Circle()
                                             .fill(item.color)
                                             .frame(width: 12, height: 12)
-                                        Text("\(item.count)x discos de \(item.weight.formatted()) \(unit)")
+                                        Text(localizedFormat("plates_count_weight_format", item.count, item.weight.formatted(), unit))
                                             .font(.subheadline)
                                         Spacer()
                                         Text("\(Double(item.count) * item.weight, specifier: "%.1f") \(unit)")
@@ -280,7 +280,7 @@ struct PlateCalculatorView: View {
                                 }
                                 
                                 if calculatedPlatesPerSide.isEmpty && targetWeight > barbellWeight {
-                                    Text("El peso sobrante es menor que el disco más pequeño disponible (\(smallestAvailablePlate.formatted()) \(unit))")
+                                    Text(localizedFormat("remaining_weight_below_smallest_plate_format", smallestAvailablePlate.formatted(), unit))
                                         .font(.caption)
                                         .foregroundStyle(PulseTheme.warning)
                                         .multilineTextAlignment(.center)

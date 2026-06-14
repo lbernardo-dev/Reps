@@ -5,16 +5,18 @@ import SwiftUI
 struct RepsWorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: RepsWorkoutActivityAttributes.self) { context in
+            let _ = RepsLocalization.use(context.state.snapshot.preferredLanguage)
             let theme = WidgetColor.from(name: context.state.snapshot.widgetAccentColorName).theme
             liveActivityBody(context.state.snapshot, theme: theme, isStale: context.isStale)
                 .activityBackgroundTint(theme.isDarkBackground ? Color.black : Color.white)
                 .activitySystemActionForegroundColor(theme.tint)
         } dynamicIsland: { context in
             let snapshot = context.state.snapshot
+            let _ = RepsLocalization.use(snapshot.preferredLanguage)
             let theme = WidgetColor.from(name: snapshot.widgetAccentColorName).theme
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    islandMetric(snapshot.isRouteWorkout ? "Distancia" : "Sesión", icon: snapshot.isRouteWorkout ? "point.topleft.down.curvedto.point.bottomright.up" : "timer", tint: theme.tint) {
+                    islandMetric(snapshot.isRouteWorkout ? "distance" : "session", icon: snapshot.isRouteWorkout ? "point.topleft.down.curvedto.point.bottomright.up" : "timer", tint: theme.tint) {
                         if snapshot.isRouteWorkout {
                             Text(routeDistanceText(snapshot))
                         } else {
@@ -23,7 +25,7 @@ struct RepsWorkoutLiveActivity: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    islandMetric(snapshot.isRouteWorkout ? "Ritmo" : "Series", icon: snapshot.isRouteWorkout ? "speedometer" : "checkmark.circle", tint: theme.tint) {
+                    islandMetric(snapshot.isRouteWorkout ? "pace" : "sets", icon: snapshot.isRouteWorkout ? "speedometer" : "checkmark.circle", tint: theme.tint) {
                         if snapshot.isRouteWorkout {
                             Text(routePaceText(snapshot))
                         } else {
@@ -97,7 +99,7 @@ struct RepsWorkoutLiveActivity: Widget {
 
             HStack(spacing: 10) {
                 compactMetric("Pulso", icon: "heart.fill", theme: theme) {
-                    Text(snapshot.heartRate.map { String(localized: "\(Int($0)) lpm") } ?? "--")
+                    Text(snapshot.heartRate.map { localizedFormat("heart_rate_bpm_format", Int($0)) } ?? "--")
                 }
                 compactMetric("Kcal", icon: "flame.fill", theme: theme) {
                     Text(snapshot.activeEnergyKcal.map { "\(Int($0))" } ?? "--")
@@ -170,14 +172,14 @@ struct RepsWorkoutLiveActivity: Widget {
                         if snapshot.restEndDate == nil {
                             Text(verbatim: nextExercise)
                         } else {
-                            Text("Siguiente: \(nextExercise)")
+                            Text(localizedFormat("next_value_format", nextExercise))
                         }
                     }
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(theme.secondaryForeground)
                     .lineLimit(1)
                     Spacer(minLength: 4)
-                    Text("\(snapshot.completedSets)/\(max(snapshot.totalSets, 1)) series")
+                    Text(localizedFormat("sets_fraction_format", snapshot.completedSets, max(snapshot.totalSets, 1)))
                         .font(.caption2.weight(.black))
                         .foregroundStyle(theme.badgeText)
                         .padding(.horizontal, 7)
@@ -248,7 +250,7 @@ struct RepsWorkoutLiveActivity: Widget {
                 .tint(theme.tint)
 
                 if snapshot.isRouteWorkout {
-                    islandCompactMetric(icon: "timer", value: snapshot.isPaused ? snapshot.elapsedText : String(localized: "en_curso"), theme: theme)
+                    islandCompactMetric(icon: "timer", value: snapshot.isPaused ? snapshot.elapsedText : localizedString("en_curso"), theme: theme)
                     islandCompactMetric(icon: "point.topleft.down.curvedto.point.bottomright.up", value: routeDistanceText(snapshot), theme: theme)
                     islandCompactMetric(icon: "speedometer", value: routePaceText(snapshot), theme: theme)
                 } else {
@@ -275,7 +277,7 @@ struct RepsWorkoutLiveActivity: Widget {
         let title: LocalizedStringKey = isStale ? "ACTUALIZANDO" : statusTitle(snapshot)
         let icon = isStale ? "arrow.triangle.2.circlepath" : compactLeadingSystemImage(snapshot)
 
-        return Label(title, systemImage: icon)
+        return Label(localizedKey(title), systemImage: icon)
             .font(.system(size: 10, weight: .black))
             .foregroundStyle(theme.badgeText)
             .lineLimit(1)
@@ -291,7 +293,7 @@ struct RepsWorkoutLiveActivity: Widget {
         @ViewBuilder value: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Label(title, systemImage: icon)
+            Label(localizedKey(title), systemImage: icon)
                 .font(.system(size: 8, weight: .black))
                 .foregroundStyle(theme.secondaryForeground)
                 .lineLimit(1)
@@ -315,7 +317,7 @@ struct RepsWorkoutLiveActivity: Widget {
         @ViewBuilder value: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Label(title, systemImage: icon)
+            Label(localizedKey(title), systemImage: icon)
                 .font(.system(size: 9, weight: .black))
                 .foregroundStyle(tint)
                 .lineLimit(1)

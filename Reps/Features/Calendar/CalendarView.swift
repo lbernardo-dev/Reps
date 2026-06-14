@@ -10,7 +10,6 @@ struct CalendarView: View {
 
     var body: some View {
         NavigationStack {
-            let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
             StickyHeaderScaffold(
                 title: "calendar_2",
                 subtitle: "plan_and_review_load",
@@ -24,7 +23,7 @@ struct CalendarView: View {
                 }
             ) {
                     calendarCommandCard
-                        .stickyHeaderTitle(String(localized: "this_week"))
+                        .stickyHeaderTitle(localizedString("this_week"))
 
                     HStack {
                         Button { changeMonth(by: -1) } label: { Image(systemName: "chevron.left") }
@@ -107,12 +106,12 @@ struct CalendarView: View {
                             }
                             if !daySessions.isEmpty {
                                 HStack(spacing: 12) {
-                                    let sessionsWord = String(localized: "sessions_2")
+                                    let sessionsWord = localizedString("sessions_2")
                                     CalendarSummaryPill(title: "\(daySessions.count)", subtitle: LocalizedStringKey(sessionsWord), systemImage: "checkmark.circle")
                                     if dayRouteDistanceKm(on: selectedDate) > 0 {
                                         CalendarSummaryPill(title: String(format: "%.1f", dayRouteDistanceKm(on: selectedDate)), subtitle: "km", systemImage: "figure.walk")
                                     } else {
-                                        let exercisesWord = String(localized: "exercises_2")
+                                        let exercisesWord = localizedString("exercises_2")
                                         CalendarSummaryPill(title: "\(dayExerciseCount(on: selectedDate))", subtitle: LocalizedStringKey(exercisesWord), systemImage: "dumbbell")
                                     }
                                     let volume = Int(FitnessMetrics.totalVolumeKg(for: daySessions))
@@ -149,13 +148,12 @@ struct CalendarView: View {
                                                 Text(RepsText.exerciseName(log.exercise.name, language: store.userProfile.preferredLanguage))
                                                     .font(.headline)
                                                 Spacer()
-                                                let setsWord = String(localized: "sets_3")
+                                                let setsWord = localizedString("sets_3")
                                                 Text("\(log.sets.count) \(setsWord)")
                                                     .font(.subheadline.weight(.semibold))
                                                     .foregroundStyle(PulseTheme.primary)
                                             }
-                                            let volumeWord = String(localized: "volume_2")
-                                            Text("\(Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })) kg \(volumeWord)")
+                                            Text(localizedFormat("volume_kg_format", Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })))
                                                 .font(.subheadline)
                                                 .foregroundStyle(PulseTheme.secondaryText)
                                         }
@@ -208,7 +206,7 @@ struct CalendarView: View {
                         .foregroundStyle(PulseTheme.primary)
                 }
                 HStack(spacing: 10) {
-                    let scheduledWord = String(localized: "scheduled_3")
+                    let scheduledWord = localizedString("scheduled_3")
                     CalendarSummaryPill(title: "\(weekScheduled.count)", subtitle: LocalizedStringKey(scheduledWord), systemImage: "calendar.badge.clock")
                     CalendarSummaryPill(title: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg", systemImage: "scalemass")
                     CalendarSummaryPill(title: "\(weekSessions.reduce(0) { $0 + $1.durationMinutes })", subtitle: "min", systemImage: "timer")
@@ -311,7 +309,7 @@ struct CalendarView: View {
             return parts.joined(separator: " · ")
         }
 
-        let exercisesWord = String(localized: "exercises_2")
+        let exercisesWord = localizedString("exercises_2")
         return "\(session.durationMinutes) min · \(exerciseCount(for: session)) \(exercisesWord)"
     }
 

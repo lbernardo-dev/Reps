@@ -6,6 +6,7 @@ enum PulseTheme {
     static let primary = Color(red: 0.14, green: 0.35, blue: 0.88)
     static let primaryBright = Color(red: 0.00, green: 0.68, blue: 0.82)
     static let accent = Color(red: 1.00, green: 0.39, blue: 0.18)
+    static let fitOrange = Color(red: 0.99, green: 0.52, blue: 0.30)
     static let recovery = Color(red: 0.18, green: 0.72, blue: 0.38)
     static let accentMuted = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .light
@@ -14,6 +15,9 @@ enum PulseTheme {
     })
     static let destructive = Color(red: 0.93, green: 0.24, blue: 0.22)
     static let warning = Color(red: 1.0, green: 0.60, blue: 0.14)
+
+    // Unified weekly-volume zone semantics: blue (maintaining) -> green (growing) -> yellow (focus).
+    static let growth = Color(red: 0.20, green: 0.78, blue: 0.45)
 
     static let background = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .light ? UIColor(red: 0.95, green: 0.96, blue: 0.98, alpha: 1.0) : .black
@@ -52,6 +56,13 @@ enum PulseTheme {
     static let appleMusic = Color(red: 0.98, green: 0.24, blue: 0.34)
 
     static let heroGradientColors: [Color] = [primary, primaryBright]
+    static var fitActionGradient: LinearGradient {
+        LinearGradient(
+            colors: [fitOrange, primary],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
 }
 
 enum RepsText {
@@ -275,7 +286,7 @@ struct PrimaryButton: View {
                 if let systemImage {
                     Image(systemName: systemImage)
                 }
-                Text(title)
+                Text(localizedKey(title))
             }
             .font(.headline)
             .frame(maxWidth: .infinity)
@@ -302,7 +313,7 @@ struct SecondaryButton: View {
     var body: some View {
         Button(action: action) {
             Label {
-                Text(title)
+                Text(localizedKey(title))
             } icon: {
                 if let systemImage {
                     Image(systemName: systemImage)
@@ -324,7 +335,7 @@ struct SectionHeader: View {
     let title: LocalizedStringKey
 
     var body: some View {
-        Text(title)
+        Text(localizedKey(title))
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(PulseTheme.secondaryText)
             .accessibilityAddTraits(.isHeader)
@@ -570,8 +581,8 @@ struct PulseListRow<Trailing: View>: View {
             .background(PulseTheme.grouped)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.headline)
-                Text(subtitle)
+                Text(localizedKey(title)).font(.headline)
+                Text(localizedKey(subtitle))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -588,7 +599,7 @@ struct PulseChip: View {
     var isSelected = false
 
     var body: some View {
-        Text(title)
+        Text(localizedKey(title))
             .font(.subheadline.weight(.semibold))
             .lineLimit(1)
             .minimumScaleFactor(0.85)
@@ -611,9 +622,9 @@ struct PulseEmptyState: View {
                 .font(.largeTitle)
                 .foregroundStyle(PulseTheme.primary)
                 .accessibilityHidden(true)
-            Text(title)
+            Text(localizedKey(title))
                 .font(.title2.bold())
-            Text(message)
+            Text(localizedKey(message))
                 .foregroundStyle(PulseTheme.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -687,7 +698,7 @@ struct MetricCard: View {
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(badgeColor)
                     }
-                    Text(title)
+                    Text(localizedKey(title))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(2)
@@ -698,7 +709,7 @@ struct MetricCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .foregroundStyle(badgeColor)
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.subheadline)
                     .lineLimit(2)
                     .minimumScaleFactor(0.82)

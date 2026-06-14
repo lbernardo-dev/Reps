@@ -242,10 +242,10 @@ public struct WidgetTheme {
 }
 
 public struct RepsWidgetConfigurationIntent: WidgetConfigurationIntent {
-    public static let title: LocalizedStringResource = "Configuración del Widget"
-    public static let description = IntentDescription("Personaliza la visualización de los widgets de Reps.")
+    public static let title: LocalizedStringResource = "widget_configuration"
+    public static let description = IntentDescription("customize_reps_widget_display")
 
-    @Parameter(title: "Fondo", default: WidgetColor.system)
+    @Parameter(title: "background", default: WidgetColor.system)
     public var backgroundColor: WidgetColor
 
     public init() {}

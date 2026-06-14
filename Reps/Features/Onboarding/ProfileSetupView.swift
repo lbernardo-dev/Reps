@@ -15,7 +15,7 @@ struct ProfileSetupView: View {
     @State private var generationPulse = false
     @State private var selectedConsistencyIndex = 0
     @State private var generationProgress: Double = 0.0
-    @State private var generationStatusText: String = "Analizando métricas base..."
+    @State private var generationStatusText: String = "analyzing_baseline_metrics"
     @State private var isGenerationComplete = false
     @State private var hasTargetEvent = false
     @State private var targetEventName = ""
@@ -181,8 +181,8 @@ struct ProfileSetupView: View {
                 VStack(spacing: 18) {
                     HStack {
                         OnboardingSignal(title: "Plan", value: "8 semanas", color: PulseTheme.primary)
-                        OnboardingSignal(title: "Progreso", value: "por músculo", color: PulseTheme.primaryBright)
-                        OnboardingSignal(title: "Predicción", value: "visual", color: PulseTheme.accent)
+                        OnboardingSignal(title: "progress", value: "by_muscle", color: PulseTheme.primaryBright)
+                        OnboardingSignal(title: "prediction", value: "visual", color: PulseTheme.accent)
                     }
 
                     HStack(spacing: 8) {
@@ -196,8 +196,8 @@ struct ProfileSetupView: View {
             }
 
             HStack(spacing: 12) {
-                OnboardingBenefit(icon: "figure.strengthtraining.traditional", title: "Rutinas listas", subtitle: "Días, ejercicios, series y descansos.")
-                OnboardingBenefit(icon: "chart.line.uptrend.xyaxis", title: "Pronósticos", subtitle: "Evolución muscular esperada.")
+                OnboardingBenefit(icon: "figure.strengthtraining.traditional", title: "ready_routines", subtitle: "days_exercises_sets_and_rests")
+                OnboardingBenefit(icon: "chart.line.uptrend.xyaxis", title: "forecasts", subtitle: "expected_muscle_evolution")
             }
         }
     }
@@ -205,8 +205,8 @@ struct ProfileSetupView: View {
     private var sexStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "Elige el cuerpo que usará la app",
-                subtitle: "A partir de aquí, los mapas musculares y gráficos se muestran solo con este sexo."
+                title: "choose_the_body_the_app_will_use",
+                subtitle: "muscle_maps_and_charts_use_this_sex"
             )
 
             HStack(spacing: 14) {
@@ -245,15 +245,15 @@ struct ProfileSetupView: View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
                 title: "Ajusta tu punto de partida",
-                subtitle: "Usaremos estos datos para estimar cargas iniciales, volumen tolerable y progresión."
+                subtitle: "we_use_these_data_to_estimate_initial_loads_volume_and_progression"
             )
 
             VStack(spacing: 14) {
                 OnboardingRulerMetric(
                     title: "Edad",
                     valueText: "\(age)",
-                    unit: "años",
-                    caption: "Experiencia, recuperación y volumen inicial.",
+                    unit: "years",
+                    caption: "experience_recovery_and_initial_volume",
                     icon: "calendar",
                     value: Binding(
                         get: { Double(age) },
@@ -267,7 +267,7 @@ struct ProfileSetupView: View {
                     title: "Altura",
                     valueText: String(format: "%.0f", heightCm),
                     unit: "cm",
-                    caption: "Ayuda a contextualizar peso y composición.",
+                    caption: "helps_contextualize_weight_and_composition",
                     icon: "ruler",
                     value: $heightCm,
                     range: 130...220,
@@ -299,27 +299,27 @@ struct ProfileSetupView: View {
         let iconColor: Color
 
         if bmi < 18.5 {
-            title = "Foco sugerido: Ganar Masa Muscular"
-            description = "Tu peso actual es bajo para tu altura. Te sugerimos priorizar entrenamientos de fuerza orientados a hipertrofia muscular (tanto en casa con mancuernas como en gimnasio) acompañados de una buena alimentación."
-            tag = "Hipertrofia"
+            title = "suggested_focus_build_muscle"
+            description = "current_weight_low_for_height_strength_hypertrophy_recommendation"
+            tag = "hypertrophy"
             iconName = "scalemass.fill"
             iconColor = PulseTheme.primary
         } else if bmi < 25.0 {
-            title = "Foco sugerido: Tonificación y Fuerza"
-            description = "Te encuentras en un rango de peso saludable. Tu plan se centrará en la recomposición corporal, mejorando tu fuerza y definición muscular en casa o en el gimnasio."
-            tag = "Recomposición"
+            title = "suggested_focus_toning_and_strength"
+            description = "healthy_weight_range_recomposition_recommendation"
+            tag = "recomposition"
             iconName = "figure.strengthtraining.traditional"
             iconColor = PulseTheme.primaryBright
         } else if bmi < 30.0 {
-            title = "Foco sugerido: Pérdida de Grasa"
-            description = "Tu peso actual indica sobrepeso. Te sugerimos rutinas que combinen entrenamientos de fuerza de intensidad moderada-alta para mantener el músculo mientras pierdes grasa."
-            tag = "Déficit Calórico"
+            title = "suggested_focus_fat_loss"
+            description = "overweight_strength_and_fat_loss_recommendation"
+            tag = "calorie_deficit"
             iconName = "flame.fill"
             iconColor = PulseTheme.warning
         } else {
-            title = "Foco sugerido: Salud y Resistencia"
-            description = "Te sugerimos rutinas con ejercicios de bajo impacto (peso corporal o máquinas de cardio en el gimnasio) para cuidar tus articulaciones mientras mejoras tu salud metabólica."
-            tag = "Bajo Impacto"
+            title = "suggested_focus_health_and_endurance"
+            description = "low_impact_health_and_endurance_recommendation"
+            tag = "low_impact"
             iconName = "heart.text.square.fill"
             iconColor = PulseTheme.destructive
         }
@@ -372,8 +372,8 @@ struct ProfileSetupView: View {
     private var goalStep: some View {
         VStack(alignment: .leading, spacing: 20) {
             optionStep(
-                title: "¿Cuál es tu objetivo principal?",
-                subtitle: "Esto cambia repeticiones, descansos y foco del plan generado.",
+                title: "what_is_your_main_goal",
+                subtitle: "this_changes_reps_rests_and_plan_focus",
                 options: UserProfile.MainGoal.allCases,
                 selection: $profile.mainGoal,
                 titleForOption: goalTitle,
@@ -387,8 +387,8 @@ struct ProfileSetupView: View {
     private var trainingStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             optionStep(
-                title: "¿Dónde y con qué frecuencia entrenas?",
-                subtitle: "Escoge el escenario más realista. Luego afinamos equipo y duración.",
+                title: "where_and_how_often_do_you_train",
+                subtitle: "choose_the_most_realistic_setup_then_refine_equipment_and_duration",
                 options: UserProfile.TrainingLocation.allCases,
                 selection: $profile.trainingLocation,
                 titleForOption: locationTitle,
@@ -397,7 +397,7 @@ struct ProfileSetupView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("\(profile.weeklyTrainingDays) días por semana")
+                    Text(localizedFormat("days_per_week_count_format", profile.weeklyTrainingDays))
                         .font(.title2.weight(.bold))
                     HStack(spacing: 8) {
                         ForEach(2...6, id: \.self) { day in
@@ -458,7 +458,7 @@ struct ProfileSetupView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("equipo_disponible")
+                    Text("available_equipment")
                         .font(.title3.weight(.bold))
                     Text("check_everything_you_can_comfortably_wear_the_more_precise_it_is_the_better_we_w")
                         .font(.subheadline.weight(.medium))
@@ -469,7 +469,7 @@ struct ProfileSetupView: View {
                 Button {
                     toggleAllEquipment()
                 } label: {
-                    Text(areAllEquipmentSelected ? "Desmarcar" : "Marcar todo")
+                    Text(areAllEquipmentSelected ? "unselect" : "select_all")
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(PulseTheme.primary)
                         .lineLimit(1)
@@ -499,7 +499,7 @@ struct ProfileSetupView: View {
             Label("\(selected)/\(total)", systemImage: "checklist.checked")
             Divider()
                 .frame(height: 18)
-            Label(equipmentCoverageLabel, systemImage: equipmentCoverageIcon)
+            Label(localizedKey(equipmentCoverageLabel), systemImage: equipmentCoverageIcon)
             Spacer(minLength: 0)
         }
         .font(.caption.weight(.bold))
@@ -508,28 +508,28 @@ struct ProfileSetupView: View {
         .padding(.vertical, 10)
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-        .accessibilityLabel("Equipamiento seleccionado: \(selected) de \(total). \(equipmentCoverageLabel)")
+        .accessibilityLabel(localizedFormat("selected_equipment_accessibility_format", selected, total, localizedKey(equipmentCoverageLabel)))
     }
 
     private var equipmentCoverageLabel: String {
         let selected = Set(configuredEquipment)
         if selected.contains("Barbell") && selected.contains("Cable") && selected.contains("Machine") {
-            return "Gimnasio completo"
+            return "full_gym"
         }
         if selected.contains("Dumbbells") && selected.contains("Resistance Band") && selected.contains("Bodyweight") {
-            return "Casa bien equipada"
+            return "well_equipped_home"
         }
         if selected.contains("Bodyweight") && selected.count <= 2 {
-            return "Minimalista"
+            return "minimalist"
         }
-        return "Mixto"
+        return "mixed"
     }
 
     private var equipmentCoverageIcon: String {
         switch equipmentCoverageLabel {
-        case "Gimnasio completo": "building.2.fill"
-        case "Casa bien equipada": "house.fill"
-        case "Minimalista": "figure.strengthtraining.functional"
+        case "full_gym": "building.2.fill"
+        case "well_equipped_home": "house.fill"
+        case "minimalist": "figure.strengthtraining.functional"
         default: "arrow.triangle.2.circlepath"
         }
     }
@@ -555,22 +555,22 @@ struct ProfileSetupView: View {
 
     private var equipmentCatalog: [EquipmentOption] {
         [
-            EquipmentOption(value: "Barbell", category: .freeWeights, title: "Barra olímpica", subtitle: "Sentadilla, press, peso muerto y básicos pesados.", icon: "figure.strengthtraining.traditional", tint: PulseTheme.primary),
-            EquipmentOption(value: "EZ Bar", category: .freeWeights, title: "Barra Z", subtitle: "Curl, extensiones y trabajo de brazos con agarre cómodo.", icon: "waveform.path.ecg", tint: PulseTheme.primary),
-            EquipmentOption(value: "Dumbbells", category: .freeWeights, title: "Mancuernas", subtitle: "Press, remos, zancadas y accesorios unilaterales.", icon: "dumbbell.fill", tint: PulseTheme.primaryBright),
-            EquipmentOption(value: "Kettlebell", category: .freeWeights, title: "Kettlebell", subtitle: "Swings, goblet squat, carries y potencia de cadera.", icon: "kettlebell.fill", tint: PulseTheme.warning),
-            EquipmentOption(value: "Bodyweight", category: .bodyweight, title: "Peso corporal", subtitle: "Flexiones, core, movilidad y progresiones sin material.", icon: "figure.strengthtraining.functional", tint: PulseTheme.primaryBright),
-            EquipmentOption(value: "Resistance Band", category: .bodyweight, title: "Bandas elásticas", subtitle: "Activación, tirones, face pulls y asistencia.", icon: "point.3.connected.trianglepath.dotted", tint: PulseTheme.accent),
-            EquipmentOption(value: "Suspension Trainer", category: .bodyweight, title: "TRX / suspensión", subtitle: "Remos, press, bisagras y core con ángulo ajustable.", icon: "figure.core.training", tint: PulseTheme.accent),
-            EquipmentOption(value: "Bench", category: .bodyweight, title: "Banco", subtitle: "Press inclinado, step-ups, hip thrust y apoyo técnico.", icon: "table.furniture", tint: PulseTheme.primary),
-            EquipmentOption(value: "Pullup Bar", category: .bodyweight, title: "Barra de dominadas", subtitle: "Dominadas, hangs, elevaciones de piernas y tirones.", icon: "figure.pull.ups", tint: PulseTheme.primaryBright),
-            EquipmentOption(value: "Cable", category: .machines, title: "Poleas", subtitle: "Jalones, remos, cruces, tríceps y tensión constante.", icon: "point.3.connected.trianglepath.dotted", tint: PulseTheme.primary),
-            EquipmentOption(value: "Machine", category: .machines, title: "Máquinas guiadas", subtitle: "Press, extensión, curl femoral y patrones estables.", icon: "rectangle.3.group.bubble.left", tint: PulseTheme.primary),
-            EquipmentOption(value: "Smith Machine", category: .machines, title: "Multipower / Smith", subtitle: "Sentadillas, presses y gemelos con trayectoria guiada.", icon: "square.grid.3x3.middle.filled", tint: PulseTheme.warning),
-            EquipmentOption(value: "Leg Press", category: .machines, title: "Prensa de piernas", subtitle: "Volumen pesado de pierna con menor demanda técnica.", icon: "figure.strengthtraining.traditional", tint: PulseTheme.warning),
-            EquipmentOption(value: "Rack", category: .machines, title: "Rack / jaula", subtitle: "Soportes, barras de seguridad, dominadas y básicos pesados.", icon: "square.split.3x3", tint: PulseTheme.primary),
-            EquipmentOption(value: "Cardio Machine", category: .conditioning, title: "Cardio", subtitle: "Cinta, bici, remo, elíptica o bicicleta de aire.", icon: "figure.run", tint: PulseTheme.destructive),
-            EquipmentOption(value: "Medicine Ball", category: .conditioning, title: "Balón medicinal", subtitle: "Lanzamientos, rotaciones, potencia y acondicionamiento.", icon: "circle.hexagongrid.fill", tint: PulseTheme.accent)
+            EquipmentOption(value: "Barbell", category: .freeWeights, title: "olympic_barbell", subtitle: "squat_press_deadlift_and_heavy_basics", icon: "figure.strengthtraining.traditional", tint: PulseTheme.primary),
+            EquipmentOption(value: "EZ Bar", category: .freeWeights, title: "ez_bar", subtitle: "curls_extensions_and_comfortable_arm_work", icon: "waveform.path.ecg", tint: PulseTheme.primary),
+            EquipmentOption(value: "Dumbbells", category: .freeWeights, title: "dumbbells", subtitle: "press_rows_lunges_and_unilateral_accessories", icon: "dumbbell.fill", tint: PulseTheme.primaryBright),
+            EquipmentOption(value: "Kettlebell", category: .freeWeights, title: "kettlebell", subtitle: "swings_goblet_squats_carries_and_hip_power", icon: "kettlebell.fill", tint: PulseTheme.warning),
+            EquipmentOption(value: "Bodyweight", category: .bodyweight, title: "bodyweight", subtitle: "pushups_core_mobility_and_no_equipment_progressions", icon: "figure.strengthtraining.functional", tint: PulseTheme.primaryBright),
+            EquipmentOption(value: "Resistance Band", category: .bodyweight, title: "resistance_bands", subtitle: "activation_pulls_face_pulls_and_assistance", icon: "point.3.connected.trianglepath.dotted", tint: PulseTheme.accent),
+            EquipmentOption(value: "Suspension Trainer", category: .bodyweight, title: "trx_suspension", subtitle: "rows_press_hinges_and_adjustable_core", icon: "figure.core.training", tint: PulseTheme.accent),
+            EquipmentOption(value: "Bench", category: .bodyweight, title: "bench", subtitle: "incline_press_step_ups_hip_thrust_and_support", icon: "table.furniture", tint: PulseTheme.primary),
+            EquipmentOption(value: "Pullup Bar", category: .bodyweight, title: "pullup_bar", subtitle: "pullups_hangs_leg_raises_and_pulls", icon: "figure.pull.ups", tint: PulseTheme.primaryBright),
+            EquipmentOption(value: "Cable", category: .machines, title: "cables", subtitle: "pulldowns_rows_flys_triceps_and_constant_tension", icon: "point.3.connected.trianglepath.dotted", tint: PulseTheme.primary),
+            EquipmentOption(value: "Machine", category: .machines, title: "guided_machines", subtitle: "press_extension_leg_curl_and_stable_patterns", icon: "rectangle.3.group.bubble.left", tint: PulseTheme.primary),
+            EquipmentOption(value: "Smith Machine", category: .machines, title: "smith_machine", subtitle: "squats_presses_and_calves_with_guided_path", icon: "square.grid.3x3.middle.filled", tint: PulseTheme.warning),
+            EquipmentOption(value: "Leg Press", category: .machines, title: "leg_press", subtitle: "heavy_leg_volume_with_less_technical_demand", icon: "figure.strengthtraining.traditional", tint: PulseTheme.warning),
+            EquipmentOption(value: "Rack", category: .machines, title: "rack_cage", subtitle: "supports_safety_bars_pullups_and_heavy_basics", icon: "square.split.3x3", tint: PulseTheme.primary),
+            EquipmentOption(value: "Cardio Machine", category: .conditioning, title: "cardio", subtitle: "treadmill_bike_rower_elliptical_or_air_bike", icon: "figure.run", tint: PulseTheme.destructive),
+            EquipmentOption(value: "Medicine Ball", category: .conditioning, title: "medicine_ball", subtitle: "throws_rotations_power_and_conditioning", icon: "circle.hexagongrid.fill", tint: PulseTheme.accent)
         ]
     }
 
@@ -588,19 +588,19 @@ struct ProfileSetupView: View {
 
         var title: String {
             switch self {
-            case .freeWeights: "Fuerza libre"
-            case .bodyweight: "Casa y accesorios"
-            case .machines: "Gimnasio avanzado"
-            case .conditioning: "Cardio y potencia"
+            case .freeWeights: "free_weights"
+            case .bodyweight: "home_and_accessories"
+            case .machines: "advanced_gym"
+            case .conditioning: "cardio_and_power"
             }
         }
 
         var subtitle: String {
             switch self {
-            case .freeWeights: "Carga progresiva, básicos y accesorios."
-            case .bodyweight: "Material portátil, soporte y calistenia."
-            case .machines: "Poleas, estaciones guiadas y estructuras."
-            case .conditioning: "Trabajo energético, intervalos y explosividad."
+            case .freeWeights: "progressive_load_basics_and_accessories"
+            case .bodyweight: "portable_equipment_support_and_calisthenics"
+            case .machines: "cables_guided_stations_and_structures"
+            case .conditioning: "energy_work_intervals_and_explosiveness"
             }
         }
     }
@@ -648,7 +648,7 @@ struct ProfileSetupView: View {
                     Button {
                         onToggleCategory()
                     } label: {
-                        Text(isFullySelected ? "Quitar" : "Todo")
+                        Text(isFullySelected ? "remove" : "all")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.primary)
                             .padding(.horizontal, 10)
@@ -725,7 +725,7 @@ struct ProfileSetupView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(option.title)
-            .accessibilityValue(isSelected ? "Seleccionado" : "No seleccionado")
+            .accessibilityValue(isSelected ? localizedKey("selected") : localizedKey("not_selected"))
         }
     }
 
@@ -744,8 +744,8 @@ struct ProfileSetupView: View {
     private var focusStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "¿Quieres priorizar algún músculo?",
-                subtitle: "Escoge las zonas que quieras priorizar o selecciona todas."
+                title: "do_you_want_to_prioritize_any_muscle",
+                subtitle: "choose_the_areas_to_prioritize_or_select_all"
             )
 
             OnboardingBodyPair(gender: selectedGender, selectedMuscles: selectedFocusMuscles) { muscle in
@@ -759,7 +759,7 @@ struct ProfileSetupView: View {
                 Button {
                     toggleAllMuscles()
                 } label: {
-                    Text("todos")
+                    Text("all")
                         .font(.caption.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 34)
@@ -790,13 +790,13 @@ struct ProfileSetupView: View {
     private func startPlanGenerationSimulation() {
         generationProgress = 0.0
         isGenerationComplete = false
-        generationStatusText = "Analizando tus métricas corporales..."
+        generationStatusText = "analyzing_body_metrics"
         
         let steps: [(delay: Double, progress: Double, text: String)] = [
-            (0.8, 0.3, "Evaluando equipamiento disponible..."),
-            (1.6, 0.6, "Priorizando grupos musculares seleccionados..."),
-            (2.4, 0.85, "Calculando volumen y series óptimas..."),
-            (3.2, 1.0, "¡Plan personalizado construido!")
+            (0.8, 0.3, "evaluating_available_equipment"),
+            (1.6, 0.6, "prioritizing_selected_muscle_groups"),
+            (2.4, 0.85, "calculating_optimal_volume_and_sets"),
+            (3.2, 1.0, "personalized_plan_built")
         ]
         
         for step in steps {
@@ -825,8 +825,8 @@ struct ProfileSetupView: View {
             } else {
                 VStack(alignment: .center, spacing: 24) {
                     OnboardingTitle(
-                        title: "¡Tu plan base está listo!",
-                        subtitle: "El mapa muestra la distribución muscular prevista según tu foco."
+                        title: "your_base_plan_is_ready",
+                        subtitle: "map_shows_expected_muscle_distribution"
                     )
 
                     ZStack {
@@ -836,7 +836,7 @@ struct ProfileSetupView: View {
                             .opacity(generationPulse ? 1 : 0.78)
                         VStack {
                             Spacer()
-                            Text("\(generatedPlan.days.count) días listos")
+                            Text(localizedFormat("ready_days_count_format", generatedPlan.days.count))
                                 .font(.caption.weight(.bold))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 7)
@@ -847,9 +847,9 @@ struct ProfileSetupView: View {
                     .frame(maxWidth: .infinity)
 
                     HStack(spacing: 8) {
-                        GenerationPill(title: "Series", value: "\(weeklySetTotal)")
-                        GenerationPill(title: "Descanso", value: "\(generatedPlan.days.first?.restBetweenExercisesSeconds ?? 120)s")
-                        GenerationPill(title: "Semanas", value: "\(generatedPlan.totalWeeks)")
+                        GenerationPill(title: "sets", value: "\(weeklySetTotal)")
+                        GenerationPill(title: "rest", value: "\(generatedPlan.days.first?.restBetweenExercisesSeconds ?? 120)s")
+                        GenerationPill(title: "weeks", value: "\(generatedPlan.totalWeeks)")
                     }
 
                     suggestedPlanSummary
@@ -867,7 +867,7 @@ struct ProfileSetupView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("suggested_plan")
                             .font(.headline)
-                        Text("\(generatedPlan.daysPerWeek) días/semana durante \(generatedPlan.totalWeeks) semanas")
+                        Text(localizedFormat("days_per_week_for_weeks_format", generatedPlan.daysPerWeek, generatedPlan.totalWeeks))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -887,7 +887,7 @@ struct ProfileSetupView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(day.title)
                                 .font(.subheadline.weight(.bold))
-                            Text("\(day.exercises.count) ejercicios - \(day.durationMinutes) min")
+                            Text(localizedFormat("exercises_duration_minutes_format", day.exercises.count, day.durationMinutes))
                                 .font(.caption)
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
@@ -896,7 +896,7 @@ struct ProfileSetupView: View {
                 }
 
                 if generatedPlan.days.count > 3 {
-                    Text("+\(generatedPlan.days.count - 3) dias adicionales incluidos")
+                    Text(localizedFormat("additional_days_included_format", generatedPlan.days.count - 3))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.primary)
                 }
@@ -907,8 +907,8 @@ struct ProfileSetupView: View {
     private var planStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "Tu plan está listo",
-                subtitle: "Incluye días, ejercicios, descansos entre ejercicios y descansos entre series."
+                title: "your_plan_is_ready",
+                subtitle: "includes_days_exercises_exercise_rests_and_set_rests"
             )
 
             ForEach(generatedPlan.days) { day in
@@ -918,7 +918,7 @@ struct ProfileSetupView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(day.title)
                                     .font(.title3.weight(.bold))
-                                Text("\(day.durationMinutes) min - \(day.restBetweenExercisesSeconds)s entre ejercicios")
+                                Text(localizedFormat("duration_rest_between_exercises_format", day.durationMinutes, day.restBetweenExercisesSeconds))
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(PulseTheme.secondaryText)
                             }
@@ -992,7 +992,7 @@ struct ProfileSetupView: View {
                                         // Technical metrics row
                                         HStack(spacing: 12) {
                                             Label {
-                                                Text("\(item.targetSets) series")
+                                                Text(localizedFormat("sets_count_format", item.targetSets))
                                                     .font(.caption.weight(.semibold))
                                             } icon: {
                                                 Image(systemName: "square.stack.3d.up.fill")
@@ -1117,25 +1117,25 @@ struct ProfileSetupView: View {
     private var paywallStep: some View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
-                title: "Tu plan ya está listo",
-                subtitle: "Activa Reps Pro para mantenerlo adaptándose a tu progreso real desde la primera semana."
+                title: "your_plan_is_already_ready",
+                subtitle: "activate_reps_pro_to_keep_it_adapting"
             )
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 18) {
-                    TrialTimelineItem(icon: "checkmark", title: "Hoy", subtitle: "Desbloqueas tu plan, analítica avanzada y progresión automática.")
-                    TrialTimelineItem(icon: "bell.fill", title: "Día 5", subtitle: "Te recordaremos que la prueba termina en 2 días.")
-                    TrialTimelineItem(icon: "chart.line.uptrend.xyaxis", title: "Semana 2", subtitle: "Ya tendrás datos reales para ajustar volumen, fatiga y evolución.")
+                    TrialTimelineItem(icon: "checkmark", title: "today", subtitle: "unlock_your_plan_advanced_analytics_and_auto_progression")
+                    TrialTimelineItem(icon: "bell.fill", title: "day_5", subtitle: "we_remind_you_trial_ends_in_2_days")
+                    TrialTimelineItem(icon: "chart.line.uptrend.xyaxis", title: "week_2", subtitle: "you_will_have_real_data_to_adjust_volume_fatigue_and_evolution")
                 }
             }
 
             PulseCard {
                 VStack(spacing: 18) {
-                    PaywallBenefit(icon: "sparkles", title: "Ajustes inteligentes", subtitle: "Series, repeticiones y cargas se ajustan según tu fatiga y progreso.")
+                    PaywallBenefit(icon: "sparkles", title: "smart_adjustments", subtitle: "sets_reps_and_loads_adjust_to_fatigue_and_progress")
                     Divider()
-                    PaywallBenefit(icon: "figure.strengthtraining.traditional", title: "Mapa muscular vivo", subtitle: "Visualiza desequilibrios, foco y fatiga acumulada por zona.")
+                    PaywallBenefit(icon: "figure.strengthtraining.traditional", title: "live_muscle_map", subtitle: "visualize_imbalances_focus_and_fatigue_by_area")
                     Divider()
-                    PaywallBenefit(icon: "chart.line.uptrend.xyaxis", title: "Progreso accionable", subtitle: "Historial, 1RM estimado, exportación y tarjetas para compartir.")
+                    PaywallBenefit(icon: "chart.line.uptrend.xyaxis", title: "actionable_progress", subtitle: "history_estimated_1rm_export_and_share_cards")
                 }
             }
         }
@@ -1293,7 +1293,7 @@ struct ProfileSetupView: View {
             focusMuscles = []
             selectedConsistencyIndex = 0
             generationProgress = 0.0
-            generationStatusText = "Analizando métricas base..."
+            generationStatusText = "analyzing_baseline_metrics"
             isGenerationComplete = false
             hasTargetEvent = false
             targetEventName = ""
@@ -1424,9 +1424,9 @@ struct ProfileSetupView: View {
         let week1Sets = Int(Double(total) * factor)
         let week4Diff = Int(Double(max(2, total / 6)) * factor)
         return [
-            ("Semana 1", "~\(week1Sets) series productivas/sem aprox.", PulseTheme.primary),
-            ("Semana 4", "+\(week4Diff) series aprox. si mantienes constancia", PulseTheme.primaryBright),
-            ("Semana 8", factor > 0.6 ? "Buen momento para deload o nuevo bloque" : "Evolución gradual: continuar bloque", PulseTheme.accent)
+            (localizedKey("week_1"), localizedFormat("productive_sets_per_week_approx_format", week1Sets), PulseTheme.primary),
+            (localizedKey("week_4"), localizedFormat("additional_sets_if_consistent_format", week4Diff), PulseTheme.primaryBright),
+            (localizedKey("week_8"), factor > 0.6 ? localizedKey("good_time_for_deload_or_new_block") : localizedKey("gradual_evolution_continue_block"), PulseTheme.accent)
         ]
     }
 
@@ -1502,19 +1502,19 @@ struct ProfileSetupView: View {
         
         if weeks < 6 {
             return EventAdvice(
-                text: "Faltan \(weeks) semanas. Un ciclo óptimo suele requerir 8-12 semanas para ver adaptaciones importantes de fuerza o masa muscular, pero adaptaremos tu plan a corto plazo para maximizar resultados antes de tu evento.",
+                text: localizedFormat("target_event_short_timeline_advice_format", weeks),
                 color: PulseTheme.warning,
                 weeks: weeks
             )
         } else if weeks <= 12 {
             return EventAdvice(
-                text: "Faltan \(weeks) semanas. ¡Excelente! Tienes el tiempo perfecto para completar un ciclo completo de entrenamiento progresivo con adaptaciones notables.",
+                text: localizedFormat("target_event_ideal_timeline_advice_format", weeks),
                 color: PulseTheme.primaryBright,
                 weeks: weeks
             )
         } else {
             return EventAdvice(
-                text: "Faltan \(weeks) semanas. Dado que el plazo es largo (\(weeks) semanas), te sugerimos hacer un bloque de fuerza/hipertrofia de 8 a 12 semanas y luego un plan de mantenimiento o definición secundario para llegar en tu mejor forma.",
+                text: localizedFormat("target_event_long_timeline_advice_format", weeks, weeks),
                 color: PulseTheme.primary,
                 weeks: weeks
             )
@@ -1554,13 +1554,13 @@ struct ProfileSetupView: View {
 
     private var focusOptions: [(key: String, title: String)] {
         [
-            ("Chest", "Pecho"),
-            ("Back", "Espalda"),
-            ("Shoulders", "Hombros"),
-            ("Arms", "Brazos"),
-            ("Legs", "Piernas"),
-            ("Glutes", "Glúteos"),
-            ("Core", "Core")
+            ("Chest", "chest"),
+            ("Back", "back"),
+            ("Shoulders", "shoulders"),
+            ("Arms", "arms"),
+            ("Legs", "legs"),
+            ("Glutes", "glutes"),
+            ("Core", "core")
         ]
     }
 
@@ -1575,18 +1575,18 @@ struct ProfileSetupView: View {
 
     private func goalTitle(_ goal: UserProfile.MainGoal) -> String {
         switch goal {
-        case .buildMuscle: "Ganar músculo"
-        case .loseFat: "Perder grasa"
-        case .getStronger: "Ganar fuerza"
-        case .stayActive: "Mantenerme activo"
+        case .buildMuscle: "gain_muscle"
+        case .loseFat: "lose_fat"
+        case .getStronger: "gain_strength"
+        case .stayActive: "stay_active"
         }
     }
 
     private func locationTitle(_ location: UserProfile.TrainingLocation) -> String {
         switch location {
-        case .gym: "Gimnasio"
-        case .home: "Casa"
-        case .both: "Casa y gimnasio"
+        case .gym: "gym"
+        case .home: "home"
+        case .both: "home_and_gym"
         }
     }
 

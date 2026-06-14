@@ -60,12 +60,12 @@ struct FreeWorkoutStartView: View {
                     )
                 }
             } header: {
-                Text(String(localized: "free_workout_2"))
+                Text(localizedString("free_workout_2"))
             } footer: {
-                Text(String(localized: "outdoor_uses_gps_and_map_treadmill_skips_route_tracking_and_saves_sensors_plus_d"))
+                Text(localizedString("outdoor_uses_gps_and_map_treadmill_skips_route_tracking_and_saves_sensors_plus_d"))
             }
         }
-        .navigationTitle(String(localized: "start"))
+        .navigationTitle(localizedString("start"))
         .navigationBarTitleDisplayMode(.inline)
         .screenBackground()
     }

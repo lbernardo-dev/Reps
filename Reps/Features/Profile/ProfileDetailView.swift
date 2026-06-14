@@ -61,7 +61,7 @@ struct ProfileDetailView: View {
                 .listRowBackground(Color.clear)
             }
             
-            Section("datos_personales") {
+            Section("personal_data") {
                 TextField("name_2", text: $displayName)
                     .textInputAutocapitalization(.words)
                     .disableAutocorrection(true)
@@ -71,10 +71,10 @@ struct ProfileDetailView: View {
                     .textInputAutocapitalization(.never)
                     .disableAutocorrection(true)
                 
-                Picker("sexo", selection: $sex) {
-                    Text("masculino").tag(UserProfile.Sex.male)
-                    Text("femenino").tag(UserProfile.Sex.female)
-                    Text("otro").tag(UserProfile.Sex.other)
+                Picker("sex", selection: $sex) {
+                    Text("male").tag(UserProfile.Sex.male)
+                    Text("female").tag(UserProfile.Sex.female)
+                    Text("other").tag(UserProfile.Sex.other)
                 }
                 
                 DatePicker("birthdate", selection: $dateOfBirth, displayedComponents: [.date])
@@ -83,24 +83,26 @@ struct ProfileDetailView: View {
             Section("training_settings") {
                 Picker("main_objective", selection: $mainGoal) {
                     Text("gain_muscle").tag(UserProfile.MainGoal.buildMuscle)
-                    Text("perder_grasa").tag(UserProfile.MainGoal.loseFat)
+                    Text("lose_fat").tag(UserProfile.MainGoal.loseFat)
                     Text("more_strength").tag(UserProfile.MainGoal.getStronger)
-                    Text("mantener_actividad").tag(UserProfile.MainGoal.stayActive)
+                    Text("stay_active").tag(UserProfile.MainGoal.stayActive)
                 }
                 
-                Picker("experiencia", selection: $experience) {
-                    Text("principiante").tag(UserProfile.Experience.beginner)
-                    Text("intermedio").tag(UserProfile.Experience.intermediate)
-                    Text("avanzado").tag(UserProfile.Experience.advanced)
+                Picker("experience", selection: $experience) {
+                    Text("beginner").tag(UserProfile.Experience.beginner)
+                    Text("intermediate").tag(UserProfile.Experience.intermediate)
+                    Text("advanced").tag(UserProfile.Experience.advanced)
                 }
                 
                 Picker("location_2", selection: $trainingLocation) {
                     Text("gym_2").tag(UserProfile.TrainingLocation.gym)
-                    Text("casa_2").tag(UserProfile.TrainingLocation.home)
-                    Text("mixto_2").tag(UserProfile.TrainingLocation.both)
+                    Text("home_2").tag(UserProfile.TrainingLocation.home)
+                    Text("mixed_2").tag(UserProfile.TrainingLocation.both)
                 }
                 
-                Stepper("Entrenamientos: \(weeklyTrainingDays) días/semana", value: $weeklyTrainingDays, in: 1...7)
+                Stepper(value: $weeklyTrainingDays, in: 1...7) {
+                    Text(localizedFormat("workouts_days_per_week_format", weeklyTrainingDays))
+                }
             }
             
             Section {

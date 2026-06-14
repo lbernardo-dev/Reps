@@ -71,7 +71,7 @@ private struct WorkoutTemplateRow: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(workout.title)
                         .font(.title3.weight(.bold))
-                    Text("\(workout.exercises.count) ejercicios · \(workout.durationMinutes) min")
+                    Text(localizedFormat("exercises_duration_format", workout.exercises.count, workout.durationMinutes))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
                 Spacer()

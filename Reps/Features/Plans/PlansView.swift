@@ -9,7 +9,6 @@ struct PlansView: View {
 
     var body: some View {
         NavigationStack {
-            let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
             StickyHeaderScaffold(
                 title: "plan_3",
                 subtitle: "create_and_tune_your_routine",
@@ -55,18 +54,49 @@ struct PlansView: View {
                             }
                         }
                     }
-                    .stickyHeaderTitle(String(localized: "libraries"))
+                    .stickyHeaderTitle(localizedString("libraries"))
+
+                    PulseCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text(localizedString("tools"))
+                                .font(.headline)
+                            HStack(spacing: 12) {
+                                NavigationLink {
+                                    OneRepMaxCalculatorView()
+                                } label: {
+                                    LibraryShortcut(
+                                        title: "Calculadora 1RM",
+                                        subtitle: "Estima tu máximo",
+                                        systemImage: "function"
+                                    )
+                                }
+                                .buttonStyle(.plain)
+
+                                NavigationLink {
+                                    PlateCalculatorView()
+                                } label: {
+                                    LibraryShortcut(
+                                        title: "Discos",
+                                        subtitle: "Carga la barra",
+                                        systemImage: "circle.grid.3x3.fill"
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .stickyHeaderTitle("Herramientas")
 
                     if hasActivePlan {
                         activePlanSection
-                            .stickyHeaderTitle(String(localized: "active_plan"))
+                            .stickyHeaderTitle(localizedString("active_plan"))
                     } else {
                         emptyPlanSection
-                            .stickyHeaderTitle(String(localized: "create_plan_2"))
+                            .stickyHeaderTitle(localizedString("create_plan_2"))
                     }
 
                     SectionHeader(title: "TUS PLANES")
-                        .stickyHeaderTitle(String(localized: "your_plans"))
+                        .stickyHeaderTitle(localizedString("your_plans"))
 
                     PulseCard {
                         VStack(spacing: 0) {
@@ -188,7 +218,7 @@ struct PlansView: View {
                 HStack(spacing: 16) {
                     Label(locationTitle(store.activePlan.location), systemImage: "dumbbell.fill")
                     Divider().frame(height: 18)
-                    Label("\(store.activePlan.daysPerWeek) días/semana", systemImage: "calendar")
+                    Label(localizedFormat("days_per_week_short_format", store.activePlan.daysPerWeek), systemImage: "calendar")
                 }
                 .foregroundStyle(PulseTheme.secondaryText)
 
@@ -196,9 +226,9 @@ struct PlansView: View {
                     .tint(PulseTheme.accent)
 
                 HStack {
-                    Text("Semana \(store.activePlan.currentWeek) de \(store.activePlan.totalWeeks)")
+                    Text(localizedFormat("week_of_total_format", store.activePlan.currentWeek, store.activePlan.totalWeeks))
                     Spacer()
-                    Text("\(Int(store.activePlan.completion * 100))% completado")
+                    Text(localizedFormat("percent_completed_format", Int(store.activePlan.completion * 100)))
                 }
                 .foregroundStyle(PulseTheme.secondaryText)
 
@@ -303,7 +333,7 @@ private struct LibraryShortcut: View {
                 .frame(width: 38, height: 38)
                 .background(PulseTheme.primary.opacity(0.10))
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-            Text(title)
+            Text(localizedKey(title))
                 .font(.headline)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
@@ -335,26 +365,26 @@ private struct PlanTargetEventSummary: View {
     private var statusText: String {
         let state = eventState
         if state.days > 0 {
-            return "Faltan \(state.days) dias (\(state.weeks) sem)"
+            return localizedFormat("days_weeks_remaining_format", state.days, state.weeks)
         }
         if state.days == 0 {
-            return "Hoy"
+            return localizedString("today_2")
         }
-        return "Completado"
+        return localizedString("completed_3")
     }
 
     private var adviceText: String {
         let state = eventState
         if state.days <= 0 {
-            return "Evento alcanzado. Revisa resultados y prepara el siguiente bloque con el estado actual."
+            return localizedString("event_reached_review_results_and_prepare_next_block")
         }
         if state.weeks < 6 {
-            return "Plazo corto: prioriza consistencia e intensidad controlada. Considera extender el plan 4 semanas despues del evento."
+            return localizedString("short_deadline_prioritize_consistency_and_controlled_intensity")
         }
         if state.weeks <= 12 {
-            return "Plazo optimo: estas dentro de una ventana ideal para completar un bloque progresivo."
+            return localizedString("optimal_deadline_progressive_block_window")
         }
-        return "Plazo largo: completa un bloque de fuerza/hipertrofia de 8-12 semanas y reserva un bloque final de mantenimiento o definicion."
+        return localizedString("long_deadline_strength_hypertrophy_block")
     }
 
     var body: some View {
@@ -362,7 +392,7 @@ private struct PlanTargetEventSummary: View {
             HStack(spacing: 8) {
                 Image(systemName: "calendar.badge.clock")
                     .foregroundStyle(PulseTheme.primary)
-                Text("Objetivo: \(eventName)")
+                Text(localizedFormat("goal_value_format", eventName))
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
@@ -400,7 +430,7 @@ private struct PlanRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
             VStack(alignment: .leading, spacing: 4) {
                 Text(plan.name).font(.title3.weight(.bold))
-                Text("\(plan.daysPerWeek) días/semana").foregroundStyle(PulseTheme.secondaryText)
+                Text(localizedFormat("days_per_week_short_format", plan.daysPerWeek)).foregroundStyle(PulseTheme.secondaryText)
             }
         }
         .padding(.vertical, 14)
@@ -422,7 +452,7 @@ private struct PlanDayRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(day.title)
                     .font(.headline)
-                Text("\(day.exercises.count) ejercicios · \(day.durationMinutes) min")
+                Text(localizedFormat("exercises_duration_format", day.exercises.count, day.durationMinutes))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -485,7 +515,7 @@ private struct PlanMusicCard: View {
                     }
 
                     if plan.playlists.count > 1 {
-                        Text("+\(plan.playlists.count - 1) playlists alternativas para otros estados de ánimo")
+                        Text(localizedFormat("alternative_playlists_count_format", plan.playlists.count - 1))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -705,12 +735,12 @@ private struct PlanExerciseBookmarkEditor: View {
                                 .lineLimit(1)
                             HStack(spacing: 12) {
                                 if let timestamp = bookmark.timestampSeconds {
-                                    Text("Marcador \(timestamp / 60):\(String(format: "%02d", timestamp % 60))")
+                                    Text(localizedFormat("bookmark_time_format", timestamp / 60, timestamp % 60))
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(PulseTheme.primary)
                                 }
                                 if let duration = bookmark.playbackDurationSeconds {
-                                    Text("Duración \(duration / 60)m \(duration % 60)s")
+                                    Text(localizedFormat("duration_minutes_seconds_format", duration / 60, duration % 60))
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(PulseTheme.secondaryText)
                                 }
@@ -1149,7 +1179,7 @@ struct CreatePlanView: View {
                         HStack {
                             Label(day.title, systemImage: sessionTypeIcon(day.sessionType))
                             Spacer()
-                            Text("\(day.exercises.count) ejercicios")
+                            Text(localizedFormat("exercises_count_format", day.exercises.count))
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
                         .font(.subheadline)
@@ -1598,7 +1628,7 @@ private struct PlanEditorActionRow: View {
                 .font(.title2.weight(.medium))
                 .frame(width: 38, height: 52)
 
-            Text(title)
+            Text(localizedKey(title))
                 .font(.headline.weight(.regular))
 
             Spacer(minLength: 0)
@@ -1667,7 +1697,7 @@ struct LegacyCreatePlanView: View {
 
                 Section("vista_previa") {
                     PlanPreviewDay(title: "Entrenamiento A", workout: workoutTitle.isEmpty ? "Full body" : workoutTitle, exercises: selectedExerciseIDs.count)
-                    Text("Reps creará \(daysPerWeek) días editables a partir de esta plantilla.")
+                    Text(localizedFormat("reps_will_create_editable_days_from_template_format", daysPerWeek))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -1755,7 +1785,7 @@ private struct WizardMetricStepper: View {
     var body: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 12) {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(PulseTheme.secondaryText)
                 HStack {
@@ -1780,10 +1810,10 @@ private struct SessionBuilderCard: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Label("Sesión \(index + 1)", systemImage: sessionTypeIcon(day.sessionType))
+                    Label(localizedFormat("session_number_format", index + 1), systemImage: sessionTypeIcon(day.sessionType))
                         .font(.headline)
                     Spacer()
-                    Text("\(day.exercises.count) ejercicios")
+                    Text(localizedFormat("exercise_count_format", day.exercises.count))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -1841,7 +1871,7 @@ private struct CompactStepper: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
             
@@ -2239,11 +2269,11 @@ private struct PlanPreviewDay: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading) {
-                Text(title).font(.headline)
+                Text(localizedKey(title)).font(.headline)
                 Text(workout).foregroundStyle(PulseTheme.secondaryText)
             }
             Spacer()
-            Text("\(exercises) ejercicios")
+            Text(localizedFormat("exercises_count_format", exercises))
                 .foregroundStyle(PulseTheme.secondaryText)
         }
     }

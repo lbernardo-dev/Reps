@@ -33,8 +33,8 @@ struct RepsStreakWidget: Widget {
         AppIntentConfiguration(kind: kind, intent: RepsWidgetConfigurationIntent.self, provider: RepsStreakProvider()) { entry in
             RepsStreakWidgetView(entry: entry)
         }
-        .configurationDisplayName("Racha y Consistencia")
-        .description("Días de racha seguidos y progreso semanal de entrenamientos.")
+        .configurationDisplayName("streak_and_consistency_widget_name")
+        .description("streak_and_consistency_widget_description")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
         .contentMarginsDisabled()
         .containerBackgroundRemovable(true)
@@ -48,6 +48,7 @@ private struct RepsStreakWidgetView: View {
     let entry: RepsStreakEntry
 
     var body: some View {
+        let _ = RepsLocalization.use(entry.snapshot.preferredLanguage)
         let contentColor = WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
         let backgroundColor = WidgetColor.resolved(
             appColorName: entry.snapshot.widgetAccentColorName,
@@ -70,12 +71,12 @@ private struct RepsStreakWidgetView: View {
 
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
-                Label("\(streak) días", systemImage: "flame.fill")
+                Label(localizedFormat("days_count_format", streak), systemImage: "flame.fill")
                     .font(.headline)
                     .foregroundStyle(.orange)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                Text("Progreso: \(Int(completion * 100))%")
+                Text(localizedFormat("progress_percent_format", Int(completion * 100)))
                     .font(.caption)
                     .minimumScaleFactor(0.8)
                     .lineLimit(1)
@@ -83,7 +84,7 @@ private struct RepsStreakWidgetView: View {
             }
 
         case .accessoryInline:
-            Text("Reps \(streak) días · \(Int(completion * 100))% semana")
+            Text(localizedFormat("reps_streak_inline_format", streak, Int(completion * 100)))
                 .widgetURL(URL(string: "reps://workout"))
 
         default:
@@ -144,7 +145,7 @@ private struct SmallStreakView: View {
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
                 
-                Text(streak == 1 ? "día" : "días" as LocalizedStringKey)
+                Text(streak == 1 ? "day_singular" : "days_plural" as LocalizedStringKey)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(theme.secondaryForeground)
             }
@@ -214,7 +215,7 @@ private struct MediumStreakView: View {
                         .foregroundStyle(theme.foreground)
                         .minimumScaleFactor(0.8)
                         .lineLimit(1)
-                    Text(streak == 1 ? "día" : "días" as LocalizedStringKey)
+                    Text(streak == 1 ? "day_singular" : "days_plural" as LocalizedStringKey)
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(theme.secondaryForeground)
                 }
@@ -228,7 +229,7 @@ private struct MediumStreakView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
-                Text(streak > 0 ? "¡Excelente constancia!" : (hasPlan ? "Empieza tu racha hoy" : "Crea tu primer plan") as LocalizedStringKey)
+                Text(streak > 0 ? "excellent_consistency" : (hasPlan ? "start_your_streak_today" : "create_your_first_plan") as LocalizedStringKey)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.foreground)
                     .lineLimit(1)
@@ -238,7 +239,7 @@ private struct MediumStreakView: View {
 
                 Group {
                     if hasPlan {
-                        Text("Has completado el \(Int(completion * 100))% de tus entrenos planificados esta semana.")
+                        Text(localizedFormat("planned_workouts_completed_this_week_format", Int(completion * 100)))
                     } else {
                         Text("when_you_have_an_active_plan_you_ll_see_your_weekly_progress_here")
                     }

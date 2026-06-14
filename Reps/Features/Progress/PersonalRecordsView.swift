@@ -65,7 +65,7 @@ struct PersonalRecordsView: View {
                     }
                     .padding(.top, 10)
                     
-                    Text("\(personalRecords.count) Récords Personales")
+                    Text(localizedFormat("personal_records_count_format", personalRecords.count))
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                     
                     Text("your_best_trademarks_in_each_exercise")
@@ -122,7 +122,7 @@ struct PRCardView: View {
                         .font(.headline)
                         .lineLimit(1)
                     
-                    Text("Establecido el \(item.date.formatted(date: .abbreviated, time: .omitted))")
+                    Text(localizedFormat("set_on_date_format", item.date.formatted(date: .abbreviated, time: .omitted)))
                         .font(.caption)
                         .foregroundStyle(PulseTheme.tertiaryText)
                     

@@ -201,7 +201,7 @@ private struct QuietFilterChip: View {
     }
 }
 
-private struct InteractiveBodyHeatmap: View {
+struct InteractiveBodyHeatmap: View {
     let loads: [MuscleLoad]
     let gender: BodyGender
     @Binding var selectedSegment: MuscleSegment?
@@ -296,7 +296,7 @@ private struct MuscleLoadCard: View {
                         Text("/")
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(Color.white.opacity(0.3))
-                        Text("12 \(String(localized: "weekly"))")
+                        Text("12 \(localizedString("weekly"))")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -305,7 +305,7 @@ private struct MuscleLoadCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "sparkles")
                                 .font(.system(size: 10))
-                            Text("+\(load.predictedSets) \(String(localized: "predicted"))")
+                            Text("+\(load.predictedSets) \(localizedString("predicted"))")
                                 .font(.system(size: 11, weight: .bold))
                         }
                         .foregroundStyle(PulseTheme.primaryBright)
@@ -348,7 +348,7 @@ private struct MuscleLoadCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chart.xyaxis.line")
                         .font(.system(size: 11, weight: .bold))
-                    Text(String(localized: "view_frequency_and_contributions"))
+                    Text(localizedString("view_frequency_and_contributions"))
                         .font(.system(size: 11, weight: .bold))
                 }
                 .foregroundStyle(PulseTheme.primaryBright)
@@ -841,7 +841,7 @@ private struct MuscleThumbnailRegion {
     let offset: CGSize
 }
 
-private struct RepsProgressiveSegmentBar: View {
+struct RepsProgressiveSegmentBar: View {
     let value: Double
     var height: CGFloat = 8
     var spacing: CGFloat = 4
@@ -863,20 +863,19 @@ private struct RepsProgressiveSegmentBar: View {
     }
 
     private func fillColor(for index: Int) -> Color {
+        // Mirrors MuscleZone semantics cell-by-cell: blue (maintaining) -> green (growing) -> yellow (focus).
         switch index {
-        case 0..<3:
+        case 0..<4:
             return PulseTheme.primary
-        case 3..<7:
-            return Color(red: 0.08, green: 0.48, blue: 0.36)
-        case 7..<10:
-            return Color(red: 0.44, green: 0.57, blue: 0.20)
+        case 4..<10:
+            return PulseTheme.growth
         default:
             return PulseTheme.warning
         }
     }
 }
 
-private struct MuscleLoad: Identifiable {
+struct MuscleLoad: Identifiable {
     let segment: MuscleSegment
     let actualSets: Double
     let predictedSets: Int
@@ -914,9 +913,9 @@ private struct MuscleLoad: Identifiable {
         case 0..<4:
             PulseTheme.primary
         case 4..<10:
-            PulseTheme.primaryBright
+            PulseTheme.growth
         default:
-            PulseTheme.accent
+            PulseTheme.warning
         }
     }
 
@@ -998,7 +997,7 @@ private enum MuscleRegionFilter: String, CaseIterable, Identifiable {
     }
 }
 
-private enum MuscleSegment: String, CaseIterable, Identifiable {
+enum MuscleSegment: String, CaseIterable, Identifiable {
     case chest
     case deltoids
     case traps
@@ -1080,7 +1079,7 @@ private enum MuscleSegment: String, CaseIterable, Identifiable {
     }
 }
 
-private enum MuscleLoadCalculator {
+enum MuscleLoadCalculator {
     static func loads(
         sessions: [WorkoutSession],
         plannedWorkout: WorkoutDay,
@@ -1093,7 +1092,7 @@ private enum MuscleLoadCalculator {
 
         sessions
             .filter { $0.date >= startDate }
-            .flatMap(FitnessMetrics.completedExerciseLogs)
+            .flatMap(FitnessMetrics.completedExerciseLogs(in:))
             .forEach { log in
                 let setCount = Double(log.sets.count)
                 let totalVolume = log.sets.reduce(0) { $0 + ($1.weightKg * Double($1.reps)) }

@@ -60,7 +60,7 @@ struct OneRepMaxCalculatorView: View {
             HStack(spacing: 16) {
               // Weight input field
               VStack(alignment: .leading, spacing: 6) {
-                Text("Peso levantado (\(unit))")
+                Text(localizedFormat("weight_lifted_unit_format", unit))
                   .font(.caption.weight(.semibold))
                   .foregroundStyle(PulseTheme.secondaryText)
 

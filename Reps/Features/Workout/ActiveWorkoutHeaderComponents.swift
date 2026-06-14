@@ -97,7 +97,7 @@ struct ActiveWorkoutProgressSummary: View {
     let onCompleteNext: () -> Void
 
     private var stateTitle: String {
-        isSessionStarted ? (isPaused ? "SESIÓN PAUSADA" : "SESIÓN ACTIVA") : "SESIÓN PREPARADA"
+        isSessionStarted ? (isPaused ? localizedString("session_paused_uppercase") : localizedString("session_active_uppercase")) : localizedString("session_ready_uppercase")
     }
 
     private var stateColor: Color {
@@ -139,9 +139,9 @@ struct ActiveWorkoutProgressSummary: View {
                         fallbackElapsedSeconds: fallbackElapsedSeconds
                     )
                     HStack(spacing: 6) {
-                        Text("\(totalVolume) kg volumen")
+                        Text(localizedFormat("volume_kg_format", totalVolume))
                         if pausedSeconds > 0 {
-                            Text("· pausa \(timeString(pausedSeconds))")
+                            Text(localizedFormat("pause_duration_prefix_format", timeString(pausedSeconds)))
                         }
                     }
                     .font(.caption.weight(.semibold))
@@ -168,7 +168,7 @@ struct ActiveWorkoutProgressSummary: View {
                     Image(systemName: completedSets == totalSets ? "checkmark.circle.fill" : "arrow.right.circle.fill")
                         .font(.title3.weight(.bold))
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(completedSets == totalSets ? "Completado" : "Siguiente serie")
+                        Text(completedSets == totalSets ? localizedString("completed_3") : localizedString("next_set"))
                             .font(.headline.weight(.bold))
                         if completedSets < totalSets {
                             Text(nextLoggingTitle)

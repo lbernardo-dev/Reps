@@ -19,6 +19,7 @@ final class AppStore {
 
     var userProfile = UserProfile() {
         didSet {
+            RepsLocalization.use(userProfile.preferredLanguage)
             if oldValue.remindersEnabled != userProfile.remindersEnabled {
                 reconcileNotificationStateIfNeeded()
             }
@@ -129,6 +130,15 @@ final class AppStore {
             },
             routeSummaryHandler: { [weak self] summary in
                 self?.importWatchRouteWorkout(summary)
+            },
+            logSetHandler: { [weak self] logSet in
+                self?.handleWatchLogSet(logSet)
+            },
+            strengthSummaryHandler: { [weak self] summary in
+                self?.importWatchStrengthWorkout(summary)
+            },
+            intervalSummaryHandler: { [weak self] summary in
+                self?.importWatchIntervalWorkout(summary)
             }
         )
         let nativeWorkoutSessionService = NativeWorkoutSessionService()
@@ -151,6 +161,7 @@ final class AppStore {
             persistence.save(currentSnapshot)
             SharedWorkoutStore.save(sharedWorkoutSnapshot())
         }
+        RepsLocalization.use(userProfile.preferredLanguage)
 
         let shouldStartBackgroundServices = startsBackgroundServices && !Self.isRunningUnitTests
         if shouldStartBackgroundServices {
@@ -793,6 +804,25 @@ final class AppStore {
         return newLogs.count
     }
 
+    /// Applies the in-workout "aim for more sets next time" intent by bumping the matching
+    /// planned exercise's target set count, so the next session reflects the athlete's choice.
+    func applyAimForMoreIntent(from drafts: [ExerciseSessionDraft], dayID: UUID) {
+        guard let dayIndex = activePlan.days.firstIndex(where: { $0.id == dayID }) else { return }
+        var changed = false
+        for draft in drafts where draft.workoutExercise.aimForMoreSetsNextTime {
+            guard let exerciseIndex = activePlan.days[dayIndex].exercises.firstIndex(
+                where: { $0.id == draft.workoutExercise.id }
+            ) else { continue }
+            let current = activePlan.days[dayIndex].exercises[exerciseIndex].targetSets
+            activePlan.days[dayIndex].exercises[exerciseIndex].targetSets = min(current + 1, 10)
+            activePlan.days[dayIndex].exercises[exerciseIndex].aimForMoreSetsNextTime = false
+            changed = true
+        }
+        if changed, let planIndex = plans.firstIndex(where: { $0.id == activePlan.id }) {
+            plans[planIndex] = activePlan
+        }
+    }
+
     func finishWorkout(_ session: WorkoutSession) {
         workoutSessions.append(session)
         TelemetryService.shared.log(.workoutFinished, parameters: [
@@ -1342,6 +1372,151 @@ final class AppStore {
         ])
     }
 
+    // MARK: - Apple Watch strength & interval logging
+
+    /// Applies a set logged live on the Watch to the active workout drafts and
+    /// asks the active workout screen (if loaded) to recompute the rich status.
+    private func handleWatchLogSet(_ logSet: WatchLogSet) {
+        guard activeWorkoutStatus != nil else { return }
+        var drafts = activeWorkoutDrafts
+        guard drafts.indices.contains(logSet.exerciseIndex) else { return }
+        var sets = drafts[logSet.exerciseIndex].sets
+        let type = SetLog.SetType(rawValue: logSet.setType) ?? .work
+        if sets.indices.contains(logSet.setIndex) {
+            sets[logSet.setIndex].weightKg = logSet.weightKg
+            sets[logSet.setIndex].reps = logSet.reps
+            sets[logSet.setIndex].completed = logSet.completed
+            sets[logSet.setIndex].setType = type
+        } else {
+            sets.append(SetLog(
+                setNumber: sets.count + 1,
+                weightKg: logSet.weightKg,
+                reps: logSet.reps,
+                completed: logSet.completed,
+                setType: type
+            ))
+        }
+        drafts[logSet.exerciseIndex].sets = sets
+        activeWorkoutDrafts = drafts
+        NotificationCenter.default.post(name: .watchDidLogSet, object: nil)
+        SharedWorkoutStore.save(sharedWorkoutSnapshot())
+    }
+
+    /// Resolves an exercise from the library by normalized name, falling back to
+    /// a minimal exercise when the Watch logged a free / unknown movement.
+    private func resolvedExercise(named name: String, trackingType: String) -> Exercise {
+        let key = name.normalizedExerciseKey
+        if let match = exercises.first(where: { $0.name.normalizedExerciseKey == key }) {
+            return match
+        }
+        return Exercise(
+            name: name,
+            muscleGroup: "Full Body",
+            equipment: "Other",
+            trackingType: Exercise.TrackingType(rawValue: trackingType) ?? .weightReps
+        )
+    }
+
+    /// Imports a complete strength workout logged on the Watch (offline dump),
+    /// mirroring `importWatchRouteWorkout` with dedupe by id.
+    private func importWatchStrengthWorkout(_ summary: WatchStrengthWorkoutSummary) {
+        let healthKitID = "watch-\(summary.id.uuidString)"
+        guard !workoutSessions.contains(where: { $0.id == summary.id || $0.healthKitUUIDString == healthKitID }) else {
+            return
+        }
+
+        let exerciseLogs: [ExerciseLog] = summary.exercises.compactMap { shared in
+            let loggedSets: [SetLog] = shared.sets.enumerated().compactMap { index, set in
+                guard set.completed else { return nil }
+                return SetLog(
+                    setNumber: index + 1,
+                    weightKg: set.weightKg,
+                    reps: set.reps,
+                    completed: true,
+                    setType: SetLog.SetType(rawValue: set.setType) ?? .work,
+                    rpe: set.rpe
+                )
+            }
+            guard !loggedSets.isEmpty else { return nil }
+            return ExerciseLog(
+                exercise: resolvedExercise(named: shared.name, trackingType: shared.trackingType),
+                notes: "",
+                sets: loggedSets
+            )
+        }
+        guard !exerciseLogs.isEmpty else { return }
+        let allSets = exerciseLogs.flatMap(\.sets)
+
+        let session = WorkoutSession(
+            id: summary.id,
+            workoutTitle: summary.title,
+            date: summary.endedAt,
+            startedAt: summary.startedAt,
+            endedAt: summary.endedAt,
+            origin: .free,
+            location: .gym,
+            contextTag: .normal,
+            durationMinutes: summary.durationMinutes,
+            sets: allSets,
+            notes: "Registrado desde Apple Watch.",
+            exerciseLogs: exerciseLogs,
+            sessionRPE: nil,
+            energyBefore: nil,
+            energyAfter: nil,
+            estimatedCalories: summary.activeEnergyKcal,
+            mediaAttachments: [],
+            routePoints: [],
+            pausedDurationSeconds: summary.pausedSeconds,
+            distanceKm: nil,
+            averagePaceSecondsPerKm: nil,
+            steps: nil,
+            activeEnergyKcal: summary.activeEnergyKcal,
+            heartRateBefore: nil,
+            heartRateAfter: nil,
+            healthKitUUIDString: healthKitID,
+            isImportedFromHealth: false,
+            healthKitActivityTypes: [],
+            averageHeartRate: summary.averageHeartRate,
+            maxHeartRate: summary.maxHeartRate
+        )
+
+        workoutSessions.append(session)
+        saveReceiptCard(for: session)
+
+        TelemetryService.shared.log(.workoutFinished, parameters: [
+            "origin": session.origin.rawValue,
+            "location": session.location.rawValue,
+            "duration_minutes": session.durationMinutes,
+            "exercise_count": exerciseLogs.count,
+            "set_count": allSets.count,
+            "source": "apple_watch"
+        ])
+    }
+
+    /// Imports an interval / HIIT workout run on the Watch as a HIIT cardio log.
+    private func importWatchIntervalWorkout(_ summary: WatchIntervalWorkoutSummary) {
+        let log = CardioLog(
+            id: summary.id,
+            activityType: .hiit,
+            date: summary.startedAt,
+            durationMinutes: summary.durationMinutes,
+            distanceKm: nil,
+            averageSpeedKmh: nil,
+            averagePaceSecondsPerKm: nil,
+            averageHeartRate: summary.averageHeartRate,
+            maxHeartRate: summary.maxHeartRate,
+            estimatedCalories: summary.activeEnergyKcal,
+            steps: nil,
+            activeEnergyKcal: summary.activeEnergyKcal,
+            heartRateBefore: nil,
+            heartRateAfter: nil,
+            rpe: nil,
+            notes: "Intervalos registrados desde Apple Watch.",
+            routePoints: []
+        )
+        _ = importCardioLogs([log])
+    }
+
     private func handleNativeWorkoutMetrics(_ metrics: NativeWorkoutMetrics) {
         guard var status = activeWorkoutStatus else { return }
 
@@ -1366,12 +1541,12 @@ final class AppStore {
         let workout = Self.workoutDay(for: payload)
         startPreparedActiveWorkout(workout, drafts: [], isPaused: false, startedAt: payload.startedAt)
         if var status = activeWorkoutStatus {
-            status.planTitle = String(localized: "apple_watch_2")
+            status.planTitle = localizedString("apple_watch_2")
             status.isRouteWorkout = workout.isCardioMovement
             status.isOutdoorRoute = payload.locationType == .outdoor
             activeWorkoutStatus = status
         }
-        health.message = String(localized: "workout_started_from_apple_watch")
+        health.message = localizedString("workout_started_from_apple_watch")
     }
 
     private func handleNativeWorkoutEnded() {
@@ -1404,6 +1579,43 @@ final class AppStore {
         default:
             return .free
         }
+    }
+
+    /// Estimated max heart rate (≈ 220 − age) for HR-zone coloring on the Watch.
+    private var watchEstimatedMaxHeartRate: Double? {
+        guard let dob = userProfile.dateOfBirth else { return nil }
+        let years = Calendar.current.dateComponents([.year], from: dob, to: .now).year ?? 0
+        guard years > 0, years < 120 else { return nil }
+        return Double(220 - years)
+    }
+
+    /// Encodes the active strength drafts into the shared planned-exercise shape
+    /// so the Watch can render the full list and log sets live. Returns nil for
+    /// non-strength / empty sessions.
+    private func watchExercisesData() -> Data? {
+        let drafts = activeWorkoutDrafts
+        guard !drafts.isEmpty else { return nil }
+        let language = userProfile.preferredLanguage
+        let planned: [SharedPlannedExercise] = drafts.map { draft in
+            SharedPlannedExercise(
+                name: RepsText.exerciseName(draft.workoutExercise.exercise.name, language: language),
+                trackingType: draft.workoutExercise.exercise.trackingType.rawValue,
+                targetSets: draft.workoutExercise.targetSets,
+                repRange: draft.workoutExercise.repRange,
+                restSeconds: draft.workoutExercise.restSeconds,
+                previous: draft.workoutExercise.previous.isEmpty ? nil : draft.workoutExercise.previous,
+                sets: draft.sets.map { set in
+                    SharedPlannedSet(
+                        weightKg: set.weightKg,
+                        reps: set.reps,
+                        completed: set.completed,
+                        setType: set.setType.rawValue,
+                        rpe: set.rpe
+                    )
+                }
+            )
+        }
+        return try? JSONEncoder().encode(planned)
     }
 
     private func sharedWorkoutSnapshot() -> SharedWorkoutSnapshot {
@@ -1464,7 +1676,10 @@ final class AppStore {
                 trainingBatterySystemImage: battery.systemImage,
                 nextWorkoutDayName: activePlan.days.isEmpty ? nil : nextWorkout.title,
                 nextWorkoutDayDescription: activePlan.days.isEmpty ? nil : nextWorkout.subtitle,
-                widgetAccentColorName: userProfile.widgetAccentColorName
+                widgetAccentColorName: userProfile.widgetAccentColorName,
+                preferredLanguage: userProfile.preferredLanguage,
+                exercisesData: nil,
+                estimatedMaxHeartRate: watchEstimatedMaxHeartRate
             )
         }
 
@@ -1521,7 +1736,10 @@ final class AppStore {
             trainingBatterySystemImage: battery.systemImage,
             nextWorkoutDayName: activePlan.days.isEmpty ? nil : nextWorkout.title,
             nextWorkoutDayDescription: activePlan.days.isEmpty ? nil : nextWorkout.subtitle,
-            widgetAccentColorName: userProfile.widgetAccentColorName
+            widgetAccentColorName: userProfile.widgetAccentColorName,
+            preferredLanguage: userProfile.preferredLanguage,
+            exercisesData: status.isRouteWorkout ? nil : watchExercisesData(),
+            estimatedMaxHeartRate: watchEstimatedMaxHeartRate
         )
     }
 
@@ -1693,7 +1911,7 @@ final class AppStore {
             scheduleDeloadSession(for: exercise)
             return .calendar
         case .reviewPlan:
-            health.message = String(localized: "review_plan_distribution_and_schedule_the_next_session_to_recover_adherence")
+            health.message = localizedString("review_plan_distribution_and_schedule_the_next_session_to_recover_adherence")
             return .plans
         case .scheduleRecovery:
             scheduleRecoverySession()
@@ -1716,12 +1934,12 @@ final class AppStore {
             }
         let selected = Array(candidates.prefix(3))
         guard !selected.isEmpty else {
-            health.message = String(localized: "No encontré ejercicios disponibles para \(muscleGroup). Revisa tu catálogo o equipo disponible.")
+            health.message = localizedFormat("muscle_focus_no_exercises_message", muscleGroup)
             return
         }
 
         let workout = WorkoutDay(
-            title: "Foco \(muscleGroup)",
+            title: localizedFormat("muscle_focus_workout_title", muscleGroup),
             subtitle: "guided_session_to_close_the_weekly_gap",
             durationMinutes: max(24, selected.count * 10),
             exercises: selected.map { exercise in
@@ -1737,8 +1955,11 @@ final class AppStore {
             }
         )
         addScheduledWorkout(workout, date: nextRetentionActionDate())
-        health.message = String(localized: "Sesión de foco para \(muscleGroup) programada para mañana.")
-        scheduleRetentionNudge(title: "Foco \(muscleGroup)", body: "Tienes una sesión corta para cerrar la brecha semanal.")
+        health.message = localizedFormat("muscle_focus_scheduled_tomorrow_message", muscleGroup)
+        scheduleRetentionNudge(
+            title: localizedFormat("muscle_focus_workout_title", muscleGroup),
+            body: localizedKey("short_session_to_close_weekly_gap")
+        )
     }
 
     private func scheduleDeloadSession(for exercise: Exercise) {
@@ -1760,8 +1981,11 @@ final class AppStore {
             ]
         )
         addScheduledWorkout(workout, date: nextRetentionActionDate())
-        health.message = String(localized: "Descarga de \(exercise.name) programada para mañana.")
-        scheduleRetentionNudge(title: "Descarga programada", body: "Mañana toca bajar fatiga y volver a progresar en \(exercise.name).")
+        health.message = localizedFormat("deload_exercise_scheduled_tomorrow_message", exercise.name)
+        scheduleRetentionNudge(
+            title: localizedKey("scheduled_deload"),
+            body: localizedFormat("tomorrow_reduce_fatigue_and_progress_exercise", exercise.name)
+        )
     }
 
     private func scheduleRecoverySession() {
@@ -1792,8 +2016,8 @@ final class AppStore {
             restBetweenExercisesSeconds: 30
         )
         addScheduledWorkout(workout, date: nextRetentionActionDate())
-        health.message = String(localized: "active_recovery_scheduled_for_tomorrow")
-        scheduleRetentionNudge(title: "Recuperación activa", body: "Mañana tienes una sesión suave para llegar mejor al siguiente entreno.")
+        health.message = localizedString("active_recovery_scheduled_for_tomorrow")
+        scheduleRetentionNudge(title: localizedKey("active_recovery"), body: localizedKey("gentle_session_for_next_workout"))
     }
 
     private func nextRetentionActionDate() -> Date {
@@ -1944,12 +2168,12 @@ final class AppStore {
             }
 
             if addedCount == 0 && mergedCount == 0 {
-                exerciseLibrarySyncMessage = String(localized: "the_exercise_library_is_updated")
+                exerciseLibrarySyncMessage = localizedString("the_exercise_library_is_updated")
             } else {
-                exerciseLibrarySyncMessage = String(localized: "Biblioteca actualizada: \(addedCount) nuevos, \(mergedCount) completados.")
+                exerciseLibrarySyncMessage = localizedFormat("library_updated_counts_message", addedCount, mergedCount)
             }
         } catch {
-            exerciseLibrarySyncMessage = String(localized: "the_library_could_not_be_updated_the_offline_catalog_is_still_available")
+            exerciseLibrarySyncMessage = localizedString("the_library_could_not_be_updated_the_offline_catalog_is_still_available")
             TelemetryService.shared.record(error, context: "exercise_library_sync")
             TelemetryService.shared.log(.nonFatalError, parameters: ["context": "exercise_library_sync"])
         }
@@ -1989,9 +2213,9 @@ final class AppStore {
         let template = prefersHome ? SeedData.homeStrengthPlan : SeedData.pushPullLegsPlan
         var suggested = template
         suggested.id = UUID()
-        suggested.name = prefersHome ? "Casa según mi equipo" : "Gimnasio recomendado"
+        suggested.name = prefersHome ? localizedKey("home_based_on_my_equipment") : localizedKey("recommended_gym")
         addPlan(suggested, activate: true)
-        health.message = String(localized: "Rutina creada: \(suggested.name). Está activa en Planes.")
+        health.message = localizedFormat("routine_created_active_in_plans_message", suggested.name)
         return suggested
     }
 
@@ -2612,7 +2836,7 @@ final class AppStore {
                 contextTag: .normal,
                 durationMinutes: durationMin,
                 sets: allSets,
-                notes: String(localized: "synced_and_enriched_with_apple_health"),
+                notes: localizedString("synced_and_enriched_with_apple_health"),
                 exerciseLogs: logs,
                 sessionRPE: 7.0,
                 energyBefore: 3,
@@ -2673,7 +2897,7 @@ final class AppStore {
             contextTag: .normal,
             durationMinutes: max(Int(workout.duration / 60), 1),
             sets: [],
-            notes: String(localized: "automatically_imported_from_apple_health"),
+            notes: localizedString("automatically_imported_from_apple_health"),
             exerciseLogs: [],
             sessionRPE: nil,
             energyBefore: nil,
@@ -3179,6 +3403,22 @@ struct WatchRouteMetrics: Sendable {
     var activeEnergyKcal: Double?
 }
 
+extension Notification.Name {
+    /// Posted after a Watch-logged set is applied to the active workout drafts,
+    /// so the active workout screen can recompute and republish its status.
+    static let watchDidLogSet = Notification.Name("WatchCommand.didLogSet")
+}
+
+/// A single set logged on the Watch and pushed to the iPhone in real time.
+struct WatchLogSet: Sendable {
+    var exerciseIndex: Int
+    var setIndex: Int
+    var weightKg: Double
+    var reps: Int
+    var setType: String
+    var completed: Bool
+}
+
 private final class RouteLocationAccumulator: @unchecked Sendable {
     private let lock = NSLock()
     private var locations: [CLLocation] = []
@@ -3549,6 +3789,9 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
     private var commandHandler: (@MainActor @Sendable (WatchCommand) -> Void)?
     private var routeMetricsHandler: (@MainActor @Sendable (WatchRouteMetrics) -> Void)?
     private var routeSummaryHandler: (@MainActor @Sendable (WatchRouteWorkoutSummary) -> Void)?
+    private var logSetHandler: (@MainActor @Sendable (WatchLogSet) -> Void)?
+    private var strengthSummaryHandler: (@MainActor @Sendable (WatchStrengthWorkoutSummary) -> Void)?
+    private var intervalSummaryHandler: (@MainActor @Sendable (WatchIntervalWorkoutSummary) -> Void)?
 
     private override init() {
         super.init()
@@ -3566,11 +3809,17 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
     func configure(
         commandHandler: (@MainActor @Sendable (WatchCommand) -> Void)? = nil,
         routeMetricsHandler: (@MainActor @Sendable (WatchRouteMetrics) -> Void)? = nil,
-        routeSummaryHandler: (@MainActor @Sendable (WatchRouteWorkoutSummary) -> Void)? = nil
+        routeSummaryHandler: (@MainActor @Sendable (WatchRouteWorkoutSummary) -> Void)? = nil,
+        logSetHandler: (@MainActor @Sendable (WatchLogSet) -> Void)? = nil,
+        strengthSummaryHandler: (@MainActor @Sendable (WatchStrengthWorkoutSummary) -> Void)? = nil,
+        intervalSummaryHandler: (@MainActor @Sendable (WatchIntervalWorkoutSummary) -> Void)? = nil
     ) {
         self.commandHandler = commandHandler
         self.routeMetricsHandler = routeMetricsHandler
         self.routeSummaryHandler = routeSummaryHandler
+        self.logSetHandler = logSetHandler
+        self.strengthSummaryHandler = strengthSummaryHandler
+        self.intervalSummaryHandler = intervalSummaryHandler
         guard WCSession.isSupported() else { return }
         let session = WCSession.default
         guard session.delegate == nil else { return }
@@ -3641,6 +3890,9 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
         context["nextWorkoutDayName"] = snapshot.nextWorkoutDayName
         context["nextWorkoutDayDescription"] = snapshot.nextWorkoutDayDescription
         context["widgetAccentColorName"] = snapshot.widgetAccentColorName
+        context["preferredLanguage"] = snapshot.preferredLanguage
+        context["exercisesData"] = snapshot.exercisesData
+        context["estimatedMaxHeartRate"] = snapshot.estimatedMaxHeartRate
 
         try? session.updateApplicationContext(context)
         if session.isReachable {
@@ -3690,11 +3942,45 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
                 handler?(summary)
             }
         }
+        if message["kind"] as? String == "strengthWorkoutSummary",
+           let data = message["strengthWorkoutSummary"] as? Data,
+           let summary = try? JSONDecoder().decode(WatchStrengthWorkoutSummary.self, from: data) {
+            let handler = strengthSummaryHandler
+            Task { @MainActor in
+                handler?(summary)
+            }
+        }
+        if message["kind"] as? String == "intervalWorkoutSummary",
+           let data = message["intervalWorkoutSummary"] as? Data,
+           let summary = try? JSONDecoder().decode(WatchIntervalWorkoutSummary.self, from: data) {
+            let handler = intervalSummaryHandler
+            Task { @MainActor in
+                handler?(summary)
+            }
+        }
     }
 
     private func handle(_ message: [String: Any]) {
-        if message["kind"] as? String == "routeWorkoutSummary" {
+        if let kind = message["kind"] as? String,
+           kind == "routeWorkoutSummary" || kind == "strengthWorkoutSummary" || kind == "intervalWorkoutSummary" {
             handlePersistentPayload(message)
+            return
+        }
+        if message["kind"] as? String == "logSet",
+           let exerciseIndex = message["exerciseIndex"] as? Int,
+           let setIndex = message["setIndex"] as? Int {
+            let logSet = WatchLogSet(
+                exerciseIndex: exerciseIndex,
+                setIndex: setIndex,
+                weightKg: message["weightKg"] as? Double ?? 0,
+                reps: message["reps"] as? Int ?? 0,
+                setType: message["setType"] as? String ?? "work",
+                completed: message["completed"] as? Bool ?? true
+            )
+            let handler = logSetHandler
+            Task { @MainActor in
+                handler?(logSet)
+            }
             return
         }
         if message["kind"] as? String == "routeMetrics" {

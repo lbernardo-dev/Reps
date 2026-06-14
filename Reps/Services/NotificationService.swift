@@ -39,11 +39,11 @@ enum NotificationService {
         guard seconds > 1 else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = String(localized: "Descanso terminado")
+        content.title = localizedString("rest_finished")
         if let nextExerciseName, !nextExerciseName.isEmpty {
-            content.body = String(localized: "Siguiente: \(nextExerciseName)")
+            content.body = localizedFormat("next_value_format", nextExerciseName)
         } else {
-            content.body = String(localized: "Hora de la siguiente serie.")
+            content.body = localizedString("next_set_time")
         }
         content.sound = .default
         content.threadIdentifier = "rest-timer"

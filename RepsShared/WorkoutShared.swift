@@ -13,14 +13,58 @@ import WidgetKit
 #endif
 
 #if canImport(SwiftUI)
-func localizedKey(_ key: String) -> LocalizedStringKey {
-    LocalizedStringKey(key)
+enum RepsLocalization {
+    nonisolated(unsafe) private static var activeLanguage = "es"
+
+    static var language: String {
+        activeLanguage
+    }
+
+    static var locale: Locale {
+        Locale(identifier: activeLanguage)
+    }
+
+    @discardableResult
+    static func use(_ language: String?) -> Locale {
+        if let language, !language.isEmpty {
+            activeLanguage = language
+        }
+        return locale
+    }
+
+    static func string(_ key: String) -> String {
+        String(localized: String.LocalizationValue(key), locale: locale)
+    }
+}
+
+func localizedKey(_ key: String) -> String {
+    RepsLocalization.string(key)
 }
 
 func localizedKey(_ key: LocalizedStringKey) -> LocalizedStringKey {
     key
 }
 #endif
+
+func localizedString(_ key: String) -> String {
+    #if canImport(SwiftUI)
+    RepsLocalization.string(key)
+    #else
+    String(localized: String.LocalizationValue(key))
+    #endif
+}
+
+func localizedFormat(_ key: String, _ arguments: CVarArg...) -> String {
+    #if canImport(SwiftUI)
+    String(
+        format: RepsLocalization.string(key),
+        locale: RepsLocalization.locale,
+        arguments: arguments
+    )
+    #else
+    String(format: String(localized: String.LocalizationValue(key)), locale: .current, arguments: arguments)
+    #endif
+}
 
 enum RepsAppGroup {
     static let identifier = "group.com.romerodev.repsfitness"
@@ -93,6 +137,69 @@ struct WatchRouteWorkoutSummary: Codable, Hashable, Sendable {
     }
 }
 
+/// One logged/planned set as it travels between iPhone and Watch.
+/// `setType` is the raw value of `SetLog.SetType`; `trackingType` (on the
+/// owning exercise) the raw value of `Exercise.TrackingType`.
+struct SharedPlannedSet: Codable, Hashable, Sendable {
+    var weightKg: Double
+    var reps: Int
+    var completed: Bool
+    var setType: String
+    var rpe: Double? = nil
+}
+
+/// A full exercise (with its sets) shared so the Watch can render and log a
+/// strength workout — both the planned list pushed from the iPhone and the
+/// log dumped back from the Watch reuse this shape.
+struct SharedPlannedExercise: Codable, Hashable, Sendable {
+    var name: String
+    var trackingType: String
+    var targetSets: Int
+    var repRange: String
+    var restSeconds: Int
+    var previous: String?
+    var sets: [SharedPlannedSet]
+}
+
+/// Strength workout logged on the Watch and dumped to the iPhone when it
+/// reconnects. Mirrors the route summary path so the phone can import a
+/// complete `WorkoutSession` with `exerciseLogs`.
+struct WatchStrengthWorkoutSummary: Codable, Hashable, Sendable {
+    var id: UUID
+    var title: String
+    var startedAt: Date
+    var endedAt: Date
+    var durationSeconds: Int
+    var pausedSeconds: Int
+    var exercises: [SharedPlannedExercise]
+    var activeEnergyKcal: Double?
+    var averageHeartRate: Double?
+    var maxHeartRate: Double?
+
+    var durationMinutes: Int { max(durationSeconds / 60, 1) }
+}
+
+/// Interval / HIIT workout authored and run on the Watch, dumped to the iPhone
+/// as a HIIT cardio log.
+struct WatchIntervalWorkoutSummary: Codable, Hashable, Sendable {
+    var id: UUID
+    var name: String
+    var rounds: Int
+    var workSeconds: Int
+    var restSeconds: Int
+    var startedAt: Date
+    var endedAt: Date
+    var durationSeconds: Int
+    var pausedSeconds: Int
+    var activeEnergyKcal: Double?
+    var averageHeartRate: Double?
+    var maxHeartRate: Double?
+    /// Seconds spent in each HR zone (Z1…Z5), when available.
+    var timeInZoneSeconds: [Int]? = nil
+
+    var durationMinutes: Int { max(durationSeconds / 60, 1) }
+}
+
 struct SharedWorkoutSnapshot: Codable, Hashable {
     var hasActiveWorkout: Bool
     var planTitle: String?
@@ -148,6 +255,21 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
     var nextWorkoutDayDescription: String?
     /// Raw WidgetColor name — drives the widget background color
     var widgetAccentColorName: String
+    var preferredLanguage: String? = nil
+    /// JSON-encoded `[SharedPlannedExercise]` for the active strength workout,
+    /// letting the Watch render the full exercise list and log sets live.
+    var exercisesData: Data? = nil
+    /// Estimated max heart rate (≈ 220 − age) for HR-zone coloring on the Watch.
+    var estimatedMaxHeartRate: Double? = nil
+
+    /// Decoded planned exercises from `exercisesData`, if present.
+    var plannedExercises: [SharedPlannedExercise] {
+        guard let exercisesData,
+              let decoded = try? JSONDecoder().decode([SharedPlannedExercise].self, from: exercisesData) else {
+            return []
+        }
+        return decoded
+    }
 
     static let empty = SharedWorkoutSnapshot(
         hasActiveWorkout: false,
@@ -200,7 +322,8 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
         trainingBatterySystemImage: "battery.100percent",
         nextWorkoutDayName: nil,
         nextWorkoutDayDescription: nil,
-        widgetAccentColorName: "system"
+        widgetAccentColorName: "system",
+        preferredLanguage: "es"
     )
 
     var progress: Double {

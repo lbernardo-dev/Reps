@@ -27,7 +27,6 @@ struct ProfileView: View {
     @State private var activeDestination: ProfileDestination?
 
     var body: some View {
-        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
         applyProfileModifiers(
             StickyHeaderScaffold(
                 title: "profile",
@@ -58,23 +57,23 @@ struct ProfileView: View {
                 }
             ) {
                 bodyMetricsCard
-                    .stickyHeaderTitle(String(localized: "metrics_2"))
+                    .stickyHeaderTitle(localizedString("metrics_2"))
                 bodyIndexCard
-                    .stickyHeaderTitle(String(localized: "body_indexes"))
+                    .stickyHeaderTitle(localizedString("body_indexes"))
                 progressPhotoCard
-                    .stickyHeaderTitle(String(localized: "photos"))
+                    .stickyHeaderTitle(localizedString("photos"))
                 achievementsCard
-                    .stickyHeaderTitle(String(localized: "achievements"))
+                    .stickyHeaderTitle(localizedString("achievements"))
                 gymPassesCard
-                    .stickyHeaderTitle(String(localized: "gyms"))
+                    .stickyHeaderTitle(localizedString("gyms"))
                 healthCard
                     .stickyHeaderTitle("apple_health")
                 toolsCard
-                    .stickyHeaderTitle(String(localized: "actions"))
+                    .stickyHeaderTitle(localizedString("actions"))
                 settingsCard
-                    .stickyHeaderTitle(String(localized: "settings"))
+                    .stickyHeaderTitle(localizedString("settings"))
                 supportAndProductCard
-                    .stickyHeaderTitle(String(localized: "support"))
+                    .stickyHeaderTitle(localizedString("support"))
             }
         )
         .toolbar(.hidden, for: .navigationBar)
@@ -105,9 +104,9 @@ struct ProfileView: View {
                 HStack(spacing: 12) {
                     Button { activeSheet = .quickMetricEditor } label: {
                         ProfileMetric(
-                            title: "Peso",
+                            title: "weight",
                             value: store.hasBodyMetrics ? String(format: "%.1f", store.displayedWeight.value) : "--",
-                            unit: store.hasBodyMetrics ? store.displayedWeight.unit : "añadir",
+                            unit: store.hasBodyMetrics ? store.displayedWeight.unit : localizedKey("add"),
                             color: PulseTheme.primary
                         )
                     }
@@ -115,9 +114,9 @@ struct ProfileView: View {
 
                     Button { activeSheet = .quickMetricEditor } label: {
                         ProfileMetric(
-                            title: "Altura",
+                            title: "height",
                             value: store.hasBodyMetrics ? String(format: "%.0f", store.displayedHeight.value) : "--",
-                            unit: store.hasBodyMetrics ? store.displayedHeight.unit : "añadir",
+                            unit: store.hasBodyMetrics ? store.displayedHeight.unit : localizedKey("add"),
                             color: PulseTheme.primaryBright
                         )
                     }
@@ -127,7 +126,7 @@ struct ProfileView: View {
                 Button {
                     activeSheet = .bodyLog
                 } label: {
-                    PulseListRow(title: "Registro avanzado", subtitle: "Peso, grasa, medidas, sueño, estrés y molestias", systemImage: "heart.text.square")
+                    PulseListRow(title: "advanced_log", subtitle: "weight_fat_measurements_sleep_stress_and_discomfort", systemImage: "heart.text.square")
                 }
                 .buttonStyle(.plain)
             }
@@ -141,7 +140,7 @@ struct ProfileView: View {
                     Text("body_indices")
                         .font(.headline)
                     Spacer()
-                    Text(store.hasBodyMetrics ? "estimación" : "pendiente")
+                    Text(store.hasBodyMetrics ? "estimate" : "pending")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -149,18 +148,18 @@ struct ProfileView: View {
                 if store.hasBodyMetrics {
                     HStack(spacing: 12) {
                         ProfileMetric(title: "IMC", value: String(format: "%.1f", store.bodyMassIndex), unit: bmiLabel, color: PulseTheme.accent)
-                        ProfileMetric(title: "Basal", value: "\(Int(store.basalMetabolicRate))", unit: "kcal/día", color: PulseTheme.primary)
+                        ProfileMetric(title: "basal", value: "\(Int(store.basalMetabolicRate))", unit: localizedKey("kcal_per_day"), color: PulseTheme.primary)
                     }
 
                     VStack(spacing: 10) {
-                        CalorieRow(title: "Déficit", value: store.deficitCalories, subtitle: "perder grasa")
-                        CalorieRow(title: "Recomposición", value: store.recompositionCalories, subtitle: "progreso estable")
-                        CalorieRow(title: "Volumen", value: store.leanBulkCalories, subtitle: "ganancia controlada")
+                        CalorieRow(title: "deficit", value: store.deficitCalories, subtitle: "lose_fat")
+                        CalorieRow(title: "recomposition", value: store.recompositionCalories, subtitle: "stable_progress")
+                        CalorieRow(title: "volume", value: store.leanBulkCalories, subtitle: "controlled_gain")
                     }
                 } else {
                     PulseEmptyState(
-                        title: "Añade tus métricas",
-                        message: "Guarda peso y altura para calcular IMC, metabolismo basal y objetivos calóricos.",
+                        title: "add_your_metrics",
+                        message: "save_weight_and_height_to_calculate_bmi_bmr_and_calorie_targets",
                         systemImage: "scalemass"
                     )
 
@@ -200,8 +199,8 @@ struct ProfileView: View {
 
                 if store.progressPhotos.isEmpty {
                     PulseEmptyState(
-                        title: "Aún no hay fotos",
-                        message: "Añade fotos periódicas para comparar tu evolución con contexto de fecha y peso.",
+                        title: "no_photos_yet",
+                        message: "add_periodic_photos_to_compare_progress",
                         systemImage: "photo.on.rectangle"
                     )
                 } else {
@@ -219,11 +218,10 @@ struct ProfileView: View {
     }
 
     private var achievementsCard: some View {
-        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
         return PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text(String(localized: "achievements_and_tickets"))
+                    Text(localizedString("achievements_and_tickets"))
                         .font(.headline)
                     Spacer()
                     
@@ -231,7 +229,7 @@ struct ProfileView: View {
                         AchievementsView()
                     } label: {
                         HStack(spacing: 4) {
-                            Text(String(localized: "view_all_2"))
+                            Text(localizedString("view_all_2"))
                                 .font(.caption.weight(.bold))
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 10, weight: .bold))
@@ -245,7 +243,7 @@ struct ProfileView: View {
                     PaywallLockedCard(
                         title: "pro_receipts",
                         message: "unlock_the_receipt_gallery_shareable_cards_and_workout_images_with_reps_pro",
-                        buttonTitle: String(localized: "see_reps_pro")
+                        buttonTitle: localizedString("see_reps_pro")
                     ) {
                         localPaywall = store.makePaywallPresentation(source: .receiptGallery, feature: .shareCards)
                     }
@@ -274,12 +272,12 @@ struct ProfileView: View {
                                     .background(PulseTheme.grouped)
                                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                     
-                                    Text(String(localized: "achievements"))
+                                    Text(localizedString("achievements"))
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(.primary)
                                         .lineLimit(1)
                                     
-                                    Text(String(localized: "view_milestones"))
+                                    Text(localizedString("view_milestones"))
                                         .font(.system(size: 7, weight: .bold))
                                         .foregroundStyle(PulseTheme.accent)
                                 }
@@ -366,8 +364,8 @@ struct ProfileView: View {
 
                 if store.gymPasses.isEmpty {
                     PulseEmptyState(
-                        title: "Sin tarjetas de gimnasio",
-                        message: "Guarda QR o código de barras de tus gimnasios para tenerlos siempre a mano.",
+                        title: "no_gym_cards",
+                        message: "save_gym_qr_or_barcode_for_quick_access",
                         systemImage: "wallet.pass"
                     )
                 } else {
@@ -460,8 +458,8 @@ struct ProfileView: View {
                 SettingsView()
             } label: {
                 PulseListRow(
-                    title: "Configuración",
-                    subtitle: "Unidades, idioma, tema, widgets, recordatorios y preferencias Pro",
+                    title: "settings",
+                    subtitle: "units_language_theme_widgets_reminders_and_pro_preferences",
                     systemImage: "gearshape.fill"
                 )
             }
@@ -475,11 +473,11 @@ struct ProfileView: View {
                 .font(.title3.bold())
                 .padding(.horizontal, 2)
 
-            ProfileToolSection(title: "Entrenar y construir") {
+            ProfileToolSection(title: "train_and_build") {
                 LazyVGrid(columns: profileToolColumns, spacing: 12) {
                     ProfileToolButton(
-                        title: "Biblioteca",
-                        subtitle: "\(store.exercises.count) ejercicios",
+                        title: "library",
+                        subtitle: localizedFormat("exercise_count_format", store.exercises.count),
                         systemImage: "magnifyingglass",
                         color: PulseTheme.primary
                     ) {
@@ -488,7 +486,7 @@ struct ProfileView: View {
 
                     ProfileToolButton(
                         title: "Cardio",
-                        subtitle: "Ruta, pulso y RPE",
+                        subtitle: "route_heart_rate_and_rpe",
                         systemImage: "figure.run",
                         color: PulseTheme.accent
                     ) {
@@ -496,8 +494,8 @@ struct ProfileView: View {
                     }
 
                     ProfileToolButton(
-                        title: "Objetivo",
-                        subtitle: "Fuerza o cuerpo",
+                        title: "goal",
+                        subtitle: "strength_or_body",
                         systemImage: "target",
                         color: .orange
                     ) {
@@ -505,8 +503,8 @@ struct ProfileView: View {
                     }
 
                     ProfileToolButton(
-                        title: "Rutina por equipo",
-                        subtitle: "Compatible contigo",
+                        title: "equipment_routine",
+                        subtitle: "compatible_with_you",
                         systemImage: "wand.and.sparkles",
                         color: PulseTheme.primaryBright
                     ) {
@@ -515,13 +513,13 @@ struct ProfileView: View {
                 }
             }
 
-            ProfileToolSection(title: "Datos y privacidad") {
+            ProfileToolSection(title: "data_and_privacy") {
                 Button {
                     activeDestination = .dataPrivacy
                 } label: {
                     PulseListRow(
-                        title: "Centro de datos",
-                        subtitle: "CSV, backups, restauración, privacidad y borrado",
+                        title: "data_center",
+                        subtitle: "csv_backups_restore_privacy_and_delete",
                         systemImage: "externaldrive.badge.icloud"
                     )
                 }
@@ -536,8 +534,8 @@ struct ProfileView: View {
                 activeDestination = .supportProduct
             } label: {
                 PulseListRow(
-                    title: "Soporte y producto",
-                    subtitle: "Ayuda, feedback, privacidad, suscripción, novedades y versión",
+                    title: "support_and_product",
+                    subtitle: "help_feedback_privacy_subscription_whats_new_and_version",
                     systemImage: "questionmark.bubble.fill"
                 )
             }
@@ -601,8 +599,8 @@ struct ProfileView: View {
     private var dataPrivacyCenter: some View {
         applyProfileModifiers(
             StickyHeaderScaffold(
-                title: "Centro de datos",
-                subtitle: "Exportación, backup y privacidad",
+                title: "data_center",
+                subtitle: "export_backup_and_privacy",
                 accessory: {
                     HStack(spacing: 10) {
                         Button {
@@ -665,8 +663,8 @@ struct ProfileView: View {
                         if let shareImageURL {
                             ShareLink(item: shareImageURL) {
                                 ProfileToolCard(
-                                    title: "Compartir PNG",
-                                    subtitle: "Último entreno",
+                                    title: "share_png",
+                                    subtitle: "last_workout",
                                     systemImage: "square.and.arrow.up",
                                     color: .orange,
                                     badge: "listo"
@@ -678,11 +676,11 @@ struct ProfileView: View {
                 }
                 .stickyHeaderTitle("share")
 
-                ProfileToolSection(title: "Datos y privacidad") {
+                ProfileToolSection(title: "data_and_privacy") {
                     LazyVGrid(columns: profileToolColumns, spacing: 12) {
                         ProfileToolButton(
-                            title: "Importar CSV",
-                            subtitle: "Cardio y cuerpo",
+                            title: "import_csv",
+                            subtitle: "cardio_and_body",
                             systemImage: "square.and.arrow.down",
                             color: PulseTheme.primaryBright
                         ) {
@@ -691,7 +689,7 @@ struct ProfileView: View {
 
                         ProfileToolButton(
                             title: "Backup",
-                            subtitle: backupExportURL == nil ? "Generar JSON" : "JSON listo",
+                            subtitle: backupExportURL == nil ? "generate_json" : "json_ready",
                             systemImage: "externaldrive",
                             color: PulseTheme.accent
                         ) {
@@ -703,8 +701,8 @@ struct ProfileView: View {
                         if let backupExportURL {
                             ShareLink(item: backupExportURL) {
                                 ProfileToolCard(
-                                    title: "Compartir backup",
-                                    subtitle: "Copia completa",
+                                    title: "share_backup",
+                                    subtitle: "full_copy",
                                     systemImage: "doc.badge.gearshape",
                                     color: PulseTheme.accent,
                                     badge: "listo"
@@ -714,8 +712,8 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: "Restaurar",
-                            subtitle: "Importar JSON",
+                            title: "restore",
+                            subtitle: "import_json",
                             systemImage: "arrow.down.doc",
                             color: PulseTheme.primary
                         ) {
@@ -725,8 +723,8 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: "Borrar datos",
-                            subtitle: "Reiniciar app",
+                            title: "delete_data",
+                            subtitle: "reset_app",
                             systemImage: "trash",
                             color: .red
                         ) {
@@ -744,8 +742,8 @@ struct ProfileView: View {
     private var supportProductCenter: some View {
         applyProfileModifiers(
             StickyHeaderScaffold(
-                title: "Soporte",
-                subtitle: "Ayuda, producto y suscripción",
+                title: "support",
+                subtitle: "help_product_and_subscription",
                 accessory: {
                     HStack(spacing: 10) {
                         Button {
@@ -770,11 +768,11 @@ struct ProfileView: View {
                     }
                 }
             ) {
-                ProfileToolSection(title: "Contacto") {
+                ProfileToolSection(title: "contact") {
                     LazyVGrid(columns: profileToolColumns, spacing: 12) {
                         ProfileToolButton(
-                            title: "Valorar app",
-                            subtitle: "Pedir reseña",
+                            title: "rate_app",
+                            subtitle: "request_review",
                             systemImage: "star.bubble",
                             color: PulseTheme.accent
                         ) {
@@ -784,7 +782,7 @@ struct ProfileView: View {
 
                         ProfileToolButton(
                             title: "Feedback",
-                            subtitle: "Enviar opinión",
+                            subtitle: "send_feedback",
                             systemImage: "bubble.left.and.text.bubble.right",
                             color: PulseTheme.primary
                         ) {
@@ -795,11 +793,11 @@ struct ProfileView: View {
                 }
                 .stickyHeaderTitle("contacto")
 
-                ProfileToolSection(title: "Producto") {
+                ProfileToolSection(title: "product") {
                     LazyVGrid(columns: profileToolColumns, spacing: 12) {
                         ProfileToolButton(
-                            title: "Ayuda",
-                            subtitle: "Preguntas rápidas",
+                            title: "help",
+                            subtitle: "quick_questions",
                             systemImage: "questionmark.circle",
                             color: PulseTheme.primaryBright
                         ) {
@@ -808,8 +806,8 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: "Privacidad",
-                            subtitle: "Datos y permisos",
+                            title: "privacy",
+                            subtitle: "data_and_permissions",
                             systemImage: "hand.raised",
                             color: .purple
                         ) {
@@ -857,18 +855,18 @@ struct ProfileView: View {
 
     private var helpInfoScreen: some View {
         SupportInfoScreen(
-            title: "Ayuda",
+            title: "help",
             systemImage: "questionmark.circle",
             sections: [
-                SupportInfoSection(title: "Entrenar", rows: [
-                    "Empieza desde Today o desde una rutina programada.",
-                    "Durante el entreno puedes pausar, completar series, añadir notas, fotos y agua.",
-                    "El resumen actualiza progreso, widgets y recibos."
+                SupportInfoSection(title: "train", rows: [
+                    "start_from_today_or_scheduled_routine",
+                    "during_workout_pause_complete_sets_add_notes_photos_and_water",
+                    "summary_updates_progress_widgets_and_receipts"
                 ]),
-                SupportInfoSection(title: "Datos", rows: [
-                    "El backup JSON guarda una copia completa.",
-                    "El CSV permite exportar sesiones, cardio y métricas corporales.",
-                    "Apple Health se conecta desde Perfil cuando das permiso."
+                SupportInfoSection(title: "data", rows: [
+                    "json_backup_saves_full_copy",
+                    "csv_exports_sessions_cardio_and_body_metrics",
+                    "apple_health_connects_from_profile_with_permission"
                 ])
             ]
         ) {
@@ -878,22 +876,22 @@ struct ProfileView: View {
 
     private var privacyInfoScreen: some View {
         SupportInfoScreen(
-            title: "Privacidad",
+            title: "privacy",
             systemImage: "hand.raised",
             sections: [
-                SupportInfoSection(title: "Datos locales", rows: [
-                    "Reps guarda tus entrenos, rutinas, métricas, fotos y tarjetas en almacenamiento local.",
-                    "Puedes exportar backup, importar backup y borrar todos los datos desde Perfil."
+                SupportInfoSection(title: "local_data", rows: [
+                    "reps_stores_workouts_routines_metrics_photos_and_cards_locally",
+                    "you_can_export_import_backup_and_delete_profile_data"
                 ]),
-                SupportInfoSection(title: "Permisos", rows: [
-                    "Apple Health solo se usa si lo conectas.",
-                    "Fotos, cámara, música, notificaciones y ubicación se solicitan solo cuando usas esas funciones.",
-                    "Los widgets leen un resumen mínimo desde el App Group para mostrar progreso y entrenos."
+                SupportInfoSection(title: "permissions", rows: [
+                    "apple_health_only_used_if_connected",
+                    "photos_camera_music_notifications_and_location_requested_when_used",
+                    "widgets_read_minimum_summary_from_app_group"
                 ]),
-                SupportInfoSection(title: "Privacidad y telemetría", rows: [
-                    "La app registra eventos mínimos de producto para mejorar estabilidad y experiencia.",
-                    "No se envían nombres de entrenos, notas, fotos ni datos de Apple Health a analítica.",
-                    "Puedes borrar los datos locales y exportar una copia desde Perfil."
+                SupportInfoSection(title: "privacy_and_telemetry", rows: [
+                    "app_records_minimum_product_events_for_stability",
+                    "no_workout_names_notes_photos_or_health_data_sent_to_analytics",
+                    "you_can_delete_local_data_and_export_copy_from_profile"
                 ])
             ]
         ) {
@@ -903,23 +901,23 @@ struct ProfileView: View {
 
     private var roadmapInfoScreen: some View {
         SupportInfoScreen(
-            title: "Novedades",
+            title: "whats_new",
             systemImage: "sparkles",
             sections: [
-                SupportInfoSection(title: "Entrenamiento", rows: [
-                    "Rutinas listas con días, ejercicios, series, descansos y progresión.",
-                    "Registro libre con notas, fotos, agua, RPE, RIR, tempo y descansos.",
-                    "Resumen final con volumen, récords y recibos visuales."
+                SupportInfoSection(title: "training", rows: [
+                    "ready_routines_with_days_exercises_sets_rests_and_progression",
+                    "free_log_with_notes_photos_water_rpe_rir_tempo_and_rests",
+                    "final_summary_with_volume_records_and_visual_receipts"
                 ]),
-                SupportInfoSection(title: "Integraciones", rows: [
-                    "Apple Health para importar métricas y guardar entrenamientos cuando das permiso.",
-                    "Widgets, Watch y Live Activities para seguir tu sesión fuera de la app.",
-                    "Apple Music para reproducir playlists durante los entrenos."
+                SupportInfoSection(title: "integrations", rows: [
+                    "apple_health_imports_metrics_and_saves_workouts_with_permission",
+                    "widgets_watch_and_live_activities_follow_session_outside_app",
+                    "apple_music_plays_playlists_during_workouts"
                 ]),
-                SupportInfoSection(title: "Progreso", rows: [
-                    "Analítica por ejercicio, músculo, carga, rachas y batería de entrenamiento.",
-                    "Backups JSON, exportación CSV y tarjetas compartibles.",
-                    "Pases de gimnasio y visitas para tener tus accesos a mano."
+                SupportInfoSection(title: "progress", rows: [
+                    "analytics_by_exercise_muscle_load_streaks_and_training_battery",
+                    "json_backups_csv_export_and_shareable_cards",
+                    "gym_passes_and_visits_keep_accesses_handy"
                 ])
             ]
         ) {
@@ -1028,13 +1026,13 @@ struct ProfileView: View {
     private func saveManualMetrics() {
         guard let rawWeight = Double(weightText.replacingOccurrences(of: ",", with: ".")),
               let rawHeight = Double(heightText.replacingOccurrences(of: ",", with: ".")) else {
-            store.health.message = "Introduce valores válidos de peso y altura."
+            store.health.message = localizedKey("enter_valid_weight_and_height")
             return
         }
         let weight = store.userProfile.units == .metric ? rawWeight : UnitConverter.kilograms(fromPounds: rawWeight)
         let height = store.userProfile.units == .metric ? rawHeight : UnitConverter.centimeters(fromInches: rawHeight)
         store.saveBodyMetrics(weightKg: weight, heightCm: height)
-        store.health.message = String(localized: "body_metrics_saved_in_reps")
+        store.health.message = localizedString("body_metrics_saved_in_reps")
     }
 
     private func refreshMetricTextFields() {
@@ -1064,10 +1062,10 @@ struct ProfileView: View {
                 )
                 let dailyMetrics = try await healthKit.fetchDailyMetrics()
                 store.health.latestDailyMetrics = dailyMetrics
-                store.health.message = String(localized: "apple_health_connected_imported_weight_height_steps_calories_and_hydration")
+                store.health.message = localizedString("apple_health_connected_imported_weight_height_steps_calories_and_hydration")
             } else {
                 store.health.latestDailyMetrics = try await healthKit.fetchDailyMetrics()
-                store.health.message = String(localized: "apple_health_connected_daily_activity_and_nutrition_imported")
+                store.health.message = localizedString("apple_health_connected_daily_activity_and_nutrition_imported")
             }
         } catch {
             store.health.message = error.localizedDescription
@@ -1080,7 +1078,7 @@ struct ProfileView: View {
             let logs = try await healthKit.fetchRecentCardioLogs()
             let imported = store.importCardioLogs(logs)
             store.health.lastSyncDate = .now
-            store.health.message = String(localized: "Cardio importado desde Apple Health: \(imported) registros nuevos.")
+            store.health.message = localizedFormat("cardio_imported_from_apple_health_count_format", imported)
         } catch {
             store.health.message = error.localizedDescription
             TelemetryService.shared.record(error, context: "healthkit_import_cardio")
@@ -1090,7 +1088,7 @@ struct ProfileView: View {
     private func saveToHealth() async {
         do {
             guard store.hasBodyMetrics else {
-                store.health.message = "Añade peso y altura antes de guardar en Apple Health."
+                store.health.message = localizedKey("add_weight_and_height_before_saving_to_apple_health")
                 return
             }
             try await healthKit.saveBodyMetrics(weightKg: store.currentWeight, heightCm: store.currentHeight)
@@ -1102,7 +1100,7 @@ struct ProfileView: View {
                 )
             }
             store.health.lastSyncDate = .now
-            store.health.message = String(localized: "weight_height_hydration_and_energy_saved_in_apple_health_when_data_is_available")
+            store.health.message = localizedString("weight_height_hydration_and_energy_saved_in_apple_health_when_data_is_available")
         } catch {
             store.health.message = error.localizedDescription
             TelemetryService.shared.record(error, context: "healthkit_save_body")
@@ -1117,7 +1115,7 @@ struct ProfileView: View {
         do {
             try await healthKit.saveWorkout(session)
             store.health.lastSyncDate = .now
-            store.health.message = String(localized: "last_workout_saved_in_apple_health")
+            store.health.message = localizedString("last_workout_saved_in_apple_health")
         } catch {
             store.health.message = error.localizedDescription
             TelemetryService.shared.record(error, context: "healthkit_save_workout")
@@ -1143,7 +1141,7 @@ struct ProfileView: View {
     private func prepareCSVExport() {
         do {
             csvExportURL = try store.exportCSVURL()
-            store.health.message = String(localized: "csv_generated_use_share_csv_to_send_it")
+            store.health.message = localizedString("csv_generated_use_share_csv_to_send_it")
         } catch {
             store.health.message = error.localizedDescription
             TelemetryService.shared.record(error, context: "csv_export_prepare")
@@ -1153,7 +1151,7 @@ struct ProfileView: View {
     private func prepareBackupExport() {
         do {
             backupExportURL = try store.exportBackupURL()
-            store.health.message = String(localized: "backup_generated_use_share_backup_to_send_it")
+            store.health.message = localizedString("backup_generated_use_share_backup_to_send_it")
         } catch {
             store.health.message = error.localizedDescription
             TelemetryService.shared.record(error, context: "backup_export_prepare")
@@ -1163,9 +1161,9 @@ struct ProfileView: View {
     private func prepareWorkoutShareImage() {
         do {
             shareImageURL = try store.exportWorkoutShareImageURL()
-            store.health.message = String(localized: "generated_image_use_share_image_to_send_it")
+            store.health.message = localizedString("generated_image_use_share_image_to_send_it")
         } catch {
-            store.health.message = String(localized: "the_shareable_image_could_not_be_created")
+            store.health.message = localizedString("the_shareable_image_could_not_be_created")
             TelemetryService.shared.record(error, context: "share_image_prepare")
         }
     }
@@ -1184,7 +1182,7 @@ struct ProfileView: View {
             }
             try store.importBackup(from: url)
             refreshMetricTextFields()
-            store.health.message = String(localized: "backup_importado_correctamente")
+            store.health.message = localizedString("backup_importado_correctamente")
         } catch {
             store.health.message = error.localizedDescription
             TelemetryService.shared.record(error, context: "backup_import_handle")
@@ -1202,9 +1200,9 @@ struct ProfileView: View {
             }
             try store.importCSV(from: url)
             refreshMetricTextFields()
-            store.health.message = String(localized: "csv_importado_correctamente")
+            store.health.message = localizedString("csv_importado_correctamente")
         } catch {
-            store.health.message = String(localized: "could_not_import_the_csv")
+            store.health.message = localizedString("could_not_import_the_csv")
             TelemetryService.shared.record(error, context: "csv_import_handle")
         }
     }
@@ -1236,13 +1234,13 @@ struct ProfileView: View {
                 if onOpenPlans == nil {
                     Alert(
                         title: Text("routine_created"),
-                        message: Text("\(confirmation.name) está activa con \(confirmation.daysPerWeek) días por semana."),
+                        message: Text(localizedFormat("routine_active_days_per_week_format", confirmation.name, confirmation.daysPerWeek)),
                         dismissButton: .default(Text("ok"))
                     )
                 } else {
                     Alert(
                         title: Text("routine_created"),
-                        message: Text("\(confirmation.name) está activa con \(confirmation.daysPerWeek) días por semana."),
+                        message: Text(localizedFormat("routine_active_days_per_week_format", confirmation.name, confirmation.daysPerWeek)),
                         primaryButton: .default(Text("view_plans")) {
                             dismiss()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -1290,19 +1288,19 @@ struct SettingsView: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(String(localized: "close_settings"))
+                .accessibilityLabel(localizedString("close_settings"))
             }
         ) {
             appPreferences
-                .stickyHeaderTitle(String(localized: "app"))
+                .stickyHeaderTitle(localizedString("app"))
             trainingPreferences
-                .stickyHeaderTitle(String(localized: "training_2"))
+                .stickyHeaderTitle(localizedString("training_2"))
             widgetPreferences
-                .stickyHeaderTitle(String(localized: "widgets"))
+                .stickyHeaderTitle(localizedString("widgets"))
             notificationPreferences
-                .stickyHeaderTitle(String(localized: "reminders"))
+                .stickyHeaderTitle(localizedString("reminders"))
             proPreferencesEntry
-                .stickyHeaderTitle(String(localized: "pro_preferences"))
+                .stickyHeaderTitle(localizedString("pro_preferences"))
         }
         .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
@@ -1327,16 +1325,16 @@ struct SettingsView: View {
         @Bindable var store = store
         return PulseCard {
             VStack(alignment: .leading, spacing: 16) {
-                Label(String(localized: "app_preferences"), systemImage: "app.badge")
+                Label(localizedString("app_preferences"), systemImage: "app.badge")
                     .font(.headline)
 
-                Picker(String(localized: "language"), selection: $store.userProfile.preferredLanguage) {
+                Picker(localizedString("language"), selection: $store.userProfile.preferredLanguage) {
                     Text("english").tag("en")
                     Text("spanish").tag("es")
                 }
                 .pickerStyle(.segmented)
 
-                Picker(String(localized: "theme"), selection: Binding(
+                Picker(localizedString("theme"), selection: Binding(
                     get: { store.userProfile.activeThemeMode },
                     set: { mode in
                         store.userProfile.themeMode = mode
@@ -1356,17 +1354,17 @@ struct SettingsView: View {
         @Bindable var store = store
         return PulseCard {
             VStack(alignment: .leading, spacing: 16) {
-                Label(String(localized: "measurement"), systemImage: "ruler")
+                Label(localizedString("measurement"), systemImage: "ruler")
                     .font(.headline)
 
-                Picker(String(localized: "units_2"), selection: $store.userProfile.units) {
+                Picker(localizedString("units_2"), selection: $store.userProfile.units) {
                     ForEach(UserProfile.Units.allCases) { units in
                         Text(units.rawValue).tag(units)
                     }
                 }
                 .pickerStyle(.segmented)
 
-                Picker(String(localized: "distance_3"), selection: $store.userProfile.distanceUnit) {
+                Picker(localizedString("distance_3"), selection: $store.userProfile.distanceUnit) {
                     ForEach(UserProfile.DistanceUnit.allCases) { unit in
                         Text(unit.rawValue).tag(unit)
                     }
@@ -1379,10 +1377,10 @@ struct SettingsView: View {
     private var widgetPreferences: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
-                Label(String(localized: "widgets"), systemImage: "rectangle.grid.2x2")
+                Label(localizedString("widgets"), systemImage: "rectangle.grid.2x2")
                     .font(.headline)
 
-                Picker(String(localized: "widget_color"), selection: Binding(
+                Picker(localizedString("widget_color"), selection: Binding(
                     get: { store.userProfile.widgetAccentColorName },
                     set: { colorName in
                         store.userProfile.widgetAccentColorName = colorName
@@ -1402,7 +1400,7 @@ struct SettingsView: View {
     private var notificationPreferences: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
-                Toggle(String(localized: "workout_reminders"), isOn: Binding(
+                Toggle(localizedString("workout_reminders"), isOn: Binding(
                     get: { store.userProfile.remindersEnabled },
                     set: { enabled in
                         store.userProfile.remindersEnabled = enabled
@@ -1416,7 +1414,7 @@ struct SettingsView: View {
                 ))
                 .font(.headline)
 
-                Text(String(localized: "enable_alerts_for_scheduled_sessions_and_consistency_nudges"))
+                Text(localizedString("enable_alerts_for_scheduled_sessions_and_consistency_nudges"))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -1548,7 +1546,7 @@ private struct ProfileToolCard: View {
                 Spacer(minLength: 6)
 
                 if let badge {
-                    Text(badge)
+                    Text(localizedKey(badge))
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(color)
                         .padding(.horizontal, 7)
@@ -1837,7 +1835,7 @@ private struct VersionInfoScreen: View {
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(PulseTheme.primary)
                 .padding(.top, 1)
-            Text(text)
+            Text(localizedKey(text))
                 .font(.subheadline)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -2633,7 +2631,7 @@ struct BodyWellnessEditorView: View {
                         .keyboardType(.decimalPad)
                     TextField("height_cm_2", text: $height)
                         .keyboardType(.decimalPad)
-                    TextField("grasa", text: $bodyFat)
+                    TextField("body_fat", text: $bodyFat)
                         .keyboardType(.decimalPad)
                 }
 
@@ -2645,7 +2643,7 @@ struct BodyWellnessEditorView: View {
                     }
                 }
 
-                Section("medidas") {
+                Section("measurements") {
                     TextField("cintura_cm", text: $waist)
                         .keyboardType(.decimalPad)
                     TextField("pecho_cm", text: $chest)
@@ -2658,17 +2656,23 @@ struct BodyWellnessEditorView: View {
                         .keyboardType(.decimalPad)
                 }
 
-                Section("bienestar") {
+                Section("wellness") {
                     TextField("sleep_hours_2", text: $sleep)
                         .keyboardType(.decimalPad)
                     TextField("water_l", text: $water)
                         .keyboardType(.decimalPad)
                     TextField("energy_ingested_kcal", text: $dietaryEnergy)
                         .keyboardType(.decimalPad)
-                    Stepper("Calidad sueño: \(sleepQuality)/5", value: $sleepQuality, in: 1...5)
-                    Stepper("Fatiga: \(fatigue)/5", value: $fatigue, in: 1...5)
-                    Stepper("Estrés: \(stress)/5", value: $stress, in: 1...5)
-                    TextField("molestias_o_lesiones", text: $soreness, axis: .vertical)
+                    Stepper(value: $sleepQuality, in: 1...5) {
+                        Text(localizedFormat("sleep_quality_value_format", sleepQuality))
+                    }
+                    Stepper(value: $fatigue, in: 1...5) {
+                        Text(localizedFormat("fatigue_value_format", fatigue))
+                    }
+                    Stepper(value: $stress, in: 1...5) {
+                        Text(localizedFormat("stress_value_format", stress))
+                    }
+                    TextField("discomfort_or_injuries", text: $soreness, axis: .vertical)
                         .lineLimit(3...5)
                 }
             }
@@ -2834,9 +2838,9 @@ struct ProPreferencesView: View {
                     ScrollView {
                         VStack(spacing: 18) {
                             PaywallLockedCard(
-                                title: "Preferencias Pro bloqueadas",
-                                message: "Activa Reps Pro para configurar RPE, RIR, tempo, tipo de serie, auto-progresión y tu equipamiento avanzado.",
-                                buttonTitle: "Ver Reps Pro"
+                                title: "pro_preferences_locked",
+                                message: "activate_reps_pro_for_advanced_progression_preferences",
+                                buttonTitle: "view_reps_pro"
                             ) {
                                 dismiss()
                                 if let onShowPaywall {
@@ -2868,14 +2872,14 @@ struct ProPreferencesView: View {
 private extension CardioLog.ActivityType {
     var displayName: LocalizedStringKey {
         switch self {
-        case .treadmill: "Cinta"
-        case .elliptical: "Elíptica"
-        case .stationaryBike: "Bici estática"
-        case .outdoorRun: "Carrera exterior"
-        case .walking: "Caminar"
-        case .rowing: "Remo"
+        case .treadmill: "treadmill"
+        case .elliptical: "elliptical"
+        case .stationaryBike: "stationary_bike"
+        case .outdoorRun: "outdoor_run"
+        case .walking: "walking"
+        case .rowing: "rowing"
         case .hiit: "HIIT"
-        case .other: "Otro"
+        case .other: "other"
         }
     }
 }
@@ -2883,10 +2887,10 @@ private extension CardioLog.ActivityType {
 private extension Goal.Kind {
     var displayName: LocalizedStringKey {
         switch self {
-        case .strength: "Fuerza"
-        case .consistency: "Constancia"
-        case .bodyWeight: "Peso corporal"
-        case .custom: "Personalizado"
+        case .strength: "strength"
+        case .consistency: "consistency"
+        case .bodyWeight: "bodyweight"
+        case .custom: "custom"
         }
     }
 }
@@ -2894,10 +2898,10 @@ private extension Goal.Kind {
 private extension UserProfile.MainGoal {
     var displayNameText: String {
         switch self {
-        case .buildMuscle: "Ganar músculo"
-        case .loseFat: "Perder grasa"
-        case .getStronger: "Más fuerza"
-        case .stayActive: "Mantener actividad"
+        case .buildMuscle: localizedKey("gain_muscle")
+        case .loseFat: localizedKey("lose_fat")
+        case .getStronger: localizedKey("more_strength")
+        case .stayActive: localizedKey("stay_active")
         }
     }
 }
@@ -2905,9 +2909,9 @@ private extension UserProfile.MainGoal {
 private extension UserProfile.Experience {
     var displayNameText: String {
         switch self {
-        case .beginner: "Principiante"
-        case .intermediate: "Intermedio"
-        case .advanced: "Avanzado"
+        case .beginner: localizedKey("beginner")
+        case .intermediate: localizedKey("intermediate")
+        case .advanced: localizedKey("advanced")
         }
     }
 }

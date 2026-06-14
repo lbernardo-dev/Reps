@@ -240,24 +240,24 @@ struct ExerciseLibraryView: View {
 
     private func displayName(forMuscle muscle: String) -> String {
         guard muscle != "All" else {
-            return String(localized: "all")
+            return localizedString("all")
         }
         return ExerciseTextLocalizer.muscle(muscle, language: store.userProfile.preferredLanguage)
     }
 
     private func displayName(forEquipment equipment: String) -> String {
         guard equipment != "All" else {
-            return String(localized: "all")
+            return localizedString("all")
         }
         return ExerciseTextLocalizer.equipment(equipment, language: store.userProfile.preferredLanguage)
     }
 
     private var environmentFilterTitle: String {
-        selectedEnvironment?.localizedString(language: store.userProfile.preferredLanguage) ?? (String(localized: "any_environment"))
+        selectedEnvironment?.localizedString(language: store.userProfile.preferredLanguage) ?? (localizedString("any_environment"))
     }
 
     private var difficultyFilterTitle: String {
-        selectedDifficulty?.localizedString(language: store.userProfile.preferredLanguage) ?? (String(localized: "any_difficulty"))
+        selectedDifficulty?.localizedString(language: store.userProfile.preferredLanguage) ?? (localizedString("any_difficulty"))
     }
 
     private func ui(en: String, es: String) -> String {
@@ -674,9 +674,9 @@ struct ExerciseDetailView: View {
         
         func localizedTitle(isSpanish: Bool) -> String {
             switch self {
-            case .instructions: return String(localized: "instructions")
-            case .info: return String(localized: "info")
-            case .history: return String(localized: "history")
+            case .instructions: return localizedString("instructions")
+            case .info: return localizedString("info")
+            case .history: return localizedString("history")
             }
         }
     }
@@ -825,13 +825,13 @@ struct ExerciseDetailView: View {
         .mainTabBarHidden()
         .sheet(isPresented: $showAddToPlan) {
             AddExerciseToPlanView(exercise: currentExercise) {
-                feedbackMessage = String(localized: "exercise_added_to_the_active_plan")
+                feedbackMessage = localizedString("exercise_added_to_the_active_plan")
             }
             .environment(store)
         }
         .sheet(isPresented: $showSchedule) {
             ScheduleExerciseView(exercise: currentExercise) {
-                feedbackMessage = String(localized: "exercise_scheduled")
+                feedbackMessage = localizedString("exercise_scheduled")
             }
             .environment(store)
         }
@@ -1139,7 +1139,7 @@ struct ExerciseDetailView: View {
                     showSecondaryEditor = true
                 } label: {
                     Label(
-                        String(localized: "edit_secondary_muscles"),
+                        localizedString("edit_secondary_muscles"),
                         systemImage: "slider.horizontal.3"
                     )
                     .font(.subheadline.weight(.semibold))
@@ -1165,7 +1165,7 @@ struct ExerciseDetailView: View {
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text(String(localized: "strength_level"))
+                        Text(localizedString("strength_level"))
                             .font(.headline)
                         Spacer()
                         Text(result.level.title(isSpanish: isSpanish))
@@ -1179,9 +1179,9 @@ struct ExerciseDetailView: View {
                     SwiftUI.ProgressView(value: result.level.fraction)
                         .tint(strengthLevelColor(result.level))
                     HStack {
-                        Text(String(format: String(localized: "bodyweight_2"), result.ratio))
+                        Text(String(format: localizedString("bodyweight_2"), result.ratio))
                         Spacer()
-                        Text("1RM \(Int(best1RM)) kg · \(String(localized: "bw")) \(Int(store.currentWeight)) kg")
+                        Text("1RM \(Int(best1RM)) kg · \(localizedString("bw")) \(Int(store.currentWeight)) kg")
                     }
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
@@ -1193,7 +1193,7 @@ struct ExerciseDetailView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "scalemass")
                         .foregroundStyle(PulseTheme.accent)
-                    Text(String(localized: "log_your_bodyweight_in_profile_to_see_your_strength_level"))
+                    Text(localizedString("log_your_bodyweight_in_profile_to_see_your_strength_level"))
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -1250,7 +1250,7 @@ struct ExerciseDetailView: View {
 
                 PulseCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        Text(String(localized: "activity_2")).font(.headline)
+                        Text(localizedString("activity_2")).font(.headline)
                         Chart(rangedPoints) { point in
                             LineMark(
                                 x: .value("Fecha", point.date),
@@ -1269,7 +1269,7 @@ struct ExerciseDetailView: View {
 
                 PulseCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(String(localized: "recent_sessions")).font(.headline)
+                        Text(localizedString("recent_sessions")).font(.headline)
                         ForEach(rangedPoints.reversed()) { point in
                             HStack {
                                 VStack(alignment: .leading, spacing: 3) {
@@ -1296,11 +1296,10 @@ struct ExerciseDetailView: View {
     // --- METRIC AND TRANSLATION HELPERS ---
 
     private var trackingLabel: String {
-        let spanish = store.userProfile.preferredLanguage.hasPrefix("es")
         return switch currentExercise.trackingType {
-        case .weightReps: String(localized: "weight_and_reps")
-        case .repsOnly: String(localized: "reps_only")
-        case .duration: String(localized: "duration_4")
+        case .weightReps: localizedString("weight_and_reps")
+        case .repsOnly: localizedString("reps_only")
+        case .duration: localizedString("duration_4")
         }
     }
 
@@ -1698,12 +1697,12 @@ private struct ExerciseBookmarkEditor: View {
                                 .lineLimit(1)
                             HStack(spacing: 12) {
                                 if let timestamp = bookmark.timestampSeconds {
-                                    Text("Marcador \(timestamp / 60):\(String(format: "%02d", timestamp % 60))")
+                                    Text(localizedFormat("bookmark_time_format", timestamp / 60, timestamp % 60))
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(PulseTheme.primary)
                                 }
                                 if let duration = bookmark.playbackDurationSeconds {
-                                    Text("Duración \(duration / 60)m \(duration % 60)s")
+                                    Text(localizedFormat("duration_minutes_seconds_format", duration / 60, duration % 60))
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(PulseTheme.secondaryText)
                                 }
@@ -1903,7 +1902,7 @@ private struct SecondaryMuscleEditorView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    Text(String(localized: "set_how_much_each_secondary_muscle_counts_toward_volume_and_weekly_sets_per_musc"))
+                    Text(localizedString("set_how_much_each_secondary_muscle_counts_toward_volume_and_weekly_sets_per_musc"))
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1935,14 +1934,14 @@ private struct SecondaryMuscleEditorView: View {
                 .padding(20)
             }
             .screenBackground()
-            .navigationTitle(String(localized: "secondary_muscles"))
+            .navigationTitle(localizedString("secondary_muscles"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "cancel")) { dismiss() }
+                    Button(localizedString("cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "save")) {
+                    Button(localizedString("save")) {
                         onSave(weights)
                         dismiss()
                     }

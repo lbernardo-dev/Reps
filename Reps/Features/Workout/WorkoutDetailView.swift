@@ -51,7 +51,7 @@ struct WorkoutDetailView: View {
                     title: "progression_plan"
                 )
                 
-                let adjustWord = String(localized: "the_workout_will_adjust_based_on_your_performance")
+                let adjustWord = localizedString("the_workout_will_adjust_based_on_your_performance")
                 Text(adjustWord)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PulseTheme.tertiaryText)
@@ -72,7 +72,7 @@ struct WorkoutDetailView: View {
             selectedWorkout = newWorkout
         }
         .safeAreaInset(edge: .bottom) {
-            let startWord = String(localized: "start_workout")
+            let startWord = localizedString("start_workout")
             NavigationLink {
                 ActiveWorkoutView(workout: selectedWorkout)
             } label: {
@@ -148,10 +148,9 @@ struct WorkoutDetailView: View {
     }
 
     private var heroCard: some View {
-        let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
-        let todayWord = String(localized: "today_s_workout")
-        let exercisesWord = String(localized: "exercises_2")
-        let minutesWord = String(localized: "minutes_2")
+        let todayWord = localizedString("today_s_workout")
+        let exercisesWord = localizedString("exercises_2")
+        let minutesWord = localizedString("minutes_2")
         
         return VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 12) {
@@ -160,7 +159,7 @@ struct WorkoutDetailView: View {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(PulseTheme.primaryBright)
-                    Text(String(localized: "active"))
+                    Text(localizedString("active"))
                         .font(.system(size: 9, weight: .black))
                         .tracking(0.5)
                         .foregroundStyle(PulseTheme.primaryBright)
@@ -260,10 +259,10 @@ struct WorkoutDetailView: View {
     }
 
     private var preparationCard: some View {
-        let prepWord = String(localized: "preparation")
-        let photoWord = String(localized: "session_photos")
-        let notesWord = String(localized: "notes_2")
-        let audioWord = String(localized: "audio_dictation")
+        let prepWord = localizedString("preparation")
+        let photoWord = localizedString("session_photos")
+        let notesWord = localizedString("notes_2")
+        let audioWord = localizedString("audio_dictation")
         
         return PulseCard {
             VStack(alignment: .leading, spacing: 14) {

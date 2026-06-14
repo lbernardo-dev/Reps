@@ -163,7 +163,7 @@ struct AchievementsView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
-                    Text(String(localized: "profile"))
+                    Text(localizedString("profile"))
                         .font(.headline)
                 }
                 .foregroundStyle(PulseTheme.primary)
@@ -172,7 +172,7 @@ struct AchievementsView: View {
             
             Spacer()
             
-            Text(String(localized: "achievements_and_tickets"))
+            Text(localizedString("achievements_and_tickets"))
                 .font(.system(size: 19, weight: .bold, design: .rounded))
             
             Spacer()
@@ -192,12 +192,12 @@ struct AchievementsView: View {
                 Image(systemName: "trophy.fill")
                     .font(.headline)
                     .foregroundStyle(PulseTheme.accent)
-                Text(String(localized: "automatic_milestones"))
+                Text(localizedString("automatic_milestones"))
                     .font(.headline)
             }
             .padding(.horizontal, 4)
             
-            Text(String(localized: "milestones_tracked_and_calculated_automatically_using_your_workouts_and_apple_he"))
+            Text(localizedString("milestones_tracked_and_calculated_automatically_using_your_workouts_and_apple_he"))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -218,12 +218,12 @@ struct AchievementsView: View {
                 Image(systemName: "doc.text.image.fill")
                     .font(.headline)
                     .foregroundStyle(PulseTheme.primary)
-                Text(String(localized: "virtual_ticket_gallery"))
+                Text(localizedString("virtual_ticket_gallery"))
                     .font(.headline)
             }
             .padding(.horizontal, 4)
             
-            Text(String(localized: "your_virtual_training_tickets_are_rendered_and_saved_here_automatically_when_you"))
+            Text(localizedString("your_virtual_training_tickets_are_rendered_and_saved_here_automatically_when_you"))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -233,7 +233,7 @@ struct AchievementsView: View {
                 PaywallLockedCard(
                     title: "pro_receipts",
                     message: "receipt_gallery_and_shareable_cards_unlock_with_reps_pro",
-                    buttonTitle: String(localized: "see_reps_pro")
+                    buttonTitle: localizedString("see_reps_pro")
                 ) {
                     localPaywall = store.makePaywallPresentation(source: .receiptGallery, feature: .shareCards)
                 }
@@ -337,7 +337,7 @@ private struct AchievementTile: View {
                     Spacer()
                     
                     if badge.isCompleted {
-                        Text(String(localized: "unlocked"))
+                        Text(localizedString("unlocked"))
                             .font(.system(size: 8, weight: .bold, design: .rounded))
                             .foregroundStyle(badge.color)
                             .padding(.horizontal, 6)
@@ -407,7 +407,7 @@ private struct LocalReceiptPreviewSheet: View {
                     ShareLink(item: Image(uiImage: img), preview: SharePreview(card.workoutTitle, image: Image(uiImage: img))) {
                         HStack(spacing: 8) {
                             Image(systemName: "square.and.arrow.up")
-                            Text(String(localized: "share_ticket"))
+                            Text(localizedString("share_ticket"))
                         }
                         .font(.headline)
                         .foregroundColor(.black)
@@ -426,7 +426,7 @@ private struct LocalReceiptPreviewSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(String(localized: "close")) {
+                    Button(localizedString("close")) {
                         dismiss()
                     }
                 }

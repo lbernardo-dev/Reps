@@ -22,9 +22,9 @@ struct ProgressionRecommendationCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(title)
+                        Text(localizedKey(title))
                             .font(.headline)
-                        Text(String(localized: "next_suggested_load_based_on_your_recent_history"))
+                        Text(localizedString("next_suggested_load_based_on_your_recent_history"))
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)

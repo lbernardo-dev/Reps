@@ -33,8 +33,8 @@ struct RepsBatteryWidget: Widget {
         AppIntentConfiguration(kind: kind, intent: RepsWidgetConfigurationIntent.self, provider: RepsBatteryProvider()) { entry in
             RepsBatteryWidgetView(entry: entry)
         }
-        .configurationDisplayName("Batería de Recuperación")
-        .description("Nivel de energía, descanso y sugerencia de entreno.")
+        .configurationDisplayName("recovery_battery_widget_name")
+        .description("recovery_battery_widget_description")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
         .contentMarginsDisabled()
         .containerBackgroundRemovable(true)
@@ -57,6 +57,7 @@ private struct RepsBatteryWidgetView: View {
     let entry: RepsBatteryEntry
 
     var body: some View {
+        let _ = RepsLocalization.use(entry.snapshot.preferredLanguage)
         let contentColor = WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
         let backgroundColor = WidgetColor.resolved(
             appColorName: entry.snapshot.widgetAccentColorName,
@@ -78,7 +79,7 @@ private struct RepsBatteryWidgetView: View {
 
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
-                Label("Batería: \(level)%", systemImage: "battery.100percent")
+                Label(localizedFormat("battery_percent_format", level), systemImage: "battery.100percent")
                     .font(.headline)
                     .foregroundStyle(bColor)
                     .lineLimit(1)
@@ -94,7 +95,7 @@ private struct RepsBatteryWidgetView: View {
             }
 
         case .accessoryInline:
-            Text("Reps batería \(level)% · \(entry.snapshot.trainingBatteryTitle)")
+            Text(localizedFormat("reps_battery_inline_format", level, localizedKey(entry.snapshot.trainingBatteryTitle)))
                 .widgetURL(URL(string: "reps://workout"))
 
         default:

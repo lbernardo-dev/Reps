@@ -252,6 +252,8 @@ struct WorkoutExercise: Codable, Identifiable, Hashable {
     var incrementKg: Double = 2.5
     var cues: String?
     var mediaBookmarks: [ExerciseMediaBookmark] = []
+    /// When enabled, the next planned session for this exercise gains one extra target set.
+    var aimForMoreSetsNextTime: Bool = false
 }
 
 struct WorkoutDay: Codable, Identifiable, Hashable {

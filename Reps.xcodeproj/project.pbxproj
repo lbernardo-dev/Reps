@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AA1111111111111111111112 /* MuscleVolume.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1111111111111111111111 /* MuscleVolume.swift */; };
 		01986F1197C2BEEAD218F119 /* WatchWorkoutModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C82B397520A9BD1BF35FC73 /* WatchWorkoutModel.swift */; };
 		04DAD55A9ECB5E63EFEFFE21 /* RepsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BBBDF092A6D10BCD7C83446 /* RepsTests.swift */; };
 		052E8E4F5A9988448FDD4CF4 /* ExerciseLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6D0F0B234F59F0C8C83FC9 /* ExerciseLibraryView.swift */; };
@@ -156,6 +157,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AA1111111111111111111111 /* MuscleVolume.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleVolume.swift; sourceTree = "<group>"; };
 		005DB2151835E5ACB3D3C20D /* ICloudProEntitlementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudProEntitlementService.swift; sourceTree = "<group>"; };
 		03241FE11D2EA6C38B0A086F /* ExerciseProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseProgressView.swift; sourceTree = "<group>"; };
 		0B97E952AF94341517324563 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -538,6 +540,7 @@
 				A7546415D658D1F30651D879 /* CameraPicker.swift */,
 				C5BF1ED538CBE15F2EDE37AE /* ProgressionRecommendationCard.swift */,
 				B91792D967FC5B2EDAE59ACD /* PulseTheme.swift */,
+				AA1111111111111111111111 /* MuscleVolume.swift */,
 				EF4E20BFA43D7C528611005F /* QuickMenuProgressionChart.swift */,
 				EE7A352271B093AE9303829E /* RepsLoadingView.swift */,
 				75F48E903FC027A25C691AD9 /* WorkoutReceiptView.swift */,
@@ -657,7 +660,7 @@
 				};
 			};
 			buildConfigurationList = 6E01C31FF6A49288626E1C68 /* Build configuration list for PBXProject "Reps" */;
-			developmentRegion = es;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
@@ -800,6 +803,7 @@
 				1C113CE663705287C40AE3F9 /* ProfileView.swift in Sources */,
 				12F65CD1C12A32E81565F376 /* ProgressView.swift in Sources */,
 				2CE1186057C17FA8F3F47502 /* ProgressionRecommendationCard.swift in Sources */,
+				AA1111111111111111111112 /* MuscleVolume.swift in Sources */,
 				0B564E591385D7ED6E8EC119 /* PulseTheme.swift in Sources */,
 				6A4BC19B92F659AFD26F875C /* QuickMenuProgressionChart.swift in Sources */,
 				0837DD9FE86B93DE22FC986A /* RepsApp.swift in Sources */,
