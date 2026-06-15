@@ -124,7 +124,7 @@ private struct SmallBatteryView: View {
     let resolvedColor: WidgetColor
 
     var body: some View {
-        let percentageColor = (resolvedColor == .system) ? theme.tint : theme.foreground
+        let percentageColor = (resolvedColor == .system) ? bColor : theme.foreground
 
         VStack(alignment: .leading, spacing: 0) {
             // Header row
@@ -175,7 +175,9 @@ private struct MediumBatteryView: View {
     let resolvedColor: WidgetColor
 
     var body: some View {
-        let gaugeColor = theme.tint
+        // Recovery level is meaningful data → color the gauge semantically
+        // (green/yellow/orange/red), keeping the theme only for chrome.
+        let gaugeColor = bColor
 
         HStack(spacing: 14) {
             // Circular gauge

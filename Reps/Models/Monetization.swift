@@ -44,64 +44,40 @@ enum ProductFeature: String, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .unlimitedLogging:
-            return "Registro ilimitado"
-        case .exerciseLibrary:
-            return "Biblioteca de ejercicios"
-        case .customRoutines:
-            return "Rutinas personalizadas"
-        case .basicAnalytics:
-            return "Analítica base"
-        case .advancedAnalytics:
-            return "Analítica avanzada"
-        case .configurableProgression:
-            return "Progresión avanzada"
-        case .automaticBackups:
-            return "Backups completos"
-        case .shareCards:
-            return "Tarjetas y recibos"
+        case .unlimitedLogging:       return localizedString("unlimited_logging_title")
+        case .exerciseLibrary:        return localizedString("exercise_library_title")
+        case .customRoutines:         return localizedString("custom_routines_title")
+        case .basicAnalytics:         return localizedString("basic_analytics_title")
+        case .advancedAnalytics:      return localizedString("advanced_analytics_title")
+        case .configurableProgression: return localizedString("configurable_progression_title")
+        case .automaticBackups:       return localizedString("automatic_backups_title")
+        case .shareCards:             return localizedString("share_cards_title")
         }
     }
 
     var summary: String {
         switch self {
-        case .unlimitedLogging:
-            return "Guarda todas tus sesiones sin límites."
-        case .exerciseLibrary:
-            return "Explora y reutiliza tu biblioteca completa."
-        case .customRoutines:
-            return "Construye y adapta rutinas a tu equipo."
-        case .basicAnalytics:
-            return "Consulta progreso, rachas y métricas base."
-        case .advancedAnalytics:
-            return "Desbloquea historial, carga, récords y análisis detallados."
-        case .configurableProgression:
-            return "Activa RPE, RIR, tempo, tipo de serie y auto-progresión."
-        case .automaticBackups:
-            return "Exporta e importa copias completas en JSON."
-        case .shareCards:
-            return "Comparte recibos, tarjetas y resúmenes visuales."
+        case .unlimitedLogging:       return localizedString("unlimited_logging_summary")
+        case .exerciseLibrary:        return localizedString("exercise_library_summary")
+        case .customRoutines:         return localizedString("custom_routines_summary")
+        case .basicAnalytics:         return localizedString("basic_analytics_summary")
+        case .advancedAnalytics:      return localizedString("advanced_analytics_summary")
+        case .configurableProgression: return localizedString("configurable_progression_summary")
+        case .automaticBackups:       return localizedString("automatic_backups_summary")
+        case .shareCards:             return localizedString("share_cards_summary")
         }
     }
 
     var conversionBenefit: String {
         switch self {
-        case .unlimitedLogging:
-            return "Construye el hábito base: registrar entrenos sin fricción."
-        case .exerciseLibrary:
-            return "Encuentra ejercicios para casa o gimnasio desde el día uno."
-        case .customRoutines:
-            return "Crea rutinas reales antes de decidir si necesitas automatización."
-        case .basicAnalytics:
-            return "Mide constancia, volumen y progreso básico gratis."
-        case .advancedAnalytics:
-            return "Convierte tus datos en decisiones: objetivo vs real, fatiga, estancamientos y próximas acciones."
-        case .configurableProgression:
-            return "Registra RPE/RIR, tempo y tipos de serie para ajustar cargas con más precisión."
-        case .automaticBackups:
-            return "Protege tu historial completo y muévelo entre instalaciones."
-        case .shareCards:
-            return "Convierte entrenos y récords en recibos visuales listos para compartir."
+        case .unlimitedLogging:       return localizedString("unlimited_logging_benefit")
+        case .exerciseLibrary:        return localizedString("exercise_library_benefit")
+        case .customRoutines:         return localizedString("custom_routines_benefit")
+        case .basicAnalytics:         return localizedString("basic_analytics_benefit")
+        case .advancedAnalytics:      return localizedString("advanced_analytics_benefit")
+        case .configurableProgression: return localizedString("configurable_progression_benefit")
+        case .automaticBackups:       return localizedString("automatic_backups_benefit")
+        case .shareCards:             return localizedString("share_cards_benefit")
         }
     }
 
@@ -174,27 +150,19 @@ enum SubscriptionBillingCycle: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .weekly:
-            return "Semanal"
-        case .monthly:
-            return "Mensual"
-        case .annual:
-            return "Anual"
-        case .lifetime:
-            return "Lifetime"
+        case .weekly:   return localizedString("weekly_billing_title")
+        case .monthly:  return localizedString("monthly_billing_title")
+        case .annual:   return localizedString("annual_billing_title")
+        case .lifetime: return "Lifetime"
         }
     }
 
     var priceSummary: String {
         switch self {
-        case .weekly:
-            return "Prueba Pro sin compromiso"
-        case .monthly:
-            return "Flexibilidad mensual"
-        case .annual:
-            return "Mejor valor para entrenar todo el año"
-        case .lifetime:
-            return "Pago único para desbloquear Pro para siempre"
+        case .weekly:   return localizedString("weekly_price_summary")
+        case .monthly:  return localizedString("monthly_price_summary")
+        case .annual:   return localizedString("annual_price_summary")
+        case .lifetime: return localizedString("lifetime_price_summary")
         }
     }
 
@@ -224,114 +192,63 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .onboarding:
-            return "Desbloquea Reps Pro"
-        case .profileSubscription:
-            return "Gestiona Reps Pro"
-        case .proPreferences:
-            return "Activa preferencias Pro"
-        case .workoutAdvancedFields:
-            return "Mejora tu registro"
-        case .progressAdvancedAnalytics:
-            return "Abre analítica avanzada"
-        case .progressLoad:
-            return "Desbloquea carga y fatiga"
-        case .backupCenter:
-            return "Protege tus datos"
-        case .shareCards:
-            return "Comparte tu progreso"
-        case .receiptGallery:
-            return "Desbloquea la galería Pro"
+        case .onboarding:               return localizedString("paywall_unlock_pro_title")
+        case .profileSubscription:      return localizedString("paywall_manage_pro_title")
+        case .proPreferences:           return localizedString("paywall_activate_pro_prefs_title")
+        case .workoutAdvancedFields:    return localizedString("paywall_improve_tracking_title")
+        case .progressAdvancedAnalytics: return localizedString("paywall_open_advanced_analytics_title")
+        case .progressLoad:             return localizedString("paywall_unlock_load_fatigue_title")
+        case .backupCenter:             return localizedString("paywall_protect_data_title")
+        case .shareCards:               return localizedString("paywall_share_progress_title")
+        case .receiptGallery:           return localizedString("paywall_unlock_pro_gallery_title")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .onboarding:
-            return "Accede a los extras de progresión, analítica y compartición desde el primer día."
-        case .profileSubscription:
-            return "Consulta tu estado, ventajas incluidas y opciones de acceso Pro."
-        case .proPreferences:
-            return "RPE, RIR, tempo, tipo de serie y auto-progresión viven dentro de Pro."
-        case .workoutAdvancedFields:
-            return "Registra tus series con más contexto y aplica progresión automática."
-        case .progressAdvancedAnalytics:
-            return "Accede al historial detallado, récords y desglose profundo de ejercicios."
-        case .progressLoad:
-            return "Visualiza carga aguda, fatiga y cardio avanzado para decidir mejor."
-        case .backupCenter:
-            return "Exporta e importa backups completos para proteger tu historial."
-        case .shareCards:
-            return "Convierte tus entrenos y récords en tarjetas listas para compartir."
-        case .receiptGallery:
-            return "Guarda y revisa tus recibos visuales cuando quieras."
+        case .onboarding:               return localizedString("paywall_onboarding_subtitle")
+        case .profileSubscription:      return localizedString("paywall_manage_subtitle")
+        case .proPreferences:           return localizedString("paywall_pro_prefs_subtitle")
+        case .workoutAdvancedFields:    return localizedString("paywall_advanced_fields_subtitle")
+        case .progressAdvancedAnalytics: return localizedString("paywall_advanced_analytics_subtitle")
+        case .progressLoad:             return localizedString("paywall_load_subtitle")
+        case .backupCenter:             return localizedString("paywall_backup_subtitle")
+        case .shareCards:               return localizedString("paywall_share_cards_subtitle")
+        case .receiptGallery:           return localizedString("paywall_receipt_gallery_subtitle")
         }
     }
 
     var previewTitle: String {
         switch self {
-        case .onboarding:
-            return "Empieza gratis, escala con Pro"
-        case .profileSubscription:
-            return "Tu centro de acceso Pro"
-        case .proPreferences, .workoutAdvancedFields:
-            return "Registro avanzado en contexto"
-        case .progressAdvancedAnalytics, .progressLoad:
-            return "Decisiones de entrenamiento, no solo gráficas"
-        case .backupCenter:
-            return "Tu historial bajo control"
-        case .shareCards, .receiptGallery:
-            return "Progreso listo para compartir"
+        case .onboarding:                        return localizedString("paywall_preview_start_free")
+        case .profileSubscription:               return localizedString("paywall_preview_pro_center")
+        case .proPreferences, .workoutAdvancedFields: return localizedString("paywall_preview_advanced_tracking")
+        case .progressAdvancedAnalytics, .progressLoad: return localizedString("paywall_preview_decisions")
+        case .backupCenter:                      return localizedString("paywall_preview_history_control")
+        case .shareCards, .receiptGallery:       return localizedString("paywall_preview_share_progress")
         }
     }
 
     var previewBullets: [String] {
         switch self {
         case .onboarding:
-            return [
-                "Free mantiene entrenos, rutinas y analítica base.",
-                "Pro añade progresión automática, carga/fatiga y backups."
-            ]
+            return [localizedString("paywall_onboarding_bullet_1"), localizedString("paywall_onboarding_bullet_2")]
         case .profileSubscription:
-            return [
-                "Revisa estado, plan y ventajas incluidas.",
-                "Desbloquea todo Pro desde una sola pantalla."
-            ]
+            return [localizedString("paywall_manage_bullet_1"), localizedString("paywall_manage_bullet_2")]
         case .proPreferences:
-            return [
-                "Activa RPE, RIR, tempo y tipo de serie.",
-                "Ajusta incrementos y auto-progresión según tu historial."
-            ]
+            return [localizedString("paywall_pro_prefs_bullet_1"), localizedString("paywall_pro_prefs_bullet_2")]
         case .workoutAdvancedFields:
-            return [
-                "Registra más contexto sin salir del entreno activo.",
-                "Mejora la calidad de las recomendaciones futuras."
-            ]
+            return [localizedString("paywall_advanced_fields_bullet_1"), localizedString("paywall_advanced_fields_bullet_2")]
         case .progressAdvancedAnalytics:
-            return [
-                "Detecta estancamientos por ejercicio.",
-                "Compara tendencia, 1RM estimado y volumen efectivo."
-            ]
+            return [localizedString("paywall_advanced_analytics_bullet_1"), localizedString("paywall_advanced_analytics_bullet_2")]
         case .progressLoad:
-            return [
-                "Mide carga aguda, fatiga e intensidad.",
-                "Decide cuándo apretar, descargar o recuperar."
-            ]
+            return [localizedString("paywall_load_bullet_1"), localizedString("paywall_load_bullet_2")]
         case .backupCenter:
-            return [
-                "Exporta/importa backups completos.",
-                "Protege sesiones, planes, fotos y métricas."
-            ]
+            return [localizedString("paywall_backup_bullet_1"), localizedString("paywall_backup_bullet_2")]
         case .shareCards:
-            return [
-                "Genera tarjetas visuales de entrenos y récords.",
-                "Comparte progreso sin capturas manuales."
-            ]
+            return [localizedString("paywall_share_cards_bullet_1"), localizedString("paywall_share_cards_bullet_2")]
         case .receiptGallery:
-            return [
-                "Guarda recibos visuales en tu galería.",
-                "Reutiliza tus mejores resúmenes cuando quieras."
-            ]
+            return [localizedString("paywall_receipt_gallery_bullet_1"), localizedString("paywall_receipt_gallery_bullet_2")]
         }
     }
 }
@@ -376,24 +293,17 @@ struct MonetizationState: Codable, Equatable {
     var statusLabel: String {
         if hasProAccess {
             switch status {
-            case .trial:
-                return "Prueba Pro"
-            case .active:
-                return "Pro activa"
-            case .gracePeriod:
-                return "Pro en gracia"
-            case .inactive, .cancelled, .expired:
-                return "Reps Pro"
+            case .trial:                        return localizedString("pro_trial_status")
+            case .active:                       return localizedString("pro_active_status")
+            case .gracePeriod:                  return localizedString("pro_grace_status")
+            case .inactive, .cancelled, .expired: return "Reps Pro"
             }
         }
 
         switch status {
-        case .cancelled:
-            return "Pro cancelada"
-        case .expired:
-            return "Pro expirada"
-        default:
-            return "Reps Free"
+        case .cancelled: return localizedString("pro_cancelled_status")
+        case .expired:   return localizedString("pro_expired_status")
+        default:         return "Reps Free"
         }
     }
 }

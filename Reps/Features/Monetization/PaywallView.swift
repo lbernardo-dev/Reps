@@ -321,10 +321,10 @@ struct PaywallView: View {
     private func planSubtitle(for cycle: SubscriptionBillingCycle, product: Product?) -> String {
         if cycle.hasIntroTrial {
             let price = product?.displayPrice ?? fallbackPrice(for: cycle)
-            return "Primera semana gratis, luego \(price) \(renewalText(for: cycle))"
+            return localizedFormat("first_week_free_then_format", price, renewalText(for: cycle))
         }
 
-        return "Pago único. Acceso Pro permanente."
+        return localizedString("one_time_permanent_pro")
     }
 
     private func renewalText(for cycle: SubscriptionBillingCycle) -> String {
@@ -379,7 +379,7 @@ struct PaywallView: View {
         defer { isRestoring = false }
 
         let restored = await store.restoreStoreKitPurchases()
-        storeKitInfoMessage = restored ? "Licencias restauradas correctamente." : "No se encontró ninguna licencia activa para restaurar."
+        storeKitInfoMessage = restored ? localizedString("licenses_restored_success") : localizedString("no_active_license_to_restore")
         showStoreKitInfo = true
     }
 
@@ -405,11 +405,11 @@ struct SubscriptionCenterView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text(store.monetization.statusLabel)
                                 .font(.title3.bold())
-                            Text(store.monetization.hasProAccess ? "Tu acceso Pro está activo en esta instalación." : "Actualmente estás en Reps Free.")
+                            Text(store.monetization.hasProAccess ? localizedString("pro_access_active_on_device") : localizedString("currently_on_reps_free"))
                                 .foregroundStyle(PulseTheme.secondaryText)
 
                             if let cycle = store.monetization.billingCycle, store.monetization.hasProAccess {
-                                Label("Plan \(cycle.title.lowercased())", systemImage: "checkmark.seal.fill")
+                                Label(localizedFormat("plan_cycle_format", cycle.title.lowercased()), systemImage: "checkmark.seal.fill")
                                     .foregroundStyle(PulseTheme.primary)
                             }
                         }

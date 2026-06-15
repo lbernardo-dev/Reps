@@ -851,7 +851,7 @@ struct ExerciseDetailView: View {
             }
             Button("cancel", role: .cancel) {}
         } message: {
-            Text(PermissionService.shared.deniedMessage ?? "El acceso a la cámara está bloqueado. Actívalo en Ajustes.")
+            Text(PermissionService.shared.deniedMessage ?? localizedString("camera_access_blocked_settings"))
         }
     }
 
@@ -1709,8 +1709,12 @@ private struct ExerciseBookmarkEditor: View {
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
-                    Stepper("Min Duración \(durationMinutes)", value: $durationMinutes, in: 0...60)
-                    Stepper("Seg Duración \(durationSeconds)", value: $durationSeconds, in: 0...59)
+                    Stepper(value: $durationMinutes, in: 0...60) {
+                        Text(localizedFormat("min_duration_stepper_format", durationMinutes))
+                    }
+                    Stepper(value: $durationSeconds, in: 0...59) {
+                        Text(localizedFormat("sec_duration_stepper_format", durationSeconds))
+                    }
                     
                     TextField("note_technique_setup_error_to_avoid", text: $note, axis: .vertical)
                         .lineLimit(2...4)

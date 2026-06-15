@@ -1784,13 +1784,15 @@ private struct HRZoneDurationCard: View {
     let color: Color
   }
 
-  private let zones: [Zone] = [
-    Zone(id: 0, name: "Z1 · Recuperación", color: Color(red: 0.0, green: 0.48, blue: 1.0)),
-    Zone(id: 1, name: "Z2 · Fácil", color: Color(red: 0.20, green: 0.80, blue: 0.35)),
-    Zone(id: 2, name: "Z3 · Moderado", color: .yellow),
-    Zone(id: 3, name: "Z4 · Duro", color: .orange),
-    Zone(id: 4, name: "Z5 · Máximo", color: .red)
-  ]
+  private var zones: [Zone] {
+    [
+      Zone(id: 0, name: localizedString("zone_1_label"), color: Color(red: 0.0, green: 0.48, blue: 1.0)),
+      Zone(id: 1, name: localizedString("zone_2_label"), color: Color(red: 0.20, green: 0.80, blue: 0.35)),
+      Zone(id: 2, name: localizedString("zone_3_label"), color: .yellow),
+      Zone(id: 3, name: localizedString("zone_4_label"), color: .orange),
+      Zone(id: 4, name: localizedString("zone_5_label"), color: .red)
+    ]
+  }
 
   private var estimatedMaxHR: Double {
     guard let dob = dateOfBirth,

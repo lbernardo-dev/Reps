@@ -251,12 +251,20 @@ private struct MediumStreakView: View {
 
                 Spacer(minLength: 2)
 
-                // Weekly bar dots
+                // Weekly bars: one per weekday, filled by weekly completion,
+                // with today's column highlighted.
+                let filledCount = Int((completion * 7).rounded())
+                let todayIndex = (Calendar.current.component(.weekday, from: entry.date) + 5) % 7
+                let inactiveFill = theme.isDarkBackground ? Color.white.opacity(0.18) : Color.primary.opacity(0.12)
                 HStack(spacing: 4) {
-                    ForEach(0..<5) { index in
+                    ForEach(0..<7, id: \.self) { index in
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(Double(index) / 4.0 < completion ? theme.tint : (theme.isDarkBackground ? Color.white.opacity(0.18) : Color.primary.opacity(0.12)))
-                            .frame(height: 6)
+                            .fill(index < filledCount ? theme.tint : inactiveFill)
+                            .frame(height: 7)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 3)
+                                    .strokeBorder(theme.foreground.opacity(index == todayIndex ? 0.9 : 0), lineWidth: 1.5)
+                            )
                     }
                 }
             }

@@ -296,4 +296,64 @@ public struct CompleteSetLiveActivityIntent: LiveActivityIntent {
         return .result()
     }
 }
+
+public struct NextExerciseLiveActivityIntent: LiveActivityIntent {
+    public static let title: LocalizedStringResource = "Siguiente ejercicio"
+    public static let description = IntentDescription("Avanza al siguiente ejercicio del entreno.")
+
+    public init() {}
+
+    public func perform() async throws -> some IntentResult {
+        await LiveActivityCommandBridge.post(.nextExercise)
+        return .result()
+    }
+}
+
+public struct AddWaterLiveActivityIntent: LiveActivityIntent {
+    public static let title: LocalizedStringResource = "Añadir agua"
+    public static let description = IntentDescription("Registra agua durante el entreno.")
+
+    public init() {}
+
+    public func perform() async throws -> some IntentResult {
+        await LiveActivityCommandBridge.post(.addWater)
+        return .result()
+    }
+}
+
+public struct MusicToggleLiveActivityIntent: LiveActivityIntent {
+    public static let title: LocalizedStringResource = "Reproducir o pausar música"
+    public static let description = IntentDescription("Alterna la reproducción de música.")
+
+    public init() {}
+
+    public func perform() async throws -> some IntentResult {
+        await LiveActivityCommandBridge.post(.musicToggle)
+        return .result()
+    }
+}
+
+public struct MusicNextLiveActivityIntent: LiveActivityIntent {
+    public static let title: LocalizedStringResource = "Siguiente pista"
+    public static let description = IntentDescription("Salta a la siguiente canción.")
+
+    public init() {}
+
+    public func perform() async throws -> some IntentResult {
+        await LiveActivityCommandBridge.post(.musicNext)
+        return .result()
+    }
+}
+
+public struct MusicPreviousLiveActivityIntent: LiveActivityIntent {
+    public static let title: LocalizedStringResource = "Pista anterior"
+    public static let description = IntentDescription("Vuelve a la canción anterior.")
+
+    public init() {}
+
+    public func perform() async throws -> some IntentResult {
+        await LiveActivityCommandBridge.post(.musicPrevious)
+        return .result()
+    }
+}
 #endif

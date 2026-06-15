@@ -109,6 +109,10 @@ struct RepsWorkoutLiveActivity: Widget {
                 }
             }
 
+            if snapshot.musicTitle != nil {
+                musicRow(snapshot, theme: theme)
+            }
+
             actionButtons(snapshot, theme: theme, includesCompleteSet: false)
         }
         .padding()
@@ -188,10 +192,81 @@ struct RepsWorkoutLiveActivity: Widget {
                 }
             }
 
+            if snapshot.heartRate != nil || snapshot.activeEnergyKcal != nil {
+                healthRow(snapshot, theme: theme)
+            }
+
+            if snapshot.musicTitle != nil {
+                musicRow(snapshot, theme: theme)
+            }
+
             actionButtons(snapshot, theme: theme, includesCompleteSet: true)
         }
         .padding()
         .background(theme.background)
+    }
+
+    private func healthRow(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme) -> some View {
+        HStack(spacing: 10) {
+            compactMetric("Pulso", icon: "heart.fill", theme: theme) {
+                Text(snapshot.heartRate.map { localizedFormat("heart_rate_bpm_format", Int($0)) } ?? "--")
+            }
+            compactMetric("Kcal", icon: "flame.fill", theme: theme) {
+                Text(snapshot.activeEnergyKcal.map { "\(Int($0))" } ?? "--")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func musicRow(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: snapshot.isMusicPlaying == true ? "music.note" : "music.note.list")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(theme.tint)
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(verbatim: snapshot.musicTitle ?? "--")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(theme.foreground)
+                    .lineLimit(1)
+                if let artist = snapshot.musicArtist, !artist.isEmpty {
+                    Text(verbatim: artist)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(theme.secondaryForeground)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 4)
+
+            HStack(spacing: 4) {
+                Button(intent: MusicPreviousLiveActivityIntent()) {
+                    Image(systemName: "backward.fill").font(.system(size: 11, weight: .bold))
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .tint(theme.tint)
+
+                Button(intent: MusicToggleLiveActivityIntent()) {
+                    Image(systemName: snapshot.isMusicPlaying == true ? "pause.fill" : "play.fill")
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.circle)
+                .tint(theme.tint)
+
+                Button(intent: MusicNextLiveActivityIntent()) {
+                    Image(systemName: "forward.fill").font(.system(size: 11, weight: .bold))
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .tint(theme.tint)
+            }
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(theme.badgeBackground, in: RoundedRectangle(cornerRadius: 10))
     }
 
     private func actionButtons(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme, includesCompleteSet: Bool) -> some View {
@@ -213,7 +288,21 @@ struct RepsWorkoutLiveActivity: Widget {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(theme.tint)
+
+                Button(intent: NextExerciseLiveActivityIntent()) {
+                    Image(systemName: "forward.end.fill")
+                        .font(.caption.weight(.bold))
+                }
+                .buttonStyle(.bordered)
+                .tint(theme.tint)
             }
+
+            Button(intent: AddWaterLiveActivityIntent()) {
+                Image(systemName: "drop.fill")
+                    .font(.caption.weight(.bold))
+            }
+            .buttonStyle(.bordered)
+            .tint(theme.tint)
         }
         .controlSize(.small)
     }
@@ -262,6 +351,24 @@ struct RepsWorkoutLiveActivity: Widget {
                             .font(.system(size: 13, weight: .bold))
                     }
                     .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.circle)
+                    .tint(theme.tint)
+
+                    Button(intent: NextExerciseLiveActivityIntent()) {
+                        Image(systemName: "forward.end.fill")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.circle)
+                    .tint(theme.tint)
+                }
+
+                if snapshot.musicTitle != nil {
+                    Button(intent: MusicToggleLiveActivityIntent()) {
+                        Image(systemName: snapshot.isMusicPlaying == true ? "pause.fill" : "play.fill")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .buttonStyle(.bordered)
                     .buttonBorderShape(.circle)
                     .tint(theme.tint)
                 }

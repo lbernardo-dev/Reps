@@ -484,8 +484,8 @@ enum SeedData {
     ]
 
     private static let hyroxBaseRun = programDay(
-        "HYROX · Carrera Base Z2",
-        subtitle: "Base aeróbica conversacional (Z2)",
+        localizedString("hyrox_base_run_title"),
+        subtitle: localizedString("hyrox_base_run_subtitle"),
         durationMinutes: 45,
         [
             station("Running", sets: 1, reps: "45 min", rest: 0, priority: .primary)
@@ -494,8 +494,8 @@ enum SeedData {
     )
 
     private static let hyroxRunIntervals = programDay(
-        "HYROX · Intervalos de Carrera",
-        subtitle: "Ritmo umbral / ritmo de carrera",
+        localizedString("hyrox_run_intervals_title"),
+        subtitle: localizedString("hyrox_run_intervals_subtitle"),
         durationMinutes: 45,
         [
             station("Running", sets: 6, reps: "1000 m", rest: 90, priority: .primary)
@@ -504,8 +504,8 @@ enum SeedData {
     )
 
     private static let hyroxStrengthA = programDay(
-        "HYROX · Fuerza Funcional A",
-        subtitle: "Piernas, empuje y estaciones",
+        localizedString("hyrox_strength_a_title"),
+        subtitle: localizedString("hyrox_strength_a_subtitle"),
         durationMinutes: 60,
         [
             item("Barbell Squat", sets: 4, reps: "6-10", rest: 150, priority: .primary, progression: .doubleProgression),
@@ -518,8 +518,8 @@ enum SeedData {
     )
 
     private static let hyroxStrengthB = programDay(
-        "HYROX · Fuerza Funcional B",
-        subtitle: "Cadena posterior, tracción y acarreos",
+        localizedString("hyrox_strength_b_title"),
+        subtitle: localizedString("hyrox_strength_b_subtitle"),
         durationMinutes: 60,
         [
             item("Romanian Deadlift", sets: 4, reps: "6-10", rest: 150, priority: .primary, progression: .doubleProgression),
@@ -532,8 +532,8 @@ enum SeedData {
     )
 
     private static let hyroxCompromisedRunning = programDay(
-        "HYROX · Compromised Running",
-        subtitle: "Correr fatigado tras cada estación",
+        localizedString("hyrox_compromised_running_title"),
+        subtitle: localizedString("hyrox_compromised_running_subtitle"),
         durationMinutes: 50,
         [
             station("Running", sets: 8, reps: "400 m", rest: 30, priority: .primary),
@@ -545,8 +545,8 @@ enum SeedData {
     )
 
     private static let hyroxRaceSimulation = programDay(
-        "HYROX · Simulación de Carrera",
-        subtitle: "Las 8 estaciones, 1 km de carrera antes de cada una",
+        localizedString("hyrox_race_simulation_title"),
+        subtitle: localizedString("hyrox_race_simulation_subtitle"),
         durationMinutes: 75,
         [
             station("Running", sets: 8, reps: "1000 m", rest: 0, priority: .primary),
@@ -563,8 +563,8 @@ enum SeedData {
     )
 
     private static let hyroxTaper = programDay(
-        "HYROX · Afinamiento (Taper)",
-        subtitle: "Semana de carrera: agudeza, bajo volumen",
+        localizedString("hyrox_taper_title"),
+        subtitle: localizedString("hyrox_taper_subtitle"),
         durationMinutes: 35,
         [
             station("Running", sets: 3, reps: "1000 m", rest: 120, priority: .primary),

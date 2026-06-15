@@ -20888,7 +20888,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search by name, muscle or team"
+            "value": "Search by name, muscle or equipment"
           }
         },
         "es": {
@@ -94518,7 +94518,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Playlist from library"
+            "value": "Playlist from your library"
           }
         },
         "es": {
@@ -95581,6 +95581,2070 @@
           "stringUnit": {
             "state": "translated",
             "value": "Peso corporal x %d"
+          }
+        }
+      }
+    },
+    "unlimited_logging_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlimited Logging"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registro ilimitado"
+          }
+        }
+      }
+    },
+    "exercise_library_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exercise Library"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biblioteca de ejercicios"
+          }
+        }
+      }
+    },
+    "custom_routines_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom Routines"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutinas personalizadas"
+          }
+        }
+      }
+    },
+    "basic_analytics_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basic Analytics"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analítica base"
+          }
+        }
+      }
+    },
+    "advanced_analytics_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advanced Analytics"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analítica avanzada"
+          }
+        }
+      }
+    },
+    "configurable_progression_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advanced Progression"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progresión avanzada"
+          }
+        }
+      }
+    },
+    "automatic_backups_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full Backups"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backups completos"
+          }
+        }
+      }
+    },
+    "share_cards_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cards & Receipts"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarjetas y recibos"
+          }
+        }
+      }
+    },
+    "unlimited_logging_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save all your sessions without limits."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda todas tus sesiones sin límites."
+          }
+        }
+      }
+    },
+    "exercise_library_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explore and reuse your full library."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explora y reutiliza tu biblioteca completa."
+          }
+        }
+      }
+    },
+    "custom_routines_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Build and adapt routines to your equipment."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Construye y adapta rutinas a tu equipo."
+          }
+        }
+      }
+    },
+    "basic_analytics_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check progress, streaks and core metrics."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulta progreso, rachas y métricas base."
+          }
+        }
+      }
+    },
+    "advanced_analytics_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock history, load, records and detailed analysis."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquea historial, carga, récords y análisis detallados."
+          }
+        }
+      }
+    },
+    "configurable_progression_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activate RPE, RIR, tempo, set type and auto-progression."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activa RPE, RIR, tempo, tipo de serie y auto-progresión."
+          }
+        }
+      }
+    },
+    "automatic_backups_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export and import full backups in JSON."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporta e importa copias completas en JSON."
+          }
+        }
+      }
+    },
+    "share_cards_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share receipts, cards and visual summaries."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparte recibos, tarjetas y resúmenes visuales."
+          }
+        }
+      }
+    },
+    "unlimited_logging_benefit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Build the core habit: log workouts without friction."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Construye el hábito base: registrar entrenos sin fricción."
+          }
+        }
+      }
+    },
+    "exercise_library_benefit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find exercises for home or gym from day one."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encuentra ejercicios para casa o gimnasio desde el día uno."
+          }
+        }
+      }
+    },
+    "custom_routines_benefit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create real routines before deciding if you need automation."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea rutinas reales antes de decidir si necesitas automatización."
+          }
+        }
+      }
+    },
+    "basic_analytics_benefit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Measure consistency, volume and basic progress for free."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mide constancia, volumen y progreso básico gratis."
+          }
+        }
+      }
+    },
+    "advanced_analytics_benefit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn data into decisions: target vs actual, fatigue, plateaus and next steps."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convierte tus datos en decisiones: objetivo vs real, fatiga, estancamientos y próximas acciones."
+          }
+        }
+      }
+    },
+    "configurable_progression_benefit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log RPE/RIR, tempo and set types to adjust loads with more precision."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra RPE/RIR, tempo y tipos de serie para ajustar cargas con más precisión."
+          }
+        }
+      }
+    },
+    "automatic_backups_benefit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect your full history and move it between installations."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protege tu historial completo y muévelo entre instalaciones."
+          }
+        }
+      }
+    },
+    "share_cards_benefit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn workouts and records into visual receipts ready to share."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convierte entrenos y récords en recibos visuales listos para compartir."
+          }
+        }
+      }
+    },
+    "weekly_billing_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weekly"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semanal"
+          }
+        }
+      }
+    },
+    "monthly_billing_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monthly"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mensual"
+          }
+        }
+      }
+    },
+    "annual_billing_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annual"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anual"
+          }
+        }
+      }
+    },
+    "weekly_price_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try Pro with no commitment"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prueba Pro sin compromiso"
+          }
+        }
+      }
+    },
+    "monthly_price_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monthly flexibility"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flexibilidad mensual"
+          }
+        }
+      }
+    },
+    "annual_price_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Best value to train all year"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mejor valor para entrenar todo el año"
+          }
+        }
+      }
+    },
+    "lifetime_price_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-time payment to unlock Pro forever"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pago único para desbloquear Pro para siempre"
+          }
+        }
+      }
+    },
+    "pro_trial_status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro Trial"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prueba Pro"
+          }
+        }
+      }
+    },
+    "pro_active_status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active Pro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro activa"
+          }
+        }
+      }
+    },
+    "pro_grace_status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro Grace Period"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro en gracia"
+          }
+        }
+      }
+    },
+    "pro_cancelled_status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro Cancelled"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro cancelada"
+          }
+        }
+      }
+    },
+    "pro_expired_status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro Expired"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro expirada"
+          }
+        }
+      }
+    },
+    "paywall_unlock_pro_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock Reps Pro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquea Reps Pro"
+          }
+        }
+      }
+    },
+    "paywall_manage_pro_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage Reps Pro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestiona Reps Pro"
+          }
+        }
+      }
+    },
+    "paywall_activate_pro_prefs_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activate Pro Preferences"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activa preferencias Pro"
+          }
+        }
+      }
+    },
+    "paywall_improve_tracking_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Improve Your Tracking"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mejora tu registro"
+          }
+        }
+      }
+    },
+    "paywall_open_advanced_analytics_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Advanced Analytics"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre analítica avanzada"
+          }
+        }
+      }
+    },
+    "paywall_unlock_load_fatigue_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock Load & Fatigue"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquea carga y fatiga"
+          }
+        }
+      }
+    },
+    "paywall_protect_data_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect Your Data"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protege tus datos"
+          }
+        }
+      }
+    },
+    "paywall_share_progress_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share Your Progress"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparte tu progreso"
+          }
+        }
+      }
+    },
+    "paywall_unlock_pro_gallery_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock Pro Gallery"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquea la galería Pro"
+          }
+        }
+      }
+    },
+    "paywall_onboarding_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Access progression, analytics and sharing extras from day one."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accede a los extras de progresión, analítica y compartición desde el primer día."
+          }
+        }
+      }
+    },
+    "paywall_manage_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check your status, included benefits and Pro access options."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulta tu estado, ventajas incluidas y opciones de acceso Pro."
+          }
+        }
+      }
+    },
+    "paywall_pro_prefs_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RPE, RIR, tempo, set type and auto-progression live inside Pro."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RPE, RIR, tempo, tipo de serie y auto-progresión viven dentro de Pro."
+          }
+        }
+      }
+    },
+    "paywall_advanced_fields_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log your sets with more context and apply automatic progression."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra tus series con más contexto y aplica progresión automática."
+          }
+        }
+      }
+    },
+    "paywall_advanced_analytics_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Access detailed history, records and deep exercise breakdown."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accede al historial detallado, récords y desglose profundo de ejercicios."
+          }
+        }
+      }
+    },
+    "paywall_load_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visualize acute load, fatigue and advanced cardio to make better decisions."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visualiza carga aguda, fatiga y cardio avanzado para decidir mejor."
+          }
+        }
+      }
+    },
+    "paywall_backup_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export and import full backups to protect your history."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporta e importa backups completos para proteger tu historial."
+          }
+        }
+      }
+    },
+    "paywall_share_cards_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn your workouts and records into cards ready to share."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convierte tus entrenos y récords en tarjetas listas para compartir."
+          }
+        }
+      }
+    },
+    "paywall_receipt_gallery_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save and review your visual receipts whenever you want."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda y revisa tus recibos visuales cuando quieras."
+          }
+        }
+      }
+    },
+    "paywall_preview_start_free": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start free, scale with Pro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empieza gratis, escala con Pro"
+          }
+        }
+      }
+    },
+    "paywall_preview_pro_center": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Pro access center"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu centro de acceso Pro"
+          }
+        }
+      }
+    },
+    "paywall_preview_advanced_tracking": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advanced tracking in context"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registro avanzado en contexto"
+          }
+        }
+      }
+    },
+    "paywall_preview_decisions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Training decisions, not just charts"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decisiones de entrenamiento, no solo gráficas"
+          }
+        }
+      }
+    },
+    "paywall_preview_history_control": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your history under control"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu historial bajo control"
+          }
+        }
+      }
+    },
+    "paywall_preview_share_progress": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progress ready to share"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progreso listo para compartir"
+          }
+        }
+      }
+    },
+    "paywall_onboarding_bullet_1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free keeps workouts, routines and core analytics."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free mantiene entrenos, rutinas y analítica base."
+          }
+        }
+      }
+    },
+    "paywall_onboarding_bullet_2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro adds auto-progression, load/fatigue and backups."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro añade progresión automática, carga/fatiga y backups."
+          }
+        }
+      }
+    },
+    "paywall_manage_bullet_1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check status, plan and included benefits."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisa estado, plan y ventajas incluidas."
+          }
+        }
+      }
+    },
+    "paywall_manage_bullet_2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock all Pro from a single screen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquea todo Pro desde una sola pantalla."
+          }
+        }
+      }
+    },
+    "paywall_pro_prefs_bullet_1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activate RPE, RIR, tempo and set type."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activa RPE, RIR, tempo y tipo de serie."
+          }
+        }
+      }
+    },
+    "paywall_pro_prefs_bullet_2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjust increments and auto-progression based on your history."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajusta incrementos y auto-progresión según tu historial."
+          }
+        }
+      }
+    },
+    "paywall_advanced_fields_bullet_1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log more context without leaving the active workout."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra más contexto sin salir del entreno activo."
+          }
+        }
+      }
+    },
+    "paywall_advanced_fields_bullet_2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Improve the quality of future recommendations."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mejora la calidad de las recomendaciones futuras."
+          }
+        }
+      }
+    },
+    "paywall_advanced_analytics_bullet_1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detect plateaus by exercise."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detecta estancamientos por ejercicio."
+          }
+        }
+      }
+    },
+    "paywall_advanced_analytics_bullet_2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compare trend, estimated 1RM and effective volume."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compara tendencia, 1RM estimado y volumen efectivo."
+          }
+        }
+      }
+    },
+    "paywall_load_bullet_1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Measure acute load, fatigue and intensity."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mide carga aguda, fatiga e intensidad."
+          }
+        }
+      }
+    },
+    "paywall_load_bullet_2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decide when to push, unload or recover."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decide cuándo apretar, descargar o recuperar."
+          }
+        }
+      }
+    },
+    "paywall_backup_bullet_1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export/import full backups."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporta/importa backups completos."
+          }
+        }
+      }
+    },
+    "paywall_backup_bullet_2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect sessions, plans, photos and metrics."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protege sesiones, planes, fotos y métricas."
+          }
+        }
+      }
+    },
+    "paywall_share_cards_bullet_1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generate visual cards for workouts and records."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Genera tarjetas visuales de entrenos y récords."
+          }
+        }
+      }
+    },
+    "paywall_share_cards_bullet_2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share progress without manual screenshots."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparte progreso sin capturas manuales."
+          }
+        }
+      }
+    },
+    "paywall_receipt_gallery_bullet_1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save visual receipts to your gallery."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda recibos visuales en tu galería."
+          }
+        }
+      }
+    },
+    "paywall_receipt_gallery_bullet_2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuse your best summaries whenever you want."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reutiliza tus mejores resúmenes cuando quieras."
+          }
+        }
+      }
+    },
+    "hyrox_base_run_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Base Run Z2"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Carrera Base Z2"
+          }
+        }
+      }
+    },
+    "hyrox_run_intervals_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Run Intervals"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Intervalos de Carrera"
+          }
+        }
+      }
+    },
+    "hyrox_strength_a_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Functional Strength A"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Fuerza Funcional A"
+          }
+        }
+      }
+    },
+    "hyrox_strength_b_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Functional Strength B"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Fuerza Funcional B"
+          }
+        }
+      }
+    },
+    "hyrox_compromised_running_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Compromised Running"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Compromised Running"
+          }
+        }
+      }
+    },
+    "hyrox_race_simulation_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Race Simulation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Simulación de Carrera"
+          }
+        }
+      }
+    },
+    "hyrox_taper_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Taper Week"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HYROX · Afinamiento (Taper)"
+          }
+        }
+      }
+    },
+    "hyrox_base_run_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversational aerobic base (Z2)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base aeróbica conversacional (Z2)"
+          }
+        }
+      }
+    },
+    "hyrox_run_intervals_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Threshold pace / race pace"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ritmo umbral / ritmo de carrera"
+          }
+        }
+      }
+    },
+    "hyrox_strength_a_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legs, push and stations"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piernas, empuje y estaciones"
+          }
+        }
+      }
+    },
+    "hyrox_strength_b_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posterior chain, pull and carries"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cadena posterior, tracción y acarreos"
+          }
+        }
+      }
+    },
+    "hyrox_compromised_running_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Running fatigued after each station"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Correr fatigado tras cada estación"
+          }
+        }
+      }
+    },
+    "hyrox_race_simulation_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The 8 stations, 1 km of running before each one"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las 8 estaciones, 1 km de carrera antes de cada una"
+          }
+        }
+      }
+    },
+    "hyrox_taper_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Race week: sharpness, low volume"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semana de carrera: agudeza, bajo volumen"
+          }
+        }
+      }
+    },
+    "days_per_week_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d days per week"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d días por semana"
+          }
+        }
+      }
+    },
+    "zone_1_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z1 · Recovery"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z1 · Recuperación"
+          }
+        }
+      }
+    },
+    "zone_2_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z2 · Easy"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z2 · Fácil"
+          }
+        }
+      }
+    },
+    "zone_3_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z3 · Moderate"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z3 · Moderado"
+          }
+        }
+      }
+    },
+    "zone_4_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z4 · Hard"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z4 · Duro"
+          }
+        }
+      }
+    },
+    "zone_5_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z5 · Max"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z5 · Máximo"
+          }
+        }
+      }
+    },
+    "one_time_permanent_pro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-time payment. Permanent Pro access."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pago único. Acceso Pro permanente."
+          }
+        }
+      }
+    },
+    "licenses_restored_success": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licenses restored successfully."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licencias restauradas correctamente."
+          }
+        }
+      }
+    },
+    "no_active_license_to_restore": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No active license found to restore."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró ninguna licencia activa para restaurar."
+          }
+        }
+      }
+    },
+    "pro_access_active_on_device": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Pro access is active on this installation."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu acceso Pro está activo en esta instalación."
+          }
+        }
+      }
+    },
+    "currently_on_reps_free": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You are currently on Reps Free."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualmente estás en Reps Free."
+          }
+        }
+      }
+    },
+    "plan_cycle_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan %@"
+          }
+        }
+      }
+    },
+    "first_week_free_then_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First week free, then %@ %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primera semana gratis, luego %@ %@"
+          }
+        }
+      }
+    },
+    "low_fatigue_desc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low fatigue: local or stable movement, easy to recover from."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baja fatiga: movimiento local o estable, fácil de recuperar."
+          }
+        }
+      }
+    },
+    "moderate_fatigue_desc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moderate fatigue: requires technical control but usually recoverable."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fatiga moderada: requiere control técnico pero suele ser recuperable."
+          }
+        }
+      }
+    },
+    "high_fatigue_desc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "High fatigue: multiple joints or heavy loads, worth managing volume."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alta fatiga: varias articulaciones o cargas altas, conviene gestionar volumen."
+          }
+        }
+      }
+    },
+    "very_high_fatigue_desc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Very high fatigue: unstable compound with multiple muscle groups and high stabilization demand."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fatiga muy alta: compuesto inestable con varios grupos musculares y alta demanda de estabilización."
+          }
+        }
+      }
+    },
+    "phase_stretch_short": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stretch"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estira"
+          }
+        }
+      }
+    },
+    "phase_middle_short": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Middle"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Medio"
+          }
+        }
+      }
+    },
+    "phase_contraction_short": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contract"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contrae"
+          }
+        }
+      }
+    },
+    "pressure_low": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baja"
+          }
+        }
+      }
+    },
+    "pressure_medium": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Medium"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media"
+          }
+        }
+      }
+    },
+    "pressure_high": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "High"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alta"
+          }
+        }
+      }
+    },
+    "pressure_peak": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peak"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pico"
+          }
+        }
+      }
+    },
+    "min_duration_stepper_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Min Duration %d"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Min Duración %d"
+          }
+        }
+      }
+    },
+    "sec_duration_stepper_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sec Duration %d"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seg Duración %d"
+          }
+        }
+      }
+    },
+    "playlist_note_cardio": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPM 170 · Sustained motivational rhythm for Cardio"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPM 170 · Ritmo sostenido y motivacional para Cardio"
+          }
+        }
+      }
+    },
+    "playlist_note_tech_house": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPM 128 · Premium Tech House and Deep House"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPM 128 · Tech House y Deep House premium"
+          }
+        }
+      }
+    },
+    "playlist_note_phonk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPM 140 · Aggressive Phonk to break personal records"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPM 140 · Phonk agresivo para romper récords personales"
+          }
+        }
+      }
+    },
+    "playlist_note_yoga": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPM 90 · Chill & Ambient for stretching and mobility"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPM 90 · Chill & Ambient para estiramientos y movilidad"
+          }
+        }
+      }
+    },
+    "version_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versión: %@"
+          }
+        }
+      }
+    },
+    "camera_access_blocked_settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera access is blocked. Enable it in Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El acceso a la cámara está bloqueado. Actívalo en Ajustes."
+          }
+        }
+      }
+    },
+    "camera_blocked_reps_settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera is blocked. Enable it in Settings → Reps."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La cámara está bloqueada. Actívala en Ajustes → Reps."
+          }
+        }
+      }
+    },
+    "microphone_blocked_reps_settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone is blocked. Enable it in Settings → Reps."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El micrófono está bloqueado. Actívalo en Ajustes → Reps."
+          }
+        }
+      }
+    },
+    "total_weeks_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d weeks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d semanas"
+          }
+        }
+      }
+    },
+    "add_exercises_during_session": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add exercises during the session"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade ejercicios durante la sesión"
+          }
+        }
+      }
+    },
+    "free_workout_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free Workout"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento libre"
           }
         }
       }

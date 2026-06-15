@@ -315,7 +315,7 @@ private struct ActiveWorkoutView: View {
 
                 if family == .systemMedium {
                     HStack(spacing: 8) {
-                        metricPill(title: "session", value: timerValueText(), icon: "timer")
+                        metricPill(title: "session", icon: "timer") { liveTimerValue() }
                         metricPill(title: "volume", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
                         metricPill(title: "remaining", value: entry.snapshot.remainingText, icon: "hourglass.bottomhalf.filled")
                     }
@@ -444,6 +444,10 @@ private struct ActiveWorkoutView: View {
                     metricPill(title: "Pasos", value: entry.snapshot.routeSteps.map { "\(Int($0))" } ?? "--", icon: "shoeprints.fill")
                 }
             }
+
+            if family == .systemMedium {
+                workoutControlButtons(includesCompleteSet: false)
+            }
         }
     }
 
@@ -532,6 +536,8 @@ private struct ActiveWorkoutView: View {
                 metricPill(title: "Volumen", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
                 metricPill(title: "Agua", value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
             }
+
+            workoutControlButtons(includesCompleteSet: !isResting)
         }
     }
 
@@ -575,18 +581,31 @@ private struct ActiveWorkoutView: View {
         .background(theme.badgeBackground, in: Capsule())
     }
 
-    private func timerValueText() -> String {
-        entry.snapshot.isPaused ? entry.snapshot.elapsedText : entry.snapshot.elapsedText
+    @ViewBuilder
+    private func liveTimerValue() -> some View {
+        if entry.snapshot.isPaused {
+            Text(entry.snapshot.elapsedText)
+        } else {
+            Text(entry.snapshot.elapsedStartDate, style: .timer)
+        }
     }
 
     private func metricPill(title: String, value: String, icon: String) -> some View {
+        metricPill(title: title, icon: icon) { Text(value) }
+    }
+
+    private func metricPill<Value: View>(
+        title: String,
+        icon: String,
+        @ViewBuilder value: () -> Value
+    ) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
             VStack(alignment: .leading, spacing: 0) {
                 Text(localizedKey(title))
                     .font(.system(size: 7, weight: .black))
                     .foregroundStyle(theme.secondaryForeground)
-                Text(value)
+                value()
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(theme.foreground)
                     .lineLimit(1)
@@ -599,6 +618,33 @@ private struct ActiveWorkoutView: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .background(theme.badgeBackground, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    @ViewBuilder
+    private func workoutControlButtons(includesCompleteSet: Bool) -> some View {
+        HStack(spacing: 6) {
+            if includesCompleteSet {
+                Button(intent: CompleteSetLiveActivityIntent()) {
+                    Label("set_done", systemImage: "checkmark.circle.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(theme.tint)
+            }
+
+            Button(intent: ToggleWorkoutPauseLiveActivityIntent()) {
+                Label(
+                    entry.snapshot.isPaused ? "Reanudar" : "Pausa",
+                    systemImage: entry.snapshot.isPaused ? "play.fill" : "pause.fill"
+                )
+                .font(.system(size: 11, weight: .bold))
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(theme.tint)
+        }
+        .controlSize(.small)
     }
 }
 

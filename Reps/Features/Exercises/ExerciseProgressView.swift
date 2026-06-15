@@ -138,7 +138,7 @@ struct ExerciseProgressView: View {
             }
             Button("cancel", role: .cancel) {}
         } message: {
-            Text(PermissionService.shared.deniedMessage ?? "El acceso a la cámara está bloqueado. Actívalo en Ajustes.")
+            Text(PermissionService.shared.deniedMessage ?? localizedString("camera_access_blocked_settings"))
         }
     }
 
@@ -394,14 +394,10 @@ struct ExerciseProgressView: View {
 
     private var fatigueDescription: String {
         switch fatigueScore {
-        case 1:
-            return "Baja fatiga: movimiento local o estable, fácil de recuperar."
-        case 2:
-            return "Fatiga moderada: requiere control técnico pero suele ser recuperable."
-        case 3:
-            return "Alta fatiga: varias articulaciones o cargas altas, conviene gestionar volumen."
-        default:
-            return "Fatiga muy alta: compuesto inestable con varios grupos musculares y alta demanda de estabilización."
+        case 1:   return localizedString("low_fatigue_desc")
+        case 2:   return localizedString("moderate_fatigue_desc")
+        case 3:   return localizedString("high_fatigue_desc")
+        default:  return localizedString("very_high_fatigue_desc")
         }
     }
 
@@ -816,9 +812,9 @@ struct ResistanceCurveProfile {
 
         var shortTitle: String {
             switch self {
-            case .stretch: "Estira"
-            case .middle: "Medio"
-            case .contraction: "Contrae"
+            case .stretch:     localizedString("phase_stretch_short")
+            case .middle:      localizedString("phase_middle_short")
+            case .contraction: localizedString("phase_contraction_short")
             }
         }
 
@@ -843,10 +839,10 @@ struct ResistanceCurveProfile {
 
         var pressureTitle: String {
             switch intensity {
-            case 0..<0.35: "Baja"
-            case 0.35..<0.65: "Media"
-            case 0.65..<0.88: "Alta"
-            default: "Pico"
+            case 0..<0.35:    localizedString("pressure_low")
+            case 0.35..<0.65: localizedString("pressure_medium")
+            case 0.65..<0.88: localizedString("pressure_high")
+            default:          localizedString("pressure_peak")
             }
         }
     }

@@ -289,8 +289,8 @@ extension WorkoutDay {
     static var freeWorkout: WorkoutDay {
         WorkoutDay(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID(),
-            title: "Entrenamiento libre",
-            subtitle: "Añade ejercicios durante la sesión",
+            title: localizedString("free_workout_title"),
+            subtitle: localizedString("add_exercises_during_session"),
             durationMinutes: 45,
             exercises: [],
             sessionType: .free

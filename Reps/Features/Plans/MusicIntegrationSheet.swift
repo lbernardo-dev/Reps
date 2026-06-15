@@ -15,6 +15,7 @@ struct MusicIntegrationSheet: View {
     @State private var isLoadingAppleMusicLibrary = false
     @State private var isSearchingCatalog = false
     @State private var appleMusicPlaylists: [Playlist] = []
+    @State private var searchedLibraryPlaylists: [Playlist] = []
     @State private var searchedCatalogPlaylists: [Playlist] = []
     @State private var searchTask: Task<Void, Never>? = nil
 
@@ -130,11 +131,10 @@ struct MusicIntegrationSheet: View {
             // List Playlists
             VStack(alignment: .leading, spacing: 14) {
                 if isAppleMusicAuthorized {
-                    // 1. Library Playlists
-                    let filteredLibrary = appleMusicPlaylists.filter { playlist in
-                        searchText.isEmpty || playlist.name.localizedCaseInsensitiveContains(searchText)
-                    }
-                    
+                    // 1. Library Playlists: full library when idle, server-side
+                    //    library search results when the user types a query.
+                    let filteredLibrary = searchText.isEmpty ? appleMusicPlaylists : searchedLibraryPlaylists
+
                     if !filteredLibrary.isEmpty {
                         Text(localizedFormat("your_playlists_count_format", filteredLibrary.count))
                             .font(.headline)
@@ -146,7 +146,7 @@ struct MusicIntegrationSheet: View {
                                     provider: .appleMusic,
                                     title: playlist.name,
                                     urlString: playlist.url?.absoluteString ?? "library://playlist/\(playlist.id.rawValue)",
-                                    notes: "Playlist de tu biblioteca"
+                                    notes: localizedString("playlist_from_library")
                                 )
                                 onSelect(planPlaylist)
                                 dismiss()
@@ -346,10 +346,21 @@ struct MusicIntegrationSheet: View {
         isLoadingAppleMusicLibrary = true
         Task {
             do {
-                let request = MusicLibraryRequest<Playlist>()
+                var request = MusicLibraryRequest<Playlist>()
+                request.limit = 100
                 let response = try await request.response()
+
+                // Page through the full library so the user can browse every
+                // playlist they own, not just the first batch.
+                var collection = response.items
+                var all = Array(collection)
+                while collection.hasNextBatch, let next = try await collection.nextBatch() {
+                    all.append(contentsOf: next)
+                    collection = next
+                }
+
                 await MainActor.run {
-                    self.appleMusicPlaylists = Array(response.items)
+                    self.appleMusicPlaylists = all
                     self.isLoadingAppleMusicLibrary = false
                 }
             } catch {
@@ -363,25 +374,48 @@ struct MusicIntegrationSheet: View {
     
     private func searchPlaylists(query: String) {
         searchTask?.cancel()
-        guard !query.isEmpty else {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            searchedLibraryPlaylists = []
             searchedCatalogPlaylists = []
             isSearchingCatalog = false
             return
         }
 
         isSearchingCatalog = true
-        
+
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000)
             guard !Task.isCancelled else { return }
-            
+
+            // Search the user's own library (only when connected) so they can
+            // find any playlist in their music, not just the first loaded batch.
+            if isAppleMusicAuthorized {
+                do {
+                    var libraryRequest = MusicLibrarySearchRequest(term: trimmed, types: [Playlist.self])
+                    libraryRequest.limit = 15
+                    let libraryResponse = try await libraryRequest.response()
+
+                    guard !Task.isCancelled else { return }
+
+                    await MainActor.run {
+                        self.searchedLibraryPlaylists = Array(libraryResponse.playlists)
+                    }
+                } catch {
+                    print("Error searching library playlists: \(error)")
+                }
+            }
+
+            guard !Task.isCancelled else { return }
+
+            // Also search the Apple Music catalog for discovery.
             do {
-                var searchRequest = MusicCatalogSearchRequest(term: query, types: [Playlist.self])
+                var searchRequest = MusicCatalogSearchRequest(term: trimmed, types: [Playlist.self])
                 searchRequest.limit = 10
                 let response = try await searchRequest.response()
-                
+
                 guard !Task.isCancelled else { return }
-                
+
                 await MainActor.run {
                     self.searchedCatalogPlaylists = Array(response.playlists)
                     self.isSearchingCatalog = false
@@ -408,25 +442,25 @@ struct MusicIntegrationSheet: View {
                 provider: .appleMusic,
                 title: "🏃‍♂️ Running Cadence 170 BPM",
                 urlString: "https://music.apple.com/us/playlist/running-cadence-170-bpm/pl.4e8039c3e98b48ef98d9e2ea2df1e2a1",
-                notes: "BPM 170 · Ritmo sostenido y motivacional para Cardio"
+                notes: localizedString("playlist_note_cardio")
             ),
             PlanPlaylist(
                 provider: .appleMusic,
                 title: "🏋️ Gym Power Flow",
                 urlString: "https://music.apple.com/us/playlist/gym-power-flow/pl.2b39e4a3b8d14cc9a29e2da02ff1e13a",
-                notes: "BPM 128 · Tech House y Deep House premium"
+                notes: localizedString("playlist_note_tech_house")
             ),
             PlanPlaylist(
                 provider: .appleMusic,
                 title: "🔥 Phonk Workout Hits",
                 urlString: "https://music.apple.com/us/playlist/phonk-workout-hits/pl.8a1209b2e3c14ff1aa2e8df1aef9ff2a",
-                notes: "BPM 140 · Phonk agresivo para romper récords personales"
+                notes: localizedString("playlist_note_phonk")
             ),
             PlanPlaylist(
                 provider: .appleMusic,
                 title: "🧘 Yoga & Active Recovery",
                 urlString: "https://music.apple.com/us/playlist/yoga-active-recovery/pl.9d837cc9e31a4ab9a23e98b3ee1feec1",
-                notes: "BPM 90 · Chill & Ambient para estiramientos y movilidad"
+                notes: localizedString("playlist_note_yoga")
             )
         ]
     }

@@ -1373,9 +1373,13 @@ struct EditPlanView: View {
                 }
 
                 Section("calendar_2") {
-                    Stepper("\(daysPerWeek) días por semana", value: $daysPerWeek, in: 1...7)
+                    Stepper(value: $daysPerWeek, in: 1...7) {
+                        Text(localizedFormat("days_per_week_format", daysPerWeek))
+                    }
                     Stepper(localizedFormat("week_n_of_total_format", currentWeek, totalWeeks), value: $currentWeek, in: 1...max(totalWeeks, 1))
-                    Stepper("\(totalWeeks) semanas", value: $totalWeeks, in: max(currentWeek, 1)...24)
+                    Stepper(value: $totalWeeks, in: max(currentWeek, 1)...24) {
+                        Text(localizedFormat("total_weeks_format", totalWeeks))
+                    }
                 }
 
                 PlanPlaylistEditor(playlists: $playlists, showMusicConnector: $showMusicConnector)
@@ -1666,8 +1670,12 @@ struct LegacyCreatePlanView: View {
                 }
 
                 Section("calendar_2") {
-                    Stepper("\(daysPerWeek) días por semana", value: $daysPerWeek, in: 1...7)
-                    Stepper("\(totalWeeks) semanas", value: $totalWeeks, in: 1...16)
+                    Stepper(value: $daysPerWeek, in: 1...7) {
+                        Text(localizedFormat("days_per_week_format", daysPerWeek))
+                    }
+                    Stepper(value: $totalWeeks, in: 1...16) {
+                        Text(localizedFormat("total_weeks_format", totalWeeks))
+                    }
                     Toggle("activate_on_save", isOn: $activateImmediately)
                 }
 

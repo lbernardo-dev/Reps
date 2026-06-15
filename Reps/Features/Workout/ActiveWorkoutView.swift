@@ -1760,7 +1760,7 @@ struct ActiveWorkoutView: View {
                     audioRecorder.startRecording()
                     HapticService.selection()
                 } else {
-                    permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actívalo en Ajustes → Reps."
+                    permissionDeniedMessage = PermissionService.shared.deniedMessage ?? localizedString("microphone_blocked_reps_settings")
                     showPermissionDenied = true
                     HapticService.notification(.warning)
                 }
@@ -1867,7 +1867,7 @@ struct ActiveWorkoutView: View {
                     audioRecorder.startRecording()
                     HapticService.selection()
                 } else {
-                    permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actívalo en Ajustes → Reps."
+                    permissionDeniedMessage = PermissionService.shared.deniedMessage ?? localizedString("microphone_blocked_reps_settings")
                     showPermissionDenied = true
                     HapticService.notification(.warning)
                 }
@@ -1917,7 +1917,7 @@ struct ActiveWorkoutView: View {
                 if granted {
                     audioRecorder.startRecording()
                 } else {
-                    permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "El micrófono está bloqueado. Actívalo en Ajustes → Reps."
+                    permissionDeniedMessage = PermissionService.shared.deniedMessage ?? localizedString("microphone_blocked_reps_settings")
                     showPermissionDenied = true
                 }
             }

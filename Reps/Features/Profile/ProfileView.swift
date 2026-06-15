@@ -1796,7 +1796,7 @@ private struct VersionInfoScreen: View {
                     Text("build")
                         .font(.headline)
 
-                    supportRow("Versión: \(appVersionText)")
+                    supportRow(localizedFormat("version_format", appVersionText))
                     supportRow("Bundle ID: \(Bundle.main.bundleIdentifier ?? "com.romerodev.repsfitness")")
                 }
             }
@@ -2319,7 +2319,7 @@ struct ProgressPhotoEditorView: View {
             if granted {
                 showCamera = true
             } else {
-                permissionDeniedMessage = PermissionService.shared.deniedMessage ?? "La cámara está bloqueada. Actívala en Ajustes → Reps."
+                permissionDeniedMessage = PermissionService.shared.deniedMessage ?? localizedString("camera_blocked_reps_settings")
                 showPermissionDenied = true
             }
         }
