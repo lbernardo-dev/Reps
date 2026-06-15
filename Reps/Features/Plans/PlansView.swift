@@ -34,8 +34,8 @@ struct PlansView: View {
                                     showExerciseLibrary = true
                                 } label: {
                                     LibraryShortcut(
-                                        title: "Ejercicios",
-                                        subtitle: "\(store.exercises.count) disponibles",
+                                        title: "exercises_3",
+                                        subtitle: localizedFormat("exercises_available_format", store.exercises.count),
                                         systemImage: "magnifyingglass"
                                     )
                                 }
@@ -45,8 +45,8 @@ struct PlansView: View {
                                     WorkoutLibraryView()
                                 } label: {
                                     LibraryShortcut(
-                                        title: "Rutinas",
-                                        subtitle: "\(store.workoutTemplates.count) plantillas",
+                                        title: "routines_label",
+                                        subtitle: localizedFormat("templates_count_format", store.workoutTemplates.count),
                                         systemImage: "list.clipboard"
                                     )
                                 }
@@ -65,8 +65,8 @@ struct PlansView: View {
                                     OneRepMaxCalculatorView()
                                 } label: {
                                     LibraryShortcut(
-                                        title: "Calculadora 1RM",
-                                        subtitle: "Estima tu máximo",
+                                        title: "one_rep_max_calculator",
+                                        subtitle: localizedString("estimate_your_max"),
                                         systemImage: "function"
                                     )
                                 }
@@ -76,8 +76,8 @@ struct PlansView: View {
                                     PlateCalculatorView()
                                 } label: {
                                     LibraryShortcut(
-                                        title: "Discos",
-                                        subtitle: "Carga la barra",
+                                        title: "weight_plates",
+                                        subtitle: localizedString("load_the_bar"),
                                         systemImage: "circle.grid.3x3.fill"
                                     )
                                 }
@@ -85,7 +85,7 @@ struct PlansView: View {
                             }
                         }
                     }
-                    .stickyHeaderTitle("Herramientas")
+                    .stickyHeaderTitle(localizedString("tools"))
 
                     if hasActivePlan {
                         activePlanSection
@@ -95,7 +95,7 @@ struct PlansView: View {
                             .stickyHeaderTitle(localizedString("create_plan_2"))
                     }
 
-                    SectionHeader(title: "TUS PLANES")
+                    SectionHeader(title: "your_plans_header")
                         .stickyHeaderTitle(localizedString("your_plans"))
 
                     PulseCard {
@@ -103,8 +103,8 @@ struct PlansView: View {
                             let inactivePlans = store.plans.filter { $0.id != store.activePlan.id }
                             if inactivePlans.isEmpty {
                                 PulseEmptyState(
-                                    title: "No hay planes guardados",
-                                    message: "Crea un plan nuevo o guarda una rutina desde las plantillas.",
+                                    title: "no_saved_plans",
+                                    message: "create_plan_from_templates",
                                     systemImage: "square.stack.3d.up"
                                 )
                             }
@@ -177,9 +177,9 @@ struct PlansView: View {
 
     private func locationTitle(_ location: UserProfile.TrainingLocation) -> String {
         switch location {
-        case .gym: "Gimnasio"
-        case .home: "Casa"
-        case .both: "Casa y gimnasio"
+        case .gym: localizedString("gym")
+        case .home: localizedString("home")
+        case .both: localizedString("home_and_gym")
         }
     }
 
@@ -189,12 +189,12 @@ struct PlansView: View {
 
     @ViewBuilder
     private var activePlanSection: some View {
-        SectionHeader(title: "PLAN ACTIVO")
+        SectionHeader(title: "active_plan_header")
 
         PulseCard {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    PulseChip(title: "En progreso", isSelected: true)
+                    PulseChip(title: "in_progress_label", isSelected: true)
                     Spacer()
                     Menu {
                         Button("edit_plan") {
@@ -247,7 +247,7 @@ struct PlansView: View {
             planToEdit = store.activePlan
         }
 
-        SectionHeader(title: "DÍAS DE ENTRENAMIENTO")
+        SectionHeader(title: "training_days_section")
 
         PulseCard {
             VStack(spacing: 0) {
@@ -486,7 +486,7 @@ private struct PlanMusicCard: View {
                             .font(.title3.weight(.bold))
                             .foregroundStyle(PulseTheme.primary)
                     }
-                    .accessibilityLabel(plan.playlists.isEmpty ? "Añadir playlist" : "Editar playlists")
+                    .accessibilityLabel(plan.playlists.isEmpty ? localizedString("add_playlist") : localizedString("edit_playlists"))
                 }
 
                 if let primaryPlaylist {
@@ -511,7 +511,7 @@ private struct PlanMusicCard: View {
                                 .background(primaryPlaylist.provider == .appleMusic ? PulseTheme.appleMusic : PulseTheme.accent)
                                 .clipShape(Circle())
                         }
-                        .accessibilityLabel(primaryPlaylist.provider == .appleMusic ? "Reproducir en Reps" : "Abrir playlist")
+                        .accessibilityLabel(localizedString(primaryPlaylist.provider == .appleMusic ? "play_in_reps" : "open_playlist"))
                     }
 
                     if plan.playlists.count > 1 {
@@ -765,15 +765,15 @@ private struct PlanExerciseBookmarkEditor: View {
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
-                    Stepper("Min \(minutes)", value: $minutes, in: 0...240)
-                    Stepper("Seg \(seconds)", value: $seconds, in: 0...59)
-                    
+                    Stepper(localizedFormat("min_minutes_format", minutes), value: $minutes, in: 0...240)
+                    Stepper(localizedFormat("seg_seconds_format", seconds), value: $seconds, in: 0...59)
+
                     Text("playback_duration")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
-                    Stepper("Min Duración \(durationMinutes)", value: $durationMinutes, in: 0...60)
-                    Stepper("Seg Duración \(durationSeconds)", value: $durationSeconds, in: 0...59)
+                    Stepper(localizedFormat("min_duration_format", durationMinutes), value: $durationMinutes, in: 0...60)
+                    Stepper(localizedFormat("seg_duration_format", durationSeconds), value: $durationSeconds, in: 0...59)
                     
                     TextField("nota", text: $note, axis: .vertical)
                         .lineLimit(2...4)
@@ -828,7 +828,7 @@ private func bookmarkSourceTitle(_ source: ExerciseMediaBookmark.Source) -> Stri
     case .youtubeShorts: "YouTube Shorts"
     case .tiktok: "TikTok"
     case .instagram: "Instagram"
-    case .other: "Otro"
+    case .other: localizedString("other_label")
     }
 }
 
@@ -851,19 +851,19 @@ private enum PlanWizardStep: Int, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .basics: "Base del plan"
-        case .schedule: "Distribución"
-        case .sessions: "Sesiones"
-        case .musicReview: "Música y revisión"
+        case .basics: localizedString("plan_basics")
+        case .schedule: localizedString("distribution_schedule")
+        case .sessions: localizedString("sessions_setup")
+        case .musicReview: localizedString("music_and_review")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .basics: "Define objetivo, entorno y duración del bloque."
-        case .schedule: "Elige si el plan rota por ciclo o se fija a días concretos."
-        case .sessions: "Construye cada día con tipo, ejercicios y descansos."
-        case .musicReview: "Añade playlists y confirma la estructura."
+        case .basics: localizedString("plan_basics_description")
+        case .schedule: localizedString("plan_schedule_description")
+        case .sessions: localizedString("plan_sessions_description")
+        case .musicReview: localizedString("plan_music_description")
         }
     }
 }
@@ -873,11 +873,11 @@ private enum PlanScheduleMode: String, CaseIterable, Identifiable {
     case weekdays
 
     var id: String { rawValue }
-    var title: String { self == .cycle ? "Ciclo" : "Días" }
+    var title: String { self == .cycle ? localizedString("cycle_plan") : localizedString("weekdays_plan") }
     var description: String {
         self == .cycle
-        ? "Las sesiones avanzan en orden: Día A, Día B, Día C, sin depender de lunes o martes."
-        : "Las sesiones se asignan a días fijos de la semana para planificar calendario."
+        ? localizedString("cycle_schedule_description")
+        : localizedString("fixed_schedule_description")
     }
 }
 
@@ -899,8 +899,8 @@ struct CreatePlanView: View {
     @State private var scheduleMode: PlanScheduleMode = .cycle
     @State private var selectedWeekdays: Set<Int> = [1, 3, 5, 6]
     @State private var days: [WorkoutDay] = [
-        WorkoutDay(title: "Día A", subtitle: "Fuerza", durationMinutes: 45, exercises: []),
-        WorkoutDay(title: "Día B", subtitle: "Fuerza", durationMinutes: 45, exercises: [])
+        WorkoutDay(title: localizedString("workout_day_a"), subtitle: localizedString("strength"), durationMinutes: 45, exercises: []),
+        WorkoutDay(title: localizedString("workout_day_b"), subtitle: localizedString("strength"), durationMinutes: 45, exercises: [])
     ]
     @State private var playlists: [PlanPlaylist] = []
     @State private var pickerTargetDay: Int?
@@ -1066,8 +1066,8 @@ struct CreatePlanView: View {
             }
 
             HStack(spacing: 12) {
-                WizardMetricStepper(title: "Días/sem", value: $daysPerWeek, range: 1...7)
-                WizardMetricStepper(title: "Semanas", value: $totalWeeks, range: 1...24)
+                WizardMetricStepper(title: "days_per_week_short", value: $daysPerWeek, range: 1...7)
+                WizardMetricStepper(title: "weeks", value: $totalWeeks, range: 1...24)
             }
         }
         .onChange(of: targetEventDate) { _, _ in
@@ -1082,7 +1082,7 @@ struct CreatePlanView: View {
         }
         .onChange(of: targetEventName) { _, newName in
             if !newName.isEmpty && planName.isEmpty {
-                planName = "Plan para \(newName)"
+                planName = localizedFormat("plan_for_name_format", newName)
             }
         }
     }
@@ -1174,7 +1174,7 @@ struct CreatePlanView: View {
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("resumen").font(.headline)
-                    PlanPreviewDay(title: planName.isEmpty ? "Plan sin nombre" : planName, workout: "\(days.count) sesiones · \(daysPerWeek) días/semana", exercises: days.reduce(0) { $0 + $1.exercises.count })
+                    PlanPreviewDay(title: planName.isEmpty ? localizedString("unnamed_plan") : planName, workout: localizedFormat("sessions_days_format", days.count, daysPerWeek), exercises: days.reduce(0) { $0 + $1.exercises.count })
                     ForEach(days) { day in
                         HStack {
                             Label(day.title, systemImage: sessionTypeIcon(day.sessionType))
@@ -1223,7 +1223,7 @@ struct CreatePlanView: View {
 
     private func addDay() {
         let letter = Character(UnicodeScalar(65 + min(days.count, 25))!)
-        days.append(WorkoutDay(title: "Día \(letter)", subtitle: "Fuerza", durationMinutes: 45, exercises: []))
+        days.append(WorkoutDay(title: localizedFormat("day_letter_format", String(letter)), subtitle: localizedString("strength_label"), durationMinutes: 45, exercises: []))
     }
 
     private func addExercise(_ exercise: Exercise, to dayIndex: Int) {
@@ -1240,7 +1240,7 @@ struct CreatePlanView: View {
         let preparedDays = days.enumerated().map { offset, day in
             var copy = day
             if copy.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                copy.title = "Sesión \(offset + 1)"
+                copy.title = localizedFormat("session_number_format", offset + 1)
             }
             if copy.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 copy.subtitle = sessionTypeTitle(copy.sessionType)
@@ -1256,7 +1256,7 @@ struct CreatePlanView: View {
             completion: 0,
             days: preparedDays,
             playlists: playlists,
-            targetEventName: hasTargetEvent ? (targetEventName.isEmpty ? "Evento" : targetEventName) : nil,
+            targetEventName: hasTargetEvent ? (targetEventName.isEmpty ? localizedString("event_default") : targetEventName) : nil,
             targetEventDate: hasTargetEvent ? targetEventDate : nil
         )
         store.addPlan(plan, activate: activateImmediately)
@@ -1285,9 +1285,9 @@ struct CreatePlanView: View {
 
     private func locationPickerTitle(_ location: UserProfile.TrainingLocation) -> String {
         switch location {
-        case .gym: "Gimnasio"
-        case .home: "Casa"
-        case .both: "Casa y gimnasio"
+        case .gym: localizedString("gym")
+        case .home: localizedString("home")
+        case .both: localizedString("home_and_gym")
         }
     }
 
@@ -1304,19 +1304,19 @@ struct CreatePlanView: View {
         
         if weeks < 6 {
             return EventAdvice(
-                text: "Faltan \(weeks) semanas. Duración corta: te sugerimos maximizar el rendimiento actual de inmediato. El plan se ha ajustado a \(weeks) semanas.",
+                text: localizedFormat("short_duration_warning_format", weeks, weeks),
                 color: PulseTheme.warning,
                 weeks: weeks
             )
         } else if weeks <= 12 {
             return EventAdvice(
-                text: "Faltan \(weeks) semanas. ¡Duración óptima para progresar! El plan se ha ajustado a \(weeks) semanas.",
+                text: localizedFormat("optimal_duration_format", weeks, weeks),
                 color: PulseTheme.primaryBright,
                 weeks: weeks
             )
         } else {
             return EventAdvice(
-                text: "Faltan \(weeks) semanas. Duración larga: te sugerimos realizar un bloque de 8 a 12 semanas y luego un plan de mantenimiento/definición secundario de \(weeks - 8) semanas.",
+                text: localizedFormat("long_duration_warning_format", weeks, weeks - 8),
                 color: PulseTheme.primary,
                 weeks: weeks
             )
@@ -1374,14 +1374,14 @@ struct EditPlanView: View {
 
                 Section("calendar_2") {
                     Stepper("\(daysPerWeek) días por semana", value: $daysPerWeek, in: 1...7)
-                    Stepper("Semana \(currentWeek) de \(totalWeeks)", value: $currentWeek, in: 1...max(totalWeeks, 1))
+                    Stepper(localizedFormat("week_n_of_total_format", currentWeek, totalWeeks), value: $currentWeek, in: 1...max(totalWeeks, 1))
                     Stepper("\(totalWeeks) semanas", value: $totalWeeks, in: max(currentWeek, 1)...24)
                 }
 
                 PlanPlaylistEditor(playlists: $playlists, showMusicConnector: $showMusicConnector)
 
                 ForEach(days.indices, id: \.self) { dayIndex in
-                    Section("Entrenamiento \(dayIndex + 1)") {
+                    Section(localizedFormat("training_day_format", dayIndex + 1)) {
                         TextField("qualification", text: Binding(
                             get: { days[dayIndex].title },
                             set: { days[dayIndex].title = $0 }
@@ -1394,7 +1394,7 @@ struct EditPlanView: View {
                             get: { days[dayIndex].durationMinutes },
                             set: { days[dayIndex].durationMinutes = $0 }
                         ), in: 10...180, step: 5)
-                        Stepper("Descanso entre ejercicios: \(days[dayIndex].restBetweenExercisesSeconds) s", value: Binding(
+                        Stepper(localizedFormat("rest_between_exercises_format", days[dayIndex].restBetweenExercisesSeconds), value: Binding(
                             get: { days[dayIndex].restBetweenExercisesSeconds },
                             set: { days[dayIndex].restBetweenExercisesSeconds = $0 }
                         ), in: 0...600, step: 15)
@@ -1448,7 +1448,7 @@ struct EditPlanView: View {
                                 // Metrics grid
                                 HStack(spacing: 8) {
                                     CompactStepper(
-                                        title: "Series",
+                                        title: "sets_label",
                                         value: Binding(
                                             get: { days[dayIndex].exercises[exerciseIndex].targetSets },
                                             set: { days[dayIndex].exercises[exerciseIndex].targetSets = $0 }
@@ -1459,7 +1459,7 @@ struct EditPlanView: View {
                                     )
 
                                     CompactStepper(
-                                        title: "Descanso",
+                                        title: "rest_label",
                                         value: Binding(
                                             get: { days[dayIndex].exercises[exerciseIndex].restSeconds },
                                             set: { days[dayIndex].exercises[exerciseIndex].restSeconds = $0 }
@@ -1502,7 +1502,7 @@ struct EditPlanView: View {
                                     }
                                 }
                             } label: {
-                                PlanEditorActionRow(title: "Añadir ejercicio", systemImage: "plus", color: PulseTheme.primary)
+                                PlanEditorActionRow(title: "add_exercise_action", systemImage: "plus", color: PulseTheme.primary)
                             }
                             .buttonStyle(.plain)
 
@@ -1512,7 +1512,7 @@ struct EditPlanView: View {
                             Button(role: .destructive) {
                                 days.remove(at: dayIndex)
                             } label: {
-                                PlanEditorActionRow(title: "Eliminar día", systemImage: "trash", color: .red)
+                                PlanEditorActionRow(title: "delete_day_action", systemImage: "trash", color: .red)
                             }
                             .buttonStyle(.plain)
                             .disabled(days.count == 1)
@@ -1528,7 +1528,7 @@ struct EditPlanView: View {
 
                 Section {
                     Button {
-                        days.append(WorkoutDay(title: "Entrenamiento \(days.count + 1)", subtitle: "Fuerza", durationMinutes: 45, exercises: []))
+                        days.append(WorkoutDay(title: localizedFormat("workout_number_format", days.count + 1), subtitle: localizedString("strength"), durationMinutes: 45, exercises: []))
                     } label: {
                         Label("add_day", systemImage: "plus")
                     }
@@ -1604,9 +1604,9 @@ struct EditPlanView: View {
 
     private func locationPickerTitle(_ location: UserProfile.TrainingLocation) -> String {
         switch location {
-        case .gym: "Gimnasio"
-        case .home: "Casa"
-        case .both: "Casa y gimnasio"
+        case .gym: localizedString("gym")
+        case .home: localizedString("home")
+        case .both: localizedString("home_and_gym")
         }
     }
 }
@@ -1696,7 +1696,7 @@ struct LegacyCreatePlanView: View {
                 }
 
                 Section("vista_previa") {
-                    PlanPreviewDay(title: "Entrenamiento A", workout: workoutTitle.isEmpty ? "Full body" : workoutTitle, exercises: selectedExerciseIDs.count)
+                    PlanPreviewDay(title: localizedString("workout_a_title"), workout: workoutTitle.isEmpty ? localizedString("full_body") : workoutTitle, exercises: selectedExerciseIDs.count)
                     Text(localizedFormat("reps_will_create_editable_days_from_template_format", daysPerWeek))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -1737,11 +1737,11 @@ struct LegacyCreatePlanView: View {
         let workoutExercises = (selectedExercises.isEmpty ? Array(store.exercises.prefix(4)) : selectedExercises).map {
             WorkoutExercise(exercise: $0, targetSets: 3, repRange: defaultRepRange(for: $0), previous: "-")
         }
-        let baseTitle = workoutTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Full body" : workoutTitle
+        let baseTitle = workoutTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? localizedString("full_body") : workoutTitle
         let days = (1...daysPerWeek).map { index in
             WorkoutDay(
                 title: daysPerWeek == 1 ? baseTitle : "\(baseTitle) \(index)",
-                subtitle: location == .home ? "Entrenamiento en casa" : "Fuerza",
+                subtitle: location == .home ? localizedString("home_training") : localizedString("strength"),
                 durationMinutes: max(35, workoutExercises.count * 10),
                 exercises: workoutExercises
             )
@@ -1770,9 +1770,9 @@ struct LegacyCreatePlanView: View {
 
     private func locationPickerTitle(_ location: UserProfile.TrainingLocation) -> String {
         switch location {
-        case .gym: "Gimnasio"
-        case .home: "Casa"
-        case .both: "Casa y gimnasio"
+        case .gym: localizedString("gym")
+        case .home: localizedString("home")
+        case .both: localizedString("home_and_gym")
         }
     }
 }
@@ -1831,8 +1831,8 @@ private struct SessionBuilderCard: View {
                 .pickerStyle(.menu)
 
                 HStack(spacing: 12) {
-                    CompactStepper(title: "Duración", value: $day.durationMinutes, range: 10...240, suffix: "min", step: 5)
-                    CompactStepper(title: "Entre ejercicios", value: $day.restBetweenExercisesSeconds, range: 0...600, suffix: "s", step: 15)
+                    CompactStepper(title: "duration_label", value: $day.durationMinutes, range: 10...240, suffix: "min", step: 5)
+                    CompactStepper(title: "between_exercises", value: $day.restBetweenExercisesSeconds, range: 0...600, suffix: "s", step: 15)
                 }
 
                 if day.sessionType == .cardioRun || day.sessionType == .cardioWalk || day.sessionType == .mixedRoute {
@@ -1950,7 +1950,7 @@ private struct EditableWorkoutExerciseRow: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Eliminar \(item.exercise.name)")
+                .accessibilityLabel(localizedFormat("delete_exercise_format", item.exercise.name))
             }
 
             // Row 2 — metric controls (Series | Descanso | Reps)
@@ -2018,7 +2018,7 @@ private struct ExerciseMetricTile: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Reducir \(label)")
+                .accessibilityLabel(localizedFormat("decrease_label", label))
 
                 Text(value)
                     .font(.headline.weight(.bold).monospacedDigit())
@@ -2038,7 +2038,7 @@ private struct ExerciseMetricTile: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Aumentar \(label)")
+                .accessibilityLabel(localizedFormat("increase_label", label))
             }
         }
         .frame(maxWidth: .infinity)
@@ -2117,7 +2117,7 @@ private struct PlanExercisePickerSheet: View {
                             Picker("training_type", selection: $selectedType) {
                                 Text("all").tag(Optional<Exercise.ExerciseType>.none)
                                 ForEach(Exercise.ExerciseType.allCases) { type in
-                                    Text(type.planPickerTitle(language: store.userProfile.preferredLanguage)).tag(Optional(type))
+                                    Text(type.planPickerTitle).tag(Optional(type))
                                 }
                             }
                             .pickerStyle(.menu)
@@ -2125,7 +2125,7 @@ private struct PlanExercisePickerSheet: View {
                             Picker("difficulty_2", selection: $selectedDifficulty) {
                                 Text("any").tag(Optional<Exercise.Difficulty>.none)
                                 ForEach(Exercise.Difficulty.allCases) { difficulty in
-                                    Text(difficulty.planPickerTitle(language: store.userProfile.preferredLanguage)).tag(Optional(difficulty))
+                                    Text(difficulty.planPickerTitle).tag(Optional(difficulty))
                                 }
                             }
                             .pickerStyle(.menu)
@@ -2133,7 +2133,7 @@ private struct PlanExercisePickerSheet: View {
                             Picker("environment_2", selection: $selectedEnvironment) {
                                 Text("any").tag(Optional<Exercise.Environment>.none)
                                 ForEach(Exercise.Environment.allCases) { environment in
-                                    Text(environment.planPickerTitle(language: store.userProfile.preferredLanguage)).tag(Optional(environment))
+                                    Text(environment.planPickerTitle).tag(Optional(environment))
                                 }
                             }
                             .pickerStyle(.menu)
@@ -2208,45 +2208,45 @@ private struct PlanExercisePickerSheet: View {
 }
 
 private extension Exercise.ExerciseType {
-    func planPickerTitle(language: String) -> String {
+    var planPickerTitle: String {
         switch self {
-        case .strength: language.hasPrefix("es") ? "Fuerza" : "Strength"
-        case .cardio: "Cardio"
-        case .mobility: language.hasPrefix("es") ? "Movilidad" : "Mobility"
-        case .stretching: language.hasPrefix("es") ? "Estiramientos" : "Stretching"
+        case .strength: localizedString("strength")
+        case .cardio: localizedString("cardio")
+        case .mobility: localizedString("mobility")
+        case .stretching: localizedString("stretching")
         case .hiit: "HIIT"
         }
     }
 }
 
 private extension Exercise.Difficulty {
-    func planPickerTitle(language: String) -> String {
+    var planPickerTitle: String {
         switch self {
-        case .low: language.hasPrefix("es") ? "Principiante" : "Beginner"
-        case .medium: language.hasPrefix("es") ? "Intermedio" : "Intermediate"
-        case .high: language.hasPrefix("es") ? "Avanzado" : "Advanced"
+        case .low: localizedString("beginner")
+        case .medium: localizedString("intermediate")
+        case .high: localizedString("advanced")
         }
     }
 }
 
 private extension Exercise.Environment {
-    func planPickerTitle(language: String) -> String {
+    var planPickerTitle: String {
         switch self {
-        case .home: language.hasPrefix("es") ? "Casa" : "Home"
-        case .gym: language.hasPrefix("es") ? "Gimnasio" : "Gym"
-        case .both: language.hasPrefix("es") ? "Casa y gym" : "Home and gym"
+        case .home: localizedString("home")
+        case .gym: localizedString("gym")
+        case .both: localizedString("home_gym_label")
         }
     }
 }
 
 private func sessionTypeTitle(_ type: WorkoutDay.SessionType) -> String {
     switch type {
-    case .strength: "Fuerza"
-    case .cardioRun: "Carrera"
-    case .cardioWalk: "Caminata"
-    case .mixedRoute: "Mixta + ruta"
-    case .mobility: "Movilidad"
-    case .free: "Libre"
+    case .strength: localizedString("strength")
+    case .cardioRun: localizedString("cardio_run")
+    case .cardioWalk: localizedString("cardio_walk")
+    case .mixedRoute: localizedString("mixed_route")
+    case .mobility: localizedString("mobility")
+    case .free: localizedString("free_session")
     }
 }
 

@@ -32,14 +32,11 @@ struct ExerciseProgressView: View {
 
         var id: String { rawValue }
 
-        func localizedTitle(isSpanish: Bool) -> String {
+        var localizedTitle: String {
             switch self {
-            case .instructions:
-                localizedString("instructions")
-            case .info:
-                "Info"
-            case .history:
-                localizedString("history")
+            case .instructions: localizedString("instructions")
+            case .info: "Info"
+            case .history: localizedString("history")
             }
         }
     }
@@ -161,7 +158,7 @@ struct ExerciseProgressView: View {
                         selectedTab = tab
                     }
                 } label: {
-                    Text(tab.localizedTitle(isSpanish: isSpanish))
+                    Text(tab.localizedTitle)
                         .font(.system(size: 15, weight: .bold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
@@ -263,7 +260,7 @@ struct ExerciseProgressView: View {
         VStack(alignment: .leading, spacing: 18) {
             ExerciseMuscleInfoPanel(exercise: currentExercise, gender: store.userProfile.muscleMapGender)
 
-            SectionHeader(title: "Músculos trabajados")
+            SectionHeader(title: "muscles_worked")
 
             PulseCard {
                 VStack(spacing: 0) {
@@ -280,7 +277,7 @@ struct ExerciseProgressView: View {
                 }
             }
 
-            SectionHeader(title: "Ajustes del ejercicio")
+            SectionHeader(title: "exercise_settings_section")
 
             PulseCard {
                 HStack {
@@ -329,20 +326,20 @@ struct ExerciseProgressView: View {
             if rangedPoints.isEmpty {
                 PulseCard {
                     PulseEmptyState(
-                        title: "Ejercicio todavía no realizado",
-                        message: "Cuando completes series de este ejercicio aparecerán aquí sus tendencias de peso, volumen, repeticiones y 1RM.",
+                        title: "exercise_not_done_yet",
+                        message: "exercise_not_done_message",
                         systemImage: "chart.line.uptrend.xyaxis"
                     )
                 }
             } else {
                 HStack(spacing: 14) {
-                    MetricCard(title: "Mejor peso", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primary)
-                    MetricCard(title: "1RM estimada", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt", badgeColor: PulseTheme.accent)
+                    MetricCard(title: "best_weight", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primary)
+                    MetricCard(title: "estimated_1rm", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt", badgeColor: PulseTheme.accent)
                 }
 
                 HStack(spacing: 14) {
-                    MetricCard(title: "Sobrecarga", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: "cambio 1RM", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
-                    MetricCard(title: "Volumen medio", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg/sesión", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
+                    MetricCard(title: "overload_metric", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: "one_rm_change", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
+                    MetricCard(title: "avg_volume_metric", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg_per_session", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
                 }
 
                 Picker("metrics", selection: $metric) {
@@ -356,7 +353,6 @@ struct ExerciseProgressView: View {
                     ExercisePerformanceChart(
                         points: rangedPoints,
                         metric: metric,
-                        isSpanish: store.userProfile.preferredLanguage.hasPrefix("es"),
                         value: value(for:)
                     )
                 }
@@ -424,10 +420,6 @@ struct ExerciseProgressView: View {
         case "shoulders": "Hombros"
         default: value
         }
-    }
-
-    private var isSpanish: Bool {
-        store.userProfile.preferredLanguage.hasPrefix("es")
     }
 
     private var exerciseTechniqueCard: some View {
@@ -523,7 +515,6 @@ struct ExerciseProgressView: View {
 private struct ExercisePerformanceChart: View {
     let points: [FitnessMetrics.ExerciseProgressPoint]
     let metric: ExerciseProgressView.ProgressMetric
-    let isSpanish: Bool
     let value: (FitnessMetrics.ExerciseProgressPoint) -> Double
 
     private var chartPoints: [ChartPoint] {

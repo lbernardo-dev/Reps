@@ -12,7 +12,6 @@ struct ProgressDashboardView: View {
 
   var body: some View {
     NavigationStack {
-      let isSpanish = store.userProfile.preferredLanguage.hasPrefix("es")
       StickyHeaderScaffold(
         title: "progress_2",
         subtitle: "performance",
@@ -21,7 +20,7 @@ struct ProgressDashboardView: View {
             NavigationLink {
               CalendarView()
             } label: {
-              StreakBadge(days: store.streakDays, isSpanish: isSpanish)
+              StreakBadge(days: store.streakDays)
             }
             .buttonStyle(.plain)
         }
@@ -60,8 +59,7 @@ struct ProgressDashboardView: View {
             steps: nextBestSteps,
             weeklyCompletion: store.weeklyCompletion,
             battery: batteryStatus,
-            completionRate: competitiveSummary.completionRate,
-            isSpanish: isSpanish
+            completionRate: competitiveSummary.completionRate
           ) { action in
             perform(action)
           }
@@ -75,7 +73,7 @@ struct ProgressDashboardView: View {
                 }
               } label: {
                 AnalyticsShortcutCard(
-                  title: "Ejercicios", subtitle: "\(exercisesWithHistory.count) con historial",
+                  title: "exercises_3", subtitle: localizedFormat("with_history_count_format", exercisesWithHistory.count),
                   systemImage: "chart.line.uptrend.xyaxis")
               }
               .buttonStyle(.plain)
@@ -86,7 +84,7 @@ struct ProgressDashboardView: View {
                 }
               } label: {
                 AnalyticsShortcutCard(
-                  title: "Historial", subtitle: "\(filteredSessions.count) sesiones",
+                  title: "history_label", subtitle: localizedFormat("sessions_subtitle_format", filteredSessions.count),
                   systemImage: "list.clipboard")
               }
               .buttonStyle(.plain)
@@ -95,13 +93,13 @@ struct ProgressDashboardView: View {
 
             HStack(spacing: 14) {
               MetricCard(
-                title: "Entrenos", value: "\(filteredSessions.count)",
+                title: "workouts_label", value: "\(filteredSessions.count)",
                 subtitle: selectedRange.subtitle, systemImage: "dumbbell",
                 badgeColor: PulseTheme.primary)
               MetricCard(
-                title: "Volumen",
+                title: "volume_label",
                 value: "\(Int(FitnessMetrics.totalVolumeKg(for: filteredSessions)))",
-                subtitle: "kg total", systemImage: "bag", badgeColor: PulseTheme.primaryBright)
+                subtitle: "kg_total", systemImage: "bag", badgeColor: PulseTheme.primaryBright)
             }
 
             NavigationLink {
@@ -175,29 +173,29 @@ struct ProgressDashboardView: View {
 
                 if filteredCardioLogs.isEmpty {
                   PulseEmptyState(
-                    title: "Sin cardio registrado",
-                    message:
-                      "Registra sesiones desde Perfil para ver duración, distancia e intensidad.",
+                    title: "no_cardio_logged",
+                    message: "register_sessions_from_profile_message",
                     systemImage: "figure.run"
                   )
                 } else {
                   HStack(spacing: 14) {
                     MetricInline(
-                      title: "Tiempo",
+                      title: "time_label",
                       value: "\(filteredCardioLogs.reduce(0) { $0 + $1.durationMinutes }) min")
                     MetricInline(
-                      title: "Distancia", value: String(format: "%.1f km", filteredCardioDistance))
-                    MetricInline(title: "RPE medio", value: averageCardioRPEText)
+                      title: "distance_label", value: String(format: "%.1f km", filteredCardioDistance))
+                    MetricInline(title: "avg_rpe", value: averageCardioRPEText)
                   }
 
                   Chart(filteredCardioLogs.sorted { $0.date < $1.date }) { log in
                     BarMark(
-                      x: .value("Fecha", log.date, unit: selectedRange.chartUnit),
-                      y: .value("Minutos", log.durationMinutes)
+                      x: .value(localizedString("date_label"), log.date, unit: selectedRange.chartUnit),
+                      y: .value(localizedString("minutes_label"), log.durationMinutes)
                     )
                     .foregroundStyle(PulseTheme.primaryBright)
                   }
                   .frame(height: 140)
+                  .allowsHitTesting(false)
 
                   VStack(spacing: 10) {
                     ForEach(walkingAndRunningLogs.prefix(6)) { log in
@@ -231,7 +229,7 @@ struct ProgressDashboardView: View {
                 }
               }
             }
-            .stickyHeaderTitle("Cardio")
+            .stickyHeaderTitle(localizedString("cardio_label"))
 
             HRZoneDurationCard(
               logs: filteredCardioLogs,
@@ -250,10 +248,10 @@ struct ProgressDashboardView: View {
 
             HStack(spacing: 14) {
               MetricCard(
-                title: "Carga", value: "\(Int(workload.acuteLoad))", subtitle: "7 días",
+                title: "load_metric", value: "\(Int(workload.acuteLoad))", subtitle: "7_days",
                 systemImage: "waveform.path.ecg", badgeColor: PulseTheme.primary)
               MetricCard(
-                title: "Series efectivas", value: "\(effectiveSetCount)",
+                title: "effective_sets", value: "\(effectiveSetCount)",
                 subtitle: "\(Int(effectiveVolume)) kg", systemImage: "checkmark.seal",
                 badgeColor: PulseTheme.primaryBright)
             }
@@ -261,10 +259,10 @@ struct ProgressDashboardView: View {
             HStack(spacing: 14) {
               MetricCard(
                 title: "ACWR", value: String(format: "%.2f", workload.acwr),
-                subtitle: "agudo/crónico", systemImage: "gauge.with.needle",
+                subtitle: "acute_chronic", systemImage: "gauge.with.needle",
                 badgeColor: PulseTheme.accent)
               MetricCard(
-                title: "Fatiga", value: "\(Int(workload.fatigueScore))", subtitle: "0-100",
+                title: "fatigue_score", value: "\(Int(workload.fatigueScore))", subtitle: "0-100",
                 systemImage: "battery.50", badgeColor: PulseTheme.warning)
             }
 
@@ -275,16 +273,15 @@ struct ProgressDashboardView: View {
 
                 if intensityDistribution.allSatisfy({ $0.count == 0 }) {
                   PulseEmptyState(
-                    title: "Sin RPE registrado",
-                    message:
-                      "Activa RPE en Preferencias Pro y registra series para ver si entrenas demasiado suave o demasiado cerca del fallo.",
+                    title: "no_rpe_logged",
+                    message: "activate_rpe_message",
                     systemImage: "dial.high"
                   )
                 } else {
                   Chart(intensityDistribution) { bucket in
                     BarMark(
-                      x: .value("Rango", bucket.label),
-                      y: .value("Series", bucket.count)
+                      x: .value(localizedString("range_label"), bucket.label),
+                      y: .value(localizedString("sets_label"), bucket.count)
                     )
                     .foregroundStyle(PulseTheme.primary)
                   }
@@ -306,18 +303,18 @@ struct ProgressDashboardView: View {
 
                 if competitiveSummary.muscleTargets.isEmpty {
                   PulseEmptyState(
-                    title: "Sin plan activo",
-                    message: "Activa un plan para comparar el volumen real contra el objetivo semanal.",
+                    title: "no_active_plan",
+                    message: "activate_plan_to_compare_message",
                     systemImage: "target"
                   )
                 } else {
                   Chart(competitiveSummary.muscleTargets) { point in
                     BarMark(
-                      x: .value("Músculo", point.muscleGroup),
-                      y: .value("Series", point.sets)
+                      x: .value(localizedString("muscle_label"), point.muscleGroup),
+                      y: .value(localizedString("sets_label"), point.sets)
                     )
-                    .foregroundStyle(by: .value("Tipo", point.kind))
-                    .position(by: .value("Tipo", point.kind))
+                    .foregroundStyle(by: .value(localizedString("type_label"), point.kind))
+                    .position(by: .value(localizedString("type_label"), point.kind))
                   }
                   .frame(height: 190)
                   .chartYAxis {
@@ -368,11 +365,11 @@ struct ProgressDashboardView: View {
           if selectedSection == .body, let latestHealth = store.health.latestDailyMetrics.last {
             HStack(spacing: 14) {
               MetricCard(
-                title: "Pasos", value: "\(Int(latestHealth.steps))", subtitle: "último día",
+                title: "steps_metric", value: "\(Int(latestHealth.steps))", subtitle: "last_day",
                 systemImage: "figure.walk", badgeColor: PulseTheme.primary)
               MetricCard(
-                title: "Kcal activas", value: "\(Int(latestHealth.activeEnergyKcal))",
-                subtitle: "último día", systemImage: "flame", badgeColor: PulseTheme.accent)
+                title: "active_kcal", value: "\(Int(latestHealth.activeEnergyKcal))",
+                subtitle: "last_day", systemImage: "flame", badgeColor: PulseTheme.accent)
             }
 
             PulseCard {
@@ -433,9 +430,8 @@ struct ProgressDashboardView: View {
 
                 if exercisesWithHistory.isEmpty {
                   PulseEmptyState(
-                    title: "Sin historial de ejercicios",
-                    message:
-                      "Registra series durante un entreno para desbloquear gráficas por ejercicio.",
+                    title: "no_exercise_history",
+                    message: "record_sets_during_workout_message",
                     systemImage: "chart.line.uptrend.xyaxis"
                   )
                 } else {
@@ -469,8 +465,8 @@ struct ProgressDashboardView: View {
 
                 if filteredSessions.isEmpty {
                   PulseEmptyState(
-                    title: "Sin entrenos registrados",
-                    message: "Empieza y finaliza un entreno para construir el historial.",
+                    title: "no_workouts_logged",
+                    message: "start_and_finish_workout_message",
                     systemImage: "list.clipboard"
                   )
                 } else {
@@ -555,8 +551,8 @@ struct ProgressDashboardView: View {
             if store.workoutSessions.isEmpty && store.activePlan.days.isEmpty {
               PulseCard {
                 PulseEmptyState(
-                  title: "Sin datos musculares",
-                  message: "Crea un plan o finaliza un entreno para ver volumen y distribución por músculo.",
+                  title: "no_muscle_data",
+                  message: "create_plan_or_finish_workout_message",
                   systemImage: "figure.strengthtraining.traditional"
                 )
               }
@@ -604,7 +600,7 @@ struct ProgressDashboardView: View {
   }
 
   private var filteredCardioLogs: [CardioLog] {
-    store.cardioLogs.filter { $0.date >= selectedRange.startDate }
+    store.combinedCardioLogs.filter { $0.date >= selectedRange.startDate }
   }
 
   private var workload: AnalyticsEngine.WorkloadSummary {
@@ -668,12 +664,12 @@ struct ProgressDashboardView: View {
       parts.append(String(format: "%.2f km", distanceKm))
     }
     if let steps = log.steps {
-      parts.append("\(Int(steps)) pasos")
+      parts.append(localizedFormat("steps_count_format", Int(steps)))
     }
     if let heartRate = log.averageHeartRate {
       parts.append("\(Int(heartRate)) lpm")
     }
-    return parts.isEmpty ? "Sin sensores" : parts.joined(separator: " · ")
+    return parts.isEmpty ? localizedString("no_sensors") : parts.joined(separator: " · ")
   }
 
   private var consistencyTotal: Int {
@@ -702,15 +698,15 @@ struct ProgressDashboardView: View {
         HStack {
           Text("body_and_wellness").font(.headline)
           Spacer()
-          Text(store.hasBodyMetrics ? "\(store.displayedWeight.value, specifier: "%.1f") \(store.displayedWeight.unit)" : "pendiente")
+          Text(store.hasBodyMetrics ? "\(String(format: "%.1f", store.displayedWeight.value)) \(store.displayedWeight.unit)" : localizedString("pendiente"))
             .font(.headline)
             .foregroundStyle(store.hasBodyMetrics ? .primary : PulseTheme.secondaryText)
         }
 
         if store.bodyMetrics.isEmpty {
           PulseEmptyState(
-            title: "Sin métricas corporales",
-            message: "Añade peso, altura o bienestar desde Perfil para ver tendencias.",
+            title: "no_body_metrics",
+            message: "add_weight_height_or_wellness_from_profile_to_see_trends",
             systemImage: "scalemass"
           )
         } else {
@@ -734,10 +730,10 @@ struct ProgressDashboardView: View {
           if let latest = store.bodyMetrics.last {
             HStack(spacing: 14) {
               MetricInline(
-                title: "Sueño",
+                title: "sleep_metric",
                 value: latest.sleepHours.map { String(format: "%.1f h", $0) } ?? "-")
-              MetricInline(title: "Fatiga", value: latest.fatigue.map { "\($0)/5" } ?? "-")
-              MetricInline(title: "Estrés", value: latest.stress.map { "\($0)/5" } ?? "-")
+              MetricInline(title: "fatigue_rating", value: latest.fatigue.map { "\($0)/5" } ?? "-")
+              MetricInline(title: "stress_metric", value: latest.stress.map { "\($0)/5" } ?? "-")
             }
           }
         }
@@ -806,14 +802,14 @@ struct ProgressDashboardView: View {
 private extension CardioLog.ActivityType {
   var displayName: LocalizedStringKey {
     switch self {
-    case .treadmill: "Cinta"
-    case .elliptical: "Elíptica"
-    case .stationaryBike: "Bici"
-    case .outdoorRun: "Carrera"
-    case .walking: "Caminata"
-    case .rowing: "Remo"
-    case .hiit: "HIIT"
-    case .other: "Otro"
+    case .treadmill: "treadmill_label"
+    case .elliptical: "elliptical_label"
+    case .stationaryBike: "stationary_bike_label"
+    case .outdoorRun: "outdoor_run_label"
+    case .walking: "walking_label"
+    case .rowing: "rowing_label"
+    case .hiit: "hiit_label"
+    case .other: "other_label"
     }
   }
 }
@@ -889,7 +885,7 @@ private struct AnalyticsShortcutCard: View {
         .font(.headline)
         .lineLimit(2)
         .minimumScaleFactor(0.82)
-      Text(localizedKey(subtitle))
+      Text(subtitle)
         .font(.subheadline)
         .foregroundStyle(PulseTheme.secondaryText)
     }
@@ -906,7 +902,6 @@ private struct ProgressActionPlanCard: View {
   let weeklyCompletion: Double
   let battery: FitnessMetrics.TrainingBatteryStatus
   let completionRate: Double
-  let isSpanish: Bool
   let onAction: (RetentionEngine.ActivationAction?) -> Void
 
   private var pendingStep: RetentionEngine.ActivationStep? {
@@ -991,7 +986,7 @@ private struct ProgressActionPlanCard: View {
 
         VStack(spacing: 0) {
           ForEach(Array(steps.prefix(visibleStepCount).enumerated()), id: \.element.id) { index, step in
-            ProgressActionStepRow(step: step, isSpanish: isSpanish) {
+            ProgressActionStepRow(step: step) {
               onAction(step.action)
             }
 
@@ -1045,7 +1040,7 @@ private struct ProgressPlanRing: View {
           .foregroundStyle(PulseTheme.secondaryText)
       }
     }
-    .accessibilityLabel("Progreso semanal \(centerValue)")
+    .accessibilityLabel(localizedFormat("weekly_progress_format", centerValue))
   }
 }
 
@@ -1073,7 +1068,6 @@ private struct ProgressSignalPill: View {
 
 private struct ProgressActionStepRow: View {
   let step: RetentionEngine.ActivationStep
-  let isSpanish: Bool
   let onAction: () -> Void
 
   private var iconColor: Color {
@@ -1157,13 +1151,13 @@ private struct CompetitiveSummaryCard: View {
 
         HStack(spacing: 10) {
           MetricInline(
-            title: "Plan",
+            title: "plan",
             value: "\(summary.completedWorkouts)/\(max(summary.plannedWorkouts, 1))")
           MetricInline(
-            title: "Volumen",
+            title: "volume_label",
             value: "\(summary.actualWeeklySets)/\(summary.targetWeeklySets)")
           MetricInline(
-            title: "Alertas",
+            title: "alerts_label",
             value: "\(summary.undertrainedMuscles.count + summary.overtrainedMuscles.count + summary.stalledExercises.count)")
         }
 
@@ -1172,14 +1166,14 @@ private struct CompetitiveSummaryCard: View {
             ForEach(summary.undertrainedMuscles.prefix(2)) { point in
               CompetitiveMuscleGapRow(
                 point: point,
-                title: "\(point.muscleGroup): faltan \(point.sets) series",
+                title: localizedFormat("muscle_gap_under_format", point.muscleGroup, point.sets),
                 color: PulseTheme.warning
               )
             }
             ForEach(summary.overtrainedMuscles.prefix(2)) { point in
               CompetitiveMuscleGapRow(
                 point: point,
-                title: "\(point.muscleGroup): exceso de \(point.sets) series",
+                title: localizedFormat("muscle_gap_over_format", point.muscleGroup, point.sets),
                 color: PulseTheme.destructive
               )
             }
@@ -1203,7 +1197,7 @@ private struct CompetitiveMuscleGapRow: View {
         .frame(width: 28, height: 28)
         .background(color.opacity(0.12))
         .clipShape(Circle())
-      Text(localizedKey(title))
+      Text(title)
         .font(.subheadline.weight(.semibold))
       Spacer()
     }
@@ -1277,13 +1271,13 @@ private struct CompetitiveRecommendationRow: View {
   private var actionTitle: String {
     switch recommendation.action {
     case .scheduleUndertrainedMuscle:
-      return "Programar foco"
+      return localizedString("schedule_focus")
     case .scheduleDeloadExercise:
-      return "Programar descarga"
+      return localizedString("schedule_deload")
     case .reviewPlan:
-      return "Revisar plan"
+      return localizedString("review_plan")
     case .scheduleRecovery:
-      return "Programar recuperación"
+      return localizedString("schedule_recovery")
     case .none:
       return ""
     }
@@ -1299,9 +1293,8 @@ struct ExerciseAnalyticsListView: View {
         if exercises.isEmpty {
           PulseCard {
             PulseEmptyState(
-              title: "Sin historial de ejercicios",
-              message:
-                "Finaliza un entreno con series registradas para ver progreso por ejercicio.",
+              title: "no_exercise_history",
+              message: "finish_workout_to_see_progress_message",
               systemImage: "chart.line.uptrend.xyaxis"
             )
           }
@@ -1340,12 +1333,12 @@ private enum ProgressSection: String, CaseIterable, Identifiable {
 
   var title: LocalizedStringKey {
     switch self {
-    case .general: "General"
-    case .exercises: "Ejercicios"
-    case .muscles: "Músculos"
-    case .cardio: "Cardio"
-    case .body: "Cuerpo"
-    case .load: "Carga"
+    case .general: "general_label"
+    case .exercises: "exercises_3"
+    case .muscles: "muscles_label"
+    case .cardio: "cardio"
+    case .body: "body_2"
+    case .load: "load"
     }
   }
 }
@@ -1359,17 +1352,17 @@ private enum ProgressRange: String, CaseIterable, Identifiable {
 
   var title: LocalizedStringKey {
     switch self {
-    case .week: "Semana"
-    case .month: "Mes"
-    case .year: "Año"
+    case .week: "week_label"
+    case .month: "month_label"
+    case .year: "year_label"
     }
   }
 
   var subtitle: LocalizedStringKey {
     switch self {
-    case .week: "Esta semana"
-    case .month: "Este mes"
-    case .year: "Este año"
+    case .week: "this_week"
+    case .month: "this_month"
+    case .year: "this_year"
     }
   }
 
@@ -1452,7 +1445,7 @@ private struct MuscleRow: View {
   }
 
   private var growthText: String {
-    point.completedSets >= 4 ? "Zona de crecimiento" : "Faltan \(max(4 - point.completedSets, 0))"
+    point.completedSets >= 4 ? localizedString("growth_zone") : localizedFormat("sets_remaining_format", max(4 - point.completedSets, 0))
   }
 }
 
@@ -1482,7 +1475,6 @@ private struct InsightRow: View {
 
 private struct StreakBadge: View {
   let days: Int
-  var isSpanish: Bool
 
   var body: some View {
     HStack(spacing: 8) {
@@ -1594,8 +1586,8 @@ private struct CardioAnalyticsCard: View {
     var id: String { rawValue }
     var title: String {
       switch self {
-      case .paceDistance: return "Pace/Dist"
-      case .paceHR: return "Pace/FC"
+      case .paceDistance: return localizedString("pace_dist_label")
+      case .paceHR: return localizedString("pace_hr_label")
       case .ef: return "EF"
       }
     }
@@ -1606,7 +1598,7 @@ private struct CardioAnalyticsCard: View {
     var id: String { rawValue }
     var title: String {
       switch self {
-      case .all: return "Todo"
+      case .all: return localizedString("all_label")
       case .sub1: return "<1km"
       case .r1to5: return "1-5km"
       case .r5to10: return "5-10km"
@@ -1703,13 +1695,14 @@ private struct CardioAnalyticsCard: View {
 
         if points.isEmpty {
           PulseEmptyState(
-            title: "Sin datos suficientes",
-            message: "Registra carreras con distancia (y frecuencia cardíaca para Pace/FC y EF) para ver el análisis.",
+            title: "no_enough_data",
+            message: "record_runs_with_distance_message",
             systemImage: "chart.dots.scatter"
           )
         } else {
           chart
             .frame(height: 200)
+            .allowsHitTesting(false)
 
           if metric != .ef {
             HStack(spacing: 12) {
@@ -1733,8 +1726,8 @@ private struct CardioAnalyticsCard: View {
     case .paceDistance:
       Chart(points) { point in
         PointMark(
-          x: .value("Distancia", point.distanceKm),
-          y: .value("Ritmo", point.paceSecPerKm)
+          x: .value(localizedString("distance_label"), point.distanceKm),
+          y: .value(localizedString("pace_label"), point.paceSecPerKm)
         )
         .foregroundStyle(zoneColor(point.avgHR))
       }
@@ -1743,8 +1736,8 @@ private struct CardioAnalyticsCard: View {
     case .paceHR:
       Chart(points.filter { $0.avgHR != nil }) { point in
         PointMark(
-          x: .value("FC media", point.avgHR ?? 0),
-          y: .value("Ritmo", point.paceSecPerKm)
+          x: .value(localizedString("avg_hr_label"), point.avgHR ?? 0),
+          y: .value(localizedString("pace_label"), point.paceSecPerKm)
         )
         .foregroundStyle(zoneColor(point.avgHR))
       }
@@ -1753,12 +1746,12 @@ private struct CardioAnalyticsCard: View {
     case .ef:
       Chart(points.filter { $0.ef != nil }.sorted { $0.date < $1.date }) { point in
         LineMark(
-          x: .value("Fecha", point.date),
+          x: .value(localizedString("date_label"), point.date),
           y: .value("EF", point.ef ?? 0)
         )
         .foregroundStyle(PulseTheme.primaryBright)
         PointMark(
-          x: .value("Fecha", point.date),
+          x: .value(localizedString("date_label"), point.date),
           y: .value("EF", point.ef ?? 0)
         )
         .foregroundStyle(PulseTheme.accent)
@@ -1835,8 +1828,8 @@ private struct HRZoneDurationCard: View {
 
         if total == 0 {
           PulseEmptyState(
-            title: "Sin datos de FC",
-            message: "Registra cardio con frecuencia cardíaca para ver el tiempo por zona.",
+            title: "no_hr_data",
+            message: "log_cardio_with_hr_message",
             systemImage: "heart"
           )
         } else {

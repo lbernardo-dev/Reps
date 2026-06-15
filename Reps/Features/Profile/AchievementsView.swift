@@ -13,12 +13,12 @@ struct AchievementBadge: Identifiable {
     let progressValue: Double? // e.g. 2.0 for 2/3
     let progressTarget: Double? // e.g. 3.0
     
-    func title(isSpanish: Bool) -> String {
-        isSpanish ? titleES : titleEN
+    var title: String {
+        RepsLocalization.language.hasPrefix("es") ? titleES : titleEN
     }
-    
-    func description(isSpanish: Bool) -> String {
-        isSpanish ? descES : descEN
+
+    var description: String {
+        RepsLocalization.language.hasPrefix("es") ? descES : descEN
     }
 }
 
@@ -29,16 +29,14 @@ struct AchievementsView: View {
     @State private var selectedReceiptForPreview: SavedShareCard? = nil
     @State private var localPaywall: PaywallPresentation?
     
-    private var isSpanish: Bool {
-        store.userProfile.preferredLanguage.hasPrefix("es")
-    }
-    
     // MARK: - Automated Health & Exercise Achievements Calculation
     private var achievements: [AchievementBadge] {
         let sessions = store.workoutSessions
         let healthMetrics = store.health.latestDailyMetrics
-        let cardioLogs = store.cardioLogs
-        
+        // Unified cardio (manually logged + cardio-type sessions, deduped) so
+        // achievements count free/imported cardio too.
+        let cardioLogs = store.combinedCardioLogs
+
         // 1. Apple Watch connected
         let watchConnected = sessions.contains { $0.isImportedFromHealth || $0.healthKitUUIDString != nil }
         
@@ -49,9 +47,11 @@ struct AchievementsView: View {
         let stepsProgress = min(maxSteps, 10000.0)
         let energyProgress = min(maxEnergy, 600.0)
         
-        // 3. Endurance Hero (cardio session > 45 minutes or cardio count >= 3)
-        let hasLongCardio = cardioLogs.contains { $0.durationMinutes >= 45 } || sessions.contains { $0.workoutTitle.lowercased().contains("cardio") && $0.durationMinutes >= 45 }
-        let cardioCount = cardioLogs.count + sessions.filter { $0.workoutTitle.lowercased().contains("cardio") }.count
+        // 3. Endurance Hero (cardio session > 45 minutes or cardio count >= 3).
+        // combinedCardioLogs already includes cardio-type sessions, so no extra
+        // title-based counting is needed (it would double-count).
+        let hasLongCardio = cardioLogs.contains { $0.durationMinutes >= 45 }
+        let cardioCount = cardioLogs.count
         let enduranceHero = hasLongCardio || cardioCount >= 3
         
         // 4. Iron Consistency (streak >= 3 days)
@@ -142,7 +142,7 @@ struct AchievementsView: View {
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .sheet(item: $selectedReceiptForPreview) { card in
-            LocalReceiptPreviewSheet(card: card, isSpanish: isSpanish)
+            LocalReceiptPreviewSheet(card: card)
         }
         .fullScreenCover(item: $localPaywall) { presentation in
             PaywallView(presentation: presentation) { reason in
@@ -205,7 +205,7 @@ struct AchievementsView: View {
             
             VStack(spacing: 12) {
                 ForEach(achievements) { badge in
-                    AchievementTile(badge: badge, isSpanish: isSpanish)
+                    AchievementTile(badge: badge)
                 }
             }
         }
@@ -306,8 +306,7 @@ struct AchievementsView: View {
 // MARK: - Individual Achievement Row Tile
 private struct AchievementTile: View {
     let badge: AchievementBadge
-    let isSpanish: Bool
-    
+
     var body: some View {
         HStack(spacing: 16) {
             // Neon glowing/locked icon
@@ -330,7 +329,7 @@ private struct AchievementTile: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(badge.title(isSpanish: isSpanish))
+                    Text(badge.title)
                         .font(.headline)
                         .foregroundStyle(badge.isCompleted ? .primary : PulseTheme.secondaryText)
                     
@@ -347,7 +346,7 @@ private struct AchievementTile: View {
                     }
                 }
                 
-                Text(badge.description(isSpanish: isSpanish))
+                Text(badge.description)
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -381,7 +380,6 @@ private struct AchievementTile: View {
 // MARK: - Local Receipt Preview Sheet
 private struct LocalReceiptPreviewSheet: View {
     let card: SavedShareCard
-    let isSpanish: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var uiImage: UIImage? = nil
     

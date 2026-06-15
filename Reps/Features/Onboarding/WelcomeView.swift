@@ -9,9 +9,9 @@ struct WelcomeView: View {
             if showSplash {
                 RepsLoadingView(
                     messages: [
-                        "Preparando inteligencia muscular...",
-                        "Analizando tu punto de partida...",
-                        "Ajustando la experiencia Reps..."
+                        localizedString("Preparando inteligencia muscular..."),
+                        localizedString("Analizando tu punto de partida..."),
+                        localizedString("Ajustando la experiencia Reps...")
                     ],
                     progress: nil,
                     layout: .splash

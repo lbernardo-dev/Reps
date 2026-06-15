@@ -49,7 +49,7 @@ struct WorkoutReceiptSharePayload: Codable, Hashable {
         self.exercises = exercises
     }
 
-    init(session: WorkoutSession, isSpanish: Bool) {
+    init(session: WorkoutSession) {
         let logs = FitnessMetrics.completedExerciseLogs(in: session)
         self.init(
             id: session.id,
@@ -187,10 +187,6 @@ struct WorkoutReceiptView: View {
         self.gender = gender
     }
     
-    private var isSpanish: Bool {
-        Locale.current.language.languageCode?.identifier.hasPrefix("es") ?? true
-    }
-    
     private var dateString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd MMM yyyy"
@@ -276,7 +272,7 @@ struct WorkoutReceiptView: View {
             )
         }
 
-        return WorkoutReceiptSharePayload(session: session, isSpanish: isSpanish)
+        return WorkoutReceiptSharePayload(session: session)
     }
 
     private var qrImage: UIImage? {
@@ -442,7 +438,7 @@ struct WorkoutReceiptView: View {
     @ViewBuilder
     private var visualSummary: some View {
         if isRouteReceipt {
-            ReceiptRoutePanel(routePoints: routePoints, title: routeTitle, isSpanish: isSpanish, isTreadmill: isTreadmillReceipt)
+            ReceiptRoutePanel(routePoints: routePoints, title: routeTitle, isTreadmill: isTreadmillReceipt)
         } else {
             HStack(spacing: 16) {
                 Spacer()
@@ -590,7 +586,6 @@ private struct ReceiptRouteTrace: View {
 private struct ReceiptRoutePanel: View {
     let routePoints: [RoutePoint]
     let title: String
-    let isSpanish: Bool
     let isTreadmill: Bool
 
     private var hasTrace: Bool {

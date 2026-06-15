@@ -26,10 +26,6 @@ struct ExerciseLibraryView: View {
         ["All"] + Array(Set(store.exercises.map(\.equipment))).sorted()
     }
 
-    private var isSpanish: Bool {
-        store.userProfile.preferredLanguage.hasPrefix("es")
-    }
-
     private var filteredExercises: [Exercise] {
         store.exercises.filter { exercise in
             let searchableText = [
@@ -91,15 +87,15 @@ struct ExerciseLibraryView: View {
                         .padding(.vertical, 2)
                     }
 
-                    Picker(ui(en: "Training type", es: "Tipo"), selection: $selectedType) {
-                        Text(ui(en: "All", es: "Todo")).tag(Optional<Exercise.ExerciseType>.none)
+                    Picker(localizedString("Training type"), selection: $selectedType) {
+                        Text(localizedString("All")).tag(Optional<Exercise.ExerciseType>.none)
                         ForEach(Exercise.ExerciseType.allCases) { type in
                             Text(type.localizedTitle).tag(Optional(type))
                         }
                     }
                     .pickerStyle(.segmented)
 
-                    FilterMenuRow(title: ui(en: "Muscle group", es: "Grupo muscular"), value: displayName(forMuscle: selectedMuscle)) {
+                    FilterMenuRow(title: localizedString("Muscle group"), value: displayName(forMuscle: selectedMuscle)) {
                         ForEach(muscles, id: \.self) { muscle in
                             Button(displayName(forMuscle: muscle)) {
                                 selectedMuscle = muscle
@@ -107,7 +103,7 @@ struct ExerciseLibraryView: View {
                         }
                     }
 
-                    FilterMenuRow(title: ui(en: "Equipment", es: "Equipamiento"), value: displayName(forEquipment: selectedEquipment)) {
+                    FilterMenuRow(title: localizedString("Equipment"), value: displayName(forEquipment: selectedEquipment)) {
                         ForEach(equipmentOptions, id: \.self) { equipment in
                             Button(displayName(forEquipment: equipment)) {
                                 selectedEquipment = equipment
@@ -115,8 +111,8 @@ struct ExerciseLibraryView: View {
                         }
                     }
 
-                    FilterMenuRow(title: ui(en: "Environment", es: "Entorno"), value: environmentFilterTitle) {
-                        Button(ui(en: "Any environment", es: "Cualquier entorno")) {
+                    FilterMenuRow(title: localizedString("Environment"), value: environmentFilterTitle) {
+                        Button(localizedString("Any environment")) {
                             selectedEnvironment = nil
                         }
                         ForEach(Exercise.Environment.allCases) { environment in
@@ -126,8 +122,8 @@ struct ExerciseLibraryView: View {
                         }
                     }
 
-                    FilterMenuRow(title: ui(en: "Difficulty", es: "Dificultad"), value: difficultyFilterTitle) {
-                        Button(ui(en: "Any difficulty", es: "Cualquier dificultad")) {
+                    FilterMenuRow(title: localizedString("Difficulty"), value: difficultyFilterTitle) {
+                        Button(localizedString("Any difficulty")) {
                             selectedDifficulty = nil
                         }
                         ForEach(Exercise.Difficulty.allCases) { difficulty in
@@ -137,7 +133,7 @@ struct ExerciseLibraryView: View {
                         }
                     }
 
-                    Toggle(ui(en: "Only my equipment", es: "Solo mi equipamiento"), isOn: $onlyAvailableEquipment)
+                    Toggle(localizedString("Only my equipment"), isOn: $onlyAvailableEquipment)
                 }
 
                 if filteredExercises.isEmpty {
@@ -167,16 +163,16 @@ struct ExerciseLibraryView: View {
                     }
                 }
             }
-            .searchable(text: $searchText, prompt: Text(ui(en: "Search exercises", es: "Buscar ejercicios")))
-            .navigationTitle(ui(en: "Exercise Library", es: "Biblioteca de ejercicios"))
+            .searchable(text: $searchText, prompt: Text(localizedString("Search exercises")))
+            .navigationTitle(localizedString("Exercise Library"))
             .listStyle(.insetGrouped)
             .safeAreaInset(edge: .bottom) {
                 if store.isSyncingExerciseLibrary {
                     RepsLoadingView(
                         messages: [
-                            ui(en: "Updating exercise library...", es: "Actualizando biblioteca de ejercicios..."),
-                            ui(en: "Completing media and instructions...", es: "Completando medios e instrucciones..."),
-                            ui(en: "Keeping your catalog ready...", es: "Preparando tu catálogo...")
+                            localizedString("Updating exercise library..."),
+                            localizedString("Completing media and instructions..."),
+                            localizedString("Keeping your catalog ready...")
                         ],
                         progress: nil,
                         layout: .compact,
@@ -260,9 +256,6 @@ struct ExerciseLibraryView: View {
         selectedDifficulty?.localizedString(language: store.userProfile.preferredLanguage) ?? (localizedString("any_difficulty"))
     }
 
-    private func ui(en: String, es: String) -> String {
-        isSpanish ? es : en
-    }
 }
 
 private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable {
@@ -672,7 +665,7 @@ struct ExerciseDetailView: View {
         case history = "Historial"
         var id: String { rawValue }
         
-        func localizedTitle(isSpanish: Bool) -> String {
+        var localizedTitle: String {
             switch self {
             case .instructions: return localizedString("instructions")
             case .info: return localizedString("info")
@@ -689,17 +682,14 @@ struct ExerciseDetailView: View {
         case sets = "Series"
         var id: String { rawValue }
         
-        func localizedTitle(isSpanish: Bool) -> String {
-            guard isSpanish else {
-                switch self {
-                case .weight: return "Weight"
-                case .reps: return "Reps"
-                case .volume: return "Volume"
-                case .oneRepMax: return "1RM"
-                case .sets: return "Sets"
-                }
+        var localizedTitle: String {
+            switch self {
+            case .weight: return localizedString("weight")
+            case .reps: return localizedString("reps")
+            case .volume: return localizedString("volume")
+            case .oneRepMax: return "1RM"
+            case .sets: return localizedString("sets")
             }
-            return rawValue
         }
     }
 
@@ -733,10 +723,6 @@ struct ExerciseDetailView: View {
         ExerciseInstructionParser.steps(from: currentExercise.instructions)
     }
 
-    private var isSpanish: Bool {
-        store.userProfile.preferredLanguage.hasPrefix("es")
-    }
-
     private var points: [FitnessMetrics.ExerciseProgressPoint] {
         FitnessMetrics.progressPoints(for: currentExercise, in: store.workoutSessions)
     }
@@ -755,19 +741,11 @@ struct ExerciseDetailView: View {
     }
 
     private var fatigueDescription: String {
-        guard isSpanish else {
-            switch fatigueScore {
-            case 1: return "Low fatigue: stable or local movement, easy to recover from."
-            case 2: return "Moderate fatigue: requires technical control but generally manageable."
-            case 3: return "High fatigue: multi-joint or high loads, manage volume carefully."
-            default: return "Very high fatigue: compound unstable movement with heavy stabilizer demands."
-            }
-        }
         switch fatigueScore {
-        case 1: return "Baja fatiga: movimiento local o estable, fácil de recuperar."
-        case 2: return "Fatiga moderada: requiere control técnico pero suele ser recuperable."
-        case 3: return "Alta fatiga: varias articulaciones o cargas altas, conviene gestionar volumen."
-        default: return "Fatiga muy alta: compuesto inestable con varios grupos musculares y alta demanda de estabilización."
+        case 1: return localizedString("fatigue_low")
+        case 2: return localizedString("fatigue_moderate")
+        case 3: return localizedString("fatigue_high")
+        default: return localizedString("fatigue_very_high")
         }
     }
 
@@ -783,7 +761,7 @@ struct ExerciseDetailView: View {
                             }
                         } label: {
                             VStack(spacing: 12) {
-                                Text(tab.localizedTitle(isSpanish: isSpanish))
+                                Text(tab.localizedTitle)
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundStyle(selectedTab == tab ? PulseTheme.primaryBright : PulseTheme.secondaryText)
                                     .frame(maxWidth: .infinity)
@@ -820,7 +798,7 @@ struct ExerciseDetailView: View {
             }
         }
         .screenBackground()
-        .navigationTitle(ui(en: "Exercise", es: "Ejercicio"))
+        .navigationTitle(localizedString("Exercise"))
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
         .sheet(isPresented: $showAddToPlan) {
@@ -902,7 +880,7 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(ui(en: "Use this exercise", es: "Usar este ejercicio")).font(.headline)
+                    Text(localizedString("Use this exercise")).font(.headline)
                     Label(trackingLabel, systemImage: "chart.bar.fill")
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(2)
@@ -911,14 +889,14 @@ struct ExerciseDetailView: View {
                         Button {
                             showAddToPlan = true
                         } label: {
-                            ExerciseActionButton(title: ui(en: "Add to plan", es: "Añadir a plan"), systemImage: "plus.rectangle.on.rectangle")
+                            ExerciseActionButton(title: localizedString("Add to plan"), systemImage: "plus.rectangle.on.rectangle")
                         }
                         .buttonStyle(.plain)
 
                         Button {
                             showSchedule = true
                         } label: {
-                            ExerciseActionButton(title: ui(en: "Schedule", es: "Programar"), systemImage: "calendar.badge.plus")
+                            ExerciseActionButton(title: localizedString("Schedule"), systemImage: "calendar.badge.plus")
                         }
                         .buttonStyle(.plain)
                     }
@@ -1013,9 +991,9 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text(ui(en: "Instructions", es: "Instrucciones")).font(.headline)
+                    Text(localizedString("Instructions")).font(.headline)
                     if instructionSteps.isEmpty {
-                        Text(ui(en: "This exercise does not include detailed instructions yet.", es: "Este ejercicio todavía no incluye instrucciones detalladas."))
+                        Text(localizedString("This exercise does not include detailed instructions yet."))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
@@ -1025,7 +1003,7 @@ struct ExerciseDetailView: View {
                     }
                     if !currentExercise.commonMistakes.isEmpty {
                         Divider()
-                        Text(ui(en: "Avoid", es: "Evita")).font(.headline)
+                        Text(localizedString("Avoid")).font(.headline)
                         ForEach(currentExercise.commonMistakes, id: \.self) { mistake in
                             Label(mistake, systemImage: "exclamationmark.triangle")
                                 .font(.subheadline)
@@ -1039,7 +1017,7 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(ui(en: "Reference", es: "Referencia")).font(.headline)
+                    Text(localizedString("Reference")).font(.headline)
                     if let notes = currentExercise.notes, !notes.isEmpty {
                         Text(notes)
                             .foregroundStyle(PulseTheme.secondaryText)
@@ -1048,7 +1026,7 @@ struct ExerciseDetailView: View {
                     }
                     if let mediaURL = currentExercise.mediaURL, !mediaURL.isEmpty {
                         Divider()
-                        Label(ui(en: "Execution reference image", es: "Imagen de referencia"), systemImage: "photo")
+                        Label(localizedString("Execution reference image"), systemImage: "photo")
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.primary)
                             .lineLimit(2)
@@ -1098,12 +1076,12 @@ struct ExerciseDetailView: View {
 
     private var infoTabContent: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text(ui(en: "Anatomy Map", es: "Mapa Anatómico"))
+            Text(localizedString("Anatomy Map"))
                 .font(.title3.bold())
             
             ExerciseMuscleInfoPanel(exercise: currentExercise, gender: store.userProfile.muscleMapGender)
             
-            Text(ui(en: "Muscles Worked", es: "Músculos Trabajados"))
+            Text(localizedString("Muscles Worked"))
                 .font(.headline)
             
             PulseCard {
@@ -1121,7 +1099,7 @@ struct ExerciseDetailView: View {
                             let pct = Int((currentExercise.secondaryInvolvement(muscle) * 100).rounded())
                             ExerciseMuscleTargetRow(
                                 title: localizedMuscle(muscle),
-                                subtitle: isSpanish ? "\(pct)% serie indirecta" : "\(pct)% indirect work set",
+                                subtitle: localizedFormat("indirect_work_set_format", pct),
                                 muscleGroup: muscle,
                                 exerciseName: currentExercise.name,
                                 gender: store.userProfile.muscleMapGender
@@ -1168,7 +1146,7 @@ struct ExerciseDetailView: View {
                         Text(localizedString("strength_level"))
                             .font(.headline)
                         Spacer()
-                        Text(result.level.title(isSpanish: isSpanish))
+                        Text(result.level.title)
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 10)
@@ -1229,7 +1207,7 @@ struct ExerciseDetailView: View {
 
                 HStack(spacing: 14) {
                     MetricCard(title: "overload", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: "value_1rm_delta", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
-                    MetricCard(title: "avg_volume", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg/sesión", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
+                    MetricCard(title: "avg_volume", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg_per_session", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
                 }
 
                 strengthLevelCard
@@ -1243,7 +1221,7 @@ struct ExerciseDetailView: View {
 
                 Picker("metrics", selection: $metric) {
                     ForEach(ProgressMetric.allCases) { metric in
-                        Text(metric.localizedTitle(isSpanish: isSpanish)).tag(metric)
+                        Text(metric.localizedTitle).tag(metric)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -1254,12 +1232,12 @@ struct ExerciseDetailView: View {
                         Chart(rangedPoints) { point in
                             LineMark(
                                 x: .value("Fecha", point.date),
-                                y: .value(metric.localizedTitle(isSpanish: isSpanish), value(for: point))
+                                y: .value(metric.localizedTitle, value(for: point))
                             )
                             .foregroundStyle(PulseTheme.primary)
                             PointMark(
                                 x: .value("Fecha", point.date),
-                                y: .value(metric.localizedTitle(isSpanish: isSpanish), value(for: point))
+                                y: .value(metric.localizedTitle, value(for: point))
                             )
                             .foregroundStyle(PulseTheme.accent)
                         }
@@ -1279,7 +1257,7 @@ struct ExerciseDetailView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                Text("\(Int(value(for: point))) \(metric.localizedTitle(isSpanish: isSpanish))")
+                                Text("\(Int(value(for: point))) \(metric.localizedTitle)")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(PulseTheme.secondaryText)
                             }
@@ -1303,9 +1281,6 @@ struct ExerciseDetailView: View {
         }
     }
 
-    private func ui(en: String, es: String) -> String {
-        isSpanish ? es : en
-    }
 
     private func value(for point: FitnessMetrics.ExerciseProgressPoint) -> Double {
         switch metric {
@@ -1895,8 +1870,6 @@ private struct SecondaryMuscleEditorView: View {
         }
         _weights = State(initialValue: initial)
     }
-
-    private var isSpanish: Bool { store.userProfile.preferredLanguage.hasPrefix("es") }
 
     var body: some View {
         NavigationStack {

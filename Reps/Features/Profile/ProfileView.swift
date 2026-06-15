@@ -67,7 +67,7 @@ struct ProfileView: View {
                 gymPassesCard
                     .stickyHeaderTitle(localizedString("gyms"))
                 healthCard
-                    .stickyHeaderTitle("apple_health")
+                    .stickyHeaderTitle(localizedString("apple_health"))
                 toolsCard
                     .stickyHeaderTitle(localizedString("actions"))
                 settingsCard
@@ -413,6 +413,26 @@ struct ProfileView: View {
                     .disabled(!store.health.isAvailable || !store.health.isAuthorized)
                 }
 
+                if store.health.isAuthorized && healthKit.needsWorkoutWriteUpgrade {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "exclamationmark.arrow.triangle.2.circlepath")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(PulseTheme.accent)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("reconnect_health_upgrade_message")
+                                .font(.footnote)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Button("reconnect_apple_health") {
+                                Task { await connectHealth() }
+                            }
+                            .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.accent))
+                        }
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(PulseTheme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+
                 HStack(spacing: 10) {
                     Button("importar_cardio") {
                         Task { await importCardioFromHealth() }
@@ -431,7 +451,7 @@ struct ProfileView: View {
                     LazyVGrid(columns: profileToolColumns, spacing: 10) {
                         HealthMiniMetric(title: "Pasos", value: "\(Int(metric.steps))", systemImage: "figure.walk")
                         HealthMiniMetric(title: "Ejercicio", value: "\(Int(metric.exerciseMinutes ?? 0)) min", systemImage: "figure.strengthtraining.traditional")
-                        HealthMiniMetric(title: "Reposo", value: metric.restingHeartRate.map { "\(Int($0)) lpm" } ?? "--", systemImage: "heart")
+                        HealthMiniMetric(title: "Reposo", value: metric.restingHeartRate.map { "\(Int($0)) \(localizedString("lpm"))" } ?? "--", systemImage: "heart")
                         HealthMiniMetric(title: "HRV", value: metric.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--", systemImage: "waveform.path.ecg")
                     }
                 }
@@ -629,7 +649,7 @@ struct ProfileView: View {
                     LazyVGrid(columns: profileToolColumns, spacing: 12) {
                         ProfileToolButton(
                             title: "CSV",
-                            subtitle: csvExportURL == nil ? "Generar archivo" : "Listo para compartir",
+                            subtitle: localizedString(csvExportURL == nil ? "Generar archivo" : "Listo para compartir"),
                             systemImage: "tablecells",
                             color: PulseTheme.primary
                         ) {
@@ -639,19 +659,19 @@ struct ProfileView: View {
                         if let csvExportURL {
                             ShareLink(item: csvExportURL) {
                                 ProfileToolCard(
-                                    title: "Compartir CSV",
-                                    subtitle: "Enviar archivo",
+                                    title: localizedString("Compartir CSV"),
+                                    subtitle: localizedString("Enviar archivo"),
                                     systemImage: "square.and.arrow.up",
                                     color: PulseTheme.primary,
-                                    badge: "listo"
+                                    badge: localizedString("listo")
                                 )
                             }
                             .buttonStyle(.plain)
                         }
 
                         ProfileToolButton(
-                            title: "Imagen",
-                            subtitle: shareImageURL == nil ? "Resumen privado" : "PNG listo",
+                            title: localizedString("Imagen"),
+                            subtitle: localizedString(shareImageURL == nil ? "Resumen privado" : "PNG listo"),
                             systemImage: "photo.on.rectangle",
                             color: .orange
                         ) {
@@ -663,18 +683,18 @@ struct ProfileView: View {
                         if let shareImageURL {
                             ShareLink(item: shareImageURL) {
                                 ProfileToolCard(
-                                    title: "share_png",
-                                    subtitle: "last_workout",
+                                    title: localizedString("share_png"),
+                                    subtitle: localizedString("last_workout"),
                                     systemImage: "square.and.arrow.up",
                                     color: .orange,
-                                    badge: "listo"
+                                    badge: localizedString("listo")
                                 )
                             }
                             .buttonStyle(.plain)
                         }
                     }
                 }
-                .stickyHeaderTitle("share")
+                .stickyHeaderTitle(localizedString("share"))
 
                 ProfileToolSection(title: "data_and_privacy") {
                     LazyVGrid(columns: profileToolColumns, spacing: 12) {
@@ -688,8 +708,8 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: "Backup",
-                            subtitle: backupExportURL == nil ? "generate_json" : "json_ready",
+                            title: localizedString("Backup"),
+                            subtitle: localizedString(backupExportURL == nil ? "generate_json" : "json_ready"),
                             systemImage: "externaldrive",
                             color: PulseTheme.accent
                         ) {
@@ -701,11 +721,11 @@ struct ProfileView: View {
                         if let backupExportURL {
                             ShareLink(item: backupExportURL) {
                                 ProfileToolCard(
-                                    title: "share_backup",
-                                    subtitle: "full_copy",
+                                    title: localizedString("share_backup"),
+                                    subtitle: localizedString("full_copy"),
                                     systemImage: "doc.badge.gearshape",
                                     color: PulseTheme.accent,
-                                    badge: "listo"
+                                    badge: localizedString("listo")
                                 )
                             }
                             .buttonStyle(.plain)
@@ -732,7 +752,7 @@ struct ProfileView: View {
                         }
                     }
                 }
-                .stickyHeaderTitle("privacidad")
+                .stickyHeaderTitle(localizedString("privacidad"))
             }
         )
         .toolbar(.hidden, for: .navigationBar)
@@ -791,7 +811,7 @@ struct ProfileView: View {
                         }
                     }
                 }
-                .stickyHeaderTitle("contacto")
+                .stickyHeaderTitle(localizedString("contacto"))
 
                 ProfileToolSection(title: "product") {
                     LazyVGrid(columns: profileToolColumns, spacing: 12) {
@@ -816,8 +836,8 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: "Suscripción",
-                            subtitle: store.monetization.hasProAccess ? store.monetization.statusLabel : "Estado y Pro",
+                            title: "subscription_label",
+                            subtitle: store.monetization.hasProAccess ? store.monetization.statusLabel : localizedString("status_and_pro"),
                             systemImage: "creditcard",
                             color: .orange
                         ) {
@@ -826,8 +846,8 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: "Novedades",
-                            subtitle: "Mejoras incluidas",
+                            title: "whats_new",
+                            subtitle: "included_improvements",
                             systemImage: "sparkles",
                             color: .teal
                         ) {
@@ -836,7 +856,7 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: "Versión",
+                            title: "version_label",
                             subtitle: appVersionText,
                             systemImage: "info.circle",
                             color: PulseTheme.secondaryText
@@ -846,7 +866,7 @@ struct ProfileView: View {
                         }
                     }
                 }
-                .stickyHeaderTitle("producto")
+                .stickyHeaderTitle(localizedString("producto"))
             }
         )
         .toolbar(.hidden, for: .navigationBar)
@@ -942,10 +962,10 @@ struct ProfileView: View {
 
     private var bmiLabel: String {
         switch store.bodyMassIndex {
-        case ..<18.5: "bajo"
-        case 18.5..<25: "normal"
-        case 25..<30: "alto"
-        default: "muy alto"
+        case ..<18.5: localizedString("bajo")
+        case 18.5..<25: localizedString("normal")
+        case 25..<30: localizedString("alto")
+        default: localizedString("muy alto")
         }
     }
 
@@ -1268,10 +1288,6 @@ struct SettingsView: View {
     @State private var activeDestination: SettingsDestination?
     @State private var localPaywall: PaywallPresentation?
 
-    private var isSpanish: Bool {
-        store.userProfile.preferredLanguage.hasPrefix("es")
-    }
-
     var body: some View {
         StickyHeaderScaffold(
             title: "settings",
@@ -1431,8 +1447,8 @@ struct SettingsView: View {
                 }
             } label: {
                 PulseListRow(
-                    title: "Preferencias Pro",
-                    subtitle: "RPE/RIR, tipo de serie, tempo, auto-progresión y equipamiento",
+                    title: "pro_preferences",
+                    subtitle: "pro_preferences_subtitle",
                     systemImage: "slider.horizontal.3"
                 )
             }
@@ -1445,19 +1461,7 @@ struct SettingsView: View {
     }
 
     private func widgetColorTitle(_ colorName: String) -> String {
-        let spanish = [
-            "system": "Sistema",
-            "blue": "Azul",
-            "green": "Verde",
-            "orange": "Naranja",
-            "purple": "Morado",
-            "red": "Rojo",
-            "yellow": "Amarillo"
-        ]
-        guard isSpanish else {
-            return colorName == "system" ? "System" : colorName.capitalized
-        }
-        return spanish[colorName] ?? colorName.capitalized
+        localizedString("color_\(colorName)")
     }
 
     private func enableReminders() async {
@@ -1775,8 +1779,8 @@ private struct VersionInfoScreen: View {
 
     var body: some View {
         StickyHeaderScaffold(
-            title: "Versión",
-            subtitle: "Soporte",
+            title: "version_label",
+            subtitle: "support",
             backAction: onBack,
             accessory: {
                 Image(systemName: "info.circle")
@@ -1796,7 +1800,7 @@ private struct VersionInfoScreen: View {
                     supportRow("Bundle ID: \(Bundle.main.bundleIdentifier ?? "com.romerodev.repsfitness")")
                 }
             }
-            .stickyHeaderTitle("build")
+            .stickyHeaderTitle(localizedString("build"))
 
             #if DEBUG
             PulseCard(backgroundColor: PulseTheme.grouped) {
@@ -2198,8 +2202,8 @@ struct ProgressPhotoEditorView: View {
                         if CameraPicker.isAvailable {
                             Button(action: requestCameraAndOpen) {
                                 ProgressPhotoSourceActionLabel(
-                                    title: "Tomar foto",
-                                    subtitle: "Cámara",
+                                    title: "take_photo",
+                                    subtitle: "camera",
                                     systemImage: "camera.fill"
                                 )
                             }

@@ -8,7 +8,7 @@ enum BatteryStyle: String, CaseIterable, Identifiable {
 
     var id: String { self.rawValue }
 
-    func displayName(isSpanish: Bool) -> String {
+    var displayName: String {
         switch self {
         case .liquid:
             return localizedString("liquid_capsule")
@@ -37,10 +37,6 @@ struct TrainingBatteryView: View {
 
     @State private var selectedStyle: BatteryStyle = .liquid
     @State private var simulationDelta: Double = 0.0 // Interactive projection slider delta
-
-    private var isSpanish: Bool {
-        store.userProfile.preferredLanguage.hasPrefix("es")
-    }
 
     private var batteryStatus: FitnessMetrics.TrainingBatteryStatus {
         store.trainingBattery
@@ -266,7 +262,7 @@ struct TrainingBatteryView: View {
             LiquidCapsuleGauge(level: batteryStatus.level, color: batteryColor)
                 .transition(.scale.combined(with: .opacity))
         case .tech:
-            CircularTechGauge(level: batteryStatus.level, color: batteryColor, isSpanish: isSpanish, stateText: batteryStatus.state.rawValue.uppercased())
+            CircularTechGauge(level: batteryStatus.level, color: batteryColor, stateText: batteryStatus.state.rawValue.uppercased())
                 .transition(.scale.combined(with: .opacity))
         case .grid:
             VerticalSegmentedPowerCell(level: batteryStatus.level, color: batteryColor)
@@ -296,7 +292,7 @@ struct TrainingBatteryView: View {
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundStyle(isSelected ? .black : PulseTheme.primary)
 
-                            Text(style.displayName(isSpanish: isSpanish))
+                            Text(style.displayName)
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(isSelected ? .black : .primary)
                         }
@@ -444,7 +440,7 @@ struct TrainingBatteryView: View {
                 // Rest days since last workout
                 MiniMetricTile(
                     title: "real_rest",
-                    value: isSpanish ? "\(restDays) \(restDays == 1 ? "día" : "días")" : "\(restDays) \(restDays == 1 ? "day" : "days")",
+                    value: localizedFormat(restDays == 1 ? "day_singular_count_format" : "days_plural_count_format", restDays),
                     subtitle: "since_last_session",
                     systemImage: "bed.double.fill",
                     color: PulseTheme.accent
@@ -453,7 +449,7 @@ struct TrainingBatteryView: View {
                 // Heart Rate Variability (HRV) if synced
                 let latestHRV = store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.heartRateVariabilityMS
                 MiniMetricTile(
-                    title: "HRV Promedio",
+                    title: "hrv_average",
                     value: latestHRV != nil ? "\(Int(latestHRV!)) ms" : "--",
                     subtitle: "autonomic_system_state",
                     systemImage: "waveform.path.ecg.rectangle.fill",
@@ -511,10 +507,10 @@ struct TrainingBatteryView: View {
                         // Level impact slider
                         VStack(spacing: 8) {
                             HStack {
-                                Text(isSpanish ? "Actual: \(originalLevel)%" : "Current: \(originalLevel)%")
+                                Text(localizedFormat("current_level_format", originalLevel))
                                     .font(.caption.weight(.bold))
                                 Spacer()
-                                Text(isSpanish ? "Proyectado: \(currentSimLevel)%" : "Projected: \(currentSimLevel)%")
+                                Text(localizedFormat("projected_level_format", currentSimLevel))
                                     .font(.caption.weight(.bold))
                                     .foregroundStyle(projectedColor(for: currentSimLevel))
                             }
@@ -575,28 +571,15 @@ struct TrainingBatteryView: View {
     }
 
     private func projectedCoachingAdvice(for level: Int) -> String {
-        if isSpanish {
-            switch level {
-            case 0..<30:
-                return "Zona Crítica. Entrenar aquí puede causar sobreentrenamiento. Recomendamos posponer o cambiar a una sesión de estiramiento y descargar peso un 40%."
-            case 30..<55:
-                return "Zona Baja. Puedes entrenar, pero modera el esfuerzo. Mantén el RPE objetivo en 6-7 y descansa un mínimo de 3 minutos entre series."
-            case 55..<80:
-                return "Zona Estable. Entrena según lo programado. Asegúrate de descansar bien y completar los tiempos de pausa previstos en ejercicios principales."
-            default:
-                return "Zona Excelente. La homeostasis celular está al máximo. Tienes margen óptimo para empujar series pesadas e intentar sobrecarga progresiva."
-            }
-        } else {
-            switch level {
-            case 0..<30:
-                return "Critical State. Training now increases injury risk. We strongly recommend postponing or switching to low-intensity mobility, and cutting loads by 40%."
-            case 30..<55:
-                return "Low State. You can train but reduce accessories. Keep RPE target around 6-7 and rest at least 3 minutes between primary heavy sets."
-            case 55..<80:
-                return "Steady State. Perfect for standard routine training. Execute according to plan and respect complete rest periods between compound movements."
-            default:
-                return "Prime State. Cellular homeostasis is fully restored. You have the optimal window to push intense sets and seek progressive overload."
-            }
+        switch level {
+        case 0..<30:
+            return localizedString("battery_critical_advice")
+        case 30..<55:
+            return localizedString("battery_low_advice")
+        case 55..<80:
+            return localizedString("battery_stable_advice")
+        default:
+            return localizedString("battery_prime_advice")
         }
     }
 }
@@ -831,7 +814,6 @@ struct LiquidWaveShape: Shape {
 struct CircularTechGauge: View {
     let level: Int
     let color: Color
-    let isSpanish: Bool
     let stateText: String
 
     var body: some View {

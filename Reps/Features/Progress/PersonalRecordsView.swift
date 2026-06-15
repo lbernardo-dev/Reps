@@ -80,8 +80,8 @@ struct PersonalRecordsView: View {
                 if personalRecords.isEmpty {
                     PulseCard {
                         PulseEmptyState(
-                            title: "Sin récords aún",
-                            message: "Completa entrenamientos y registra series efectivas para empezar a acumular trofeos de récord personal.",
+                            title: "no_records_yet",
+                            message: "no_records_message",
                             systemImage: "trophy"
                         )
                     }
@@ -165,7 +165,7 @@ struct PRCardView: View {
                     }
                     // Generate a share image for this PR
                     shareImage = WorkoutShareImageRenderer.render(
-                        title: "Récord Personal: \(item.exercise.name)",
+                        title: localizedFormat("personal_record_format", item.exercise.name),
                         duration: 0,
                         volume: Int(item.oneRepMax),
                         sets: item.maxReps

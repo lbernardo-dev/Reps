@@ -6,10 +6,6 @@ struct ProgressionRecommendationCard: View {
     var title: LocalizedStringKey = "smart_progression"
     var emptyMessage: LocalizedStringKey = "log_a_few_sessions_to_unlock_weight_rep_and_deload_recommendations"
 
-    private var isSpanish: Bool {
-        language.hasPrefix("es")
-    }
-
     var body: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -58,10 +54,6 @@ private struct ProgressionRecommendationRow: View {
     let recommendation: SmartProgressionAdvisor.Recommendation
     let language: String
 
-    private var isSpanish: Bool {
-        language.hasPrefix("es")
-    }
-
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: recommendation.suggestion.shouldDeload ? "arrow.down.forward.circle.fill" : "arrow.up.forward.circle.fill")
@@ -106,7 +98,7 @@ private struct ProgressionRecommendationRow: View {
 
     private var targetText: String {
         guard recommendation.suggestion.targetWeightKg > 0 else {
-            return isSpanish ? "\(recommendation.suggestion.targetReps) reps" : "\(recommendation.suggestion.targetReps) reps"
+            return "\(recommendation.suggestion.targetReps) reps"
         }
 
         let weight = recommendation.suggestion.targetWeightKg

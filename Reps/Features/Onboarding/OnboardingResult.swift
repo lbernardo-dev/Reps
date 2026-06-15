@@ -34,8 +34,8 @@ enum OnboardingPlanBuilder {
         }
 
         let planName = profile.targetEventName != nil && !profile.targetEventName!.isEmpty
-            ? "Plan para \(profile.targetEventName!)"
-            : "Plan base adaptado"
+            ? localizedFormat("plan_for_name_format", profile.targetEventName!)
+            : localizedString("Plan base adaptado")
 
         return WorkoutPlan(
             name: planName,
@@ -183,30 +183,30 @@ enum OnboardingPlanBuilder {
         switch dayCount {
         case 2:
             return [
-                TrainingSplit(title: "Full body A", subtitle: "Empuje, pierna y core", groups: ["Chest", "Legs", "Back", "Core"]),
-                TrainingSplit(title: "Full body B", subtitle: "Tiron, gluteos y brazos", groups: ["Back", "Glutes", "Shoulders", "Arms"])
+                TrainingSplit(title: "Full body A", subtitle: localizedString("Empuje, pierna y core"), groups: ["Chest", "Legs", "Back", "Core"]),
+                TrainingSplit(title: "Full body B", subtitle: localizedString("Tiron, gluteos y brazos"), groups: ["Back", "Glutes", "Shoulders", "Arms"])
             ]
         case 3:
             return [
-                TrainingSplit(title: "Empuje", subtitle: "Pecho, hombro y triceps", groups: ["Chest", "Shoulders", "Arms", "Core"]),
-                TrainingSplit(title: "Tiron", subtitle: "Espalda y biceps", groups: ["Back", "Arms", "Shoulders", "Core"]),
-                TrainingSplit(title: "Pierna", subtitle: "Cuadriceps, isquios y gluteos", groups: ["Legs", "Glutes", "Core", "Back"])
+                TrainingSplit(title: localizedString("push"), subtitle: localizedString("Pecho, hombro y triceps"), groups: ["Chest", "Shoulders", "Arms", "Core"]),
+                TrainingSplit(title: localizedString("pull"), subtitle: localizedString("Espalda y biceps"), groups: ["Back", "Arms", "Shoulders", "Core"]),
+                TrainingSplit(title: localizedString("legs_label"), subtitle: localizedString("Cuadriceps, isquios y gluteos"), groups: ["Legs", "Glutes", "Core", "Back"])
             ]
         case 4:
             return [
-                TrainingSplit(title: "Superior A", subtitle: "Fuerza de torso", groups: ["Chest", "Back", "Shoulders", "Arms"]),
-                TrainingSplit(title: "Inferior A", subtitle: "Pierna completa", groups: ["Legs", "Glutes", "Core"]),
-                TrainingSplit(title: "Superior B", subtitle: "Volumen de torso", groups: ["Back", "Chest", "Arms", "Shoulders"]),
-                TrainingSplit(title: "Inferior B", subtitle: "Cadena posterior", groups: ["Glutes", "Legs", "Core"])
+                TrainingSplit(title: localizedString("upper_a"), subtitle: localizedString("Fuerza de torso"), groups: ["Chest", "Back", "Shoulders", "Arms"]),
+                TrainingSplit(title: localizedString("lower_a"), subtitle: localizedString("Pierna completa"), groups: ["Legs", "Glutes", "Core"]),
+                TrainingSplit(title: localizedString("upper_b"), subtitle: localizedString("Volumen de torso"), groups: ["Back", "Chest", "Arms", "Shoulders"]),
+                TrainingSplit(title: localizedString("lower_b"), subtitle: localizedString("Cadena posterior"), groups: ["Glutes", "Legs", "Core"])
             ]
         default:
             return [
-                TrainingSplit(title: "Push", subtitle: "Pecho, hombro y triceps", groups: ["Chest", "Shoulders", "Arms"]),
-                TrainingSplit(title: "Pull", subtitle: "Espalda y biceps", groups: ["Back", "Arms", "Shoulders"]),
-                TrainingSplit(title: "Legs", subtitle: "Pierna completa", groups: ["Legs", "Glutes", "Core"]),
-                TrainingSplit(title: "Upper", subtitle: "Torso mixto", groups: ["Chest", "Back", "Shoulders", "Arms"]),
-                TrainingSplit(title: "Lower", subtitle: "Fuerza inferior", groups: ["Legs", "Glutes", "Core"]),
-                TrainingSplit(title: "Focus", subtitle: "Musculos prioritarios", groups: ["Back", "Chest", "Legs", "Arms", "Core"])
+                TrainingSplit(title: "Push", subtitle: localizedString("Pecho, hombro y triceps"), groups: ["Chest", "Shoulders", "Arms"]),
+                TrainingSplit(title: "Pull", subtitle: localizedString("Espalda y biceps"), groups: ["Back", "Arms", "Shoulders"]),
+                TrainingSplit(title: "Legs", subtitle: localizedString("Pierna completa"), groups: ["Legs", "Glutes", "Core"]),
+                TrainingSplit(title: "Upper", subtitle: localizedString("Torso mixto"), groups: ["Chest", "Back", "Shoulders", "Arms"]),
+                TrainingSplit(title: "Lower", subtitle: localizedString("Fuerza inferior"), groups: ["Legs", "Glutes", "Core"]),
+                TrainingSplit(title: "Focus", subtitle: localizedString("Musculos prioritarios"), groups: ["Back", "Chest", "Legs", "Arms", "Core"])
             ].prefix(dayCount).map { $0 }
         }
     }
@@ -236,7 +236,7 @@ enum OnboardingPlanBuilder {
         case .duration:
             return reps
         case .repsOnly:
-            return "Peso corporal x \(reps)"
+            return localizedFormat("bodyweight_x_reps_format", reps)
         case .weightReps:
             let multiplier: Double
             switch profile.experience {

@@ -388,12 +388,12 @@ private struct CalendarPlannedWorkoutRow: View {
 
 private func calendarSessionTypeTitle(_ type: WorkoutDay.SessionType) -> String {
     switch type {
-    case .strength: "Fuerza"
-    case .cardioRun: "Carrera"
-    case .cardioWalk: "Caminata"
-    case .mixedRoute: "Mixta + ruta"
-    case .mobility: "Movilidad"
-    case .free: "Libre"
+    case .strength: localizedString("strength")
+    case .cardioRun: localizedString("cardio_run")
+    case .cardioWalk: localizedString("cardio_walk")
+    case .mixedRoute: localizedString("mixed_route")
+    case .mobility: localizedString("mobility")
+    case .free: localizedString("free_session")
     }
 }
 
@@ -423,7 +423,7 @@ struct ScheduleWorkoutView: View {
                             }
                         }
                     } else {
-                        LabeledContent("Tipo") {
+                        LabeledContent("type_label") {
                             Text("free_training")
                                 .foregroundStyle(.secondary)
                         }

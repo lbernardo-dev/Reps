@@ -45,11 +45,11 @@ struct ActiveWorkoutPinnedHeader: View {
                                 )
                             )
                     }
-                    .accessibilityLabel(isPaused ? "Reanudar entrenamiento" : "Pausar entrenamiento")
+                    .accessibilityLabel(localizedString(isPaused ? "resume_workout" : "pause_workout"))
                 }
 
                 Button(action: onPrimaryAction) {
-                    Text(isFinishingWorkout ? "Guardando" : (isSessionStarted ? "Finalizar" : "Iniciar"))
+                    Text(localizedString(isFinishingWorkout ? "saving" : (isSessionStarted ? "finish" : "start")))
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 90, height: 44)
@@ -57,7 +57,7 @@ struct ActiveWorkoutPinnedHeader: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .disabled(isFinishingWorkout || (!isSessionStarted && !canStartWorkout))
-                .accessibilityHint(!isSessionStarted && !canStartWorkout ? "Añade al menos un ejercicio o usa una sesión de cardio" : "")
+                .accessibilityHint(!isSessionStarted && !canStartWorkout ? localizedString("Añade al menos un ejercicio o usa una sesión de cardio") : "")
             }
             .frame(width: contentWidth)
             .padding(.top, 10)

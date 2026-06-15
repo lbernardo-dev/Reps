@@ -283,9 +283,9 @@ struct PaywallView: View {
     private var trialTimeline: some View {
         PulseCard(contentPadding: 18) {
             VStack(alignment: .leading, spacing: 18) {
-                TrialTimelineRow(icon: "checkmark", title: "Acceso gratis", subtitle: "Desbloquea Reps Pro durante 7 días.")
-                TrialTimelineRow(icon: "bell.fill", title: "Día 5", subtitle: "Recibirás un recordatorio antes de que termine la prueba.")
-                TrialTimelineRow(icon: "chart.line.uptrend.xyaxis", title: "Progreso", subtitle: "Entrena, registra y deja que Reps ajuste tus métricas.")
+                TrialTimelineRow(icon: "checkmark", title: "free_access", subtitle: "unlock_reps_pro_7_days")
+                TrialTimelineRow(icon: "bell.fill", title: "day_5", subtitle: "trial_reminder_subtitle")
+                TrialTimelineRow(icon: "chart.line.uptrend.xyaxis", title: "progress_label", subtitle: "trial_progress_subtitle")
             }
         }
     }
@@ -329,9 +329,9 @@ struct PaywallView: View {
 
     private func renewalText(for cycle: SubscriptionBillingCycle) -> String {
         switch cycle {
-        case .weekly: return "por semana"
-        case .monthly: return "al mes"
-        case .annual: return "al año"
+        case .weekly: return localizedString("por semana")
+        case .monthly: return localizedString("al mes")
+        case .annual: return localizedString("al año")
         case .lifetime: return ""
         }
     }
@@ -347,16 +347,16 @@ struct PaywallView: View {
 
     private func badge(for cycle: SubscriptionBillingCycle) -> String? {
         switch cycle {
-        case .annual: return "Mejor valor"
-        case .monthly: return "Flexible"
-        case .lifetime: return "Pago único"
-        case .weekly: return "Prueba rápida"
+        case .annual: return localizedString("Mejor valor")
+        case .monthly: return localizedString("Flexible")
+        case .lifetime: return localizedString("Pago único")
+        case .weekly: return localizedString("Prueba rápida")
         }
     }
 
     private func purchaseSelectedProduct() async {
         guard let selectedProduct else {
-            storeKitInfoMessage = store.storeKitErrorMessage ?? "Los productos de StoreKit aún no están disponibles."
+            storeKitInfoMessage = store.storeKitErrorMessage ?? localizedString("Los productos de StoreKit aún no están disponibles.")
             showStoreKitInfo = true
             return
         }
@@ -629,13 +629,13 @@ private struct PlanComparisonCard: View {
                 HStack(alignment: .top, spacing: 12) {
                     FeatureTierColumn(
                         title: "Free",
-                        subtitle: "Hábito básico",
+                        subtitle: localizedString("Hábito básico"),
                         color: PulseTheme.primaryBright,
                         features: ProductAccess.freeFeatures
                     )
                     FeatureTierColumn(
                         title: "Pro",
-                        subtitle: "Decisiones avanzadas",
+                        subtitle: localizedString("Decisiones avanzadas"),
                         color: PulseTheme.accent,
                         features: ProductAccess.proFeatures
                     )

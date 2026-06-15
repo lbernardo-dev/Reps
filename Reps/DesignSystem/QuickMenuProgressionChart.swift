@@ -18,7 +18,7 @@ enum LineType: String, CaseIterable, Identifiable {
     
     var id: String { rawValue }
     
-    func displayName(isSpanish: Bool) -> String {
+    var displayName: String {
         switch self {
         case .expected:
             return localizedString("expected_2")
@@ -47,7 +47,7 @@ enum ProgressionMetricType: String, CaseIterable, Identifiable {
     
     var id: String { rawValue }
     
-    func displayName(isSpanish: Bool) -> String {
+    var displayName: String {
         switch self {
         case .exercises:
             return localizedString("exercise_progress")
@@ -63,10 +63,6 @@ struct QuickMenuProgressionChart: View {
     
     @State private var selectedMetric: ProgressionMetricType = .exercises
     @State private var activeWeek: Int? = nil // Drag gesture active week selection
-    
-    private var isSpanish: Bool {
-        store.userProfile.preferredLanguage.hasPrefix("es")
-    }
     
     // MARK: - Weekly Data
     private func generateChartData() -> [ProgressionPoint] {
@@ -236,7 +232,7 @@ struct QuickMenuProgressionChart: View {
                     let realStr = realVal != nil ? String(format: "%.0f", realVal!) : "--"
                     
                     HStack(spacing: 5) {
-                        Text(isSpanish ? "SEM \(activeWeek):" : "W\(activeWeek):")
+                        Text(localizedFormat("week_label_colon_format", activeWeek))
                             .font(.system(size: 15, weight: .bold, design: .rounded))
                             .foregroundStyle(.white)
                         
@@ -281,7 +277,7 @@ struct QuickMenuProgressionChart: View {
             HStack(spacing: 0) {
                 ForEach(ProgressionMetricType.allCases) { type in
                     let isSelected = selectedMetric == type
-                    Text(type.displayName(isSpanish: isSpanish))
+                    Text(type.displayName)
                         .font(.system(size: 11, weight: isSelected ? .bold : .medium, design: .rounded))
                         .foregroundStyle(isSelected ? .white : .white.opacity(0.45))
                         .padding(.vertical, 7)
@@ -407,7 +403,7 @@ struct QuickMenuProgressionChart: View {
                     AxisMarks(values: .automatic(desiredCount: 6)) { value in
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 4])).foregroundStyle(Color.white.opacity(0.04))
                         if let week = value.as(Int.self) {
-                            AxisValueLabel(isSpanish ? "Sem \(week)" : "W\(week)")
+                            AxisValueLabel(localizedFormat("week_label_format", week))
                                 .font(.system(size: 8, weight: .bold, design: .rounded))
                                 .foregroundStyle(.white.opacity(0.4))
                         }
@@ -471,7 +467,7 @@ struct QuickMenuProgressionChart: View {
                 
                 HStack(spacing: 10) {
                     ForEach(visibleTypes) { type in
-                        LegendItem(label: type.displayName(isSpanish: isSpanish), color: type.color)
+                        LegendItem(label: type.displayName, color: type.color)
                     }
                 }
             }

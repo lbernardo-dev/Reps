@@ -122,6 +122,11 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
     private let locationManager = CLLocationManager()
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
+    /// Closes the race where rapid phone snapshots arriving during the async
+    /// `startLocalWorkoutIfNeeded` setup (which awaits authorization before
+    /// assigning `session`) would each spawn a duplicate HKWorkoutSession,
+    /// producing a flurry of empty 1-minute workouts in Health.
+    private var isStartingLocalSession = false
     private var startedAt: Date?
     private var endedAt: Date?
     private var timer: Timer?
@@ -394,8 +399,21 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             let strengthSummary = mode == .standaloneStrength ? makeStrengthSummary(endedAt: endDate) : nil
             let intervalSummary = mode == .interval ? makeIntervalSummary(endedAt: endDate) : nil
             session?.end()
-            try? await builder?.endCollection(at: endDate)
-            _ = try? await builder?.finishWorkout()
+            // Only persist a real HKWorkout when something was actually recorded.
+            // Sessions that are ended almost immediately (e.g. a phone snapshot
+            // that flips inactive, or a mirror that never collected data) are
+            // discarded so they don't litter Health with empty 1-minute entries.
+            let effectiveSeconds = max(Int(endDate.timeIntervalSince(startedAt ?? endDate)) - accumulatedPausedSeconds, 0)
+            let hasMeaningfulData = activeEnergy > 0
+                || (routeDistanceKm ?? 0) > 0
+                || totalCompletedSets > 0
+                || !heartRateSamples.isEmpty
+            if effectiveSeconds >= 60, hasMeaningfulData {
+                try? await builder?.endCollection(at: endDate)
+                _ = try? await builder?.finishWorkout()
+            } else {
+                builder?.discardWorkout()
+            }
             timer?.invalidate()
             stopPedometer()
             stopLocation()
@@ -510,7 +528,11 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             return
         }
 
+        guard !isStartingLocalSession else { return }
+        isStartingLocalSession = true
+
         Task {
+            defer { isStartingLocalSession = false }
             do {
                 try await requestHealthAuthorization()
                 let configuration = HKWorkoutConfiguration()

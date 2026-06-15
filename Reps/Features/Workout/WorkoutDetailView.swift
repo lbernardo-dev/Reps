@@ -351,8 +351,7 @@ private struct WorkoutExercisePreviewRow: View {
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.82)
-                let setsOfWord = language.hasPrefix("es") ? "series de" : "sets of"
-                Text("\(item.targetSets) \(setsOfWord) \(item.repRange)")
+                Text(localizedFormat("sets_of_format", item.targetSets, item.repRange))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(2)

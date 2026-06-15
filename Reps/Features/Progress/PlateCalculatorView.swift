@@ -16,10 +16,10 @@ struct PlateCalculatorView: View {
     }
 
     private let barOptions: [BarOption] = [
-        BarOption(name: "Olímpica", weight: 20.0),
-        BarOption(name: "Femenina", weight: 15.0),
-        BarOption(name: "Técnica", weight: 7.0),
-        BarOption(name: "Barra Z", weight: 10.0)
+        BarOption(name: "olympic_bar", weight: 20.0),
+        BarOption(name: "women_bar", weight: 15.0),
+        BarOption(name: "technique_bar", weight: 7.0),
+        BarOption(name: "z_bar", weight: 10.0)
     ]
 
     private var disabledPlates: Set<Double> {
@@ -160,7 +160,7 @@ struct PlateCalculatorView: View {
                                         Button {
                                             barbellWeight = bar.weight
                                         } label: {
-                                            Text("\(bar.name) \(bar.weight.formatted()) \(unit)")
+                                            Text("\(localizedString(bar.name)) \(bar.weight.formatted()) \(unit)")
                                                 .font(.subheadline.weight(.semibold))
                                                 .foregroundStyle(selected ? .white : PulseTheme.secondaryText)
                                                 .padding(.horizontal, 14)

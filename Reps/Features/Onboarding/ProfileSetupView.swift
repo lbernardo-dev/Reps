@@ -250,10 +250,10 @@ struct ProfileSetupView: View {
 
             VStack(spacing: 14) {
                 OnboardingRulerMetric(
-                    title: "Edad",
+                    title: localizedString("Edad"),
                     valueText: "\(age)",
                     unit: "years",
-                    caption: "experience_recovery_and_initial_volume",
+                    caption: localizedString("experience_recovery_and_initial_volume"),
                     icon: "calendar",
                     value: Binding(
                         get: { Double(age) },
@@ -264,10 +264,10 @@ struct ProfileSetupView: View {
                 )
 
                 OnboardingRulerMetric(
-                    title: "Altura",
+                    title: localizedString("Altura"),
                     valueText: String(format: "%.0f", heightCm),
                     unit: "cm",
-                    caption: "helps_contextualize_weight_and_composition",
+                    caption: localizedString("helps_contextualize_weight_and_composition"),
                     icon: "ruler",
                     value: $heightCm,
                     range: 130...220,
@@ -275,10 +275,10 @@ struct ProfileSetupView: View {
                 )
 
                 OnboardingRulerMetric(
-                    title: "Peso",
+                    title: localizedString("Peso"),
                     valueText: String(format: "%.1f", weightKg),
                     unit: "kg",
-                    caption: "Base para tu objetivo y estimaciones de progreso.",
+                    caption: localizedString("Base para tu objetivo y estimaciones de progreso."),
                     icon: "scalemass.fill",
                     value: $weightKg,
                     range: 35...180,
@@ -1318,11 +1318,11 @@ struct ProfileSetupView: View {
 
     private var primaryButtonTitle: String {
         switch step {
-        case .presentation: "Empezar"
-        case .sex, .metrics, .goal, .training, .focus: "Continuar"
-        case .generating: "Ver plan generado"
-        case .plan: "Ver beneficios Pro"
-        case .paywall: "Empezar con mi plan"
+        case .presentation: localizedString("Empezar")
+        case .sex, .metrics, .goal, .training, .focus: localizedString("Continuar")
+        case .generating: localizedString("Ver plan generado")
+        case .plan: localizedString("Ver beneficios Pro")
+        case .paywall: localizedString("Empezar con mi plan")
         }
     }
 

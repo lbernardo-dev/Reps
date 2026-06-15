@@ -2234,13 +2234,13 @@ enum StrengthLevel: String, CaseIterable, Identifiable {
     case elite
     var id: String { rawValue }
 
-    func title(isSpanish: Bool) -> String {
+    var title: String {
         switch self {
-        case .beginner: return isSpanish ? "Principiante" : "Beginner"
-        case .novice: return isSpanish ? "Novato" : "Novice"
-        case .intermediate: return isSpanish ? "Intermedio" : "Intermediate"
-        case .advanced: return isSpanish ? "Avanzado" : "Advanced"
-        case .elite: return isSpanish ? "Élite" : "Elite"
+        case .beginner: return localizedString("strength_beginner")
+        case .novice: return localizedString("strength_novice")
+        case .intermediate: return localizedString("strength_intermediate")
+        case .advanced: return localizedString("strength_advanced")
+        case .elite: return localizedString("strength_elite")
         }
     }
 

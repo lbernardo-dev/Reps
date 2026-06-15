@@ -138,8 +138,8 @@ struct WorkoutHistoryView: View {
                     if filteredAndGroupedSessions.isEmpty {
                         PulseCard {
                             PulseEmptyState(
-                                title: searchText.isEmpty && selectedLocationFilter == .all && selectedOriginFilter == .all ? "Sin entrenos registrados" : "No hay resultados",
-                                message: "Las sesiones completadas que coincidan con los filtros aparecerán aquí.",
+                                title: searchText.isEmpty && selectedLocationFilter == .all && selectedOriginFilter == .all ? "no_workouts_logged" : "no_results",
+                                message: "completed_sessions_match_message",
                                 systemImage: "list.clipboard"
                             )
                         }
@@ -249,162 +249,40 @@ struct WorkoutLogRow: View {
 struct WorkoutSessionDetailView: View {
     @Environment(AppStore.self) private var store
     let session: WorkoutSession
-    @State private var isShowingShareSheet = false
-    @State private var shareImage: UIImage?
-
-    private var exerciseLogs: [ExerciseLog] {
-        FitnessMetrics.completedExerciseLogs(in: session)
-    }
+    @State private var shareItem: ShareImageItem?
 
     var body: some View {
         Group {
             if session.isRouteSession {
                 RouteWorkoutSummaryView(session: session, shareAction: shareSession)
             } else {
-                strengthSessionDetail
+                StrengthWorkoutSummaryView(session: session, shareAction: shareSession)
             }
         }
-        .navigationTitle(session.isRouteSession ? "" : "Registro")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(session.isRouteSession)
-        .toolbar(session.isRouteSession ? .hidden : .visible, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
-        .sheet(isPresented: $isShowingShareSheet) {
-            if let image = shareImage {
-                ActivityViewController(activityItems: [image])
-            }
+        // Item-based presentation guarantees the rendered image exists before the
+        // share sheet appears (isPresented + a separate optional image races and
+        // can present an empty sheet).
+        .sheet(item: $shareItem) { item in
+            ActivityViewController(activityItems: [item.image])
         }
-    }
-
-    private var strengthSessionDetail: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text(session.workoutTitle)
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .lineLimit(2)
-
-                            Spacer()
-
-                            Button(action: shareSession) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.body)
-                                    .foregroundStyle(PulseTheme.primary)
-                                    .padding(10)
-                                    .background(PulseTheme.grouped)
-                                    .clipShape(Circle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        Text(session.date.formatted(date: .complete, time: .shortened))
-                            .font(.subheadline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-
-                        HStack(spacing: 14) {
-                            Label("\(session.durationMinutes) min", systemImage: "timer")
-                            Label("\(exerciseLogs.count) ejercicios", systemImage: "list.bullet")
-                            Label(session.location == .home ? "Casa" : "Gimnasio", systemImage: session.location == .home ? "house" : "building")
-                        }
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.primary)
-                    }
-                }
-
-                HStack(spacing: 14) {
-                    MetricCard(title: "Volumen", value: "\(Int(FitnessMetrics.totalVolumeKg(for: [session])))", subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primaryBright)
-                    MetricCard(title: "Series", value: "\(FitnessMetrics.completedSets(in: session).count)", subtitle: "completadas", systemImage: "checkmark.circle", badgeColor: PulseTheme.primary)
-                }
-
-                if let notes = session.notes, !notes.isEmpty {
-                    PulseCard {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("session_notes")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Text(notes)
-                                .font(.body)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("exercises_3")
-                            .font(.headline)
-
-                        if exerciseLogs.isEmpty {
-                            PulseEmptyState(
-                                title: "Sin ejercicios registrados",
-                                message: "Esta sesión no contiene series de fuerza.",
-                                systemImage: "list.bullet.clipboard"
-                            )
-                        } else {
-                            ForEach(exerciseLogs) { log in
-                                VStack(alignment: .leading, spacing: 10) {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 3) {
-                                            Text(log.exercise.name)
-                                                .font(.headline)
-                                            Text(localizedFormat("sets_volume_summary_format", log.sets.count, Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })))
-                                                .font(.subheadline)
-                                                .foregroundStyle(PulseTheme.secondaryText)
-                                        }
-                                        Spacer()
-                                        NavigationLink {
-                                            ExerciseProgressView(exercise: log.exercise)
-                                        } label: {
-                                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                                .font(.subheadline)
-                                                .foregroundStyle(PulseTheme.primary)
-                                                .padding(8)
-                                                .background(PulseTheme.grouped)
-                                                .clipShape(Circle())
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-
-                                    ForEach(log.sets) { set in
-                                        WorkoutSessionSetRow(set: set)
-                                    }
-
-                                    if !log.notes.isEmpty {
-                                        Text(log.notes)
-                                            .font(.caption)
-                                            .foregroundStyle(PulseTheme.secondaryText)
-                                            .padding(.top, 2)
-                                    }
-                                }
-                                .padding(.vertical, 4)
-
-                                if log.id != exerciseLogs.last?.id {
-                                    Divider()
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .padding(20)
-            .padding(.bottom, 112)
-        }
-        .screenBackground()
     }
 
     private func shareSession() {
         guard store.requireFeature(.shareCards, source: .shareCards) else {
             return
         }
-        shareImage = WorkoutShareImageRenderer.render(session: session)
-        isShowingShareSheet = true
+        shareItem = ShareImageItem(image: WorkoutShareImageRenderer.render(session: session))
     }
+}
 
-    private static func paceText(_ seconds: Double) -> String {
-        "\(Int(seconds) / 60):\(String(format: "%02d", Int(seconds) % 60))"
-    }
+struct ShareImageItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
 }
 
 struct RouteWorkoutSummaryView: View {
@@ -424,14 +302,15 @@ struct RouteWorkoutSummaryView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 14) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Text("workout_details")
-                            .font(.system(size: 30, weight: .black, design: .rounded))
+                            .font(.system(size: 22, weight: .heavy, design: .rounded))
                             .foregroundStyle(.white)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(Color.white.opacity(0.55))
                     }
+                    .padding(.top, 4)
 
                     RouteWorkoutDetailsCard(session: session)
 
@@ -462,6 +341,285 @@ struct RouteWorkoutSummaryView: View {
     }
 }
 
+struct StrengthWorkoutSummaryView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(AppStore.self) private var store
+    let session: WorkoutSession
+    let shareAction: () -> Void
+
+    private var exerciseLogs: [ExerciseLog] {
+        FitnessMetrics.completedExerciseLogs(in: session)
+    }
+
+    private var resolvedTitle: String {
+        RepsText.workoutTitle(session.workoutTitle, language: store.userProfile.preferredLanguage)
+    }
+
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                StrengthWorkoutHero(
+                    session: session,
+                    title: resolvedTitle,
+                    exerciseCount: exerciseLogs.count,
+                    backAction: { dismiss() },
+                    shareAction: shareAction
+                )
+
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 6) {
+                        Text("workout_details")
+                            .font(.system(size: 22, weight: .heavy, design: .rounded))
+                            .foregroundStyle(.white)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Color.white.opacity(0.55))
+                    }
+                    .padding(.top, 4)
+
+                    StrengthWorkoutDetailsCard(session: session, exerciseCount: exerciseLogs.count)
+
+                    if !exerciseLogs.isEmpty {
+                        StrengthExerciseBreakdownCard(exerciseLogs: exerciseLogs)
+                    }
+
+                    if let notes = session.notes, !notes.isEmpty {
+                        RouteWorkoutNotesCard(notes: notes)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 112)
+                .offset(y: -8)
+            }
+        }
+        .ignoresSafeArea(edges: .top)
+        .background(Color.black)
+    }
+}
+
+private struct StrengthWorkoutHero: View {
+    let session: WorkoutSession
+    let title: String
+    let exerciseCount: Int
+    let backAction: () -> Void
+    let shareAction: () -> Void
+
+    private var volumeKg: Int { Int(FitnessMetrics.totalVolumeKg(for: [session])) }
+    private var setCount: Int { FitnessMetrics.completedSets(in: session).count }
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.09, green: 0.11, blue: 0.13),
+                    Color(red: 0.02, green: 0.02, blue: 0.03)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            VStack(spacing: 10) {
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 72, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.14))
+                Text(session.location == .home ? "Home Workout" : "Gym Workout")
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.22))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.top, 96)
+
+            LinearGradient(
+                colors: [.clear, Color.black.opacity(0.15), Color.black.opacity(0.82), .black],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 300)
+            .frame(maxHeight: .infinity, alignment: .bottom)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Spacer()
+
+                HStack(spacing: 5) {
+                    Image(systemName: session.location == .home ? "house.fill" : "building.2.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text(session.location == .home ? "Home" : "Gym")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+                .foregroundStyle(.white)
+
+                Text(title)
+                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+
+                Text("\(volumeKg) KG")
+                    .font(.system(size: 30, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color(red: 0.62, green: 1.0, blue: 0.03))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                HStack(spacing: 6) {
+                    Text(session.routeDateRangeText)
+                    Image(systemName: session.routeSourceText == "Apple Watch" ? "applewatch" : "iphone")
+                    Text(session.routeSourceText)
+                }
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.52))
+                .lineLimit(1)
+                .minimumScaleFactor(0.66)
+
+                HStack(spacing: 16) {
+                    RouteHeroSensor(
+                        icon: "checkmark.circle.fill",
+                        iconColor: Color(red: 0.33, green: 1.0, blue: 0.36),
+                        value: "\(setCount)",
+                        label: "Sets"
+                    )
+                    RouteHeroSensor(
+                        icon: "list.bullet",
+                        iconColor: Color(red: 0.22, green: 0.78, blue: 1.0),
+                        value: "\(exerciseCount)",
+                        label: "Exercises"
+                    )
+                    if let averageHeartRate = session.averageHeartRate {
+                        RouteHeroSensor(
+                            icon: "heart.fill",
+                            iconColor: Color(red: 1.0, green: 0.15, blue: 0.36),
+                            value: "\(Int(averageHeartRate))",
+                            label: "Avg. Heart Rate"
+                        )
+                    }
+                }
+                .padding(.top, 8)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+
+            HStack {
+                Button(action: backAction) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 52, height: 52)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Button(action: shareAction) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 52, height: 52)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 54)
+            .frame(maxHeight: .infinity, alignment: .top)
+        }
+        .frame(height: 460)
+    }
+}
+
+private struct StrengthWorkoutDetailsCard: View {
+    let session: WorkoutSession
+    let exerciseCount: Int
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 18, alignment: .topLeading),
+        GridItem(.flexible(), spacing: 18, alignment: .topLeading)
+    ]
+
+    private var volumeKg: Int { Int(FitnessMetrics.totalVolumeKg(for: [session])) }
+    private var setCount: Int { FitnessMetrics.completedSets(in: session).count }
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 24) {
+            RouteWorkoutMetric(title: "Workout Time", value: session.workoutTimeText, color: Color(red: 1.0, green: 0.90, blue: 0.03))
+            RouteWorkoutMetric(title: "Total Volume", value: "\(volumeKg)KG", color: Color(red: 0.62, green: 1.0, blue: 0.03))
+            RouteWorkoutMetric(title: "Sets", value: "\(setCount)", color: Color(red: 0.0, green: 0.72, blue: 1.0))
+            RouteWorkoutMetric(title: "Exercises", value: "\(exerciseCount)", color: Color(red: 0.0, green: 0.72, blue: 1.0))
+            RouteWorkoutMetric(title: "Avg RPE", value: (session.sessionRPE ?? AnalyticsEngine.averageRPE(for: session)).map { String(format: "%.1f", $0) } ?? "—", color: Color(red: 1.0, green: 0.55, blue: 0.0))
+            RouteWorkoutMetric(title: "Active Kilocalories", value: session.activeKilocaloriesText, color: Color(red: 1.0, green: 0.08, blue: 0.34))
+            RouteWorkoutMetric(title: "Avg. Heart Rate", value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: Color(red: 1.0, green: 0.20, blue: 0.30))
+            RouteWorkoutMetric(title: "Max Heart Rate", value: session.maxHeartRate.map { "\(Int($0))BPM" } ?? "--", color: Color(red: 1.0, green: 0.20, blue: 0.30))
+        }
+        .padding(24)
+        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+}
+
+private struct StrengthExerciseBreakdownCard: View {
+    let exerciseLogs: [ExerciseLog]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("exercises_3")
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+
+            ForEach(exerciseLogs) { log in
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(log.exercise.name)
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Text(localizedFormat("sets_volume_summary_format", log.sets.count, Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })))
+                                .font(.subheadline)
+                                .foregroundStyle(Color.white.opacity(0.55))
+                        }
+                        Spacer()
+                        NavigationLink {
+                            ExerciseProgressView(exercise: log.exercise)
+                        } label: {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.subheadline)
+                                .foregroundStyle(Color(red: 0.62, green: 1.0, blue: 0.03))
+                                .padding(8)
+                                .background(Color.white.opacity(0.06))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    ForEach(log.sets) { set in
+                        WorkoutSessionSetRow(set: set)
+                    }
+
+                    if !log.notes.isEmpty {
+                        Text(log.notes)
+                            .font(.caption)
+                            .foregroundStyle(Color.white.opacity(0.55))
+                            .padding(.top, 2)
+                    }
+                }
+                .padding(.vertical, 4)
+
+                if log.id != exerciseLogs.last?.id {
+                    Divider().overlay(Color.white.opacity(0.08))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+}
+
 private struct RouteWorkoutHero: View {
     let session: WorkoutSession
     let backAction: () -> Void
@@ -471,7 +629,7 @@ private struct RouteWorkoutHero: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             RouteWorkoutMapBackdrop(session: session)
-                .frame(height: 610)
+                .frame(height: 500)
                 .contentShape(Rectangle())
                 .onTapGesture(perform: mapAction)
 
@@ -485,30 +643,30 @@ private struct RouteWorkoutHero: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 360)
+            .frame(height: 320)
             .frame(maxHeight: .infinity, alignment: .bottom)
 
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 Spacer()
 
                 HStack(spacing: 5) {
                     Image(systemName: "location.north.circle")
-                        .font(.system(size: 19, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                     Text(session.routeLocationText)
-                        .font(.system(size: 25, weight: .bold, design: .rounded))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
                 }
                 .foregroundStyle(.white)
 
                 Text(session.appleFitnessRouteTitle)
-                    .font(.system(size: 46, weight: .black, design: .rounded))
+                    .font(.system(size: 32, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.62)
+                    .minimumScaleFactor(0.6)
 
                 Text(session.distanceKm.map { Self.distanceText($0) } ?? "--")
-                    .font(.system(size: 45, weight: .regular, design: .rounded))
+                    .font(.system(size: 30, weight: .regular, design: .rounded))
                     .foregroundStyle(Color(red: 0.62, green: 1.0, blue: 0.03))
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
@@ -518,7 +676,7 @@ private struct RouteWorkoutHero: View {
                     Image(systemName: "applewatch")
                     Text(session.routeSourceText)
                 }
-                .font(.system(size: 19, weight: .semibold, design: .rounded))
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.white.opacity(0.52))
                 .lineLimit(1)
                 .minimumScaleFactor(0.66)
@@ -547,14 +705,14 @@ private struct RouteWorkoutHero: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 26)
+            .padding(.bottom, 24)
 
             HStack {
                 Button(action: backAction) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 28, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(.white)
-                        .frame(width: 74, height: 74)
+                        .frame(width: 52, height: 52)
                         .background(.ultraThinMaterial)
                         .clipShape(Circle())
                         .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
@@ -565,9 +723,9 @@ private struct RouteWorkoutHero: View {
 
                 Button(action: shareAction) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 28, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(.white)
-                        .frame(width: 74, height: 74)
+                        .frame(width: 52, height: 52)
                         .background(.ultraThinMaterial)
                         .clipShape(Circle())
                         .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
@@ -577,9 +735,9 @@ private struct RouteWorkoutHero: View {
                 if session.isOutdoorRouteSession {
                     Button(action: mapAction) {
                         Image(systemName: "map")
-                            .font(.system(size: 25, weight: .semibold))
+                            .font(.system(size: 19, weight: .semibold))
                             .foregroundStyle(.white)
-                            .frame(width: 74, height: 74)
+                            .frame(width: 52, height: 52)
                             .background(.ultraThinMaterial)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
@@ -588,10 +746,10 @@ private struct RouteWorkoutHero: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 60)
+            .padding(.top, 54)
             .frame(maxHeight: .infinity, alignment: .top)
         }
-        .frame(height: 610)
+        .frame(height: 500)
     }
 
     private static func distanceText(_ distanceKm: Double) -> String {
@@ -654,14 +812,19 @@ private struct RouteWorkoutMapBackdrop: View {
                     endPoint: .bottomTrailing
                 )
 
-                Image(systemName: session.location == .outdoor ? "map" : "figure.run.treadmill")
-                    .font(.system(size: 96, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.18))
+                // Subtle watermark kept in the upper third so it never collides
+                // with the title/metrics that sit at the bottom of the hero.
+                VStack(spacing: 10) {
+                    Image(systemName: session.location == .outdoor ? "map" : "figure.run.treadmill")
+                        .font(.system(size: 72, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.14))
 
-                Text(session.location == .outdoor ? "No GPS Route" : "Treadmill Workout")
-                    .font(.system(size: 28, weight: .black, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.6))
-                    .padding(.top, 148)
+                    Text(session.location == .outdoor ? "No GPS Route" : "Treadmill Workout")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.22))
+                }
+                .frame(maxHeight: .infinity, alignment: .top)
+                .padding(.top, 96)
             }
         }
     }
@@ -681,7 +844,7 @@ private struct RouteWorkoutDetailsCard: View {
             RouteWorkoutMetric(title: "Distance", value: session.distanceKm.map { "\(Self.localizedDecimal($0, fractionDigits: 2))KM" } ?? "--", color: Color(red: 0.0, green: 0.72, blue: 1.0))
             RouteWorkoutMetric(title: "Active Kilocalories", value: session.activeKilocaloriesText, color: Color(red: 1.0, green: 0.08, blue: 0.34))
             RouteWorkoutMetric(title: "Total Kilocalories", value: session.totalKilocaloriesText, color: Color(red: 1.0, green: 0.08, blue: 0.34))
-            RouteWorkoutMetric(title: "Elevation Gain", value: "--", color: Color(red: 0.33, green: 1.0, blue: 0.36))
+            RouteWorkoutMetric(title: "Elevation Gain", value: session.elevationGainText, color: Color(red: 0.33, green: 1.0, blue: 0.36))
             RouteWorkoutMetric(title: "HR Recovery", value: session.heartRateRecoveryText, color: Color(red: 1.0, green: 0.55, blue: 0.0))
             RouteWorkoutMetric(title: "Avg. Cadence", value: session.averageCadenceText, color: Color(red: 0.0, green: 0.86, blue: 0.90))
             RouteWorkoutMetric(title: "Avg. Pace", value: session.averagePaceSecondsPerKm.map(Self.paceText) ?? "--", color: Color(red: 0.0, green: 0.86, blue: 0.90))
@@ -900,16 +1063,16 @@ private struct RouteWorkoutMetric: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(localizedKey(title))
-                .font(.system(size: 22, weight: .regular, design: .rounded))
-                .foregroundStyle(.white)
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.7))
                 .lineLimit(2)
                 .minimumScaleFactor(0.78)
 
             Text(value)
-                .font(.system(size: 42, weight: .regular, design: .rounded))
+                .font(.system(size: 28, weight: .semibold, design: .rounded))
                 .foregroundStyle(color)
                 .lineLimit(1)
-                .minimumScaleFactor(0.48)
+                .minimumScaleFactor(0.5)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -956,7 +1119,7 @@ private struct HistoryRouteMap: View {
                     .stroke(style == .card ? PulseTheme.primary : Color(red: 1.0, green: 0.88, blue: 0.0), lineWidth: style == .card ? 5 : 7)
             }
             if let first = coordinates.first {
-                Annotation("Inicio", coordinate: first) {
+                Annotation(localizedString("route_start"), coordinate: first) {
                     Circle()
                         .fill(Color.green)
                         .frame(width: style == .card ? 18 : 26, height: style == .card ? 18 : 26)
@@ -964,7 +1127,7 @@ private struct HistoryRouteMap: View {
                 }
             }
             if let last = coordinates.last {
-                Annotation("Fin", coordinate: last) {
+                Annotation(localizedString("route_end"), coordinate: last) {
                     Circle()
                         .fill(Color.red)
                         .frame(width: style == .card ? 18 : 26, height: style == .card ? 18 : 26)
@@ -1093,25 +1256,59 @@ private extension WorkoutSession {
     }
 
     var activeKilocaloriesText: String {
-        let kcal = activeEnergyKcal ?? estimatedCalories
-        return kcal.map { "\(Int($0))KCAL" } ?? "--"
+        if let kcal = activeEnergyKcal ?? estimatedCalories, kcal > 0 {
+            return "\(Int(kcal))KCAL"
+        }
+        // Fall back to a duration-based estimate so the field is never blank when
+        // no sensor energy is available (e.g. strength logged without a watch).
+        let perMinute = isRouteSession ? 7.0 : 5.5
+        let estimate = Double(durationMinutes) * perMinute
+        return estimate > 0 ? "\(Int(estimate))KCAL" : "0KCAL"
     }
 
     var totalKilocaloriesText: String {
-        if let estimatedCalories {
+        if let estimatedCalories, estimatedCalories > 0 {
             return "\(Int(estimatedCalories))KCAL"
         }
-        if let activeEnergyKcal {
+        if let activeEnergyKcal, activeEnergyKcal > 0 {
             return "\(Int(activeEnergyKcal * 1.12))KCAL"
         }
-        return "--"
+        // Mirror the active-energy estimate (plus basal) so this is never blank.
+        let perMinute = isRouteSession ? 7.0 : 5.5
+        let estimate = Double(durationMinutes) * perMinute * 1.12
+        return estimate > 0 ? "\(Int(estimate))KCAL" : "0KCAL"
     }
 
     var averageCadenceText: String {
-        guard let steps, durationMinutes > 0 else {
-            return "--"
+        guard durationMinutes > 0 else { return "0SPM" }
+        // Prefer measured steps; otherwise estimate step count from distance using
+        // a typical stride for the pace so the field is never blank for a walk/run.
+        if let steps, steps > 0 {
+            return "\(Int(steps / Double(durationMinutes)))SPM"
         }
-        return "\(Int(steps / Double(durationMinutes)))SPM"
+        if let distanceKm, distanceKm > 0 {
+            let paceSecPerKm = averagePaceSecondsPerKm ?? (Double(durationMinutes) * 60 / distanceKm)
+            let strideMeters = paceSecPerKm < 360 ? 1.15 : 0.78 // running vs walking stride
+            let estimatedSteps = (distanceKm * 1_000) / strideMeters
+            return "\(Int(estimatedSteps / Double(durationMinutes)))SPM"
+        }
+        return "0SPM"
+    }
+
+    /// Cumulative positive elevation from the recorded route; indoor sessions with
+    /// no GPS legitimately report 0 rather than an empty placeholder.
+    var elevationGainMeters: Double {
+        guard routePoints.count >= 2 else { return 0 }
+        var gain = 0.0
+        for index in 1..<routePoints.count {
+            let delta = (routePoints[index].altitude ?? 0) - (routePoints[index - 1].altitude ?? 0)
+            if delta > 0 { gain += delta }
+        }
+        return gain
+    }
+
+    var elevationGainText: String {
+        "\(Int(elevationGainMeters.rounded()))M"
     }
 
     /// Heart-rate recovery: drop from peak (or average) HR to the post-workout HR.
@@ -1201,13 +1398,13 @@ struct WorkoutSessionSetRow: View {
     
     private var typeText: String? {
         switch set.setType {
-        case .warmUp: return "Calentamiento"
+        case .warmUp: return localizedString("warm_up")
         case .dropSet: return "Drop"
         case .topSet: return "Top"
         case .backOff: return "Backoff"
         case .restPause: return "Rest-Pause"
-        case .activation: return "Activación"
-        case .failure: return "Fallo"
+        case .activation: return localizedString("activation_set")
+        case .failure: return localizedString("failure_set")
         case .work: return nil
         }
     }

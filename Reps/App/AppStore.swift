@@ -162,6 +162,7 @@ final class AppStore {
             SharedWorkoutStore.save(sharedWorkoutSnapshot())
         }
         RepsLocalization.use(userProfile.preferredLanguage)
+        cleanupJunkHealthWorkoutsIfNeeded()
 
         let shouldStartBackgroundServices = startsBackgroundServices && !Self.isRunningUnitTests
         if shouldStartBackgroundServices {
@@ -835,7 +836,11 @@ final class AppStore {
         
         // Render virtual receipt image and auto-save it to our profile gallery
         saveReceiptCard(for: session)
-        
+
+        // Write phone-logged workouts back to Apple Health so they appear in the
+        // Fitness app / rings like a standard iOS workout (two-way sync).
+        writeSessionToHealthIfNeeded(session)
+
         self.finishedSessionForSummary = session
         activeWorkoutStatus = nil
         activeWorkout = nil
@@ -870,6 +875,26 @@ final class AppStore {
         }
     }
 
+    /// Writes a freshly-finished, phone-logged session to Apple Health (if it did
+    /// not originate there) and tags it with the created workout UUID so the
+    /// background observer treats it as already-imported.
+    private func writeSessionToHealthIfNeeded(_ session: WorkoutSession) {
+        guard HKHealthStore.isHealthDataAvailable(), health.isAuthorized else { return }
+        guard !session.isImportedFromHealth, session.healthKitUUIDString == nil else { return }
+
+        Task { @MainActor in
+            do {
+                guard let uuid = try await healthKitService.saveWorkout(session) else { return }
+                if let index = workoutSessions.firstIndex(where: { $0.id == session.id }),
+                   workoutSessions[index].healthKitUUIDString == nil {
+                    workoutSessions[index].healthKitUUIDString = uuid
+                }
+            } catch {
+                TelemetryService.shared.record(error, context: "healthkit_write_back")
+            }
+        }
+    }
+
     private func saveReceiptCard(for session: WorkoutSession, replacingExisting: Bool = false) {
         let image = WorkoutShareImageRenderer.render(session: session)
         guard let data = image.pngData(), !data.isEmpty else {
@@ -890,6 +915,89 @@ final class AppStore {
             card.workoutTitle == session.workoutTitle &&
             abs(card.date.timeIntervalSince(session.date)) < 2
         }
+    }
+
+    private static let junkHealthCleanupDefaultsKey = "didCleanupJunkHealthWorkouts_v1"
+
+    /// One-time sweep that removes the empty/duplicate auto-imported workouts (and
+    /// their receipt cards) created before the mirror-session race was fixed.
+    private func cleanupJunkHealthWorkoutsIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.junkHealthCleanupDefaultsKey) else { return }
+        defaults.set(true, forKey: Self.junkHealthCleanupDefaultsKey)
+
+        // 1. Drop empty auto-imported sessions (spurious mirror workouts).
+        var cleaned = workoutSessions.filter { !Self.isJunkImportedSession($0) }
+        // 2. Collapse near-duplicate imported sessions (Watch mirror + Apple
+        //    native both wrote the same physical workout), keeping the richest.
+        cleaned = Self.dedupedImportedSessions(cleaned)
+
+        let keptIDs = Set(cleaned.map(\.id))
+        let removed = workoutSessions.filter { !keptIDs.contains($0.id) }
+        guard !removed.isEmpty else { return }
+
+        workoutSessions = cleaned
+        // 3. Remove receipt cards that belonged to the removed sessions.
+        for session in removed {
+            if let index = receiptCardIndex(for: session) {
+                savedShareCards.remove(at: index)
+            }
+        }
+    }
+
+    /// An auto-imported session with no real training data — distance, calories,
+    /// duration, and strength sets are all effectively empty.
+    static func isJunkImportedSession(_ session: WorkoutSession) -> Bool {
+        guard session.isImportedFromHealth else { return false }
+        let hasStrength = !session.sets.isEmpty || !(session.exerciseLogs?.isEmpty ?? true)
+        let distance = session.distanceKm ?? 0
+        let calories = session.estimatedCalories ?? 0
+        return !hasStrength && session.durationMinutes < 2 && distance <= 0.01 && calories <= 1
+    }
+
+    /// Collapses sessions that represent the same physical workout recorded by
+    /// more than one source, keeping the copy with the most data.
+    static func dedupedImportedSessions(_ sessions: [WorkoutSession]) -> [WorkoutSession] {
+        var kept: [WorkoutSession] = []
+        for session in sessions.sorted(by: { ($0.startedAt ?? $0.date) > ($1.startedAt ?? $1.date) }) {
+            if let dupIndex = kept.firstIndex(where: {
+                (session.isImportedFromHealth || $0.isImportedFromHealth)
+                    && isLikelyDuplicateSession($0, session)
+            }) {
+                if sessionRichness(session) > sessionRichness(kept[dupIndex]) {
+                    kept[dupIndex] = session
+                }
+            } else {
+                kept.append(session)
+            }
+        }
+        let keptIDs = Set(kept.map(\.id))
+        return sessions.filter { keptIDs.contains($0.id) }
+    }
+
+    static func isLikelyDuplicateSession(_ a: WorkoutSession, _ b: WorkoutSession) -> Bool {
+        let aStart = a.startedAt ?? a.date
+        let bStart = b.startedAt ?? b.date
+        guard abs(aStart.timeIntervalSince(bStart)) < 300 else { return false }
+
+        let tolerance = max(2, Int(Double(max(b.durationMinutes, 1)) * 0.15))
+        guard abs(a.durationMinutes - b.durationMinutes) <= tolerance else { return false }
+
+        if !a.healthKitActivityTypes.isEmpty, !b.healthKitActivityTypes.isEmpty,
+           Set(a.healthKitActivityTypes).isDisjoint(with: Set(b.healthKitActivityTypes)) {
+            return false
+        }
+        return true
+    }
+
+    static func sessionRichness(_ session: WorkoutSession) -> Double {
+        var score = 0.0
+        score += (session.distanceKm ?? 0) * 100
+        score += session.estimatedCalories ?? 0
+        score += Double(session.sets.count) * 50
+        score += Double(session.routePoints.count)
+        if session.averageHeartRate != nil { score += 10 }
+        return score
     }
 
     @discardableResult
@@ -2249,7 +2357,10 @@ final class AppStore {
 
     func exportCSVURL() throws -> URL {
         do {
-            let csv = CSVExporter(snapshot: currentSnapshot).makeCSV()
+            // Export the unified cardio set (logged + cardio-type sessions).
+            var snapshot = currentSnapshot
+            snapshot.cardioLogs = combinedCardioLogs
+            let csv = CSVExporter(snapshot: snapshot).makeCSV()
             let url = exportURL(fileName: "reps-export-\(Self.exportDateStamp()).csv")
             let data = Data(csv.utf8)
             try writeProtected(data, to: url)
@@ -2783,14 +2894,35 @@ final class AppStore {
             await refreshExistingHealthKitRouteIfNeeded(for: workout, uuidString: uuidString)
             return
         }
-        
+
+        // 1b. Ignore spurious near-empty workouts (duplicate mirror sessions that
+        // never collected data) so they don't create junk entries or receipts.
+        if Self.isNegligibleWorkout(workout) {
+            return
+        }
+
+        // 1c. Workouts Reps itself wrote back to Health are already represented by a
+        // local session; tag that session's UUID if needed and never re-import.
+        if workout.metadata?[HKMetadataKeyWorkoutBrandName] as? String == "Reps" {
+            if let index = workoutSessions.firstIndex(where: {
+                $0.healthKitUUIDString == nil
+                    && abs(($0.startedAt ?? $0.date).timeIntervalSince(workout.startDate)) < 180
+            }) {
+                workoutSessions[index].healthKitUUIDString = uuidString
+            }
+            return
+        }
+
         // Obtener datos del pulso
         let heartRate = await heartRateSummary(for: workout)
         let routePoints = await workoutRoutePoints(for: workout)
         let distanceKm = workout.totalDistance?.doubleValue(for: .meterUnit(with: .kilo))
         let averagePaceSecondsPerKm = Self.averagePaceSecondsPerKm(duration: workout.duration, distanceKm: distanceKm)
         let steps = await workoutQuantitySum(for: workout, type: HKQuantityType(.stepCount), unit: .count())
-        
+        // Full sensor window (HR before/after, steps, active energy) so summary
+        // fields like HR recovery and cadence aren't left blank.
+        let sensors = try? await healthKitService.fetchWorkoutSensorSummary(start: workout.startDate, end: workout.endDate)
+
         // Obtener actividades
         var activities: [String] = []
         if #available(iOS 16.0, *) {
@@ -2847,19 +2979,21 @@ final class AppStore {
                 pausedDurationSeconds: activeStatus.pausedSeconds,
                 distanceKm: Self.bestRouteDistance(activeStatus.routeDistanceKm, distanceKm),
                 averagePaceSecondsPerKm: activeStatus.routePaceSecondsPerKm ?? averagePaceSecondsPerKm,
-                steps: Self.bestRouteMetric(activeStatus.routeSteps, steps),
-                activeEnergyKcal: calories,
+                steps: Self.bestRouteMetric(activeStatus.routeSteps, steps ?? sensors?.steps),
+                activeEnergyKcal: calories ?? sensors?.activeEnergyKcal,
+                heartRateBefore: sensors?.heartRateBefore,
+                heartRateAfter: sensors?.heartRateAfter,
                 healthKitUUIDString: uuidString,
                 isImportedFromHealth: false,
                 healthKitActivityTypes: uniqueActivities,
-                averageHeartRate: heartRate.average,
-                maxHeartRate: heartRate.max
+                averageHeartRate: heartRate.average ?? sensors?.averageHeartRate,
+                maxHeartRate: heartRate.max ?? sensors?.maxHeartRate
             )
-            
+
             finishWorkout(mergedSession)
             return
         }
-        
+
         // 3. Comprobar solapamiento con sesiones guardadas existentes para enriquecerlas
         if let index = workoutSessions.firstIndex(where: {
             abs($0.date.timeIntervalSince(workout.endDate)) < 3600 && $0.healthKitUUIDString == nil
@@ -2885,6 +3019,16 @@ final class AppStore {
             return
         }
         
+        // 3b. Evitar importar un duplicado casi idéntico ya presente desde otra
+        // fuente (p. ej. el espejo de nuestro Watch + la app nativa de Apple
+        // escriben la misma caminata como dos workouts con UUID distinto).
+        if workoutSessions.contains(where: { existing in
+            existing.healthKitUUIDString != nil
+                && Self.isLikelyDuplicateWorkout(existing: existing, workout: workout, activities: uniqueActivities)
+        }) {
+            return
+        }
+
         // 4. Si no coincide con nada, importar de forma automática e independiente
         let importedTitle = uniqueActivities.joined(separator: " + ")
         let importedSession = WorkoutSession(
@@ -2908,17 +3052,19 @@ final class AppStore {
             pausedDurationSeconds: 0,
             distanceKm: distanceKm,
             averagePaceSecondsPerKm: averagePaceSecondsPerKm,
-            steps: steps,
-            activeEnergyKcal: calories,
+            steps: steps ?? sensors?.steps,
+            activeEnergyKcal: calories ?? sensors?.activeEnergyKcal,
+            heartRateBefore: sensors?.heartRateBefore,
+            heartRateAfter: sensors?.heartRateAfter,
             healthKitUUIDString: uuidString,
             isImportedFromHealth: true,
             healthKitActivityTypes: uniqueActivities,
-            averageHeartRate: heartRate.average,
-            maxHeartRate: heartRate.max
+            averageHeartRate: heartRate.average ?? sensors?.averageHeartRate,
+            maxHeartRate: heartRate.max ?? sensors?.maxHeartRate
         )
-        
+
         workoutSessions.append(importedSession)
-        
+
         // También generar recibo para la galería de este entreno importado de salud
         saveReceiptCard(for: importedSession)
     }
@@ -2927,8 +3073,15 @@ final class AppStore {
         guard let existing = workoutSessions.first(where: { $0.healthKitUUIDString == uuidString }) else {
             return
         }
+
+        // Backfill sensor fields that earlier imports may have left blank so the
+        // summary (HR recovery, cadence, steps) fills in on a later sync.
+        await backfillSensorDataIfNeeded(for: workout, uuidString: uuidString)
+
         if existing.routePoints.count >= 2 {
-            saveReceiptCard(for: existing, replacingExisting: true)
+            if let refreshed = workoutSessions.first(where: { $0.healthKitUUIDString == uuidString }) {
+                saveReceiptCard(for: refreshed, replacingExisting: true)
+            }
             return
         }
 
@@ -2952,7 +3105,78 @@ final class AppStore {
         workoutSessions[index] = updated
         saveReceiptCard(for: updated, replacingExisting: true)
     }
-    
+
+    /// Fills HR before/after, steps and active energy on an already-imported
+    /// session that is missing them, then makes sure it has a cardio log.
+    private func backfillSensorDataIfNeeded(for workout: HKWorkout, uuidString: String) async {
+        guard let index = workoutSessions.firstIndex(where: { $0.healthKitUUIDString == uuidString }) else {
+            return
+        }
+        var session = workoutSessions[index]
+        let needsSensors = session.heartRateAfter == nil
+            || session.heartRateBefore == nil
+            || session.steps == nil
+            || session.averageHeartRate == nil
+        guard needsSensors else { return }
+
+        guard let sensors = try? await healthKitService.fetchWorkoutSensorSummary(
+            start: workout.startDate,
+            end: workout.endDate
+        ) else { return }
+
+        guard let liveIndex = workoutSessions.firstIndex(where: { $0.healthKitUUIDString == uuidString }) else {
+            return
+        }
+        session = workoutSessions[liveIndex]
+        session.heartRateBefore = session.heartRateBefore ?? sensors.heartRateBefore
+        session.heartRateAfter = session.heartRateAfter ?? sensors.heartRateAfter
+        session.steps = session.steps ?? sensors.steps
+        session.activeEnergyKcal = session.activeEnergyKcal ?? sensors.activeEnergyKcal
+        session.averageHeartRate = session.averageHeartRate ?? sensors.averageHeartRate
+        session.maxHeartRate = session.maxHeartRate ?? sensors.maxHeartRate
+        workoutSessions[liveIndex] = session
+    }
+
+    /// Cardio logs unified from explicitly-logged cardio plus every cardio-type
+    /// workout session (free, planned, imported), deduplicated.
+    var combinedCardioLogs: [CardioLog] {
+        let sessionLogs = workoutSessions.compactMap(CardioLog.init(cardioSession:))
+        var keys = Set(cardioLogs.map(\.dedupeKey))
+        var merged = cardioLogs
+        for log in sessionLogs where !keys.contains(log.dedupeKey) {
+            keys.insert(log.dedupeKey)
+            merged.append(log)
+        }
+        return merged.sorted { $0.date > $1.date }
+    }
+
+    /// A workout with no meaningful duration, distance, or energy — typically a
+    /// spurious mirror session that was started and ended without collecting data.
+    static func isNegligibleWorkout(_ workout: HKWorkout) -> Bool {
+        let minutes = workout.duration / 60
+        let distanceKm = workout.totalDistance?.doubleValue(for: .meterUnit(with: .kilo)) ?? 0
+        let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0
+        return minutes < 2 && distanceKm <= 0.01 && calories <= 1
+    }
+
+    /// Detects a near-identical workout already stored from another source so the
+    /// same physical session (our Watch mirror + Apple's native app) is not
+    /// imported twice.
+    static func isLikelyDuplicateWorkout(existing: WorkoutSession, workout: HKWorkout, activities: [String]) -> Bool {
+        let existingStart = existing.startedAt ?? existing.date
+        guard abs(existingStart.timeIntervalSince(workout.startDate)) < 300 else { return false }
+
+        let workoutMinutes = Int(workout.duration / 60)
+        let tolerance = max(2, Int(Double(max(workoutMinutes, 1)) * 0.15))
+        guard abs(existing.durationMinutes - workoutMinutes) <= tolerance else { return false }
+
+        if !activities.isEmpty, !existing.healthKitActivityTypes.isEmpty,
+           Set(activities).isDisjoint(with: Set(existing.healthKitActivityTypes)) {
+            return false
+        }
+        return true
+    }
+
     private func heartRateSummary(for workout: HKWorkout) async -> (average: Double?, max: Double?) {
         let heartRateType = HKQuantityType(.heartRate)
         let predicate = HKQuery.predicateForObjects(from: workout)
@@ -3230,6 +3454,45 @@ final class AppStore {
 private extension CardioLog {
     var dedupeKey: String {
         "\(activityType.rawValue)-\(Int(date.timeIntervalSince1970 / 60))-\(durationMinutes)-\(Int((distanceKm ?? 0) * 100))"
+    }
+
+    /// Builds a cardio log from a cardio-type workout session, or nil for strength.
+    init?(cardioSession session: WorkoutSession) {
+        guard session.isRouteSession else { return nil }
+
+        let title = session.workoutTitle.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        let activityText = (session.healthKitActivityTypes.joined(separator: " ") + " " + title).lowercased()
+        let isRun = activityText.contains("run") || activityText.contains("carrera")
+        let isOutdoor = session.location == .outdoor
+        let activity: ActivityType
+        if isRun {
+            activity = isOutdoor ? .outdoorRun : .treadmill
+        } else {
+            activity = isOutdoor ? .walking : .treadmill
+        }
+
+        let speed = session.distanceKm.flatMap { km -> Double? in
+            session.durationMinutes > 0 ? km / (Double(session.durationMinutes) / 60) : nil
+        }
+
+        self.init(
+            activityType: activity,
+            date: session.startedAt ?? session.date,
+            durationMinutes: max(session.durationMinutes, 1),
+            distanceKm: session.distanceKm,
+            averageSpeedKmh: speed,
+            averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
+            averageHeartRate: session.averageHeartRate,
+            maxHeartRate: session.maxHeartRate,
+            estimatedCalories: session.estimatedCalories,
+            steps: session.steps,
+            activeEnergyKcal: session.activeEnergyKcal,
+            heartRateBefore: session.heartRateBefore,
+            heartRateAfter: session.heartRateAfter,
+            rpe: session.sessionRPE,
+            notes: session.notes,
+            routePoints: session.routePoints
+        )
     }
 }
 

@@ -69,7 +69,7 @@ struct ActiveRestPanel: View {
                             .frame(height: PulseTheme.minTapTarget)
                             .background(PulseTheme.grouped)
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
-                            .accessibilityLabel(currentRestSeconds == 0 ? "Reiniciar descanso" : "Saltar descanso")
+                            .accessibilityLabel(localizedString(currentRestSeconds == 0 ? "Reiniciar descanso" : "Saltar descanso"))
                     }
                     .buttonStyle(.plain)
                 }

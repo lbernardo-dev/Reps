@@ -301,14 +301,14 @@ struct ActiveWorkoutView: View {
             VideoPlayerSheet(bookmark: bookmark)
         }
         .sheet(isPresented: $showAddExercise) {
-            ExercisePickerSheet(title: "Añadir ejercicio", exercises: store.exercises, currentExercise: nil) { exercise in
+            ExercisePickerSheet(title: "add_exercise_sheet_title", exercises: store.exercises, currentExercise: nil) { exercise in
                 addExercise(exercise)
                 showAddExercise = false
             }
         }
         .sheet(item: replacementBinding) { replacement in
             ExercisePickerSheet(
-                title: "Sustituir ejercicio",
+                title: localizedString("Sustituir ejercicio"),
                 exercises: substitutionCandidates(for: replacement.index),
                 currentExercise: exerciseDrafts.indices.contains(replacement.index) ? exerciseDrafts[replacement.index].workoutExercise.exercise : nil
             ) { exercise in
@@ -918,9 +918,9 @@ struct ActiveWorkoutView: View {
                 }
 
                 HStack(spacing: 10) {
-                    BatteryMicroMetric(title: "Fatiga", value: "\(Int(currentBattery.fatigueLoad.rounded()))", systemImage: "bolt.slash", color: PulseTheme.destructive)
-                    BatteryMicroMetric(title: "Recarga", value: "+\(Int(currentBattery.recoveryCredit.rounded()))", systemImage: "bed.double", color: PulseTheme.accent)
-                    BatteryMicroMetric(title: "Plan", value: "\(Int(currentBattery.planPressure.rounded()))", systemImage: "calendar", color: PulseTheme.warning)
+                    BatteryMicroMetric(title: localizedString("Fatiga"), value: "\(Int(currentBattery.fatigueLoad.rounded()))", systemImage: "bolt.slash", color: PulseTheme.destructive)
+                    BatteryMicroMetric(title: localizedString("Recarga"), value: "+\(Int(currentBattery.recoveryCredit.rounded()))", systemImage: "bed.double", color: PulseTheme.accent)
+                    BatteryMicroMetric(title: localizedString("plan"), value: "\(Int(currentBattery.planPressure.rounded()))", systemImage: "calendar", color: PulseTheme.warning)
                 }
             }
         }
@@ -1157,14 +1157,14 @@ struct ActiveWorkoutView: View {
                 statusText: routeTracker.statusText,
                 statusBadge: routeTrackerStatusBadge,
                 primaryMetrics: [
-                    .init(title: "Distancia", value: String(format: "%.2f km", displayedRouteMetrics.distanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up"),
-                    .init(title: "Puntos", value: "\(displayedRouteMetrics.pointCount)", icon: "map.fill"),
-                    .init(title: "Ritmo", value: displayedRouteMetrics.paceText, icon: "speedometer")
+                    .init(title: localizedString("distance_label"), value: String(format: "%.2f km", displayedRouteMetrics.distanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up"),
+                    .init(title: localizedString("Puntos"), value: "\(displayedRouteMetrics.pointCount)", icon: "map.fill"),
+                    .init(title: localizedString("pace_label"), value: displayedRouteMetrics.paceText, icon: "speedometer")
                 ],
                 secondaryMetrics: [
-                    .init(title: "Velocidad", value: displayedRouteMetrics.speedText, icon: "gauge.with.needle"),
-                    .init(title: "Pasos", value: displayedRouteMetrics.stepsText, icon: "shoeprints.fill"),
-                    .init(title: "Pulso", value: displayedRouteMetrics.heartRateText, icon: "heart.fill")
+                    .init(title: localizedString("Velocidad"), value: displayedRouteMetrics.speedText, icon: "gauge.with.needle"),
+                    .init(title: localizedString("Pasos"), value: displayedRouteMetrics.stepsText, icon: "shoeprints.fill"),
+                    .init(title: localizedString("Pulso"), value: displayedRouteMetrics.heartRateText, icon: "heart.fill")
                 ]
             )
         }
@@ -1187,15 +1187,15 @@ struct ActiveWorkoutView: View {
     }
 
     private var routeTrackerStatusBadge: String {
-        if routeTracker.isTracking { return "GPS activo" }
-        if isSessionStarted && isPaused { return "Pausado" }
-        if isSessionStarted { return "GPS listo" }
-        return "Listo"
+        if routeTracker.isTracking { return localizedString("GPS activo") }
+        if isSessionStarted && isPaused { return localizedString("Pausado") }
+        if isSessionStarted { return localizedString("GPS listo") }
+        return localizedString("Listo")
     }
 
     private var cardioControlStatus: String {
         if isTreadmillCandidate {
-            return isPaused ? "Pausado" : "Cinta"
+            return isPaused ? localizedString("Pausado") : localizedString("Cinta")
         }
         return routeTrackerStatusBadge
     }
@@ -1242,11 +1242,14 @@ struct ActiveWorkoutView: View {
                             .foregroundStyle(PulseTheme.tertiaryText)
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
-                        Text(RepsText.exerciseName(selectedDraft?.workoutExercise.exercise.name ?? "Ejercicio", language: store.userProfile.preferredLanguage))
+                        Text(RepsText.exerciseName(selectedDraft?.workoutExercise.exercise.name ?? localizedString("Ejercicio"), language: store.userProfile.preferredLanguage))
                             .font(.title3.weight(.bold))
                             .lineLimit(3)
                             .minimumScaleFactor(0.78)
-                        Text("Objetivo: \(selectedDraft?.workoutExercise.targetSets ?? 0) series · \(selectedDraft?.workoutExercise.repRange ?? "-") · previo \(selectedDraft?.workoutExercise.previous ?? "-")")
+                        Text(localizedFormat("workout_target_format",
+                            selectedDraft?.workoutExercise.targetSets ?? 0,
+                            selectedDraft?.workoutExercise.repRange ?? "-",
+                            selectedDraft?.workoutExercise.previous ?? "-"))
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -1422,7 +1425,7 @@ struct ActiveWorkoutView: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
                 SessionControlHeader(
-                    title: "Central de sesión",
+                    title: "session_control_center",
                     systemImage: "applewatch.radiowaves.left.and.right",
                     statusTitle: "Sync Watch",
                     statusImage: "arrow.triangle.2.circlepath",
@@ -1430,9 +1433,9 @@ struct ActiveWorkoutView: View {
                 )
 
                 SessionMetricStrip(metrics: [
-                    .init(title: "Restante", value: timeString(estimatedRemainingSeconds), icon: "hourglass"),
-                    .init(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill"),
-                    .init(title: "Kcal", value: store.todayHealthMetric.map { "\(Int($0.activeEnergyKcal))" } ?? "--", icon: "flame.fill")
+                    .init(title: "remaining_time", value: timeString(estimatedRemainingSeconds), icon: "hourglass"),
+                    .init(title: "water_metric", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill"),
+                    .init(title: "active_kcal", value: store.todayHealthMetric.map { "\(Int($0.activeEnergyKcal))" } ?? "--", icon: "flame.fill")
                 ])
 
                 HStack(spacing: 10) {
@@ -1626,11 +1629,11 @@ struct ActiveWorkoutView: View {
         PulseCard {
             SessionFeedbackPanel(
                 isExpanded: $showSessionFeedback,
-                title: "Cierre de sesión",
+                title: "session_close",
                 systemImage: "waveform.path.ecg",
-                notesPrompt: "Notas globales, molestias o contexto",
-                audioIdleTitle: "Grabar nota de audio",
-                audioRecordingTitle: "Guardar nota de audio",
+                notesPrompt: "notes_prompt",
+                audioIdleTitle: "record_audio_note",
+                audioRecordingTitle: "save_audio_note",
                 sessionRPE: $sessionRPE,
                 energyBefore: $energyBefore,
                 energyAfter: $energyAfter,
@@ -1671,7 +1674,7 @@ struct ActiveWorkoutView: View {
 
     private var nextExerciseTitle: String {
         guard exerciseDrafts.indices.contains(selectedExerciseIndex + 1) else {
-            return exerciseDrafts.isEmpty ? "Añadir ejercicio" : "Completar entreno"
+            return exerciseDrafts.isEmpty ? localizedString("Añadir ejercicio") : localizedString("Completar entreno")
         }
 
         return RepsText.exerciseName(
@@ -2694,7 +2697,7 @@ private struct LiveRouteMapPanel: View {
                         Image(systemName: "location.magnifyingglass")
                             .font(.title2.weight(.bold))
                             .foregroundStyle(PulseTheme.primary)
-                        Text(isSessionStarted ? "La ruta se dibujará aquí en cuanto entren puntos GPS." : "Al iniciar, la ruta se irá dibujando aquí.")
+                        Text(localizedString(isSessionStarted ? "route_drawing_started" : "route_drawing_pending"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .multilineTextAlignment(.center)
@@ -3332,15 +3335,15 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
 
     var statusText: String {
         if isTracking {
-            return "Registrando ruta en vivo"
+            return localizedString("Registrando ruta en vivo")
         }
         switch authorizationStatus {
         case .denied, .restricted:
-            return "Permiso de ubicación no concedido"
+            return localizedString("Permiso de ubicación no concedido")
         case .notDetermined:
-            return "Listo para pedir permiso"
+            return localizedString("Listo para pedir permiso")
         default:
-            return routePoints.isEmpty ? "Sin ruta iniciada" : "Ruta pausada"
+            return routePoints.isEmpty ? localizedString("Sin ruta iniciada") : localizedString("Ruta pausada")
         }
     }
 

@@ -119,7 +119,7 @@ struct MusicIntegrationSheet: View {
             
             // Search Input
             VStack(alignment: .leading, spacing: 8) {
-                Text(isAppleMusicAuthorized ? "Buscar en tu música o catálogo" : "Buscar playlist...")
+                Text(localizedString(isAppleMusicAuthorized ? "search_your_music_or_catalog" : "search_playlist"))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(PulseTheme.secondaryText)
                 
@@ -185,9 +185,9 @@ struct MusicIntegrationSheet: View {
                     } else if searchText.isEmpty, isLoadingAppleMusicLibrary {
                         RepsLoadingView(
                             messages: [
-                                "Cargando tu biblioteca...",
-                                "Ordenando playlists...",
-                                "Preparando música de entrenamiento..."
+                                localizedString("loading_library"),
+                                localizedString("sorting_playlists"),
+                                localizedString("preparing_workout_music")
                             ],
                             progress: nil,
                             layout: .compact
@@ -206,9 +206,9 @@ struct MusicIntegrationSheet: View {
                     if searchedCatalogPlaylists.isEmpty, isSearchingCatalog {
                         RepsLoadingView(
                             messages: [
-                                "Buscando en Apple Music...",
-                                "Filtrando playlists útiles...",
-                                "Preparando resultados..."
+                                localizedString("searching_apple_music"),
+                                localizedString("filtering_playlists"),
+                                localizedString("preparing_results")
                             ],
                             progress: nil,
                             layout: .compact

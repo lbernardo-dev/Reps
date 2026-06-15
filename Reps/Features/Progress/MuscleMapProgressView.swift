@@ -270,10 +270,6 @@ private struct MuscleLoadCard: View {
     var isSelected = false
     var showsAnalysisHint = false
 
-    private var isSpanish: Bool {
-        Locale.current.language.languageCode?.identifier.hasPrefix("es") ?? true
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 14) {
@@ -396,13 +392,17 @@ private struct MuscleSegmentDetailSheet: View {
                         MuscleWeeklyVolumeCard(load: load, segment: segment, gender: gender)
                     }
 
-                    SectionHeader(title: "Análisis muscular")
+                    SectionHeader(title: "muscle_analysis")
 
                     PulseCard {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("frequency_and_volume")
                                 .font(.title3.weight(.bold))
-                            Text("Has entrenado \(segment.title.lowercased()) \(activity.trainingDays) \(activity.trainingDays == 1 ? "vez" : "veces") (\(activity.directDays) directas) en los últimos 7 días. Se recomienda una frecuencia de al menos 2.")
+                            Text(localizedFormat("muscle_training_frequency_format",
+                                segment.title.lowercased(),
+                                activity.trainingDays,
+                                localizedString(activity.trainingDays == 1 ? "time" : "times_plural"),
+                                activity.directDays))
                                 .font(.body)
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -436,7 +436,7 @@ private struct MuscleSegmentDetailSheet: View {
                     }
 
                     if !activity.indirectExercises.isEmpty {
-                        SectionHeader(title: "Ejercicios indirectos")
+                        SectionHeader(title: "indirect_exercises")
                         VStack(spacing: 10) {
                             ForEach(activity.indirectExercises) { item in
                                 MuscleExerciseContributionRow(item: item, gender: gender, isIndirect: true, catalog: catalog)
@@ -445,7 +445,7 @@ private struct MuscleSegmentDetailSheet: View {
                     }
 
                     if !activity.directExercises.isEmpty {
-                        SectionHeader(title: "Ejercicios directos")
+                        SectionHeader(title: "direct_exercises")
                         VStack(spacing: 10) {
                             ForEach(activity.directExercises) { item in
                                 MuscleExerciseContributionRow(item: item, gender: gender, isIndirect: false, catalog: catalog)
@@ -625,13 +625,13 @@ private struct MuscleActivitySummary {
 
     private func label(for offset: Int) -> String {
         switch offset {
-        case 0: "6 días"
-        case 1: "5 días"
-        case 2: "4 días"
-        case 3: "3 días"
-        case 4: "2 días"
-        case 5: "Ayer"
-        default: "Hoy"
+        case 0: localizedFormat("days_plural_count_format", 6)
+        case 1: localizedFormat("days_plural_count_format", 5)
+        case 2: localizedFormat("days_plural_count_format", 4)
+        case 3: localizedFormat("days_plural_count_format", 3)
+        case 4: localizedFormat("days_plural_count_format", 2)
+        case 5: localizedString("yesterday_2")
+        default: localizedString("today")
         }
     }
 
@@ -667,15 +667,15 @@ private struct MuscleExerciseContribution: Identifiable {
 
     var effectiveSetsText: String {
         if effectiveSets.rounded() == effectiveSets {
-            return "\(Int(effectiveSets)) series"
+            return localizedFormat("sets_count_format", Int(effectiveSets))
         }
-        return String(format: "%.1f series", effectiveSets)
+        return localizedFormat("sets_decimal_count_format", effectiveSets)
     }
 
     var relativeDate: String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
-        formatter.locale = Locale(identifier: "es_ES")
+        formatter.locale = RepsLocalization.locale
         return formatter.localizedString(for: date, relativeTo: .now)
     }
 }
@@ -889,22 +889,22 @@ struct MuscleLoad: Identifiable {
     var zoneTitle: String {
         switch totalSets {
         case 0..<4:
-            "Mantenimiento"
+            localizedString("maintenance")
         case 4..<10:
-            "Zona de crecimiento"
+            localizedString("growth_zone")
         default:
-            "Foco"
+            localizedString("focus_zone")
         }
     }
 
     var compactZoneTitle: String {
         switch totalSets {
         case 0..<4:
-            "Mant."
+            localizedString("maint_short")
         case 4..<10:
-            "Crecimiento"
+            localizedString("growth_label")
         default:
-            "Foco"
+            localizedString("focus_zone")
         }
     }
 
@@ -922,22 +922,22 @@ struct MuscleLoad: Identifiable {
     var rangeText: String {
         switch totalSets {
         case 0..<4:
-            "Por debajo de la zona de crecimiento"
+            localizedString("below_growth_zone")
         case 4..<10:
-            "Volumen productivo esta semana"
+            localizedString("productive_volume")
         case 10...12:
-            "Parte alta del objetivo semanal"
+            localizedString("top_of_weekly_target")
         default:
-            "Volumen alto: vigila recuperación"
+            localizedString("high_volume_monitor_recovery")
         }
     }
 
     var setsToGrowthZoneText: String {
         let missing = max(0, 4 - displaySets)
         if missing == 0 {
-            return "en zona de crecimiento"
+            return localizedString("in_growth_zone")
         }
-        return missing == 1 ? "1 serie hasta zona" : "\(missing) series hasta zona"
+        return localizedFormat("n_sets_to_growth_zone_format", missing)
     }
 }
 
@@ -949,15 +949,15 @@ private enum MuscleMapMode: String, CaseIterable, Identifiable {
 
     var title: LocalizedStringKey {
         switch self {
-        case .actual: "Últimos 7 días"
-        case .predict: "Predecir"
+        case .actual: "last_7_days"
+        case .predict: "predict"
         }
     }
 
     var subtitle: LocalizedStringKey {
         switch self {
-        case .actual: "Número de series por músculo en los últimos 7 días"
-        case .predict: "Tu progreso después del próximo entrenamiento"
+        case .actual: "muscle_map_actual_subtitle"
+        case .predict: "muscle_map_predict_subtitle"
         }
     }
 }
@@ -973,11 +973,11 @@ private enum MuscleRegionFilter: String, CaseIterable, Identifiable {
 
     var title: LocalizedStringKey {
         switch self {
-        case .all: "Todos"
-        case .upper: "Superior"
-        case .arms: "Brazos"
-        case .back: "Espalda"
-        case .legs: "Piernas"
+        case .all: "all_muscles"
+        case .upper: "upper_body"
+        case .arms: "arms_label"
+        case .back: "back_label"
+        case .legs: "legs_label"
         }
     }
 
@@ -1018,21 +1018,21 @@ enum MuscleSegment: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .chest: "Pecho"
-        case .deltoids: "Deltoides"
-        case .traps: "Trapecios"
-        case .upperBack: "Espalda alta"
-        case .lowerBack: "Lumbar"
-        case .biceps: "Bíceps"
-        case .triceps: "Tríceps"
-        case .forearms: "Antebrazos"
-        case .abs: "Abdominales"
-        case .obliques: "Oblicuos"
-        case .quads: "Cuádriceps"
-        case .hamstrings: "Isquios"
-        case .glutes: "Glúteos"
-        case .calves: "Gemelos"
-        case .adductors: "Aductores"
+        case .chest: localizedString("chest_label")
+        case .deltoids: localizedString("deltoids_label")
+        case .traps: localizedString("traps_label")
+        case .upperBack: localizedString("upper_back_label")
+        case .lowerBack: localizedString("lower_back_label")
+        case .biceps: localizedString("biceps_label")
+        case .triceps: localizedString("triceps_label")
+        case .forearms: localizedString("forearms_label")
+        case .abs: localizedString("abs_label")
+        case .obliques: localizedString("obliques_label")
+        case .quads: localizedString("quads_label")
+        case .hamstrings: localizedString("hamstrings_label")
+        case .glutes: localizedString("glutes_label")
+        case .calves: localizedString("calves_label")
+        case .adductors: localizedString("adductors_label")
         }
     }
 
@@ -1090,14 +1090,29 @@ enum MuscleLoadCalculator {
         var predictedSets: [MuscleSegment: Int] = [:]
         var volume: [MuscleSegment: Double] = [:]
 
-        sessions
-            .filter { $0.date >= startDate }
+        let recentSessions = sessions.filter { $0.date >= startDate }
+
+        recentSessions
             .flatMap(FitnessMetrics.completedExerciseLogs(in:))
             .forEach { log in
                 let setCount = Double(log.sets.count)
                 let totalVolume = log.sets.reduce(0) { $0 + ($1.weightKg * Double($1.reps)) }
                 apply(exercise: log.exercise, sets: setCount, volume: totalVolume, into: &actualSets, volumeBuckets: &volume)
             }
+
+        // Cardio (walking/running, free or imported) loads the legs. Map it to a
+        // set-equivalent by duration so the muscle map reflects these workouts too.
+        for session in recentSessions where session.isRouteSession {
+            let setEquivalent = min(max(Double(session.durationMinutes) / 10, 0.5), 8)
+            let work = setEquivalent * (session.estimatedCalories.map { min($0 / 250, 2) } ?? 1)
+            let legLoad: [(MuscleSegment, Double)] = [
+                (.quads, 1.0), (.hamstrings, 0.8), (.glutes, 0.9), (.calves, 0.7)
+            ]
+            for (segment, weight) in legLoad {
+                actualSets[segment, default: 0] += work * weight
+                volume[segment, default: 0] += work * weight * 40
+            }
+        }
 
         if includePrediction {
             for item in plannedWorkout.exercises {

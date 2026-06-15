@@ -3,10 +3,6 @@ import SwiftUI
 struct FreeWorkoutStartView: View {
     @Environment(AppStore.self) private var store
 
-    private var isSpanish: Bool {
-        store.userProfile.preferredLanguage.hasPrefix("es")
-    }
-
     var body: some View {
         List {
             Section {
@@ -101,8 +97,8 @@ private struct FreeWorkoutStartRow: View {
 extension WorkoutDay {
     static var freeOutdoorWalk: WorkoutDay {
         WorkoutDay(
-            title: "Caminata exterior",
-            subtitle: "GPS, ruta y sensores",
+            title: localizedString("Caminata exterior"),
+            subtitle: localizedString("GPS, ruta y sensores"),
             durationMinutes: 30,
             exercises: [],
             sessionType: .cardioWalk,
@@ -112,8 +108,8 @@ extension WorkoutDay {
 
     static var freeTreadmillWalk: WorkoutDay {
         WorkoutDay(
-            title: "Caminata en cinta",
-            subtitle: "Sin GPS, con sensores",
+            title: localizedString("Caminata en cinta"),
+            subtitle: localizedString("Sin GPS, con sensores"),
             durationMinutes: 30,
             exercises: [],
             sessionType: .cardioWalk,
@@ -123,8 +119,8 @@ extension WorkoutDay {
 
     static var freeOutdoorRun: WorkoutDay {
         WorkoutDay(
-            title: "Carrera exterior",
-            subtitle: "Ritmo, ruta y sensores",
+            title: localizedString("Carrera exterior"),
+            subtitle: localizedString("Ritmo, ruta y sensores"),
             durationMinutes: 30,
             exercises: [],
             sessionType: .cardioRun,
@@ -134,8 +130,8 @@ extension WorkoutDay {
 
     static var freeTreadmillRun: WorkoutDay {
         WorkoutDay(
-            title: "Carrera en cinta",
-            subtitle: "Sin GPS, con sensores",
+            title: localizedString("Carrera en cinta"),
+            subtitle: localizedString("Sin GPS, con sensores"),
             durationMinutes: 30,
             exercises: [],
             sessionType: .cardioRun,

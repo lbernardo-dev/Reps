@@ -133,9 +133,6 @@ struct TodayView: View {
         )
     }
 
-    private var isSpanish: Bool {
-        store.userProfile.preferredLanguage.hasPrefix("es")
-    }
 
     private var hasActivePlan: Bool {
         !store.activePlan.days.isEmpty
@@ -350,7 +347,7 @@ struct TodayView: View {
 
             ActivityMatrixCard(
                 title: "last_30_days",
-                progressText: isSpanish ? "\(recentSessions.count) sesiones" : "\(recentSessions.count) sessions",
+                progressText: localizedFormat("sessions_count_format", recentSessions.count),
                 points: recentActivityPoints,
                 color: PulseTheme.primary
             )
@@ -597,8 +594,8 @@ struct TodayView: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         HStack(spacing: 8) {
-                            MissionSignal(title: "week", value: weekTargetText, color: PulseTheme.primary)
-                            MissionSignal(title: "battery", value: "\(Int(batteryStatus.level))%", color: batteryColor)
+                            MissionSignal(title: localizedString("week"), value: weekTargetText, color: PulseTheme.primary)
+                            MissionSignal(title: localizedString("battery"), value: "\(Int(batteryStatus.level))%", color: batteryColor)
                         }
                     }
                 }
@@ -606,7 +603,7 @@ struct TodayView: View {
                 Divider()
 
                 ForEach(Array(nextBestSteps.prefix(3).enumerated()), id: \.element.id) { index, step in
-                    TodayActivationStepRow(step: step, isSpanish: isSpanish) {
+                    TodayActivationStepRow(step: step) {
                         perform(step.action)
                     }
                     if index < min(nextBestSteps.count, 3) - 1 {
@@ -647,7 +644,7 @@ struct TodayView: View {
                 .frame(width: 54, height: 54)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(isPaused ? "PAUSED" : "IN PROGRESS")
+                    Text(localizedString(isPaused ? "PAUSED" : "IN PROGRESS"))
                         .font(.system(size: 10, weight: .black, design: .rounded))
                         .tracking(1.8)
                         .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.accent)
@@ -1037,11 +1034,11 @@ struct TodayView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "calendar.badge.clock")
                                 .foregroundStyle(PulseTheme.primary)
-                            Text(isSpanish ? "Objetivo: \(eventName)" : "Target: \(eventName)")
+                            Text(localizedFormat("target_event_format", eventName))
                                 .font(.subheadline.weight(.semibold))
                             Spacer()
                             if daysDiff > 0 {
-                                Text(isSpanish ? "Faltan \(daysDiff) días (\(weeks) sem)" : "\(daysDiff) days left (\(weeks) wk)")
+                                Text(localizedFormat("days_left_weeks_format", daysDiff, weeks))
                                     .font(.caption.bold())
                                     .foregroundStyle(PulseTheme.primaryBright)
                                     .padding(.horizontal, 8)
@@ -1155,11 +1152,9 @@ struct TodayView: View {
                 NavigationLink {
                     ExerciseLibraryView()
                 } label: {
-                    let exercisesCount = store.exercises.count
-                    let sub = isSpanish ? "\(exercisesCount) ejercicios" : "\(exercisesCount) exercises"
                     ShortcutTile(
                         title: "library",
-                        subtitle: LocalizedStringKey(sub),
+                        subtitle: LocalizedStringKey(localizedFormat("exercises_count_format", store.exercises.count)),
                         systemImage: "photo.stack",
                         color: PulseTheme.primary
                     )
@@ -1197,11 +1192,9 @@ struct TodayView: View {
                 NavigationLink {
                     WorkoutLibraryView()
                 } label: {
-                    let templatesCount = store.workoutTemplates.count
-                    let sub = isSpanish ? "\(templatesCount) plantillas" : "\(templatesCount) templates"
                     ShortcutTile(
                         title: "routines",
-                        subtitle: LocalizedStringKey(sub),
+                        subtitle: LocalizedStringKey(localizedFormat("templates_count_format", store.workoutTemplates.count)),
                         systemImage: "list.clipboard",
                         color: PulseTheme.primary
                     )
@@ -1252,18 +1245,10 @@ struct TodayView: View {
             return localizedString("free_2")
         }
 
-        if isSpanish {
-            return switch store.activePlan.location {
-            case .gym: "gimnasio"
-            case .home: "casa"
-            case .both: "mixto"
-            }
-        } else {
-            return switch store.activePlan.location {
-            case .gym: "gym"
-            case .home: "home"
-            case .both: "mixed"
-            }
+        return switch store.activePlan.location {
+        case .gym: localizedString("gym")
+        case .home: localizedString("home")
+        case .both: localizedString("mixed")
         }
     }
 
@@ -1441,7 +1426,6 @@ private struct WorkoutExerciseAvatarStrip: View {
 
 private struct TodayActivationStepRow: View {
     let step: RetentionEngine.ActivationStep
-    let isSpanish: Bool
     let onAction: () -> Void
 
     var body: some View {
@@ -2159,9 +2143,9 @@ private struct VisualExerciseCard: View {
 
     private var difficultyLabel: String {
         switch exercise.difficulty {
-        case .low: return language.hasPrefix("es") ? "Fácil" : "Easy"
-        case .medium: return language.hasPrefix("es") ? "Medio" : "Medium"
-        case .high: return language.hasPrefix("es") ? "Difícil" : "Hard"
+        case .low: return localizedString("Fácil")
+        case .medium: return localizedString("Medio")
+        case .high: return localizedString("Difícil")
         }
     }
 
@@ -2175,9 +2159,9 @@ private struct VisualExerciseCard: View {
 
     private var environmentLabel: String {
         switch exercise.environment {
-        case .home: return language.hasPrefix("es") ? "Casa" : "Home"
-        case .gym: return language.hasPrefix("es") ? "Gym" : "Gym"
-        case .both: return language.hasPrefix("es") ? "Mixto" : "Mixed"
+        case .home: return localizedString("home")
+        case .gym: return localizedString("gym")
+        case .both: return localizedString("mixed")
         }
     }
 }

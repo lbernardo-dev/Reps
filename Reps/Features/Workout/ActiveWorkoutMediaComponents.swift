@@ -100,7 +100,7 @@ struct MusicTransportControls: View {
                     .shadow(color: tint.opacity(0.35), radius: 6, x: 0, y: 3)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(isPlaying ? "Pausar" : "Reproducir")
+            .accessibilityLabel(localizedString(isPlaying ? "pause_media" : "play_media"))
 
             Button(action: onForward) {
                 Image(systemName: "forward.fill")

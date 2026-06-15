@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import HealthKit
 
@@ -16,6 +17,25 @@ final class HealthKitService: ObservableObject {
         }
     }
 
+    /// Write types added after the first release (HR / steps / route). If any is
+    /// still undetermined, users who connected Health earlier need to re-grant so
+    /// their workouts sync with a real HR curve and GPS route.
+    private var workoutWriteUpgradeTypes: [HKSampleType] {
+        [
+            HKQuantityType(.heartRate),
+            HKQuantityType(.stepCount),
+            HKSeriesType.workoutRoute(),
+            HKWorkoutType.workoutType()
+        ]
+    }
+
+    var needsWorkoutWriteUpgrade: Bool {
+        guard isAvailable else { return false }
+        return workoutWriteUpgradeTypes.contains {
+            healthStore.authorizationStatus(for: $0) == .notDetermined
+        }
+    }
+
     func requestAuthorization() async throws {
         guard isAvailable else { throw HealthKitError.unavailable }
 
@@ -31,8 +51,18 @@ final class HealthKitService: ObservableObject {
             HKQuantityType(.dietaryWater),
             HKQuantityType(.activeEnergyBurned),
             HKQuantityType(.distanceWalkingRunning),
+            HKQuantityType(.heartRate),
+            HKQuantityType(.stepCount),
+            HKSeriesType.workoutRoute(),
             HKWorkoutType.workoutType()
         ]
+    }
+
+    /// HealthKit hides read status, but sharing status is readable. We only write
+    /// a sample type the user actually authorized, so one denied type never makes
+    /// the whole workout save fail.
+    private func canShare(_ type: HKSampleType) -> Bool {
+        healthStore.authorizationStatus(for: type) == .sharingAuthorized
     }
 
     private var readableTypes: Set<HKObjectType> {
@@ -310,8 +340,16 @@ final class HealthKitService: ObservableObject {
         )
     }
 
-    func saveWorkout(_ session: WorkoutSession) async throws {
+    /// Writes a workout logged inside Reps back to HealthKit so it appears in
+    /// Apple Health / Fitness like any standard workout. Returns the created
+    /// workout's UUID string so the caller can tag the session and prevent the
+    /// background observer from re-importing it as a duplicate.
+    @discardableResult
+    func saveWorkout(_ session: WorkoutSession) async throws -> String? {
         guard isAvailable else { throw HealthKitError.unavailable }
+        // Respect the user's choice: if they didn't allow Reps to write workouts,
+        // do nothing rather than throwing or partially writing.
+        guard canShare(HKWorkoutType.workoutType()) else { return nil }
 
         let start = session.startedAt ?? session.date
         let end = session.endedAt ?? Calendar.current.date(byAdding: .minute, value: session.durationMinutes, to: start) ?? start
@@ -326,28 +364,102 @@ final class HealthKitService: ObservableObject {
         ])
         try await builder.beginCollection(at: start)
 
-        if let calories = session.estimatedCalories {
-            let sample = HKQuantitySample(
-                type: HKQuantityType(.activeEnergyBurned),
+        var samples: [HKSample] = []
+
+        let energyType = HKQuantityType(.activeEnergyBurned)
+        if canShare(energyType), let calories = session.activeEnergyKcal ?? session.estimatedCalories, calories > 0 {
+            samples.append(HKQuantitySample(
+                type: energyType,
                 quantity: HKQuantity(unit: .kilocalorie(), doubleValue: calories),
                 start: start,
                 end: end
-            )
-            try await addSamples([sample], to: builder)
+            ))
         }
 
-        if let distanceKm = session.distanceKm, distanceKm > 0 {
-            let sample = HKQuantitySample(
-                type: HKQuantityType(.distanceWalkingRunning),
+        let distanceType = HKQuantityType(.distanceWalkingRunning)
+        if canShare(distanceType), let distanceKm = session.distanceKm, distanceKm > 0 {
+            samples.append(HKQuantitySample(
+                type: distanceType,
                 quantity: HKQuantity(unit: .meterUnit(with: .kilo), doubleValue: distanceKm),
                 start: start,
                 end: end
-            )
-            try await addSamples([sample], to: builder)
+            ))
+        }
+
+        let stepsType = HKQuantityType(.stepCount)
+        if canShare(stepsType), let steps = session.steps, steps > 0 {
+            samples.append(HKQuantitySample(
+                type: stepsType,
+                quantity: HKQuantity(unit: .count(), doubleValue: steps),
+                start: start,
+                end: end
+            ))
+        }
+
+        let heartRateType = HKQuantityType(.heartRate)
+        let bpm = HKUnit.count().unitDivided(by: .minute())
+        if canShare(heartRateType) {
+            // Prefer the real per-sample HR series recorded during the window so
+            // Fitness shows an actual curve; only synthesize summary points when no
+            // real samples exist (e.g. no watch was worn).
+            let series = (try? await heartRateSeries(from: start, to: end)) ?? []
+            if !series.isEmpty {
+                samples.append(contentsOf: series.map { sample in
+                    HKQuantitySample(
+                        type: heartRateType,
+                        quantity: HKQuantity(unit: bpm, doubleValue: sample.bpm),
+                        start: sample.start,
+                        end: sample.end
+                    )
+                })
+            } else if let averageHeartRate = session.averageHeartRate, averageHeartRate > 0 {
+                let mid = start.addingTimeInterval(end.timeIntervalSince(start) / 2)
+                samples.append(HKQuantitySample(
+                    type: heartRateType,
+                    quantity: HKQuantity(unit: bpm, doubleValue: averageHeartRate),
+                    start: mid,
+                    end: mid
+                ))
+                if let maxHeartRate = session.maxHeartRate, maxHeartRate > 0, maxHeartRate != averageHeartRate {
+                    let peak = start.addingTimeInterval(end.timeIntervalSince(start) * 0.66)
+                    samples.append(HKQuantitySample(
+                        type: heartRateType,
+                        quantity: HKQuantity(unit: bpm, doubleValue: maxHeartRate),
+                        start: peak,
+                        end: peak
+                    ))
+                }
+            }
+        }
+
+        if !samples.isEmpty {
+            try await addSamples(samples, to: builder)
         }
 
         try await builder.endCollection(at: end)
-        _ = try await builder.finishWorkout()
+        let workout = try await builder.finishWorkout()
+
+        // Attach the recorded GPS route (outdoor sessions) to the saved workout.
+        if let workout, session.routePoints.count >= 2, canShare(HKSeriesType.workoutRoute()) {
+            let locations = session.routePoints.map { point in
+                CLLocation(
+                    coordinate: CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude),
+                    altitude: point.altitude ?? 0,
+                    horizontalAccuracy: point.horizontalAccuracy ?? 5,
+                    verticalAccuracy: point.altitude == nil ? -1 : 5,
+                    timestamp: point.timestamp
+                )
+            }
+            let routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: .local())
+            do {
+                try await routeBuilder.insertRouteData(locations)
+                try await routeBuilder.finishRoute(with: workout, metadata: nil)
+            } catch {
+                // Route attachment is best-effort; the workout itself is saved.
+            }
+        }
+
+        return workout?.uuid.uuidString
     }
 
     private func latestQuantity(for type: HKQuantityType, unit: HKUnit) async throws -> Double? {
@@ -527,6 +639,22 @@ final class HealthKitService: ObservableObject {
             try? await healthStore.enableBackgroundDelivery(for: type, frequency: .hourly)
         }
         try? await healthStore.enableBackgroundDelivery(for: HKWorkoutType.workoutType(), frequency: .immediate)
+    }
+
+    /// Reads the individual heart-rate samples recorded in a time window (e.g. by
+    /// the Apple Watch passively), so a written-back workout carries a real HR
+    /// curve instead of two synthetic points.
+    private func heartRateSeries(from startDate: Date, to endDate: Date) async throws -> [(bpm: Double, start: Date, end: Date)] {
+        let heartRateType = HKQuantityType(.heartRate)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.quantitySample(type: heartRateType, predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .forward)],
+            limit: 2_000
+        )
+        let unit = HKUnit.count().unitDivided(by: .minute())
+        let samples = try await descriptor.result(for: healthStore)
+        return samples.map { (bpm: $0.quantity.doubleValue(for: unit), start: $0.startDate, end: $0.endDate) }
     }
 
     private func heartRateSummary(for workout: HKWorkout) async throws -> (average: Double?, max: Double?) {
