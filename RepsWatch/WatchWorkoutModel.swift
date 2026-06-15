@@ -320,42 +320,63 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
     }
 
     func startStandaloneRouteWorkout(activity: WatchRouteWorkoutActivity) {
-        guard session == nil else { return }
+        guard mode == .none, session == nil else { return }
+        // Flip the UI synchronously so the screen responds instantly; the
+        // HealthKit session is attached best-effort afterwards (it is not
+        // available on the watch Simulator and may be denied on device).
+        let startDate = Date()
+        startedAt = startDate
+        endedAt = nil
+        state = .running
+        isLocalRouteWorkout = true
+        isStandaloneRouteWorkout = true
+        standaloneActivity = activity
+        standaloneWorkoutID = UUID()
+        accumulatedPausedSeconds = 0
+        pauseStartedAt = nil
+        resetRouteMetrics()
+        mode = .standaloneRoute
+        updateStandaloneSnapshotIfNeeded()
+        startPedometer()
+        startLocation()
+        startTimer()
+        WatchTheme.haptic(.start)
+        beginHealthKitSession(
+            activity: activity == .running ? .running : .walking,
+            location: .outdoor,
+            startDate: startDate,
+            mirror: true
+        )
+    }
+
+    /// Best-effort HealthKit live session. The local workout UI never depends on
+    /// this succeeding, so a Simulator (no workout sessions) or a denied
+    /// authorization just means HR / energy won't stream.
+    private func beginHealthKitSession(
+        activity: HKWorkoutActivityType,
+        location: HKWorkoutSessionLocationType,
+        startDate: Date,
+        mirror: Bool = false
+    ) {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
         Task {
             do {
                 try await requestHealthAuthorization()
                 let configuration = HKWorkoutConfiguration()
-                configuration.activityType = activity == .running ? .running : .walking
-                configuration.locationType = .outdoor
-
+                configuration.activityType = activity
+                configuration.locationType = location
                 let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
                 let workoutBuilder = workoutSession.associatedWorkoutBuilder()
                 workoutBuilder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
                 workoutSession.delegate = self
                 workoutBuilder.delegate = self
-
-                let startDate = Date()
                 session = workoutSession
                 builder = workoutBuilder
-                startedAt = startDate
-                endedAt = nil
-                state = .running
-                isLocalRouteWorkout = true
-                isStandaloneRouteWorkout = true
-                standaloneActivity = activity
-                standaloneWorkoutID = UUID()
-                accumulatedPausedSeconds = 0
-                pauseStartedAt = nil
-                resetRouteMetrics()
-                mode = .standaloneRoute
-                updateStandaloneSnapshotIfNeeded()
-
                 workoutSession.startActivity(with: startDate)
                 try await workoutBuilder.beginCollection(at: startDate)
-                try? await workoutSession.startMirroringToCompanionDevice()
-                startPedometer()
-                startLocation()
-                startTimer()
+                if mirror {
+                    try? await workoutSession.startMirroringToCompanionDevice()
+                }
             } catch {
                 message = error.localizedDescription
             }
@@ -1237,45 +1258,24 @@ extension WatchWorkoutModel: WCSessionDelegate {
     // MARK: - Standalone strength
 
     func startStrengthWorkout(title: String = "Fuerza") {
-        guard session == nil else { return }
+        guard mode == .none, session == nil else { return }
         standaloneTitle = title
-        Task {
-            do {
-                try await requestHealthAuthorization()
-                let configuration = HKWorkoutConfiguration()
-                configuration.activityType = .traditionalStrengthTraining
-                configuration.locationType = .indoor
-                let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
-                let workoutBuilder = workoutSession.associatedWorkoutBuilder()
-                workoutBuilder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
-                workoutSession.delegate = self
-                workoutBuilder.delegate = self
-
-                let startDate = Date()
-                session = workoutSession
-                builder = workoutBuilder
-                startedAt = startDate
-                endedAt = nil
-                state = .running
-                isLocalRouteWorkout = false
-                isStandaloneRouteWorkout = false
-                standaloneWorkoutID = UUID()
-                accumulatedPausedSeconds = 0
-                pauseStartedAt = nil
-                resetRouteMetrics()
-                mode = .standaloneStrength
-                currentExerciseIndex = 0
-
-                workoutSession.startActivity(with: startDate)
-                try await workoutBuilder.beginCollection(at: startDate)
-                startTimer()
-                updateStrengthSnapshotIfNeeded()
-                WatchTheme.haptic(.start)
-            } catch {
-                message = error.localizedDescription
-                mode = .none
-            }
-        }
+        let startDate = Date()
+        startedAt = startDate
+        endedAt = nil
+        state = .running
+        isLocalRouteWorkout = false
+        isStandaloneRouteWorkout = false
+        standaloneWorkoutID = UUID()
+        accumulatedPausedSeconds = 0
+        pauseStartedAt = nil
+        resetRouteMetrics()
+        mode = .standaloneStrength
+        currentExerciseIndex = 0
+        startTimer()
+        updateStrengthSnapshotIfNeeded()
+        WatchTheme.haptic(.start)
+        beginHealthKitSession(activity: .traditionalStrengthTraining, location: .indoor, startDate: startDate)
     }
 
     private func updateStrengthSnapshotIfNeeded() {
@@ -1346,47 +1346,26 @@ extension WatchWorkoutModel: WCSessionDelegate {
     // MARK: - Intervals / HIIT
 
     func startIntervalWorkout(preset: WatchIntervalPreset) {
-        guard session == nil else { return }
+        guard mode == .none, session == nil else { return }
         intervalPreset = preset
         intervalRound = 0
         intervalIsWork = true
         intervalPhaseRemaining = preset.workSeconds
         intervalFinished = false
-        Task {
-            do {
-                try await requestHealthAuthorization()
-                let configuration = HKWorkoutConfiguration()
-                configuration.activityType = .highIntensityIntervalTraining
-                configuration.locationType = .indoor
-                let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
-                let workoutBuilder = workoutSession.associatedWorkoutBuilder()
-                workoutBuilder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
-                workoutSession.delegate = self
-                workoutBuilder.delegate = self
-
-                let startDate = Date()
-                session = workoutSession
-                builder = workoutBuilder
-                startedAt = startDate
-                endedAt = nil
-                state = .running
-                isLocalRouteWorkout = false
-                isStandaloneRouteWorkout = false
-                standaloneWorkoutID = UUID()
-                accumulatedPausedSeconds = 0
-                pauseStartedAt = nil
-                resetRouteMetrics()
-                mode = .interval
-
-                workoutSession.startActivity(with: startDate)
-                try await workoutBuilder.beginCollection(at: startDate)
-                startTimer()
-                WatchTheme.haptic(.start)
-            } catch {
-                message = error.localizedDescription
-                mode = .none
-            }
-        }
+        let startDate = Date()
+        startedAt = startDate
+        endedAt = nil
+        state = .running
+        isLocalRouteWorkout = false
+        isStandaloneRouteWorkout = false
+        standaloneWorkoutID = UUID()
+        accumulatedPausedSeconds = 0
+        pauseStartedAt = nil
+        resetRouteMetrics()
+        mode = .interval
+        startTimer()
+        WatchTheme.haptic(.start)
+        beginHealthKitSession(activity: .highIntensityIntervalTraining, location: .indoor, startDate: startDate)
     }
 
     private func advanceIntervalIfNeeded() {

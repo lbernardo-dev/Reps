@@ -32,7 +32,16 @@ struct WatchStartView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
+                    WatchProgressDashboard()
+                    WatchTodaySessionCard()
+
+                    Text(localizedString("Start"))
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 2)
+
                     WatchStartRow(title: localizedString("Strength"), subtitle: localizedString("Log your sets"), icon: "dumbbell.fill", color: accent) {
                         model.startStrengthWorkout()
                     }
@@ -48,8 +57,6 @@ struct WatchStartView: View {
                         WatchStartRowLabel(title: localizedString("Intervals"), subtitle: localizedString("HIIT by phases"), icon: "bolt.heart.fill", color: .red)
                     }
                     .buttonStyle(.plain)
-
-                    WatchStartFooter()
                 }
                 .padding(.horizontal, 4)
                 .padding(.bottom, 10)
@@ -59,38 +66,144 @@ struct WatchStartView: View {
     }
 }
 
-private struct WatchStartFooter: View {
+// MARK: - Home dashboard (general + today progress)
+
+private struct WatchProgressDashboard: View {
     @EnvironmentObject private var model: WatchWorkoutModel
 
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 8) {
-                Label("\(model.snapshot.streakDays)", systemImage: "flame.fill")
-                    .foregroundStyle(.orange)
-                Spacer()
-                Label("\(Int(model.snapshot.weeklyCompletion * 100))%", systemImage: "calendar")
-                    .foregroundStyle(WatchTheme.success)
-            }
-            .font(.system(size: 11, weight: .bold, design: .rounded))
+    private var weekly: Double { min(max(model.snapshot.weeklyCompletion, 0), 1) }
+    private var batteryLevel: Int { model.snapshot.trainingBatteryLevel }
+    private var batteryColor: Color { WatchTheme.batteryColor(for: batteryLevel) }
 
-            Text(syncText)
-                .font(.system(size: 9, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+    var body: some View {
+        VStack(spacing: 9) {
+            HStack(spacing: 12) {
+                WatchRing(progress: weekly, lineWidth: 7, color: WatchTheme.success) {
+                    VStack(spacing: 0) {
+                        Text("\(Int(weekly * 100))%")
+                            .font(.system(size: 15, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                        Text(localizedString("Week"))
+                            .font(.system(size: 7, weight: .bold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(width: 56, height: 56)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    WatchMiniStat(icon: "flame.fill", value: "\(model.snapshot.streakDays)", label: localizedString("Streak"), color: .orange)
+                    WatchMiniStat(icon: model.snapshot.trainingBatterySystemImage, value: "\(batteryLevel)%", label: localizedString("Battery"), color: batteryColor)
+                }
+                Spacer(minLength: 0)
+            }
+
+            // Training battery bar — a real, attractive at-a-glance gauge.
+            VStack(alignment: .leading, spacing: 3) {
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(.white.opacity(0.08))
+                        Capsule().fill(batteryColor)
+                            .frame(width: max(4, proxy.size.width * CGFloat(Double(batteryLevel) / 100.0)))
+                    }
+                }
+                .frame(height: 5)
+                Text(batteryText)
+                    .font(.system(size: 9, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 9)
-        .padding(.horizontal, 10)
+        .padding(10)
         .background(WatchTheme.cardFill, in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
-        .padding(.top, 4)
     }
 
-    private var syncText: String {
-        if let next = model.snapshot.nextWorkoutDayName {
-            return localizedFormat("Next: %@", next)
+    private var batteryText: String {
+        let suggestion = model.snapshot.trainingBatterySuggestion
+        return suggestion.isEmpty ? model.snapshot.trainingBatteryTitle : suggestion
+    }
+}
+
+private struct WatchTodaySessionCard: View {
+    @EnvironmentObject private var model: WatchWorkoutModel
+    private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle().fill(accent.opacity(0.16)).frame(width: 34, height: 34)
+                Image(systemName: model.snapshot.nextWorkoutDayName != nil ? "calendar.badge.clock" : "checkmark.seal.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(accent)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(localizedString("Today"))
+                    .font(.system(size: 9, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.secondary)
+                Text(model.snapshot.nextWorkoutDayName ?? model.snapshot.summary)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                if let desc = model.snapshot.nextWorkoutDayDescription {
+                    Text(desc)
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            Spacer(minLength: 0)
         }
-        return localizedString("Start here or sync from your iPhone.")
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous)
+                .stroke(accent.opacity(0.16), lineWidth: 1)
+        )
+    }
+}
+
+private struct WatchMiniStat: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(color)
+                .frame(width: 16)
+            Text(value)
+                .font(.system(size: 16, weight: .black, design: .rounded).monospacedDigit())
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+    }
+}
+
+struct WatchRing<Content: View>: View {
+    let progress: Double
+    var lineWidth: CGFloat = 6
+    let color: Color
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Color.white.opacity(0.1), lineWidth: lineWidth)
+            Circle()
+                .trim(from: 0, to: CGFloat(min(max(progress, 0.001), 1)))
+                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            content()
+        }
     }
 }
 
@@ -287,8 +400,27 @@ struct WatchStrengthNowView: View {
         }
     }
 
+    private var controlBar: some View {
+        HStack(spacing: 8) {
+            Button { model.togglePause() } label: {
+                Image(systemName: model.state == .paused ? "play.fill" : "pause.fill")
+            }
+            .buttonStyle(WatchCircleButtonStyle(color: model.state == .paused ? WatchTheme.success : WatchTheme.warning, size: 30))
+            Spacer()
+            Text(SharedWorkoutSnapshot.durationText(model.elapsedSeconds))
+                .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button { model.stop() } label: {
+                Image(systemName: "xmark")
+            }
+            .buttonStyle(WatchCircleButtonStyle(color: WatchTheme.destructive, size: 30))
+        }
+    }
+
     private var logger: some View {
         VStack(spacing: 9) {
+            controlBar
             header
 
             HStack(spacing: 8) {
@@ -406,6 +538,7 @@ struct WatchStrengthNowView: View {
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                WatchEndButton()
             } else {
                 Text(localizedString("Add an exercise"))
                     .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -428,6 +561,7 @@ struct WatchStrengthNowView: View {
                     }
                     .buttonStyle(.plain)
                 }
+                WatchEndButton()
             }
         }
         .padding(.horizontal, 5)
