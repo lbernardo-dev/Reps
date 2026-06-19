@@ -13185,7 +13185,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ahora no"
+            "value": "Not now"
           }
         },
         "es": {
@@ -53786,7 +53786,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Listo"
+            "value": "Ready"
           }
         },
         "es": {
@@ -62280,7 +62280,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nota opcional: fuerza, cardio, focus..."
+            "value": "Optional note: strength, cardio, focus..."
           }
         },
         "es": {
@@ -63012,7 +63012,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nuevo marcador"
+            "value": "New record"
           }
         },
         "es": {
@@ -66223,7 +66223,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pecho (cm)"
+            "value": "Chest (cm)"
           }
         },
         "es": {
@@ -81747,7 +81747,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sensaciones, ritmo, molestias..."
+            "value": "Sensations, pace, discomfort..."
           }
         },
         "es": {
@@ -95180,7 +95180,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ver rutinas"
+            "value": "See routines"
           }
         },
         "es": {
