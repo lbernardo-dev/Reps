@@ -66,6 +66,7 @@ struct ActiveWorkoutView: View {
     @State private var lastSensorRefreshSecond = -999
     @State private var isRefreshingSensorSummary = false
     @State private var showExpandedRouteMap = false
+    @State private var showMoreTools = false
 
     private var exerciseDrafts: [ExerciseSessionDraft] {
         get { store.activeWorkoutDrafts }
@@ -425,18 +426,8 @@ struct ActiveWorkoutView: View {
                         if isCardioOnlySession {
                             routeProgressCard
                                 .frame(width: contentWidth)
-                        } else {
-                            sessionProgressCard
+                            batteryCard
                                 .frame(width: contentWidth)
-                        }
-                        batteryCard
-                            .frame(width: contentWidth)
-                        if isRouteCandidate && !isCardioOnlySession {
-                            routeTrackingCard
-                                .frame(width: contentWidth)
-                        }
-
-                        if isCardioOnlySession {
                             if isSessionStarted {
                                 routeSessionControlCard
                                     .frame(width: contentWidth)
@@ -448,12 +439,25 @@ struct ActiveWorkoutView: View {
                                     .frame(width: contentWidth)
                             }
                         } else {
-                            sessionExerciseOrderCard
+                            // Context: progress, elapsed time, volume and the
+                            // primary "complete next set" action.
+                            sessionProgressCard
                                 .frame(width: contentWidth)
+                            // Rest timer (collapses to nothing when not resting).
                             restCard
                                 .frame(width: contentWidth)
+                            // Where am I: per-exercise progress and quick switch.
                             exerciseSwitcher
                                 .frame(width: contentWidth)
+                            // Primary logging surface.
+                            if exerciseDrafts.isEmpty {
+                                emptyFreeWorkoutCard
+                                    .frame(width: contentWidth)
+                            } else {
+                                exerciseCard
+                                    .frame(width: contentWidth)
+                            }
+                            // Coaching for the set currently being logged.
                             if !selectedProgressionRecommendations.isEmpty {
                                 ProgressionRecommendationCard(
                                     recommendations: selectedProgressionRecommendations,
@@ -462,18 +466,12 @@ struct ActiveWorkoutView: View {
                                 )
                                 .frame(width: contentWidth)
                             }
-                            if exerciseDrafts.isEmpty {
-                                emptyFreeWorkoutCard
-                                    .frame(width: contentWidth)
-                            } else {
-                                exerciseCard
-                                    .frame(width: contentWidth)
-                            }
-                            sessionControlCenterCard
-                                .frame(width: contentWidth)
-                            sessionFeedbackCard
-                                .frame(width: contentWidth)
+                            // What's next in the session.
                             nextExerciseCard
+                                .frame(width: contentWidth)
+                            // Secondary tools, collapsed by default so the
+                            // logging loop stays the focus of the screen.
+                            moreSessionToolsSection
                                 .frame(width: contentWidth)
                         }
                     }
@@ -1011,6 +1009,48 @@ struct ActiveWorkoutView: View {
             },
             onMove: moveDraft
         )
+    }
+
+    /// Secondary controls (battery, route, reordering, music/center, feedback)
+    /// kept behind a single disclosure so the active screen leads with the
+    /// log → rest → next loop. Each child is already a self-contained card.
+    private var moreSessionToolsSection: some View {
+        VStack(spacing: 18) {
+            Button {
+                HapticService.selection()
+                withAnimation(.snappy(duration: 0.25)) {
+                    showMoreTools.toggle()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.subheadline.weight(.bold))
+                    Text("more_session_tools")
+                        .font(.subheadline.weight(.bold))
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .rotationEffect(.degrees(showMoreTools ? 180 : 0))
+                }
+                .foregroundStyle(PulseTheme.secondaryText)
+                .padding(.horizontal, 18)
+                .frame(height: 50)
+                .frame(maxWidth: .infinity)
+                .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if showMoreTools {
+                batteryCard
+                if isRouteCandidate {
+                    routeTrackingCard
+                }
+                sessionExerciseOrderCard
+                sessionControlCenterCard
+                sessionFeedbackCard
+            }
+        }
     }
 
     private var restCard: some View {
