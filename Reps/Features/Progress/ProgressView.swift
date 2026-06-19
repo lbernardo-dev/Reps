@@ -26,7 +26,12 @@ struct ProgressDashboardView: View {
         }
       ) {
 
-          ProgressHeroCard(metrics: heroMetrics)
+          ProgressHeroCard(
+            metrics: heroMetrics,
+            onTapStreak: { onSelectTab?(.calendar) },
+            onTapVolume: { withAnimation(.snappy(duration: 0.2)) { selectedSection = .muscles } },
+            onTapSessions: { withAnimation(.snappy(duration: 0.2)) { selectedSection = .general } }
+          )
             .stickyHeaderTitle(localizedString("this_week"))
 
           Picker("range", selection: $selectedRange) {
@@ -1320,6 +1325,9 @@ struct ProgressHeroMetrics {
 /// streak, volume and session tiles with week-over-week trend.
 struct ProgressHeroCard: View {
   let metrics: ProgressHeroMetrics
+  var onTapStreak: (() -> Void)? = nil
+  var onTapVolume: (() -> Void)? = nil
+  var onTapSessions: (() -> Void)? = nil
 
   var body: some View {
     PulseCard {
@@ -1329,7 +1337,8 @@ struct ProgressHeroCard: View {
           tint: PulseTheme.accent,
           value: "\(metrics.streak)",
           title: localizedString("streak"),
-          trend: nil
+          trend: nil,
+          onTap: onTapStreak
         )
         HeroTileDivider()
         HeroTile(
@@ -1337,7 +1346,8 @@ struct ProgressHeroCard: View {
           tint: PulseTheme.primaryBright,
           value: volumeText,
           title: localizedString("volume_label"),
-          trend: metrics.volumeDelta.map { HeroTrend(percent: $0) }
+          trend: metrics.volumeDelta.map { HeroTrend(percent: $0) },
+          onTap: onTapVolume
         )
         HeroTileDivider()
         HeroTile(
@@ -1345,7 +1355,8 @@ struct ProgressHeroCard: View {
           tint: PulseTheme.primary,
           value: "\(metrics.sessionsThisWeek)",
           title: localizedString("sessions"),
-          trend: metrics.sessionsLastWeek > 0 ? HeroTrend(countDelta: metrics.sessionsDelta) : nil
+          trend: metrics.sessionsLastWeek > 0 ? HeroTrend(countDelta: metrics.sessionsDelta) : nil,
+          onTap: onTapSessions
         )
       }
     }
@@ -1389,8 +1400,21 @@ private struct HeroTile: View {
   let value: String
   let title: String
   let trend: HeroTrend?
+  var onTap: (() -> Void)? = nil
 
   var body: some View {
+    if let onTap {
+      Button {
+        HapticService.selection()
+        onTap()
+      } label: { content }
+      .buttonStyle(.plain)
+    } else {
+      content
+    }
+  }
+
+  private var content: some View {
     VStack(spacing: 5) {
       Image(systemName: systemImage)
         .font(.subheadline.weight(.bold))

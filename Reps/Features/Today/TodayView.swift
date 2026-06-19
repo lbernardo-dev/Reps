@@ -325,7 +325,8 @@ struct TodayView: View {
                     subtitle: "value_30_days",
                     systemImage: "figure.strengthtraining.traditional",
                     trendText: workoutTrendText,
-                    color: PulseTheme.primary
+                    color: PulseTheme.primary,
+                    onTap: { onSelectTab?(.progress) }
                 )
                 SummaryMetricTile(
                     title: "sets_4",
@@ -333,7 +334,8 @@ struct TodayView: View {
                     subtitle: "completed_2",
                     systemImage: "square.stack.3d.up.fill",
                     trendText: nil,
-                    color: PulseTheme.accent
+                    color: PulseTheme.accent,
+                    onTap: { onSelectTab?(.progress) }
                 )
                 SummaryMetricTile(
                     title: "volume_3",
@@ -341,7 +343,8 @@ struct TodayView: View {
                     subtitle: displayedVolumeUnit,
                     systemImage: "scalemass.fill",
                     trendText: volumeTrendText,
-                    color: PulseTheme.primaryBright
+                    color: PulseTheme.primaryBright,
+                    onTap: { onSelectTab?(.progress) }
                 )
             }
 
@@ -1581,6 +1584,7 @@ private struct SummaryMetricTile: View {
     let systemImage: String
     let trendText: String?
     let color: Color
+    var onTap: (() -> Void)? = nil
 
     private var trendColor: Color {
         guard let trendText else { return PulseTheme.secondaryText }
@@ -1588,6 +1592,18 @@ private struct SummaryMetricTile: View {
     }
 
     var body: some View {
+        if let onTap {
+            Button {
+                HapticService.selection()
+                onTap()
+            } label: { card }
+            .buttonStyle(.plain)
+        } else {
+            card
+        }
+    }
+
+    private var card: some View {
         PulseCard(minHeight: 112, contentPadding: 12, backgroundColor: color.opacity(0.08)) {
             VStack(alignment: .leading, spacing: 7) {
                 HStack(alignment: .top, spacing: 4) {
