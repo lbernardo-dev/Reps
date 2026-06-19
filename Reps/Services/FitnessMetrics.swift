@@ -802,42 +802,42 @@ enum RetentionEngine {
 
         steps.append(ActivationStep(
             id: "create-plan",
-            title: "Crear plan base",
-            message: hasPlan ? "Tu plan activo ya define frecuencia, días y volumen objetivo." : "El primer plan reduce fricción y permite medir objetivo vs real.",
+            title: localizedString("act_create_plan_title"),
+            message: hasPlan ? localizedString("act_create_plan_msg_done") : localizedString("act_create_plan_msg"),
             systemImage: "rectangle.stack.badge.plus",
             isCompleted: hasPlan,
-            actionTitle: "Crear plan",
+            actionTitle: localizedString("act_create_plan_cta"),
             action: hasPlan ? nil : .createPlan
         ))
 
         steps.append(ActivationStep(
             id: "schedule-session",
-            title: "Programar próxima sesión",
-            message: hasUpcomingWorkout ? "Ya tienes una sesión en calendario para mantener continuidad." : "Agenda una sesión concreta para convertir intención en compromiso.",
+            title: localizedString("act_schedule_title"),
+            message: hasUpcomingWorkout ? localizedString("act_schedule_msg_done") : localizedString("act_schedule_msg"),
             systemImage: "calendar.badge.plus",
             isCompleted: hasUpcomingWorkout,
-            actionTitle: "Programar",
+            actionTitle: localizedString("act_schedule_cta"),
             action: hasUpcomingWorkout ? nil : .scheduleWorkout
         ))
 
         if !hasCompletedWorkout || inactiveDays.map({ $0 >= 5 }) == true {
             steps.append(ActivationStep(
                 id: "start-workout",
-                title: hasCompletedWorkout ? "Recuperar ritmo" : "Completar primer entreno",
-                message: hasCompletedWorkout ? "Han pasado \(inactiveDays ?? 0) días desde tu último registro. Una sesión corta reactiva la racha." : "El primer registro desbloquea progresión, volumen y recomendaciones reales.",
+                title: hasCompletedWorkout ? localizedString("act_regain_title") : localizedString("act_first_workout_title"),
+                message: hasCompletedWorkout ? localizedFormat("act_regain_msg_format", inactiveDays ?? 0) : localizedString("act_first_workout_msg"),
                 systemImage: "play.circle.fill",
                 isCompleted: false,
-                actionTitle: "Entrenar",
+                actionTitle: localizedString("act_train_cta"),
                 action: .startWorkout
             ))
         } else {
             steps.append(ActivationStep(
                 id: "start-workout",
-                title: "Primer valor conseguido",
-                message: "Ya tienes historial suficiente para que Reps empiece a personalizar carga y recuperación.",
+                title: localizedString("act_first_value_title"),
+                message: localizedString("act_first_value_msg"),
                 systemImage: "checkmark.seal.fill",
                 isCompleted: true,
-                actionTitle: "Ver progreso",
+                actionTitle: localizedString("act_see_progress_cta"),
                 action: .openProgress
             ))
         }
@@ -845,11 +845,11 @@ enum RetentionEngine {
         if hasTodayWorkout && competitiveSummary.completionRate < 0.75 {
             steps.append(ActivationStep(
                 id: "protect-adherence",
-                title: "Cerrar la semana",
-                message: "Completar la sesión de hoy ayuda a recuperar adherencia antes de subir carga.",
+                title: localizedString("act_close_week_title"),
+                message: localizedString("act_close_week_msg"),
                 systemImage: "target",
                 isCompleted: false,
-                actionTitle: "Empezar hoy",
+                actionTitle: localizedString("act_start_today_cta"),
                 action: .startWorkout
             ))
         }
@@ -857,11 +857,11 @@ enum RetentionEngine {
         if !remindersEnabled {
             steps.append(ActivationStep(
                 id: "enable-reminders",
-                title: "Activar recordatorios",
-                message: "Los recordatorios ayudan a volver cuando hay una sesión o acción de recuperación pendiente.",
+                title: localizedString("onboarding_notif_enable"),
+                message: localizedString("act_reminders_msg"),
                 systemImage: "bell.badge.fill",
                 isCompleted: false,
-                actionTitle: "Abrir perfil",
+                actionTitle: localizedString("act_open_profile_cta"),
                 action: nil
             ))
         }
@@ -885,15 +885,15 @@ enum RetentionEngine {
     private static func actionTitle(for action: AnalyticsEngine.CompetitiveAction) -> String {
         switch action {
         case .scheduleUndertrainedMuscle:
-            return "Programar foco"
+            return localizedString("act_schedule_focus")
         case .scheduleDeloadExercise:
-            return "Programar descarga"
+            return localizedString("act_schedule_deload")
         case .reviewPlan:
-            return "Revisar plan"
+            return localizedString("act_review_plan")
         case .scheduleRecovery:
-            return "Programar recuperación"
+            return localizedString("act_schedule_recovery")
         case .none:
-            return "Ver"
+            return localizedString("act_view_generic")
         }
     }
 }
