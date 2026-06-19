@@ -7,6 +7,19 @@ struct PlansView: View {
     @State private var planToEdit: WorkoutPlan?
     @State private var showProfile = false
 
+    /// A few exercises spanning distinct muscle groups, for the library collage.
+    private var collageExercises: [Exercise] {
+        var seen = Set<String>()
+        var result: [Exercise] = []
+        for exercise in store.exercises {
+            let group = exercise.muscleGroup.lowercased()
+            guard !group.isEmpty, seen.insert(group).inserted else { continue }
+            result.append(exercise)
+            if result.count >= 4 { break }
+        }
+        return result
+    }
+
     var body: some View {
         NavigationStack {
             StickyHeaderScaffold(
@@ -23,11 +36,11 @@ struct PlansView: View {
             ) {
                 PulseCard {
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("bibliotecas")
-                                .font(.headline)
-                            Text("find_real_exercises_or_reuse_complete_routines")
-                                .font(.subheadline)
-                                .foregroundStyle(PulseTheme.secondaryText)
+                            LibraryHeroHeader(
+                                exercises: collageExercises,
+                                exerciseCount: store.exercises.count,
+                                routineCount: store.workoutTemplates.count
+                            )
 
                             HStack(spacing: 12) {
                                 Button {
@@ -58,8 +71,7 @@ struct PlansView: View {
 
                     PulseCard {
                         VStack(alignment: .leading, spacing: 14) {
-                            Text(localizedString("tools"))
-                                .font(.headline)
+                            ToolsHeroHeader()
                             HStack(spacing: 12) {
                                 NavigationLink {
                                     OneRepMaxCalculatorView()
@@ -317,6 +329,103 @@ struct PlansView: View {
                 }
             }
         }
+    }
+}
+
+private struct LibraryHeroHeader: View {
+    let exercises: [Exercise]
+    let exerciseCount: Int
+    let routineCount: Int
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            LinearGradient(
+                colors: [PulseTheme.primary.opacity(0.30), PulseTheme.primaryBright.opacity(0.18)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            // Collage of anatomy thumbnails bleeding off the trailing edge.
+            HStack(spacing: -26) {
+                ForEach(Array(exercises.prefix(4).enumerated()), id: \.offset) { index, exercise in
+                    ExerciseAnatomyThumbnail(exercise: exercise, size: 96)
+                        .rotationEffect(.degrees(Double(index - 1) * 5))
+                        .shadow(color: .black.opacity(0.28), radius: 6, x: 0, y: 3)
+                        .zIndex(Double(4 - index))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .offset(x: 30)
+
+            // Readability scrim so the title reads over the collage.
+            LinearGradient(
+                colors: [PulseTheme.elevated, PulseTheme.elevated.opacity(0.85), PulseTheme.elevated.opacity(0)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+
+            VStack(alignment: .leading, spacing: 5) {
+                Image(systemName: "figure.strengthtraining.traditional")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(PulseTheme.primaryBright)
+                Text("library_hero_title")
+                    .font(.system(size: 19, weight: .black, design: .rounded))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                Text(localizedFormat("library_hero_subtitle_format", exerciseCount, routineCount))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(height: 124)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private struct ToolsHeroHeader: View {
+    var body: some View {
+        ZStack(alignment: .leading) {
+            LinearGradient(
+                colors: [PulseTheme.accent.opacity(0.28), PulseTheme.fitOrange.opacity(0.16)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            // Playful oversized tool glyphs on the trailing side.
+            HStack(spacing: 14) {
+                Image(systemName: "function")
+                Image(systemName: "circle.grid.3x3.fill")
+            }
+            .font(.system(size: 54, weight: .bold))
+            .foregroundStyle(PulseTheme.accent.opacity(0.22))
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .offset(x: 16)
+
+            LinearGradient(
+                colors: [PulseTheme.elevated, PulseTheme.elevated.opacity(0.85), PulseTheme.elevated.opacity(0)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+
+            VStack(alignment: .leading, spacing: 5) {
+                Image(systemName: "wrench.and.screwdriver.fill")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(PulseTheme.accent)
+                Text("tools_hero_title")
+                    .font(.system(size: 19, weight: .black, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text("tools_hero_subtitle")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(height: 96)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
 

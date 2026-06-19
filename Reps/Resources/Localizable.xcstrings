@@ -100105,6 +100105,70 @@
           }
         }
       }
+    },
+    "library_hero_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your exercise library"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu biblioteca de ejercicios"
+          }
+        }
+      }
+    },
+    "library_hero_subtitle_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d exercises · %d routines"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d ejercicios · %d rutinas"
+          }
+        }
+      }
+    },
+    "tools_hero_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Training tools"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herramientas de entreno"
+          }
+        }
+      }
+    },
+    "tools_hero_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calculators & utilities"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calculadoras y utilidades"
+          }
+        }
+      }
     }
   },
   "version": "1.1"
