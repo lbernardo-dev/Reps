@@ -26,6 +26,9 @@ struct ProgressDashboardView: View {
         }
       ) {
 
+          ProgressHeroCard(metrics: heroMetrics)
+            .stickyHeaderTitle(localizedString("this_week"))
+
           Picker("range", selection: $selectedRange) {
             ForEach(ProgressRange.allCases) { range in
               Text(range.title).tag(range)
@@ -597,6 +600,25 @@ struct ProgressDashboardView: View {
 
   private var filteredSessions: [WorkoutSession] {
     store.workoutSessions.filter { $0.date >= selectedRange.startDate }
+  }
+
+  /// At-a-glance snapshot of the current week (independent of the analytical
+  /// range selector below) compared with the previous week.
+  private var heroMetrics: ProgressHeroMetrics {
+    let calendar = Calendar.current
+    let now = Date()
+    let thisWeekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? calendar.startOfDay(for: now)
+    let lastWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: thisWeekStart) ?? thisWeekStart
+    let thisWeek = store.workoutSessions.filter { $0.date >= thisWeekStart }
+    let lastWeek = store.workoutSessions.filter { $0.date >= lastWeekStart && $0.date < thisWeekStart }
+    return ProgressHeroMetrics(
+      streak: store.streakDays,
+      adherence: store.weeklyCompletion,
+      sessionsThisWeek: thisWeek.count,
+      sessionsLastWeek: lastWeek.count,
+      volumeThisWeek: FitnessMetrics.totalVolumeKg(for: thisWeek),
+      volumeLastWeek: FitnessMetrics.totalVolumeKg(for: lastWeek)
+    )
   }
 
   private var filteredCardioLogs: [CardioLog] {
@@ -1318,6 +1340,154 @@ struct ExerciseAnalyticsListView: View {
     .navigationTitle("exercises_3")
     .navigationBarTitleDisplayMode(.inline)
     .mainTabBarHidden()
+  }
+}
+
+struct ProgressHeroMetrics {
+  let streak: Int
+  let adherence: Double          // 0...1 weekly plan completion
+  let sessionsThisWeek: Int
+  let sessionsLastWeek: Int
+  let volumeThisWeek: Double      // kg
+  let volumeLastWeek: Double
+
+  /// Percentage change vs last week, or nil when there is no baseline.
+  var volumeDelta: Double? {
+    guard volumeLastWeek > 0 else { return nil }
+    return (volumeThisWeek - volumeLastWeek) / volumeLastWeek * 100
+  }
+
+  var sessionsDelta: Int { sessionsThisWeek - sessionsLastWeek }
+}
+
+/// Graphical, at-a-glance summary of the current week: an adherence ring plus
+/// streak, volume and session tiles with week-over-week trend.
+struct ProgressHeroCard: View {
+  let metrics: ProgressHeroMetrics
+
+  var body: some View {
+    PulseCard {
+      HStack(spacing: 18) {
+        adherenceRing
+        VStack(spacing: 12) {
+          HeroStatRow(
+            systemImage: "flame.fill",
+            tint: PulseTheme.accent,
+            value: "\(metrics.streak)",
+            title: localizedString("streak"),
+            trend: nil
+          )
+          Divider().background(PulseTheme.separator)
+          HeroStatRow(
+            systemImage: "scalemass.fill",
+            tint: PulseTheme.primaryBright,
+            value: volumeText,
+            title: localizedString("volume_label"),
+            trend: metrics.volumeDelta.map { HeroTrend(percent: $0) }
+          )
+          Divider().background(PulseTheme.separator)
+          HeroStatRow(
+            systemImage: "dumbbell.fill",
+            tint: PulseTheme.primary,
+            value: "\(metrics.sessionsThisWeek)",
+            title: localizedString("sessions"),
+            trend: metrics.sessionsLastWeek > 0 ? HeroTrend(countDelta: metrics.sessionsDelta) : nil
+          )
+        }
+        .frame(maxWidth: .infinity)
+      }
+    }
+  }
+
+  private var adherenceRing: some View {
+    let pct = min(max(metrics.adherence, 0), 1)
+    return VStack(spacing: 8) {
+      ZStack {
+        Circle()
+          .stroke(PulseTheme.grouped, lineWidth: 9)
+        Circle()
+          .trim(from: 0, to: pct)
+          .stroke(
+            AngularGradient(colors: [PulseTheme.primary, PulseTheme.primaryBright, PulseTheme.accent], center: .center),
+            style: StrokeStyle(lineWidth: 9, lineCap: .round)
+          )
+          .rotationEffect(.degrees(-90))
+          .animation(.snappy(duration: 0.4), value: pct)
+        Text("\(Int((pct * 100).rounded()))%")
+          .font(.system(size: 22, weight: .black, design: .rounded).monospacedDigit())
+          .foregroundStyle(.white)
+      }
+      .frame(width: 92, height: 92)
+
+      Text("weekly_goal")
+        .font(.system(size: 10, weight: .black, design: .rounded))
+        .tracking(1.2)
+        .textCase(.uppercase)
+        .foregroundStyle(PulseTheme.secondaryText)
+    }
+  }
+
+  private var volumeText: String {
+    let v = metrics.volumeThisWeek
+    if v >= 1000 {
+      return String(format: "%.1ft", v / 1000)
+    }
+    return "\(Int(v.rounded())) kg"
+  }
+}
+
+struct HeroTrend {
+  let isUp: Bool
+  let label: String
+
+  init(percent: Double) {
+    isUp = percent >= 0
+    label = String(format: "%@%.0f%%", percent >= 0 ? "+" : "", percent)
+  }
+
+  init(countDelta: Int) {
+    isUp = countDelta >= 0
+    label = "\(countDelta >= 0 ? "+" : "")\(countDelta)"
+  }
+}
+
+private struct HeroStatRow: View {
+  let systemImage: String
+  let tint: Color
+  let value: String
+  let title: String
+  let trend: HeroTrend?
+
+  var body: some View {
+    HStack(spacing: 10) {
+      Image(systemName: systemImage)
+        .font(.subheadline.weight(.bold))
+        .foregroundStyle(tint)
+        .frame(width: 26)
+      VStack(alignment: .leading, spacing: 1) {
+        Text(value)
+          .font(.system(size: 17, weight: .black, design: .rounded))
+          .foregroundStyle(.white)
+          .lineLimit(1)
+          .minimumScaleFactor(0.7)
+        Text(title)
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(PulseTheme.secondaryText)
+      }
+      Spacer(minLength: 4)
+      if let trend {
+        HStack(spacing: 2) {
+          Image(systemName: trend.isUp ? "arrow.up.right" : "arrow.down.right")
+            .font(.system(size: 9, weight: .black))
+          Text(trend.label)
+            .font(.system(size: 11, weight: .black, design: .rounded).monospacedDigit())
+        }
+        .foregroundStyle(trend.isUp ? PulseTheme.primaryBright : PulseTheme.destructive)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background((trend.isUp ? PulseTheme.primaryBright : PulseTheme.destructive).opacity(0.14), in: Capsule())
+      }
+    }
   }
 }
 
