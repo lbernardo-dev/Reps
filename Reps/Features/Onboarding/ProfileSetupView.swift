@@ -159,8 +159,44 @@ struct ProfileSetupView: View {
             generatingStep
         case .plan:
             planStep
+        case .notifications:
+            notificationsStep
         case .paywall:
             paywallStep
+        }
+    }
+
+    private var notificationsStep: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 16) {
+                Image(systemName: "bell.badge.fill")
+                    .font(.system(size: 42, weight: .bold))
+                    .foregroundStyle(PulseTheme.accent)
+                Text("onboarding_notif_title")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.78)
+                Text("onboarding_notif_subtitle")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            PulseCard {
+                VStack(spacing: 16) {
+                    OnboardingPermissionRow(icon: "calendar.badge.clock", tint: PulseTheme.primary, title: "notif_benefit_reminders_title", subtitle: "notif_benefit_reminders_sub")
+                    OnboardingPermissionRow(icon: "flame.fill", tint: PulseTheme.accent, title: "notif_benefit_streak_title", subtitle: "notif_benefit_streak_sub")
+                    OnboardingPermissionRow(icon: "trophy.fill", tint: PulseTheme.primaryBright, title: "notif_benefit_pr_title", subtitle: "notif_benefit_pr_sub")
+                }
+            }
+        }
+    }
+
+    private func enableRemindersAndFinish() {
+        profile.remindersEnabled = true
+        Task {
+            _ = await PermissionService.shared.requestNotifications()
+            await MainActor.run { finishOnboarding() }
         }
     }
 
@@ -1235,7 +1271,7 @@ struct ProfileSetupView: View {
                     .buttonStyle(.plain)
 
                     Button {
-                        finishOnboarding()
+                        moveForward()
                     } label: {
                         Text("start_with_my_plan")
                             .font(.subheadline.weight(.bold))
@@ -1246,6 +1282,32 @@ struct ProfileSetupView: View {
                             .clipShape(Capsule())
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else if step == .notifications {
+                VStack(spacing: 10) {
+                    Button {
+                        enableRemindersAndFinish()
+                    } label: {
+                        Text("onboarding_notif_enable")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .foregroundStyle(.black)
+                            .background(PulseTheme.accent)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        finishOnboarding()
+                    } label: {
+                        Text("onboarding_notif_not_now")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .foregroundStyle(PulseTheme.secondaryText)
                     }
                     .buttonStyle(.plain)
                 }
@@ -1275,6 +1337,8 @@ struct ProfileSetupView: View {
 
     private var bottomContentPadding: CGFloat {
         switch step {
+        case .notifications:
+            return 116
         case .generating where isGenerationComplete, .plan:
             return 76
         default:
@@ -1322,6 +1386,7 @@ struct ProfileSetupView: View {
         case .sex, .metrics, .goal, .training, .focus: localizedString("onboarding_continue")
         case .generating: localizedString("see_generated_plan")
         case .plan: localizedString("see_pro_benefits")
+        case .notifications: localizedString("onboarding_notif_enable")
         case .paywall: localizedString("start_with_my_plan")
         }
     }
@@ -1618,6 +1683,7 @@ private enum OnboardingStep: CaseIterable {
     case focus
     case generating
     case plan
+    case notifications
     case paywall
 }
 
@@ -1629,8 +1695,8 @@ private enum OnboardingSex: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .male: "Masculino"
-        case .female: "Femenino"
+        case .male: localizedString("sex_male")
+        case .female: localizedString("sex_female")
         }
     }
 
@@ -1664,6 +1730,33 @@ private struct OnboardingTitle: View {
                 .foregroundStyle(PulseTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+private struct OnboardingPermissionRow: View {
+    let icon: String
+    let tint: Color
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.headline.weight(.bold))
+                .foregroundStyle(tint)
+                .frame(width: 44, height: 44)
+                .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(localizedKey(title))
+                    .font(.subheadline.weight(.bold))
+                Text(localizedKey(subtitle))
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
