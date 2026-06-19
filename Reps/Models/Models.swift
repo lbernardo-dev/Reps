@@ -54,7 +54,14 @@ struct UserProfile: Codable {
     var sex: Sex?
     var dateOfBirth: Date?
     var avatarImageData: Data?
-    var preferredLanguage = "es"
+    var preferredLanguage = UserProfile.deviceDefaultLanguage
+
+    /// Fresh installs follow the device language. English is the catalog's source
+    /// language and the most complete, so anything non-Spanish falls back to it
+    /// rather than forcing a partially-translated Spanish UI.
+    static var deviceDefaultLanguage: String {
+        Locale.current.language.languageCode?.identifier == "es" ? "es" : "en"
+    }
     var units: Units = .metric
     var distanceUnit: DistanceUnit = .kilometers
     var trainingLocation: TrainingLocation = .gym
