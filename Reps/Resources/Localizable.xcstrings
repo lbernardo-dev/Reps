@@ -10417,13 +10417,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abrir Ajustes"
+            "value": "Open Settings"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abrir Ajustes"
+            "value": "Abrir ajustes"
           }
         }
       }
@@ -11967,7 +11967,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Actualizar acceso Pro iCloud"
+            "value": "Refresh iCloud Pro access"
           }
         },
         "es": {
@@ -13778,7 +13778,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ampliar mapa"
+            "value": "Expand map"
           }
         },
         "es": {
@@ -15541,7 +15541,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Music conectado"
+            "value": "Apple Music connected"
           }
         },
         "es": {
@@ -15557,13 +15557,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Music Integrado"
+            "value": "Apple Music integrated"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Music Integrado"
+            "value": "Apple Music integrado"
           }
         }
       }
@@ -17342,7 +17342,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Backup importado correctamente."
+            "value": "Backup imported successfully."
           }
         },
         "es": {
@@ -17546,7 +17546,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bajar valor"
+            "value": "Decrease value"
           }
         },
         "es": {
@@ -21299,7 +21299,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Brazo (cm)"
+            "value": "Arm (cm)"
           }
         },
         "es": {
@@ -21776,7 +21776,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Buscar playlist..."
+            "value": "Search playlist..."
           }
         },
         "es": {
@@ -22439,7 +22439,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cadera (cm)"
+            "value": "Hip (cm)"
           }
         },
         "es": {
@@ -22525,7 +22525,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Calculadora 1RM"
+            "value": "1RM Calculator"
           }
         },
         "es": {
@@ -23035,7 +23035,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cambiar imagen"
+            "value": "Change image"
           }
         },
         "es": {
@@ -23290,7 +23290,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Campos Pro"
+            "value": "Pro fields"
           }
         },
         "es": {
@@ -25602,7 +25602,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cintura (cm)"
+            "value": "Waist (cm)"
           }
         },
         "es": {
@@ -27428,7 +27428,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conectar Apple Music"
+            "value": "Connect Apple Music"
           }
         },
         "es": {
@@ -27445,7 +27445,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conectar playlist"
+            "value": "Connect playlist"
           }
         },
         "es": {
@@ -28225,7 +28225,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copiar hash iCloud"
+            "value": "Copy iCloud hash"
           }
         },
         "es": {
@@ -29381,7 +29381,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "CSV importado correctamente."
+            "value": "CSV imported successfully."
           }
         },
         "es": {
@@ -32054,7 +32054,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desconectar Apple Health"
+            "value": "Disconnect Apple Health"
           }
         },
         "es": {
@@ -32225,7 +32225,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Detalles adicionales"
+            "value": "Additional details"
           }
         },
         "es": {
@@ -32293,7 +32293,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Detener y descartar"
+            "value": "Stop and discard"
           }
         },
         "es": {
@@ -32971,7 +32971,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Discos disponibles"
+            "value": "Available plates"
           }
         },
         "es": {
@@ -36589,7 +36589,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "En curso"
+            "value": "In progress"
           }
         },
         "es": {
@@ -37716,7 +37716,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Equipamiento disponible"
+            "value": "Available equipment"
           }
         },
         "es": {
@@ -38126,7 +38126,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esfuerzo (RPE)"
+            "value": "Effort (RPE)"
           }
         },
         "es": {
@@ -39530,7 +39530,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exercise added to the active plan."
+            "value": "Ejercicio añadido al plan activo."
           }
         }
       }
@@ -41580,7 +41580,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "FC media"
+            "value": "Avg HR"
           }
         },
         "es": {
@@ -43784,7 +43784,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Full body"
+            "value": "Cuerpo completo"
           }
         }
       }
@@ -44886,7 +44886,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "GPS y ruta"
+            "value": "GPS and route"
           }
         },
         "es": {
@@ -49003,7 +49003,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "ID socio"
+            "value": "Member ID"
           }
         },
         "es": {
@@ -49259,7 +49259,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Imagen propia guardada offline"
+            "value": "Your image saved offline"
           }
         },
         "es": {
@@ -49276,13 +49276,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Imagen y guia"
+            "value": "Image and guide"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Imagen y guia"
+            "value": "Imagen y guía"
           }
         }
       }
@@ -49531,7 +49531,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Importar cardio"
+            "value": "Import cardio"
           }
         },
         "es": {
@@ -49974,7 +49974,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Incluye Reps Pro"
+            "value": "Includes Reps Pro"
           }
         },
         "es": {
@@ -50607,7 +50607,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Insights accionables"
+            "value": "Actionable insights"
           }
         },
         "es": {
@@ -50744,7 +50744,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "INTELIGENCIA MUSCULAR"
+            "value": "MUSCLE INTELLIGENCE"
           }
         },
         "es": {
@@ -54363,7 +54363,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Logging avanzado"
+            "value": "Advanced logging"
           }
         },
         "es": {
@@ -56131,7 +56131,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mapa en vivo"
+            "value": "Live map"
           }
         },
         "es": {
@@ -56148,7 +56148,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mapa muscular interactivo"
+            "value": "Interactive muscle map"
           }
         },
         "es": {
@@ -56388,7 +56388,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Marca anterior"
+            "value": "Previous record"
           }
         },
         "es": {
@@ -56541,7 +56541,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Marcadores guardados"
+            "value": "Saved bookmarks"
           }
         },
         "es": {
@@ -56557,7 +56557,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Marcadores multimedia"
+            "value": "Media bookmarks"
           }
         },
         "es": {
@@ -57431,7 +57431,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mejores sustituciones"
+            "value": "Best substitutions"
           }
         },
         "es": {
@@ -57859,7 +57859,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mi equipo"
+            "value": "My equipment"
           }
         },
         "es": {
@@ -59777,7 +59777,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muslo (cm)"
+            "value": "Thigh (cm)"
           }
         },
         "es": {
@@ -69596,7 +69596,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Preferencias Pro"
+            "value": "Pro preferences"
           }
         },
         "es": {
@@ -70944,7 +70944,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Problema, idea, flujo confuso o funcionalidad que falta..."
+            "value": "Problem, idea, confusing flow or missing feature..."
           }
         },
         "es": {
@@ -75265,7 +75265,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Referencia visual"
+            "value": "Visual reference"
           }
         },
         "es": {
@@ -75520,7 +75520,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Registrar cardio"
+            "value": "Log cardio"
           }
         },
         "es": {
@@ -75537,7 +75537,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Registrar visita"
+            "value": "Log visit"
           }
         },
         "es": {
@@ -77887,7 +77887,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Resultados en Apple Music"
+            "value": "Results in Apple Music"
           }
         },
         "es": {
@@ -78074,7 +78074,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Resumen diario"
+            "value": "Daily summary"
           }
         },
         "es": {
@@ -87798,7 +87798,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stop workout"
+            "value": "Detener entreno"
           }
         }
       }
@@ -88471,7 +88471,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Subir valor"
+            "value": "Increase value"
           }
         },
         "es": {
@@ -89914,7 +89914,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tarjeta gym"
+            "value": "Gym card"
           }
         },
         "es": {
@@ -95163,7 +95163,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ver beneficios Pro"
+            "value": "See Pro benefits"
           }
         },
         "es": {
@@ -95704,7 +95704,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vista previa"
+            "value": "Preview"
           }
         },
         "es": {
