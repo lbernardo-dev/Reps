@@ -75,6 +75,9 @@ final class AppStore {
     var isUsingFallbackStorage = false
     var notificationDestination: NotificationDestination?
     var calendarFocusedDate: Date?
+    /// Set by flows that want the main tab bar to switch after they finish
+    /// (e.g. closing the post-workout summary jumps to Progress).
+    var pendingMainTabSelection: AppTab?
     var activePaywall: PaywallPresentation? {
         didSet {
             if activePaywall == nil, let previous = oldValue {

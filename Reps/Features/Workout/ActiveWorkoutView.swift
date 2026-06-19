@@ -240,9 +240,7 @@ struct ActiveWorkoutView: View {
     var body: some View {
         Group {
             if let finishedSession {
-                WorkoutSummaryView(session: finishedSession) {
-                    dismiss()
-                }
+                WorkoutSummaryView(session: finishedSession, onDone: closeSummaryAndOpenProgress)
             } else {
                 activeWorkoutContent
             }
@@ -557,6 +555,14 @@ struct ActiveWorkoutView: View {
         } else {
             stopWorkout()
         }
+    }
+
+    /// Closes the post-workout summary and lands the user on Progress. Clearing
+    /// the shared summary first prevents the main-tab sheet from re-presenting it.
+    private func closeSummaryAndOpenProgress() {
+        store.finishedSessionForSummary = nil
+        store.pendingMainTabSelection = .progress
+        dismiss()
     }
 
     private func toggleWorkoutPause() {

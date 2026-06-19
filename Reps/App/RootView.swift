@@ -84,6 +84,7 @@ struct MainTabView: View {
         .sheet(item: $store.finishedSessionForSummary) { session in
             WorkoutSummaryView(session: session) {
                 store.finishedSessionForSummary = nil
+                store.pendingMainTabSelection = .progress
             }
         }
         .onAppear {
@@ -116,6 +117,11 @@ struct MainTabView: View {
         }
         .onChange(of: store.notificationDestination) { _, destination in
             applyNotificationDestination(destination)
+        }
+        .onChange(of: store.pendingMainTabSelection) { _, tab in
+            guard let tab else { return }
+            select(tab)
+            store.pendingMainTabSelection = nil
         }
     }
 
