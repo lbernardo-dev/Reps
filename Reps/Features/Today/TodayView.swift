@@ -349,7 +349,11 @@ struct TodayView: View {
                 title: "last_30_days",
                 progressText: localizedFormat("sessions_count_format", recentSessions.count),
                 points: recentActivityPoints,
-                color: PulseTheme.primary
+                color: PulseTheme.primary,
+                onTapDay: { date in
+                    store.calendarFocusedDate = date
+                    onSelectTab?(.calendar)
+                }
             )
 
             HStack(spacing: 12) {
@@ -1626,6 +1630,7 @@ private struct ActivityMatrixCard: View {
     let progressText: String
     let points: [DailyActivityPoint]
     let color: Color
+    var onTapDay: ((Date) -> Void)? = nil
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 10)
 
@@ -1676,14 +1681,23 @@ private struct ActivityMatrixCard: View {
 
                 LazyVGrid(columns: columns, spacing: 7) {
                     ForEach(points) { point in
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(fill(for: point))
-                            .frame(height: 17)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                    .stroke(point.isToday ? PulseTheme.accent : PulseTheme.separator, style: StrokeStyle(lineWidth: point.isToday ? 2 : 1, dash: point.isCompleted ? [] : [4, 3]))
-                            )
-                            .accessibilityLabel(accessibilityLabel(for: point))
+                        Button {
+                            HapticService.selection()
+                            onTapDay?(point.date)
+                        } label: {
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .fill(fill(for: point))
+                                .frame(height: 17)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                        .stroke(point.isToday ? PulseTheme.accent : PulseTheme.separator, style: StrokeStyle(lineWidth: point.isToday ? 2 : 1, dash: point.isCompleted ? [] : [4, 3]))
+                                )
+                                .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(onTapDay == nil)
+                        .accessibilityLabel(accessibilityLabel(for: point))
+                        .accessibilityHint(localizedString("view_day_in_calendar"))
                     }
                 }
             }
