@@ -1367,63 +1367,31 @@ struct ProgressHeroCard: View {
 
   var body: some View {
     PulseCard {
-      HStack(spacing: 18) {
-        adherenceRing
-        VStack(spacing: 12) {
-          HeroStatRow(
-            systemImage: "flame.fill",
-            tint: PulseTheme.accent,
-            value: "\(metrics.streak)",
-            title: localizedString("streak"),
-            trend: nil
-          )
-          Divider().background(PulseTheme.separator)
-          HeroStatRow(
-            systemImage: "scalemass.fill",
-            tint: PulseTheme.primaryBright,
-            value: volumeText,
-            title: localizedString("volume_label"),
-            trend: metrics.volumeDelta.map { HeroTrend(percent: $0) }
-          )
-          Divider().background(PulseTheme.separator)
-          HeroStatRow(
-            systemImage: "dumbbell.fill",
-            tint: PulseTheme.primary,
-            value: "\(metrics.sessionsThisWeek)",
-            title: localizedString("sessions"),
-            trend: metrics.sessionsLastWeek > 0 ? HeroTrend(countDelta: metrics.sessionsDelta) : nil
-          )
-        }
-        .frame(maxWidth: .infinity)
+      HStack(spacing: 0) {
+        HeroTile(
+          systemImage: "flame.fill",
+          tint: PulseTheme.accent,
+          value: "\(metrics.streak)",
+          title: localizedString("streak"),
+          trend: nil
+        )
+        HeroTileDivider()
+        HeroTile(
+          systemImage: "scalemass.fill",
+          tint: PulseTheme.primaryBright,
+          value: volumeText,
+          title: localizedString("volume_label"),
+          trend: metrics.volumeDelta.map { HeroTrend(percent: $0) }
+        )
+        HeroTileDivider()
+        HeroTile(
+          systemImage: "dumbbell.fill",
+          tint: PulseTheme.primary,
+          value: "\(metrics.sessionsThisWeek)",
+          title: localizedString("sessions"),
+          trend: metrics.sessionsLastWeek > 0 ? HeroTrend(countDelta: metrics.sessionsDelta) : nil
+        )
       }
-    }
-  }
-
-  private var adherenceRing: some View {
-    let pct = min(max(metrics.adherence, 0), 1)
-    return VStack(spacing: 8) {
-      ZStack {
-        Circle()
-          .stroke(PulseTheme.grouped, lineWidth: 9)
-        Circle()
-          .trim(from: 0, to: pct)
-          .stroke(
-            AngularGradient(colors: [PulseTheme.primary, PulseTheme.primaryBright, PulseTheme.accent], center: .center),
-            style: StrokeStyle(lineWidth: 9, lineCap: .round)
-          )
-          .rotationEffect(.degrees(-90))
-          .animation(.snappy(duration: 0.4), value: pct)
-        Text("\(Int((pct * 100).rounded()))%")
-          .font(.system(size: 22, weight: .black, design: .rounded).monospacedDigit())
-          .foregroundStyle(.white)
-      }
-      .frame(width: 92, height: 92)
-
-      Text("weekly_goal")
-        .font(.system(size: 10, weight: .black, design: .rounded))
-        .tracking(1.2)
-        .textCase(.uppercase)
-        .foregroundStyle(PulseTheme.secondaryText)
     }
   }
 
@@ -1433,6 +1401,14 @@ struct ProgressHeroCard: View {
       return String(format: "%.1ft", v / 1000)
     }
     return "\(Int(v.rounded())) kg"
+  }
+}
+
+private struct HeroTileDivider: View {
+  var body: some View {
+    Rectangle()
+      .fill(PulseTheme.separator)
+      .frame(width: 1, height: 44)
   }
 }
 
@@ -1451,7 +1427,7 @@ struct HeroTrend {
   }
 }
 
-private struct HeroStatRow: View {
+private struct HeroTile: View {
   let systemImage: String
   let tint: Color
   let value: String
@@ -1459,35 +1435,39 @@ private struct HeroStatRow: View {
   let trend: HeroTrend?
 
   var body: some View {
-    HStack(spacing: 10) {
+    VStack(spacing: 5) {
       Image(systemName: systemImage)
         .font(.subheadline.weight(.bold))
         .foregroundStyle(tint)
-        .frame(width: 26)
-      VStack(alignment: .leading, spacing: 1) {
-        Text(value)
-          .font(.system(size: 17, weight: .black, design: .rounded))
-          .foregroundStyle(.white)
-          .lineLimit(1)
-          .minimumScaleFactor(0.7)
-        Text(title)
-          .font(.system(size: 11, weight: .semibold))
-          .foregroundStyle(PulseTheme.secondaryText)
-      }
-      Spacer(minLength: 4)
+
+      Text(value)
+        .font(.system(size: 19, weight: .black, design: .rounded))
+        .foregroundStyle(.white)
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+
+      Text(title)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(PulseTheme.secondaryText)
+        .lineLimit(1)
+
       if let trend {
         HStack(spacing: 2) {
           Image(systemName: trend.isUp ? "arrow.up.right" : "arrow.down.right")
-            .font(.system(size: 9, weight: .black))
+            .font(.system(size: 8, weight: .black))
           Text(trend.label)
-            .font(.system(size: 11, weight: .black, design: .rounded).monospacedDigit())
+            .font(.system(size: 10, weight: .black, design: .rounded).monospacedDigit())
         }
         .foregroundStyle(trend.isUp ? PulseTheme.primaryBright : PulseTheme.destructive)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 3)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
         .background((trend.isUp ? PulseTheme.primaryBright : PulseTheme.destructive).opacity(0.14), in: Capsule())
+      } else {
+        // Keep tiles vertically aligned when one has no trend badge.
+        Color.clear.frame(height: 16)
       }
     }
+    .frame(maxWidth: .infinity)
   }
 }
 
