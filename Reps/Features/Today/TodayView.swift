@@ -2143,9 +2143,9 @@ private struct VisualExerciseCard: View {
 
     private var difficultyLabel: String {
         switch exercise.difficulty {
-        case .low: return localizedString("Fácil")
-        case .medium: return localizedString("Medio")
-        case .high: return localizedString("Difícil")
+        case .low: return localizedString("easy_label")
+        case .medium: return localizedString("medium_label")
+        case .high: return localizedString("hard_label")
         }
     }
 

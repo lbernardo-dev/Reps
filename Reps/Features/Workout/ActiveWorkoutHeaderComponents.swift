@@ -57,7 +57,7 @@ struct ActiveWorkoutPinnedHeader: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .disabled(isFinishingWorkout || (!isSessionStarted && !canStartWorkout))
-                .accessibilityHint(!isSessionStarted && !canStartWorkout ? localizedString("Añade al menos un ejercicio o usa una sesión de cardio") : "")
+                .accessibilityHint(!isSessionStarted && !canStartWorkout ? localizedString("add_exercise_or_cardio") : "")
             }
             .frame(width: contentWidth)
             .padding(.top, 10)

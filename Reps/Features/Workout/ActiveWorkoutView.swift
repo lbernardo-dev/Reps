@@ -308,7 +308,7 @@ struct ActiveWorkoutView: View {
         }
         .sheet(item: replacementBinding) { replacement in
             ExercisePickerSheet(
-                title: localizedString("Sustituir ejercicio"),
+                title: localizedString("substitute_exercise"),
                 exercises: substitutionCandidates(for: replacement.index),
                 currentExercise: exerciseDrafts.indices.contains(replacement.index) ? exerciseDrafts[replacement.index].workoutExercise.exercise : nil
             ) { exercise in
@@ -918,8 +918,8 @@ struct ActiveWorkoutView: View {
                 }
 
                 HStack(spacing: 10) {
-                    BatteryMicroMetric(title: localizedString("Fatiga"), value: "\(Int(currentBattery.fatigueLoad.rounded()))", systemImage: "bolt.slash", color: PulseTheme.destructive)
-                    BatteryMicroMetric(title: localizedString("Recarga"), value: "+\(Int(currentBattery.recoveryCredit.rounded()))", systemImage: "bed.double", color: PulseTheme.accent)
+                    BatteryMicroMetric(title: localizedString("fatigue_label"), value: "\(Int(currentBattery.fatigueLoad.rounded()))", systemImage: "bolt.slash", color: PulseTheme.destructive)
+                    BatteryMicroMetric(title: localizedString("recharge_label"), value: "+\(Int(currentBattery.recoveryCredit.rounded()))", systemImage: "bed.double", color: PulseTheme.accent)
                     BatteryMicroMetric(title: localizedString("plan"), value: "\(Int(currentBattery.planPressure.rounded()))", systemImage: "calendar", color: PulseTheme.warning)
                 }
             }
@@ -1158,13 +1158,13 @@ struct ActiveWorkoutView: View {
                 statusBadge: routeTrackerStatusBadge,
                 primaryMetrics: [
                     .init(title: localizedString("distance_label"), value: String(format: "%.2f km", displayedRouteMetrics.distanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up"),
-                    .init(title: localizedString("Puntos"), value: "\(displayedRouteMetrics.pointCount)", icon: "map.fill"),
+                    .init(title: localizedString("route_points"), value: "\(displayedRouteMetrics.pointCount)", icon: "map.fill"),
                     .init(title: localizedString("pace_label"), value: displayedRouteMetrics.paceText, icon: "speedometer")
                 ],
                 secondaryMetrics: [
-                    .init(title: localizedString("Velocidad"), value: displayedRouteMetrics.speedText, icon: "gauge.with.needle"),
-                    .init(title: localizedString("Pasos"), value: displayedRouteMetrics.stepsText, icon: "shoeprints.fill"),
-                    .init(title: localizedString("Pulso"), value: displayedRouteMetrics.heartRateText, icon: "heart.fill")
+                    .init(title: localizedString("speed_label"), value: displayedRouteMetrics.speedText, icon: "gauge.with.needle"),
+                    .init(title: localizedString("steps_label"), value: displayedRouteMetrics.stepsText, icon: "shoeprints.fill"),
+                    .init(title: localizedString("pulse_label"), value: displayedRouteMetrics.heartRateText, icon: "heart.fill")
                 ]
             )
         }
@@ -1187,15 +1187,15 @@ struct ActiveWorkoutView: View {
     }
 
     private var routeTrackerStatusBadge: String {
-        if routeTracker.isTracking { return localizedString("GPS activo") }
-        if isSessionStarted && isPaused { return localizedString("Pausado") }
-        if isSessionStarted { return localizedString("GPS listo") }
-        return localizedString("Listo")
+        if routeTracker.isTracking { return localizedString("gps_active") }
+        if isSessionStarted && isPaused { return localizedString("paused_label") }
+        if isSessionStarted { return localizedString("gps_ready") }
+        return localizedString("ready_label")
     }
 
     private var cardioControlStatus: String {
         if isTreadmillCandidate {
-            return isPaused ? localizedString("Pausado") : localizedString("Cinta")
+            return isPaused ? localizedString("paused_label") : localizedString("treadmill_label")
         }
         return routeTrackerStatusBadge
     }
@@ -1242,7 +1242,7 @@ struct ActiveWorkoutView: View {
                             .foregroundStyle(PulseTheme.tertiaryText)
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
-                        Text(RepsText.exerciseName(selectedDraft?.workoutExercise.exercise.name ?? localizedString("Ejercicio"), language: store.userProfile.preferredLanguage))
+                        Text(RepsText.exerciseName(selectedDraft?.workoutExercise.exercise.name ?? localizedString("exercise_label"), language: store.userProfile.preferredLanguage))
                             .font(.title3.weight(.bold))
                             .lineLimit(3)
                             .minimumScaleFactor(0.78)
@@ -1674,7 +1674,7 @@ struct ActiveWorkoutView: View {
 
     private var nextExerciseTitle: String {
         guard exerciseDrafts.indices.contains(selectedExerciseIndex + 1) else {
-            return exerciseDrafts.isEmpty ? localizedString("Añadir ejercicio") : localizedString("Completar entreno")
+            return exerciseDrafts.isEmpty ? localizedString("add_exercise_label") : localizedString("complete_workout")
         }
 
         return RepsText.exerciseName(
@@ -3335,15 +3335,15 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
 
     var statusText: String {
         if isTracking {
-            return localizedString("Registrando ruta en vivo")
+            return localizedString("recording_live_route")
         }
         switch authorizationStatus {
         case .denied, .restricted:
-            return localizedString("Permiso de ubicación no concedido")
+            return localizedString("location_permission_denied")
         case .notDetermined:
-            return localizedString("Listo para pedir permiso")
+            return localizedString("ready_to_request_permission")
         default:
-            return routePoints.isEmpty ? localizedString("Sin ruta iniciada") : localizedString("Ruta pausada")
+            return routePoints.isEmpty ? localizedString("no_route_started") : localizedString("route_paused")
         }
     }
 

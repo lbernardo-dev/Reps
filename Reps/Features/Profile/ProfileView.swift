@@ -659,8 +659,8 @@ struct ProfileView: View {
                         if let csvExportURL {
                             ShareLink(item: csvExportURL) {
                                 ProfileToolCard(
-                                    title: localizedString("Compartir CSV"),
-                                    subtitle: localizedString("Enviar archivo"),
+                                    title: localizedString("share_csv"),
+                                    subtitle: localizedString("send_file"),
                                     systemImage: "square.and.arrow.up",
                                     color: PulseTheme.primary,
                                     badge: localizedString("listo")
@@ -670,7 +670,7 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: localizedString("Imagen"),
+                            title: localizedString("image_label"),
                             subtitle: localizedString(shareImageURL == nil ? "Resumen privado" : "PNG listo"),
                             systemImage: "photo.on.rectangle",
                             color: .orange
@@ -708,7 +708,7 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: localizedString("Backup"),
+                            title: localizedString("backup_label"),
                             subtitle: localizedString(backupExportURL == nil ? "generate_json" : "json_ready"),
                             systemImage: "externaldrive",
                             color: PulseTheme.accent

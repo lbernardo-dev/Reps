@@ -331,7 +331,7 @@ struct PaywallView: View {
         switch cycle {
         case .weekly: return localizedString("por semana")
         case .monthly: return localizedString("al mes")
-        case .annual: return localizedString("al año")
+        case .annual: return localizedString("per_year")
         case .lifetime: return ""
         }
     }
@@ -347,16 +347,16 @@ struct PaywallView: View {
 
     private func badge(for cycle: SubscriptionBillingCycle) -> String? {
         switch cycle {
-        case .annual: return localizedString("Mejor valor")
-        case .monthly: return localizedString("Flexible")
-        case .lifetime: return localizedString("Pago único")
-        case .weekly: return localizedString("Prueba rápida")
+        case .annual: return localizedString("best_value")
+        case .monthly: return localizedString("flexible_label")
+        case .lifetime: return localizedString("one_time_payment")
+        case .weekly: return localizedString("quick_trial")
         }
     }
 
     private func purchaseSelectedProduct() async {
         guard let selectedProduct else {
-            storeKitInfoMessage = store.storeKitErrorMessage ?? localizedString("Los productos de StoreKit aún no están disponibles.")
+            storeKitInfoMessage = store.storeKitErrorMessage ?? localizedString("storekit_products_unavailable")
             showStoreKitInfo = true
             return
         }
@@ -629,13 +629,13 @@ private struct PlanComparisonCard: View {
                 HStack(alignment: .top, spacing: 12) {
                     FeatureTierColumn(
                         title: "Free",
-                        subtitle: localizedString("Hábito básico"),
+                        subtitle: localizedString("basic_habit"),
                         color: PulseTheme.primaryBright,
                         features: ProductAccess.freeFeatures
                     )
                     FeatureTierColumn(
                         title: "Pro",
-                        subtitle: localizedString("Decisiones avanzadas"),
+                        subtitle: localizedString("advanced_decisions"),
                         color: PulseTheme.accent,
                         features: ProductAccess.proFeatures
                     )

@@ -8,8 +8,8 @@ struct WorkoutLibraryView: View {
 
     var body: some View {
         StickyHeaderScaffold(
-            title: localizedString("Rutinas"),
-            subtitle: localizedString("Crea, programa y reutiliza"),
+            title: localizedString("routines"),
+            subtitle: localizedString("create_schedule_reuse"),
             backAction: {
                 dismiss()
             },
@@ -156,8 +156,8 @@ struct WorkoutEditorView: View {
         self.mode = mode
         switch mode {
         case .create:
-            _title = State(initialValue: localizedString("Nueva rutina"))
-            _subtitle = State(initialValue: localizedString("Fuerza"))
+            _title = State(initialValue: localizedString("new_routine"))
+            _subtitle = State(initialValue: localizedString("strength_label"))
             _durationMinutes = State(initialValue: 45)
             _exercises = State(initialValue: [])
         case .edit(let workout):
@@ -226,8 +226,8 @@ struct WorkoutEditorView: View {
 
     private var modeTitle: String {
         switch mode {
-        case .create: localizedString("Crear rutina")
-        case .edit: localizedString("Editar rutina")
+        case .create: localizedString("create_routine")
+        case .edit: localizedString("edit_routine")
         }
     }
 

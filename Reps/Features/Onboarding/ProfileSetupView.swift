@@ -250,7 +250,7 @@ struct ProfileSetupView: View {
 
             VStack(spacing: 14) {
                 OnboardingRulerMetric(
-                    title: localizedString("Edad"),
+                    title: localizedString("age_label"),
                     valueText: "\(age)",
                     unit: "years",
                     caption: localizedString("experience_recovery_and_initial_volume"),
@@ -264,7 +264,7 @@ struct ProfileSetupView: View {
                 )
 
                 OnboardingRulerMetric(
-                    title: localizedString("Altura"),
+                    title: localizedString("height_label"),
                     valueText: String(format: "%.0f", heightCm),
                     unit: "cm",
                     caption: localizedString("helps_contextualize_weight_and_composition"),
@@ -275,10 +275,10 @@ struct ProfileSetupView: View {
                 )
 
                 OnboardingRulerMetric(
-                    title: localizedString("Peso"),
+                    title: localizedString("weight_label"),
                     valueText: String(format: "%.1f", weightKg),
                     unit: "kg",
-                    caption: localizedString("Base para tu objetivo y estimaciones de progreso."),
+                    caption: localizedString("metrics_basis_caption"),
                     icon: "scalemass.fill",
                     value: $weightKg,
                     range: 35...180,
@@ -1318,11 +1318,11 @@ struct ProfileSetupView: View {
 
     private var primaryButtonTitle: String {
         switch step {
-        case .presentation: localizedString("Empezar")
-        case .sex, .metrics, .goal, .training, .focus: localizedString("Continuar")
-        case .generating: localizedString("Ver plan generado")
-        case .plan: localizedString("Ver beneficios Pro")
-        case .paywall: localizedString("Empezar con mi plan")
+        case .presentation: localizedString("onboarding_start")
+        case .sex, .metrics, .goal, .training, .focus: localizedString("onboarding_continue")
+        case .generating: localizedString("see_generated_plan")
+        case .plan: localizedString("see_pro_benefits")
+        case .paywall: localizedString("start_with_my_plan")
         }
     }
 

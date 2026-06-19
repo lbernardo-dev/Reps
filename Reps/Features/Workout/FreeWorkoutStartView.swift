@@ -97,8 +97,8 @@ private struct FreeWorkoutStartRow: View {
 extension WorkoutDay {
     static var freeOutdoorWalk: WorkoutDay {
         WorkoutDay(
-            title: localizedString("Caminata exterior"),
-            subtitle: localizedString("GPS, ruta y sensores"),
+            title: localizedString("outdoor_walk"),
+            subtitle: localizedString("gps_route_sensors"),
             durationMinutes: 30,
             exercises: [],
             sessionType: .cardioWalk,
@@ -108,8 +108,8 @@ extension WorkoutDay {
 
     static var freeTreadmillWalk: WorkoutDay {
         WorkoutDay(
-            title: localizedString("Caminata en cinta"),
-            subtitle: localizedString("Sin GPS, con sensores"),
+            title: localizedString("treadmill_walk"),
+            subtitle: localizedString("no_gps_with_sensors"),
             durationMinutes: 30,
             exercises: [],
             sessionType: .cardioWalk,
@@ -119,8 +119,8 @@ extension WorkoutDay {
 
     static var freeOutdoorRun: WorkoutDay {
         WorkoutDay(
-            title: localizedString("Carrera exterior"),
-            subtitle: localizedString("Ritmo, ruta y sensores"),
+            title: localizedString("outdoor_run"),
+            subtitle: localizedString("pace_route_sensors"),
             durationMinutes: 30,
             exercises: [],
             sessionType: .cardioRun,
@@ -130,8 +130,8 @@ extension WorkoutDay {
 
     static var freeTreadmillRun: WorkoutDay {
         WorkoutDay(
-            title: localizedString("Carrera en cinta"),
-            subtitle: localizedString("Sin GPS, con sensores"),
+            title: localizedString("treadmill_run"),
+            subtitle: localizedString("no_gps_with_sensors"),
             durationMinutes: 30,
             exercises: [],
             sessionType: .cardioRun,
