@@ -216,7 +216,7 @@ struct ProfileSetupView: View {
             PulseCard {
                 VStack(spacing: 18) {
                     HStack {
-                        OnboardingSignal(title: "Plan", value: "8 semanas", color: PulseTheme.primary)
+                        OnboardingSignal(title: "Plan", value: "8_weeks", color: PulseTheme.primary)
                         OnboardingSignal(title: "progress", value: "by_muscle", color: PulseTheme.primaryBright)
                         OnboardingSignal(title: "prediction", value: "visual", color: PulseTheme.accent)
                     }
@@ -1792,7 +1792,7 @@ private struct OnboardingSignal: View {
             Text(localizedKey(title))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
-            Text(value)
+            Text(localizedKey(value))
                 .font(.headline)
                 .foregroundStyle(color)
                 .lineLimit(1)
