@@ -70,9 +70,9 @@ struct RepsWorkoutLiveActivity: Widget {
                         .lineLimit(1)
                     Group {
                         if snapshot.isPaused, snapshot.isOutdoorRoute == false {
-                            Text("cinta_pausada")
+                            Text("treadmill_paused")
                         } else if snapshot.isPaused {
-                            Text("ruta_pausada")
+                            Text("route_paused")
                         } else {
                             Text(verbatim: routeSubtitle(snapshot))
                         }
@@ -86,25 +86,25 @@ struct RepsWorkoutLiveActivity: Widget {
             }
 
             HStack(spacing: 10) {
-                compactMetric("Tiempo", icon: "timer", theme: theme) {
+                compactMetric("time_label", icon: "timer", theme: theme) {
                     elapsedTimerText(snapshot)
                 }
-                compactMetric("Distancia", icon: "point.topleft.down.curvedto.point.bottomright.up", theme: theme) {
+                compactMetric("distance_label", icon: "point.topleft.down.curvedto.point.bottomright.up", theme: theme) {
                     Text(routeDistanceText(snapshot))
                 }
-                compactMetric("Ritmo", icon: "speedometer", theme: theme) {
+                compactMetric("pace_label", icon: "speedometer", theme: theme) {
                     Text(routePaceText(snapshot))
                 }
             }
 
             HStack(spacing: 10) {
-                compactMetric("Pulso", icon: "heart.fill", theme: theme) {
+                compactMetric("pulse_label", icon: "heart.fill", theme: theme) {
                     Text(snapshot.heartRate.map { localizedFormat("heart_rate_bpm_format", Int($0)) } ?? "--")
                 }
                 compactMetric("Kcal", icon: "flame.fill", theme: theme) {
                     Text(snapshot.activeEnergyKcal.map { "\(Int($0))" } ?? "--")
                 }
-                compactMetric("Pasos", icon: "shoeprints.fill", theme: theme) {
+                compactMetric("steps_label", icon: "shoeprints.fill", theme: theme) {
                     Text(snapshot.routeSteps.map { "\(Int($0))" } ?? "--")
                 }
             }
@@ -155,13 +155,13 @@ struct RepsWorkoutLiveActivity: Widget {
                         .progressViewStyle(RepsProgressStyle(tintColor: theme.tint, isDarkBackground: theme.isDarkBackground))
 
                     HStack(spacing: 6) {
-                        compactMetric("Tiempo", icon: "timer", theme: theme) {
+                        compactMetric("time_label", icon: "timer", theme: theme) {
                             elapsedTimerText(snapshot)
                         }
                         compactMetric("Restante", icon: "hourglass", theme: theme) {
                             Text(snapshot.restEndDate == nil ? snapshot.remainingText : snapshot.restText)
                         }
-                        compactMetric("Volumen", icon: "scalemass", theme: theme) {
+                        compactMetric("volume_label", icon: "scalemass", theme: theme) {
                             Text("\(snapshot.volumeKg) kg")
                         }
                     }
@@ -208,7 +208,7 @@ struct RepsWorkoutLiveActivity: Widget {
 
     private func healthRow(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme) -> some View {
         HStack(spacing: 10) {
-            compactMetric("Pulso", icon: "heart.fill", theme: theme) {
+            compactMetric("pulse_label", icon: "heart.fill", theme: theme) {
                 Text(snapshot.heartRate.map { localizedFormat("heart_rate_bpm_format", Int($0)) } ?? "--")
             }
             compactMetric("Kcal", icon: "flame.fill", theme: theme) {
@@ -270,7 +270,7 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func actionButtons(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme, includesCompleteSet: Bool) -> some View {
-        let pauseTitle: LocalizedStringKey = snapshot.isPaused ? "Reanudar" : "Pausa"
+        let pauseTitle: LocalizedStringKey = snapshot.isPaused ? "resume_label" : "pause_label"
         return HStack(spacing: 8) {
             Button(intent: ToggleWorkoutPauseLiveActivityIntent()) {
                 Label(pauseTitle, systemImage: snapshot.isPaused ? "play.fill" : "pause.fill")

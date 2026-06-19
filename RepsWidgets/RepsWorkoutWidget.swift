@@ -390,7 +390,7 @@ private struct ActiveWorkoutView: View {
 
                     HStack(spacing: 6) {
                         metricPill(title: "Restante", value: entry.snapshot.remainingText, icon: "hourglass")
-                        metricPill(title: "Volumen", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
+                        metricPill(title: "volume_label", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
                         metricPill(title: "Agua", value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
                     }
                 }
@@ -436,12 +436,12 @@ private struct ActiveWorkoutView: View {
             }
 
             HStack(spacing: 6) {
-                metricPill(title: "Ritmo", value: routePaceText(), icon: "speedometer")
+                metricPill(title: "pace_label", value: routePaceText(), icon: "speedometer")
                 if family == .systemMedium {
-                    metricPill(title: "Pulso", value: entry.snapshot.heartRate.map { "\(Int($0)) lpm" } ?? "--", icon: "heart.fill")
+                    metricPill(title: "pulse_label", value: entry.snapshot.heartRate.map { "\(Int($0)) lpm" } ?? "--", icon: "heart.fill")
                     metricPill(title: "Kcal", value: entry.snapshot.activeEnergyKcal.map { "\(Int($0))" } ?? "--", icon: "flame.fill")
                 } else {
-                    metricPill(title: "Pasos", value: entry.snapshot.routeSteps.map { "\(Int($0))" } ?? "--", icon: "shoeprints.fill")
+                    metricPill(title: "steps_label", value: entry.snapshot.routeSteps.map { "\(Int($0))" } ?? "--", icon: "shoeprints.fill")
                 }
             }
 
@@ -533,7 +533,7 @@ private struct ActiveWorkoutView: View {
 
             HStack(spacing: 6) {
                 metricPill(title: "Restante", value: entry.snapshot.remainingText, icon: "hourglass")
-                metricPill(title: "Volumen", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
+                metricPill(title: "volume_label", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
                 metricPill(title: "Agua", value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
             }
 
@@ -635,7 +635,7 @@ private struct ActiveWorkoutView: View {
 
             Button(intent: ToggleWorkoutPauseLiveActivityIntent()) {
                 Label(
-                    entry.snapshot.isPaused ? "Reanudar" : "Pausa",
+                    entry.snapshot.isPaused ? "resume_label" : "pause_label",
                     systemImage: entry.snapshot.isPaused ? "play.fill" : "pause.fill"
                 )
                 .font(.system(size: 11, weight: .bold))
