@@ -58,15 +58,8 @@ struct ProgressDashboardView: View {
           }
           .stickyHeaderTitle(localizedString("metric_2"))
 
-          ProgressActionPlanCard(
-            steps: nextBestSteps,
-            weeklyCompletion: store.weeklyCompletion,
-            battery: batteryStatus,
-            completionRate: competitiveSummary.completionRate
-          ) { action in
-            perform(action)
-          }
-          .stickyHeaderTitle(localizedString("progress_plan"))
+          // The next-best-action plan lives on the Today tab; Progress stays a
+          // pure analytics surface to avoid duplicating it across both tabs.
 
           if selectedSection == .general {
             HStack(spacing: 14) {
@@ -638,20 +631,6 @@ struct ProgressDashboardView: View {
     )
   }
 
-  private var nextBestSteps: [RetentionEngine.ActivationStep] {
-    RetentionEngine.nextBestSteps(
-      sessions: store.workoutSessions,
-      activePlan: store.activePlan,
-      scheduledWorkouts: store.scheduledWorkouts,
-      remindersEnabled: store.userProfile.remindersEnabled,
-      competitiveSummary: competitiveSummary
-    )
-  }
-
-  private var batteryStatus: FitnessMetrics.TrainingBatteryStatus {
-    store.trainingBattery
-  }
-
   private var effectiveSetCount: Int {
     filteredSessions.reduce(0) { $0 + AnalyticsEngine.effectiveSets(in: $1).count }
   }
@@ -795,29 +774,6 @@ struct ProgressDashboardView: View {
       return
     }
     onSelectTab?(destination)
-  }
-
-  private func perform(_ action: RetentionEngine.ActivationAction?) {
-    guard let action else { return }
-    HapticService.selection()
-
-    switch action {
-    case .startWorkout:
-      onSelectTab?(.today)
-    case .createPlan:
-      onSelectTab?(.plans)
-    case .scheduleWorkout:
-      onSelectTab?(.calendar)
-    case .competitive(let competitiveAction):
-      guard let destination = store.executeCompetitiveAction(competitiveAction) else {
-        return
-      }
-      onSelectTab?(destination)
-    case .openProgress:
-      withAnimation(.snappy(duration: 0.2)) {
-        selectedSection = .general
-      }
-    }
   }
 }
 
