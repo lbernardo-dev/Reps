@@ -214,6 +214,12 @@ final class AppStore {
     }
 
     func handleNotificationTarget(_ target: NotificationService.NotificationTarget) {
+        // "Mark as done" resolves in place: flip the scheduled workout to
+        // completed and surface a confirmation, then land on the calendar.
+        if target.action == .markDone {
+            markScheduledWorkoutCompleted(id: target.scheduledWorkoutID, date: target.scheduledDate)
+        }
+
         switch target.kind {
         case .workoutReminder, .missedWorkoutCheck:
             let focusDate = target.scheduledDate ?? .now
@@ -223,13 +229,36 @@ final class AppStore {
                 focusDate: focusDate,
                 scheduledWorkoutID: target.scheduledWorkoutID
             )
-        case .dailySummary, .batteryRecoverySuggestion, .retentionNudge:
+        case .personalRecord, .achievementUnlocked:
+            notificationDestination = NotificationDestination(
+                tab: .progress,
+                focusDate: nil,
+                scheduledWorkoutID: nil
+            )
+        case .dailySummary, .batteryRecoverySuggestion, .retentionNudge, .streakAtRisk:
             notificationDestination = NotificationDestination(
                 tab: .today,
                 focusDate: nil,
                 scheduledWorkoutID: nil
             )
         }
+    }
+
+    private func markScheduledWorkoutCompleted(id: UUID?, date: Date?) {
+        let calendar = Calendar.current
+        let index = scheduledWorkouts.firstIndex { workout in
+            if let id, workout.id == id { return true }
+            if let date, calendar.isDate(workout.date, inSameDayAs: date) { return true }
+            return false
+        }
+
+        guard let index, scheduledWorkouts[index].status != .completed else {
+            return
+        }
+
+        scheduledWorkouts[index].status = .completed
+        health.message = localizedString("notif_marked_done_message")
+        HapticService.notification(.success)
     }
 
     func consumeNotificationDestination() {
@@ -871,6 +900,17 @@ final class AppStore {
                     level: battery.level,
                     suggestion: battery.suggestion
                 )
+            }
+        }
+
+        // Celebrate a personal record set during this session (PRs are flagged
+        // while logging via ExerciseHistoryAnalyzer.isPersonalRecord).
+        if userProfile.remindersEnabled,
+           let prExerciseName = session.exerciseLogs?
+               .first(where: { log in log.sets.contains { $0.isPersonalRecord && $0.completed } })?
+               .exercise.name {
+            Task {
+                try? await NotificationService.schedulePersonalRecordCelebration(exerciseName: prExerciseName)
             }
         }
     }
@@ -2072,7 +2112,7 @@ final class AppStore {
 
     private func scheduleDeloadSession(for exercise: Exercise) {
         let workout = WorkoutDay(
-            title: "Descarga: \(exercise.name)",
+            title: localizedFormat("deload_session_title_format", exercise.name),
             subtitle: "reduce_load_and_recover_progression",
             durationMinutes: 24,
             exercises: [
@@ -2458,6 +2498,9 @@ final class AppStore {
 
         let remindersEnabled = userProfile.remindersEnabled
         let scheduled = scheduledWorkouts
+        let calendar = Calendar.current
+        let trainedToday = workoutSessions.contains { calendar.isDateInToday($0.date) }
+        let currentStreak = streakDays
 
         Task {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
@@ -2465,6 +2508,7 @@ final class AppStore {
 
             if !remindersEnabled || !isAuthorized {
                 NotificationService.clearWorkoutReminders()
+                NotificationService.cancelStreakAtRiskReminder()
                 return
             }
 
@@ -2472,6 +2516,14 @@ final class AppStore {
                 for: scheduled,
                 includeDailySummary: true
             )
+
+            // Protect an active streak: remind in the evening only while it is
+            // still at risk (not trained yet today). Cancel once trained.
+            if currentStreak > 0, !trainedToday {
+                try? await NotificationService.scheduleStreakAtRiskReminder(currentStreak: currentStreak)
+            } else {
+                NotificationService.cancelStreakAtRiskReminder()
+            }
         }
     }
 

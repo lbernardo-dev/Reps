@@ -34,6 +34,7 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         TelemetryService.shared.configure()
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
+        NotificationService.registerCategories()
         return true
     }
 }

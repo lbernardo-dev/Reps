@@ -8,12 +8,50 @@ enum NotificationService {
         case dailySummary
         case batteryRecoverySuggestion
         case retentionNudge
+        case personalRecord
+        case streakAtRisk
+        case achievementUnlocked
+    }
+
+    /// User-tappable action surfaced on the notification (long-press / Notification Center).
+    enum Action: Equatable {
+        case open            // default tap
+        case logWorkout      // open straight into logging
+        case markDone        // mark the scheduled workout complete
+        case snooze          // reschedule the reminder ~1h later
+
+        init(actionIdentifier: String) {
+            switch actionIdentifier {
+            case Identifiers.logWorkoutAction: self = .logWorkout
+            case Identifiers.markDoneAction: self = .markDone
+            case Identifiers.snoozeAction: self = .snooze
+            default: self = .open
+            }
+        }
     }
 
     struct NotificationTarget: Equatable {
         let kind: Kind
         let scheduledWorkoutID: UUID?
         let scheduledDate: Date?
+        var action: Action = .open
+
+        func with(action: Action) -> NotificationTarget {
+            NotificationTarget(
+                kind: kind,
+                scheduledWorkoutID: scheduledWorkoutID,
+                scheduledDate: scheduledDate,
+                action: action
+            )
+        }
+    }
+
+    enum Identifiers {
+        static let workoutReminderCategory = "WORKOUT_REMINDER"
+        static let missedWorkoutCategory = "MISSED_WORKOUT"
+        static let logWorkoutAction = "LOG_WORKOUT"
+        static let markDoneAction = "MARK_DONE"
+        static let snoozeAction = "SNOOZE"
     }
 
     private static let workoutReminderPrefix = "workout-reminder-"
@@ -21,6 +59,10 @@ enum NotificationService {
     private static let dailySummaryIdentifier = "daily-summary"
     private static let batterySuggestionIdentifier = "battery-recovery-suggestion"
     private static let retentionNudgePrefix = "retention-nudge-"
+    private static let personalRecordPrefix = "personal-record-"
+    private static let streakAtRiskIdentifier = "streak-at-risk"
+    private static let achievementPrefix = "achievement-"
+    private static let snoozePrefix = "snoozed-"
 
     private static let kindKey = "notification_kind"
     private static let scheduledWorkoutIDKey = "scheduled_workout_id"
@@ -28,6 +70,41 @@ enum NotificationService {
 
     static func requestAuthorization() async throws -> Bool {
         try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+    }
+
+    /// Registers the actionable categories. Call once at launch so taps and
+    /// long-press actions resolve correctly (also on cold launch).
+    static func registerCategories() {
+        let logWorkout = UNNotificationAction(
+            identifier: Identifiers.logWorkoutAction,
+            title: localizedString("notif_action_log_workout"),
+            options: [.foreground]
+        )
+        let markDone = UNNotificationAction(
+            identifier: Identifiers.markDoneAction,
+            title: localizedString("notif_action_mark_done"),
+            options: [.foreground]
+        )
+        let snooze = UNNotificationAction(
+            identifier: Identifiers.snoozeAction,
+            title: localizedString("notif_action_snooze"),
+            options: []
+        )
+
+        let reminder = UNNotificationCategory(
+            identifier: Identifiers.workoutReminderCategory,
+            actions: [logWorkout, markDone, snooze],
+            intentIdentifiers: [],
+            options: []
+        )
+        let missed = UNNotificationCategory(
+            identifier: Identifiers.missedWorkoutCategory,
+            actions: [markDone, logWorkout],
+            intentIdentifiers: [],
+            options: []
+        )
+
+        UNUserNotificationCenter.current().setNotificationCategories([reminder, missed])
     }
 
     private static let restTimerIdentifier = "rest-timer-end"
@@ -80,7 +157,7 @@ enum NotificationService {
 
     static func scheduleBatteryRecoverySuggestion(level: Int, suggestion: String) async throws {
         let content = UNMutableNotificationContent()
-        content.title = "Batería de entrenamiento al \(level)%"
+        content.title = localizedFormat("notif_battery_recovery_title_format", level)
         content.body = suggestion
         content.sound = .default
         content.threadIdentifier = "training-battery"
@@ -121,6 +198,97 @@ enum NotificationService {
             trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         )
         try await UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Celebrates a freshly-achieved personal record. Fires a few seconds later
+    /// so it lands right after the user finishes (and never while logging).
+    static func schedulePersonalRecordCelebration(exerciseName: String, delay: TimeInterval = 4) async throws {
+        let content = UNMutableNotificationContent()
+        content.title = localizedString("notif_pr_title")
+        content.body = localizedFormat("notif_pr_body_format", exerciseName)
+        content.sound = .default
+        content.threadIdentifier = "achievements"
+        content.userInfo = [kindKey: Kind.personalRecord.rawValue]
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, delay), repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "\(personalRecordPrefix)\(UUID().uuidString)",
+            content: content,
+            trigger: trigger
+        )
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Schedules a reminder for the evening of a day where the streak would
+    /// otherwise break. Replaces any previously scheduled streak reminder.
+    static func scheduleStreakAtRiskReminder(currentStreak: Int, hour: Int = 19, minute: Int = 0, now: Date = .now) async throws {
+        guard currentStreak > 0 else { return }
+        let fireDate = notificationDate(for: now, hour: hour, minute: minute)
+        guard fireDate > now.addingTimeInterval(60) else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = localizedFormat("notif_streak_at_risk_title_format", currentStreak)
+        content.body = localizedString("notif_streak_at_risk_body")
+        content.sound = .default
+        content.threadIdentifier = "streak"
+        content.userInfo = [kindKey: Kind.streakAtRisk.rawValue]
+
+        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+        let request = UNNotificationRequest(
+            identifier: streakAtRiskIdentifier,
+            content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        )
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [streakAtRiskIdentifier])
+        try await center.add(request)
+    }
+
+    static func cancelStreakAtRiskReminder() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [streakAtRiskIdentifier])
+    }
+
+    /// Celebrates a newly unlocked achievement.
+    static func scheduleAchievementUnlocked(message: String, delay: TimeInterval = 3) async throws {
+        let content = UNMutableNotificationContent()
+        content.title = localizedString("notif_achievement_title")
+        content.body = message
+        content.sound = .default
+        content.threadIdentifier = "achievements"
+        content.userInfo = [kindKey: Kind.achievementUnlocked.rawValue]
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, delay), repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "\(achievementPrefix)\(UUID().uuidString)",
+            content: content,
+            trigger: trigger
+        )
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Re-schedules the notification ~1h later (snooze action handler).
+    static func snooze(userInfo: [AnyHashable: Any], delay: TimeInterval = 3600) async {
+        guard let target = notificationTarget(from: userInfo) else { return }
+
+        let content = UNMutableNotificationContent()
+        switch target.kind {
+        case .workoutReminder, .missedWorkoutCheck:
+            content.title = localizedString("notif_workout_reminder_title")
+            content.categoryIdentifier = Identifiers.workoutReminderCategory
+        default:
+            content.title = localizedString("notif_daily_summary_title")
+        }
+        content.body = localizedString("notif_streak_at_risk_body")
+        content.sound = .default
+        content.userInfo = userInfo
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(60, delay), repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "\(snoozePrefix)\(UUID().uuidString)",
+            content: content,
+            trigger: trigger
+        )
+        try? await UNUserNotificationCenter.current().add(request)
     }
 
     static func reconcileScheduledReminders(
@@ -187,10 +355,11 @@ enum NotificationService {
         }
 
         let content = UNMutableNotificationContent()
-        content.title = "Entreno programado"
-        content.body = "\(scheduledWorkout.workoutDay.title) está planificado para hoy. Regístralo al terminar para mantener calendario y analítica al día."
+        content.title = localizedString("notif_workout_reminder_title")
+        content.body = localizedFormat("notif_workout_reminder_body_format", scheduledWorkout.workoutDay.title)
         content.sound = .default
         content.threadIdentifier = "workouts"
+        content.categoryIdentifier = Identifiers.workoutReminderCategory
         content.userInfo = notificationUserInfo(
             kind: .workoutReminder,
             scheduledWorkout: scheduledWorkout
@@ -218,10 +387,11 @@ enum NotificationService {
         }
 
         let content = UNMutableNotificationContent()
-        content.title = "¿Has entrenado hoy?"
-        content.body = "Si completaste \(scheduledWorkout.workoutDay.title), regístralo ahora para mantener el progreso preciso."
+        content.title = localizedString("notif_missed_workout_title")
+        content.body = localizedFormat("notif_missed_workout_body_format", scheduledWorkout.workoutDay.title)
         content.sound = .default
         content.threadIdentifier = "workouts"
+        content.categoryIdentifier = Identifiers.missedWorkoutCategory
         content.userInfo = notificationUserInfo(
             kind: .missedWorkoutCheck,
             scheduledWorkout: scheduledWorkout
@@ -241,8 +411,8 @@ enum NotificationService {
 
     private static func dailySummaryRequest(hour: Int, minute: Int) -> UNNotificationRequest {
         let content = UNMutableNotificationContent()
-        content.title = "Resumen diario de Reps"
-        content.body = "Revisa entreno, actividad y métricas corporales de hoy."
+        content.title = localizedString("notif_daily_summary_title")
+        content.body = localizedString("notif_daily_summary_body")
         content.sound = .default
         content.threadIdentifier = "daily-summary"
         content.userInfo = [
@@ -367,6 +537,10 @@ enum NotificationService {
         isScheduledReminderIdentifier(identifier)
             || identifier == batterySuggestionIdentifier
             || identifier.hasPrefix(retentionNudgePrefix)
+            || identifier.hasPrefix(personalRecordPrefix)
+            || identifier == streakAtRiskIdentifier
+            || identifier.hasPrefix(achievementPrefix)
+            || identifier.hasPrefix(snoozePrefix)
     }
 
     private static func iso8601String(from date: Date) -> String {
@@ -405,9 +579,22 @@ final class NotificationRouter: NSObject, ObservableObject, UNUserNotificationCe
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        let target = NotificationService.notificationTarget(from: response.notification.request.content.userInfo)
+        let userInfo = response.notification.request.content.userInfo
+        let action = NotificationService.Action(actionIdentifier: response.actionIdentifier)
+
+        // Snooze never needs the app UI: reschedule directly and stop.
+        if action == .snooze {
+            await NotificationService.snooze(userInfo: userInfo)
+            return
+        }
+
+        guard let target = NotificationService.notificationTarget(from: userInfo) else {
+            return
+        }
+
+        let resolved = target.with(action: action)
         await MainActor.run {
-            latestTarget = target
+            latestTarget = resolved
         }
     }
 }

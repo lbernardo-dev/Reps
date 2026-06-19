@@ -91,6 +91,10 @@ struct MainTabView: View {
                 "tab": selectedTab.telemetryName,
                 "source": "initial"
             ])
+            // Cold launch / post-onboarding: a notification destination set
+            // before this view mounted is not delivered by .onChange, so drain
+            // any pending destination here as well.
+            applyNotificationDestination(store.notificationDestination)
         }
         .onChange(of: selectedTab) { _, newTab in
             TelemetryService.shared.log(.mainTabSelected, parameters: [
@@ -111,16 +115,20 @@ struct MainTabView: View {
             presentedQuickAction = .freeWorkout
         }
         .onChange(of: store.notificationDestination) { _, destination in
-            guard let destination else {
-                return
-            }
-
-            select(destination.tab)
-            if destination.tab == .calendar {
-                store.calendarFocusedDate = destination.focusDate
-            }
-            store.consumeNotificationDestination()
+            applyNotificationDestination(destination)
         }
+    }
+
+    private func applyNotificationDestination(_ destination: AppStore.NotificationDestination?) {
+        guard let destination else {
+            return
+        }
+
+        select(destination.tab)
+        if destination.tab == .calendar {
+            store.calendarFocusedDate = destination.focusDate
+        }
+        store.consumeNotificationDestination()
     }
 
     private var nativeTabView: some View {
