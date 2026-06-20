@@ -312,6 +312,16 @@ actor SocialService {
         CKRecord.ID(recordName: "WorkoutPost_\(username.lowercased())_\(sessionID)")
     }
 
+    func fetchPost(username: String, sessionID: String) async throws -> WorkoutPost? {
+        let rid = postRecordID(username: username, sessionID: sessionID)
+        do {
+            let record = try await publicDB.record(for: rid)
+            return WorkoutPost(record: record)
+        } catch let ck as CKError where ck.code == .unknownItem {
+            return nil
+        }
+    }
+
     func publishPost(
         username: String,
         displayName: String,

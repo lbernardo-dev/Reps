@@ -902,7 +902,7 @@ struct SocialHubView: View {
         guard let uname = store.userProfile.socialUsername else { return }
         let dname = store.userProfile.displayName ?? uname
         let sid = UUID().uuidString
-        Task.detached {
+        Task {
             try? await SocialService.shared.publishPost(
                 username: uname,
                 displayName: dname,
@@ -912,7 +912,10 @@ struct SocialHubView: View {
                 volumeKg: 4200,
                 exerciseNames: ["Bench Press", "Squat", "Deadlift", "Pull-Up", "OHP"]
             )
-            await MainActor.run { [self] in Task { await self.loadFeed() } }
+            // Fetch directly by record ID — no CKQuery index needed
+            if let post = try? await SocialService.shared.fetchPost(username: uname, sessionID: sid) {
+                feedPosts.insert(post, at: 0)
+            }
         }
     }
     #endif
