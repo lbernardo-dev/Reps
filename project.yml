@@ -52,6 +52,11 @@ targets:
         RepsProICloudRecordIDHashes:
           - 69c0dc20d15124f24860efa6345787972b5cc2ebe6f3646fe44cdfe1a5e37ca9
         NSSupportsLiveActivities: true
+        NSUbiquitousContainers:
+          iCloud.com.romerodev.repsfitness:
+            NSUbiquitousContainerIsDocumentScopePublic: false
+            NSUbiquitousContainerName: StreakRep
+            NSUbiquitousContainerSupportedFolderLevels: None
         UIApplicationSupportsIndirectInputEvents: true
         UIBackgroundModes:
           - audio
@@ -73,6 +78,7 @@ targets:
           - iCloud.com.romerodev.repsfitness
         com.apple.developer.icloud-services:
           - CloudKit
+          - CloudDocuments
         com.apple.security.application-groups:
           - group.com.romerodev.repsfitness
     dependencies:

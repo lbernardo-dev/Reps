@@ -237,13 +237,30 @@ struct ProfileView: View {
     }
 
     private var achievementsCard: some View {
+        let xp = GamificationEngine.totalXP(
+            sessions: store.workoutSessions,
+            cardioLogs: store.combinedCardioLogs,
+            bodyMetrics: store.bodyMetrics,
+            progressPhotos: store.progressPhotos,
+            streakDays: store.streakDays,
+            totalVolumeKg: store.totalVolumeKg
+        )
+        let lvl = GamificationEngine.playerLevel(for: xp)
         return PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Text(localizedString("achievements_and_tickets"))
                         .font(.headline)
                     Spacer()
-                    
+
+                    Text("Lv. \(lvl.level) · \(lvl.title)")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(PulseTheme.primary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(PulseTheme.primary.opacity(0.10))
+                        .clipShape(Capsule())
+
                     NavigationLink {
                         AchievementsView()
                     } label: {
@@ -768,6 +785,21 @@ struct ProfileView: View {
                             if profileFeatureIsAvailable(.automaticBackups, source: .backupCenter) {
                                 showImportBackup = true
                             }
+                        }
+
+                        if store.monetization.hasProAccess {
+                            let iCloudStatusSubtitle: String = {
+                                if let date = store.iCloudBackupDate {
+                                    return localizedFormat("last_icloud_backup_date_format", date.formatted(date: .abbreviated, time: .shortened))
+                                }
+                                return localizedString("icloud_backup_pending")
+                            }()
+                            ProfileToolCard(
+                                title: localizedString("icloud_backup"),
+                                subtitle: iCloudStatusSubtitle,
+                                systemImage: "icloud.and.arrow.up",
+                                color: .blue
+                            )
                         }
 
                         ProfileToolButton(

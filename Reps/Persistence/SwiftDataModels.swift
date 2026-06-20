@@ -333,7 +333,7 @@ final class WorkoutExerciseRecord {
             previous: previous,
             restSeconds: restSeconds ?? 90,
             priority: WorkoutExercise.Priority(rawValue: priority ?? "") ?? .secondary,
-            progressionType: WorkoutExercise.ProgressionType(rawValue: progressionType ?? "") ?? .none,
+            progressionType: WorkoutExercise.ProgressionType(rawValue: progressionType ?? "") ?? .doubleProgression,
             targetRPE: targetRPE,
             targetRIR: targetRIR,
             incrementKg: incrementKg ?? 2.5,

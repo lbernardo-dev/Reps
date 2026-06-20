@@ -52,6 +52,7 @@ final class AppStore {
     var health = HealthSyncState() { didSet { save(scope: .health) } }
     var isSyncingExerciseLibrary = false
     var exerciseLibrarySyncMessage: String?
+    var iCloudBackupDate: Date? = nil
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
     var activeWorkoutStatus: ActiveWorkoutStatus? {
@@ -167,6 +168,8 @@ final class AppStore {
         RepsLocalization.use(userProfile.preferredLanguage)
         cleanupJunkHealthWorkoutsIfNeeded()
 
+        iCloudBackupDate = ICloudBackupService.lastBackupDate()
+
         let shouldStartBackgroundServices = startsBackgroundServices && !Self.isRunningUnitTests
         if shouldStartBackgroundServices {
             Task {
@@ -174,6 +177,7 @@ final class AppStore {
                 await refreshStoreKitEntitlements()
                 await refreshICloudProEntitlement()
                 await syncOpenExerciseLibraryIfNeeded()
+                await restoreFromICloudIfNeeded()
             }
 
             transactionUpdatesTask = Task { [weak self] in
@@ -536,6 +540,19 @@ final class AppStore {
 
     func presentStoreKitCodeRedemption() {
         SKPaymentQueue.default().presentCodeRedemptionSheet()
+    }
+
+    // On fresh install (no local sessions/plans), silently restore from iCloud if a
+    // PRO backup exists. This prevents data loss when the user reinstalls the app.
+    private func restoreFromICloudIfNeeded() async {
+        guard workoutSessions.isEmpty && plans.isEmpty else { return }
+        guard let snapshot = await ICloudBackupService.load() else { return }
+        // Only restore if the backup actually has data worth restoring.
+        guard !snapshot.workoutSessions.isEmpty || !snapshot.plans.isEmpty else { return }
+        await MainActor.run {
+            restore(snapshot)
+            iCloudBackupDate = ICloudBackupService.lastBackupDate()
+        }
     }
 
     @discardableResult
@@ -2631,6 +2648,17 @@ final class AppStore {
         let snapshot = sharedWorkoutSnapshot()
         SharedWorkoutStore.save(snapshot, reloadTimelines: reloadTimelines)
         WatchSyncService.shared.publish(snapshot: snapshot)
+
+        // Mirror to iCloud for PRO users so data survives reinstalls.
+        if monetization.hasProAccess {
+            let appSnapshot = currentSnapshot
+            Task.detached(priority: .background) { [weak self] in
+                await ICloudBackupService.save(appSnapshot)
+                if let date = ICloudBackupService.lastBackupDate() {
+                    await MainActor.run { self?.iCloudBackupDate = date }
+                }
+            }
+        }
     }
 
     private func shouldReloadWidgetTimelines(

@@ -253,7 +253,7 @@ struct WorkoutExercise: Codable, Identifiable, Hashable {
     var previous: String
     var restSeconds: Int = 90
     var priority: Priority = .secondary
-    var progressionType: ProgressionType = .none
+    var progressionType: ProgressionType = .doubleProgression
     var targetRPE: Double?
     var targetRIR: Int?
     var incrementKg: Double = 2.5

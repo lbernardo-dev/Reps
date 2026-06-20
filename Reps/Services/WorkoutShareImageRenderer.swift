@@ -19,7 +19,6 @@ struct WorkoutShareImageRenderer {
 
     @MainActor
     static func render(title: String, duration: Int, volume: Int, sets: Int) -> UIImage {
-        // Create a mock WorkoutSession to keep compatibility with PRs and general metrics sharing
         let mockSession = WorkoutSession(
             id: UUID(),
             workoutTitle: title,
@@ -35,6 +34,12 @@ struct WorkoutShareImageRenderer {
             exerciseLogs: []
         )
         let view = WorkoutReceiptView(session: mockSession)
+        return renderReceipt(view)
+    }
+
+    @MainActor
+    static func renderPR(exerciseName: String, weightKg: Double, reps: Int, date: Date) -> UIImage {
+        let view = PRShareCardView(exerciseName: exerciseName, weightKg: weightKg, reps: reps, date: date)
         return renderReceipt(view)
     }
 
@@ -90,6 +95,99 @@ struct WorkoutShareImageRenderer {
                 withAttributes: subtitleAttributes
             )
         }
+    }
+}
+
+private struct PRShareCardView: View {
+    let exerciseName: String
+    let weightKg: Double
+    let reps: Int
+    let date: Date
+
+    private var weightText: String {
+        weightKg.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(weightKg)) kg"
+            : String(format: "%.1f kg", weightKg)
+    }
+
+    private var oneRepMaxText: String {
+        let orm = FitnessMetrics.estimatedOneRepMax(weightKg: weightKg, reps: reps)
+        return "1RM est. \(Int(orm)) kg"
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black
+
+            VStack(spacing: 0) {
+                // Top accent bar
+                Color(red: 0.73, green: 1.0, blue: 0.0)
+                    .frame(height: 6)
+
+                VStack(spacing: 24) {
+                    // Trophy + label
+                    VStack(spacing: 10) {
+                        ZStack {
+                            Circle()
+                                .fill(Color(red: 0.73, green: 1.0, blue: 0.0).opacity(0.14))
+                                .frame(width: 80, height: 80)
+                            Image(systemName: "trophy.fill")
+                                .font(.system(size: 36, weight: .bold))
+                                .foregroundStyle(Color(red: 0.73, green: 1.0, blue: 0.0))
+                        }
+
+                        Text("NUEVO RÉCORD PERSONAL")
+                            .font(.system(size: 11, weight: .black, design: .rounded))
+                            .kerning(2)
+                            .foregroundStyle(Color(red: 0.73, green: 1.0, blue: 0.0))
+                    }
+                    .padding(.top, 32)
+
+                    // Exercise name
+                    Text(exerciseName.uppercased())
+                        .font(.system(size: 22, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.75)
+                        .padding(.horizontal, 24)
+
+                    // Weight × reps
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(weightText)
+                            .font(.system(size: 48, weight: .black, design: .rounded))
+                            .foregroundStyle(Color(red: 0.73, green: 1.0, blue: 0.0))
+                        Text("×")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.4))
+                        Text("\(reps) reps")
+                            .font(.system(size: 32, weight: .heavy, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+
+                    // 1RM estimate
+                    Text(oneRepMaxText)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.5))
+
+                    Spacer(minLength: 0)
+
+                    // Footer
+                    HStack {
+                        Text(date.formatted(date: .abbreviated, time: .omitted))
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.35))
+                        Spacer()
+                        Text("StreakRep")
+                            .font(.system(size: 13, weight: .black, design: .rounded))
+                            .foregroundStyle(Color(red: 0.73, green: 1.0, blue: 0.0).opacity(0.7))
+                    }
+                    .padding(.horizontal, 28)
+                    .padding(.bottom, 28)
+                }
+            }
+        }
+        .frame(width: 375, height: 480)
     }
 }
 

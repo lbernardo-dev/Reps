@@ -3775,6 +3775,8 @@ struct WorkoutSummaryView: View {
     @State private var isShowingShareSheet = false
     @State private var generatedImage: UIImage?
     @State private var isImageSaved = false
+    @State private var prShareImage: UIImage?
+    @State private var isShowingPRShareSheet = false
 
     private var completedSets: [SetLog] {
         FitnessMetrics.completedSets(in: session)
@@ -3804,6 +3806,35 @@ struct WorkoutSummaryView: View {
         return "\(minutes)m"
     }
 
+    private struct PRItem {
+        let exercise: Exercise
+        let weightKg: Double
+        let reps: Int
+    }
+
+    private var sessionPRs: [PRItem] {
+        (session.exerciseLogs ?? []).compactMap { log in
+            guard let prSet = log.sets.first(where: { $0.isPersonalRecord && $0.completed }) else {
+                return nil
+            }
+            return PRItem(exercise: log.exercise, weightKg: prSet.weightKg, reps: prSet.reps)
+        }
+    }
+
+    private var matchingWorkoutDay: WorkoutDay? {
+        store.plans.flatMap(\.days).first { $0.title == session.workoutTitle }
+    }
+
+    private var postWorkoutRecommendations: [SmartProgressionAdvisor.Recommendation] {
+        guard let day = matchingWorkoutDay else { return [] }
+        return SmartProgressionAdvisor.recommendations(
+            for: day,
+            sessions: store.workoutSessions,
+            weightIncrementKg: store.userProfile.weightIncrementKg,
+            limit: 4
+        )
+    }
+
     var body: some View {
         Group {
             if session.isRouteSession {
@@ -3814,12 +3845,79 @@ struct WorkoutSummaryView: View {
                         WorkoutReceiptView(session: session)
                             .padding(.horizontal, 4)
 
+                        if !sessionPRs.isEmpty {
+                            PulseCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "trophy.fill")
+                                            .font(.headline.weight(.bold))
+                                            .foregroundStyle(.black)
+                                            .frame(width: 38, height: 38)
+                                            .background(PulseTheme.accent)
+                                            .clipShape(Circle())
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(localizedString("new_personal_records"))
+                                                .font(.headline)
+                                            Text(localizedFormat("you_set_pr_count_records_today", sessionPRs.count))
+                                                .font(.caption)
+                                                .foregroundStyle(PulseTheme.secondaryText)
+                                        }
+                                    }
+                                    Divider()
+                                    ForEach(sessionPRs, id: \.exercise.id) { pr in
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(RepsText.exerciseName(pr.exercise.name, language: store.userProfile.preferredLanguage))
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .lineLimit(1)
+                                                let w = pr.weightKg.truncatingRemainder(dividingBy: 1) == 0
+                                                    ? "\(Int(pr.weightKg)) kg"
+                                                    : String(format: "%.1f kg", pr.weightKg)
+                                                Text("\(w) × \(pr.reps) reps")
+                                                    .font(.caption.weight(.bold))
+                                                    .foregroundStyle(PulseTheme.primary)
+                                            }
+                                            Spacer()
+                                            Button {
+                                                guard store.requireFeature(.shareCards, source: .shareCards) else { return }
+                                                prShareImage = WorkoutShareImageRenderer.renderPR(
+                                                    exerciseName: pr.exercise.name,
+                                                    weightKg: pr.weightKg,
+                                                    reps: pr.reps,
+                                                    date: session.date
+                                                )
+                                                isShowingPRShareSheet = true
+                                            } label: {
+                                                Image(systemName: "square.and.arrow.up")
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .foregroundStyle(PulseTheme.secondaryText)
+                                                    .padding(8)
+                                                    .background(PulseTheme.grouped)
+                                                    .clipShape(Circle())
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                        }
+
                         if workedMuscleCount > 0 {
                             SessionMuscleSummaryCard(
                                 loads: weeklyLoads,
                                 gender: store.userProfile.muscleMapGender,
                                 workedMuscleCount: workedMuscleCount,
                                 durationText: durationText
+                            )
+                            .padding(.horizontal, 4)
+                        }
+
+                        if !postWorkoutRecommendations.isEmpty {
+                            ProgressionRecommendationCard(
+                                recommendations: postWorkoutRecommendations,
+                                language: store.userProfile.preferredLanguage,
+                                title: "progression_plan"
                             )
                             .padding(.horizontal, 4)
                         }
@@ -3911,6 +4009,11 @@ struct WorkoutSummaryView: View {
         }
         .sheet(isPresented: $isShowingShareSheet) {
             if let image = generatedImage {
+                ActivityViewController(activityItems: [image])
+            }
+        }
+        .sheet(isPresented: $isShowingPRShareSheet) {
+            if let image = prShareImage {
                 ActivityViewController(activityItems: [image])
             }
         }

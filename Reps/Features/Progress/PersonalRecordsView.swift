@@ -164,12 +164,11 @@ struct PRCardView: View {
                     guard store.requireFeature(.shareCards, source: .shareCards) else {
                         return
                     }
-                    // Generate a share image for this PR
-                    shareImage = WorkoutShareImageRenderer.render(
-                        title: localizedFormat("personal_record_format", item.exercise.name),
-                        duration: 0,
-                        volume: Int(item.oneRepMax),
-                        sets: item.maxReps
+                    shareImage = WorkoutShareImageRenderer.renderPR(
+                        exerciseName: item.exercise.name,
+                        weightKg: item.maxWeight,
+                        reps: item.maxReps,
+                        date: item.date
                     )
                     isShowingShareSheet = true
                 } label: {

@@ -1417,23 +1417,26 @@ struct WorkoutSessionSetRow: View {
             Text(localizedFormat("set_number_format", set.setNumber))
                 .font(.subheadline)
                 .foregroundStyle(PulseTheme.secondaryText)
-            
+
             if let typeText {
-                Text(typeText)
-                    .font(.system(size: 9, weight: .bold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(PulseTheme.grouped)
-                    .clipShape(Capsule())
+                effortBadge(typeText, color: Color.white.opacity(0.10))
             }
-            
+
+            if let rpe = set.rpe {
+                effortBadge(String(format: "RPE %.1f", rpe), color: Color.orange.opacity(0.22))
+            }
+
+            if let rir = set.rir {
+                effortBadge("RIR \(rir)", color: Color.blue.opacity(0.22))
+            }
+
             Spacer()
-            
+
             Text("\(set.weightKg, specifier: "%.1f") kg x \(set.reps)")
                 .font(.subheadline.monospacedDigit())
                 .fontWeight(.bold)
                 .foregroundStyle(set.isPersonalRecord ? PulseTheme.accent : .white)
-            
+
             if set.isPersonalRecord {
                 Image(systemName: "trophy.fill")
                     .font(.system(size: 10))
@@ -1441,5 +1444,15 @@ struct WorkoutSessionSetRow: View {
             }
         }
         .padding(.vertical, 2)
+    }
+
+    private func effortBadge(_ label: String, color: Color) -> some View {
+        Text(label)
+            .font(.system(size: 9, weight: .bold))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .foregroundStyle(Color.white.opacity(0.75))
+            .background(color)
+            .clipShape(Capsule())
     }
 }
