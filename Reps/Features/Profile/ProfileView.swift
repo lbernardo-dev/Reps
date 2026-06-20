@@ -1070,7 +1070,7 @@ struct ProfileView: View {
     private func sendFeedback(_ message: String) {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            store.health.message = "Escribe tu feedback antes de enviarlo."
+            store.health.message = localizedString("feedback_empty_error")
             return
         }
 
@@ -1089,7 +1089,7 @@ struct ProfileView: View {
             openURL(url)
             activeSheet = nil
         } else {
-            store.health.message = "No se pudo preparar el feedback."
+            store.health.message = localizedString("feedback_prepare_error")
         }
     }
 
@@ -2699,7 +2699,8 @@ struct BodyWellnessEditorView: View {
     @State private var water = ""
     @State private var dietaryEnergy = ""
     @State private var soreness = ""
-    @State private var healthDefaultsMessage: String?
+    @State private var healthDefaults: BodyWellnessDefaults?
+    @State private var showMeasurements = false
 
     init(initialWeightKg: Double, initialHeightCm: Double) {
         _weight = State(initialValue: String(format: "%.1f", initialWeightKg))
@@ -2719,25 +2720,38 @@ struct BodyWellnessEditorView: View {
                         .keyboardType(.decimalPad)
                 }
 
-                if let healthDefaultsMessage {
+                if healthDefaults != nil {
                     Section("apple_health") {
-                        Text(healthDefaultsMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        if let summary = healthAutoSummary {
+                            Text(summary)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Button("Confirmar datos de hoy") { save() }
+                                .foregroundStyle(PulseTheme.primary)
+                        } else {
+                            Text("Valores sugeridos desde Apple Health. Puedes editarlos antes de guardar.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
-                Section("measurements") {
-                    TextField("cintura_cm", text: $waist)
-                        .keyboardType(.decimalPad)
-                    TextField("pecho_cm", text: $chest)
-                        .keyboardType(.decimalPad)
-                    TextField("brazo_cm", text: $arm)
-                        .keyboardType(.decimalPad)
-                    TextField("muslo_cm", text: $thigh)
-                        .keyboardType(.decimalPad)
-                    TextField("cadera_cm", text: $hip)
-                        .keyboardType(.decimalPad)
+                Section {
+                    DisclosureGroup(isExpanded: $showMeasurements) {
+                        TextField("cintura_cm", text: $waist)
+                            .keyboardType(.decimalPad)
+                        TextField("pecho_cm", text: $chest)
+                            .keyboardType(.decimalPad)
+                        TextField("brazo_cm", text: $arm)
+                            .keyboardType(.decimalPad)
+                        TextField("muslo_cm", text: $thigh)
+                            .keyboardType(.decimalPad)
+                        TextField("cadera_cm", text: $hip)
+                            .keyboardType(.decimalPad)
+                    } label: {
+                        Text("measurements")
+                            .foregroundStyle(.primary)
+                    }
                 }
 
                 Section("wellness") {
@@ -2780,15 +2794,25 @@ struct BodyWellnessEditorView: View {
         }
     }
 
+    private var healthAutoSummary: String? {
+        guard let d = healthDefaults else { return nil }
+        var parts: [String] = []
+        if let h = d.sleepHours { parts.append(String(format: "Sueño: %.1fh", h)) }
+        if let w = d.waterLiters { parts.append(String(format: "Agua: %.1fL", w)) }
+        if let e = d.dietaryEnergyKcal { parts.append(String(format: "%.0f kcal", e)) }
+        if let q = d.sleepQuality { parts.append("Calidad sueño: \(q)/5") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     private func loadHealthDefaults() async {
         guard healthKit.isAvailable, store.health.isAuthorized else { return }
 
         do {
             let defaults = try await healthKit.fetchBodyWellnessDefaults(for: date)
+            healthDefaults = defaults
             applyHealthDefaults(defaults)
-            healthDefaultsMessage = "Valores sugeridos desde Apple Health. Puedes editarlos antes de guardar."
         } catch {
-            healthDefaultsMessage = error.localizedDescription
+            // Health data is supplementary; failures are silent
         }
     }
 
@@ -2798,6 +2822,7 @@ struct BodyWellnessEditorView: View {
         fill(&sleep, with: defaults.sleepHours, format: "%.1f")
         fill(&water, with: defaults.waterLiters, format: "%.2f")
         fill(&dietaryEnergy, with: defaults.dietaryEnergyKcal, format: "%.0f")
+        if !waist.isEmpty { showMeasurements = true }
 
         if sleepQuality == 3, let suggested = defaults.sleepQuality {
             sleepQuality = suggested
@@ -2811,7 +2836,7 @@ struct BodyWellnessEditorView: View {
     }
 
     private func fill(_ text: inout String, with value: Double?, format: String) {
-        guard text.isEmpty, let value else { return }
+        guard text.isEmpty, let value, value > 0 else { return }
         text = String(format: format, value)
     }
 

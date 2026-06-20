@@ -1255,7 +1255,7 @@ struct CreatePlanView: View {
                     .opacity(step == .basics ? 0.45 : 1)
 
                     Button { nextOrSave() } label: {
-                        Label(step == .musicReview ? "Guardar" : "Siguiente", systemImage: step == .musicReview ? "checkmark" : "chevron.right")
+                        Label(step == .musicReview ? "save" : "next", systemImage: step == .musicReview ? "checkmark" : "chevron.right")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
@@ -1575,7 +1575,10 @@ struct CreatePlanView: View {
     }
 
     private func weekdayTitle(_ day: Int) -> String {
-        ["L", "M", "X", "J", "V", "S", "D"][max(0, min(day - 1, 6))]
+        let symbols = Calendar.current.veryShortWeekdaySymbols
+        // Calendar weekdays start on Sunday (index 0); our `day` starts on Monday (1).
+        let calendarIndex = day % 7  // Mon=1→1, Tue=2→2, …, Sun=7→0
+        return symbols[max(0, min(calendarIndex, symbols.count - 1))].uppercased()
     }
 
     private func defaultRepRange(for exercise: Exercise) -> String {

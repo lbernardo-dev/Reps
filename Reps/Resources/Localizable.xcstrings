@@ -101403,6 +101403,38 @@
           }
         }
       }
+    },
+    "feedback_empty_error": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write your feedback before sending it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe tu feedback antes de enviarlo."
+          }
+        }
+      }
+    },
+    "feedback_prepare_error": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not prepare feedback."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo preparar el feedback."
+          }
+        }
+      }
     }
   },
   "version": "1.1"
