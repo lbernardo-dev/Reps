@@ -5,6 +5,12 @@ import CoreImage
 import UniformTypeIdentifiers
 import StoreKit
 
+// TODO: Replace with real URLs before App Store submission
+private enum AppLegalLinks {
+    static let privacyPolicy = "https://repsapp.com/privacy"
+    static let termsOfService = "https://repsapp.com/terms"
+}
+
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -548,7 +554,7 @@ struct ProfileView: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button(store.health.isAuthorized ? "Actualizar" : "Conectar") {
+                    Button(localizedString(store.health.isAuthorized ? "Actualizar" : "Conectar")) {
                         Task { await connectHealth() }
                     }
                     .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.primary))
@@ -1041,6 +1047,35 @@ struct ProfileView: View {
                     }
                 }
                 .stickyHeaderTitle(localizedString("producto"))
+
+                ProfileToolSection(title: "legal") {
+                    LazyVGrid(columns: profileToolColumns, spacing: 12) {
+                        ProfileToolButton(
+                            title: "privacy_policy",
+                            subtitle: "privacy_policy_subtitle",
+                            systemImage: "doc.text",
+                            color: .indigo
+                        ) {
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "privacy_policy"])
+                            if let url = URL(string: AppLegalLinks.privacyPolicy) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+
+                        ProfileToolButton(
+                            title: "terms_of_service",
+                            subtitle: "terms_of_service_subtitle",
+                            systemImage: "doc.plaintext",
+                            color: .gray
+                        ) {
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "terms_of_service"])
+                            if let url = URL(string: AppLegalLinks.termsOfService) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                    }
+                }
+                .stickyHeaderTitle(localizedString("legal"))
             }
         )
         .toolbar(.hidden, for: .navigationBar)
@@ -2847,10 +2882,10 @@ struct BodyWellnessEditorView: View {
                                     .font(.caption)
                                     .foregroundStyle(.tertiary)
                             }
-                            Button("Confirmar datos de hoy") { save() }
+                            Button(localizedString("health_confirm_today")) { save() }
                                 .foregroundStyle(PulseTheme.primary)
                         } else {
-                            Text("Valores sugeridos desde Apple Health. Puedes editarlos antes de guardar.")
+                            Text(localizedString("health_suggested_values"))
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                         }
@@ -2912,10 +2947,10 @@ struct BodyWellnessEditorView: View {
     private var healthAutoSummary: String? {
         guard let d = healthDefaults else { return nil }
         var parts: [String] = []
-        if let h = d.sleepHours { parts.append(String(format: "Sueño: %.1fh", h)) }
-        if let w = d.waterLiters { parts.append(String(format: "Agua: %.1fL", w)) }
+        if let h = d.sleepHours { parts.append(String(format: localizedString("health_sleep_format"), h)) }
+        if let w = d.waterLiters { parts.append(String(format: localizedString("health_water_format"), w)) }
         if let e = d.dietaryEnergyKcal { parts.append(String(format: "%.0f kcal", e)) }
-        if let q = d.sleepQuality { parts.append("Calidad sueño: \(q)/5") }
+        if let q = d.sleepQuality { parts.append(String(format: localizedString("sleep_quality_value_format"), q)) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
@@ -2923,7 +2958,7 @@ struct BodyWellnessEditorView: View {
         guard let d = healthDefaults else { return nil }
         var parts: [String] = []
         if let hrv = d.heartRateVariabilityMS { parts.append(String(format: "HRV: %.0fms", hrv)) }
-        if let rhr = d.restingHeartRate { parts.append(String(format: "FC reposo: %.0f bpm", rhr)) }
+        if let rhr = d.restingHeartRate { parts.append(String(format: localizedString("health_resting_hr_format"), rhr)) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 

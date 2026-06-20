@@ -47500,6 +47500,86 @@
         }
       }
     },
+    "health_confirm_today" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm today's data"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirmar datos de hoy"
+          }
+        }
+      }
+    },
+    "health_resting_hr_format" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resting HR: %.0f bpm"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FC reposo: %.0f bpm"
+          }
+        }
+      }
+    },
+    "health_sleep_format" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sleep: %.1fh"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sueño: %.1fh"
+          }
+        }
+      }
+    },
+    "health_suggested_values" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggested values from Apple Health. You can edit them before saving."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valores sugeridos desde Apple Health. Puedes editarlos antes de guardar."
+          }
+        }
+      }
+    },
+    "health_water_format" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Water: %.1fL"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agua: %.1fL"
+          }
+        }
+      }
+    },
     "healthkit_connect" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -54528,6 +54608,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Legs, core and mobility"
+          }
+        }
+      }
+    },
+    "legal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legal"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legal"
           }
         }
       }
@@ -72299,6 +72395,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Privacidad y telemetría"
+          }
+        }
+      }
+    },
+    "privacy_policy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Política de privacidad"
+          }
+        }
+      }
+    },
+    "privacy_policy_subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read our policies"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lee nuestras políticas"
           }
         }
       }
@@ -93391,6 +93519,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "tendencia semanal"
+          }
+        }
+      }
+    },
+    "terms_of_service" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Service"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Términos de servicio"
+          }
+        }
+      }
+    },
+    "terms_of_service_subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage terms"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Términos de uso"
           }
         }
       }

@@ -71,15 +71,19 @@ final class SwiftDataPersistence {
             )
         } catch {
             didFallbackToInMemory = true
-            container = try! ModelContainer(
-                for: schema,
-                configurations: ModelConfiguration(
-                    "RepsFallbackStore-\(UUID().uuidString)",
-                    schema: schema,
-                    isStoredInMemoryOnly: true,
-                    cloudKitDatabase: .none
+            do {
+                container = try ModelContainer(
+                    for: schema,
+                    configurations: ModelConfiguration(
+                        "RepsFallbackStore-\(UUID().uuidString)",
+                        schema: schema,
+                        isStoredInMemoryOnly: true,
+                        cloudKitDatabase: .none
+                    )
                 )
-            )
+            } catch {
+                fatalError("SwiftData: failed to create in-memory fallback container — \(error)")
+            }
         }
     }
 
