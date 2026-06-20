@@ -342,6 +342,15 @@ struct SectionHeader: View {
     }
 }
 
+extension String {
+    /// Capitalizes only the first character, leaving the rest as-is. Used to
+    /// enforce sentence-case section/card titles regardless of the translation.
+    func capitalizingFirstLetter() -> String {
+        guard let first else { return self }
+        return first.uppercased() + dropFirst()
+    }
+}
+
 struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
     let title: String
     let subtitle: String?
@@ -366,7 +375,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
         self.backAction = backAction
         self.accessory = accessory()
         self.content = content()
-        _activeTitle = State(initialValue: title)
+        _activeTitle = State(initialValue: localizedString(title))
     }
 
     var body: some View {
@@ -421,7 +430,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                             .lineLimit(1)
                     }
 
-                    Text(LocalizedStringKey(activeTitle))
+                    Text(verbatim: activeTitle.capitalizingFirstLetter())
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.76)
@@ -464,7 +473,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
         return markers
             .filter { $0.minY <= threshold }
             .max { $0.minY < $1.minY }?
-            .title ?? title
+            .title ?? localizedString(title)
     }
 }
 
