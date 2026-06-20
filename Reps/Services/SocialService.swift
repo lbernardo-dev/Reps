@@ -400,7 +400,29 @@ actor SocialService {
     //
     // WorkoutComment recordName: "WorkoutComment_<postID>_<uuid>"
     // Requires a QUERYABLE index on `postRecordName` in CloudKit Dashboard.
-    // Degrades to empty array gracefully when index is unavailable.
+    // Fallback: record IDs are cached locally in UserDefaults so comments can be
+    // fetched directly (no index) until the Dashboard index is provisioned.
+
+    private static let commentIndexKey = "comment_record_names_v1"
+
+    private func saveCommentID(_ recordName: String, forPost postID: String) {
+        var index = loadCommentIndex()
+        var ids = index[postID] ?? []
+        guard !ids.contains(recordName) else { return }
+        ids.append(recordName)
+        index[postID] = ids
+        if let data = try? JSONEncoder().encode(index) {
+            UserDefaults.standard.set(data, forKey: Self.commentIndexKey)
+        }
+    }
+
+    private func loadCommentIndex() -> [String: [String]] {
+        guard let data = UserDefaults.standard.data(forKey: Self.commentIndexKey),
+              let index = try? JSONDecoder().decode([String: [String]].self, from: data) else {
+            return [:]
+        }
+        return index
+    }
 
     func addComment(
         postID: String,
@@ -417,6 +439,7 @@ actor SocialService {
         record["ownerRecordName"] = myID.recordName as CKRecordValue
         record["text"] = text as CKRecordValue
         try await publicDB.save(record)
+        saveCommentID(rid.recordName, forPost: postID)
         guard let comment = WorkoutComment(record: record) else {
             throw NSError(domain: "SocialService", code: 0, userInfo: nil)
         }
@@ -429,11 +452,19 @@ actor SocialService {
         query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
         do {
             let result = try await publicDB.records(matching: query, resultsLimit: limit)
-            return result.matchResults
+            let fromQuery = result.matchResults
                 .compactMap { _, res in (try? res.get()).flatMap(WorkoutComment.init) }
-        } catch {
-            return []
-        }
+            if !fromQuery.isEmpty { return fromQuery }
+        } catch { /* no index yet — fall through to local cache */ }
+
+        // Fallback: fetch directly by locally cached record IDs (no index required)
+        let index = loadCommentIndex()
+        let ids = (index[postID] ?? []).prefix(limit).map { CKRecord.ID(recordName: $0) }
+        guard !ids.isEmpty else { return [] }
+        let results = try await publicDB.records(for: Array(ids))
+        return results.values
+            .compactMap { res in (try? res.get()).flatMap(WorkoutComment.init) }
+            .sorted { $0.createdAt < $1.createdAt }
     }
 
     // MARK: - Push subscriptions
