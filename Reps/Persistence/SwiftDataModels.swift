@@ -32,6 +32,14 @@ final class UserProfileRecord {
     var activeWorkoutDraftsData: Data?
     var targetEventName: String?
     var targetEventDate: Date?
+    // Social fields
+    var socialEnabled: Bool?
+    var socialUsername: String?
+    var socialBio: String?
+    var socialLocation: String?
+    var autoShareWorkouts: Bool?
+    var socialNotificationsEnabled: Bool?
+    var socialFollowingUsernamesData: Data?
 
     init(profile: UserProfile, id: String = "current") {
         self.id = id
@@ -60,6 +68,13 @@ final class UserProfileRecord {
         widgetAccentColorName = profile.widgetAccentColorName
         targetEventName = profile.targetEventName
         targetEventDate = profile.targetEventDate
+        socialEnabled = profile.socialEnabled
+        socialUsername = profile.socialUsername
+        socialBio = profile.socialBio
+        socialLocation = profile.socialLocation
+        autoShareWorkouts = profile.autoShareWorkouts
+        socialNotificationsEnabled = profile.socialNotificationsEnabled
+        socialFollowingUsernamesData = encodeStrings(profile.socialFollowingUsernames)
     }
 
     var domain: UserProfile {
@@ -88,7 +103,14 @@ final class UserProfileRecord {
             themeMode: themeMode.flatMap(UserProfile.ThemeMode.init(rawValue:)),
             targetEventName: targetEventName,
             targetEventDate: targetEventDate,
-            widgetAccentColorName: widgetAccentColorName ?? "system"
+            widgetAccentColorName: widgetAccentColorName ?? "system",
+            socialEnabled: socialEnabled ?? false,
+            socialUsername: socialUsername,
+            socialBio: socialBio ?? "",
+            socialLocation: socialLocation ?? "",
+            autoShareWorkouts: autoShareWorkouts ?? true,
+            socialNotificationsEnabled: socialNotificationsEnabled ?? true,
+            socialFollowingUsernames: decodeStrings(socialFollowingUsernamesData)
         )
     }
 }
