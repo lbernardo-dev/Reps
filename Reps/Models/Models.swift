@@ -418,6 +418,7 @@ struct WorkoutMediaAttachment: Codable, Identifiable, Hashable {
     enum Kind: String, Codable {
         case image
         case audio
+        case video
     }
 
     var id = UUID()
@@ -426,6 +427,8 @@ struct WorkoutMediaAttachment: Codable, Identifiable, Hashable {
     var data: Data?
     var note: String?
     var durationSeconds: Double?
+    /// Poster frame for video attachments (and any kind that wants a preview).
+    var thumbnailData: Data?
 }
 
 struct RoutePoint: Codable, Identifiable, Hashable {

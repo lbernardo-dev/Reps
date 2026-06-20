@@ -130,27 +130,54 @@ struct AttachmentPreviewStrip: View {
     }
 }
 
+private struct ShareableAttachment: Identifiable {
+    let id = UUID()
+    let items: [Any]
+}
+
 private struct AttachmentPreview: View {
     let attachment: WorkoutMediaAttachment
+    @State private var shareable: ShareableAttachment?
 
     var body: some View {
+        Button {
+            prepareShare()
+        } label: {
+            preview
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(localizedString("share"))
+        .sheet(item: $shareable) { item in
+            ActivityViewController(activityItems: item.items)
+        }
+    }
+
+    private var preview: some View {
         ZStack(alignment: .bottomLeading) {
-            if attachment.kind == .image,
-               let data = attachment.data,
-               let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                VStack(spacing: 8) {
-                    Image(systemName: "mic.fill")
-                        .font(.title2)
-                    Text("audio")
-                        .font(.caption.weight(.bold))
+            switch attachment.kind {
+            case .image:
+                if let data = attachment.data, let image = UIImage(data: data) {
+                    Image(uiImage: image).resizable().scaledToFill()
+                } else {
+                    iconPlaceholder("photo", label: nil)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .foregroundStyle(PulseTheme.primary)
-                .background(PulseTheme.primary.opacity(0.10))
+            case .video:
+                if let data = attachment.thumbnailData, let image = UIImage(data: data) {
+                    Image(uiImage: image).resizable().scaledToFill()
+                } else {
+                    iconPlaceholder("video.fill", label: "video")
+                }
+            case .audio:
+                iconPlaceholder("mic.fill", label: "audio")
+            }
+
+            if attachment.kind == .video {
+                Image(systemName: "play.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.white.opacity(0.92))
+                    .shadow(radius: 4)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             if let note = attachment.note, !note.isEmpty {
@@ -162,9 +189,72 @@ private struct AttachmentPreview: View {
                     .background(.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .padding(6)
             }
+
+            // Per-attachment share affordance.
+            Image(systemName: "square.and.arrow.up")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(5)
+                .background(.black.opacity(0.45), in: Circle())
+                .padding(6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
         .frame(width: 96, height: 116)
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+
+    private func iconPlaceholder(_ systemImage: String, label: String?) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: systemImage).font(.title2)
+            if let label {
+                Text(LocalizedStringKey(label)).font(.caption.weight(.bold))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .foregroundStyle(PulseTheme.primary)
+        .background(PulseTheme.primary.opacity(0.10))
+    }
+
+    private var accessibilityLabel: String {
+        switch attachment.kind {
+        case .image: return localizedString("image_label")
+        case .video: return localizedString("video")
+        case .audio: return localizedString("audio")
+        }
+    }
+
+    private func prepareShare() {
+        HapticService.selection()
+        var items: [Any] = []
+        switch attachment.kind {
+        case .image:
+            if let data = attachment.data, let image = UIImage(data: data) {
+                items.append(image)
+            }
+        case .video, .audio:
+            if let url = writeTempFile() {
+                items.append(url)
+            }
+        }
+        if let note = attachment.note, !note.isEmpty {
+            items.append(note)
+        }
+        guard !items.isEmpty else { return }
+        shareable = ShareableAttachment(items: items)
+    }
+
+    private func writeTempFile() -> URL? {
+        guard let data = attachment.data, !data.isEmpty else { return nil }
+        let ext = attachment.kind == .video ? "mov" : "m4a"
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("reps-\(attachment.id.uuidString).\(ext)")
+        do {
+            try data.write(to: url)
+            return url
+        } catch {
+            return nil
+        }
     }
 }

@@ -1590,7 +1590,8 @@ struct ActiveWorkoutView: View {
                 attachments: sessionMediaAttachments,
                 isRecordingAudio: audioRecorder.isRecording,
                 onToggleAudio: toggleSessionAudioNote,
-                onCameraCapture: appendSessionCameraImage
+                onCameraCapture: appendSessionCameraImage,
+                onVideoCapture: appendSessionVideo
             )
         }
     }
@@ -1688,7 +1689,8 @@ struct ActiveWorkoutView: View {
                 attachments: sessionMediaAttachments,
                 isRecordingAudio: audioRecorder.isRecording,
                 onToggleAudio: toggleSessionAudioNote,
-                onCameraCapture: appendSessionCameraImage
+                onCameraCapture: appendSessionCameraImage,
+                onVideoCapture: appendSessionVideo
             )
         }
     }
@@ -1925,6 +1927,14 @@ struct ActiveWorkoutView: View {
         guard let data = image.jpegData(compressionQuality: 0.82) else { return }
         sessionMediaAttachments.append(
             WorkoutMediaAttachment(kind: .image, data: data)
+        )
+        HapticService.notification(.success)
+    }
+
+    private func appendSessionVideo(_ data: Data, thumbnail: UIImage?) {
+        let thumbnailData = thumbnail?.jpegData(compressionQuality: 0.7)
+        sessionMediaAttachments.append(
+            WorkoutMediaAttachment(kind: .video, data: data.isEmpty ? nil : data, thumbnailData: thumbnailData)
         )
         HapticService.notification(.success)
     }
@@ -2987,6 +2997,7 @@ private struct SessionFeedbackPanel: View {
     let isRecordingAudio: Bool
     let onToggleAudio: () -> Void
     let onCameraCapture: (UIImage) -> Void
+    let onVideoCapture: (Data, UIImage?) -> Void
 
     var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
@@ -3013,9 +3024,11 @@ private struct SessionFeedbackPanel: View {
                     MediaSourceMenu(
                         maxSelectionCount: 8,
                         photoPickerItems: $photoItems,
-                        onCameraCapture: onCameraCapture
+                        onCameraCapture: onCameraCapture,
+                        onVideoCapture: onVideoCapture
                     ) {
-                        Label("\(attachments.filter { $0.kind == .image }.count)", systemImage: "photo.badge.plus")
+                        let mediaCount = attachments.filter { $0.kind == .image || $0.kind == .video }.count
+                        Label("\(mediaCount)", systemImage: "photo.badge.plus")
                             .font(.headline)
                             .frame(width: 72, height: 48)
                             .foregroundStyle(PulseTheme.primary)
