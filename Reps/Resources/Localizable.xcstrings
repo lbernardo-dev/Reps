@@ -64410,6 +64410,70 @@
         }
       }
     },
+    "comments": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comments"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comentarios"
+          }
+        }
+      }
+    },
+    "comments_empty_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Be the first to comment on this workout."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sé el primero en comentar este entrenamiento."
+          }
+        }
+      }
+    },
+    "comments_empty_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No comments yet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin comentarios"
+          }
+        }
+      }
+    },
+    "comments_placeholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a comment..."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir un comentario..."
+          }
+        }
+      }
+    },
     "community": {
       "extractionState": "stale",
       "localizations": {
@@ -96923,7 +96987,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Timers"
+            "value": "Temporizadores"
           }
         }
       }

@@ -54,6 +54,8 @@ final class AppStore {
     var exerciseLibrarySyncMessage: String?
     var iCloudBackupDate: Date? = nil
     var pendingSocialSearch: String? = nil
+    var unreadFeedCount: Int = 0
+    var hasUnreadBell: Bool = false
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
     var activeWorkoutStatus: ActiveWorkoutStatus? {
@@ -919,6 +921,29 @@ final class AppStore {
                     exerciseNames: names
                 )
             }
+        }
+
+        // Persist activity event for NotificationsView
+        let sessionTitle = session.workoutTitle
+        let durationMin = Int(session.durationMinutes)
+        saveActivityEvent(
+            icon: "checkmark.circle.fill",
+            colorName: "primaryBright",
+            title: sessionTitle,
+            subtitle: localizedFormat("session_completed_subtitle", durationMin),
+            date: session.date
+        )
+
+        // Streak milestone badge
+        let currentStreak = streakDays
+        if currentStreak > 0 && currentStreak % 7 == 0 {
+            saveActivityEvent(
+                icon: "flame.fill",
+                colorName: "orange",
+                title: localizedFormat("streak_milestone_title", currentStreak),
+                subtitle: localizedString("streak_milestone_subtitle"),
+                date: session.date
+            )
         }
 
         self.finishedSessionForSummary = session
@@ -3591,6 +3616,42 @@ final class AppStore {
         let existingNames = Set(storedPlans.map { $0.name.lowercased() })
         let missing = SeedData.defaultPlans.filter { !existingNames.contains($0.name.lowercased()) }
         return storedPlans + missing
+    }
+
+    // MARK: - Social Activity Events
+
+    private static let activityEventsKey = "activityEvents"
+    private static let lastFeedCheckKey  = "lastFeedCheckDate"
+
+    var lastFeedCheckDate: Date {
+        UserDefaults.standard.object(forKey: Self.lastFeedCheckKey) as? Date ?? .distantPast
+    }
+
+    func markFeedAsRead() {
+        unreadFeedCount = 0
+        UserDefaults.standard.set(Date(), forKey: Self.lastFeedCheckKey)
+    }
+
+    func markBellAsRead() {
+        hasUnreadBell = false
+    }
+
+    func saveActivityEvent(icon: String, colorName: String, title: String, subtitle: String, date: Date) {
+        var events = loadActivityEvents()
+        let event = NotificationEvent(icon: icon, colorName: colorName, title: title, subtitle: subtitle, date: date)
+        events.insert(event, at: 0)
+        if let data = try? JSONEncoder().encode(Array(events.prefix(20))) {
+            UserDefaults.standard.set(data, forKey: Self.activityEventsKey)
+        }
+        hasUnreadBell = true
+    }
+
+    func loadActivityEvents() -> [NotificationEvent] {
+        guard let data = UserDefaults.standard.data(forKey: Self.activityEventsKey),
+              let events = try? JSONDecoder().decode([NotificationEvent].self, from: data) else {
+            return []
+        }
+        return events
     }
 }
 

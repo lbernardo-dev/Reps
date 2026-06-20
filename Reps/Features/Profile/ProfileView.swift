@@ -428,7 +428,7 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                if store.userProfile.socialEnabled {
+
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(localizedString("auto_share_workouts"))
@@ -446,7 +446,6 @@ struct ProfileView: View {
                         .tint(PulseTheme.primary)
                     }
                     .padding(.vertical, 2)
-                }
 
                 } else {
                     HStack(spacing: 12) {

@@ -273,6 +273,12 @@ struct TodayView: View {
                                     .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
                                     .background(.ultraThinMaterial)
                                     .clipShape(Circle())
+                                if store.hasUnreadBell {
+                                    Circle()
+                                        .fill(.red)
+                                        .frame(width: 9, height: 9)
+                                        .offset(x: -1, y: 1)
+                                }
                             }
                         }
                         .buttonStyle(.plain)
@@ -284,12 +290,20 @@ struct TodayView: View {
                                 HapticService.selection()
                                 showSocialHub = true
                             } label: {
-                                Image(systemName: "bubble.left.and.bubble.right.fill")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(PulseTheme.primary)
-                                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundStyle(PulseTheme.primary)
+                                        .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                        .background(.ultraThinMaterial)
+                                        .clipShape(Circle())
+                                    if store.unreadFeedCount > 0 {
+                                        Circle()
+                                            .fill(.red)
+                                            .frame(width: 9, height: 9)
+                                            .offset(x: -1, y: 1)
+                                    }
+                                }
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("social_hub")

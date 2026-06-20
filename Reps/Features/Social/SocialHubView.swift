@@ -24,6 +24,7 @@ struct SocialHubView: View {
     @State private var suggestedProfiles: [SocialProfile] = []
     @State private var isLoadingSuggested = false
     @State private var recentSearches: [String] = []
+    @State private var commentsPost: WorkoutPost? = nil
 
     private enum Tab { case feed, friends, discover }
 
@@ -59,6 +60,9 @@ struct SocialHubView: View {
         .task { await loadFollowing() }
         .task { await loadFeed() }
         .task { await loadSuggested() }
+        .onChange(of: tab) { _, newTab in
+            if newTab == .feed { store.markFeedAsRead() }
+        }
         .onAppear {
             recentSearches = (UserDefaults.standard.stringArray(forKey: Self.recentSearchesKey) ?? [])
             if let pending = store.pendingSocialSearch {
@@ -66,7 +70,17 @@ struct SocialHubView: View {
                 searchText = pending
                 tab = .discover
                 scheduleSearch()
+            } else if store.userProfile.socialFollowingUsernames.isEmpty {
+                tab = .discover
             }
+            // Subscribe to push notifications for social activity
+            if let uname = store.userProfile.socialUsername,
+               store.userProfile.socialNotificationsEnabled {
+                Task.detached { await SocialService.shared.subscribeToSocialActivity(myUsername: uname) }
+            }
+        }
+        .sheet(item: $commentsPost) { post in
+            CommentsView(post: post)
         }
     }
 
@@ -301,23 +315,43 @@ struct SocialHubView: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
                     Spacer()
-                    Button {
-                        toggleLike(post: post)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: isLiked ? "heart.fill" : "heart")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(isLiked ? PulseTheme.destructive : PulseTheme.secondaryText)
-                            if post.likeCount > 0 {
-                                Text("\(post.likeCount + (isLiked ? 0 : 0))")
-                                    .font(.caption.weight(.semibold))
+                    HStack(spacing: 14) {
+                        // Like
+                        Button {
+                            toggleLike(post: post)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: isLiked ? "heart.fill" : "heart")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(isLiked ? PulseTheme.destructive : PulseTheme.secondaryText)
+                                if post.likeCount > 0 {
+                                    Text("\(post.likeCount)")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                            }
+                            .opacity(isLiking ? 0.5 : 1)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isLiking)
+
+                        // Comments
+                        Button {
+                            commentsPost = post
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "bubble.left")
+                                    .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(PulseTheme.secondaryText)
+                                if post.commentCount > 0 {
+                                    Text("\(post.commentCount)")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
                             }
                         }
-                        .opacity(isLiking ? 0.5 : 1)
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(isLiking)
                 }
 
                 // Workout title
@@ -764,7 +798,7 @@ struct SocialHubView: View {
                         myVal: "\(store.workoutSessions.count)", theirVal: "\(friend.totalSessions)",
                         myWins: store.workoutSessions.count >= friend.totalSessions)
                 compRow(icon: "scalemass.fill", color: PulseTheme.accent,
-                        title: "Volumen",
+                        title: localizedString("volume"),
                         myVal: volumeLabel(store.totalVolumeKg), theirVal: volumeLabel(friend.totalVolumeKg),
                         myWins: store.totalVolumeKg >= friend.totalVolumeKg)
                 compRow(icon: "flame.fill", color: .orange,
@@ -837,6 +871,10 @@ struct SocialHubView: View {
                 followingUsernames: store.userProfile.socialFollowingUsernames
             )
             feedPosts = posts
+            // Update unread badge count (posts newer than last check)
+            let lastCheck = store.lastFeedCheckDate
+            let unread = posts.filter { $0.createdAt > lastCheck }.count
+            store.unreadFeedCount = unread
         } catch {
             // Degrade silently — user sees empty state
         }

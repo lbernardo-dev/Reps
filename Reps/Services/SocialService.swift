@@ -13,6 +13,7 @@ struct WorkoutPost: Identifiable, Equatable, Hashable, Sendable {
     var exerciseNames: [String]
     var createdAt: Date
     var likeCount: Int
+    var commentCount: Int
 
     init?(record: CKRecord) {
         guard
@@ -28,6 +29,29 @@ struct WorkoutPost: Identifiable, Equatable, Hashable, Sendable {
         self.exerciseNames = record["exerciseNames"] as? [String] ?? []
         self.createdAt = record.creationDate ?? .now
         self.likeCount = (record["likeCount"] as? Int64).map(Int.init) ?? 0
+        self.commentCount = (record["commentCount"] as? Int64).map(Int.init) ?? 0
+    }
+}
+
+// MARK: - WorkoutComment Model
+
+struct WorkoutComment: Identifiable, Equatable, Hashable, Sendable {
+    let id: String
+    var ownerUsername: String
+    var ownerDisplayName: String
+    var text: String
+    var createdAt: Date
+
+    init?(record: CKRecord) {
+        guard
+            let owner = record["ownerUsername"] as? String,
+            let text = record["text"] as? String
+        else { return nil }
+        self.id = record.recordID.recordName
+        self.ownerUsername = owner
+        self.ownerDisplayName = record["ownerDisplayName"] as? String ?? owner
+        self.text = text
+        self.createdAt = record.creationDate ?? .now
     }
 }
 
@@ -306,6 +330,7 @@ actor SocialService {
         record["volumeKg"] = volumeKg as CKRecordValue
         record["exerciseNames"] = exerciseNames as CKRecordValue
         record["likeCount"] = Int64(0) as CKRecordValue
+        record["commentCount"] = Int64(0) as CKRecordValue
         try await publicDB.save(record)
     }
 
@@ -340,6 +365,7 @@ actor SocialService {
         let record = CKRecord(recordType: "WorkoutLike", recordID: lid)
         record["likerOwnerName"] = myID.recordName as CKRecordValue
         record["postRecordName"] = post.id as CKRecordValue
+        record["postOwnerUsername"] = post.ownerUsername.lowercased() as CKRecordValue
         try await publicDB.save(record)
     }
 
@@ -358,5 +384,83 @@ actor SocialService {
         } catch let ck as CKError where ck.code == .unknownItem {
             return false
         }
+    }
+
+    // MARK: - Comments
+    //
+    // WorkoutComment recordName: "WorkoutComment_<postID>_<uuid>"
+    // Requires a QUERYABLE index on `postRecordName` in CloudKit Dashboard.
+    // Degrades to empty array gracefully when index is unavailable.
+
+    func addComment(
+        postID: String,
+        text: String,
+        ownerUsername: String,
+        ownerDisplayName: String
+    ) async throws -> WorkoutComment {
+        let myID = try await myRecordID()
+        let rid = CKRecord.ID(recordName: "WorkoutComment_\(postID)_\(UUID().uuidString)")
+        let record = CKRecord(recordType: "WorkoutComment", recordID: rid)
+        record["postRecordName"] = postID as CKRecordValue
+        record["ownerUsername"] = ownerUsername.lowercased() as CKRecordValue
+        record["ownerDisplayName"] = ownerDisplayName as CKRecordValue
+        record["ownerRecordName"] = myID.recordName as CKRecordValue
+        record["text"] = text as CKRecordValue
+        try await publicDB.save(record)
+        guard let comment = WorkoutComment(record: record) else {
+            throw NSError(domain: "SocialService", code: 0, userInfo: nil)
+        }
+        return comment
+    }
+
+    func fetchComments(postID: String, limit: Int = 50) async throws -> [WorkoutComment] {
+        let pred = NSPredicate(format: "postRecordName == %@", postID)
+        let query = CKQuery(recordType: "WorkoutComment", predicate: pred)
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
+        do {
+            let result = try await publicDB.records(matching: query, resultsLimit: limit)
+            return result.matchResults
+                .compactMap { _, res in (try? res.get()).flatMap(WorkoutComment.init) }
+        } catch {
+            return []
+        }
+    }
+
+    // MARK: - Push subscriptions
+    //
+    // Subscribes to CloudKit push for social activity targeting myUsername.
+    // Requires QUERYABLE indexes on `followingUsername` (SocialFollow) and
+    // `postOwnerUsername` (WorkoutLike) in CloudKit Dashboard.
+    // Silently no-ops when subscription save fails.
+
+    func subscribeToSocialActivity(myUsername: String) async {
+        let username = myUsername.lowercased()
+
+        // New follower
+        let followPred = NSPredicate(format: "followingUsername == %@", username)
+        let followSub = CKQuerySubscription(
+            recordType: "SocialFollow",
+            predicate: followPred,
+            subscriptionID: "new-follower-\(username)",
+            options: .firesOnRecordCreation
+        )
+        let followNote = CKSubscription.NotificationInfo()
+        followNote.shouldSendContentAvailable = true
+        followSub.notificationInfo = followNote
+
+        // New like on own posts
+        let likePred = NSPredicate(format: "postOwnerUsername == %@", username)
+        let likeSub = CKQuerySubscription(
+            recordType: "WorkoutLike",
+            predicate: likePred,
+            subscriptionID: "new-like-\(username)",
+            options: .firesOnRecordCreation
+        )
+        let likeNote = CKSubscription.NotificationInfo()
+        likeNote.shouldSendContentAvailable = true
+        likeSub.notificationInfo = likeNote
+
+        _ = try? await publicDB.save(followSub)
+        _ = try? await publicDB.save(likeSub)
     }
 }

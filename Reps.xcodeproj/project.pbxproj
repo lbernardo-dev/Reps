@@ -46,6 +46,7 @@
 		4A941FA423A34C543F601E83 /* Monetization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA1565353516FCB4247FD1D /* Monetization.swift */; };
 		4CD65496EEC8073CAFB0BF44 /* PermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD6E9727C891B41CB538DE6 /* PermissionService.swift */; };
 		4D3249494EFCE9A753D701BE /* RepsWidgetConfigurationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542BD8688B577CF24924B7C3 /* RepsWidgetConfigurationIntent.swift */; };
+		4D6A80C8D80A441DB672714F /* NotificationEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDB63ED77235B1CED8E61C04 /* NotificationEvent.swift */; };
 		4DD5973D7549AC9555F81FA2 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE400159890F89819FDFC36 /* NotificationService.swift */; };
 		50BC6D3A9E7FB93D1D0E0656 /* ICloudProEntitlementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 005DB2151835E5ACB3D3C20D /* ICloudProEntitlementService.swift */; };
 		537C3D3BB6815D9DD245CD13 /* SwiftDataPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCE094B694B28F560A27A91 /* SwiftDataPersistence.swift */; };
@@ -74,6 +75,7 @@
 		9154E19651ED841295151476 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03010CDFBB1E924806441A8 /* WelcomeView.swift */; };
 		92C41F51EF63ED0A5EC21CEF /* ActiveWorkoutMediaComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 428488EF1075B17B97043B62 /* ActiveWorkoutMediaComponents.swift */; };
 		94C180146CA2EED0D2DFDFB9 /* ActiveWorkoutHeaderComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF2DEA9529E50DA6064B4D30 /* ActiveWorkoutHeaderComponents.swift */; };
+		952F496D263277DE53289E70 /* CommentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB859CD37FC951A9954F1D23 /* CommentsView.swift */; };
 		95F05BB65E780860E9BB3131 /* GamificationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01297D17FF0792578C2F8AEF /* GamificationEngine.swift */; };
 		97DCAC3F27342E2E93CC2058 /* ProfileDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AACCD6E1BE104C3FD7B706C /* ProfileDetailView.swift */; };
 		990133AA0AC6E04F09815E16 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3659C8528135CC1735E2D7BD /* HealthKitService.swift */; };
@@ -257,12 +259,14 @@
 		E8A8D63D611CC32BFF2A8AFD /* RepsWorkoutWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsWorkoutWidget.swift; sourceTree = "<group>"; };
 		EC0A97C79C7E907579CBFCBD /* MuscleVolume.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleVolume.swift; sourceTree = "<group>"; };
 		ED3D682D48163582C8B0922B /* WorkoutShareImageRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutShareImageRenderer.swift; sourceTree = "<group>"; };
+		EDB63ED77235B1CED8E61C04 /* NotificationEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationEvent.swift; sourceTree = "<group>"; };
 		EE434650A618AB318510D605 /* StreakRepFit2.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = StreakRepFit2.icon; sourceTree = "<group>"; };
 		EE7A352271B093AE9303829E /* RepsLoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsLoadingView.swift; sourceTree = "<group>"; };
 		EF4E20BFA43D7C528611005F /* QuickMenuProgressionChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickMenuProgressionChart.swift; sourceTree = "<group>"; };
 		F769218F07AF074BD84F1669 /* PersonalRecordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalRecordsView.swift; sourceTree = "<group>"; };
 		F80CCCB65745D555ACB923F2 /* RepsWorkoutLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsWorkoutLiveActivity.swift; sourceTree = "<group>"; };
 		F998B9C72A27863842809A33 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		FB859CD37FC951A9954F1D23 /* CommentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsView.swift; sourceTree = "<group>"; };
 		FBE400159890F89819FDFC36 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		FDFC62FC1D5EA20A03DAE8C8 /* RepsTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RepsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -385,6 +389,7 @@
 			children = (
 				0B97E952AF94341517324563 /* Models.swift */,
 				8BA1565353516FCB4247FD1D /* Monetization.swift */,
+				EDB63ED77235B1CED8E61C04 /* NotificationEvent.swift */,
 				CE9D2981F0A803B185345B94 /* SeedData.swift */,
 			);
 			path = Models;
@@ -540,6 +545,7 @@
 		DFB05F0624D7A97BACAC8329 /* Social */ = {
 			isa = PBXGroup;
 			children = (
+				FB859CD37FC951A9954F1D23 /* CommentsView.swift */,
 				3B4CDEDA58CBFA0C9AB9D8D2 /* EditSocialProfileView.swift */,
 				6DAB8A3B56BCAE9A06BA4E3F /* SocialHubView.swift */,
 				6FBD066F81690661D21DAB00 /* SocialOnboardingView.swift */,
@@ -810,6 +816,7 @@
 				F9B2D5537BBD3546D9D6EA03 /* CSVService.swift in Sources */,
 				22DCD6674BD063A7C0C43FCF /* CalendarView.swift in Sources */,
 				2D2EC1841DDA45A8378AF351 /* CameraPicker.swift in Sources */,
+				952F496D263277DE53289E70 /* CommentsView.swift in Sources */,
 				5C561560E7F6B79FCA7A14D5 /* EditSocialProfileView.swift in Sources */,
 				052E8E4F5A9988448FDD4CF4 /* ExerciseLibraryView.swift in Sources */,
 				D922780FD8ECD6C4A313A3B4 /* ExerciseProgressView.swift in Sources */,
@@ -825,6 +832,7 @@
 				07206A45CD3EC170B99BE60C /* MuscleMapProgressView.swift in Sources */,
 				A1EE8255CBAF7C557CE9A4BC /* MuscleVolume.swift in Sources */,
 				C012EA90348A6BE3DD882FE3 /* MusicIntegrationSheet.swift in Sources */,
+				4D6A80C8D80A441DB672714F /* NotificationEvent.swift in Sources */,
 				4DD5973D7549AC9555F81FA2 /* NotificationService.swift in Sources */,
 				B73247E3664F97B0132752EF /* NotificationsView.swift in Sources */,
 				5B3EC7C5D1D72EE4CEB36805 /* OnboardingResult.swift in Sources */,
