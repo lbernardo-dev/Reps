@@ -3784,7 +3784,7 @@ struct WorkoutSummaryView: View {
 
                         PulseCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("detalles_adicionales").font(.headline)
+                                CardTitle("detalles_adicionales")
                                 if !session.mediaAttachments.isEmpty {
                                     AttachmentPreviewStrip(attachments: session.mediaAttachments)
                                 }

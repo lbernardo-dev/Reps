@@ -375,7 +375,7 @@ struct ProgressDashboardView: View {
 
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
-                Text("health_trends").font(.headline)
+                CardTitle("health_trends")
                 Chart(store.health.latestDailyMetrics) { metric in
                   LineMark(x: .value("Date", metric.date), y: .value("Steps", metric.steps))
                     .foregroundStyle(PulseTheme.primary)
@@ -494,7 +494,7 @@ struct ProgressDashboardView: View {
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                  Text("constancia").font(.headline)
+                  CardTitle("constancia")
                   Spacer()
                   Text(localizedFormat("sessions_count_format", consistencyTotal))
                     .font(.subheadline.weight(.semibold))
@@ -572,7 +572,7 @@ struct ProgressDashboardView: View {
           if selectedSection == .general {
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
-                Text("insights_accionables").font(.headline)
+                CardTitle("insights_accionables")
                 ForEach(Array(insightCards.enumerated()), id: \.element.id) { index, insight in
                   InsightRow(insight: insight)
                   if index < insightCards.count - 1 {
@@ -702,7 +702,7 @@ struct ProgressDashboardView: View {
     PulseCard {
       VStack(alignment: .leading, spacing: 14) {
         HStack {
-          Text("body_and_wellness").font(.headline)
+          CardTitle("body_and_wellness")
           Spacer()
           Text(store.hasBodyMetrics ? "\(String(format: "%.1f", store.displayedWeight.value)) \(store.displayedWeight.unit)" : localizedString("pendiente"))
             .font(.headline)

@@ -332,19 +332,36 @@ struct SecondaryButton: View {
 }
 
 struct SectionHeader: View {
-    let title: LocalizedStringKey
+    let title: String
 
     var body: some View {
-        Text(localizedKey(title))
+        Text(verbatim: localizedString(title).capitalizingFirstLetter())
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(PulseTheme.secondaryText)
             .accessibilityAddTraits(.isHeader)
     }
 }
 
+/// Standard card-section title: resolves the localization key, enforces sentence-case, and
+/// renders with `.headline` weight. Use instead of `Text("key").font(.headline)` inside cards.
+struct CardTitle: View {
+    private let text: String
+
+    init(_ key: String) {
+        self.text = localizedString(key).capitalizingFirstLetter()
+    }
+
+    init(verbatim string: String) {
+        self.text = string.capitalizingFirstLetter()
+    }
+
+    var body: some View {
+        Text(verbatim: text)
+            .font(.headline)
+    }
+}
+
 extension String {
-    /// Capitalizes only the first character, leaving the rest as-is. Used to
-    /// enforce sentence-case section/card titles regardless of the translation.
     func capitalizingFirstLetter() -> String {
         guard let first else { return self }
         return first.uppercased() + dropFirst()

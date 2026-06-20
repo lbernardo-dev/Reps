@@ -189,7 +189,7 @@ struct ExerciseProgressView: View {
     private var personalizationCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 12) {
-                Text("personalization").font(.headline)
+                CardTitle("personalization")
                 HStack(spacing: 10) {
                     Menu {
                         if CameraPicker.isAvailable {
@@ -359,7 +359,7 @@ struct ExerciseProgressView: View {
 
                 PulseCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("recent_sessions").font(.headline)
+                        CardTitle("recent_sessions")
                         ForEach(rangedPoints.reversed()) { point in
                             HStack {
                                 VStack(alignment: .leading, spacing: 3) {

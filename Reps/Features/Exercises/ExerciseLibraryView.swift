@@ -880,7 +880,7 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(localizedString("Use this exercise")).font(.headline)
+                    CardTitle("Use this exercise")
                     Label(trackingLabel, systemImage: "chart.bar.fill")
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(2)
@@ -911,7 +911,7 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("personalization").font(.headline)
+                    CardTitle("personalization")
                     HStack(spacing: 10) {
                         Menu {
                             if CameraPicker.isAvailable {
@@ -991,7 +991,7 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text(localizedString("Instructions")).font(.headline)
+                    CardTitle("instructions")
                     if instructionSteps.isEmpty {
                         Text(localizedString("This exercise does not include detailed instructions yet."))
                             .foregroundStyle(PulseTheme.secondaryText)
@@ -1003,7 +1003,7 @@ struct ExerciseDetailView: View {
                     }
                     if !currentExercise.commonMistakes.isEmpty {
                         Divider()
-                        Text(localizedString("Avoid")).font(.headline)
+                        CardTitle("avoid")
                         ForEach(currentExercise.commonMistakes, id: \.self) { mistake in
                             Label(mistake, systemImage: "exclamationmark.triangle")
                                 .font(.subheadline)
@@ -1017,7 +1017,7 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(localizedString("Reference")).font(.headline)
+                    CardTitle("Reference")
                     if let notes = currentExercise.notes, !notes.isEmpty {
                         Text(notes)
                             .foregroundStyle(PulseTheme.secondaryText)
@@ -1041,7 +1041,7 @@ struct ExerciseDetailView: View {
                     }
                     if !currentExercise.mediaBookmarks.isEmpty {
                         Divider()
-                        Text("marcadores_multimedia").font(.headline)
+                        CardTitle("marcadores_multimedia")
                         ForEach(currentExercise.mediaBookmarks) { bookmark in
                             Link(destination: URL(string: bookmark.urlString) ?? URL(string: "https://www.youtube.com")!) {
                                 HStack {
@@ -1228,7 +1228,7 @@ struct ExerciseDetailView: View {
 
                 PulseCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        Text(localizedString("activity_2")).font(.headline)
+                        CardTitle("activity_2")
                         Chart(rangedPoints) { point in
                             LineMark(
                                 x: .value("Fecha", point.date),
@@ -1247,7 +1247,7 @@ struct ExerciseDetailView: View {
 
                 PulseCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(localizedString("recent_sessions")).font(.headline)
+                        CardTitle("recent_sessions")
                         ForEach(rangedPoints.reversed()) { point in
                             HStack {
                                 VStack(alignment: .leading, spacing: 3) {

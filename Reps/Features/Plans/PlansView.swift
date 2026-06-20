@@ -1112,7 +1112,7 @@ struct CreatePlanView: View {
         VStack(spacing: 16) {
             PulseCard {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("plan_identity").font(.headline)
+                    CardTitle("plan_identity")
                     TextField("plan_name", text: $planName)
                         .textFieldStyle(.roundedBorder)
                     Picker("environment_2", selection: $location) {
@@ -1200,7 +1200,7 @@ struct CreatePlanView: View {
         VStack(spacing: 16) {
             PulseCard {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("distribution").font(.headline)
+                    CardTitle("distribution")
                     Picker("modo", selection: $scheduleMode) {
                         ForEach(PlanScheduleMode.allCases) { mode in
                             Text(mode.title).tag(mode)
@@ -1216,7 +1216,7 @@ struct CreatePlanView: View {
             if scheduleMode == .weekdays {
                 PulseCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("fixed_days").font(.headline)
+                        CardTitle("fixed_days")
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
                             ForEach(1...7, id: \.self) { day in
                                 Button { toggleWeekday(day) } label: {
@@ -1282,7 +1282,7 @@ struct CreatePlanView: View {
             PlanPlaylistEditor(playlists: $playlists, showMusicConnector: $showMusicConnector)
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("resumen").font(.headline)
+                    CardTitle("resumen")
                     PlanPreviewDay(title: planName.isEmpty ? localizedString("unnamed_plan") : planName, workout: localizedFormat("sessions_days_format", days.count, daysPerWeek), exercises: days.reduce(0) { $0 + $1.exercises.count })
                     ForEach(days) { day in
                         HStack {
@@ -2386,7 +2386,7 @@ private struct PlanPreviewDay: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading) {
-                Text(localizedKey(title)).font(.headline)
+                CardTitle(verbatim: title)
                 Text(workout).foregroundStyle(PulseTheme.secondaryText)
             }
             Spacer()
