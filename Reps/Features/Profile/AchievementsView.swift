@@ -10,9 +10,9 @@ struct AchievementBadge: Identifiable {
     let systemImage: String
     let color: Color
     let isCompleted: Bool
-    let progressValue: Double? // e.g. 2.0 for 2/3
-    let progressTarget: Double? // e.g. 3.0
-    
+    let progressValue: Double?
+    let progressTarget: Double?
+
     var title: String {
         RepsLocalization.language.hasPrefix("es") ? titleES : titleEN
     }
@@ -25,77 +25,71 @@ struct AchievementBadge: Identifiable {
 struct AchievementsView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var selectedReceiptForPreview: SavedShareCard? = nil
     @State private var localPaywall: PaywallPresentation?
-    
-    // MARK: - Automated Health & Exercise Achievements Calculation
+
+    // MARK: - Player Level
+    private var playerLevel: PlayerLevel {
+        let xp = GamificationEngine.totalXP(
+            sessions: store.workoutSessions,
+            cardioLogs: store.combinedCardioLogs,
+            bodyMetrics: store.bodyMetrics,
+            progressPhotos: store.progressPhotos,
+            streakDays: store.streakDays,
+            totalVolumeKg: store.totalVolumeKg
+        )
+        return GamificationEngine.playerLevel(for: xp)
+    }
+
+    // MARK: - Achievements Calculation
     private var achievements: [AchievementBadge] {
         let sessions = store.workoutSessions
         let healthMetrics = store.health.latestDailyMetrics
-        // Unified cardio (manually logged + cardio-type sessions, deduped) so
-        // achievements count free/imported cardio too.
         let cardioLogs = store.combinedCardioLogs
-
-        // 1. Apple Watch connected
+        let streak = store.streakDays
+        let totalVol = store.totalVolumeKg
+        let maxPR = FitnessMetrics.personalRecordWeightKg(for: sessions) ?? 0.0
+        let sessionCount = sessions.count
+        let cardioCount = cardioLogs.count
+        let photoCount = store.progressPhotos.count
         let watchConnected = sessions.contains { $0.isImportedFromHealth || $0.healthKitUUIDString != nil }
-        
-        // 2. Ring Closer (10k steps or 600 kcal active energy)
         let maxSteps = healthMetrics.map(\.steps).max() ?? 0.0
         let maxEnergy = healthMetrics.map(\.activeEnergyKcal).max() ?? 0.0
         let ringCloser = maxSteps >= 10000.0 || maxEnergy >= 600.0
         let stepsProgress = min(maxSteps, 10000.0)
         let energyProgress = min(maxEnergy, 600.0)
-        
-        // 3. Endurance Hero (cardio session > 45 minutes or cardio count >= 3).
-        // combinedCardioLogs already includes cardio-type sessions, so no extra
-        // title-based counting is needed (it would double-count).
         let hasLongCardio = cardioLogs.contains { $0.durationMinutes >= 45 }
-        let cardioCount = cardioLogs.count
         let enduranceHero = hasLongCardio || cardioCount >= 3
-        
-        // 4. Iron Consistency (streak >= 3 days)
-        let streak = store.streakDays
         let ironConsistency = streak >= 3
-        
-        // 5. Titan Lifter (total volume > 5,000 kg or PR > 80 kg)
-        let totalVol = store.totalVolumeKg
-        let maxPR = FitnessMetrics.personalRecordWeightKg(for: sessions) ?? 0.0
+        let habitBuilder = streak >= 7
+        let unstoppable = streak >= 21
         let titanLifter = totalVol >= 5000.0 || maxPR >= 80.0
-        
+        let ironGiant = totalVol >= 50_000.0
+        let cardioDevotee = cardioCount >= 10
+        let prCount = sessions
+            .flatMap { $0.exerciseLogs ?? [] }
+            .flatMap { $0.sets }
+            .filter { $0.isPersonalRecord && $0.completed }
+            .count
+        let recordBreaker = prCount >= 1
+        let prMachine = prCount >= 10
+        let muscleGroups = Set(sessions.flatMap { $0.exerciseLogs ?? [] }.map { $0.exercise.muscleGroup })
+        let fullBody = muscleGroups.count >= 5
+        let evidenceKeeper = photoCount >= 3
+
         return [
+            // ── Consistency
             AchievementBadge(
-                titleEN: "Apple Watch Link",
-                titleES: "Enlace Apple Watch",
-                descEN: "Automatically sync and import your first workout from Apple Health or Apple Watch.",
-                descES: "Sincroniza e importa automáticamente tu primer entreno de Apple Health o Apple Watch.",
-                systemImage: "applewatch",
-                color: PulseTheme.primary,
-                isCompleted: watchConnected,
-                progressValue: watchConnected ? 1.0 : 0.0,
+                titleEN: "First Step",
+                titleES: "Primer Paso",
+                descEN: "Complete and log your very first workout.",
+                descES: "Completa y registra tu primer entrenamiento.",
+                systemImage: "figure.walk",
+                color: .orange,
+                isCompleted: sessionCount >= 1,
+                progressValue: Double(min(sessionCount, 1)),
                 progressTarget: 1.0
-            ),
-            AchievementBadge(
-                titleEN: "Ring Closer",
-                titleES: "Cerrador de Anillos",
-                descEN: "Reach 10,000 steps or 600 active kcal in a single day registered in Apple Health.",
-                descES: "Supera 10,000 pasos o 600 kcal activas en un solo día registrados en Apple Health.",
-                systemImage: "circle.circle.fill",
-                color: PulseTheme.destructive,
-                isCompleted: ringCloser,
-                progressValue: ringCloser ? 10000.0 : max(stepsProgress, energyProgress * 16.6), // Normalized progress
-                progressTarget: 10000.0
-            ),
-            AchievementBadge(
-                titleEN: "Endurance Hero",
-                titleES: "Héroe de Resistencia",
-                descEN: "Log a cardiovascular session longer than 45 minutes or sync 3 cardio workouts.",
-                descES: "Registra una sesión cardiovascular de más de 45 min o sincroniza 3 entrenos de cardio.",
-                systemImage: "figure.run",
-                color: PulseTheme.primaryBright,
-                isCompleted: enduranceHero,
-                progressValue: Double(min(cardioCount, 3)),
-                progressTarget: 3.0
             ),
             AchievementBadge(
                 titleEN: "Iron Consistency",
@@ -109,31 +103,186 @@ struct AchievementsView: View {
                 progressTarget: 3.0
             ),
             AchievementBadge(
+                titleEN: "Habit Builder",
+                titleES: "Constructor de Hábitos",
+                descEN: "Keep a 7-day workout streak.",
+                descES: "Mantén una racha de 7 días de entrenamiento.",
+                systemImage: "flame.circle.fill",
+                color: .orange,
+                isCompleted: habitBuilder,
+                progressValue: Double(min(streak, 7)),
+                progressTarget: 7.0
+            ),
+            AchievementBadge(
+                titleEN: "Unstoppable",
+                titleES: "Imparable",
+                descEN: "Reach a 21-day workout streak.",
+                descES: "Logra una racha de 21 días de entrenamiento.",
+                systemImage: "bolt.circle.fill",
+                color: .yellow,
+                isCompleted: unstoppable,
+                progressValue: Double(min(streak, 21)),
+                progressTarget: 21.0
+            ),
+            // ── Volume / Sessions
+            AchievementBadge(
+                titleEN: "Getting Started",
+                titleES: "Empezando",
+                descEN: "Log 5 workout sessions.",
+                descES: "Registra 5 sesiones de entrenamiento.",
+                systemImage: "dumbbell",
+                color: PulseTheme.primary,
+                isCompleted: sessionCount >= 5,
+                progressValue: Double(min(sessionCount, 5)),
+                progressTarget: 5.0
+            ),
+            AchievementBadge(
+                titleEN: "Dedicated",
+                titleES: "Dedicado",
+                descEN: "Complete 25 workout sessions.",
+                descES: "Completa 25 sesiones de entrenamiento.",
+                systemImage: "dumbbell.fill",
+                color: PulseTheme.primaryBright,
+                isCompleted: sessionCount >= 25,
+                progressValue: Double(min(sessionCount, 25)),
+                progressTarget: 25.0
+            ),
+            AchievementBadge(
+                titleEN: "Veteran",
+                titleES: "Veterano",
+                descEN: "Reach 100 completed workout sessions.",
+                descES: "Alcanza 100 sesiones de entrenamiento completadas.",
+                systemImage: "medal.fill",
+                color: .yellow,
+                isCompleted: sessionCount >= 100,
+                progressValue: Double(min(sessionCount, 100)),
+                progressTarget: 100.0
+            ),
+            // ── Strength / Volume
+            AchievementBadge(
                 titleEN: "Titan Lifter",
                 titleES: "Levantador Titán",
-                descEN: "Hit a total cumulative volume of 5,000 kg or lift a heavy PR of 80 kg or more.",
-                descES: "Supera un volumen total acumulado de 5,000 kg o levanta un récord (PR) de 80 kg o más.",
+                descEN: "Hit 5,000 kg of total cumulative volume or a PR over 80 kg.",
+                descES: "Supera 5,000 kg de volumen total acumulado o un récord de 80 kg.",
                 systemImage: "figure.strengthtraining.traditional",
                 color: PulseTheme.primaryBright,
                 isCompleted: titanLifter,
                 progressValue: min(totalVol, 5000.0),
                 progressTarget: 5000.0
-            )
+            ),
+            AchievementBadge(
+                titleEN: "Iron Giant",
+                titleES: "Gigante de Hierro",
+                descEN: "Accumulate 50,000 kg of total lifting volume.",
+                descES: "Acumula 50,000 kg de volumen total de levantamiento.",
+                systemImage: "bolt.fill",
+                color: .yellow,
+                isCompleted: ironGiant,
+                progressValue: min(totalVol, 50_000.0),
+                progressTarget: 50_000.0
+            ),
+            // ── Personal Records
+            AchievementBadge(
+                titleEN: "Record Breaker",
+                titleES: "Rompe Récords",
+                descEN: "Set your first personal record.",
+                descES: "Establece tu primer récord personal.",
+                systemImage: "trophy",
+                color: PulseTheme.accent,
+                isCompleted: recordBreaker,
+                progressValue: Double(min(prCount, 1)),
+                progressTarget: 1.0
+            ),
+            AchievementBadge(
+                titleEN: "PR Machine",
+                titleES: "Máquina de PRs",
+                descEN: "Set 10 personal records across your workouts.",
+                descES: "Establece 10 récords personales en tus entrenamientos.",
+                systemImage: "trophy.fill",
+                color: .yellow,
+                isCompleted: prMachine,
+                progressValue: Double(min(prCount, 10)),
+                progressTarget: 10.0
+            ),
+            // ── Cardio / Health
+            AchievementBadge(
+                titleEN: "Endurance Hero",
+                titleES: "Héroe de Resistencia",
+                descEN: "Log a cardio session over 45 minutes or sync 3 cardio workouts.",
+                descES: "Registra una sesión cardio de +45 min o sincroniza 3 entrenos de cardio.",
+                systemImage: "figure.run",
+                color: PulseTheme.primaryBright,
+                isCompleted: enduranceHero,
+                progressValue: Double(min(cardioCount, 3)),
+                progressTarget: 3.0
+            ),
+            AchievementBadge(
+                titleEN: "Cardio Devotee",
+                titleES: "Fanático del Cardio",
+                descEN: "Complete 10 cardio sessions.",
+                descES: "Completa 10 sesiones de cardio.",
+                systemImage: "heart.circle.fill",
+                color: PulseTheme.destructive,
+                isCompleted: cardioDevotee,
+                progressValue: Double(min(cardioCount, 10)),
+                progressTarget: 10.0
+            ),
+            // ── Apple Integration
+            AchievementBadge(
+                titleEN: "Apple Watch Link",
+                titleES: "Enlace Apple Watch",
+                descEN: "Sync and import a workout from Apple Health or Apple Watch.",
+                descES: "Sincroniza e importa un entreno de Apple Health o Apple Watch.",
+                systemImage: "applewatch",
+                color: PulseTheme.primary,
+                isCompleted: watchConnected,
+                progressValue: watchConnected ? 1.0 : 0.0,
+                progressTarget: 1.0
+            ),
+            AchievementBadge(
+                titleEN: "Ring Closer",
+                titleES: "Cerrador de Anillos",
+                descEN: "Reach 10,000 steps or 600 active kcal in a single day in Apple Health.",
+                descES: "Supera 10,000 pasos o 600 kcal activas en un solo día en Apple Health.",
+                systemImage: "circle.circle.fill",
+                color: PulseTheme.destructive,
+                isCompleted: ringCloser,
+                progressValue: ringCloser ? 10000.0 : max(stepsProgress, energyProgress * 16.6),
+                progressTarget: 10000.0
+            ),
+            // ── Variety
+            AchievementBadge(
+                titleEN: "Full Body",
+                titleES: "Cuerpo Completo",
+                descEN: "Hit 5 different muscle groups across your workout history.",
+                descES: "Trabaja 5 grupos musculares diferentes en tu historial.",
+                systemImage: "figure.mixed.cardio",
+                color: PulseTheme.primaryBright,
+                isCompleted: fullBody,
+                progressValue: Double(min(muscleGroups.count, 5)),
+                progressTarget: 5.0
+            ),
+            AchievementBadge(
+                titleEN: "Evidence Keeper",
+                titleES: "Guardián de Evidencia",
+                descEN: "Add 3 or more progress photos to track your transformation.",
+                descES: "Añade 3 o más fotos de progreso para registrar tu transformación.",
+                systemImage: "camera.fill",
+                color: .purple,
+                isCompleted: evidenceKeeper,
+                progressValue: Double(min(photoCount, 3)),
+                progressTarget: 3.0
+            ),
         ]
     }
     
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 24) {
-                // Header navigation bar
                 customNavBar
-                
-                // Achievements badges card
+                levelBannerSection
                 achievementsGridSection
-                
-                // Saved share receipt cards
                 receiptTicketsSection
-                
                 Spacer(minLength: 40)
             }
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
@@ -154,6 +303,72 @@ struct AchievementsView: View {
         }
     }
     
+    // MARK: - Level Banner
+    private var levelBannerSection: some View {
+        let lvl = playerLevel
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(PulseTheme.primary.opacity(0.12))
+                        .frame(width: 56, height: 56)
+                    Text("\(lvl.level)")
+                        .font(.system(size: 22, weight: .black, design: .rounded))
+                        .foregroundStyle(PulseTheme.primary)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(lvl.title)
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                        Text("Lv. \(lvl.level)")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(PulseTheme.primary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(PulseTheme.primary.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                    if lvl.isMaxLevel {
+                        Text(RepsLocalization.language.hasPrefix("es") ? "Nivel máximo — GOAT status" : "Max level — GOAT status")
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.accent)
+                    } else {
+                        Text("\(lvl.totalXP) XP · \(lvl.xpToNextLevel) XP para el siguiente nivel")
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                }
+                Spacer()
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(PulseTheme.separator)
+                        .frame(height: 7)
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [PulseTheme.primary, PulseTheme.primaryBright],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * CGFloat(lvl.progress), height: 7)
+                }
+            }
+            .frame(height: 7)
+        }
+        .padding(16)
+        .background(PulseTheme.card)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(PulseTheme.primary.opacity(0.15), lineWidth: 1)
+        )
+    }
+
     // MARK: - Navigation Bar
     private var customNavBar: some View {
         HStack {

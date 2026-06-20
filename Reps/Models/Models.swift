@@ -82,7 +82,11 @@ struct UserProfile: Codable {
     var targetEventDate: Date?
     /// Raw value of WidgetColor — synced to the App Group so all widgets read it
     var widgetAccentColorName: String = "system"
-    
+
+    // Track B — social / community features
+    var socialEnabled: Bool = false
+    var socialUsername: String?
+
     var activeThemeMode: ThemeMode {
         themeMode ?? .dark
     }
@@ -761,6 +765,8 @@ struct BodyWellnessDefaults {
     var sleepQuality: Int?
     var fatigue: Int?
     var stress: Int?
+    var restingHeartRate: Double?
+    var heartRateVariabilityMS: Double?
 }
 
 struct ExerciseSessionDraft: Codable, Equatable, Hashable {

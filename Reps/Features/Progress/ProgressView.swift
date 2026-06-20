@@ -128,6 +128,41 @@ struct ProgressDashboardView: View {
               }
               .buttonStyle(.plain)
             }
+
+            NavigationLink {
+              StrengthComparisonView()
+            } label: {
+              HStack(spacing: 14) {
+                ZStack {
+                  RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(PulseTheme.primary.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                  Image(systemName: "chart.bar.xaxis.ascending")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(PulseTheme.primary)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                  Text(localizedKey("compare_strength"))
+                    .font(.subheadline.weight(.black))
+                    .foregroundStyle(.primary)
+                  Text(localizedKey("you_vs_your_past_self"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                  .font(.system(size: 13, weight: .semibold))
+                  .foregroundStyle(PulseTheme.secondaryText.opacity(0.5))
+              }
+              .padding(14)
+              .frame(maxWidth: .infinity)
+              .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+              .overlay(
+                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                  .stroke(PulseTheme.separator, lineWidth: 1)
+              )
+            }
+            .buttonStyle(.plain)
           }
 
           if selectedSection == .cardio {

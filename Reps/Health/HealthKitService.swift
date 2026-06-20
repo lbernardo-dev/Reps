@@ -169,7 +169,9 @@ final class HealthKitService: ObservableObject {
                 sleepHours: sleepHours,
                 restingHeartRate: restingHeartRate,
                 heartRateVariabilityMS: heartRateVariability
-            )
+            ),
+            restingHeartRate: restingHeartRate,
+            heartRateVariabilityMS: heartRateVariability
         )
     }
 

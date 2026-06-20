@@ -83,6 +83,8 @@ struct ProfileView: View {
                     .stickyHeaderTitle(localizedString("photos"))
                 achievementsCard
                     .stickyHeaderTitle(localizedString("achievements"))
+                socialCard
+                    .stickyHeaderTitle(localizedString("community"))
                 gymPassesCard
                     .stickyHeaderTitle(localizedString("gyms"))
                 healthCard
@@ -371,6 +373,97 @@ struct ProfileView: View {
         return formatter.string(from: date).uppercased()
     }
 
+    private var socialCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text(localizedString("community"))
+                        .font(.headline)
+                    Spacer()
+                    if store.userProfile.socialEnabled {
+                        NavigationLink {
+                            SocialHubView()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(localizedString("view_all_2"))
+                                    .font(.caption.weight(.bold))
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10, weight: .bold))
+                            }
+                            .foregroundStyle(PulseTheme.primary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if store.userProfile.socialEnabled,
+                   let uname = store.userProfile.socialUsername {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(PulseTheme.primary.opacity(0.10))
+                                .frame(width: 40, height: 40)
+                            Image(systemName: "person.2.fill")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(PulseTheme.primary)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("@\(uname)")
+                                .font(.subheadline.weight(.semibold))
+                            Text(localizedString("community_active"))
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.primaryBright)
+                        }
+                        Spacer()
+                        NavigationLink {
+                            SocialHubView()
+                        } label: {
+                            Text(localizedString("friends_2"))
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(PulseTheme.primary)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(PulseTheme.accent.opacity(0.10))
+                                .frame(width: 40, height: 40)
+                            Image(systemName: "person.2")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(PulseTheme.accent)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(localizedString("connect_with_friends"))
+                                .font(.subheadline.weight(.semibold))
+                            Text(localizedString("compare_and_compete"))
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+                        Button {
+                            activeSheet = .socialOnboarding
+                        } label: {
+                            Text(localizedString("activate"))
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(PulseTheme.accent)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
     private var gymPassesCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -627,6 +720,8 @@ struct ProfileView: View {
             }
         case .subscription:
             SubscriptionCenterView()
+        case .socialOnboarding:
+            SocialOnboardingView()
         }
     }
 
@@ -1688,6 +1783,7 @@ private enum ProfileSheet: Identifiable {
     case receiptPreview(SavedShareCard)
     case feedback
     case subscription
+    case socialOnboarding
 
     var id: String {
         switch self {
@@ -1701,6 +1797,7 @@ private enum ProfileSheet: Identifiable {
         case .receiptPreview(let card): "receiptPreview-\(card.id.uuidString)"
         case .feedback: "feedback"
         case .subscription: "subscription"
+        case .socialOnboarding: "socialOnboarding"
         }
     }
 }
@@ -2726,6 +2823,11 @@ struct BodyWellnessEditorView: View {
                             Text(summary)
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
+                            if let context = healthSignalContext {
+                                Text(context)
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
                             Button("Confirmar datos de hoy") { save() }
                                 .foregroundStyle(PulseTheme.primary)
                         } else {
@@ -2761,15 +2863,9 @@ struct BodyWellnessEditorView: View {
                         .keyboardType(.decimalPad)
                     TextField("energy_ingested_kcal", text: $dietaryEnergy)
                         .keyboardType(.decimalPad)
-                    Stepper(value: $sleepQuality, in: 1...5) {
-                        Text(localizedFormat("sleep_quality_value_format", sleepQuality))
-                    }
-                    Stepper(value: $fatigue, in: 1...5) {
-                        Text(localizedFormat("fatigue_value_format", fatigue))
-                    }
-                    Stepper(value: $stress, in: 1...5) {
-                        Text(localizedFormat("stress_value_format", stress))
-                    }
+                    RatingSelector(labelKey: "sleep_quality_label", value: $sleepQuality, higherIsBetter: true)
+                    RatingSelector(labelKey: "fatigue_label", value: $fatigue, higherIsBetter: false)
+                    RatingSelector(labelKey: "stress_label", value: $stress, higherIsBetter: false)
                     TextField("discomfort_or_injuries", text: $soreness, axis: .vertical)
                         .lineLimit(3...5)
                 }
@@ -2801,6 +2897,14 @@ struct BodyWellnessEditorView: View {
         if let w = d.waterLiters { parts.append(String(format: "Agua: %.1fL", w)) }
         if let e = d.dietaryEnergyKcal { parts.append(String(format: "%.0f kcal", e)) }
         if let q = d.sleepQuality { parts.append("Calidad sueño: \(q)/5") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private var healthSignalContext: String? {
+        guard let d = healthDefaults else { return nil }
+        var parts: [String] = []
+        if let hrv = d.heartRateVariabilityMS { parts.append(String(format: "HRV: %.0fms", hrv)) }
+        if let rhr = d.restingHeartRate { parts.append(String(format: "FC reposo: %.0f bpm", rhr)) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
@@ -2864,6 +2968,49 @@ struct BodyWellnessEditorView: View {
             source: .manual
         ))
         dismiss()
+    }
+}
+
+private struct RatingSelector: View {
+    let labelKey: LocalizedStringKey
+    @Binding var value: Int
+    var higherIsBetter: Bool = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(labelKey)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+            HStack(spacing: 10) {
+                ForEach(1...5, id: \.self) { n in
+                    Button {
+                        value = n
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(n == value ? dotColor(n) : Color(.systemFill))
+                                .frame(width: 36, height: 36)
+                            Text("\(n)")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(n == value ? .white : .secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func dotColor(_ n: Int) -> Color {
+        let effective = higherIsBetter ? n : (6 - n)
+        switch effective {
+        case 5: return .green
+        case 4: return Color(hue: 0.28, saturation: 0.75, brightness: 0.75)
+        case 3: return .orange
+        case 2: return Color(hue: 0.07, saturation: 0.85, brightness: 0.85)
+        default: return .red
+        }
     }
 }
 
