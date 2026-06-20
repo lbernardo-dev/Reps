@@ -467,6 +467,10 @@ struct ActiveWorkoutView: View {
                             // What's next in the session.
                             nextExerciseCard
                                 .frame(width: contentWidth)
+                            // Document the session: notes, voice, photo, video
+                            // and per-attachment sharing (collapsed disclosure).
+                            sessionFeedbackCard
+                                .frame(width: contentWidth)
                             // Secondary tools, collapsed by default so the
                             // logging loop stays the focus of the screen.
                             moreSessionToolsSection
@@ -1054,7 +1058,6 @@ struct ActiveWorkoutView: View {
                 }
                 sessionExerciseOrderCard
                 sessionControlCenterCard
-                sessionFeedbackCard
             }
         }
     }
