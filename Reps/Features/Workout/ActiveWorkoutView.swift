@@ -1449,7 +1449,7 @@ struct ActiveWorkoutView: View {
                     .background(PulseTheme.grouped)
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 VStack(alignment: .leading) {
-                    Text("siguiente").font(.caption.weight(.bold)).foregroundStyle(PulseTheme.primary)
+                    Text("next_uppercase").font(.caption.weight(.bold)).foregroundStyle(PulseTheme.primary)
                     Text(nextExerciseTitle)
                         .font(.headline)
                     Text(nextExerciseSubtitle).foregroundStyle(PulseTheme.secondaryText)
@@ -1736,7 +1736,7 @@ struct ActiveWorkoutView: View {
 
     private var nextExerciseSubtitle: String {
         guard exerciseDrafts.indices.contains(selectedExerciseIndex + 1) else {
-            return exerciseDrafts.isEmpty ? "Entrenamiento libre" : "\(completedSets) series registradas"
+            return exerciseDrafts.isEmpty ? localizedString("free_training_label") : localizedFormat("sets_logged_count_format", completedSets)
         }
 
         let item = exerciseDrafts[selectedExerciseIndex + 1].workoutExercise

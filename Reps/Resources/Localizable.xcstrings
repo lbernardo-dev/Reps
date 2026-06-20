@@ -60293,7 +60293,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "PRÓXIMO"
+            "value": "SIGUIENTE"
           }
         }
       }
@@ -62519,13 +62519,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Notes and a half"
+            "value": "Notes & media"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Notas y media"
+            "value": "Notas y multimedia"
           }
         }
       }
@@ -100246,6 +100246,406 @@
           "stringUnit": {
             "state": "translated",
             "value": "Registrar %@, serie %d"
+          }
+        }
+      }
+    },
+    "free_training_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free training"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento libre"
+          }
+        }
+      }
+    },
+    "sets_logged_count_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d sets logged"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d series registradas"
+          }
+        }
+      }
+    },
+    "battery_critical_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Training battery critical"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batería de entreno crítica"
+          }
+        }
+      }
+    },
+    "battery_critical_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accumulated fatigue exceeds your recent recovery."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La fatiga acumulada supera tu recuperación reciente."
+          }
+        }
+      }
+    },
+    "battery_critical_suggestion": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch to rest, mobility or a deload. If you train, cut volume 40% and avoid RPE 9-10."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambia a descanso, movilidad o descarga. Si entrenas, reduce volumen 40% y evita RPE 9-10."
+          }
+        }
+      }
+    },
+    "battery_low_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Training battery low"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batería de entreno baja"
+          }
+        }
+      }
+    },
+    "battery_low_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can train, but the room to progress is limited."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puedes entrenar, pero el margen para progresar es limitado."
+          }
+        }
+      }
+    },
+    "battery_low_suggestion": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep RPE 6-7, rest 2-3 min between hard sets and trim accessories."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén RPE 6-7, descansa 2-3 min entre series duras y recorta accesorios."
+          }
+        }
+      }
+    },
+    "battery_steady_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Training battery steady"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batería de entreno estable"
+          }
+        }
+      }
+    },
+    "battery_steady_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load and recovery are reasonably balanced."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La carga y la recuperación están razonablemente equilibradas."
+          }
+        }
+      }
+    },
+    "battery_steady_suggestion": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Train as planned and take full rests on the main lifts."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrena según plan y respeta los descansos completos en ejercicios principales."
+          }
+        }
+      }
+    },
+    "battery_charged_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Training battery charged"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batería de entreno cargada"
+          }
+        }
+      }
+    },
+    "battery_charged_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Good headroom for a productive session."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buen margen para una sesión productiva."
+          }
+        }
+      }
+    },
+    "battery_charged_suggestion": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can progress if technique holds and the target RPE fits."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puedes progresar si la técnica se mantiene y el RPE objetivo encaja."
+          }
+        }
+      }
+    },
+    "insight_volume_up_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume is climbing"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El volumen está subiendo"
+          }
+        }
+      }
+    },
+    "insight_volume_up_message_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This block is %d kg above the previous comparable period."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este bloque está %d kg por encima del periodo comparable anterior."
+          }
+        }
+      }
+    },
+    "insight_keep_base_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep a consistent base"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén la base constante"
+          }
+        }
+      }
+    },
+    "insight_keep_base_message_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have %d sessions logged in this range. Add a focused workout to improve the trend."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tienes %d sesiones registradas en este rango. Añade un entreno enfocado para mejorar la tendencia."
+          }
+        }
+      }
+    },
+    "insight_muscle_low_title_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is lagging"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ va por debajo"
+          }
+        }
+      }
+    },
+    "insight_muscle_low_message_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d weekly sets is below the simple 10-20 hypertrophy range."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d series semanales está por debajo del rango simple de hipertrofia 10-20."
+          }
+        }
+      }
+    },
+    "insight_goal_reached_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Goal reached. Set a new target to keep the pace."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Objetivo alcanzado. Define una nueva meta para mantener el ritmo."
+          }
+        }
+      }
+    },
+    "insight_goal_remaining_message_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d %@ left to reach your goal."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faltan %d %@ para llegar a tu meta."
+          }
+        }
+      }
+    },
+    "insight_empty_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log workouts to unlock insights"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra entrenos para activar insights"
+          }
+        }
+      }
+    },
+    "insight_empty_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete workouts with sets and reps to see practical progress signals."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completa entrenos con series y repeticiones para ver señales prácticas de progreso."
+          }
+        }
+      }
+    },
+    "set_tools_caption": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add weight to the target set to unlock warm-up and load tools."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade peso a la serie objetivo para activar herramientas de calentamiento y carga."
           }
         }
       }

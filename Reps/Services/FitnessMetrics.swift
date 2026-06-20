@@ -201,22 +201,22 @@ enum FitnessMetrics {
 
         if totalVolume > previousVolume, previousVolume > 0 {
             insights.append(TrainingInsight(
-                title: "El volumen está subiendo",
-                message: "Este bloque está \(Int(totalVolume - previousVolume)) kg por encima del periodo comparable anterior.",
+                title: localizedString("insight_volume_up_title"),
+                message: localizedFormat("insight_volume_up_message_format", Int(totalVolume - previousVolume)),
                 systemImage: "chart.line.uptrend.xyaxis"
             ))
         } else if !recentSessions.isEmpty {
             insights.append(TrainingInsight(
-                title: "Mantén la base constante",
-                message: "Tienes \(recentSessions.count) sesiones registradas en este rango. Añade un entreno enfocado para mejorar la tendencia.",
+                title: localizedString("insight_keep_base_title"),
+                message: localizedFormat("insight_keep_base_message_format", recentSessions.count),
                 systemImage: "calendar.badge.clock"
             ))
         }
 
         if let lowestMuscle = musclePoints.min(by: { $0.completedSets < $1.completedSets }), lowestMuscle.completedSets < 10 {
             insights.append(TrainingInsight(
-                title: "\(lowestMuscle.muscleGroup) va por debajo",
-                message: "\(lowestMuscle.completedSets) series semanales está por debajo del rango simple de hipertrofia 10-20.",
+                title: localizedFormat("insight_muscle_low_title_format", lowestMuscle.muscleGroup),
+                message: localizedFormat("insight_muscle_low_message_format", lowestMuscle.completedSets),
                 systemImage: "target"
             ))
         }
@@ -225,15 +225,15 @@ enum FitnessMetrics {
             let remaining = max(strengthGoal.target - strengthGoal.current, 0)
             insights.append(TrainingInsight(
                 title: strengthGoal.title,
-                message: remaining == 0 ? "Objetivo alcanzado. Define una nueva meta para mantener el ritmo." : "Faltan \(Int(remaining)) \(strengthGoal.unit) para llegar a tu meta.",
+                message: remaining == 0 ? localizedString("insight_goal_reached_message") : localizedFormat("insight_goal_remaining_message_format", Int(remaining), strengthGoal.unit),
                 systemImage: "trophy"
             ))
         }
 
         if insights.isEmpty {
             insights.append(TrainingInsight(
-                title: "Registra entrenos para activar insights",
-                message: "Completa entrenos con series y repeticiones para ver señales prácticas de progreso.",
+                title: localizedString("insight_empty_title"),
+                message: localizedString("insight_empty_message"),
                 systemImage: "sparkles"
             ))
         }
@@ -284,27 +284,27 @@ enum FitnessMetrics {
         switch level {
         case 0..<30:
             state = .critical
-            title = "Batería de entreno crítica"
-            message = "La fatiga acumulada supera tu recuperación reciente."
-            suggestion = "Cambia a descanso, movilidad o descarga. Si entrenas, reduce volumen 40% y evita RPE 9-10."
+            title = localizedString("battery_critical_title")
+            message = localizedString("battery_critical_message")
+            suggestion = localizedString("battery_critical_suggestion")
             systemImage = "battery.25percent"
         case 30..<55:
             state = .low
-            title = "Batería de entreno baja"
-            message = "Puedes entrenar, pero el margen para progresar es limitado."
-            suggestion = "Mantén RPE 6-7, descansa 2-3 min entre series duras y recorta accesorios."
+            title = localizedString("battery_low_title")
+            message = localizedString("battery_low_message")
+            suggestion = localizedString("battery_low_suggestion")
             systemImage = "battery.50percent"
         case 55..<80:
             state = .steady
-            title = "Batería de entreno estable"
-            message = "La carga y la recuperación están razonablemente equilibradas."
-            suggestion = "Entrena según plan y respeta los descansos completos en ejercicios principales."
+            title = localizedString("battery_steady_title")
+            message = localizedString("battery_steady_message")
+            suggestion = localizedString("battery_steady_suggestion")
             systemImage = "battery.75percent"
         default:
             state = .charged
-            title = "Batería de entreno cargada"
-            message = "Buen margen para una sesión productiva."
-            suggestion = "Puedes progresar si la técnica se mantiene y el RPE objetivo encaja."
+            title = localizedString("battery_charged_title")
+            message = localizedString("battery_charged_message")
+            suggestion = localizedString("battery_charged_suggestion")
             systemImage = "battery.100percent"
         }
 
@@ -1638,7 +1638,7 @@ enum SelectedExerciseContextBuilder {
         } else if canAppendAdvancedSet {
             toolsCaption = "Inserta calentamientos, back-off o dropsets desde la misma pantalla y deja el tipo de serie registrado."
         } else {
-            toolsCaption = "Añade peso a la serie objetivo para activar herramientas de calentamiento y carga."
+            toolsCaption = localizedString("set_tools_caption")
         }
 
         return Context(
