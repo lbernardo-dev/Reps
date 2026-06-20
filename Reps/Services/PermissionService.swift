@@ -36,14 +36,14 @@ final class PermissionService: ObservableObject {
         }
         if current == .denied {
             microphone = .denied
-            deniedMessage = "El micrófono está bloqueado. Actívalo en Ajustes → Reps → Micrófono."
+            deniedMessage = localizedString("perm_mic_blocked")
             return false
         }
 
         let granted = await AVAudioApplication.requestRecordPermission()
         microphone = granted ? .granted : .denied
         if !granted {
-            deniedMessage = "Reps necesita acceso al micrófono para grabar notas de voz."
+            deniedMessage = localizedString("perm_mic_needed")
         }
         return granted
     }
@@ -58,14 +58,14 @@ final class PermissionService: ObservableObject {
         }
         if current == .denied || current == .restricted {
             camera = .denied
-            deniedMessage = "La cámara está bloqueada. Actívala en Ajustes → Reps → Cámara."
+            deniedMessage = localizedString("perm_camera_blocked")
             return false
         }
 
         let granted = await AVCaptureDevice.requestAccess(for: .video)
         camera = granted ? .granted : .denied
         if !granted {
-            deniedMessage = "Reps necesita acceso a la cámara para tomar fotos de progreso."
+            deniedMessage = localizedString("perm_camera_needed")
         }
         return granted
     }
@@ -81,7 +81,7 @@ final class PermissionService: ObservableObject {
         }
         if settings.authorizationStatus == .denied {
             notifications = .denied
-            deniedMessage = "Las notificaciones están bloqueadas. Actívalas en Ajustes → Reps → Notificaciones."
+            deniedMessage = localizedString("perm_notifications_blocked")
             return false
         }
 
@@ -89,7 +89,7 @@ final class PermissionService: ObservableObject {
             let granted = try await center.requestAuthorization(options: [.alert, .badge, .sound])
             notifications = granted ? .granted : .denied
             if !granted {
-                deniedMessage = "Reps necesita notificaciones para recordarte tus entrenos."
+                deniedMessage = localizedString("perm_notifications_needed")
             }
             return granted
         } catch {
@@ -108,7 +108,7 @@ final class PermissionService: ObservableObject {
         }
         if current == .denied || current == .restricted {
             photoLibrary = .denied
-            deniedMessage = "El acceso a fotos está bloqueado. Actívalo en Ajustes → Reps → Fotos."
+            deniedMessage = localizedString("perm_photos_blocked")
             return false
         }
 
@@ -116,7 +116,7 @@ final class PermissionService: ObservableObject {
         let granted = status == .authorized || status == .limited
         photoLibrary = granted ? .granted : .denied
         if !granted {
-            deniedMessage = "Reps necesita acceso a tus fotos para guardar imágenes de progreso."
+            deniedMessage = localizedString("perm_photos_needed")
         }
         return granted
     }

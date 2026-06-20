@@ -398,8 +398,12 @@ final class AppStore {
 
     var dailySummary: String {
         let completedToday = workoutSessions.filter { Calendar.current.isDateInToday($0.date) }
-        let workoutText = completedToday.isEmpty ? "Sin entreno registrado hoy" : "\(completedToday.count) entreno registrado"
-        let healthText = todayHealthMetric.map { "\(Int($0.steps)) pasos, \(Int($0.activeEnergyKcal)) kcal activas" } ?? "Métricas de Salud sin sincronizar"
+        let workoutText = completedToday.isEmpty
+            ? localizedString("daily_summary_no_workout")
+            : localizedFormat("daily_summary_workout_count_format", completedToday.count)
+        let healthText = todayHealthMetric.map {
+            localizedFormat("health_metric_summary_format", Int($0.steps), Int($0.activeEnergyKcal))
+        } ?? localizedString("health_metrics_not_synced")
         return "\(workoutText). \(healthText)."
     }
 
@@ -948,26 +952,35 @@ final class AppStore {
             )
         }
 
+        // Capture the source workout-day identity before clearing active state so
+        // plan-day advancement and calendar completion match by id, not by title
+        // (titles can collide across plan days, e.g. a repeated "Push" day).
+        let sourceDayID = activeWorkout?.id
         self.finishedSessionForSummary = session
         activeWorkoutStatus = nil
         activeWorkout = nil
         activeWorkoutDrafts = []
-        
+
         // Advance progress of the current plan's correct day if completed
         if !activePlan.days.isEmpty {
             let count = activePlan.days.count
             let index = ((activePlan.activeDayIndex % count) + count) % count
             let currentDay = activePlan.days[index]
-            if session.workoutTitle == currentDay.title {
+            let matchesCurrentDay = sourceDayID.map { $0 == currentDay.id } ?? (session.workoutTitle == currentDay.title)
+            if matchesCurrentDay {
                 activePlan.activeDayIndex = ((activePlan.activeDayIndex + 1) % count + count) % count
                 if let index = plans.firstIndex(where: { $0.id == activePlan.id }) {
                     plans[index] = activePlan
                 }
             }
         }
-        
+
         let calendar = Calendar.current
-        if let index = scheduledWorkouts.firstIndex(where: { calendar.isDateInToday($0.date) && $0.workoutDay.title == session.workoutTitle }) {
+        if let index = scheduledWorkouts.firstIndex(where: { scheduled in
+            guard calendar.isDateInToday(scheduled.date) else { return false }
+            if let sourceDayID { return scheduled.workoutDay.id == sourceDayID }
+            return scheduled.workoutDay.title == session.workoutTitle
+        }) {
             scheduledWorkouts[index].status = .completed
         }
 
@@ -1538,7 +1551,7 @@ final class AppStore {
                 heartRateBefore: nil,
                 heartRateAfter: nil,
                 rpe: nil,
-                notes: routePoints.isEmpty ? "Cardio en cinta enriquecido desde Apple Watch." : "Ruta enriquecida desde Apple Watch.",
+                notes: routePoints.isEmpty ? localizedString("watch_note_treadmill_enriched") : localizedString("watch_note_route_enriched"),
                 routePoints: existing.location == .outdoor ? routePoints : []
             )
             _ = importCardioLogs([cardioLog])
@@ -1557,7 +1570,7 @@ final class AppStore {
             contextTag: .normal,
             durationMinutes: summary.durationMinutes,
             sets: [],
-            notes: "Iniciado y registrado desde Apple Watch.",
+            notes: localizedString("watch_note_started_on_watch"),
             exerciseLogs: [],
             sessionRPE: nil,
             energyBefore: nil,
@@ -3585,22 +3598,22 @@ final class AppStore {
     
     static func nameForActivityType(_ type: HKWorkoutActivityType) -> String {
         switch type {
-        case .traditionalStrengthTraining: return "Fuerza tradicional"
-        case .functionalStrengthTraining: return "Fuerza funcional"
-        case .coreTraining: return "Core / Abdomen"
-        case .swimming: return "Natación"
-        case .running: return "Carrera"
-        case .walking: return "Caminata"
-        case .cycling: return "Ciclismo"
-        case .yoga: return "Yoga"
-        case .pilates: return "Pilates"
-        case .highIntensityIntervalTraining: return "HIIT"
-        case .flexibility: return "Estiramiento / Flexibilidad"
-        case .crossTraining: return "CrossFit"
-        case .cardioDance: return "Baile"
-        case .elliptical: return "Elíptica"
-        case .rowing: return "Remo"
-        default: return "Otro deporte"
+        case .traditionalStrengthTraining: return localizedString("activity_strength_traditional")
+        case .functionalStrengthTraining: return localizedString("activity_strength_functional")
+        case .coreTraining: return localizedString("activity_core")
+        case .swimming: return localizedString("activity_swimming")
+        case .running: return localizedString("activity_running")
+        case .walking: return localizedString("activity_walking")
+        case .cycling: return localizedString("activity_cycling")
+        case .yoga: return localizedString("activity_yoga")
+        case .pilates: return localizedString("activity_pilates")
+        case .highIntensityIntervalTraining: return localizedString("activity_hiit")
+        case .flexibility: return localizedString("activity_flexibility")
+        case .crossTraining: return localizedString("activity_cross_training")
+        case .cardioDance: return localizedString("activity_dance")
+        case .elliptical: return localizedString("activity_elliptical")
+        case .rowing: return localizedString("activity_rowing")
+        default: return localizedString("activity_other_sport")
         }
     }
 

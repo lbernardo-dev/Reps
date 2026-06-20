@@ -212,7 +212,7 @@ struct MainTabView: View {
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isQuickMenuExpanded ? "Cerrar menú rápido" : "Abrir menú rápido")
+        .accessibilityLabel(isQuickMenuExpanded ? localizedString("quick_menu_close") : localizedString("quick_menu_open"))
     }
 
     private var quickActionFloatingButtonBottomPadding: CGFloat {

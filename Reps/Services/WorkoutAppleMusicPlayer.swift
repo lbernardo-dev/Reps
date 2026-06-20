@@ -107,7 +107,7 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
     private func play(_ playlist: PlanPlaylist) async {
         let authorization = await MusicAuthorization.request()
         guard authorization == .authorized else {
-            message = "Autoriza Apple Music para reproducir aquí"
+            message = localizedString("music_authorize_to_play")
             return
         }
 
@@ -126,7 +126,7 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
             message = "Reproduciendo con Apple Music"
             updateNowPlaying()
         } catch AppleMusicPlaybackError.subscriptionRequired {
-            message = "Necesitas una suscripción activa de Apple Music"
+            message = localizedString("music_subscription_needed")
         } catch {
             print("Apple Music playback failed: \(error)")
             message = "Apple Music no pudo iniciar esta playlist"
@@ -140,7 +140,7 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
                 throw AppleMusicPlaybackError.subscriptionRequired
             }
         } catch AppleMusicPlaybackError.subscriptionRequired {
-            message = "Necesitas una suscripción activa de Apple Music"
+            message = localizedString("music_subscription_needed")
             throw AppleMusicPlaybackError.subscriptionRequired
         } catch {
             print("Apple Music subscription check failed, continuing to playback attempt: \(error)")

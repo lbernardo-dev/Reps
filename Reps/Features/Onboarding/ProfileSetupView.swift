@@ -30,14 +30,16 @@ struct ProfileSetupView: View {
         BodyMetric(date: .now, weightKg: weightKg, heightCm: heightCm, source: .manual)
     }
 
-    private var generatedPlan: WorkoutPlan {
+    @State private var cachedPlan: WorkoutPlan?
+
+    private func buildPlan() -> WorkoutPlan {
         var configured = profile
         configured.sex = selectedSex?.profileValue
         configured.dateOfBirth = Calendar.current.date(byAdding: .year, value: -age, to: .now)
         configured.availableEquipment = configuredEquipment
-        
+
         if hasTargetEvent {
-            configured.targetEventName = targetEventName.isEmpty ? "Evento" : targetEventName
+            configured.targetEventName = targetEventName.isEmpty ? localizedString("default_event_name") : targetEventName
             configured.targetEventDate = targetEventDate
         } else {
             configured.targetEventName = nil
@@ -50,6 +52,14 @@ struct ProfileSetupView: View {
             sessionLengthMinutes: sessionLengthMinutes,
             focusMuscles: Array(focusMuscles)
         )
+    }
+
+    // Built once when entering the .generating step (all inputs are frozen by then)
+    // and reused for the preview and the saved plan. Rebuilding on every access
+    // minted fresh UUIDs each render, breaking SwiftUI identity during the animated
+    // reveal and producing a saved plan that differed from the previewed one.
+    private var generatedPlan: WorkoutPlan {
+        cachedPlan ?? buildPlan()
     }
 
     private var configuredEquipment: [String] {
@@ -83,6 +93,7 @@ struct ProfileSetupView: View {
         .onChange(of: step) { _, newStep in
             isEventNameFocused = false
             if newStep == .generating {
+                cachedPlan = buildPlan()
                 generationPulse = false
                 withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                     generationPulse = true
@@ -1421,7 +1432,7 @@ struct ProfileSetupView: View {
         configured.onboardingCompleted = true
         
         if hasTargetEvent {
-            configured.targetEventName = targetEventName.isEmpty ? "Evento" : targetEventName
+            configured.targetEventName = targetEventName.isEmpty ? localizedString("default_event_name") : targetEventName
             configured.targetEventDate = targetEventDate
         } else {
             configured.targetEventName = nil
@@ -1429,12 +1440,10 @@ struct ProfileSetupView: View {
         }
 
         let metric = bodyMetric
-        let plan = OnboardingPlanBuilder.makePlan(
-            profile: configured,
-            bodyMetric: metric,
-            sessionLengthMinutes: sessionLengthMinutes,
-            focusMuscles: Array(focusMuscles)
-        )
+        // Reuse the plan previewed on the .generating/.plan steps so the saved plan
+        // is identical to what the user saw (same exercise identities), instead of
+        // minting a fresh one here.
+        let plan = cachedPlan ?? buildPlan()
 
         return OnboardingResult(profile: configured, bodyMetric: metric, plan: plan)
     }
