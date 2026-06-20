@@ -55,9 +55,8 @@ struct SocialHubView: View {
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
-        .task { await loadFollowing() }
+        .task { await loadFollowing(); await loadSuggested() }
         .task { if store.feedPosts.isEmpty { await store.loadFeed() } }
-        .task { await loadSuggested() }
         .onChange(of: tab) { _, newTab in
             if newTab == .feed {
                 store.markFeedAsRead()
@@ -435,16 +434,48 @@ struct SocialHubView: View {
 
     // MARK: - Friends Section
 
+    private struct LeaderboardEntry {
+        let rank: Int
+        let username: String
+        let displayName: String
+        let xp: Int
+        let sessions: Int
+        let streakDays: Int
+        let isMe: Bool
+    }
+
+    private var leaderboardEntries: [LeaderboardEntry] {
+        let myXP = GamificationEngine.totalXP(
+            sessions: store.workoutSessions,
+            cardioLogs: store.combinedCardioLogs,
+            bodyMetrics: store.bodyMetrics,
+            progressPhotos: store.progressPhotos,
+            streakDays: store.streakDays,
+            totalVolumeKg: store.totalVolumeKg
+        )
+        let myUsername = store.userProfile.socialUsername ?? ""
+        var all: [(String, String, Int, Int, Int, Bool)] = following.map {
+            ($0.username, $0.displayName, $0.totalXP, $0.totalSessions, $0.streakDays, false)
+        }
+        if !myUsername.isEmpty {
+            all.append((myUsername, store.userProfile.displayName ?? myUsername,
+                        myXP, store.workoutSessions.count, store.streakDays, true))
+        }
+        return all
+            .sorted { $0.2 > $1.2 }
+            .enumerated()
+            .map { idx, e in
+                LeaderboardEntry(rank: idx + 1, username: e.0, displayName: e.1,
+                                 xp: e.2, sessions: e.3, streakDays: e.4, isMe: e.5)
+            }
+    }
+
     @ViewBuilder
     private var friendsSection: some View {
         if isLoadingFollowing {
             PulseCard {
-                HStack {
-                    Spacer()
-                    ProgressView().tint(PulseTheme.primary)
-                    Spacer()
-                }
-                .padding(.vertical, 20)
+                HStack { Spacer(); ProgressView().tint(PulseTheme.primary); Spacer() }
+                    .padding(.vertical, 20)
             }
         } else if following.isEmpty {
             PulseCard {
@@ -456,21 +487,126 @@ struct SocialHubView: View {
                 .padding(.vertical, 8)
             }
         } else {
-            PulseCard {
-                VStack(spacing: 0) {
-                    ForEach(Array(following.enumerated()), id: \.element.id) { idx, friend in
-                        Button {
-                            HapticService.selection()
-                            withAnimation(.snappy(duration: 0.2)) {
-                                selectedFriend = selectedFriend?.id == friend.id ? nil : friend
-                            }
-                        } label: {
-                            friendRow(friend, isSelected: selectedFriend?.id == friend.id)
-                        }
-                        .buttonStyle(.plain)
+            leaderboardCard
+            friendListCard
+        }
+    }
 
-                        if idx < following.count - 1 { Divider() }
+    private var leaderboardCard: some View {
+        let entries = leaderboardEntries
+        let top = Array(entries.prefix(3))
+        let rest = Array(entries.dropFirst(3))
+        return PulseCard {
+            VStack(spacing: 14) {
+                HStack {
+                    Image(systemName: "trophy.fill")
+                        .foregroundStyle(PulseTheme.accent)
+                        .font(.subheadline.weight(.bold))
+                    Text(localizedString("social_leaderboard"))
+                        .font(.subheadline.weight(.bold))
+                    Spacer()
+                    Text(localizedString("social_by_xp"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+
+                // Podium (up to 3)
+                if top.count >= 2 {
+                    podiumView(entries: top)
+                    if !rest.isEmpty { Divider() }
+                }
+
+                // Ranked table for positions 4+
+                if !rest.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(Array(rest.enumerated()), id: \.element.rank) { idx, entry in
+                            leaderboardRow(entry)
+                            if idx < rest.count - 1 { Divider().padding(.leading, 36) }
+                        }
                     }
+                }
+            }
+        }
+    }
+
+    private func podiumView(entries: [LeaderboardEntry]) -> some View {
+        let order: [Int]
+        switch entries.count {
+        case 1: order = [0]
+        case 2: order = [1, 0]
+        default: order = [1, 0, 2]
+        }
+        let medals = ["🥇", "🥈", "🥉"]
+        return HStack(alignment: .bottom, spacing: 8) {
+            ForEach(order, id: \.self) { i in
+                let entry = entries[i]
+                let isFirst = i == 0
+                VStack(spacing: 4) {
+                    Text(medals[i])
+                        .font(.system(size: isFirst ? 26 : 20))
+                    ZStack {
+                        Circle()
+                            .fill(entry.isMe ? PulseTheme.accent.opacity(0.15) : PulseTheme.primary.opacity(0.08))
+                            .frame(width: isFirst ? 52 : 42, height: isFirst ? 52 : 42)
+                        Text(String(entry.username.prefix(1)).uppercased())
+                            .font(.system(size: isFirst ? 22 : 17, weight: .black, design: .rounded))
+                            .foregroundStyle(entry.isMe ? PulseTheme.accent : PulseTheme.primary)
+                    }
+                    Text(entry.isMe ? localizedString("social_you_label") : "@\(entry.username)")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(entry.isMe ? PulseTheme.accent : .primary)
+                        .lineLimit(1)
+                    Text("\(entry.xp) XP")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, isFirst ? 8 : 0)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func leaderboardRow(_ entry: LeaderboardEntry) -> some View {
+        HStack(spacing: 10) {
+            Text("#\(entry.rank)")
+                .font(.system(size: 12, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(PulseTheme.secondaryText)
+                .frame(width: 26, alignment: .trailing)
+            ZStack {
+                Circle()
+                    .fill(entry.isMe ? PulseTheme.accent.opacity(0.12) : PulseTheme.primary.opacity(0.07))
+                    .frame(width: 30, height: 30)
+                Text(String(entry.username.prefix(1)).uppercased())
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .foregroundStyle(entry.isMe ? PulseTheme.accent : PulseTheme.primary)
+            }
+            Text(entry.isMe ? localizedString("social_you_label") : "@\(entry.username)")
+                .font(.subheadline.weight(entry.isMe ? .bold : .regular))
+                .foregroundStyle(entry.isMe ? PulseTheme.accent : .primary)
+                .lineLimit(1)
+            Spacer()
+            Text("\(entry.xp) XP")
+                .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(entry.isMe ? PulseTheme.accent : PulseTheme.primary)
+        }
+        .padding(.vertical, 8)
+    }
+
+    private var friendListCard: some View {
+        PulseCard {
+            VStack(spacing: 0) {
+                ForEach(Array(following.enumerated()), id: \.element.id) { idx, friend in
+                    Button {
+                        HapticService.selection()
+                        withAnimation(.snappy(duration: 0.2)) {
+                            selectedFriend = selectedFriend?.id == friend.id ? nil : friend
+                        }
+                    } label: {
+                        friendRow(friend, isSelected: selectedFriend?.id == friend.id)
+                    }
+                    .buttonStyle(.plain)
+                    if idx < following.count - 1 { Divider() }
                 }
             }
         }
@@ -861,12 +997,12 @@ struct SocialHubView: View {
         isLoadingSuggested = true
         do {
             let profiles = try await SocialService.shared.fetchSuggested(
-                excluding: store.userProfile.socialFollowingUsernames
+                myUsername: store.userProfile.socialUsername ?? "",
+                followingUsernames: store.userProfile.socialFollowingUsernames,
+                followingProfiles: following
             )
             suggestedProfiles = profiles
-        } catch {
-            // Silent degrade — section stays hidden
-        }
+        } catch {}
         isLoadingSuggested = false
     }
 
@@ -980,6 +1116,13 @@ struct SocialHubView: View {
                         if !store.userProfile.socialFollowingUsernames.contains(uname) {
                             store.userProfile.socialFollowingUsernames.append(uname)
                         }
+                    }
+                }
+                // Update own SocialProfile.followingUsernames so friend-of-friend works
+                if let myUsername = store.userProfile.socialUsername {
+                    let newList = store.userProfile.socialFollowingUsernames
+                    Task.detached {
+                        await SocialService.shared.updateMyFollowingList(myUsername: myUsername, followingUsernames: newList)
                     }
                 }
             } catch {

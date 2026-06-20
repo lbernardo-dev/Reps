@@ -72,6 +72,7 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
     var streakDays: Int
     var totalVolumeKg: Double
     var updatedAt: Date
+    var followingUsernames: [String]  // stored so friend-of-friend suggestions work
 
     init?(record: CKRecord) {
         guard
@@ -92,6 +93,7 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
         self.streakDays = (record["streakDays"] as? Int64).map(Int.init) ?? 0
         self.totalVolumeKg = record["totalVolumeKg"] as? Double ?? 0
         self.updatedAt = record.modificationDate ?? .now
+        self.followingUsernames = record["followingUsernames"] as? [String] ?? []
     }
 }
 
@@ -165,7 +167,8 @@ actor SocialService {
         totalXP: Int,
         totalSessions: Int,
         streakDays: Int,
-        totalVolumeKg: Double
+        totalVolumeKg: Double,
+        followingUsernames: [String] = []
     ) async throws {
         let myID = try await myRecordID()
         let normalized = username.lowercased()
@@ -200,8 +203,21 @@ actor SocialService {
         record["totalSessions"] = Int64(totalSessions) as CKRecordValue
         record["streakDays"] = Int64(streakDays) as CKRecordValue
         record["totalVolumeKg"] = totalVolumeKg as CKRecordValue
+        record["followingUsernames"] = followingUsernames.map { $0.lowercased() } as CKRecordValue
 
         try await publicDB.save(record)
+    }
+
+    // Updates only the followingUsernames field on own SocialProfile so
+    // friend-of-friend suggestions work for other users.
+    func updateMyFollowingList(myUsername: String, followingUsernames: [String]) async {
+        guard !myUsername.isEmpty else { return }
+        let rid = profileRecordID(username: myUsername.lowercased())
+        do {
+            let record = try await publicDB.record(for: rid)
+            record["followingUsernames"] = followingUsernames.map { $0.lowercased() } as CKRecordValue
+            try await publicDB.save(record)
+        } catch { /* non-critical */ }
     }
 
     // Fetch the current user's profile by their known username (stored locally).
@@ -217,21 +233,41 @@ actor SocialService {
 
     // MARK: - Suggested Athletes
     //
-    // Featured seed usernames baked into the app — fetched via direct record(for:)
-    // lookups, no index required. Add usernames here as the community grows.
+    // Seed accounts baked into the app — fallback when no friend-of-friend candidates exist.
     static let featuredUsernames: [String] = [
         "repsfitness", "repsofficial"
     ]
 
-    // Returns featured profiles that are not already followed by the current user.
-    func fetchSuggested(excluding followingUsernames: [String]) async throws -> [SocialProfile] {
-        let excluded = Set(followingUsernames.map { $0.lowercased() })
-        let candidates = Self.featuredUsernames.filter { !excluded.contains($0) }
-        guard !candidates.isEmpty else { return [] }
-        let ids = candidates.map { profileRecordID(username: $0) }
+    // Friend-of-friend suggestions: surfaces users that your friends follow but you don't.
+    // Falls back to featured accounts when no candidates are found.
+    // No CKQuery index needed — uses direct record(for:) lookups.
+    func fetchSuggested(
+        myUsername: String,
+        followingUsernames: [String],
+        followingProfiles: [SocialProfile]
+    ) async throws -> [SocialProfile] {
+        let excluded = Set((followingUsernames + [myUsername]).map { $0.lowercased() }.filter { !$0.isEmpty })
+
+        // Collect usernames from friends' following lists that I don't already follow
+        var candidates: [String] = []
+        var seen: Set<String> = excluded
+        for profile in followingProfiles {
+            for uname in profile.followingUsernames {
+                let u = uname.lowercased()
+                if seen.insert(u).inserted { candidates.append(u) }
+            }
+        }
+
+        let toFetch: [String] = candidates.isEmpty
+            ? Self.featuredUsernames.filter { !excluded.contains($0) }
+            : Array(candidates.prefix(15))
+
+        guard !toFetch.isEmpty else { return [] }
+        let ids = toFetch.map { profileRecordID(username: $0) }
         let results = try await publicDB.records(for: ids)
         return results.values
             .compactMap { res in (try? res.get()).flatMap(SocialProfile.init) }
+            .filter { !excluded.contains($0.username.lowercased()) }
             .sorted { $0.totalXP > $1.totalXP }
     }
 
