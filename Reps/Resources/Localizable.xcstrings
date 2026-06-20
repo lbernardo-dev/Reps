@@ -59618,6 +59618,38 @@
         }
       }
     },
+    "auto_share_workouts": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-share workouts"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir entrenos automáticamente"
+          }
+        }
+      }
+    },
+    "auto_share_workouts_note": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When enabled, your workouts are published to your friends' feed after each session."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando está activado, tus entrenos se publican en el feed de tus amigos después de cada sesión."
+          }
+        }
+      }
+    },
     "automatic_backups_benefit": {
       "extractionState": "stale",
       "localizations": {
@@ -93100,6 +93132,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Editar perfil"
+          }
+        }
+      }
+    },
+    "social_feed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        }
+      }
+    },
+    "social_feed_empty_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow friends to see their workouts appear here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sigue a tus amigos para ver sus entrenamientos aquí."
+          }
+        }
+      }
+    },
+    "social_feed_empty_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing here yet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay nada"
           }
         }
       }

@@ -1,6 +1,36 @@
 import CloudKit
 import Foundation
 
+// MARK: - WorkoutPost Model
+
+struct WorkoutPost: Identifiable, Equatable, Hashable, Sendable {
+    let id: String               // CKRecord recordName
+    var ownerUsername: String
+    var ownerDisplayName: String
+    var workoutTitle: String
+    var durationSeconds: Int
+    var volumeKg: Double
+    var exerciseNames: [String]
+    var createdAt: Date
+    var likeCount: Int
+
+    init?(record: CKRecord) {
+        guard
+            let owner = record["ownerUsername"] as? String,
+            let title = record["workoutTitle"] as? String
+        else { return nil }
+        self.id = record.recordID.recordName
+        self.ownerUsername = owner
+        self.ownerDisplayName = record["ownerDisplayName"] as? String ?? owner
+        self.workoutTitle = title
+        self.durationSeconds = (record["durationSeconds"] as? Int64).map(Int.init) ?? 0
+        self.volumeKg = record["volumeKg"] as? Double ?? 0
+        self.exerciseNames = record["exerciseNames"] as? [String] ?? []
+        self.createdAt = record.creationDate ?? .now
+        self.likeCount = (record["likeCount"] as? Int64).map(Int.init) ?? 0
+    }
+}
+
 // MARK: - Public Profile Model
 
 struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
@@ -225,5 +255,88 @@ actor SocialService {
         // Requires a QUERYABLE index on `followerOwnerName` in CloudKit Dashboard.
         // Returns 0 gracefully when the index is unavailable.
         return 0
+    }
+
+    // MARK: - Feed (WorkoutPost)
+    //
+    // WorkoutPost recordName: "WorkoutPost_<ownerUsername>_<sessionID>"
+    // No CKQuery needed for self-feed — we build record IDs from known usernames.
+    // For friend feeds we use a CKQuery on `ownerUsername` which requires a
+    // QUERYABLE index on that field in CloudKit Dashboard.  We degrade gracefully.
+
+    private func postRecordID(username: String, sessionID: String) -> CKRecord.ID {
+        CKRecord.ID(recordName: "WorkoutPost_\(username.lowercased())_\(sessionID)")
+    }
+
+    func publishPost(
+        username: String,
+        displayName: String,
+        sessionID: String,
+        workoutTitle: String,
+        durationSeconds: Int,
+        volumeKg: Double,
+        exerciseNames: [String]
+    ) async throws {
+        let rid = postRecordID(username: username, sessionID: sessionID)
+        let record = CKRecord(recordType: "WorkoutPost", recordID: rid)
+        record["ownerUsername"] = username.lowercased() as CKRecordValue
+        record["ownerDisplayName"] = displayName as CKRecordValue
+        record["workoutTitle"] = workoutTitle as CKRecordValue
+        record["durationSeconds"] = Int64(durationSeconds) as CKRecordValue
+        record["volumeKg"] = volumeKg as CKRecordValue
+        record["exerciseNames"] = exerciseNames as CKRecordValue
+        record["likeCount"] = Int64(0) as CKRecordValue
+        try await publicDB.save(record)
+    }
+
+    // Fetches posts from a list of usernames using a CKQuery.
+    // Degrades to empty array when index is unavailable.
+    func fetchFeed(followingUsernames: [String], limit: Int = 30) async throws -> [WorkoutPost] {
+        guard !followingUsernames.isEmpty else { return [] }
+        let lowercased = followingUsernames.map { $0.lowercased() }
+        let pred = NSPredicate(format: "ownerUsername IN %@", lowercased)
+        let query = CKQuery(recordType: "WorkoutPost", predicate: pred)
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        do {
+            let result = try await publicDB.records(matching: query, resultsLimit: limit)
+            return result.matchResults
+                .compactMap { _, res in (try? res.get()).flatMap(WorkoutPost.init) }
+        } catch let ck as CKError where ck.code == .unknownItem || ck.code == .invalidArguments {
+            return []
+        }
+    }
+
+    // MARK: - Likes
+    //
+    // WorkoutLike recordName: "WorkoutLike_<likerOwner>_<postRecordName>"
+
+    private func likeRecordID(likerOwner: String, postRecordName: String) -> CKRecord.ID {
+        CKRecord.ID(recordName: "WorkoutLike_\(likerOwner)_\(postRecordName)")
+    }
+
+    func likePost(_ post: WorkoutPost) async throws {
+        let myID = try await myRecordID()
+        let lid = likeRecordID(likerOwner: myID.recordName, postRecordName: post.id)
+        let record = CKRecord(recordType: "WorkoutLike", recordID: lid)
+        record["likerOwnerName"] = myID.recordName as CKRecordValue
+        record["postRecordName"] = post.id as CKRecordValue
+        try await publicDB.save(record)
+    }
+
+    func unlikePost(_ post: WorkoutPost) async throws {
+        let myID = try await myRecordID()
+        let lid = likeRecordID(likerOwner: myID.recordName, postRecordName: post.id)
+        try await publicDB.deleteRecord(withID: lid)
+    }
+
+    func isLiked(_ post: WorkoutPost) async throws -> Bool {
+        let myID = try await myRecordID()
+        let lid = likeRecordID(likerOwner: myID.recordName, postRecordName: post.id)
+        do {
+            _ = try await publicDB.record(for: lid)
+            return true
+        } catch let ck as CKError where ck.code == .unknownItem {
+            return false
+        }
     }
 }

@@ -6,7 +6,7 @@ struct SocialHubView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
 
-    @State private var tab: Tab = .friends
+    @State private var tab: Tab = .feed
     @State private var following: [SocialProfile] = []
     @State private var searchText = ""
     @State private var searchResults: [SocialProfile] = []
@@ -17,8 +17,12 @@ struct SocialHubView: View {
     @State private var followerCount = 0
     @State private var loadError: String?
     @State private var showEditProfile = false
+    @State private var feedPosts: [WorkoutPost] = []
+    @State private var isLoadingFeed = false
+    @State private var likedPostIDs: Set<String> = []
+    @State private var likingInProgress: Set<String> = []
 
-    private enum Tab { case friends, discover }
+    private enum Tab { case feed, friends, discover }
 
     // MARK: - Body
 
@@ -30,6 +34,7 @@ struct SocialHubView: View {
                 tabPicker
 
                 switch tab {
+                case .feed: feedSection
                 case .friends: friendsSection
                 case .discover: discoverSection
                 }
@@ -47,6 +52,7 @@ struct SocialHubView: View {
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .task { await loadFollowing() }
+        .task { await loadFeed() }
         .onAppear {
             if let pending = store.pendingSocialSearch {
                 store.pendingSocialSearch = nil
@@ -214,6 +220,7 @@ struct SocialHubView: View {
 
     private var tabPicker: some View {
         HStack(spacing: 0) {
+            tabButton(title: localizedString("social_feed"), value: .feed)
             tabButton(title: localizedString("friends_2"), value: .friends)
             tabButton(title: localizedString("social_discover"), value: .discover)
         }
@@ -240,6 +247,133 @@ struct SocialHubView: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Feed Section
+
+    @ViewBuilder
+    private var feedSection: some View {
+        if isLoadingFeed {
+            ForEach(0..<4, id: \.self) { _ in
+                PulseCard { PulseSkeleton(height: 100) }
+            }
+        } else if feedPosts.isEmpty {
+            PulseCard {
+                PulseEmptyState(
+                    title: "social_feed_empty_title",
+                    message: "social_feed_empty_message",
+                    systemImage: "newspaper"
+                )
+                .padding(.vertical, 8)
+            }
+        } else {
+            ForEach(feedPosts) { post in
+                workoutFeedCard(post)
+            }
+        }
+    }
+
+    private func workoutFeedCard(_ post: WorkoutPost) -> some View {
+        let isLiked = likedPostIDs.contains(post.id)
+        let isLiking = likingInProgress.contains(post.id)
+        return PulseCard {
+            VStack(alignment: .leading, spacing: 12) {
+                // Header
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle().fill(PulseTheme.primary.opacity(0.10)).frame(width: 38, height: 38)
+                        Text(String(post.ownerUsername.prefix(1)).uppercased())
+                            .font(.system(size: 16, weight: .black, design: .rounded))
+                            .foregroundStyle(PulseTheme.primary)
+                    }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("@\(post.ownerUsername)")
+                            .font(.subheadline.weight(.semibold))
+                        Text(post.createdAt, style: .relative)
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    Spacer()
+                    Button {
+                        toggleLike(post: post)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: isLiked ? "heart.fill" : "heart")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(isLiked ? PulseTheme.destructive : PulseTheme.secondaryText)
+                            if post.likeCount > 0 {
+                                Text("\(post.likeCount + (isLiked ? 0 : 0))")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                        }
+                        .opacity(isLiking ? 0.5 : 1)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isLiking)
+                }
+
+                // Workout title
+                Text(post.workoutTitle)
+                    .font(.headline)
+
+                // Stats row
+                HStack(spacing: 16) {
+                    feedStat(icon: "clock", value: durationLabel(post.durationSeconds))
+                    if post.volumeKg > 0 {
+                        feedStat(icon: "scalemass", value: volumeLabel(post.volumeKg))
+                    }
+                    feedStat(icon: "dumbbell", value: "\(post.exerciseNames.count)")
+                }
+
+                // Exercise chips
+                if !post.exerciseNames.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(post.exerciseNames.prefix(5), id: \.self) { name in
+                                Text(name)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(PulseTheme.primary)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(PulseTheme.primary.opacity(0.08))
+                                    .clipShape(Capsule())
+                            }
+                            if post.exerciseNames.count > 5 {
+                                Text("+\(post.exerciseNames.count - 5)")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(PulseTheme.grouped)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func feedStat(icon: String, value: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+    }
+
+    private func durationLabel(_ seconds: Int) -> String {
+        let m = seconds / 60
+        return m > 0 ? "\(m) min" : "—"
+    }
+
+    private func volumeLabel(_ kg: Double) -> String {
+        let isImperial = store.userProfile.units == .imperial
+        let val = isImperial ? kg * 2.20462 : kg
+        let suffix = isImperial ? " lb" : " kg"
+        return String(format: "%.0f\(suffix)", val)
     }
 
     // MARK: - Friends Section
@@ -564,10 +698,6 @@ struct SocialHubView: View {
         .padding(.vertical, 3)
     }
 
-    private func volumeLabel(_ kg: Double) -> String {
-        kg >= 1000 ? String(format: "%.0fk", kg / 1000) : String(format: "%.0f", kg)
-    }
-
     private func shareText(
         me: (name: String, xp: Int, lvl: Int, sessions: Int),
         friend: SocialProfile
@@ -578,6 +708,45 @@ struct SocialHubView: View {
     }
 
     // MARK: - Data loading
+
+    private func loadFeed() async {
+        guard !store.userProfile.socialFollowingUsernames.isEmpty else { return }
+        isLoadingFeed = true
+        do {
+            let posts = try await SocialService.shared.fetchFeed(
+                followingUsernames: store.userProfile.socialFollowingUsernames
+            )
+            feedPosts = posts
+        } catch {
+            // Degrade silently — user sees empty state
+        }
+        isLoadingFeed = false
+    }
+
+    private func toggleLike(post: WorkoutPost) {
+        let wasLiked = likedPostIDs.contains(post.id)
+        likingInProgress.insert(post.id)
+        if wasLiked {
+            likedPostIDs.remove(post.id)
+        } else {
+            likedPostIDs.insert(post.id)
+        }
+        Task {
+            do {
+                if wasLiked {
+                    try await SocialService.shared.unlikePost(post)
+                } else {
+                    try await SocialService.shared.likePost(post)
+                }
+            } catch {
+                await MainActor.run {
+                    // Revert optimistic update on failure
+                    if wasLiked { likedPostIDs.insert(post.id) } else { likedPostIDs.remove(post.id) }
+                }
+            }
+            await MainActor.run { likingInProgress.remove(post.id) }
+        }
+    }
 
     private func loadFollowing() async {
         isLoadingFollowing = true

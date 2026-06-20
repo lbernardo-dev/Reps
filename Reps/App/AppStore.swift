@@ -901,6 +901,26 @@ final class AppStore {
         // Fitness app / rings like a standard iOS workout (two-way sync).
         writeSessionToHealthIfNeeded(session)
 
+        // Publish to CloudKit feed if the user has social enabled and auto-share on.
+        if userProfile.socialEnabled,
+           userProfile.autoShareWorkouts,
+           let uname = userProfile.socialUsername {
+            let dname = userProfile.displayName ?? uname
+            let names = session.exerciseLogs?.map(\.exercise.name) ?? []
+            let volKg = FitnessMetrics.totalVolumeKg(for: [session])
+            Task.detached {
+                try? await SocialService.shared.publishPost(
+                    username: uname,
+                    displayName: dname,
+                    sessionID: session.id.uuidString,
+                    workoutTitle: session.workoutTitle,
+                    durationSeconds: Int(session.durationMinutes * 60),
+                    volumeKg: volKg,
+                    exerciseNames: names
+                )
+            }
+        }
+
         self.finishedSessionForSummary = session
         activeWorkoutStatus = nil
         activeWorkout = nil

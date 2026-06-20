@@ -428,6 +428,26 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                if store.userProfile.socialEnabled {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(localizedString("auto_share_workouts"))
+                                .font(.subheadline.weight(.semibold))
+                            Text(localizedString("auto_share_workouts_note"))
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+                        Toggle("", isOn: Binding(
+                            get: { store.userProfile.autoShareWorkouts },
+                            set: { store.userProfile.autoShareWorkouts = $0 }
+                        ))
+                        .labelsHidden()
+                        .tint(PulseTheme.primary)
+                    }
+                    .padding(.vertical, 2)
+                }
+
                 } else {
                     HStack(spacing: 12) {
                         ZStack {
