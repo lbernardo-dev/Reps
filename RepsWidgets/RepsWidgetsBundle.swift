@@ -7,6 +7,7 @@ struct RepsWidgetsBundle: WidgetBundle {
         RepsWorkoutWidget()
         RepsBatteryWidget()
         RepsStreakWidget()
+        RepsFriendsWidget()
         RepsWorkoutLiveActivity()
     }
 }

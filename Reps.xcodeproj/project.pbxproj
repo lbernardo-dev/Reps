@@ -35,6 +35,7 @@
 		2D2EC1841DDA45A8378AF351 /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7546415D658D1F30651D879 /* CameraPicker.swift */; };
 		3269325047E0B1E7C0434CED /* RepsWorkoutWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8A8D63D611CC32BFF2A8AFD /* RepsWorkoutWidget.swift */; };
 		35FAA03EF8B2445CA6A24D09 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B97E952AF94341517324563 /* Models.swift */; };
+		384882BC38DB05845139EA04 /* CreatePostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D325B8B124558D4488A201AA /* CreatePostView.swift */; };
 		38D6BEAA0601476C8876C49B /* StreakRepFit.icon in Resources */ = {isa = PBXBuildFile; fileRef = A4DE72887693FA584DACF153 /* StreakRepFit.icon */; };
 		3C778549F2E3F1EA31F5BE72 /* ActiveWorkoutExerciseOrderComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A9CCD420922854020A7B5F /* ActiveWorkoutExerciseOrderComponents.swift */; };
 		3CAE41B17E3ED1DB65A4C116 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9055371D6F3FC5EB8456BF60 /* Assets.xcassets */; };
@@ -101,6 +102,7 @@
 		D63BD6ED7DC4E96444714C90 /* RepsWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467EA079553F247F75C76054 /* RepsWatchApp.swift */; };
 		D922780FD8ECD6C4A313A3B4 /* ExerciseProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03241FE11D2EA6C38B0A086F /* ExerciseProgressView.swift */; };
 		DA0BF8014DB6210EF977F068 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E116F57A08B4F5BA7E061433 /* ProfileSetupView.swift */; };
+		DA79A3AAA95C4B3664799090 /* RepsFriendsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96F240FA1D49782F58CDB521 /* RepsFriendsWidget.swift */; };
 		DE692FD7D748E7262B28A488 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F78E1E25B873B458B724462 /* PaywallView.swift */; };
 		DE8849EDABC0F4181011DC88 /* TrainingBatteryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050D0A2463DEAE5070D1A87 /* TrainingBatteryView.swift */; };
 		E0977AC22F9FE41517FB9AA6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 93621471CB3E1736B6202A5E /* PrivacyInfo.xcprivacy */; };
@@ -217,6 +219,7 @@
 		93621471CB3E1736B6202A5E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		9482D3B7D2A2D87906F383A1 /* MuscleMapProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleMapProgressView.swift; sourceTree = "<group>"; };
 		95EF4F0FCD797CF0C3006FED /* PlansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlansView.swift; sourceTree = "<group>"; };
+		96F240FA1D49782F58CDB521 /* RepsFriendsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsFriendsWidget.swift; sourceTree = "<group>"; };
 		993ED47C6A26814D8131BB84 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		9F78E1E25B873B458B724462 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		A061386A12555F63FB9492CB /* RepsAppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsAppShortcuts.swift; sourceTree = "<group>"; };
@@ -249,6 +252,7 @@
 		CD3F5EEFFE4D007B55AEC149 /* Reps.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Reps.entitlements; sourceTree = "<group>"; };
 		CE9D2981F0A803B185345B94 /* SeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedData.swift; sourceTree = "<group>"; };
 		D03010CDFBB1E924806441A8 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		D325B8B124558D4488A201AA /* CreatePostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePostView.swift; sourceTree = "<group>"; };
 		D4B5923EEA9DE73B9AEDAF82 /* WorkoutBackgroundKeepAlive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutBackgroundKeepAlive.swift; sourceTree = "<group>"; };
 		DBBA5AE4E473D263E3CE2A52 /* SwiftDataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataModels.swift; sourceTree = "<group>"; };
 		DDACE73A69FB227E398FFFD2 /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
@@ -517,6 +521,7 @@
 				E4D0A3F50CC0E82A7B1081F9 /* Info.plist */,
 				B31D5E2BE507A45C4B26BED6 /* InfoPlist.xcstrings */,
 				12DAAE09638B4291B3E89483 /* RepsBatteryWidget.swift */,
+				96F240FA1D49782F58CDB521 /* RepsFriendsWidget.swift */,
 				4C811B078B70CCB8A2E188B7 /* RepsStreakWidget.swift */,
 				BE3B39142A43DB573171B14F /* RepsWidgets.entitlements */,
 				0CFAF43FA22D0DA2672A1E51 /* RepsWidgetsBundle.swift */,
@@ -546,6 +551,7 @@
 			isa = PBXGroup;
 			children = (
 				FB859CD37FC951A9954F1D23 /* CommentsView.swift */,
+				D325B8B124558D4488A201AA /* CreatePostView.swift */,
 				3B4CDEDA58CBFA0C9AB9D8D2 /* EditSocialProfileView.swift */,
 				6DAB8A3B56BCAE9A06BA4E3F /* SocialHubView.swift */,
 				6FBD066F81690661D21DAB00 /* SocialOnboardingView.swift */,
@@ -817,6 +823,7 @@
 				22DCD6674BD063A7C0C43FCF /* CalendarView.swift in Sources */,
 				2D2EC1841DDA45A8378AF351 /* CameraPicker.swift in Sources */,
 				952F496D263277DE53289E70 /* CommentsView.swift in Sources */,
+				384882BC38DB05845139EA04 /* CreatePostView.swift in Sources */,
 				5C561560E7F6B79FCA7A14D5 /* EditSocialProfileView.swift in Sources */,
 				052E8E4F5A9988448FDD4CF4 /* ExerciseLibraryView.swift in Sources */,
 				D922780FD8ECD6C4A313A3B4 /* ExerciseProgressView.swift in Sources */,
@@ -883,6 +890,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9D6C2CA9B9BC38E180888A76 /* RepsBatteryWidget.swift in Sources */,
+				DA79A3AAA95C4B3664799090 /* RepsFriendsWidget.swift in Sources */,
 				8E6E8B3A65A1B200DCDFDD93 /* RepsStreakWidget.swift in Sources */,
 				6DF3D84068D927DBA8F82F18 /* RepsWidgetConfigurationIntent.swift in Sources */,
 				8B77A758E15EBD5CCD8D16E2 /* RepsWidgetsBundle.swift in Sources */,

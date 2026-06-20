@@ -44485,6 +44485,38 @@
         }
       }
     },
+    "friends_widget_description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your rank among friends by total XP."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ve tu posición entre amigos por XP total."
+          }
+        }
+      }
+    },
+    "friends_widget_name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Friends Leaderboard"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking de amigos"
+          }
+        }
+      }
+    },
     "Frog Pump" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -47483,6 +47515,74 @@
         }
       }
     },
+    "health_confirm_today" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm today's data"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirmar datos de hoy"
+          }
+        }
+      }
+    },
+    "health_resting_hr_format" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resting HR: %.0f bpm"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FC reposo: %.0f bpm"
+          }
+        }
+      }
+    },
+    "health_sleep_format" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sleep: %.1fh"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sueño: %.1fh"
+          }
+        }
+      }
+    },
+    "health_suggested_values" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggested values from Apple Health. You can edit them before saving."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valores sugeridos desde Apple Health. Puedes editarlos antes de guardar."
+          }
+        }
+      }
+    },
     "health_trends" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -47500,71 +47600,8 @@
         }
       }
     },
-    "health_confirm_today" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confirm today's data"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confirmar datos de hoy"
-          }
-        }
-      }
-    },
-    "health_resting_hr_format" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Resting HR: %.0f bpm"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FC reposo: %.0f bpm"
-          }
-        }
-      }
-    },
-    "health_sleep_format" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sleep: %.1fh"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sueño: %.1fh"
-          }
-        }
-      }
-    },
-    "health_suggested_values" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggested values from Apple Health. You can edit them before saving."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Valores sugeridos desde Apple Health. Puedes editarlos antes de guardar."
-          }
-        }
-      }
-    },
     "health_water_format" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -54459,6 +54496,23 @@
         }
       }
     },
+    "legal" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legal"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legal"
+          }
+        }
+      }
+    },
     "legs" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -54608,22 +54662,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Legs, core and mobility"
-          }
-        }
-      }
-    },
-    "legal" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Legal"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Legal"
           }
         }
       }
@@ -64523,6 +64561,108 @@
         }
       }
     },
+    "notif_rank_friend_podium_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is now #%lld — can you beat them?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está ahora en el #%lld — ¿puedes superarle?"
+          }
+        }
+      }
+    },
+    "notif_rank_friend_podium_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Friend entered the podium 🏆"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un amigo ha entrado en el podio 🏆"
+          }
+        }
+      }
+    },
+    "notif_rank_overtaken_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is ahead of you now — you're #%lld. Keep pushing! 🔥"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ te ha superado — ahora eres el #%lld. ¡Sigue adelante! 🔥"
+          }
+        }
+      }
+    },
+    "notif_rank_overtaken_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've dropped in the rankings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has bajado en el ranking"
+          }
+        }
+      }
+    },
+    "notif_rank_podium_lost_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ just overtook you. Train to reclaim your spot! 💪"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ te acaba de superar. ¡Entrena para recuperar tu puesto! 💪"
+          }
+        }
+      }
+    },
+    "notif_rank_podium_lost_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've been knocked off the podium"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te han sacado del podio"
+          }
+        }
+      }
+    },
     "notif_streak_at_risk_body" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -71100,6 +71240,102 @@
         }
       }
     },
+    "post_add_photo" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add photo"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir foto"
+          }
+        }
+      }
+    },
+    "post_caption_placeholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share what's on your mind…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparte lo que tienes en mente…"
+          }
+        }
+      }
+    },
+    "post_new" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Post"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nueva publicación"
+          }
+        }
+      }
+    },
+    "post_publish_error" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not publish post. Try again later."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo publicar. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "post_share" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publicar"
+          }
+        }
+      }
+    },
+    "post_shared_a_moment" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared a moment"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartió un momento"
+          }
+        }
+      }
+    },
     "posterior_chain" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -72400,6 +72636,7 @@
       }
     },
     "privacy_policy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -72416,6 +72653,7 @@
       }
     },
     "privacy_policy_subtitle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -88724,6 +88962,23 @@
         }
       }
     },
+    "social_online" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "online"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "conectado"
+          }
+        }
+      }
+    },
     "social_privacy_note" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -89045,48 +89300,6 @@
             "value" : "Tú"
           }
         }
-      }
-    },
-    "social_online" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "online" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "conectado" } }
-      }
-    },
-    "notif_rank_podium_lost_title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "You've been knocked off the podium" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Te han sacado del podio" } }
-      }
-    },
-    "notif_rank_podium_lost_body" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ just overtook you. Train to reclaim your spot! 💪" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "%@ te acaba de superar. ¡Entrena para recuperar tu puesto! 💪" } }
-      }
-    },
-    "notif_rank_friend_podium_title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Friend entered the podium 🏆" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Un amigo ha entrado en el podio 🏆" } }
-      }
-    },
-    "notif_rank_friend_podium_body" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ is now #%lld — can you beat them?" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "%@ está ahora en el #%lld — ¿puedes superarle?" } }
-      }
-    },
-    "notif_rank_overtaken_title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "You've dropped in the rankings" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Has bajado en el ranking" } }
-      }
-    },
-    "notif_rank_overtaken_body" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ is ahead of you now — you're #%lld. Keep pushing! 🔥" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "%@ te ha superado — ahora eres el #%lld. ¡Sigue adelante! 🔥" } }
       }
     },
     "Solo datos registrados" : {
@@ -93523,7 +93736,25 @@
         }
       }
     },
+    "Tendencias de Salud" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Health Trends"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tendencias de Salud"
+          }
+        }
+      }
+    },
     "terms_of_service" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -93540,6 +93771,7 @@
       }
     },
     "terms_of_service_subtitle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -93551,23 +93783,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Términos de uso"
-          }
-        }
-      }
-    },
-    "Tendencias de Salud" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Health Trends"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tendencias de Salud"
           }
         }
       }
@@ -98072,6 +98287,7 @@
       }
     },
     "Valores sugeridos desde Apple Health. Puedes editarlos antes de guardar." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

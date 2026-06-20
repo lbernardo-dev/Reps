@@ -8,12 +8,16 @@ struct WorkoutPost: Identifiable, Equatable, Hashable, Sendable {
     var ownerUsername: String
     var ownerDisplayName: String
     var workoutTitle: String
+    var caption: String?         // free-text body of a manual post
     var durationSeconds: Int
     var volumeKg: Double
     var exerciseNames: [String]
     var createdAt: Date
     var likeCount: Int
     var commentCount: Int
+    var photoDataList: [Data]    // up to 3 photos decoded from CKAssets
+
+    var isCustomPost: Bool { durationSeconds == 0 && exerciseNames.isEmpty }
 
     init?(record: CKRecord) {
         guard
@@ -24,12 +28,22 @@ struct WorkoutPost: Identifiable, Equatable, Hashable, Sendable {
         self.ownerUsername = owner
         self.ownerDisplayName = record["ownerDisplayName"] as? String ?? owner
         self.workoutTitle = title
+        self.caption = record["caption"] as? String
         self.durationSeconds = (record["durationSeconds"] as? Int64).map(Int.init) ?? 0
         self.volumeKg = record["volumeKg"] as? Double ?? 0
         self.exerciseNames = record["exerciseNames"] as? [String] ?? []
         self.createdAt = record.creationDate ?? .now
         self.likeCount = (record["likeCount"] as? Int64).map(Int.init) ?? 0
         self.commentCount = (record["commentCount"] as? Int64).map(Int.init) ?? 0
+        var photos: [Data] = []
+        for i in 1...3 {
+            if let asset = record["photo\(i)Asset"] as? CKAsset,
+               let url = asset.fileURL,
+               let data = try? Data(contentsOf: url) {
+                photos.append(data)
+            }
+        }
+        self.photoDataList = photos
     }
 }
 
@@ -449,6 +463,43 @@ actor SocialService {
         record["commentCount"] = Int64(0) as CKRecordValue
         try await publicDB.save(record)
         savePostID(rid.recordName)
+    }
+
+    // Creates a standalone manual post (not tied to a workout session).
+    // Requires caption (String), photo1Asset / photo2Asset / photo3Asset (Asset)
+    // fields to exist on the WorkoutPost record type in CloudKit Dashboard.
+    func publishCustomPost(
+        username: String,
+        displayName: String,
+        caption: String,
+        photoDataList: [Data]
+    ) async throws -> WorkoutPost? {
+        let postID = "WorkoutPost_\(username.lowercased())_\(UUID().uuidString)"
+        let rid = CKRecord.ID(recordName: postID)
+        let record = CKRecord(recordType: "WorkoutPost", recordID: rid)
+        record["ownerUsername"] = username.lowercased() as CKRecordValue
+        record["ownerDisplayName"] = displayName as CKRecordValue
+        record["workoutTitle"] = caption as CKRecordValue
+        record["caption"] = caption as CKRecordValue
+        record["durationSeconds"] = Int64(0) as CKRecordValue
+        record["volumeKg"] = Double(0) as CKRecordValue
+        record["exerciseNames"] = [String]() as CKRecordValue
+        record["likeCount"] = Int64(0) as CKRecordValue
+        record["commentCount"] = Int64(0) as CKRecordValue
+
+        var tmpURLs: [URL] = []
+        defer { tmpURLs.forEach { try? FileManager.default.removeItem(at: $0) } }
+        for (i, data) in photoDataList.prefix(3).enumerated() {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("post_photo_\(i + 1)_\(UUID().uuidString).jpg")
+            try data.write(to: url)
+            tmpURLs.append(url)
+            record["photo\(i + 1)Asset"] = CKAsset(fileURL: url)
+        }
+
+        let saved = try await publicDB.save(record)
+        savePostID(postID)
+        return WorkoutPost(record: saved)
     }
 
     // Fetches posts by CKQuery (requires QUERYABLE index on ownerUsername).

@@ -427,6 +427,43 @@ enum SharedWorkoutStore {
 
 }
 
+// MARK: - Shared Leaderboard (Friends Widget)
+
+struct SharedLeaderboardEntry: Codable, Hashable, Identifiable {
+    var id: String { username }
+    var rank: Int
+    var username: String
+    var xp: Int
+    var isMe: Bool
+}
+
+enum SharedLeaderboardStore {
+    private static let key = "friendsLeaderboardSnapshot"
+    private static let widgetKind = "RepsFriendsWidget"
+
+    static func save(_ entries: [SharedLeaderboardEntry]) {
+        guard RepsAppGroup.isAvailable,
+              let defaults = UserDefaults(suiteName: RepsAppGroup.identifier),
+              let data = try? JSONEncoder().encode(entries) else { return }
+        defaults.set(data, forKey: key)
+        #if canImport(WidgetKit)
+        #if !os(watchOS)
+        WidgetCenter.shared.reloadTimelines(ofKind: widgetKind)
+        #endif
+        #endif
+    }
+
+    static func load() -> [SharedLeaderboardEntry] {
+        guard RepsAppGroup.isAvailable,
+              let defaults = UserDefaults(suiteName: RepsAppGroup.identifier),
+              let data = defaults.data(forKey: key),
+              let entries = try? JSONDecoder().decode([SharedLeaderboardEntry].self, from: data) else {
+            return []
+        }
+        return entries
+    }
+}
+
 #if canImport(ActivityKit)
 struct RepsWorkoutActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {

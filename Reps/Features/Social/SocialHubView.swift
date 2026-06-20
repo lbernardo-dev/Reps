@@ -23,6 +23,7 @@ struct SocialHubView: View {
     @State private var isLoadingSuggested = false
     @State private var recentSearches: [String] = []
     @State private var commentsPost: WorkoutPost? = nil
+    @State private var showCreatePost = false
 
     private enum Tab { case feed, friends, discover }
 
@@ -82,6 +83,10 @@ struct SocialHubView: View {
         .sheet(item: $commentsPost) { post in
             CommentsView(post: post)
         }
+        .sheet(isPresented: $showCreatePost) {
+            CreatePostView()
+                .environment(store)
+        }
     }
 
     // MARK: - Navigation Bar
@@ -103,7 +108,7 @@ struct SocialHubView: View {
             Text(localizedString("friends_2"))
                 .font(.system(size: 19, weight: .bold, design: .rounded))
             Spacer()
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 #if DEBUG
                 if store.userProfile.socialUsername != nil {
                     Button {
@@ -117,16 +122,57 @@ struct SocialHubView: View {
                 }
                 #endif
 
+                // Notification bell
+                Button {
+                    HapticService.selection()
+                    store.pendingSocialSearch = nil
+                    dismiss()
+                    // Navigate to notifications via root — bell is on Today
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(store.hasUnreadBell ? PulseTheme.accent : PulseTheme.secondaryText)
+                            .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                        if store.hasUnreadBell {
+                            Circle()
+                                .fill(.red)
+                                .frame(width: 9, height: 9)
+                                .offset(x: -1, y: 1)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+
+                // Compose post (only when social is active)
+                if store.userProfile.socialUsername != nil {
+                    Button {
+                        HapticService.selection()
+                        showCreatePost = true
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(PulseTheme.primary)
+                            .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 if let uname = store.userProfile.socialUsername {
                     let inviteText = localizedFormat("social_invite_text", uname, uname)
                     ShareLink(item: inviteText) {
                         Image(systemName: "person.badge.plus")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(PulseTheme.primary)
+                            .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                } else {
-                    Image(systemName: "chevron.left").font(.system(size: 18, weight: .bold)).opacity(0)
                 }
             }
         }
@@ -382,6 +428,13 @@ struct SocialHubView: View {
                     feedStat(icon: "dumbbell", value: "\(post.exerciseNames.count)")
                 }
 
+                // Caption (for custom posts or when set)
+                if let cap = post.caption, !cap.isEmpty, cap != post.workoutTitle {
+                    Text(cap)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary.opacity(0.9))
+                }
+
                 // Exercise chips
                 if !post.exerciseNames.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -405,8 +458,43 @@ struct SocialHubView: View {
                         }
                     }
                 }
+
+                // Photos (up to 3)
+                if !post.photoDataList.isEmpty {
+                    feedPhotoGrid(post.photoDataList)
+                }
             }
         }
+    }
+
+    private func feedPhotoGrid(_ photoList: [Data]) -> some View {
+        let count = photoList.count
+        let images = photoList.compactMap { UIImage(data: $0) }
+        return Group {
+            if count == 1, let img = images.first {
+                singlePhoto(img)
+            } else {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: min(count, 2)), spacing: 2) {
+                    ForEach(Array(images.enumerated()), id: \.offset) { _, img in
+                        Image(uiImage: img)
+                            .resizable().scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: count == 2 ? 140 : 100)
+                            .clipped()
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+        }
+    }
+
+    private func singlePhoto(_ img: UIImage) -> some View {
+        Image(uiImage: img)
+            .resizable().scaledToFill()
+            .frame(maxWidth: .infinity)
+            .frame(height: 220)
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private func feedStat(icon: String, value: String) -> some View {
@@ -1105,10 +1193,30 @@ struct SocialHubView: View {
             following = f
             followerCount = count
             Task.detached { [f] in await store.checkLeaderboardChanges(following: f) }
+            saveLeaderboardToWidget(following: f)
         } catch {
             loadError = error.localizedDescription
         }
         isLoadingFollowing = false
+    }
+
+    private func saveLeaderboardToWidget(following: [SocialProfile]) {
+        let myXP = GamificationEngine.totalXP(
+            sessions: store.workoutSessions,
+            cardioLogs: store.combinedCardioLogs,
+            bodyMetrics: store.bodyMetrics,
+            progressPhotos: store.progressPhotos,
+            streakDays: store.streakDays,
+            totalVolumeKg: store.totalVolumeKg
+        )
+        let myUsername = store.userProfile.socialUsername ?? ""
+        var all: [(String, Int, Bool)] = following.map { ($0.username, $0.totalXP, false) }
+        if !myUsername.isEmpty { all.append((myUsername, myXP, true)) }
+        let sorted = all.sorted { $0.1 > $1.1 }
+        let entries = sorted.enumerated().map { idx, e in
+            SharedLeaderboardEntry(rank: idx + 1, username: e.0, xp: e.1, isMe: e.2)
+        }
+        SharedLeaderboardStore.save(entries)
     }
 
     private func scheduleSearch() {
