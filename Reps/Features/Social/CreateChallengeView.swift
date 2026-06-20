@@ -12,27 +12,29 @@ struct CreateChallengeView: View {
     @State private var isCreating = false
     @State private var error: String?
 
+    private var lang: String { store.userProfile.preferredLanguage }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(LocalizedStringKey("challenge_title_placeholder"), text: $title)
-                    TextField(LocalizedStringKey("challenge_description_placeholder"), text: $description, axis: .vertical)
+                    TextField(localizedString("challenge_title_placeholder"), text: $title)
+                    TextField(localizedString("challenge_description_placeholder"), text: $description, axis: .vertical)
                         .lineLimit(2...5)
                 }
 
-                Section(header: Text("challenge_metric")) {
-                    Picker("challenge_metric", selection: $metric) {
+                Section(header: Text(localizedString("challenge_metric"))) {
+                    Picker(localizedString("challenge_metric"), selection: $metric) {
                         ForEach(SocialChallenge.Metric.allCases) { m in
-                            Text(LocalizedStringKey("challenge_metric_\(m.rawValue)")).tag(m)
+                            Text(localizedString("challenge_metric_\(m.rawValue)")).tag(m)
                         }
                     }
                     .pickerStyle(.segmented)
                 }
 
-                Section(header: Text("challenge_duration")) {
-                    DatePicker(LocalizedStringKey("challenge_start"), selection: $startDate, displayedComponents: .date)
-                    DatePicker(LocalizedStringKey("challenge_end"), selection: $endDate, in: startDate..., displayedComponents: .date)
+                Section(header: Text(localizedString("challenge_duration"))) {
+                    DatePicker(localizedString("challenge_start"), selection: $startDate, displayedComponents: .date)
+                    DatePicker(localizedString("challenge_end"), selection: $endDate, in: startDate..., displayedComponents: .date)
                 }
 
                 if let error {
@@ -43,14 +45,14 @@ struct CreateChallengeView: View {
                     }
                 }
             }
-            .navigationTitle(Text("challenge_create"))
+            .navigationTitle(Text(localizedString("challenge_create")))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("cancel") { dismiss() }
+                    Button(localizedString("cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("challenge_publish") {
+                    Button(localizedString("challenge_publish")) {
                         Task { await createChallenge() }
                     }
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || isCreating)
@@ -79,7 +81,10 @@ struct CreateChallengeView: View {
             )
             // Auto-join the creator.
             try await SocialService.shared.joinChallenge(ch.id, username: uname, displayName: dname)
-            await store.loadChallenges()
+            // Insert immediately so the list shows up without waiting for the CKQuery index.
+            if !store.activeChallenges.contains(where: { $0.id == ch.id }) {
+                store.activeChallenges.insert(ch, at: 0)
+            }
             dismiss()
         } catch {
             self.error = error.localizedDescription

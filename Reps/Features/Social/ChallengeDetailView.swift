@@ -47,7 +47,7 @@ struct ChallengeDetailView: View {
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(LocalizedStringKey("challenge_metric_\(challenge.metric.rawValue)"))
+                        Text(localizedString("challenge_metric_\(challenge.metric.rawValue)"))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.accent)
                             .textCase(.uppercase)
