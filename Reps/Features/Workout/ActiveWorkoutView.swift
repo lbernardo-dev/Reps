@@ -1745,10 +1745,14 @@ struct ActiveWorkoutView: View {
 
     private var nextLoggingTitle: String {
         guard let next = nextIncompleteSet else {
-            return "Todas las series registradas"
+            return localizedString("all_sets_logged")
         }
 
-        return "Registrar \(RepsText.exerciseName(next.exerciseName, language: store.userProfile.preferredLanguage)), serie \(next.setNumber)"
+        return localizedFormat(
+            "log_exercise_set_format",
+            RepsText.exerciseName(next.exerciseName, language: store.userProfile.preferredLanguage),
+            next.setNumber
+        )
     }
 
     private var selectedMediaBookmarks: [ExerciseMediaBookmark] {

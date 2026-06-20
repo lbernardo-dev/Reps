@@ -58,8 +58,13 @@ struct ProfileView: View {
             ) {
                 bodyMetricsCard
                     .stickyHeaderTitle(localizedString("metrics_2"))
-                bodyIndexCard
-                    .stickyHeaderTitle(localizedString("body_indexes"))
+                // Only surface body indices once there are metrics to derive
+                // them from; the metrics card above already prompts to add them,
+                // so an empty indices card would just repeat that call to action.
+                if store.hasBodyMetrics {
+                    bodyIndexCard
+                        .stickyHeaderTitle(localizedString("body_indexes"))
+                }
                 progressPhotoCard
                     .stickyHeaderTitle(localizedString("photos"))
                 achievementsCard

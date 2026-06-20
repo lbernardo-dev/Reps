@@ -100217,6 +100217,38 @@
           }
         }
       }
+    },
+    "all_sets_logged": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All sets logged"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas las series registradas"
+          }
+        }
+      }
+    },
+    "log_exercise_set_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log %@, set %d"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrar %@, serie %d"
+          }
+        }
+      }
     }
   },
   "version": "1.1"
