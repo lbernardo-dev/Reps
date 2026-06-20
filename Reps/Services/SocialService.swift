@@ -243,14 +243,14 @@ actor SocialService {
         let normalized = query.lowercased()
         let pred = NSPredicate(format: "username BEGINSWITH %@", normalized)
         let ckQuery = CKQuery(recordType: "SocialProfile", predicate: pred)
-        ckQuery.sortDescriptors = [NSSortDescriptor(key: "username", ascending: true)]
+        // No server-side sort — SORTABLE index not required, sort client-side instead.
         do {
             let result = try await publicDB.records(matching: ckQuery, resultsLimit: 25)
             return result.matchResults
                 .compactMap { _, res in (try? res.get()).flatMap(SocialProfile.init) }
                 .filter { $0.ownerRecordName != myID.recordName }
+                .sorted { $0.username < $1.username }
         } catch let ck as CKError where ck.code == .unknownItem || ck.code == .invalidArguments {
-            // Schema or index not set up yet — return empty results gracefully.
             return []
         }
     }
