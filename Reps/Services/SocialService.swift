@@ -312,11 +312,38 @@ actor SocialService {
         CKRecord.ID(recordName: "WorkoutPost_\(username.lowercased())_\(sessionID)")
     }
 
+    // MARK: - Post local cache
+    // Stores known post record names in UserDefaults so they can be fetched
+    // directly by ID when the CKQuery index is not yet provisioned.
+
+    private static let postCacheKey = "feed_post_record_names_v1"
+    private static let postCacheLimit = 50
+
+    func savePostID(_ recordName: String) {
+        var ids = loadCachedPostIDs()
+        guard !ids.contains(recordName) else { return }
+        ids.insert(recordName, at: 0)
+        if ids.count > Self.postCacheLimit { ids = Array(ids.prefix(Self.postCacheLimit)) }
+        if let data = try? JSONEncoder().encode(ids) {
+            UserDefaults.standard.set(data, forKey: Self.postCacheKey)
+        }
+    }
+
+    func loadCachedPostIDs() -> [String] {
+        guard let data = UserDefaults.standard.data(forKey: Self.postCacheKey),
+              let ids = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+        return ids
+    }
+
     func fetchPost(username: String, sessionID: String) async throws -> WorkoutPost? {
         let rid = postRecordID(username: username, sessionID: sessionID)
         do {
             let record = try await publicDB.record(for: rid)
-            return WorkoutPost(record: record)
+            if let post = WorkoutPost(record: record) {
+                savePostID(rid.recordName)
+                return post
+            }
+            return nil
         } catch let ck as CKError where ck.code == .unknownItem {
             return nil
         }
@@ -342,23 +369,36 @@ actor SocialService {
         record["likeCount"] = Int64(0) as CKRecordValue
         record["commentCount"] = Int64(0) as CKRecordValue
         try await publicDB.save(record)
+        savePostID(rid.recordName)
     }
 
-    // Fetches posts from a list of usernames using a CKQuery.
-    // Degrades to empty array when index is unavailable.
+    // Fetches posts by CKQuery (requires QUERYABLE index on ownerUsername).
+    // Falls back to direct record(for:) lookups using locally cached IDs.
     func fetchFeed(followingUsernames: [String], limit: Int = 30) async throws -> [WorkoutPost] {
         guard !followingUsernames.isEmpty else { return [] }
-        let lowercased = followingUsernames.map { $0.lowercased() }
-        let pred = NSPredicate(format: "ownerUsername IN %@", lowercased)
+        let lowercased = Set(followingUsernames.map { $0.lowercased() })
+        let pred = NSPredicate(format: "ownerUsername IN %@", Array(lowercased))
         let query = CKQuery(recordType: "WorkoutPost", predicate: pred)
         query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         do {
             let result = try await publicDB.records(matching: query, resultsLimit: limit)
-            return result.matchResults
+            let posts = result.matchResults
                 .compactMap { _, res in (try? res.get()).flatMap(WorkoutPost.init) }
-        } catch let ck as CKError where ck.code == .unknownItem || ck.code == .invalidArguments {
-            return []
-        }
+            if !posts.isEmpty {
+                posts.forEach { savePostID($0.id) }
+                return posts
+            }
+        } catch { /* index not provisioned — fall through */ }
+
+        // Fallback: fetch known post IDs directly (no index required).
+        // Filter to only posts belonging to the requested usernames.
+        let cachedIDs = loadCachedPostIDs().prefix(limit).map { CKRecord.ID(recordName: $0) }
+        guard !cachedIDs.isEmpty else { return [] }
+        let fetched = try await publicDB.records(for: Array(cachedIDs))
+        return fetched.values
+            .compactMap { res in (try? res.get()).flatMap(WorkoutPost.init) }
+            .filter { lowercased.contains($0.ownerUsername.lowercased()) }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     // MARK: - Likes

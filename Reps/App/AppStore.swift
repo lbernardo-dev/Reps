@@ -56,6 +56,8 @@ final class AppStore {
     var pendingSocialSearch: String? = nil
     var unreadFeedCount: Int = 0
     var hasUnreadBell: Bool = false
+    var feedPosts: [WorkoutPost] = []
+    var isFeedLoading: Bool = false
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
     var activeWorkoutStatus: ActiveWorkoutStatus? {
@@ -3652,6 +3654,20 @@ final class AppStore {
             return []
         }
         return events
+    }
+
+    func loadFeed() async {
+        var usernames = userProfile.socialFollowingUsernames
+        if let own = userProfile.socialUsername { usernames.append(own.lowercased()) }
+        guard !usernames.isEmpty else { return }
+        isFeedLoading = true
+        do {
+            let posts = try await SocialService.shared.fetchFeed(followingUsernames: usernames)
+            feedPosts = posts
+            let lastCheck = lastFeedCheckDate
+            unreadFeedCount = posts.filter { $0.createdAt > lastCheck }.count
+        } catch {}
+        isFeedLoading = false
     }
 }
 

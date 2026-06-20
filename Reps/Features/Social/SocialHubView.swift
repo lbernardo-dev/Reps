@@ -17,8 +17,6 @@ struct SocialHubView: View {
     @State private var followerCount = 0
     @State private var loadError: String?
     @State private var showEditProfile = false
-    @State private var feedPosts: [WorkoutPost] = []
-    @State private var isLoadingFeed = false
     @State private var likedPostIDs: Set<String> = []
     @State private var likingInProgress: Set<String> = []
     @State private var suggestedProfiles: [SocialProfile] = []
@@ -58,10 +56,13 @@ struct SocialHubView: View {
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .task { await loadFollowing() }
-        .task { await loadFeed() }
+        .task { if store.feedPosts.isEmpty { await store.loadFeed() } }
         .task { await loadSuggested() }
         .onChange(of: tab) { _, newTab in
-            if newTab == .feed { store.markFeedAsRead() }
+            if newTab == .feed {
+                store.markFeedAsRead()
+                if store.feedPosts.isEmpty { Task { await store.loadFeed() } }
+            }
         }
         .onAppear {
             recentSearches = (UserDefaults.standard.stringArray(forKey: Self.recentSearchesKey) ?? [])
@@ -289,11 +290,11 @@ struct SocialHubView: View {
 
     @ViewBuilder
     private var feedSection: some View {
-        if isLoadingFeed {
+        if store.isFeedLoading {
             ForEach(0..<4, id: \.self) { _ in
                 PulseCard { PulseSkeleton(height: 100) }
             }
-        } else if feedPosts.isEmpty {
+        } else if store.feedPosts.isEmpty {
             PulseCard {
                 PulseEmptyState(
                     title: "social_feed_empty_title",
@@ -303,7 +304,7 @@ struct SocialHubView: View {
                 .padding(.vertical, 8)
             }
         } else {
-            ForEach(feedPosts) { post in
+            ForEach(store.feedPosts) { post in
                 workoutFeedCard(post)
             }
         }
@@ -878,25 +879,6 @@ struct SocialHubView: View {
         UserDefaults.standard.set(searches, forKey: Self.recentSearchesKey)
     }
 
-    private func loadFeed() async {
-        // Include own posts so the user sees their shared workouts immediately,
-        // even before they follow anyone.
-        var usernames = store.userProfile.socialFollowingUsernames
-        if let own = store.userProfile.socialUsername { usernames.append(own.lowercased()) }
-        guard !usernames.isEmpty else { return }
-        isLoadingFeed = true
-        do {
-            let posts = try await SocialService.shared.fetchFeed(followingUsernames: usernames)
-            feedPosts = posts
-            let lastCheck = store.lastFeedCheckDate
-            let unread = posts.filter { $0.createdAt > lastCheck }.count
-            store.unreadFeedCount = unread
-        } catch {
-            // Degrade silently — user sees empty state
-        }
-        isLoadingFeed = false
-    }
-
     #if DEBUG
     private func publishDebugPost() {
         guard let uname = store.userProfile.socialUsername else { return }
@@ -914,7 +896,7 @@ struct SocialHubView: View {
             )
             // Fetch directly by record ID — no CKQuery index needed
             if let post = try? await SocialService.shared.fetchPost(username: uname, sessionID: sid) {
-                feedPosts.insert(post, at: 0)
+                store.feedPosts.insert(post, at: 0)
             }
         }
     }
