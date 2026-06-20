@@ -90,6 +90,7 @@ struct RepsApp: App {
                     NotificationRouter.shared.consumeLatestTarget()
                 }
                 .onOpenURL { url in
+                    if store.handleSocialDeepLink(url) { return }
                     _ = store.handleReceiptDeepLink(url)
                 }
                 .onChange(of: store.userProfile.preferredLanguage) { _, language in

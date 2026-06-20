@@ -16,6 +16,7 @@ struct SocialHubView: View {
     @State private var followingInProgress: Set<String> = []
     @State private var followerCount = 0
     @State private var loadError: String?
+    @State private var showEditProfile = false
 
     private enum Tab { case friends, discover }
     private var isES: Bool { RepsLocalization.language.hasPrefix("es") }
@@ -47,6 +48,14 @@ struct SocialHubView: View {
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .task { await loadFollowing() }
+        .onAppear {
+            if let pending = store.pendingSocialSearch {
+                store.pendingSocialSearch = nil
+                searchText = pending
+                tab = .discover
+                scheduleSearch()
+            }
+        }
     }
 
     // MARK: - Navigation Bar
@@ -68,7 +77,19 @@ struct SocialHubView: View {
             Text(isES ? "Amigos" : "Friends")
                 .font(.system(size: 19, weight: .bold, design: .rounded))
             Spacer()
-            Image(systemName: "chevron.left").font(.system(size: 18, weight: .bold)).opacity(0)
+            if let uname = store.userProfile.socialUsername {
+                let inviteText = isES
+                    ? "¡Sígueme en Reps! @\(uname)\nreps://social/@\(uname)"
+                    : "Follow me on Reps! @\(uname)\nreps://social/@\(uname)"
+                ShareLink(item: inviteText) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(PulseTheme.primary)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Image(systemName: "chevron.left").font(.system(size: 18, weight: .bold)).opacity(0)
+            }
         }
         .padding(.vertical, 14)
     }
@@ -86,63 +107,110 @@ struct SocialHubView: View {
         )
         let lvl = GamificationEngine.playerLevel(for: xp)
         let uname = store.userProfile.socialUsername ?? "—"
+        let bio = store.userProfile.socialBio
+        let loc = store.userProfile.socialLocation
+        let plan = store.activePlan.name
         return PulseCard {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(PulseTheme.primary.opacity(0.12))
-                        .frame(width: 52, height: 52)
-                    if let data = store.userProfile.avatarImageData,
-                       let uiImg = UIImage(data: data) {
-                        Image(uiImage: uiImg)
-                            .resizable().scaledToFill()
-                            .frame(width: 52, height: 52)
-                            .clipShape(Circle())
-                    } else {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(PulseTheme.primary)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(PulseTheme.primary.opacity(0.12))
+                            .frame(width: 56, height: 56)
+                        if let data = store.userProfile.avatarImageData,
+                           let uiImg = UIImage(data: data) {
+                            Image(uiImage: uiImg)
+                                .resizable().scaledToFill()
+                                .frame(width: 56, height: 56)
+                                .clipShape(Circle())
+                        } else {
+                            Text(String(uname.prefix(1)).uppercased())
+                                .font(.system(size: 22, weight: .black, design: .rounded))
+                                .foregroundStyle(PulseTheme.primary)
+                        }
                     }
-                }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("@\(uname)")
-                        .font(.headline)
-                    HStack(spacing: 6) {
-                        Text("Lv.\(lvl.level) · \(lvl.title)")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(PulseTheme.primary)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(PulseTheme.primary.opacity(0.10))
-                            .clipShape(Capsule())
-                        Text("\(xp) XP")
-                            .font(.caption.weight(.semibold))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("@\(uname)")
+                            .font(.headline)
+                        HStack(spacing: 6) {
+                            Text("Lv.\(lvl.level) · \(lvl.title)")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundStyle(PulseTheme.primary)
+                                .padding(.horizontal, 7).padding(.vertical, 3)
+                                .background(PulseTheme.primary.opacity(0.10))
+                                .clipShape(Capsule())
+                            Text("\(xp) XP")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+
+                    Spacer()
+
+                    Button {
+                        showEditProfile = true
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
+                            .padding(8)
+                            .background(PulseTheme.grouped)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if !bio.isEmpty || !loc.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if !loc.isEmpty {
+                            Label(loc, systemImage: "mappin")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        if !bio.isEmpty {
+                            Text(bio)
+                                .font(.subheadline)
+                                .foregroundStyle(.primary.opacity(0.85))
+                                .lineLimit(2)
+                        }
                     }
                 }
 
-                Spacer()
-
-                VStack(spacing: 2) {
-                    Text("\(following.count)")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                    Text(isES ? "seguidos" : "following")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
+                if !plan.isEmpty {
+                    Label(plan, systemImage: "calendar.badge.checkmark")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.primary)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(PulseTheme.primary.opacity(0.08))
+                        .clipShape(Capsule())
                 }
-                .frame(width: 54)
 
-                VStack(spacing: 2) {
-                    Text("\(followerCount)")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                    Text(isES ? "seguidores" : "followers")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
+                Divider()
+
+                HStack {
+                    statPill(value: "\(following.count)", label: isES ? "siguiendo" : "following")
+                    Divider().frame(height: 24)
+                    statPill(value: "\(followerCount)", label: isES ? "seguidores" : "followers")
+                    Divider().frame(height: 24)
+                    statPill(value: "\(store.workoutSessions.count)", label: isES ? "sesiones" : "workouts")
                 }
-                .frame(width: 60)
             }
         }
+        .sheet(isPresented: $showEditProfile) {
+            EditSocialProfileView()
+        }
+    }
+
+    private func statPill(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Tab Picker
@@ -227,26 +295,40 @@ struct SocialHubView: View {
             ZStack {
                 Circle()
                     .fill(PulseTheme.primary.opacity(0.08))
-                    .frame(width: 40, height: 40)
+                    .frame(width: 44, height: 44)
                 Text(String(friend.username.prefix(1)).uppercased())
-                    .font(.system(size: 17, weight: .black, design: .rounded))
+                    .font(.system(size: 18, weight: .black, design: .rounded))
                     .foregroundStyle(PulseTheme.primary)
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("@\(friend.username)")
-                    .font(.subheadline.weight(.semibold))
                 HStack(spacing: 4) {
-                    Text("Lv.\(friend.level)")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(PulseTheme.primary)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(PulseTheme.primary.opacity(0.1))
-                        .clipShape(Capsule())
-                    Text(friend.levelTitle)
+                    Text("@\(friend.username)")
+                        .font(.subheadline.weight(.semibold))
+                    if !friend.location.isEmpty {
+                        Text("· \(friend.location)")
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(1)
+                    }
+                }
+                if !friend.bio.isEmpty {
+                    Text(friend.bio)
                         .font(.caption)
                         .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(1)
+                } else {
+                    HStack(spacing: 4) {
+                        Text("Lv.\(friend.level)")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(PulseTheme.primary)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(PulseTheme.primary.opacity(0.1))
+                            .clipShape(Capsule())
+                        Text(friend.levelTitle)
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
                 }
             }
 
@@ -255,7 +337,7 @@ struct SocialHubView: View {
             VStack(alignment: .trailing, spacing: 1) {
                 Text("\(friend.totalXP) XP")
                     .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
-                Text("\(friend.totalSessions) \(isES ? "ses" : "sessions")")
+                Text("\(friend.totalSessions) \(isES ? "ses" : "workouts")")
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
             }

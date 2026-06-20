@@ -8,6 +8,9 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
     var username: String
     var displayName: String
     var ownerRecordName: String
+    var bio: String
+    var location: String
+    var activePlanName: String
     var level: Int
     var levelTitle: String
     var totalXP: Int
@@ -25,6 +28,9 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
         self.username = username
         self.ownerRecordName = owner
         self.displayName = record["displayName"] as? String ?? username
+        self.bio = record["bio"] as? String ?? ""
+        self.location = record["location"] as? String ?? ""
+        self.activePlanName = record["activePlanName"] as? String ?? ""
         self.level = (record["level"] as? Int64).map(Int.init) ?? 1
         self.levelTitle = record["levelTitle"] as? String ?? "Rookie"
         self.totalXP = (record["totalXP"] as? Int64).map(Int.init) ?? 0
@@ -97,6 +103,9 @@ actor SocialService {
     func createOrUpdateProfile(
         username: String,
         displayName: String,
+        bio: String,
+        location: String,
+        activePlanName: String,
         level: Int,
         levelTitle: String,
         totalXP: Int,
@@ -128,6 +137,9 @@ actor SocialService {
 
         record["username"] = normalized as CKRecordValue
         record["displayName"] = displayName as CKRecordValue
+        record["bio"] = bio as CKRecordValue
+        record["location"] = location as CKRecordValue
+        record["activePlanName"] = activePlanName as CKRecordValue
         record["level"] = Int64(level) as CKRecordValue
         record["levelTitle"] = levelTitle as CKRecordValue
         record["totalXP"] = Int64(totalXP) as CKRecordValue

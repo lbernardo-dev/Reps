@@ -53,6 +53,7 @@ final class AppStore {
     var isSyncingExerciseLibrary = false
     var exerciseLibrarySyncMessage: String?
     var iCloudBackupDate: Date? = nil
+    var pendingSocialSearch: String? = nil
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
     var activeWorkoutStatus: ActiveWorkoutStatus? {
@@ -806,6 +807,16 @@ final class AppStore {
     }
 
     @discardableResult
+    func handleSocialDeepLink(_ url: URL) -> Bool {
+        // reps://social/@username
+        guard url.scheme == "reps", url.host == "social" else { return false }
+        let raw = url.lastPathComponent  // "@username" or "username"
+        let username = raw.hasPrefix("@") ? String(raw.dropFirst()) : raw
+        guard !username.isEmpty else { return false }
+        pendingSocialSearch = username
+        return true
+    }
+
     func handleReceiptDeepLink(_ url: URL) -> Bool {
         guard let payload = WorkoutReceiptDeepLink.payload(from: url) else {
             return false

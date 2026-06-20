@@ -5,6 +5,8 @@ struct SocialOnboardingView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var username = ""
+    @State private var bio = ""
+    @State private var location = ""
     @State private var isChecking = false
     @State private var isSaving = false
     @State private var errorMessage: String?
@@ -25,6 +27,7 @@ struct SocialOnboardingView: View {
                 VStack(spacing: 28) {
                     headerSection
                     usernameSection
+                    optionalFieldsSection
                     privacyNote
                     Spacer(minLength: 20)
                 }
@@ -178,6 +181,59 @@ struct SocialOnboardingView: View {
         }
     }
 
+    private var optionalFieldsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(isES ? "Opcional" : "Optional")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 0) {
+                HStack(spacing: 10) {
+                    Image(systemName: "mappin")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .frame(width: 20)
+                    TextField(isES ? "Ciudad, país" : "City, country", text: $location)
+                        .font(.subheadline)
+                        .autocorrectionDisabled()
+                }
+                .padding(14)
+
+                Divider().padding(.leading, 44)
+
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "text.quote")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .frame(width: 20)
+                        .padding(.top, 2)
+                    TextField(
+                        isES ? "Cuéntanos algo sobre ti…" : "Tell us something about you…",
+                        text: $bio,
+                        axis: .vertical
+                    )
+                    .font(.subheadline)
+                    .lineLimit(2...3)
+                    .onChange(of: bio) { _, new in
+                        if new.count > 80 { bio = String(new.prefix(80)) }
+                    }
+                }
+                .padding(14)
+            }
+            .background(PulseTheme.grouped)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            if !bio.isEmpty {
+                Text("\(bio.count)/80")
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.horizontal, 4)
+            }
+        }
+    }
+
     private var privacyNote: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "lock.shield")
@@ -242,11 +298,17 @@ struct SocialOnboardingView: View {
         let lvl = GamificationEngine.playerLevel(for: xp)
         let uname = username
         let dname = store.userProfile.displayName ?? uname
+        let bioVal = bio.trimmingCharacters(in: .whitespacesAndNewlines)
+        let locVal = location.trimmingCharacters(in: .whitespacesAndNewlines)
+        let planName = store.activePlan.name
         Task {
             do {
                 try await SocialService.shared.createOrUpdateProfile(
                     username: uname,
                     displayName: dname,
+                    bio: bioVal,
+                    location: locVal,
+                    activePlanName: planName,
                     level: lvl.level,
                     levelTitle: lvl.title,
                     totalXP: xp,
@@ -256,6 +318,8 @@ struct SocialOnboardingView: View {
                 )
                 await MainActor.run {
                     store.userProfile.socialUsername = uname
+                    store.userProfile.socialBio = bioVal
+                    store.userProfile.socialLocation = locVal
                     store.userProfile.socialEnabled = true
                     isSaving = false
                     dismiss()

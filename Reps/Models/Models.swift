@@ -86,6 +86,8 @@ struct UserProfile: Codable {
     // Track B — social / community features
     var socialEnabled: Bool = false
     var socialUsername: String?
+    var socialBio: String = ""
+    var socialLocation: String = ""
     // Usernames the local user is following — stored locally so we can fetch
     // their profiles without a CKQuery index.
     var socialFollowingUsernames: [String] = []
