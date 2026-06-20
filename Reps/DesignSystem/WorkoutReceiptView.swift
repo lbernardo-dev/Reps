@@ -174,11 +174,13 @@ struct WorkoutReceiptView: View {
     private let session: WorkoutSession?
     private let importedPayload: WorkoutReceiptSharePayload?
     var gender: BodyGender = .male
+    var routeMapImage: UIImage? = nil
 
-    init(session: WorkoutSession, gender: BodyGender = .male) {
+    init(session: WorkoutSession, gender: BodyGender = .male, routeMapImage: UIImage? = nil) {
         self.session = session
         self.importedPayload = nil
         self.gender = gender
+        self.routeMapImage = routeMapImage
     }
 
     init(payload: WorkoutReceiptSharePayload, gender: BodyGender = .male) {
@@ -438,7 +440,7 @@ struct WorkoutReceiptView: View {
     @ViewBuilder
     private var visualSummary: some View {
         if isRouteReceipt {
-            ReceiptRoutePanel(routePoints: routePoints, title: routeTitle, isTreadmill: isTreadmillReceipt)
+            ReceiptRoutePanel(routePoints: routePoints, title: routeTitle, isTreadmill: isTreadmillReceipt, mapSnapshot: routeMapImage)
         } else {
             HStack(spacing: 16) {
                 Spacer()
@@ -515,15 +517,18 @@ struct WorkoutReceiptView: View {
 
 private struct ReceiptRouteTrace: View {
     let routePoints: [RoutePoint]
+    var hasMapBackground: Bool = false
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.black.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.black.opacity(0.16), lineWidth: 1)
-                )
+            if !hasMapBackground {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.black.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Color.black.opacity(0.16), lineWidth: 1)
+                    )
+            }
 
             GeometryReader { proxy in
                 let points = normalizedPoints(in: proxy.size)
@@ -534,18 +539,21 @@ private struct ReceiptRouteTrace: View {
                         path.addLine(to: point)
                     }
                 }
-                .stroke(Color.black.opacity(0.76), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                .stroke(
+                    hasMapBackground ? Color.white.opacity(0.95) : Color.black.opacity(0.76),
+                    style: StrokeStyle(lineWidth: hasMapBackground ? 3.5 : 4, lineCap: .round, lineJoin: .round)
+                )
 
                 if let first = points.first {
                     Circle()
-                        .fill(Color.green.opacity(0.9))
+                        .fill(hasMapBackground ? Color.white : Color.green.opacity(0.9))
                         .frame(width: 9, height: 9)
                         .position(first)
                 }
 
                 if let last = points.last {
                     Circle()
-                        .fill(Color(red: 0.05, green: 0.42, blue: 0.94))
+                        .fill(hasMapBackground ? Color(red: 0.73, green: 1.0, blue: 0.0) : Color(red: 0.05, green: 0.42, blue: 0.94))
                         .frame(width: 11, height: 11)
                         .position(last)
                 }
@@ -556,7 +564,10 @@ private struct ReceiptRouteTrace: View {
                 HStack {
                     Text("route")
                         .font(.system(size: 8, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.black.opacity(0.5))
+                        .foregroundStyle(hasMapBackground ? Color.white.opacity(0.85) : Color.black.opacity(0.5))
+                        .padding(hasMapBackground ? 3 : 0)
+                        .background(hasMapBackground ? Color.black.opacity(0.45) : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: 3))
                     Spacer()
                 }
                 Spacer()
@@ -587,22 +598,38 @@ private struct ReceiptRoutePanel: View {
     let routePoints: [RoutePoint]
     let title: String
     let isTreadmill: Bool
+    var mapSnapshot: UIImage? = nil
 
     private var hasTrace: Bool {
         routePoints.count >= 2
     }
 
+    private var hasMap: Bool {
+        mapSnapshot != nil && hasTrace
+    }
+
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.black.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.black.opacity(0.16), lineWidth: 1)
-                )
+            if let snapshot = mapSnapshot, hasTrace {
+                Image(uiImage: snapshot)
+                    .resizable()
+                    .scaledToFill()
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.black.opacity(0.16), lineWidth: 1)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.black.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.black.opacity(0.16), lineWidth: 1)
+                    )
+            }
 
             if hasTrace {
-                ReceiptRouteTrace(routePoints: routePoints)
+                ReceiptRouteTrace(routePoints: routePoints, hasMapBackground: hasMap)
                     .padding(10)
             } else {
                 VStack(spacing: 8) {
@@ -623,11 +650,17 @@ private struct ReceiptRoutePanel: View {
                 HStack {
                     Text(localizedKey(title))
                         .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.black.opacity(0.58))
+                        .foregroundStyle(hasMap ? Color.white.opacity(0.9) : Color.black.opacity(0.58))
+                        .padding(hasMap ? 3 : 0)
+                        .background(hasMap ? Color.black.opacity(0.45) : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: 3))
                     Spacer()
                     Text(hasTrace ? "\(routePoints.count) GPS" : emptyBadge)
                         .font(.system(size: 8, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.black.opacity(0.46))
+                        .foregroundStyle(hasMap ? Color.white.opacity(0.85) : Color.black.opacity(0.46))
+                        .padding(hasMap ? 3 : 0)
+                        .background(hasMap ? Color.black.opacity(0.45) : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: 3))
                 }
                 Spacer()
             }

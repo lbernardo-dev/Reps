@@ -251,13 +251,27 @@ struct WorkoutSessionDetailView: View {
     @Environment(AppStore.self) private var store
     let session: WorkoutSession
     @State private var shareItem: ShareImageItem?
+    @State private var isSharingToFeed = false
+    @State private var feedShared = false
 
     var body: some View {
         Group {
             if session.isRouteSession {
-                RouteWorkoutSummaryView(session: session, shareAction: shareSession)
+                RouteWorkoutSummaryView(
+                    session: session,
+                    shareAction: shareSession,
+                    shareToFeedAction: shareToFeed,
+                    isSharingToFeed: isSharingToFeed,
+                    feedShared: feedShared
+                )
             } else {
-                StrengthWorkoutSummaryView(session: session, shareAction: shareSession)
+                StrengthWorkoutSummaryView(
+                    session: session,
+                    shareAction: shareSession,
+                    shareToFeedAction: shareToFeed,
+                    isSharingToFeed: isSharingToFeed,
+                    feedShared: feedShared
+                )
             }
         }
         .navigationTitle("")
@@ -265,19 +279,37 @@ struct WorkoutSessionDetailView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
-        // Item-based presentation guarantees the rendered image exists before the
-        // share sheet appears (isPresented + a separate optional image races and
-        // can present an empty sheet).
         .sheet(item: $shareItem) { item in
             ActivityViewController(activityItems: [item.image])
         }
     }
 
     private func shareSession() {
-        guard store.requireFeature(.shareCards, source: .shareCards) else {
-            return
-        }
+        guard store.requireFeature(.shareCards, source: .shareCards) else { return }
         shareItem = ShareImageItem(image: WorkoutShareImageRenderer.render(session: session))
+    }
+
+    private func shareToFeed() {
+        guard store.userProfile.socialEnabled,
+              let uname = store.userProfile.socialUsername else { return }
+        let dname = store.userProfile.displayName ?? uname
+        isSharingToFeed = true
+        Task {
+            let img = await WorkoutShareImageRenderer.renderForFeed(session: session)
+            guard let data = img.jpegData(compressionQuality: 0.82) else {
+                await MainActor.run { isSharingToFeed = false }
+                return
+            }
+            let post = try? await SocialService.shared.publishCustomPost(
+                username: uname, displayName: dname,
+                caption: session.workoutTitle, photoDataList: [data]
+            )
+            await MainActor.run {
+                if let post { store.feedPosts.insert(post, at: 0) }
+                isSharingToFeed = false
+                withAnimation { feedShared = true }
+            }
+        }
     }
 }
 
@@ -288,8 +320,12 @@ struct ShareImageItem: Identifiable {
 
 struct RouteWorkoutSummaryView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppStore.self) private var store
     let session: WorkoutSession
     let shareAction: () -> Void
+    var shareToFeedAction: (() -> Void)? = nil
+    var isSharingToFeed: Bool = false
+    var feedShared: Bool = false
     @State private var showExpandedMap = false
 
     var body: some View {
@@ -328,6 +364,10 @@ struct RouteWorkoutSummaryView: View {
                     if let notes = session.notes, !notes.isEmpty {
                         RouteWorkoutNotesCard(notes: notes)
                     }
+
+                    if store.userProfile.socialEnabled, let action = shareToFeedAction {
+                        feedShareButton(action: action)
+                    }
                 }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.bottom, 112)
@@ -341,6 +381,31 @@ struct RouteWorkoutSummaryView: View {
             RouteWorkoutExpandedMap(session: session)
         }
     }
+
+    private func feedShareButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if isSharingToFeed {
+                    ProgressView().tint(.white).scaleEffect(0.8)
+                } else {
+                    Image(systemName: feedShared ? "checkmark.circle.fill" : "person.2.fill")
+                }
+                Text(feedShared ? localizedString("share_feed_done") : localizedString("share_feed_button"))
+            }
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(feedShared ? Color.green.opacity(0.22) : Color.white.opacity(0.10))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isSharingToFeed || feedShared)
+    }
 }
 
 struct StrengthWorkoutSummaryView: View {
@@ -348,6 +413,9 @@ struct StrengthWorkoutSummaryView: View {
     @Environment(AppStore.self) private var store
     let session: WorkoutSession
     let shareAction: () -> Void
+    var shareToFeedAction: (() -> Void)? = nil
+    var isSharingToFeed: Bool = false
+    var feedShared: Bool = false
 
     private var exerciseLogs: [ExerciseLog] {
         FitnessMetrics.completedExerciseLogs(in: session)
@@ -388,6 +456,10 @@ struct StrengthWorkoutSummaryView: View {
                     if let notes = session.notes, !notes.isEmpty {
                         RouteWorkoutNotesCard(notes: notes)
                     }
+
+                    if store.userProfile.socialEnabled, let action = shareToFeedAction {
+                        feedShareButton(action: action)
+                    }
                 }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.bottom, 112)
@@ -397,6 +469,31 @@ struct StrengthWorkoutSummaryView: View {
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .ignoresSafeArea(edges: .top)
         .background(Color.black)
+    }
+
+    private func feedShareButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if isSharingToFeed {
+                    ProgressView().tint(.white).scaleEffect(0.8)
+                } else {
+                    Image(systemName: feedShared ? "checkmark.circle.fill" : "person.2.fill")
+                }
+                Text(feedShared ? localizedString("share_feed_done") : localizedString("share_feed_button"))
+            }
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(feedShared ? Color.green.opacity(0.22) : Color.white.opacity(0.10))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isSharingToFeed || feedShared)
     }
 }
 

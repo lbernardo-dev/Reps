@@ -85992,6 +85992,38 @@
         }
       }
     },
+    "share_feed_button" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share to Feed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir en el Feed"
+          }
+        }
+      }
+    },
+    "share_feed_done" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared to Feed!"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¡Compartido en el Feed!"
+          }
+        }
+      }
+    },
     "share_image_prepare" : {
       "extractionState" : "stale",
       "localizations" : {

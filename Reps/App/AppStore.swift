@@ -1014,12 +1014,27 @@ final class AppStore {
     }
 
     private func saveReceiptCard(for session: WorkoutSession, replacingExisting: Bool = false) {
+        if session.isOutdoorRouteSession {
+            Task { @MainActor in
+                let image = await WorkoutShareImageRenderer.renderReceiptAsync(session: session)
+                guard let data = image.pngData(), !data.isEmpty else {
+                    TelemetryService.shared.log(.nonFatalError, parameters: ["context": "receipt_render_empty_png"])
+                    return
+                }
+                let card = SavedShareCard(date: session.date, workoutTitle: session.workoutTitle, imageData: data)
+                if replacingExisting, let idx = receiptCardIndex(for: session) {
+                    savedShareCards[idx] = card
+                } else {
+                    savedShareCards.append(card)
+                }
+            }
+            return
+        }
         let image = WorkoutShareImageRenderer.render(session: session)
         guard let data = image.pngData(), !data.isEmpty else {
             TelemetryService.shared.log(.nonFatalError, parameters: ["context": "receipt_render_empty_png"])
             return
         }
-
         let card = SavedShareCard(date: session.date, workoutTitle: session.workoutTitle, imageData: data)
         if replacingExisting, let existingIndex = receiptCardIndex(for: session) {
             savedShareCards[existingIndex] = card

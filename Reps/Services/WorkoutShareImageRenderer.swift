@@ -1,5 +1,6 @@
 import UIKit
 import SwiftUI
+import MapKit
 
 struct WorkoutShareImageRenderer {
     private static let receiptWidth: CGFloat = 375
@@ -35,6 +36,116 @@ struct WorkoutShareImageRenderer {
         )
         let view = WorkoutReceiptView(session: mockSession)
         return renderReceipt(view)
+    }
+
+    // Returns the best shareable image for a session:
+    // route sessions → map snapshot with polyline; others → receipt card.
+    @MainActor
+    static func renderForFeed(session: WorkoutSession) async -> UIImage {
+        if session.isOutdoorRouteSession, !session.routePoints.isEmpty {
+            if let mapImg = await renderRouteMap(session: session) { return mapImg }
+        }
+        return render(session: session)
+    }
+
+    // Returns just the map tiles (no route overlay) sized for the receipt visual summary panel.
+    static func renderRouteMapBackground(routePoints: [RoutePoint]) async -> UIImage? {
+        guard routePoints.count >= 2 else { return nil }
+        let coords = routePoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        let lats = coords.map(\.latitude), lons = coords.map(\.longitude)
+        guard let minLat = lats.min(), let maxLat = lats.max(),
+              let minLon = lons.min(), let maxLon = lons.max() else { return nil }
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLon + maxLon) / 2
+        )
+        let span = MKCoordinateSpan(
+            latitudeDelta: max((maxLat - minLat) * 1.5, 0.004),
+            longitudeDelta: max((maxLon - minLon) * 1.5, 0.004)
+        )
+        let opts = MKMapSnapshotter.Options()
+        opts.region = MKCoordinateRegion(center: center, span: span)
+        opts.size = CGSize(width: 375, height: 175)
+        opts.scale = 2.0
+        return try? await MKMapSnapshotter(options: opts).start().image
+    }
+
+    // Async render that includes a real map background for outdoor route sessions.
+    @MainActor
+    static func renderReceiptAsync(session: WorkoutSession) async -> UIImage {
+        var mapImage: UIImage? = nil
+        if session.isOutdoorRouteSession {
+            mapImage = await renderRouteMapBackground(routePoints: session.routePoints)
+        }
+        let view = WorkoutReceiptView(session: session, routeMapImage: mapImage)
+        return renderReceipt(view)
+    }
+
+    static func renderRouteMap(session: WorkoutSession) async -> UIImage? {
+        let pts = session.routePoints
+        guard pts.count >= 2 else { return nil }
+
+        let coords = pts.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        let lats = coords.map(\.latitude), lons = coords.map(\.longitude)
+        guard let minLat = lats.min(), let maxLat = lats.max(),
+              let minLon = lons.min(), let maxLon = lons.max() else { return nil }
+
+        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2,
+                                             longitude: (minLon + maxLon) / 2)
+        let span = MKCoordinateSpan(
+            latitudeDelta: max((maxLat - minLat) * 1.45, 0.004),
+            longitudeDelta: max((maxLon - minLon) * 1.45, 0.004)
+        )
+        let opts = MKMapSnapshotter.Options()
+        opts.region = MKCoordinateRegion(center: center, span: span)
+        opts.size = CGSize(width: 375, height: 375)
+        opts.scale = 3.0
+
+        guard let snap = try? await MKMapSnapshotter(options: opts).start() else { return nil }
+
+        let fmt = UIGraphicsImageRendererFormat(); fmt.scale = 3.0
+        return UIGraphicsImageRenderer(size: opts.size, format: fmt).image { ctx in
+            snap.image.draw(at: .zero)
+            let cg = ctx.cgContext
+
+            // Route polyline
+            let mapped = coords.map { snap.point(for: $0) }
+            cg.setStrokeColor(UIColor(red: 0.35, green: 0.75, blue: 1.0, alpha: 1).cgColor)
+            cg.setLineWidth(5); cg.setLineCap(.round); cg.setLineJoin(.round)
+            cg.move(to: mapped[0])
+            mapped.dropFirst().forEach { cg.addLine(to: $0) }
+            cg.strokePath()
+
+            // Start dot (white)
+            if let f = mapped.first {
+                cg.setFillColor(UIColor.white.cgColor)
+                cg.addEllipse(in: CGRect(x: f.x - 6, y: f.y - 6, width: 12, height: 12)); cg.fillPath()
+            }
+            // End dot (green)
+            if let l = mapped.last {
+                cg.setFillColor(UIColor(red: 0.0, green: 0.88, blue: 0.44, alpha: 1).cgColor)
+                cg.addEllipse(in: CGRect(x: l.x - 8, y: l.y - 8, width: 16, height: 16)); cg.fillPath()
+            }
+
+            // Stats overlay (distance + duration bottom-left)
+            let dist = session.distanceKm.map { String(format: "%.2f km", $0) } ?? ""
+            let dur  = "\(Int(session.durationMinutes)) min"
+            let label = [dist, dur].filter { !$0.isEmpty }.joined(separator: "  ·  ")
+            if !label.isEmpty {
+                let attrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.monospacedSystemFont(ofSize: 13, weight: .bold),
+                    .foregroundColor: UIColor.white
+                ]
+                let str = NSString(string: label)
+                let sz = str.size(withAttributes: attrs)
+                let pad: CGFloat = 10
+                let rect = CGRect(x: pad - 4, y: opts.size.height - sz.height - pad - 4,
+                                  width: sz.width + 8, height: sz.height + 6)
+                cg.setFillColor(UIColor.black.withAlphaComponent(0.55).cgColor)
+                cg.fillEllipse(in: rect.insetBy(dx: -4, dy: -2))
+                str.draw(at: CGPoint(x: rect.minX + 4, y: rect.minY + 3), withAttributes: attrs)
+            }
+        }
     }
 
     @MainActor

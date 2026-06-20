@@ -3265,22 +3265,26 @@ private struct ReceiptPreviewSheet: View {
     let card: SavedShareCard
     @Environment(\.dismiss) private var dismiss
     @State private var uiImage: UIImage? = nil
-    
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            VStack(spacing: 0) {
                 if let img = uiImage {
                     Image(uiImage: img)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: .infinity, maxHeight: 520)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .frame(maxWidth: .infinity)
                         .shadow(color: Color.black.opacity(0.24), radius: 12, x: 0, y: 6)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
                 } else {
+                    Spacer()
                     ProgressView()
-                        .frame(height: 300)
+                    Spacer()
                 }
-                
+
+                Spacer(minLength: 12)
+
                 if let img = uiImage {
                     ShareLink(item: Image(uiImage: img), preview: SharePreview(card.workoutTitle, image: Image(uiImage: img))) {
                         HStack(spacing: 8) {
@@ -3296,9 +3300,10 @@ private struct ReceiptPreviewSheet: View {
                         .padding(.horizontal, 24)
                     }
                     .buttonStyle(.plain)
+                    .padding(.bottom, 24)
                 }
             }
-            .padding(.vertical, 24)
+            .frame(maxHeight: .infinity)
             .screenBackground()
             .navigationTitle(card.workoutTitle)
             .navigationBarTitleDisplayMode(.inline)

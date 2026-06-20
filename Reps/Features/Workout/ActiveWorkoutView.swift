@@ -3777,6 +3777,8 @@ struct WorkoutSummaryView: View {
     @State private var isImageSaved = false
     @State private var prShareImage: UIImage?
     @State private var isShowingPRShareSheet = false
+    @State private var isSharingToFeed = false
+    @State private var feedShared = false
 
     private var completedSets: [SetLog] {
         FitnessMetrics.completedSets(in: session)
@@ -3965,6 +3967,39 @@ struct WorkoutSummaryView: View {
                         }
                         .padding(.horizontal, 4)
 
+                        // Share to social feed (receipt card or route map)
+                        if store.userProfile.socialEnabled, store.userProfile.socialUsername != nil {
+                            Button {
+                                shareToFeed()
+                            } label: {
+                                HStack(spacing: 8) {
+                                    if isSharingToFeed {
+                                        ProgressView().tint(.white).scaleEffect(0.8)
+                                    } else {
+                                        Image(systemName: feedShared ? "checkmark.circle.fill" : "person.2.fill")
+                                    }
+                                    Text(feedShared ? localizedString("share_feed_done") : localizedString("share_feed_button"))
+                                }
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    feedShared
+                                        ? Color.green.opacity(0.25)
+                                        : PulseTheme.primary.opacity(0.18)
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(PulseTheme.primary.opacity(0.35), lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isSharingToFeed || feedShared)
+                            .padding(.horizontal, 4)
+                        }
+
                         PulseCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 CardTitle("detalles_adicionales")
@@ -4025,6 +4060,31 @@ struct WorkoutSummaryView: View {
         }
         generatedImage = WorkoutShareImageRenderer.render(session: session)
         isShowingShareSheet = true
+    }
+
+    private func shareToFeed() {
+        guard let uname = store.userProfile.socialUsername else { return }
+        let dname = store.userProfile.displayName ?? uname
+        isSharingToFeed = true
+        Task {
+            let img = await WorkoutShareImageRenderer.renderForFeed(session: session)
+            guard let data = img.jpegData(compressionQuality: 0.82) else {
+                await MainActor.run { isSharingToFeed = false }
+                return
+            }
+            let caption = session.workoutTitle
+            let post = try? await SocialService.shared.publishCustomPost(
+                username: uname,
+                displayName: dname,
+                caption: caption,
+                photoDataList: [data]
+            )
+            await MainActor.run {
+                if let post { store.feedPosts.insert(post, at: 0) }
+                isSharingToFeed = false
+                withAnimation { feedShared = true }
+            }
+        }
     }
 }
 
