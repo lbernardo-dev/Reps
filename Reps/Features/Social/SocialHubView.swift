@@ -103,16 +103,31 @@ struct SocialHubView: View {
             Text(localizedString("friends_2"))
                 .font(.system(size: 19, weight: .bold, design: .rounded))
             Spacer()
-            if let uname = store.userProfile.socialUsername {
-                let inviteText = localizedFormat("social_invite_text", uname, uname)
-                ShareLink(item: inviteText) {
-                    Image(systemName: "person.badge.plus")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(PulseTheme.primary)
+            HStack(spacing: 12) {
+                #if DEBUG
+                if store.userProfile.socialUsername != nil {
+                    Button {
+                        publishDebugPost()
+                    } label: {
+                        Image(systemName: "hammer.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-            } else {
-                Image(systemName: "chevron.left").font(.system(size: 18, weight: .bold)).opacity(0)
+                #endif
+
+                if let uname = store.userProfile.socialUsername {
+                    let inviteText = localizedFormat("social_invite_text", uname, uname)
+                    ShareLink(item: inviteText) {
+                        Image(systemName: "person.badge.plus")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(PulseTheme.primary)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Image(systemName: "chevron.left").font(.system(size: 18, weight: .bold)).opacity(0)
+                }
             }
         }
         .padding(.vertical, 14)
@@ -864,14 +879,15 @@ struct SocialHubView: View {
     }
 
     private func loadFeed() async {
-        guard !store.userProfile.socialFollowingUsernames.isEmpty else { return }
+        // Include own posts so the user sees their shared workouts immediately,
+        // even before they follow anyone.
+        var usernames = store.userProfile.socialFollowingUsernames
+        if let own = store.userProfile.socialUsername { usernames.append(own.lowercased()) }
+        guard !usernames.isEmpty else { return }
         isLoadingFeed = true
         do {
-            let posts = try await SocialService.shared.fetchFeed(
-                followingUsernames: store.userProfile.socialFollowingUsernames
-            )
+            let posts = try await SocialService.shared.fetchFeed(followingUsernames: usernames)
             feedPosts = posts
-            // Update unread badge count (posts newer than last check)
             let lastCheck = store.lastFeedCheckDate
             let unread = posts.filter { $0.createdAt > lastCheck }.count
             store.unreadFeedCount = unread
@@ -880,6 +896,26 @@ struct SocialHubView: View {
         }
         isLoadingFeed = false
     }
+
+    #if DEBUG
+    private func publishDebugPost() {
+        guard let uname = store.userProfile.socialUsername else { return }
+        let dname = store.userProfile.displayName ?? uname
+        let sid = UUID().uuidString
+        Task.detached {
+            try? await SocialService.shared.publishPost(
+                username: uname,
+                displayName: dname,
+                sessionID: sid,
+                workoutTitle: "Debug Workout 🛠",
+                durationSeconds: 3600,
+                volumeKg: 4200,
+                exerciseNames: ["Bench Press", "Squat", "Deadlift", "Pull-Up", "OHP"]
+            )
+            await MainActor.run { [self] in Task { await self.loadFeed() } }
+        }
+    }
+    #endif
 
     private func toggleLike(post: WorkoutPost) {
         let wasLiked = likedPostIDs.contains(post.id)
@@ -902,7 +938,7 @@ struct SocialHubView: View {
                     if wasLiked { likedPostIDs.insert(post.id) } else { likedPostIDs.remove(post.id) }
                 }
             }
-            await MainActor.run { likingInProgress.remove(post.id) }
+            await MainActor.run { _ = likingInProgress.remove(post.id) }
         }
     }
 
