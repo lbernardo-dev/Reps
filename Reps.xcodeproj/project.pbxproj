@@ -88,6 +88,7 @@
 		B4C98D41ED857AF09B4C5C97 /* AppSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACEC4BB22C072ED9B0069C1 /* AppSnapshot.swift */; };
 		B5460ABE3BFCDB94CC695F44 /* SocialHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DAB8A3B56BCAE9A06BA4E3F /* SocialHubView.swift */; };
 		B5F42E50161D32803CDFDC11 /* WorkoutShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF2BB82DF974745D5746570F /* WorkoutShared.swift */; };
+		B73247E3664F97B0132752EF /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41FBFABFEA51C00FB4F35A72 /* NotificationsView.swift */; };
 		B866407CB30BA1AB3A0D8235 /* ICloudBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C69B0543BC4F024E364CD79A /* ICloudBackupService.swift */; };
 		BBAC1E9D145041FFB460414A /* RepsWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 860264EAF0E928C5E69888F7 /* RepsWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BF702D63C7A54286CF954519 /* MuscleMap in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF3142C9A82498970AF3638 /* MuscleMap */; };
@@ -186,6 +187,7 @@
 		3659C8528135CC1735E2D7BD /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 		3B4CDEDA58CBFA0C9AB9D8D2 /* EditSocialProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditSocialProfileView.swift; sourceTree = "<group>"; };
 		3D71F1F758BF7BEA053BE5BB /* MusicIntegrationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicIntegrationSheet.swift; sourceTree = "<group>"; };
+		41FBFABFEA51C00FB4F35A72 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		428488EF1075B17B97043B62 /* ActiveWorkoutMediaComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutMediaComponents.swift; sourceTree = "<group>"; };
 		439F6FCF315C65C3FD34EF0D /* RepsWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RepsWatch.entitlements; sourceTree = "<group>"; };
 		467EA079553F247F75C76054 /* RepsWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsWatchApp.swift; sourceTree = "<group>"; };
@@ -497,6 +499,7 @@
 		AC08BAFE0FCBB1B478DF329F /* Today */ = {
 			isa = PBXGroup;
 			children = (
+				41FBFABFEA51C00FB4F35A72 /* NotificationsView.swift */,
 				5207FC54AA0F20CA9E4C36D1 /* TodayView.swift */,
 				C050D0A2463DEAE5070D1A87 /* TrainingBatteryView.swift */,
 			);
@@ -823,6 +826,7 @@
 				A1EE8255CBAF7C557CE9A4BC /* MuscleVolume.swift in Sources */,
 				C012EA90348A6BE3DD882FE3 /* MusicIntegrationSheet.swift in Sources */,
 				4DD5973D7549AC9555F81FA2 /* NotificationService.swift in Sources */,
+				B73247E3664F97B0132752EF /* NotificationsView.swift in Sources */,
 				5B3EC7C5D1D72EE4CEB36805 /* OnboardingResult.swift in Sources */,
 				5F9AA871BBC23C64162D14E8 /* OneRepMaxCalculatorView.swift in Sources */,
 				DE692FD7D748E7262B28A488 /* PaywallView.swift in Sources */,

@@ -57427,6 +57427,38 @@
         }
       }
     },
+    "active_week_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're on a roll. Keep it up!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Estás en racha! ¡Sigue así!"
+          }
+        }
+      }
+    },
+    "active_week_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d sessions this week"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d sesiones esta semana"
+          }
+        }
+      }
+    },
     "activity": {
       "extractionState": "stale",
       "localizations": {
@@ -81529,6 +81561,54 @@
         }
       }
     },
+    "notifications": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notificaciones"
+          }
+        }
+      }
+    },
+    "notifications_empty_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your recent workout activity will appear here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu actividad reciente de entrenamiento aparecerá aquí."
+          }
+        }
+      }
+    },
+    "notifications_empty_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All caught up"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo al día"
+          }
+        }
+      }
+    },
     "notifications_enable_reminders": {
       "extractionState": "stale",
       "localizations": {
@@ -87780,6 +87860,22 @@
         }
       }
     },
+    "recent_activity": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent activity"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actividad reciente"
+          }
+        }
+      }
+    },
     "recent_sessions": {
       "extractionState": "stale",
       "localizations": {
@@ -91241,6 +91337,22 @@
         }
       }
     },
+    "session_completed_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d min completed"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d min completados"
+          }
+        }
+      }
+    },
     "session_control_center": {
       "extractionState": "manual",
       "localizations": {
@@ -93056,6 +93168,22 @@
         }
       }
     },
+    "social_activity_notifs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Social activity"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actividad social"
+          }
+        }
+      }
+    },
     "social_bio": {
       "localizations": {
         "en": {
@@ -93292,6 +93420,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Siguiendo"
+          }
+        }
+      }
+    },
+    "social_hub": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Social"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Social"
           }
         }
       }
@@ -95010,6 +95154,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "%d días racha"
+          }
+        }
+      }
+    },
+    "streak_milestone_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep the momentum going."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sigue con el impulso."
+          }
+        }
+      }
+    },
+    "streak_milestone_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d-day streak! 🔥"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Racha de %d días! 🔥"
           }
         }
       }

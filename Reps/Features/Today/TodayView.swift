@@ -9,6 +9,8 @@ struct TodayView: View {
     @State private var showFreeWorkoutStart = false
     @State private var planToEdit: WorkoutPlan?
     @State private var workoutToStart: WorkoutDay?
+    @State private var showNotifications = false
+    @State private var showSocialHub = false
 
     var onSelectTab: ((AppTab) -> Void)? = nil
 
@@ -258,11 +260,48 @@ struct TodayView: View {
                 subtitle: currentDateTitle,
                 topContentPadding: 104,
                 accessory: {
-                    HeaderAvatarButton(
-                        imageData: store.userProfile.avatarImageData,
-                        accessibilityLabel: "profile"
-                    ) {
-                        showProfile = true
+                    HStack(spacing: 6) {
+                        // Notifications bell
+                        Button {
+                            HapticService.selection()
+                            showNotifications = true
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "bell.fill")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Circle())
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("notifications")
+
+                        // Social messages (only when social is active)
+                        if store.userProfile.socialEnabled {
+                            Button {
+                                HapticService.selection()
+                                showSocialHub = true
+                            } label: {
+                                Image(systemName: "bubble.left.and.bubble.right.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(PulseTheme.primary)
+                                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("social_hub")
+                        }
+
+                        // Avatar → profile
+                        HeaderAvatarButton(
+                            imageData: store.userProfile.avatarImageData,
+                            accessibilityLabel: "profile"
+                        ) {
+                            showProfile = true
+                        }
                     }
                 }
             ) {
@@ -308,6 +347,12 @@ struct TodayView: View {
                 ProfileView {
                     onSelectTab?(.plans)
                 }
+            }
+            .navigationDestination(isPresented: $showNotifications) {
+                NotificationsView()
+            }
+            .navigationDestination(isPresented: $showSocialHub) {
+                SocialHubView()
             }
             .navigationDestination(item: $workoutToStart) { workout in
                 ActiveWorkoutView(workout: workout, origin: workout.id == freeWorkout.id ? .free : .routine)
