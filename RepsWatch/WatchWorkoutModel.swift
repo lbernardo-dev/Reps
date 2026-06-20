@@ -204,7 +204,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             mode = .phoneRoute
         } else if configuration.activityType == .traditionalStrengthTraining {
             mode = .standaloneStrength
-            standaloneTitle = "Fuerza"
+            standaloneTitle = localizedString("Strength")
         }
 
         startTimer()
@@ -653,7 +653,8 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
         if title.localizedCaseInsensitiveContains("yoga") ||
             title.localizedCaseInsensitiveContains("pilates") ||
             title.localizedCaseInsensitiveContains("flex") ||
-            title.localizedCaseInsensitiveContains("movilidad") {
+            title.localizedCaseInsensitiveContains("movilidad") ||
+            title.localizedCaseInsensitiveContains("mobility") {
             return .flexibility
         }
         return .traditionalStrengthTraining
@@ -1279,7 +1280,7 @@ extension WatchWorkoutModel: WCSessionDelegate {
 
     // MARK: - Standalone strength
 
-    func startStrengthWorkout(title: String = "Fuerza") {
+    func startStrengthWorkout(title: String = localizedString("Strength")) {
         guard mode == .none, session == nil else { return }
         standaloneTitle = title
         let startDate = Date()
@@ -1304,7 +1305,7 @@ extension WatchWorkoutModel: WCSessionDelegate {
         guard mode == .standaloneStrength, startedAt != nil else { return }
         var snap = SharedWorkoutSnapshot.empty
         snap.hasActiveWorkout = true
-        snap.workoutTitle = standaloneTitle.isEmpty ? "Fuerza" : standaloneTitle
+        snap.workoutTitle = standaloneTitle.isEmpty ? localizedString("Strength") : standaloneTitle
         snap.sessionTitle = "Iniciado desde Apple Watch"
         snap.elapsedSeconds = elapsedSeconds
         snap.completedSets = totalCompletedSets
@@ -1339,7 +1340,7 @@ extension WatchWorkoutModel: WCSessionDelegate {
         guard shared.contains(where: { $0.sets.contains(where: \.completed) }) else { return nil }
         return WatchStrengthWorkoutSummary(
             id: standaloneWorkoutID ?? UUID(),
-            title: standaloneTitle.isEmpty ? "Fuerza" : standaloneTitle,
+            title: standaloneTitle.isEmpty ? localizedString("Strength") : standaloneTitle,
             startedAt: startedAt,
             endedAt: endDate,
             durationSeconds: max(Int(endDate.timeIntervalSince(startedAt)) - currentPausedSeconds, 1),

@@ -464,9 +464,9 @@ struct WatchStrengthNowView: View {
             .foregroundStyle(.white)
 
             HStack(spacing: 6) {
-                WatchTag(text: "+W", color: .yellow) { model.addSet(type: .warmUp) }
+                WatchTag(text: localizedString("warm_up_short"), color: .yellow) { model.addSet(type: .warmUp) }
                 WatchTag(text: localizedString("+ Set"), color: accent) { model.addSet(type: .work) }
-                WatchTag(text: "+ Drop", color: .purple) { model.addSet(type: .dropSet) }
+                WatchTag(text: localizedString("drop_set_short"), color: .purple) { model.addSet(type: .dropSet) }
             }
 
             WatchSetDots(exercise: model.currentExercise)
