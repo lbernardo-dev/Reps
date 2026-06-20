@@ -34,6 +34,14 @@ struct SocialOnboardingView: View {
             }
             .screenBackground()
             .navigationBarTitleDisplayMode(.inline)
+            .alert(isES ? "Error" : "Error", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(isES ? "Cancelar" : "Cancel") { dismiss() }
@@ -210,7 +218,12 @@ struct SocialOnboardingView: View {
                     availabilityStatus = available ? .available : .taken
                 }
             } catch {
-                await MainActor.run { availabilityStatus = .idle }
+                // Network or schema error — optimistically allow the user to proceed.
+                // The save will surface a real error if CloudKit rejects it.
+                await MainActor.run {
+                    guard username == u else { return }
+                    availabilityStatus = .available
+                }
             }
         }
     }

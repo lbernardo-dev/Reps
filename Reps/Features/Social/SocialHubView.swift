@@ -516,11 +516,10 @@ struct SocialHubView: View {
     private func loadFollowing() async {
         isLoadingFollowing = true
         do {
-            async let followingTask = SocialService.shared.fetchFollowing()
-            async let countTask = SocialService.shared.fetchFollowerCount()
-            let (f, c) = try await (followingTask, countTask)
+            let usernames = store.userProfile.socialFollowingUsernames
+            let f = try await SocialService.shared.fetchFollowing(myFollowingUsernames: usernames)
             following = f
-            followerCount = c
+            followerCount = f.count
         } catch {
             loadError = error.localizedDescription
         }
@@ -557,10 +556,17 @@ struct SocialHubView: View {
                     await MainActor.run {
                         following.removeAll { $0.id == profile.id }
                         if selectedFriend?.id == profile.id { selectedFriend = nil }
+                        store.userProfile.socialFollowingUsernames.removeAll { $0 == profile.username.lowercased() }
                     }
                 } else {
                     try await SocialService.shared.follow(profile)
-                    await MainActor.run { following.append(profile) }
+                    await MainActor.run {
+                        following.append(profile)
+                        let uname = profile.username.lowercased()
+                        if !store.userProfile.socialFollowingUsernames.contains(uname) {
+                            store.userProfile.socialFollowingUsernames.append(uname)
+                        }
+                    }
                 }
             } catch {
                 // Silently fail — UI stays consistent

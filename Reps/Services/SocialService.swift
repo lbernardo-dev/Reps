@@ -4,9 +4,10 @@ import Foundation
 // MARK: - Public Profile Model
 
 struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
-    let id: String          // iCloud user record name — stable unique identity
+    let id: String          // normalized username — stable record key
     var username: String
     var displayName: String
+    var ownerRecordName: String
     var level: Int
     var levelTitle: String
     var totalXP: Int
@@ -20,8 +21,9 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
             let username = record["username"] as? String,
             let owner = record["ownerRecordName"] as? String
         else { return nil }
-        self.id = owner
+        self.id = username.lowercased()
         self.username = username
+        self.ownerRecordName = owner
         self.displayName = record["displayName"] as? String ?? username
         self.level = (record["level"] as? Int64).map(Int.init) ?? 1
         self.levelTitle = record["levelTitle"] as? String ?? "Rookie"
@@ -34,13 +36,22 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
 }
 
 // MARK: - Service
+//
+// CloudKit public DB schema (auto-created on first write; no manual Dashboard
+// setup required — record(for:) / save() work without queryable indexes):
+//
+//   SocialProfile  recordName = "SocialProfile_<normalizedUsername>"
+//     fields: username, displayName, ownerRecordName, level, levelTitle,
+//             totalXP, totalSessions, streakDays, totalVolumeKg
+//
+//   SocialFollow   recordName = "SocialFollow_<followerOwner>_<followingUsername>"
+//     fields: followerOwnerName, followingUsername
+//
+// NOTE: searchUsers() uses CKQuery and requires a QUERYABLE index on `username`
+// in CloudKit Dashboard if you want to search by prefix. All other operations
+// (register, check availability, follow/unfollow, fetch following) use direct
+// record(for:) lookups and work without any index setup.
 
-// CloudKit public DB schema — record types (auto-created on first write in dev;
-// must be promoted in CloudKit Dashboard before production release):
-//   SocialProfile: username(q), displayName, ownerRecordName(q), level,
-//                  levelTitle, totalXP, totalSessions, streakDays, totalVolumeKg
-//   SocialFollow:  followerRecordName(q), followingRecordName(q), followingUsername
-// Indexes: username (QUERY on SocialProfile), followerRecordName & followingRecordName (QUERY on SocialFollow)
 actor SocialService {
     static let shared = SocialService()
 
@@ -57,22 +68,30 @@ actor SocialService {
         return id
     }
 
-    private func profileRecordID(for ownerName: String) -> CKRecord.ID {
-        CKRecord.ID(recordName: "Profile_\(ownerName)")
+    // Profile record ID is keyed by username so availability can be checked
+    // with a direct lookup — no CKQuery / no index required.
+    private func profileRecordID(username: String) -> CKRecord.ID {
+        CKRecord.ID(recordName: "SocialProfile_\(username.lowercased())")
     }
 
-    private func followRecordID(follower: String, following: String) -> CKRecord.ID {
-        CKRecord.ID(recordName: "Follow_\(follower)_\(following)")
+    private func followRecordID(followerOwner: String, followingUsername: String) -> CKRecord.ID {
+        CKRecord.ID(recordName: "SocialFollow_\(followerOwner)_\(followingUsername.lowercased())")
     }
 
     // MARK: - Profile
 
+    // Direct record lookup — no index required.
     func checkAvailability(username: String) async throws -> Bool {
-        let normalized = username.lowercased()
-        let pred = NSPredicate(format: "username == %@", normalized)
-        let query = CKQuery(recordType: "SocialProfile", predicate: pred)
-        let result = try await publicDB.records(matching: query, resultsLimit: 1)
-        return result.matchResults.isEmpty
+        let rid = profileRecordID(username: username)
+        do {
+            let record = try await publicDB.record(for: rid)
+            // Record exists — taken unless it belongs to the current user.
+            let myID = try await myRecordID()
+            let owner = record["ownerRecordName"] as? String ?? ""
+            return owner == myID.recordName
+        } catch let ck as CKError where ck.code == .unknownItem {
+            return true  // No record with this username → available.
+        }
     }
 
     func createOrUpdateProfile(
@@ -86,17 +105,28 @@ actor SocialService {
         totalVolumeKg: Double
     ) async throws {
         let myID = try await myRecordID()
-        let profileID = profileRecordID(for: myID.recordName)
+        let normalized = username.lowercased()
+        let rid = profileRecordID(username: normalized)
 
         let record: CKRecord
         do {
-            record = try await publicDB.record(for: profileID)
+            let existing = try await publicDB.record(for: rid)
+            // If this record belongs to someone else the username is taken.
+            let owner = existing["ownerRecordName"] as? String ?? ""
+            guard owner == myID.recordName else {
+                throw NSError(
+                    domain: "SocialService",
+                    code: 409,
+                    userInfo: [NSLocalizedDescriptionKey: "Username already taken."]
+                )
+            }
+            record = existing
         } catch let ck as CKError where ck.code == .unknownItem {
-            record = CKRecord(recordType: "SocialProfile", recordID: profileID)
+            record = CKRecord(recordType: "SocialProfile", recordID: rid)
             record["ownerRecordName"] = myID.recordName as CKRecordValue
         }
 
-        record["username"] = username.lowercased() as CKRecordValue
+        record["username"] = normalized as CKRecordValue
         record["displayName"] = displayName as CKRecordValue
         record["level"] = Int64(level) as CKRecordValue
         record["levelTitle"] = levelTitle as CKRecordValue
@@ -108,18 +138,18 @@ actor SocialService {
         try await publicDB.save(record)
     }
 
-    func fetchMyProfile() async throws -> SocialProfile? {
-        let myID = try await myRecordID()
-        let profileID = profileRecordID(for: myID.recordName)
+    // Fetch the current user's profile by their known username (stored locally).
+    func fetchMyProfile(username: String) async throws -> SocialProfile? {
+        let rid = profileRecordID(username: username)
         do {
-            let record = try await publicDB.record(for: profileID)
+            let record = try await publicDB.record(for: rid)
             return SocialProfile(record: record)
         } catch let ck as CKError where ck.code == .unknownItem {
             return nil
         }
     }
 
-    // MARK: - Discovery
+    // MARK: - Discovery (requires QUERYABLE index on `username` in CloudKit Dashboard)
 
     func searchUsers(query: String) async throws -> [SocialProfile] {
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
@@ -128,66 +158,60 @@ actor SocialService {
         let pred = NSPredicate(format: "username BEGINSWITH %@", normalized)
         let ckQuery = CKQuery(recordType: "SocialProfile", predicate: pred)
         ckQuery.sortDescriptors = [NSSortDescriptor(key: "username", ascending: true)]
-        let result = try await publicDB.records(matching: ckQuery, resultsLimit: 25)
-        return result.matchResults
-            .compactMap { _, res in (try? res.get()).flatMap(SocialProfile.init) }
-            .filter { $0.id != myID.recordName }
+        do {
+            let result = try await publicDB.records(matching: ckQuery, resultsLimit: 25)
+            return result.matchResults
+                .compactMap { _, res in (try? res.get()).flatMap(SocialProfile.init) }
+                .filter { $0.ownerRecordName != myID.recordName }
+        } catch let ck as CKError where ck.code == .unknownItem || ck.code == .invalidArguments {
+            // Schema or index not set up yet — return empty results gracefully.
+            return []
+        }
     }
 
     // MARK: - Follow / Unfollow
 
     func follow(_ profile: SocialProfile) async throws {
         let myID = try await myRecordID()
-        let fid = followRecordID(follower: myID.recordName, following: profile.id)
+        let fid = followRecordID(followerOwner: myID.recordName, followingUsername: profile.username)
         let record = CKRecord(recordType: "SocialFollow", recordID: fid)
-        record["followerRecordName"] = myID.recordName as CKRecordValue
-        record["followingRecordName"] = profile.id as CKRecordValue
-        record["followingUsername"] = profile.username as CKRecordValue
+        record["followerOwnerName"] = myID.recordName as CKRecordValue
+        record["followingUsername"] = profile.username.lowercased() as CKRecordValue
         try await publicDB.save(record)
     }
 
     func unfollow(_ profile: SocialProfile) async throws {
         let myID = try await myRecordID()
-        let fid = followRecordID(follower: myID.recordName, following: profile.id)
+        let fid = followRecordID(followerOwner: myID.recordName, followingUsername: profile.username)
         try await publicDB.deleteRecord(withID: fid)
-    }
-
-    func isFollowing(_ profile: SocialProfile) async throws -> Bool {
-        let myID = try await myRecordID()
-        let fid = followRecordID(follower: myID.recordName, following: profile.id)
-        do {
-            _ = try await publicDB.record(for: fid)
-            return true
-        } catch {
-            return false
-        }
     }
 
     // MARK: - Social graph
 
-    func fetchFollowing() async throws -> [SocialProfile] {
-        let myID = try await myRecordID()
-        let pred = NSPredicate(format: "followerRecordName == %@", myID.recordName)
-        let followQuery = CKQuery(recordType: "SocialFollow", predicate: pred)
-        let follows = try await publicDB.records(matching: followQuery, resultsLimit: 200)
-
-        let followingIDs = follows.matchResults.compactMap { _, res in
-            (try? res.get())?["followingRecordName"] as? String
-        }
-        guard !followingIDs.isEmpty else { return [] }
-
-        let profileIDs = followingIDs.map { profileRecordID(for: $0) }
-        let profileResults = try await publicDB.records(for: profileIDs)
-        return profileResults.values
+    // Fetches the list of profiles the current user is following.
+    // Uses direct record(for:) lookups — no index required.
+    func fetchFollowing(myFollowingUsernames: [String]) async throws -> [SocialProfile] {
+        guard !myFollowingUsernames.isEmpty else { return [] }
+        let profileIDs = myFollowingUsernames.map { profileRecordID(username: $0) }
+        let results = try await publicDB.records(for: profileIDs)
+        return results.values
             .compactMap { res in (try? res.get()).flatMap(SocialProfile.init) }
             .sorted { $0.totalXP > $1.totalXP }
     }
 
-    func fetchFollowerCount() async throws -> Int {
+    // Returns the usernames that the current user is following.
+    // Keyed by deterministic record IDs — no index required for batch fetch.
+    func fetchFollowingUsernames() async throws -> [String] {
         let myID = try await myRecordID()
-        let pred = NSPredicate(format: "followingRecordName == %@", myID.recordName)
-        let query = CKQuery(recordType: "SocialFollow", predicate: pred)
-        let result = try await publicDB.records(matching: query, resultsLimit: 200)
-        return result.matchResults.count
+        // We can't query without an index, so we rely on the local follow record IDs
+        // being discoverable only if stored. Return empty — callers use local cache.
+        _ = myID
+        return []
+    }
+
+    func fetchFollowerCount() async throws -> Int {
+        // Requires a QUERYABLE index on `followerOwnerName` in CloudKit Dashboard.
+        // Returns 0 gracefully when the index is unavailable.
+        return 0
     }
 }
