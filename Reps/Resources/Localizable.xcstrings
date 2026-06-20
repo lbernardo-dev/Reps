@@ -93088,6 +93088,22 @@
         }
       }
     },
+    "social_clear_searches": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar"
+          }
+        }
+      }
+    },
     "social_connect_onboarding": {
       "localizations": {
         "en": {
@@ -93424,6 +93440,22 @@
         }
       }
     },
+    "social_recent_searches": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent searches"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Búsquedas recientes"
+          }
+        }
+      }
+    },
     "social_search_placeholder": {
       "localizations": {
         "en": {
@@ -93500,6 +93532,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Racha"
+          }
+        }
+      }
+    },
+    "social_suggested": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggested Athletes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atletas sugeridos"
           }
         }
       }

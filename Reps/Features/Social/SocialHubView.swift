@@ -21,8 +21,13 @@ struct SocialHubView: View {
     @State private var isLoadingFeed = false
     @State private var likedPostIDs: Set<String> = []
     @State private var likingInProgress: Set<String> = []
+    @State private var suggestedProfiles: [SocialProfile] = []
+    @State private var isLoadingSuggested = false
+    @State private var recentSearches: [String] = []
 
     private enum Tab { case feed, friends, discover }
+
+    private static let recentSearchesKey = "social_recent_searches"
 
     // MARK: - Body
 
@@ -53,7 +58,9 @@ struct SocialHubView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task { await loadFollowing() }
         .task { await loadFeed() }
+        .task { await loadSuggested() }
         .onAppear {
+            recentSearches = (UserDefaults.standard.stringArray(forKey: Self.recentSearchesKey) ?? [])
             if let pending = store.pendingSocialSearch {
                 store.pendingSocialSearch = nil
                 searchText = pending
@@ -489,14 +496,16 @@ struct SocialHubView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(PulseTheme.secondaryText)
                     .font(.subheadline)
-                TextField(localizedString("social_search_placeholder"),
-                          text: $searchText)
+                TextField(localizedString("social_search_placeholder"), text: $searchText)
                     .font(.subheadline)
                     .autocorrectionDisabled()
                     .autocapitalization(.none)
-                    .onChange(of: searchText) { _, _ in scheduleSearch() }
+                    .onChange(of: searchText) { _, new in
+                        scheduleSearch()
+                        if new.isEmpty { searchResults = [] }
+                    }
                 if !searchText.isEmpty {
-                    Button { searchText = "" } label: {
+                    Button { searchText = ""; searchResults = [] } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(PulseTheme.secondaryText)
                     }.buttonStyle(.plain)
@@ -510,13 +519,22 @@ struct SocialHubView: View {
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
             if searchText.isEmpty {
-                PulseCard {
-                    PulseEmptyState(
-                        title: "social_find_friends",
-                        message: "social_find_friends_message",
-                        systemImage: "magnifyingglass"
-                    )
-                    .padding(.vertical, 8)
+                // Recent searches
+                if !recentSearches.isEmpty {
+                    recentSearchesSection
+                }
+                // Suggested athletes
+                if !suggestedProfiles.isEmpty {
+                    suggestedSection
+                } else if recentSearches.isEmpty {
+                    PulseCard {
+                        PulseEmptyState(
+                            title: "social_find_friends",
+                            message: "social_find_friends_message",
+                            systemImage: "magnifyingglass"
+                        )
+                        .padding(.vertical, 8)
+                    }
                 }
             } else if searchResults.isEmpty && !isSearching {
                 PulseCard {
@@ -531,9 +549,89 @@ struct SocialHubView: View {
                 PulseCard {
                     VStack(spacing: 0) {
                         ForEach(Array(searchResults.enumerated()), id: \.element.id) { idx, profile in
-                            searchResultRow(profile)
+                            Button {
+                                saveRecentSearch(profile.username)
+                            } label: {
+                                searchResultRow(profile)
+                            }
+                            .buttonStyle(.plain)
                             if idx < searchResults.count - 1 { Divider() }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Recent Searches
+
+    private var recentSearchesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(localizedString("social_recent_searches"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Spacer()
+                Button(localizedString("social_clear_searches")) {
+                    recentSearches = []
+                    UserDefaults.standard.removeObject(forKey: Self.recentSearchesKey)
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.primary)
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 4)
+
+            PulseCard {
+                VStack(spacing: 0) {
+                    ForEach(Array(recentSearches.enumerated()), id: \.element) { idx, q in
+                        HStack(spacing: 10) {
+                            Image(systemName: "clock")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .frame(width: 18)
+                            Button {
+                                searchText = q
+                                scheduleSearch()
+                            } label: {
+                                Text("@\(q)")
+                                    .font(.subheadline)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                            Button {
+                                recentSearches.removeAll { $0 == q }
+                                UserDefaults.standard.set(recentSearches, forKey: Self.recentSearchesKey)
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText.opacity(0.6))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 11)
+                        if idx < recentSearches.count - 1 { Divider().padding(.leading, 42) }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Suggested Athletes
+
+    private var suggestedSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localizedString("social_suggested"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .padding(.horizontal, 4)
+
+            PulseCard {
+                VStack(spacing: 0) {
+                    ForEach(Array(suggestedProfiles.enumerated()), id: \.element.id) { idx, profile in
+                        searchResultRow(profile)
+                        if idx < suggestedProfiles.count - 1 { Divider() }
                     }
                 }
             }
@@ -708,6 +806,28 @@ struct SocialHubView: View {
     }
 
     // MARK: - Data loading
+
+    private func loadSuggested() async {
+        isLoadingSuggested = true
+        do {
+            let profiles = try await SocialService.shared.fetchSuggested(
+                excluding: store.userProfile.socialFollowingUsernames
+            )
+            suggestedProfiles = profiles
+        } catch {
+            // Silent degrade — section stays hidden
+        }
+        isLoadingSuggested = false
+    }
+
+    private func saveRecentSearch(_ username: String) {
+        let q = username.lowercased()
+        var searches = recentSearches.filter { $0 != q }
+        searches.insert(q, at: 0)
+        if searches.count > 5 { searches = Array(searches.prefix(5)) }
+        recentSearches = searches
+        UserDefaults.standard.set(searches, forKey: Self.recentSearchesKey)
+    }
 
     private func loadFeed() async {
         guard !store.userProfile.socialFollowingUsernames.isEmpty else { return }

@@ -191,6 +191,26 @@ actor SocialService {
         }
     }
 
+    // MARK: - Suggested Athletes
+    //
+    // Featured seed usernames baked into the app — fetched via direct record(for:)
+    // lookups, no index required. Add usernames here as the community grows.
+    static let featuredUsernames: [String] = [
+        "repsfitness", "repsofficial"
+    ]
+
+    // Returns featured profiles that are not already followed by the current user.
+    func fetchSuggested(excluding followingUsernames: [String]) async throws -> [SocialProfile] {
+        let excluded = Set(followingUsernames.map { $0.lowercased() })
+        let candidates = Self.featuredUsernames.filter { !excluded.contains($0) }
+        guard !candidates.isEmpty else { return [] }
+        let ids = candidates.map { profileRecordID(username: $0) }
+        let results = try await publicDB.records(for: ids)
+        return results.values
+            .compactMap { res in (try? res.get()).flatMap(SocialProfile.init) }
+            .sorted { $0.totalXP > $1.totalXP }
+    }
+
     // MARK: - Discovery (requires QUERYABLE index on `username` in CloudKit Dashboard)
 
     func searchUsers(query: String) async throws -> [SocialProfile] {
