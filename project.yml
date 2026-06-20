@@ -16,7 +16,7 @@ settings:
     LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION: "YES"
   configs:
     Debug:
-      DEBUG_INFORMATION_FORMAT: dwarf
+      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
     Release:
       DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 packages:
