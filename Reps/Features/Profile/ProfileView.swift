@@ -47,6 +47,19 @@ struct ProfileView: View {
                         .buttonStyle(.plain)
 
                         NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(PulseTheme.primary)
+                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                .background(PulseTheme.primary.opacity(0.10))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(localizedString("settings"))
+
+                        NavigationLink {
                             ProfileDetailView()
                         } label: {
                             let avatarData = store.userProfile.avatarImageData
