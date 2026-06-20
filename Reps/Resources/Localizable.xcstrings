@@ -10736,7 +10736,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aceptar"
+            "value": "Accept"
           }
         },
         "es": {
@@ -11685,18 +11685,17 @@
       }
     },
     "activate": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "activate"
+            "value": "Activate"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "activate"
+            "value": "Activar"
           }
         }
       }
@@ -12320,7 +12319,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Actual"
+            "value": "Current"
           }
         },
         "es": {
@@ -17034,7 +17033,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avanzado"
+            "value": "Advanced"
           }
         },
         "es": {
@@ -19245,7 +19244,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Barra"
+            "value": "Bar"
           }
         },
         "es": {
@@ -20877,7 +20876,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bienestar"
+            "value": "Wellness"
           }
         },
         "es": {
@@ -23955,7 +23954,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Caminata"
+            "value": "Walk"
           }
         },
         "es": {
@@ -24854,7 +24853,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Carrera"
+            "value": "Run"
           }
         },
         "es": {
@@ -26319,7 +26318,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cinta pausada"
+            "value": "Treadmill paused"
           }
         },
         "es": {
@@ -28638,7 +28637,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Contexto"
+            "value": "Context"
           }
         },
         "es": {
@@ -31257,7 +31256,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Datos personales"
+            "value": "Personal data"
           }
         },
         "es": {
@@ -32379,7 +32378,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desarrollo"
+            "value": "Development"
           }
         },
         "es": {
@@ -38606,7 +38605,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Equipo"
+            "value": "Equipment"
           }
         },
         "es": {
@@ -38659,7 +38658,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Equipo disponible"
+            "value": "Available equipment"
           }
         },
         "es": {
@@ -41008,7 +41007,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Experiencia"
+            "value": "Experience"
           }
         },
         "es": {
@@ -44229,7 +44228,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fuerza"
+            "value": "Strength"
           }
         },
         "es": {
@@ -45847,7 +45846,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "% grasa"
+            "value": "% fat"
           }
         },
         "es": {
@@ -50867,7 +50866,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Incremento"
+            "value": "Increment"
           }
         },
         "es": {
@@ -51775,7 +51774,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Intensidad"
+            "value": "Intensity"
           }
         },
         "es": {
@@ -56174,7 +56173,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lugar"
+            "value": "Location"
           }
         },
         "es": {
@@ -56925,7 +56924,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mantener actividad"
+            "value": "Maintain activity"
           }
         },
         "es": {
@@ -57778,7 +57777,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Masculino"
+            "value": "Male"
           }
         },
         "es": {
@@ -58275,7 +58274,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Medidas"
+            "value": "Measurements"
           }
         },
         "es": {
@@ -58634,7 +58633,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Meta"
+            "value": "Goal"
           }
         },
         "es": {
@@ -59742,7 +59741,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Molestias o lesiones"
+            "value": "Discomfort or injuries"
           }
         },
         "es": {
@@ -64921,7 +64920,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Origen"
+            "value": "Source"
           }
         },
         "es": {
@@ -65056,7 +65055,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Otro"
+            "value": "Other"
           }
         },
         "es": {
@@ -69656,6 +69655,86 @@
         }
       }
     },
+    "community": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Community"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comunidad"
+          }
+        }
+      }
+    },
+    "community_active": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profile active · Compare with friends"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil activo · Compara con amigos"
+          }
+        }
+      }
+    },
+    "connect_with_friends": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect with friends"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecta con amigos"
+          }
+        }
+      }
+    },
+    "compare_and_compete": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compare progress and compete"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compara progreso y compite"
+          }
+        }
+      }
+    },
+    "friends_2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friends"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amigos"
+          }
+        }
+      }
+    },
     "compare_strength": {
       "localizations": {
         "en": {
@@ -70766,7 +70845,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Preferente"
+            "value": "Preferred"
           }
         },
         "es": {
@@ -71533,7 +71612,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Principiante"
+            "value": "Beginner"
           }
         },
         "es": {
@@ -75553,7 +75632,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Real"
+            "value": "Actual"
           }
         },
         "es": {
@@ -75621,7 +75700,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reanudar"
+            "value": "Resume"
           }
         },
         "es": {
@@ -77082,7 +77161,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Registro"
+            "value": "Log"
           }
         },
         "es": {
@@ -77200,7 +77279,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rehacer"
+            "value": "Redo"
           }
         },
         "es": {
@@ -77287,7 +77366,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reintentar"
+            "value": "Retry"
           }
         },
         "es": {
@@ -81247,7 +81326,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ruta pausada"
+            "value": "Route paused"
           }
         },
         "es": {
@@ -82797,7 +82876,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seg %d"
+            "value": "Sec %d"
           }
         },
         "es": {
@@ -84908,7 +84987,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sexo"
+            "value": "Sex"
           }
         },
         "es": {
@@ -85621,7 +85700,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "SIGUIENTE"
+            "value": "NEXT"
           }
         },
         "es": {
@@ -91476,7 +91555,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tarjeta"
+            "value": "Card"
           }
         },
         "es": {
@@ -93204,7 +93283,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todos"
+            "value": "All"
           }
         },
         "es": {
@@ -95394,7 +95473,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unidad"
+            "value": "Unit"
           }
         },
         "es": {
@@ -96416,7 +96495,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Valor QR/barcode"
+            "value": "QR/barcode value"
           }
         },
         "es": {
@@ -97331,7 +97410,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Visita"
+            "value": "Visit"
           }
         },
         "es": {
