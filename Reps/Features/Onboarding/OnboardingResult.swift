@@ -50,6 +50,56 @@ enum OnboardingPlanBuilder {
         )
     }
 
+    /// Generates a single recommended workout day calibrated to the user's
+    /// current recovery level and the muscle groups most in need of stimulus.
+    /// Battery ≥80 → full exercise count; 55-79 → normal; <55 → reduced load.
+    static func makeRecommendedDay(
+        profile: UserProfile,
+        bodyMetric: BodyMetric,
+        batteryLevel: Int,
+        undertrainedMuscles: [String]
+    ) -> WorkoutDay {
+        let rawCount: Int
+        switch batteryLevel {
+        case 80...: rawCount = 5
+        case 55..<80: rawCount = 4
+        default: rawCount = 3
+        }
+        let exerciseCount = rawCount
+        let restBetweenExercises = restBetweenExercises(for: profile.experience)
+
+        let focusMuscles = undertrainedMuscles.isEmpty
+            ? ["Chest", "Back", "Legs", "Shoulders", "Core"]
+            : undertrainedMuscles
+
+        let primaryGroup = focusMuscles.first ?? "Full Body"
+        var seen = Set<String>()
+        let allGroups = (focusMuscles + ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Glutes"])
+            .filter { seen.insert($0).inserted }
+
+        let split = TrainingSplit(
+            title: primaryGroup,
+            subtitle: focusMuscles.prefix(3).joined(separator: " · "),
+            groups: allGroups
+        )
+
+        let exItems = exercises(
+            for: split,
+            profile: profile,
+            bodyMetric: bodyMetric,
+            exerciseCount: exerciseCount,
+            focusMuscles: focusMuscles
+        )
+
+        return WorkoutDay(
+            title: localizedString("recommended_workout_title"),
+            subtitle: focusMuscles.prefix(2).joined(separator: " · "),
+            durationMinutes: duration(for: exItems.count, experience: profile.experience),
+            exercises: exItems,
+            restBetweenExercisesSeconds: restBetweenExercises
+        )
+    }
+
     private static func makeDays(
         profile: UserProfile,
         bodyMetric: BodyMetric,

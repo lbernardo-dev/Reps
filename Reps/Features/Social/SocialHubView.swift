@@ -24,8 +24,10 @@ struct SocialHubView: View {
     @State private var recentSearches: [String] = []
     @State private var commentsPost: WorkoutPost? = nil
     @State private var showCreatePost = false
+    @State private var showCreateChallenge = false
+    @State private var selectedChallenge: SocialChallenge? = nil
 
-    private enum Tab { case feed, friends, discover }
+    private enum Tab { case feed, friends, challenges, discover }
 
     private static let recentSearchesKey = "social_recent_searches"
 
@@ -41,6 +43,7 @@ struct SocialHubView: View {
                 switch tab {
                 case .feed: feedSection
                 case .friends: friendsSection
+                case .challenges: challengesSection
                 case .discover: discoverSection
                 }
 
@@ -58,6 +61,13 @@ struct SocialHubView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task { await loadFollowing(); await loadSuggested() }
         .task { if store.feedPosts.isEmpty { await store.loadFeed() } }
+        .task { if store.activeChallenges.isEmpty { await store.loadChallenges() } }
+        .sheet(isPresented: $showCreateChallenge) {
+            CreateChallengeView()
+        }
+        .navigationDestination(item: $selectedChallenge) { ch in
+            ChallengeDetailView(challenge: ch)
+        }
         .onChange(of: tab) { _, newTab in
             if newTab == .feed {
                 store.markFeedAsRead()
@@ -304,6 +314,7 @@ struct SocialHubView: View {
         HStack(spacing: 0) {
             tabButton(title: localizedString("social_feed"), value: .feed)
             tabButton(title: localizedString("friends_2"), value: .friends)
+            tabButton(title: localizedString("challenge_tab"), value: .challenges)
             tabButton(title: localizedString("social_discover"), value: .discover)
         }
         .padding(3)
@@ -573,6 +584,98 @@ struct SocialHubView: View {
                     .foregroundStyle(isMe ? PulseTheme.accent : PulseTheme.primary)
             }
         }
+    }
+
+    // MARK: - Challenges Section
+
+    @ViewBuilder
+    private var challengesSection: some View {
+        HStack {
+            Text("challenge_tab")
+                .font(.headline)
+            Spacer()
+            if store.userProfile.socialUsername != nil {
+                Button {
+                    HapticService.selection()
+                    showCreateChallenge = true
+                } label: {
+                    Label("challenge_create", systemImage: "plus")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(PulseTheme.primary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+
+        if store.isChallengesLoading {
+            PulseCard {
+                HStack { Spacer(); ProgressView().tint(PulseTheme.primary); Spacer() }
+                    .padding(.vertical, 20)
+            }
+        } else if store.activeChallenges.isEmpty {
+            PulseCard {
+                PulseEmptyState(
+                    title: "challenge_empty_title",
+                    message: "challenge_empty_message",
+                    systemImage: "flag"
+                )
+                .padding(.vertical, 8)
+            }
+        } else {
+            ForEach(store.activeChallenges) { ch in
+                challengeRow(ch)
+            }
+        }
+    }
+
+    private func challengeRow(_ ch: SocialChallenge) -> some View {
+        Button {
+            HapticService.selection()
+            selectedChallenge = ch
+        } label: {
+            PulseCard {
+                HStack(spacing: 12) {
+                    Image(systemName: ch.metric == .volumeKg ? "scalemass.fill" : ch.metric == .streak ? "flame.fill" : "medal.fill")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 36, height: 36)
+                        .background(ch.isActive ? PulseTheme.accent : PulseTheme.secondaryText.opacity(0.4))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(ch.title)
+                            .font(.subheadline.weight(.bold))
+                            .lineLimit(1)
+                        Text(LocalizedStringKey("challenge_metric_\(ch.metric.rawValue)"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 3) {
+                        if ch.isActive {
+                            Text("challenge_active")
+                                .font(.caption2.weight(.heavy))
+                                .textCase(.uppercase)
+                                .foregroundStyle(PulseTheme.recovery)
+                        } else {
+                            Text("challenge_ended")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Text(localizedFormat("challenge_participants_count", ch.participantCount))
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder

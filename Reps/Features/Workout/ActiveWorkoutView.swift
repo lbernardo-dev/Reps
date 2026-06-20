@@ -997,9 +997,20 @@ struct ActiveWorkoutView: View {
                                     .font(.subheadline.weight(.bold))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.68)
-                                Text(localizedFormat("sets_fraction_format", completedCount, totalCount))
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(PulseTheme.secondaryText)
+                                HStack(spacing: 6) {
+                                    Text(localizedFormat("sets_fraction_format", completedCount, totalCount))
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                    if draft.workoutExercise.supersetGroup != nil {
+                                        Text("superset_label")
+                                            .font(.caption2.weight(.heavy))
+                                            .textCase(.uppercase)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 1)
+                                            .background(PulseTheme.accent.opacity(0.16), in: Capsule())
+                                            .foregroundStyle(PulseTheme.accent)
+                                    }
+                                }
                             }
                         }
                         .foregroundStyle(.primary)
@@ -1031,8 +1042,18 @@ struct ActiveWorkoutView: View {
                 HapticService.selection()
                 showAddExercise = true
             },
-            onMove: moveDraft
+            onMove: moveDraft,
+            onToggleSuperset: toggleSuperset
         )
+    }
+
+    private func toggleSuperset(at index: Int) {
+        HapticService.selection()
+        withAnimation(.snappy(duration: 0.2)) {
+            WorkoutDraftController.toggleSupersetLink(at: index, in: &store.activeWorkoutDrafts)
+        }
+        syncActiveWorkoutExercises()
+        publishActiveWorkoutStatus()
     }
 
     /// Secondary controls (battery, route, reordering, music/center, feedback)

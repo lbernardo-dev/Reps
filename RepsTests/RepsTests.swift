@@ -728,6 +728,90 @@ struct RepsTests {
         #expect(WorkoutDraftController.removeExercise(at: 0, from: &drafts) == nil)
     }
 
+    @Test func supersetRotationAlternatesAndClassifiesRest() {
+        func draft(_ ex: Exercise) -> ExerciseSessionDraft {
+            ExerciseSessionDraft(
+                workoutExercise: WorkoutExercise(exercise: ex, targetSets: 2, repRange: "8-10", previous: "-", restSeconds: 77),
+                notes: "",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 50, reps: 8, completed: false),
+                    SetLog(setNumber: 2, weightKg: 50, reps: 8, completed: false)
+                ]
+            )
+        }
+        var drafts = [draft(SeedData.bench), draft(SeedData.row)]
+
+        // Linking sets a shared group on both exercises.
+        WorkoutDraftController.toggleSupersetLink(at: 0, in: &drafts)
+        let group = drafts[0].workoutExercise.supersetGroup
+        #expect(group != nil)
+        #expect(drafts[1].workoutExercise.supersetGroup == group)
+
+        func complete(_ idx: Int) -> WorkoutDraftController.CompletionOutcome? {
+            let setIndex = drafts[idx].sets.firstIndex(where: { !$0.completed }) ?? 0
+            return WorkoutDraftController.completeSet(
+                in: &drafts, exerciseIndex: idx, setIndex: setIndex,
+                elapsedSeconds: 0, lastSetCompletedAtSeconds: nil,
+                isPersonalRecord: false, betweenExercisesRestSeconds: 120
+            )
+        }
+
+        // Round 1: A1 → short transition rest, rotation lands on B.
+        #expect(WorkoutDraftController.nextIncompleteSet(in: drafts)?.exerciseIndex == 0)
+        #expect(complete(0)?.restDurationSeconds == WorkoutDraftController.supersetTransitionRestSeconds)
+        #expect(WorkoutDraftController.nextIncompleteSet(in: drafts)?.exerciseIndex == 1)
+
+        // B1 closes the round → full exercise rest, rotation returns to A.
+        #expect(complete(1)?.restDurationSeconds == 77)
+        #expect(WorkoutDraftController.nextIncompleteSet(in: drafts)?.exerciseIndex == 0)
+
+        // Round 2: A2 → short, then B2 finishes the superset.
+        #expect(complete(0)?.restDurationSeconds == WorkoutDraftController.supersetTransitionRestSeconds)
+        #expect(WorkoutDraftController.nextIncompleteSet(in: drafts)?.exerciseIndex == 1)
+        #expect(complete(1)?.didFinishWorkout == true)
+        #expect(WorkoutDraftController.nextIncompleteSet(in: drafts) == nil)
+
+        // Unlinking dissolves the (now two-member) group entirely.
+        WorkoutDraftController.toggleSupersetLink(at: 0, in: &drafts)
+        #expect(drafts.allSatisfy { $0.workoutExercise.supersetGroup == nil })
+    }
+
+    @Test func linearFlowRestUnchangedWithoutSuperset() {
+        var drafts = [
+            ExerciseSessionDraft(
+                workoutExercise: WorkoutExercise(exercise: SeedData.bench, targetSets: 2, repRange: "8-10", previous: "-", restSeconds: 88),
+                notes: "",
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 50, reps: 8, completed: false),
+                    SetLog(setNumber: 2, weightKg: 50, reps: 8, completed: false)
+                ]
+            ),
+            ExerciseSessionDraft(
+                workoutExercise: WorkoutExercise(exercise: SeedData.row, targetSets: 1, repRange: "8-10", previous: "-", restSeconds: 88),
+                notes: "",
+                sets: [SetLog(setNumber: 1, weightKg: 40, reps: 8, completed: false)]
+            )
+        ]
+
+        // Same exercise still has a set → rest in place, no move.
+        let first = WorkoutDraftController.completeSet(
+            in: &drafts, exerciseIndex: 0, setIndex: 0,
+            elapsedSeconds: 0, lastSetCompletedAtSeconds: nil,
+            isPersonalRecord: false, betweenExercisesRestSeconds: 120
+        )
+        #expect(first?.restDurationSeconds == 88)
+        #expect(first?.shouldMoveToNextExercise == false)
+
+        // Exercise finished → move to next with between-exercises rest.
+        let second = WorkoutDraftController.completeSet(
+            in: &drafts, exerciseIndex: 0, setIndex: 1,
+            elapsedSeconds: 0, lastSetCompletedAtSeconds: nil,
+            isPersonalRecord: false, betweenExercisesRestSeconds: 120
+        )
+        #expect(second?.restDurationSeconds == 120)
+        #expect(second?.shouldMoveToNextExercise == true)
+    }
+
     @Test func exerciseHistoryAnalyzerMatchesNormalizedNamesAndDetectsRecords() {
         let older = Date(timeIntervalSince1970: 1_000)
         let newer = Date(timeIntervalSince1970: 2_000)

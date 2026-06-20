@@ -1541,20 +1541,54 @@ enum WorkoutDraftController {
         return didApply
     }
 
+    /// Short transition rest applied when alternating between members of the same
+    /// superset (vs. the exercise's full rest once a round is closed).
+    static let supersetTransitionRestSeconds = 15
+
     static func nextIncompleteSet(in drafts: [ExerciseSessionDraft]) -> PendingSet? {
         for exerciseIndex in drafts.indices {
-            if let setIndex = drafts[exerciseIndex].sets.firstIndex(where: { !$0.completed }) {
-                let draft = drafts[exerciseIndex]
+            guard drafts[exerciseIndex].sets.contains(where: { !$0.completed }) else { continue }
+
+            // When the earliest remaining exercise is part of a superset, alternate
+            // round-robin across the group's members (fewest completed sets first,
+            // ties broken by order) so the user logs A1, B1, A2, B2, …
+            if let group = drafts[exerciseIndex].workoutExercise.supersetGroup,
+               let pick = nextSupersetMemberIndex(group: group, in: drafts),
+               let setIndex = drafts[pick].sets.firstIndex(where: { !$0.completed }) {
                 return PendingSet(
-                    exerciseIndex: exerciseIndex,
+                    exerciseIndex: pick,
                     setIndex: setIndex,
-                    exerciseName: draft.workoutExercise.exercise.name,
-                    setNumber: draft.sets[setIndex].setNumber
+                    exerciseName: drafts[pick].workoutExercise.exercise.name,
+                    setNumber: drafts[pick].sets[setIndex].setNumber
                 )
             }
+
+            let setIndex = drafts[exerciseIndex].sets.firstIndex(where: { !$0.completed }) ?? 0
+            let draft = drafts[exerciseIndex]
+            return PendingSet(
+                exerciseIndex: exerciseIndex,
+                setIndex: setIndex,
+                exerciseName: draft.workoutExercise.exercise.name,
+                setNumber: draft.sets[setIndex].setNumber
+            )
         }
 
         return nil
+    }
+
+    /// Indices of all drafts belonging to a superset group, in session order.
+    static func supersetMemberIndices(_ group: UUID, in drafts: [ExerciseSessionDraft]) -> [Int] {
+        drafts.indices.filter { drafts[$0].workoutExercise.supersetGroup == group }
+    }
+
+    private static func nextSupersetMemberIndex(group: UUID, in drafts: [ExerciseSessionDraft]) -> Int? {
+        supersetMemberIndices(group, in: drafts)
+            .filter { drafts[$0].sets.contains(where: { !$0.completed }) }
+            .min { lhs, rhs in
+                let lc = drafts[lhs].sets.filter(\.completed).count
+                let rc = drafts[rhs].sets.filter(\.completed).count
+                return lc != rc ? lc < rc : lhs < rhs
+            }
     }
 
     @discardableResult
@@ -1579,21 +1613,47 @@ enum WorkoutDraftController {
         drafts[exerciseIndex].sets[setIndex].isPersonalRecord = isPersonalRecord
 
         let completedSet = drafts[exerciseIndex].sets[setIndex]
+        // Carry weight/reps forward to the next set of the same exercise as a
+        // sensible default (used both for the immediate next set and for when a
+        // superset rotation returns to this exercise).
         let nextSetIndex = setIndex + 1
         if drafts[exerciseIndex].sets.indices.contains(nextSetIndex),
            !drafts[exerciseIndex].sets[nextSetIndex].completed {
             drafts[exerciseIndex].sets[nextSetIndex].weightKg = completedSet.weightKg
             drafts[exerciseIndex].sets[nextSetIndex].reps = completedSet.reps
-            return CompletionOutcome(
-                restDurationSeconds: drafts[exerciseIndex].workoutExercise.restSeconds,
-                shouldMoveToNextExercise: false,
-                didFinishWorkout: false
-            )
         }
 
-        let nextExerciseIndex = exerciseIndex + 1
-        if drafts.indices.contains(nextExerciseIndex),
-           drafts[nextExerciseIndex].sets.contains(where: { !$0.completed }) {
+        // Superset rotation: while the group still owes work, alternate to the
+        // next member with a short transition rest; once every member has caught
+        // up to this exercise's completed-set count a round is closed, so apply
+        // the exercise's full rest before the next round begins.
+        if let group = drafts[exerciseIndex].workoutExercise.supersetGroup {
+            let members = supersetMemberIndices(group, in: drafts)
+            let groupHasRemaining = members.contains { drafts[$0].sets.contains { !$0.completed } }
+            if groupHasRemaining {
+                let myCompleted = drafts[exerciseIndex].sets.filter(\.completed).count
+                let roundClosed = members
+                    .filter { $0 != exerciseIndex }
+                    .allSatisfy { drafts[$0].sets.filter(\.completed).count >= myCompleted }
+                return CompletionOutcome(
+                    restDurationSeconds: roundClosed ? drafts[exerciseIndex].workoutExercise.restSeconds : supersetTransitionRestSeconds,
+                    shouldMoveToNextExercise: true,
+                    didFinishWorkout: false
+                )
+            }
+            // Group fully complete — fall through to the linear next-exercise logic.
+        }
+
+        // Linear flow: rest in place if this exercise still has sets, otherwise
+        // move to whatever remains next, or finish.
+        if let next = nextIncompleteSet(in: drafts) {
+            if next.exerciseIndex == exerciseIndex {
+                return CompletionOutcome(
+                    restDurationSeconds: drafts[exerciseIndex].workoutExercise.restSeconds,
+                    shouldMoveToNextExercise: false,
+                    didFinishWorkout: false
+                )
+            }
             return CompletionOutcome(
                 restDurationSeconds: betweenExercisesRestSeconds,
                 shouldMoveToNextExercise: true,
@@ -1606,6 +1666,53 @@ enum WorkoutDraftController {
             shouldMoveToNextExercise: false,
             didFinishWorkout: true
         )
+    }
+
+    /// Links the exercise at `index` with the one immediately after it into a
+    /// superset (or splits them apart if already linked). Adjacent linked
+    /// exercises form a single group; singletons are cleared.
+    static func toggleSupersetLink(at index: Int, in drafts: inout [ExerciseSessionDraft]) {
+        guard drafts.indices.contains(index), drafts.indices.contains(index + 1) else { return }
+
+        let groupA = drafts[index].workoutExercise.supersetGroup
+        let groupB = drafts[index + 1].workoutExercise.supersetGroup
+        let alreadyLinked = groupA != nil && groupA == groupB
+
+        if alreadyLinked, let group = groupA {
+            // Split the run between index and index+1: everything from index+1
+            // onward sharing the group moves to a fresh group.
+            let newGroup = UUID()
+            for i in (index + 1)..<drafts.count {
+                guard drafts[i].workoutExercise.supersetGroup == group else { break }
+                drafts[i].workoutExercise.supersetGroup = newGroup
+            }
+        } else {
+            // Merge index and index+1 (and any run already attached to index+1).
+            let target = groupA ?? UUID()
+            drafts[index].workoutExercise.supersetGroup = target
+            if let groupB {
+                for i in drafts.indices where drafts[i].workoutExercise.supersetGroup == groupB {
+                    drafts[i].workoutExercise.supersetGroup = target
+                }
+            } else {
+                drafts[index + 1].workoutExercise.supersetGroup = target
+            }
+        }
+
+        normalizeSupersetSingletons(in: &drafts)
+    }
+
+    /// Any superset group left with a single member is dissolved.
+    static func normalizeSupersetSingletons(in drafts: inout [ExerciseSessionDraft]) {
+        var counts: [UUID: Int] = [:]
+        for draft in drafts {
+            if let group = draft.workoutExercise.supersetGroup { counts[group, default: 0] += 1 }
+        }
+        for i in drafts.indices {
+            if let group = drafts[i].workoutExercise.supersetGroup, counts[group] ?? 0 < 2 {
+                drafts[i].workoutExercise.supersetGroup = nil
+            }
+        }
     }
 
     @discardableResult

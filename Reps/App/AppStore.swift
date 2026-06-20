@@ -58,6 +58,8 @@ final class AppStore {
     var hasUnreadBell: Bool = false
     var feedPosts: [WorkoutPost] = []
     var isFeedLoading: Bool = false
+    var activeChallenges: [SocialChallenge] = []
+    var isChallengesLoading: Bool = false
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
     var activeWorkoutStatus: ActiveWorkoutStatus? {
@@ -926,6 +928,36 @@ final class AppStore {
                     volumeKg: volKg,
                     exerciseNames: names
                 )
+            }
+        }
+
+        // Update progress for any active social challenges this user is participating in.
+        if userProfile.socialEnabled, let uname = userProfile.socialUsername {
+            let allSessions = workoutSessions
+            let allPRs = workoutSessions.flatMap { s in
+                (s.exerciseLogs ?? []).filter { log in log.sets.contains(where: { $0.isPersonalRecord }) }
+            }
+            let challengesCopy = activeChallenges.filter(\.isActive)
+            Task.detached { [challengesCopy, allSessions, allPRs] in
+                for ch in challengesCopy {
+                    let value: Double
+                    let window = allSessions.filter { $0.date >= ch.startDate && $0.date <= ch.endDate }
+                    switch ch.metric {
+                    case .volumeKg:
+                        value = FitnessMetrics.totalVolumeKg(for: window)
+                    case .streak:
+                        value = Double(window.count)
+                    case .prCount:
+                        value = Double(allPRs.filter { log in
+                            window.contains(where: { s in (s.exerciseLogs ?? []).contains(where: { $0.exercise.id == log.exercise.id }) })
+                        }.count)
+                    }
+                    await SocialService.shared.updateMyChallengeProgress(
+                        challengeID: ch.id,
+                        username: uname,
+                        value: value
+                    )
+                }
             }
         }
 
@@ -3696,6 +3728,13 @@ final class AppStore {
             unreadFeedCount = posts.filter { $0.createdAt > lastCheck }.count
         } catch {}
         isFeedLoading = false
+    }
+
+    func loadChallenges() async {
+        guard userProfile.socialEnabled else { return }
+        isChallengesLoading = true
+        activeChallenges = await SocialService.shared.fetchActiveChallenges()
+        isChallengesLoading = false
     }
 
     func checkLeaderboardChanges(following: [SocialProfile]) async {

@@ -6,8 +6,22 @@ struct ActiveExerciseOrderCard: View {
     let language: String
     let onAdd: () -> Void
     let onMove: (Int, Int) -> Void
+    let onToggleSuperset: (Int) -> Void
+
+    /// Stable color per superset group, assigned by first appearance.
+    private var groupColors: [UUID: Color] {
+        let palette: [Color] = [.orange, .purple, .teal, .pink, .blue, .green]
+        var map: [UUID: Color] = [:]
+        for draft in drafts {
+            guard let group = draft.workoutExercise.supersetGroup, map[group] == nil else { continue }
+            map[group] = palette[map.count % palette.count]
+        }
+        return map
+    }
 
     var body: some View {
+        let colors = groupColors
+
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
@@ -30,18 +44,31 @@ struct ActiveExerciseOrderCard: View {
                 } else {
                     VStack(spacing: 8) {
                         ForEach(Array(drafts.enumerated()), id: \.element.workoutExercise.id) { index, draft in
+                            let group = draft.workoutExercise.supersetGroup
+                            let prevGroup = index > 0 ? drafts[index - 1].workoutExercise.supersetGroup : nil
+                            let nextGroup = index < drafts.count - 1 ? drafts[index + 1].workoutExercise.supersetGroup : nil
+
                             ActiveExerciseOrderRow(
                                 index: index,
                                 draft: draft,
                                 isSelected: selectedExerciseIndex == index,
                                 isFirst: index == 0,
                                 isLast: index == drafts.count - 1,
+                                groupColor: group.flatMap { colors[$0] },
+                                isFirstInGroup: group != nil && group != prevGroup,
+                                isLinkedToNext: group != nil && group == nextGroup,
                                 language: language,
-                                onMove: onMove
+                                onMove: onMove,
+                                onToggleSuperset: onToggleSuperset
                             )
                         }
                     }
                     .buttonStyle(.plain)
+
+                    Text("superset_hint")
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -54,11 +81,21 @@ private struct ActiveExerciseOrderRow: View {
     let isSelected: Bool
     let isFirst: Bool
     let isLast: Bool
+    let groupColor: Color?
+    let isFirstInGroup: Bool
+    let isLinkedToNext: Bool
     let language: String
     let onMove: (Int, Int) -> Void
+    let onToggleSuperset: (Int) -> Void
 
     var body: some View {
         HStack(spacing: 10) {
+            if let groupColor {
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(groupColor)
+                    .frame(width: 3, height: 28)
+            }
+
             Text("\(index + 1)")
                 .font(.caption.weight(.black).monospacedDigit())
                 .foregroundStyle(PulseTheme.primary)
@@ -66,12 +103,32 @@ private struct ActiveExerciseOrderRow: View {
                 .background(PulseTheme.primary.opacity(0.12))
                 .clipShape(Circle())
 
-            Text(RepsText.exerciseName(draft.workoutExercise.exercise.name, language: language))
-                .font(.subheadline.weight(.bold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(RepsText.exerciseName(draft.workoutExercise.exercise.name, language: language))
+                    .font(.subheadline.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                if isFirstInGroup, let groupColor {
+                    Text("superset_label")
+                        .font(.caption2.weight(.heavy))
+                        .foregroundStyle(groupColor)
+                        .textCase(.uppercase)
+                }
+            }
 
             Spacer()
+
+            if !isLast {
+                Button {
+                    onToggleSuperset(index)
+                } label: {
+                    Image(systemName: isLinkedToNext ? "link.circle.fill" : "link")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isLinkedToNext ? (groupColor ?? PulseTheme.accent) : PulseTheme.secondaryText)
+                        .frame(width: 32, height: 32)
+                }
+                .accessibilityLabel(Text(isLinkedToNext ? "superset_remove" : "superset_create"))
+            }
 
             Button {
                 onMove(index, index - 1)
@@ -91,7 +148,7 @@ private struct ActiveExerciseOrderRow: View {
         }
         .foregroundStyle(.primary)
         .padding(.horizontal, 10)
-        .frame(height: 44)
+        .frame(height: 48)
         .background(isSelected ? PulseTheme.accentMuted : PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }

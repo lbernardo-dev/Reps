@@ -675,3 +675,187 @@ actor SocialService {
         _ = try? await publicDB.save(likeSub)
     }
 }
+
+// MARK: - Challenge Models
+
+struct SocialChallenge: Identifiable, Equatable, Hashable, Sendable {
+    enum Metric: String, Codable, CaseIterable, Identifiable, Sendable {
+        case volumeKg  = "volume"
+        case streak    = "streak"
+        case prCount   = "prCount"
+        var id: String { rawValue }
+    }
+
+    let id: String            // CKRecord recordName
+    var creatorUsername: String
+    var creatorDisplayName: String
+    var title: String
+    var description: String
+    var metric: Metric
+    var startDate: Date
+    var endDate: Date
+    var participantCount: Int
+    var createdAt: Date
+
+    var isActive: Bool { Date.now >= startDate && Date.now <= endDate }
+
+    init?(record: CKRecord) {
+        guard
+            let creator = record["creatorUsername"] as? String,
+            let title   = record["title"] as? String,
+            let start   = record["startDate"] as? Date,
+            let end     = record["endDate"] as? Date
+        else { return nil }
+        self.id                 = record.recordID.recordName
+        self.creatorUsername    = creator
+        self.creatorDisplayName = record["creatorDisplayName"] as? String ?? creator
+        self.title              = title
+        self.description        = record["description"] as? String ?? ""
+        self.metric             = Metric(rawValue: record["metric"] as? String ?? "") ?? .volumeKg
+        self.startDate          = start
+        self.endDate            = end
+        self.participantCount   = (record["participantCount"] as? Int64).map(Int.init) ?? 0
+        self.createdAt          = record.creationDate ?? .now
+    }
+}
+
+struct ChallengeParticipation: Identifiable, Equatable, Hashable, Sendable {
+    let id: String            // CKRecord recordName
+    var challengeID: String
+    var participantUsername: String
+    var participantDisplayName: String
+    var currentValue: Double
+    var joinedAt: Date
+
+    init?(record: CKRecord) {
+        guard
+            let cid   = record["challengeID"] as? String,
+            let pname = record["participantUsername"] as? String
+        else { return nil }
+        self.id                     = record.recordID.recordName
+        self.challengeID            = cid
+        self.participantUsername    = pname
+        self.participantDisplayName = record["participantDisplayName"] as? String ?? pname
+        self.currentValue           = record["currentValue"] as? Double ?? 0
+        self.joinedAt               = record.creationDate ?? .now
+    }
+}
+
+// MARK: - SocialService Challenge Extension
+
+extension SocialService {
+
+    // Deterministic record IDs so we never need a CKQuery for our own records.
+    private func challengeRecordID(_ challengeUUID: String) -> CKRecord.ID {
+        CKRecord.ID(recordName: "Challenge_\(challengeUUID)")
+    }
+
+    private func participationRecordID(challengeID: String, username: String) -> CKRecord.ID {
+        CKRecord.ID(recordName: "ChallengeParticipation_\(challengeID)_\(username.lowercased())")
+    }
+
+    // MARK: Challenge CRUD
+
+    @discardableResult
+    func createChallenge(
+        title: String,
+        description: String,
+        metric: SocialChallenge.Metric,
+        startDate: Date,
+        endDate: Date,
+        creatorUsername: String,
+        creatorDisplayName: String
+    ) async throws -> SocialChallenge {
+        let uuid = UUID().uuidString
+        let rid = challengeRecordID(uuid)
+        let record = CKRecord(recordType: "Challenge", recordID: rid)
+        record["title"]                = title as CKRecordValue
+        record["description"]          = description as CKRecordValue
+        record["metric"]               = metric.rawValue as CKRecordValue
+        record["startDate"]            = startDate as CKRecordValue
+        record["endDate"]              = endDate as CKRecordValue
+        record["creatorUsername"]      = creatorUsername.lowercased() as CKRecordValue
+        record["creatorDisplayName"]   = creatorDisplayName as CKRecordValue
+        record["participantCount"]     = Int64(0) as CKRecordValue
+        try await publicDB.save(record)
+        guard let ch = SocialChallenge(record: record) else {
+            throw NSError(domain: "SocialService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Bad challenge record"])
+        }
+        return ch
+    }
+
+    /// Fetches currently active + recent challenges.
+    /// Requires QUERYABLE index on `endDate` in CloudKit Dashboard.
+    /// Falls back to empty list when index not yet provisioned.
+    func fetchActiveChallenges() async -> [SocialChallenge] {
+        // Filter server-side for challenges that ended in the last 30 days or haven't ended.
+        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: .now) ?? .now
+        let pred = NSPredicate(format: "endDate >= %@", cutoff as CVarArg)
+        let query = CKQuery(recordType: "Challenge", predicate: pred)
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        do {
+            let result = try await publicDB.records(matching: query, resultsLimit: 50)
+            return result.matchResults
+                .compactMap { _, res in (try? res.get()).flatMap(SocialChallenge.init) }
+                .sorted { $0.createdAt > $1.createdAt }
+        } catch {
+            return []
+        }
+    }
+
+    /// Join a challenge. Idempotent — safe to call even if already joined.
+    func joinChallenge(
+        _ challengeID: String,
+        username: String,
+        displayName: String
+    ) async throws {
+        let rid = participationRecordID(challengeID: challengeID, username: username)
+        // Check if already joined.
+        if (try? await publicDB.record(for: rid)) != nil { return }
+        let record = CKRecord(recordType: "ChallengeParticipation", recordID: rid)
+        record["challengeID"]              = challengeID as CKRecordValue
+        record["participantUsername"]      = username.lowercased() as CKRecordValue
+        record["participantDisplayName"]   = displayName as CKRecordValue
+        record["currentValue"]             = Double(0) as CKRecordValue
+        try await publicDB.save(record)
+
+        // Optimistically bump participantCount on the challenge record.
+        let crid = challengeRecordID(challengeID)
+        if let cr = try? await publicDB.record(for: crid) {
+            let current = (cr["participantCount"] as? Int64) ?? 0
+            cr["participantCount"] = (current + 1) as CKRecordValue
+            _ = try? await publicDB.save(cr)
+        }
+    }
+
+    func updateMyChallengeProgress(challengeID: String, username: String, value: Double) async {
+        let rid = participationRecordID(challengeID: challengeID, username: username)
+        do {
+            let record = try await publicDB.record(for: rid)
+            record["currentValue"] = value as CKRecordValue
+            try await publicDB.save(record)
+        } catch { /* not joined — silently ignore */ }
+    }
+
+    /// Fetch all participants for a challenge (requires QUERYABLE index on `challengeID`).
+    func fetchParticipants(challengeID: String) async -> [ChallengeParticipation] {
+        let pred = NSPredicate(format: "challengeID == %@", challengeID)
+        let query = CKQuery(recordType: "ChallengeParticipation", predicate: pred)
+        query.sortDescriptors = [NSSortDescriptor(key: "currentValue", ascending: false)]
+        do {
+            let result = try await publicDB.records(matching: query, resultsLimit: 200)
+            return result.matchResults
+                .compactMap { _, res in (try? res.get()).flatMap(ChallengeParticipation.init) }
+                .sorted { $0.currentValue > $1.currentValue }
+        } catch {
+            return []
+        }
+    }
+
+    /// Fetch the current user's participation record for a single challenge.
+    func myParticipation(challengeID: String, username: String) async -> ChallengeParticipation? {
+        let rid = participationRecordID(challengeID: challengeID, username: username)
+        guard let record = try? await publicDB.record(for: rid) else { return nil }
+        return ChallengeParticipation(record: record)
+    }
+}

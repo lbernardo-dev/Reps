@@ -11,6 +11,7 @@ struct TodayView: View {
     @State private var workoutToStart: WorkoutDay?
     @State private var showNotifications = false
     @State private var showSocialHub = false
+    @State private var recommendedWorkout: WorkoutDay? = nil
 
     var onSelectTab: ((AppTab) -> Void)? = nil
 
@@ -325,6 +326,18 @@ struct TodayView: View {
                     activationChecklist
                         .stickyHeaderTitle(localizedString("next_action"))
                 }
+                if store.activeWorkoutStatus == nil, let rec = recommendedWorkout {
+                    RecommendedWorkoutCard(
+                        workout: rec,
+                        batteryLevel: batteryStatus.level,
+                        language: store.userProfile.preferredLanguage,
+                        onStart: {
+                            HapticService.impact(.medium)
+                            workoutToStart = rec
+                        }
+                    )
+                    .stickyHeaderTitle(localizedString("recommended_workout_title"))
+                }
                 if !focusProgressionRecommendations.isEmpty {
                     ProgressionRecommendationCard(
                         recommendations: focusProgressionRecommendations,
@@ -375,7 +388,20 @@ struct TodayView: View {
                 FreeWorkoutStartView()
             }
             .toolbar(.hidden, for: .navigationBar)
+            .onAppear { buildRecommendedWorkoutIfNeeded() }
         }
+    }
+
+    private func buildRecommendedWorkoutIfNeeded() {
+        guard recommendedWorkout == nil, store.activeWorkoutStatus == nil else { return }
+        let undertrainedMuscles = competitiveSummary.undertrainedMuscles.map(\.muscleGroup)
+        let bodyMetric = store.bodyMetrics.sorted { $0.date > $1.date }.first ?? BodyMetric(date: .now, weightKg: 70, heightCm: 170, source: .manual)
+        recommendedWorkout = OnboardingPlanBuilder.makeRecommendedDay(
+            profile: store.userProfile,
+            bodyMetric: bodyMetric,
+            batteryLevel: batteryStatus.level,
+            undertrainedMuscles: undertrainedMuscles
+        )
     }
 
     @ViewBuilder

@@ -272,6 +272,10 @@ struct WorkoutExercise: Codable, Identifiable, Hashable {
     var mediaBookmarks: [ExerciseMediaBookmark] = []
     /// When enabled, the next planned session for this exercise gains one extra target set.
     var aimForMoreSetsNextTime: Bool = false
+    /// When set, this exercise belongs to a superset. Exercises sharing the same
+    /// group id are alternated round-robin during the active session (short rest
+    /// between members, full rest once a round is closed). `nil` = standard linear flow.
+    var supersetGroup: UUID? = nil
 }
 
 struct WorkoutDay: Codable, Identifiable, Hashable {
