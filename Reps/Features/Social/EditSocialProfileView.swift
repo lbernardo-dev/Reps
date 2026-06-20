@@ -9,8 +9,6 @@ struct EditSocialProfileView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
 
-    private var isES: Bool { RepsLocalization.language.hasPrefix("es") }
-
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -23,28 +21,28 @@ struct EditSocialProfileView: View {
                 .padding(.bottom, 60)
             }
             .screenBackground()
-            .navigationTitle(isES ? "Editar perfil" : "Edit profile")
+            .navigationTitle(localizedString("social_edit_profile"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(isES ? "Cancelar" : "Cancel") { dismiss() }
+                    Button(localizedString("cancel")) { dismiss() }
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if isSaving {
                         ProgressView().tint(PulseTheme.primary)
                     } else {
-                        Button(isES ? "Guardar" : "Save") { save() }
+                        Button(localizedString("save")) { save() }
                             .font(.headline)
                             .foregroundStyle(PulseTheme.primary)
                     }
                 }
             }
-            .alert(isES ? "Error" : "Error", isPresented: Binding(
+            .alert(localizedString("ok"), isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button("OK") { errorMessage = nil }
+                Button(localizedString("ok")) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }
@@ -87,10 +85,10 @@ struct EditSocialProfileView: View {
                     .foregroundStyle(PulseTheme.secondaryText)
                     .frame(width: 20)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(isES ? "Ubicación" : "Location")
+                    Text(localizedString("location_2"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
-                    TextField(isES ? "Ciudad, país" : "City, country", text: $location)
+                    TextField(localizedString("social_location_placeholder"), text: $location)
                         .font(.subheadline)
                         .autocorrectionDisabled()
                 }
@@ -106,19 +104,15 @@ struct EditSocialProfileView: View {
                     .frame(width: 20)
                     .padding(.top, 2)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(isES ? "Bio" : "Bio")
+                    Text(localizedString("social_bio"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
-                    TextField(
-                        isES ? "Cuéntanos algo sobre ti…" : "Tell us something about you…",
-                        text: $bio,
-                        axis: .vertical
-                    )
-                    .font(.subheadline)
-                    .lineLimit(2...4)
-                    .onChange(of: bio) { _, new in
-                        if new.count > 80 { bio = String(new.prefix(80)) }
-                    }
+                    TextField(localizedString("social_bio_placeholder"), text: $bio, axis: .vertical)
+                        .font(.subheadline)
+                        .lineLimit(2...4)
+                        .onChange(of: bio) { _, new in
+                            if new.count > 80 { bio = String(new.prefix(80)) }
+                        }
                     if !bio.isEmpty {
                         Text("\(bio.count)/80")
                             .font(.caption)

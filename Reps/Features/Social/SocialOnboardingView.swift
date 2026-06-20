@@ -16,7 +16,6 @@ struct SocialOnboardingView: View {
         case idle, checking, available, taken, tooShort
     }
 
-    private var isES: Bool { RepsLocalization.language.hasPrefix("es") }
     private var canContinue: Bool {
         availabilityStatus == .available && !isSaving
     }
@@ -37,24 +36,24 @@ struct SocialOnboardingView: View {
             }
             .screenBackground()
             .navigationBarTitleDisplayMode(.inline)
-            .alert(isES ? "Error" : "Error", isPresented: Binding(
+            .alert(localizedString("ok"), isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button("OK") { errorMessage = nil }
+                Button(localizedString("ok")) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(isES ? "Cancelar" : "Cancel") { dismiss() }
+                    Button(localizedString("cancel")) { dismiss() }
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if isSaving {
                         ProgressView().tint(PulseTheme.primary)
                     } else {
-                        Button(isES ? "Activar" : "Enable") { saveProfile() }
+                        Button(localizedString("activate")) { saveProfile() }
                             .font(.headline)
                             .foregroundStyle(canContinue ? PulseTheme.primary : PulseTheme.secondaryText)
                             .disabled(!canContinue)
@@ -78,12 +77,10 @@ struct SocialOnboardingView: View {
             }
 
             VStack(spacing: 6) {
-                Text(isES ? "Conecta con amigos" : "Connect with friends")
+                Text(localizedString("connect_with_friends"))
                     .font(.system(size: 24, weight: .black, design: .rounded))
 
-                Text(isES
-                    ? "Elige un nombre de usuario para aparecer en la comunidad Reps y comparar tu progreso con amigos."
-                    : "Pick a username to appear in the Reps community and compare your progress with friends.")
+                Text(localizedString("social_onboarding_description"))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .multilineTextAlignment(.center)
@@ -94,7 +91,7 @@ struct SocialOnboardingView: View {
 
     private var usernameSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(isES ? "Nombre de usuario" : "Username")
+            Text(localizedString("social_username_label"))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -104,18 +101,15 @@ struct SocialOnboardingView: View {
                     .font(.title3.weight(.bold))
                     .foregroundStyle(PulseTheme.primary)
 
-                TextField(
-                    isES ? "tunombre" : "yourname",
-                    text: $username
-                )
-                .font(.title3.weight(.semibold))
-                .autocorrectionDisabled()
-                .autocapitalization(.none)
-                .onChange(of: username) { _, new in
-                    let sanitized = new.lowercased().filter { $0.isLetter || $0.isNumber || $0 == "_" }
-                    if sanitized != new { username = sanitized }
-                    scheduleAvailabilityCheck()
-                }
+                TextField(localizedString("social_username_placeholder"), text: $username)
+                    .font(.title3.weight(.semibold))
+                    .autocorrectionDisabled()
+                    .autocapitalization(.none)
+                    .onChange(of: username) { _, new in
+                        let sanitized = new.lowercased().filter { $0.isLetter || $0.isNumber || $0 == "_" }
+                        if sanitized != new { username = sanitized }
+                        scheduleAvailabilityCheck()
+                    }
 
                 statusIcon
             }
@@ -151,22 +145,22 @@ struct SocialOnboardingView: View {
     private var statusLabel: some View {
         switch availabilityStatus {
         case .available:
-            Label(isES ? "Disponible" : "Available", systemImage: "checkmark")
+            Label(localizedString("social_username_available"), systemImage: "checkmark")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.primaryBright)
                 .padding(.horizontal, 4)
         case .taken:
-            Label(isES ? "Nombre ya en uso" : "Username already taken", systemImage: "xmark")
+            Label(localizedString("social_username_taken"), systemImage: "xmark")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.destructive)
                 .padding(.horizontal, 4)
         case .tooShort:
-            Text(isES ? "Mínimo 3 caracteres (letras, números, _)" : "Min 3 chars (letters, numbers, _)")
+            Text(localizedString("social_username_too_short"))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
         default:
-            Text(isES ? "Solo letras, números y _ (3–20 caracteres)" : "Letters, numbers and _ only (3–20 chars)")
+            Text(localizedString("social_username_hint"))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -183,7 +177,7 @@ struct SocialOnboardingView: View {
 
     private var optionalFieldsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(isES ? "Opcional" : "Optional")
+            Text(localizedString("optional"))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
@@ -194,7 +188,7 @@ struct SocialOnboardingView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .frame(width: 20)
-                    TextField(isES ? "Ciudad, país" : "City, country", text: $location)
+                    TextField(localizedString("social_location_placeholder"), text: $location)
                         .font(.subheadline)
                         .autocorrectionDisabled()
                 }
@@ -209,7 +203,7 @@ struct SocialOnboardingView: View {
                         .frame(width: 20)
                         .padding(.top, 2)
                     TextField(
-                        isES ? "Cuéntanos algo sobre ti…" : "Tell us something about you…",
+                        localizedString("social_bio_placeholder"),
                         text: $bio,
                         axis: .vertical
                     )
@@ -240,9 +234,7 @@ struct SocialOnboardingView: View {
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(PulseTheme.primary)
                 .padding(.top, 1)
-            Text(isES
-                ? "Solo se comparten: nivel, XP, sesiones totales, volumen total y racha. Tus entrenamientos siguen siendo privados."
-                : "Only shared: level, XP, total sessions, total volume and streak. Your workouts remain private.")
+            Text(localizedString("social_privacy_note"))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
         }
@@ -275,7 +267,6 @@ struct SocialOnboardingView: View {
                 }
             } catch {
                 // Network or schema error — optimistically allow the user to proceed.
-                // The save will surface a real error if CloudKit rejects it.
                 await MainActor.run {
                     guard username == u else { return }
                     availabilityStatus = .available

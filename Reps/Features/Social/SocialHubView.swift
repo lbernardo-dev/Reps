@@ -19,7 +19,6 @@ struct SocialHubView: View {
     @State private var showEditProfile = false
 
     private enum Tab { case friends, discover }
-    private var isES: Bool { RepsLocalization.language.hasPrefix("es") }
 
     // MARK: - Body
 
@@ -68,19 +67,17 @@ struct SocialHubView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left").font(.system(size: 18, weight: .bold))
-                    Text(isES ? "Perfil" : "Profile").font(.headline)
+                    Text(localizedString("profile")).font(.headline)
                 }
                 .foregroundStyle(PulseTheme.primary)
             }
             .buttonStyle(.plain)
             Spacer()
-            Text(isES ? "Amigos" : "Friends")
+            Text(localizedString("friends_2"))
                 .font(.system(size: 19, weight: .bold, design: .rounded))
             Spacer()
             if let uname = store.userProfile.socialUsername {
-                let inviteText = isES
-                    ? "¡Sígueme en Reps! @\(uname)\nreps://social/@\(uname)"
-                    : "Follow me on Reps! @\(uname)\nreps://social/@\(uname)"
+                let inviteText = localizedFormat("social_invite_text", uname, uname)
                 ShareLink(item: inviteText) {
                     Image(systemName: "person.badge.plus")
                         .font(.system(size: 17, weight: .semibold))
@@ -189,11 +186,11 @@ struct SocialHubView: View {
                 Divider()
 
                 HStack {
-                    statPill(value: "\(following.count)", label: isES ? "siguiendo" : "following")
+                    statPill(value: "\(following.count)", label: localizedString("social_following"))
                     Divider().frame(height: 24)
-                    statPill(value: "\(followerCount)", label: isES ? "seguidores" : "followers")
+                    statPill(value: "\(followerCount)", label: localizedString("social_followers"))
                     Divider().frame(height: 24)
-                    statPill(value: "\(store.workoutSessions.count)", label: isES ? "sesiones" : "workouts")
+                    statPill(value: "\(store.workoutSessions.count)", label: localizedString("social_workouts"))
                 }
             }
         }
@@ -217,8 +214,8 @@ struct SocialHubView: View {
 
     private var tabPicker: some View {
         HStack(spacing: 0) {
-            tabButton(title: isES ? "Amigos" : "Friends", value: .friends)
-            tabButton(title: isES ? "Descubrir" : "Discover", value: .discover)
+            tabButton(title: localizedString("friends_2"), value: .friends)
+            tabButton(title: localizedString("social_discover"), value: .discover)
         }
         .padding(3)
         .background(PulseTheme.grouped)
@@ -261,10 +258,8 @@ struct SocialHubView: View {
         } else if following.isEmpty {
             PulseCard {
                 PulseEmptyState(
-                    title: isES ? "Sin amigos aún" : "No friends yet",
-                    message: isES
-                        ? "Busca a tus amigos en la pestaña Descubrir y síguelos para comparar progreso."
-                        : "Search for your friends in Discover and follow them to compare progress.",
+                    title: "social_no_friends_yet",
+                    message: "social_no_friends_message",
                     systemImage: "person.2"
                 )
                 .padding(.vertical, 8)
@@ -337,7 +332,7 @@ struct SocialHubView: View {
             VStack(alignment: .trailing, spacing: 1) {
                 Text("\(friend.totalXP) XP")
                     .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
-                Text("\(friend.totalSessions) \(isES ? "ses" : "workouts")")
+                Text("\(friend.totalSessions) \(localizedString("social_workouts"))")
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -360,7 +355,7 @@ struct SocialHubView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(PulseTheme.secondaryText)
                     .font(.subheadline)
-                TextField(isES ? "Buscar por @usuario" : "Search by @username",
+                TextField(localizedString("social_search_placeholder"),
                           text: $searchText)
                     .font(.subheadline)
                     .autocorrectionDisabled()
@@ -383,10 +378,8 @@ struct SocialHubView: View {
             if searchText.isEmpty {
                 PulseCard {
                     PulseEmptyState(
-                        title: isES ? "Busca amigos" : "Find friends",
-                        message: isES
-                            ? "Escribe un username para encontrar a tu amigo en la comunidad Reps."
-                            : "Type a username to find your friend in the Reps community.",
+                        title: "social_find_friends",
+                        message: "social_find_friends_message",
                         systemImage: "magnifyingglass"
                     )
                     .padding(.vertical, 8)
@@ -394,10 +387,8 @@ struct SocialHubView: View {
             } else if searchResults.isEmpty && !isSearching {
                 PulseCard {
                     PulseEmptyState(
-                        title: isES ? "Sin resultados" : "No results",
-                        message: isES
-                            ? "No se encontró ningún usuario con ese nombre."
-                            : "No user found with that username.",
+                        title: "social_no_results",
+                        message: "social_no_results_message",
                         systemImage: "person.slash"
                     )
                     .padding(.vertical, 8)
@@ -446,7 +437,7 @@ struct SocialHubView: View {
                     ProgressView().tint(.white).scaleEffect(0.8)
                         .frame(width: 72)
                 } else if alreadyFollowing {
-                    Text(isES ? "Siguiendo" : "Following")
+                    Text(localizedString("social_following_button"))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.primary)
                         .frame(width: 80)
@@ -454,7 +445,7 @@ struct SocialHubView: View {
                         .background(PulseTheme.primary.opacity(0.1))
                         .clipShape(Capsule())
                 } else {
-                    Text(isES ? "Seguir" : "Follow")
+                    Text(localizedString("social_follow"))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.black)
                         .frame(width: 80)
@@ -482,7 +473,7 @@ struct SocialHubView: View {
             totalVolumeKg: store.totalVolumeKg
         )
         let lvl = GamificationEngine.playerLevel(for: xp)
-        let myName = store.userProfile.socialUsername ?? (isES ? "Tú" : "You")
+        let myName = store.userProfile.socialUsername ?? localizedString("social_you")
         let myAhead = xp > friend.totalXP
 
         return PulseCard {
@@ -494,8 +485,8 @@ struct SocialHubView: View {
                         .foregroundStyle(myAhead ? PulseTheme.accent : PulseTheme.secondaryText)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(myAhead
-                             ? (isES ? "VAS GANANDO 🏆" : "YOU'RE AHEAD 🏆")
-                             : (isES ? "ELLOS VAN ADELANTE" : "THEY'RE AHEAD"))
+                             ? localizedString("social_you_ahead")
+                             : localizedString("social_they_ahead"))
                             .font(.system(size: 16, weight: .black, design: .rounded))
                             .foregroundStyle(myAhead ? PulseTheme.accent : PulseTheme.secondaryText)
                         Text("@\(myName) vs @\(friend.username)")
@@ -533,11 +524,11 @@ struct SocialHubView: View {
                         myVal: "\(xp)", theirVal: "\(friend.totalXP)",
                         myWins: xp >= friend.totalXP)
                 compRow(icon: "chart.bar.fill", color: PulseTheme.primary,
-                        title: isES ? "Nivel" : "Level",
+                        title: localizedString("social_level"),
                         myVal: "Lv.\(lvl.level)", theirVal: "Lv.\(friend.level)",
                         myWins: lvl.level >= friend.level)
                 compRow(icon: "dumbbell.fill", color: PulseTheme.primaryBright,
-                        title: isES ? "Sesiones" : "Sessions",
+                        title: localizedString("social_sessions"),
                         myVal: "\(store.workoutSessions.count)", theirVal: "\(friend.totalSessions)",
                         myWins: store.workoutSessions.count >= friend.totalSessions)
                 compRow(icon: "scalemass.fill", color: PulseTheme.accent,
@@ -545,7 +536,7 @@ struct SocialHubView: View {
                         myVal: volumeLabel(store.totalVolumeKg), theirVal: volumeLabel(friend.totalVolumeKg),
                         myWins: store.totalVolumeKg >= friend.totalVolumeKg)
                 compRow(icon: "flame.fill", color: .orange,
-                        title: isES ? "Racha" : "Streak",
+                        title: localizedString("social_streak"),
                         myVal: "\(store.streakDays)d", theirVal: "\(friend.streakDays)d",
                         myWins: store.streakDays >= friend.streakDays)
             }
@@ -582,15 +573,8 @@ struct SocialHubView: View {
         friend: SocialProfile
     ) -> String {
         let ahead = me.xp > friend.totalXP
-        if isES {
-            return ahead
-                ? "🏆 @\(me.name) vs @\(friend.username) en Reps — ¡Voy ganando! (\(me.xp) XP vs \(friend.totalXP) XP). #RepsFitness"
-                : "⚡ @\(me.name) vs @\(friend.username) en Reps — ¡Voy a alcanzarte! (\(me.xp) XP vs \(friend.totalXP) XP). #RepsFitness"
-        } else {
-            return ahead
-                ? "🏆 @\(me.name) vs @\(friend.username) on Reps — I'm ahead! (\(me.xp) XP vs \(friend.totalXP) XP). #RepsFitness"
-                : "⚡ @\(me.name) vs @\(friend.username) on Reps — Coming for you! (\(me.xp) XP vs \(friend.totalXP) XP). #RepsFitness"
-        }
+        let key = ahead ? "social_share_ahead" : "social_share_behind"
+        return localizedFormat(key, me.name, friend.username, me.xp, friend.totalXP)
     }
 
     // MARK: - Data loading
