@@ -69,9 +69,9 @@ struct MainTabView: View {
                 }
             }
             .overlay(alignment: .bottomTrailing) {
-                if !isTabBarHidden {
+                if !isTabBarHidden && selectedTab != .progress {
                     quickActionFloatingButton
-                        .padding(.trailing, 20)
+                        .padding(.trailing, 16)
                         .padding(.bottom, quickActionFloatingButtonBottomPadding)
                         .animation(.spring(response: 0.32, dampingFraction: 0.78), value: isQuickMenuExpanded)
                         .transition(.scale(scale: 0.6, anchor: .bottomTrailing).combined(with: .opacity))
@@ -164,9 +164,6 @@ struct MainTabView: View {
                 .tag(AppTab.progress)
         }
 
-        if #available(iOS 26.0, *) {
-            return AnyView(tabView.tabBarMinimizeBehavior(.onScrollDown))
-        }
         return AnyView(tabView)
     }
 
@@ -198,19 +195,20 @@ struct MainTabView: View {
             ZStack {
                 Circle()
                     .fill(PulseTheme.fitActionGradient)
-                    .frame(width: 58, height: 58)
+                    .frame(width: quickActionButtonSize, height: quickActionButtonSize)
                     .overlay {
                         Circle()
                             .stroke(.white.opacity(0.26), lineWidth: 1.5)
                     }
-                    .shadow(color: PulseTheme.fitOrange.opacity(0.30), radius: 12, x: 0, y: 7)
+                    .shadow(color: PulseTheme.fitOrange.opacity(selectedTab == .progress ? 0.16 : 0.26), radius: selectedTab == .progress ? 7 : 10, x: 0, y: 6)
 
                 Image(systemName: "plus")
-                    .font(.system(size: 25, weight: .heavy))
+                    .font(.system(size: isQuickMenuExpanded ? 25 : (selectedTab == .progress ? 19 : 22), weight: .heavy))
                     .foregroundStyle(.white)
                     .rotationEffect(.degrees(isQuickMenuExpanded ? 135 : 0))
             }
             .scaleEffect(isQuickMenuExpanded ? 1.08 : 1.0)
+            .opacity(selectedTab == .progress && !isQuickMenuExpanded ? 0.82 : 1)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -218,7 +216,11 @@ struct MainTabView: View {
     }
 
     private var quickActionFloatingButtonBottomPadding: CGFloat {
-        isQuickMenuExpanded ? 18 : 96
+        isQuickMenuExpanded ? 18 : (selectedTab == .progress ? 36 : 74)
+    }
+
+    private var quickActionButtonSize: CGFloat {
+        isQuickMenuExpanded ? 58 : (selectedTab == .progress ? 46 : 52)
     }
 
     /// The active window's top safe-area inset. The quick-menu overlay can be hosted by views

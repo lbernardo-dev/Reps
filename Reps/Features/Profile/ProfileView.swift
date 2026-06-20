@@ -17,6 +17,7 @@ struct ProfileView: View {
     @State private var activeSheet: ProfileSheet?
     @State private var showImportBackup = false
     @State private var showImportCSV = false
+    @State private var showStrongImport = false
     @State private var showDeleteAllConfirmation = false
     @State private var csvExportURL: URL?
     @State private var backupExportURL: URL?
@@ -726,6 +727,15 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
+                            title: localizedString("import_from_strong"),
+                            subtitle: localizedString("strong_import_subtitle"),
+                            systemImage: "tray.and.arrow.down",
+                            color: .purple
+                        ) {
+                            showStrongImport = true
+                        }
+
+                        ProfileToolButton(
                             title: localizedString("backup_label"),
                             subtitle: localizedString(backupExportURL == nil ? "generate_json" : "json_ready"),
                             systemImage: "externaldrive",
@@ -1245,6 +1255,21 @@ struct ProfileView: View {
         }
     }
 
+    private func handleStrongCSVImport(_ result: Result<URL, Error>) {
+        do {
+            let url = try result.get()
+            let didAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if didAccess { url.stopAccessingSecurityScopedResource() }
+            }
+            let count = try store.importStrongCSV(from: url)
+            store.health.message = localizedFormat("strong_import_success_format", count)
+        } catch {
+            store.health.message = localizedString("could_not_import_the_csv")
+            TelemetryService.shared.record(error, context: "strong_csv_import_handle")
+        }
+    }
+
     private func applyProfileModifiers<V: View>(_ view: V) -> some View {
         view
             .sheet(item: $activeSheet) { sheet in
@@ -1255,6 +1280,9 @@ struct ProfileView: View {
             }
             .fileImporter(isPresented: $showImportCSV, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
                 handleCSVImport(result)
+            }
+            .fileImporter(isPresented: $showStrongImport, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
+                handleStrongCSVImport(result)
             }
             .confirmationDialog(
                 "delete_all_data",
@@ -1720,7 +1748,7 @@ private struct FeedbackSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(spacing: 12) {
                         Image(systemName: "bubble.left.and.text.bubble.right")
@@ -1777,8 +1805,10 @@ private struct FeedbackSheet: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 20)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .profileSupportSheetBackground()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -2857,7 +2887,7 @@ struct ProPreferencesView: View {
                         }
                     }
                 } else {
-                    ScrollView {
+                    ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 18) {
                             PaywallLockedCard(
                                 title: "pro_preferences_locked",
@@ -2872,8 +2902,10 @@ struct ProPreferencesView: View {
                                 }
                             }
                         }
-                        .padding(20)
+                        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                        .padding(.vertical, 20)
                     }
+                    .scrollBounceBehavior(.basedOnSize, axes: .vertical)
                     .screenBackground()
                 }
             }

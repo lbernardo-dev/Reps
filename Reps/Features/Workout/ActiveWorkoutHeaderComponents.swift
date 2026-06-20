@@ -48,16 +48,17 @@ struct ActiveWorkoutPinnedHeader: View {
                     .accessibilityLabel(localizedString(isPaused ? "resume_workout" : "pause_workout"))
                 }
 
-                Button(action: onPrimaryAction) {
-                    Text(localizedString(isFinishingWorkout ? "saving" : (isSessionStarted ? "finish" : "start")))
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 90, height: 44)
-                        .background(isSessionStarted ? PulseTheme.destructive : (canStartWorkout ? PulseTheme.primary : PulseTheme.secondaryText))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                if isSessionStarted {
+                    Button(action: onPrimaryAction) {
+                        Text(localizedString(isFinishingWorkout ? "saving" : "finish"))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 90, height: 44)
+                            .background(PulseTheme.destructive)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .disabled(isFinishingWorkout)
                 }
-                .disabled(isFinishingWorkout || (!isSessionStarted && !canStartWorkout))
-                .accessibilityHint(!isSessionStarted && !canStartWorkout ? localizedString("add_exercise_or_cardio") : "")
             }
             .frame(width: contentWidth)
             .padding(.top, 10)
@@ -201,6 +202,306 @@ struct ActiveWorkoutProgressSummary: View {
             return String(format: "%d:%02d:%02d", hours, minutes, secs)
         }
         return String(format: "%02d:%02d", minutes, secs)
+    }
+}
+
+struct ActiveWorkoutCommandCard: View {
+    let exerciseTitle: String
+    let nextSetTitle: String
+    let setTarget: String
+    let suggestion: String?
+    let history: String?
+    let isSessionStarted: Bool
+    let isPaused: Bool
+    let isResting: Bool
+    let restSeconds: Int
+    let completedSets: Int
+    let totalSets: Int
+    let completion: Double
+    let onStart: () -> Void
+    let onCompleteNext: () -> Void
+    let onDecreaseRest: () -> Void
+    let onIncreaseRest: () -> Void
+    let onSkipRest: () -> Void
+    let onUndo: (() -> Void)?
+    let onAddSet: () -> Void
+    let onReplaceExercise: () -> Void
+
+    private var commandColor: Color {
+        if isPaused { return PulseTheme.warning }
+        if isResting { return PulseTheme.primaryBright }
+        return PulseTheme.accent
+    }
+
+    private var primaryTitle: String {
+        if !isSessionStarted { return "Start Workout" }
+        if isPaused { return "Resume" }
+        if isResting { return "Next set" }
+        return "Complete set"
+    }
+
+    private var primaryIcon: String {
+        if !isSessionStarted { return "play.fill" }
+        if isPaused { return "play.fill" }
+        if isResting { return "checkmark.circle.fill" }
+        return "checkmark.circle.fill"
+    }
+
+    var body: some View {
+        PulseCard(contentPadding: 15) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 14) {
+                    ProgressRing(
+                        progress: completion,
+                        completedSets: completedSets,
+                        totalSets: totalSets,
+                        color: commandColor
+                    )
+                    .frame(width: 68, height: 68)
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(localizedString("next_best_action"))
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .tracking(1.5)
+                            .textCase(.uppercase)
+                            .foregroundStyle(commandColor)
+                        Text(isResting ? "Recover for the next set" : nextSetTitle)
+                            .font(.title3.weight(.black))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.78)
+                        Text(exerciseTitle)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+
+                if isResting {
+                    RestCommandStrip(
+                        restSeconds: restSeconds,
+                        color: commandColor,
+                        onDecrease: onDecreaseRest,
+                        onIncrease: onIncreaseRest,
+                        onSkip: onSkipRest,
+                        onUndo: onUndo
+                    )
+                } else {
+                    HStack(spacing: 8) {
+                        CommandSignal(title: localizedString("target"), value: setTarget, systemImage: "scope", color: PulseTheme.primary)
+                        if let suggestion {
+                            CommandSignal(title: localizedString("suggestion"), value: suggestion, systemImage: "sparkles", color: PulseTheme.accent)
+                        } else if let history {
+                            CommandSignal(title: localizedString("history_label"), value: history, systemImage: "clock.arrow.circlepath", color: PulseTheme.primaryBright)
+                        }
+                    }
+                }
+
+                HStack(spacing: 9) {
+                    Button(action: primaryAction) {
+                        Label(primaryTitle, systemImage: primaryIcon)
+                            .font(.headline.weight(.black))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .foregroundStyle(isResting ? .black : .white)
+                            .background(
+                                LinearGradient(
+                                    colors: [commandColor, commandColor.opacity(0.82)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                            )
+                            .shadow(color: commandColor.opacity(0.20), radius: 8, x: 0, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSessionStarted && !isResting && completedSets >= totalSets)
+                    .opacity(isSessionStarted && !isResting && completedSets >= totalSets ? 0.55 : 1)
+
+                    Button(action: onAddSet) {
+                        Image(systemName: "plus")
+                            .font(.headline.weight(.black))
+                            .frame(width: 50, height: 52)
+                            .foregroundStyle(PulseTheme.primary)
+                            .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                                    .stroke(PulseTheme.primary.opacity(0.20), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(localizedString("add_series"))
+
+                    Button(action: onReplaceExercise) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.headline.weight(.black))
+                            .frame(width: 50, height: 52)
+                            .foregroundStyle(.white.opacity(0.62))
+                            .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                                    .stroke(Color.white.opacity(0.065), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(localizedString("sustituir"))
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func primaryAction() {
+        if !isSessionStarted {
+            onStart()
+        } else if isResting {
+            onSkipRest()
+        } else {
+            onCompleteNext()
+        }
+    }
+}
+
+private struct ProgressRing: View {
+    let progress: Double
+    let completedSets: Int
+    let totalSets: Int
+    let color: Color
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(PulseTheme.grouped, lineWidth: 7)
+            Circle()
+                .trim(from: 0, to: min(max(progress, 0), 1))
+                .stroke(color, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.snappy(duration: 0.35), value: progress)
+            VStack(spacing: 0) {
+                Text("\(completedSets)")
+                    .font(.system(size: 21, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(color)
+                Text("/\(totalSets)")
+                    .font(.caption2.weight(.black).monospacedDigit())
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(localizedFormat("sets_fraction_format", completedSets, totalSets))
+    }
+}
+
+private struct CommandSignal: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.black))
+                .foregroundStyle(color)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Text(value)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity)
+        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct RestCommandStrip: View {
+    let restSeconds: Int
+    let color: Color
+    let onDecrease: () -> Void
+    let onIncrease: () -> Void
+    let onSkip: () -> Void
+    let onUndo: (() -> Void)?
+
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                Button(action: onDecrease) {
+                    Image(systemName: "minus")
+                        .font(.headline.weight(.black))
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(color)
+                        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("-15")
+
+                VStack(spacing: 2) {
+                    Text(timeString(restSeconds))
+                        .font(.system(size: 30, weight: .black, design: .rounded).monospacedDigit())
+                        .foregroundStyle(color)
+                    Text("Rest")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                .frame(maxWidth: .infinity)
+
+                Button(action: onIncrease) {
+                    Image(systemName: "plus")
+                        .font(.headline.weight(.black))
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(color)
+                        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("+15")
+            }
+
+            HStack(spacing: 10) {
+                if let onUndo {
+                    Button(action: onUndo) {
+                        Label("Undo set", systemImage: "arrow.uturn.backward")
+                            .font(.caption.weight(.black))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .background(PulseTheme.elevated, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Undo last set")
+                }
+
+                Button(action: onSkip) {
+                    Label("End rest", systemImage: "forward.fill")
+                        .font(.caption.weight(.black))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
+                        .foregroundStyle(.white)
+                        .background(color, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("End rest")
+            }
+        }
+        .padding(10)
+        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+
+    private func timeString(_ seconds: Int) -> String {
+        String(format: "%02d:%02d", seconds / 60, seconds % 60)
     }
 }
 

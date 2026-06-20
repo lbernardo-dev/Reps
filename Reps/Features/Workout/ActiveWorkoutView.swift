@@ -67,6 +67,7 @@ struct ActiveWorkoutView: View {
     @State private var isRefreshingSensorSummary = false
     @State private var showExpandedRouteMap = false
     @State private var showMoreTools = false
+    @State private var showExerciseDetails = false
 
     private var exerciseDrafts: [ExerciseSessionDraft] {
         get { store.activeWorkoutDrafts }
@@ -411,9 +412,9 @@ struct ActiveWorkoutView: View {
 
     private var activeWorkoutContent: some View {
         GeometryReader { proxy in
-            let contentWidth = max(proxy.size.width - 40, 0)
+            let contentWidth = max(proxy.size.width - (PulseTheme.screenHorizontalPadding * 2), 0)
             ZStack(alignment: .top) {
-                ScrollView {
+                ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(spacing: 18) {
                         if isCardioOnlySession {
                             routeProgressCard
@@ -431,12 +432,7 @@ struct ActiveWorkoutView: View {
                                     .frame(width: contentWidth)
                             }
                         } else {
-                            // Context: progress, elapsed time, volume and the
-                            // primary "complete next set" action.
-                            sessionProgressCard
-                                .frame(width: contentWidth)
-                            // Rest timer (collapses to nothing when not resting).
-                            restCard
+                            workoutCommandCard
                                 .frame(width: contentWidth)
                             // Where am I: per-exercise progress and quick switch.
                             exerciseSwitcher
@@ -472,10 +468,11 @@ struct ActiveWorkoutView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .safeAreaPadding(.top, 96)
+                    .safeAreaPadding(.top, 124)
                     .padding(.top, 8)
                     .padding(.bottom, 128)
                 }
+                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
 
                 ActiveWorkoutPinnedHeader(
                     title: RepsText.workoutTitle(workout.title, language: store.userProfile.preferredLanguage),
@@ -926,6 +923,31 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    private var workoutCommandCard: some View {
+        ActiveWorkoutCommandCard(
+            exerciseTitle: selectedExerciseTitle,
+            nextSetTitle: nextLoggingTitle,
+            setTarget: selectedSetTargetText,
+            suggestion: selectedExerciseContext.suggestionText,
+            history: selectedExerciseContext.historySummary,
+            isSessionStarted: isSessionStarted,
+            isPaused: isPaused,
+            isResting: restStartedAt != nil && restSeconds > 0,
+            restSeconds: currentRestRemainingSeconds(),
+            completedSets: completedSets,
+            totalSets: totalSets,
+            completion: setCompletion,
+            onStart: startPreparedSession,
+            onCompleteNext: completeNextAvailableSet,
+            onDecreaseRest: { adjustRest(by: -15) },
+            onIncreaseRest: { adjustRest(by: 15) },
+            onSkipRest: toggleRestTimer,
+            onUndo: lastCompletedSetUndoContext == nil ? nil : { undoLastCompletedSet() },
+            onAddSet: addSetToSelectedExercise,
+            onReplaceExercise: { replacementExerciseIndex = selectedExerciseIndex }
+        )
+    }
+
     private var exerciseSwitcher: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
@@ -1259,7 +1281,7 @@ struct ActiveWorkoutView: View {
 
     private var exerciseCard: some View {
         PulseCard {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top, spacing: 14) {
                     if let exercise = selectedDraft?.workoutExercise.exercise {
                         NavigationLink {
@@ -1267,7 +1289,7 @@ struct ActiveWorkoutView: View {
                         } label: {
                             ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                                 .equatable()
-                                .frame(width: 92, height: 104)
+                                .frame(width: 76, height: 86)
                                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
@@ -1277,21 +1299,22 @@ struct ActiveWorkoutView: View {
                         .buttonStyle(.plain)
                     }
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 5) {
                         Text(RepsText.equipment(selectedDraft?.workoutExercise.exercise.equipment ?? "", language: store.userProfile.preferredLanguage))
-                            .font(.headline.weight(.bold))
+                            .font(.caption.weight(.black))
+                            .textCase(.uppercase)
                             .foregroundStyle(PulseTheme.tertiaryText)
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
                         Text(RepsText.exerciseName(selectedDraft?.workoutExercise.exercise.name ?? localizedString("exercise_label"), language: store.userProfile.preferredLanguage))
                             .font(.title3.weight(.bold))
-                            .lineLimit(3)
+                            .lineLimit(2)
                             .minimumScaleFactor(0.78)
                         Text(localizedFormat("workout_target_format",
                             selectedDraft?.workoutExercise.targetSets ?? 0,
                             selectedDraft?.workoutExercise.repRange ?? "-",
                             selectedDraft?.workoutExercise.previous ?? "-"))
-                            .font(.subheadline)
+                            .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                         if let suggestionText = selectedExerciseContext.suggestionText {
@@ -1335,100 +1358,125 @@ struct ActiveWorkoutView: View {
                     }
                 }
 
-                if let volume = selectedExerciseVolume {
-                    InWorkoutVolumeStrip(volume: volume, aimForMore: selectedAimForMoreBinding)
-                }
-
-                executionSummaryStrip
-
-                activeWorkoutToolsCard
-
-                if !selectedMediaBookmarks.isEmpty {
-                    ExerciseBookmarkStrip(bookmarks: selectedMediaBookmarks, activeBookmark: $activeBookmark)
-                }
-
                 if exerciseDrafts.indices.contains(selectedExerciseIndex) {
                     let sets = exerciseDrafts.indices.contains(selectedExerciseIndex) ? exerciseDrafts[selectedExerciseIndex].sets : []
                     ActiveSetRowsList(
                         setIndices: Array(sets.indices),
+                        trackingType: selectedDraft?.workoutExercise.exercise.trackingType ?? .weightReps,
                         isSessionStarted: isSessionStarted,
                         setBinding: selectedSetBinding,
                         onCompletionChanged: completeSelectedSetIfNeeded
                     )
                 }
 
-                if hasVisibleAdvancedFields {
-                    DisclosureGroup(isExpanded: $showAdvancedFields) {
-                        if exerciseDrafts.indices.contains(selectedExerciseIndex) {
-                            let sets = exerciseDrafts.indices.contains(selectedExerciseIndex) ? exerciseDrafts[selectedExerciseIndex].sets : []
-                            ActiveAdvancedSetFieldsList(
-                                setIndices: Array(sets.indices),
-                                showSetType: store.userProfile.showSetType,
-                                showRPE: store.userProfile.showRPE,
-                                showRIR: store.userProfile.showRIR,
-                                showTempo: store.userProfile.showTempo,
-                                setBinding: selectedSetBinding
-                            )
-                        }
-                    } label: {
-                        Label("campos_pro", systemImage: "slider.horizontal.3")
-                            .font(.headline)
-                            .foregroundStyle(PulseTheme.primary)
-                    }
-                } else {
+                HStack(spacing: 10) {
                     Button {
-                        if store.requireFeature(.configurableProgression, source: .workoutAdvancedFields) {
-                            showProPreferences = true
+                        addSetToSelectedExercise()
+                    } label: {
+                        Label("add_series", systemImage: "plus")
+                            .font(.subheadline.weight(.black))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .foregroundStyle(PulseTheme.primary)
+                            .background(PulseTheme.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        withAnimation(.snappy(duration: 0.22)) {
+                            showExerciseDetails.toggle()
                         }
                     } label: {
-                        HStack {
-                            Label("campos_pro", systemImage: "slider.horizontal.3")
-                                .font(.headline)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Spacer()
-                            Text("activar")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(PulseTheme.primary)
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                        .padding(.vertical, 8)
+                        Label(showExerciseDetails ? "Hide" : "Details", systemImage: showExerciseDetails ? "chevron.up" : "slider.horizontal.3")
+                            .font(.subheadline.weight(.black))
+                            .frame(width: 120, height: 48)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
 
-                DisclosureGroup(isExpanded: $showExerciseNotes) {
-                    ExerciseMediaNotesPanel(
-                        notes: selectedExerciseNotesBinding,
-                        isRecording: audioRecorder.isRecording,
-                        elapsedSeconds: Int(audioRecorder.elapsedSeconds),
-                        photoPickerItems: $exercisePhotoItems,
-                        attachments: selectedDraft?.mediaAttachments ?? [],
-                        onToggleAudio: toggleExerciseAudioNote,
-                        onCameraCapture: appendExerciseCameraImage
-                    )
-                } label: {
-                    Label("notes_and_a_half", systemImage: "note.text")
-                        .font(.headline)
-                        .foregroundStyle(PulseTheme.primary)
-                }
-
-                Button {
-                    addSetToSelectedExercise()
-                } label: {
-                    Label("add_series", systemImage: "plus")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .foregroundStyle(PulseTheme.primary)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                .stroke(PulseTheme.primary.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
-                        )
+                if showExerciseDetails {
+                    exerciseDetailsPanel
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
         }
+    }
+
+    private var exerciseDetailsPanel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            executionSummaryStrip
+
+            if let volume = selectedExerciseVolume {
+                InWorkoutVolumeStrip(volume: volume, aimForMore: selectedAimForMoreBinding)
+            }
+
+            if !selectedMediaBookmarks.isEmpty {
+                ExerciseBookmarkStrip(bookmarks: selectedMediaBookmarks, activeBookmark: $activeBookmark)
+            }
+
+            activeWorkoutToolsCard
+
+            if hasVisibleAdvancedFields {
+                DisclosureGroup(isExpanded: $showAdvancedFields) {
+                    if exerciseDrafts.indices.contains(selectedExerciseIndex) {
+                        let sets = exerciseDrafts.indices.contains(selectedExerciseIndex) ? exerciseDrafts[selectedExerciseIndex].sets : []
+                        ActiveAdvancedSetFieldsList(
+                            setIndices: Array(sets.indices),
+                            showSetType: store.userProfile.showSetType,
+                            showRPE: store.userProfile.showRPE,
+                            showRIR: store.userProfile.showRIR,
+                            showTempo: store.userProfile.showTempo,
+                            setBinding: selectedSetBinding
+                        )
+                    }
+                } label: {
+                    Label("campos_pro", systemImage: "slider.horizontal.3")
+                        .font(.headline)
+                        .foregroundStyle(PulseTheme.primary)
+                }
+            } else {
+                Button {
+                    if store.requireFeature(.configurableProgression, source: .workoutAdvancedFields) {
+                        showProPreferences = true
+                    }
+                } label: {
+                    HStack {
+                        Label("campos_pro", systemImage: "slider.horizontal.3")
+                            .font(.headline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        Spacer()
+                        Text("activar")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.primary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+            }
+
+            DisclosureGroup(isExpanded: $showExerciseNotes) {
+                ExerciseMediaNotesPanel(
+                    notes: selectedExerciseNotesBinding,
+                    isRecording: audioRecorder.isRecording,
+                    elapsedSeconds: Int(audioRecorder.elapsedSeconds),
+                    photoPickerItems: $exercisePhotoItems,
+                    attachments: selectedDraft?.mediaAttachments ?? [],
+                    onToggleAudio: toggleExerciseAudioNote,
+                    onCameraCapture: appendExerciseCameraImage
+                )
+            } label: {
+                Label("notes_and_a_half", systemImage: "note.text")
+                    .font(.headline)
+                    .foregroundStyle(PulseTheme.primary)
+            }
+        }
+        .padding(12)
+        .background(PulseTheme.grouped.opacity(0.68), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 
     private var nextExerciseCard: some View {
@@ -1733,6 +1781,40 @@ struct ActiveWorkoutView: View {
 
         let item = exerciseDrafts[selectedExerciseIndex + 1].workoutExercise
         return "\(item.targetSets) series x \(item.repRange)"
+    }
+
+    private var selectedExerciseTitle: String {
+        guard let selectedDraft else {
+            return localizedString("free_training_label")
+        }
+
+        return RepsText.exerciseName(
+            selectedDraft.workoutExercise.exercise.name,
+            language: store.userProfile.preferredLanguage
+        )
+    }
+
+    private var selectedSetTargetText: String {
+        guard let set = selectedExerciseContext.currentWorkingSet else {
+            return localizedString("all_sets_logged")
+        }
+
+        if selectedDraft?.workoutExercise.exercise.trackingType == .duration {
+            return selectedDraft?.workoutExercise.repRange ?? localizedString("duration")
+        }
+
+        if selectedDraft?.workoutExercise.exercise.trackingType == .repsOnly {
+            return "\(set.reps) reps"
+        }
+
+        let weight = set.weightKg > 0 ? "\(formatWeight(set.weightKg)) kg" : localizedString("bodyweight")
+        return "\(weight) x \(set.reps)"
+    }
+
+    private func formatWeight(_ weight: Double) -> String {
+        weight.truncatingRemainder(dividingBy: 1) == 0
+            ? String(format: "%.0f", weight)
+            : String(format: "%.1f", weight)
     }
 
     private var nextLoggingTitle: String {
@@ -2268,7 +2350,7 @@ private struct ExercisePickerSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
                     if let currentExercise {
                         replacementHeader(for: currentExercise)
@@ -2351,8 +2433,10 @@ private struct ExercisePickerSheet: View {
                         }
                     }
                 }
-                .padding(16)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 16)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .searchable(text: $searchText, prompt: "Buscar por nombre, músculo o equipo")
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -2559,13 +2643,14 @@ private struct ReplacementExerciseRow: View {
 
 private struct ActiveSetRowsList: View {
     let setIndices: [Int]
+    let trackingType: Exercise.TrackingType
     let isSessionStarted: Bool
     let setBinding: (Int) -> Binding<SetLog>
     let onCompletionChanged: (Int, Bool) -> Void
 
     var body: some View {
         ForEach(setIndices, id: \.self) { setIndex in
-            SetRow(set: setBinding(setIndex)) { completed in
+            SetRow(set: setBinding(setIndex), trackingType: trackingType) { completed in
                 onCompletionChanged(setIndex, completed)
             }
             .disabled(!isSessionStarted)
@@ -3724,7 +3809,7 @@ struct WorkoutSummaryView: View {
             if session.isRouteSession {
                 RouteWorkoutSummaryView(session: session, shareAction: shareSession)
             } else {
-                ScrollView {
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 20) {
                         WorkoutReceiptView(session: session)
                             .padding(.horizontal, 4)
@@ -3800,9 +3885,11 @@ struct WorkoutSummaryView: View {
                             }
                         }
                     }
-                    .padding(16)
+                    .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                    .padding(.vertical, 16)
                     .padding(.bottom, 24)
                 }
+                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
                 .screenBackground()
                 .overlay(alignment: .topTrailing) {
                     Button {
@@ -3840,6 +3927,7 @@ struct WorkoutSummaryView: View {
 
 private struct SetRow: View {
     @Binding var set: SetLog
+    let trackingType: Exercise.TrackingType
     let onCompletionChanged: (Bool) -> Void
 
     var body: some View {
@@ -3856,16 +3944,12 @@ private struct SetRow: View {
                     .scaleEffect(set.completed ? 1.08 : 1.0)
                     .animation(.spring(response: 0.25), value: set.completed)
 
-                // Column labels
-                Text("weight_kg_3")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .frame(maxWidth: .infinity)
-
-                Text("reps_4")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .frame(maxWidth: .infinity)
+                ForEach(columnLabels, id: \.self) { label in
+                    Text(localizedKey(label))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .frame(maxWidth: .infinity)
+                }
 
                 // Spacer to align with checkmark below
                 Color.clear.frame(width: 38, height: 1)
@@ -3879,22 +3963,24 @@ private struct SetRow: View {
                 // Alignment spacer matching the set number badge
                 Color.clear.frame(width: 28, height: 1)
 
-                InlineStepper(
-                    value: $set.weightKg,
-                    range: 0...400,
-                    step: 2.5,
-                    formatter: { String(format: "%.1f", $0) }
-                )
-                .frame(maxWidth: .infinity)
+                if trackingType == .weightReps {
+                    InlineStepper(
+                        value: $set.weightKg,
+                        range: 0...400,
+                        step: 2.5,
+                        formatter: { String(format: "%.1f", $0) }
+                    )
+                    .frame(maxWidth: .infinity)
+                }
 
                 InlineStepper(
                     value: Binding(
                         get: { Double(set.reps) },
                         set: { set.reps = Int($0) }
                     ),
-                    range: 0...100,
-                    step: 1,
-                    formatter: { String(Int($0)) }
+                    range: 0...durationOrRepUpperBound,
+                    step: trackingType == .duration ? 5 : 1,
+                    formatter: { trackingType == .duration ? "\(Int($0))s" : String(Int($0)) }
                 )
                 .frame(maxWidth: .infinity)
 
@@ -3927,6 +4013,21 @@ private struct SetRow: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .animation(.easeInOut(duration: 0.18), value: set.completed)
+    }
+
+    private var columnLabels: [String] {
+        switch trackingType {
+        case .weightReps:
+            return ["weight_kg_3", "reps_4"]
+        case .repsOnly:
+            return ["reps_4"]
+        case .duration:
+            return ["Time"]
+        }
+    }
+
+    private var durationOrRepUpperBound: Double {
+        trackingType == .duration ? 600 : 100
     }
 }
 

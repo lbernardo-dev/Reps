@@ -123,7 +123,7 @@ struct AchievementsView: View {
     }
     
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 24) {
                 // Header navigation bar
                 customNavBar
@@ -136,9 +136,10 @@ struct AchievementsView: View {
                 
                 Spacer(minLength: 40)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.bottom, 60)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .sheet(item: $selectedReceiptForPreview) { card in

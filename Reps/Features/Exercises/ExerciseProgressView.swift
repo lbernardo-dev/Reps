@@ -83,7 +83,7 @@ struct ExerciseProgressView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 18) {
                 Text(currentExercise.name)
                     .font(.system(size: 34, weight: .bold, design: .rounded))
@@ -105,9 +105,11 @@ struct ExerciseProgressView: View {
                     }
                 }
             }
-            .padding(20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+            .padding(.vertical, 20)
             .padding(.bottom, 82)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .navigationTitle("exercise_2")
         .navigationBarTitleDisplayMode(.inline)
@@ -722,7 +724,7 @@ struct ExerciseMuscleInfoPanel: View {
                 .frame(maxWidth: .infinity)
         }
         .frame(height: 280)
-        .padding(.horizontal, 20)
+        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
         .accessibilityLabel(localizedFormat("primary_muscles_worked_by_exercise_accessibility_format", exercise.name))
     }
 

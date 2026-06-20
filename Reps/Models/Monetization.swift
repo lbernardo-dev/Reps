@@ -109,9 +109,9 @@ enum ProductAccess {
 
     static func isEnabled(_ feature: ProductFeature, proEnabled: Bool = false) -> Bool {
         switch feature {
-        case .unlimitedLogging, .exerciseLibrary, .customRoutines, .basicAnalytics:
+        case .unlimitedLogging, .exerciseLibrary, .customRoutines, .basicAnalytics, .shareCards:
             return true
-        case .advancedAnalytics, .configurableProgression, .automaticBackups, .shareCards:
+        case .advancedAnalytics, .configurableProgression, .automaticBackups:
             return proEnabled
         }
     }

@@ -2457,6 +2457,35 @@ final class AppStore {
         }
     }
 
+    @discardableResult
+    func importStrongCSV(from url: URL) throws -> Int {
+        do {
+            let csv = try String(contentsOf: url, encoding: .utf8)
+            let importer = StrongCSVImporter(csv: csv)
+            let imported = importer.workoutSessions(knownExercises: exercises)
+            let existingKeys: Set<String> = Set(
+                workoutSessions.map { s in
+                    "\(Calendar.current.startOfDay(for: s.date).timeIntervalSince1970)|\(s.workoutTitle)"
+                }
+            )
+            let newSessions = imported.filter { s in
+                let key = "\(Calendar.current.startOfDay(for: s.date).timeIntervalSince1970)|\(s.workoutTitle)"
+                return !existingKeys.contains(key)
+            }
+            workoutSessions.append(contentsOf: newSessions)
+            TelemetryService.shared.log(.csvImported, parameters: [
+                "source": "strong",
+                "imported_count": newSessions.count,
+                "skipped_duplicates": imported.count - newSessions.count
+            ])
+            return newSessions.count
+        } catch {
+            TelemetryService.shared.record(error, context: "strong_csv_import")
+            TelemetryService.shared.log(.nonFatalError, parameters: ["context": "strong_csv_import"])
+            throw error
+        }
+    }
+
     func exportWorkoutShareImageURL(session: WorkoutSession? = nil) throws -> URL {
         let selected = session ?? workoutSessions.sorted { $0.date > $1.date }.first
         let url = exportURL(fileName: "reps-share-\(Self.exportDateStamp()).png")

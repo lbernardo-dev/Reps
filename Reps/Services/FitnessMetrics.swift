@@ -62,6 +62,30 @@ enum FitnessMetrics {
         let systemImage: String
     }
 
+    struct DailyCoachRecommendation: Equatable {
+        enum Action: Equatable {
+            case startWorkout
+            case createPlan
+            case scheduleWorkout
+            case openProgress
+            case competitive(AnalyticsEngine.CompetitiveAction)
+        }
+
+        enum Tone: String, Equatable {
+            case primary
+            case recovery
+            case warning
+            case accent
+        }
+
+        let title: String
+        let message: String
+        let actionTitle: String
+        let systemImage: String
+        let tone: Tone
+        let action: Action
+    }
+
     static func totalVolumeKg(for sessions: [WorkoutSession]) -> Double {
         sessions.reduce(0) { partial, session in
             partial + completedSets(in: session).reduce(0) { setTotal, set in
@@ -326,6 +350,104 @@ enum FitnessMetrics {
     static func projectedBatteryLevel(after workout: WorkoutDay, from currentLevel: Int) -> Int {
         let plannedCost = workoutBatteryCost(workout)
         return Int(clamp(Double(currentLevel) - plannedCost, lower: 5, upper: 100).rounded())
+    }
+
+    static func dailyCoachRecommendation(
+        battery: TrainingBatteryStatus,
+        competitiveSummary: AnalyticsEngine.CompetitiveSummary,
+        hasActivePlan: Bool,
+        hasTodayWorkout: Bool,
+        hasCompletedWorkout: Bool
+    ) -> DailyCoachRecommendation {
+        if !hasActivePlan {
+            return DailyCoachRecommendation(
+                title: localizedString("act_create_plan_title"),
+                message: localizedString("act_create_plan_msg"),
+                actionTitle: localizedString("act_create_plan_cta"),
+                systemImage: "rectangle.stack.badge.plus",
+                tone: .primary,
+                action: .createPlan
+            )
+        }
+
+        if battery.state == .critical {
+            return DailyCoachRecommendation(
+                title: battery.title,
+                message: battery.suggestion,
+                actionTitle: localizedString("act_schedule_recovery"),
+                systemImage: battery.systemImage,
+                tone: .warning,
+                action: .competitive(.scheduleRecovery)
+            )
+        }
+
+        if battery.state == .low {
+            return DailyCoachRecommendation(
+                title: battery.title,
+                message: battery.suggestion,
+                actionTitle: hasTodayWorkout ? localizedString("act_start_today_cta") : localizedString("act_schedule_cta"),
+                systemImage: battery.systemImage,
+                tone: .accent,
+                action: hasTodayWorkout ? .startWorkout : .scheduleWorkout
+            )
+        }
+
+        if hasTodayWorkout && competitiveSummary.completionRate < 0.75 {
+            return DailyCoachRecommendation(
+                title: localizedString("act_close_week_title"),
+                message: localizedString("act_close_week_msg"),
+                actionTitle: localizedString("act_start_today_cta"),
+                systemImage: "play.circle.fill",
+                tone: .primary,
+                action: .startWorkout
+            )
+        }
+
+        if let recommendation = competitiveSummary.recommendations.first(where: { $0.action != .none }) {
+            return DailyCoachRecommendation(
+                title: recommendation.title,
+                message: recommendation.message,
+                actionTitle: dailyCoachActionTitle(for: recommendation.action),
+                systemImage: recommendation.systemImage,
+                tone: .primary,
+                action: .competitive(recommendation.action)
+            )
+        }
+
+        if !hasCompletedWorkout || hasTodayWorkout {
+            return DailyCoachRecommendation(
+                title: localizedString("act_first_workout_title"),
+                message: hasTodayWorkout ? localizedString("act_close_week_msg") : localizedString("act_first_workout_msg"),
+                actionTitle: localizedString("act_train_cta"),
+                systemImage: "play.circle.fill",
+                tone: .primary,
+                action: .startWorkout
+            )
+        }
+
+        return DailyCoachRecommendation(
+            title: localizedString("act_first_value_title"),
+            message: localizedString("act_first_value_msg"),
+            actionTitle: localizedString("act_see_progress_cta"),
+            systemImage: "chart.line.uptrend.xyaxis",
+            tone: .recovery,
+            action: .openProgress
+        )
+    }
+
+    private static func dailyCoachActionTitle(for action: AnalyticsEngine.CompetitiveAction) -> String {
+        switch action {
+        case .scheduleUndertrainedMuscle:
+            return localizedString("act_schedule_focus")
+        case .scheduleDeloadExercise:
+            return localizedString("act_schedule_deload")
+        case .reviewPlan:
+            return localizedString("act_review_plan")
+        case .scheduleRecovery:
+            return localizedString("act_schedule_recovery")
+        case .none:
+            return localizedString("act_view_generic")
+        }
     }
 
     static func workoutBatteryCost(_ workout: WorkoutDay) -> Double {
@@ -1314,7 +1436,7 @@ enum WorkoutDraftController {
         let sets = (1...max(item.targetSets, 1)).map { index in
             SetLog(
                 setNumber: index,
-                weightKg: defaultWeight(from: item.previous),
+                weightKg: item.exercise.trackingType == .weightReps ? defaultWeight(from: item.previous) : 0,
                 reps: defaultReps(from: item.repRange),
                 completed: false
             )

@@ -133,6 +133,16 @@ struct TodayView: View {
         )
     }
 
+    private var dailyCoachRecommendation: FitnessMetrics.DailyCoachRecommendation {
+        FitnessMetrics.dailyCoachRecommendation(
+            battery: batteryStatus,
+            competitiveSummary: competitiveSummary,
+            hasActivePlan: hasActivePlan,
+            hasTodayWorkout: todaysScheduledWorkout != nil,
+            hasCompletedWorkout: !store.workoutSessions.isEmpty
+        )
+    }
+
 
     private var hasActivePlan: Bool {
         !store.activePlan.days.isEmpty
@@ -258,8 +268,10 @@ struct TodayView: View {
             ) {
                 focusHeroSection
                     .stickyHeaderTitle(localizedString("today_3"))
-                activationChecklist
-                    .stickyHeaderTitle(localizedString("next_action"))
+                if !hasActivePlan {
+                    activationChecklist
+                        .stickyHeaderTitle(localizedString("next_action"))
+                }
                 if !focusProgressionRecommendations.isEmpty {
                     ProgressionRecommendationCard(
                         recommendations: focusProgressionRecommendations,
@@ -408,39 +420,34 @@ struct TodayView: View {
             ? (localizedString("start_workout_2"))
             : (localizedString("free_workout"))
 
-        return VStack(alignment: .leading, spacing: 18) {
+        return VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(localizedString("today_2"))
-                        .font(.system(size: 13, weight: .black, design: .rounded))
-                        .tracking(1.6)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 11)
+                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .tracking(1.4)
+                        .textCase(.uppercase)
+                        .foregroundStyle(PulseTheme.primary)
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .background(PulseTheme.primary)
+                        .background(PulseTheme.primary.opacity(0.12))
                         .clipShape(Capsule())
 
-                        if !focusWorkout.exercises.isEmpty {
-                            WorkoutExerciseAvatarStrip(
-                                exercises: focusMediaExercises,
-                                gender: store.userProfile.muscleMapGender,
-                                tint: PulseTheme.primary,
-                                catalog: store.exercises
-                            )
+                    if !focusWorkout.exercises.isEmpty {
+                        WorkoutExerciseAvatarStrip(
+                            exercises: focusMediaExercises,
+                            gender: store.userProfile.muscleMapGender,
+                            tint: PulseTheme.primary,
+                            catalog: store.exercises
+                        )
                     }
 
                     HStack(alignment: .center, spacing: 8) {
                         Text(titleText)
-                            .font(.system(size: 34, weight: .black, design: .rounded))
+                            .font(.system(size: 30, weight: .black, design: .rounded))
                             .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.68)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                    .stroke(PulseTheme.primary.opacity(0.45), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
-                            )
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.72)
 
                         if !store.activePlan.days.isEmpty {
                             focusWorkoutMenu
@@ -480,27 +487,47 @@ struct TodayView: View {
                 SummaryChip(title: locationLabel, systemImage: "mappin.and.ellipse", color: PulseTheme.primaryBright)
             }
 
-            NavigationLink {
-                if hasActivePlanSession {
-                    ActiveWorkoutView(workout: focusWorkout)
-                } else {
-                    FreeWorkoutStartView()
+            TodayCoachSummaryRow(
+                recommendation: dailyCoachRecommendation,
+                weekTargetText: weekTargetText,
+                batteryLevel: batteryStatus.level,
+                color: color(for: dailyCoachRecommendation.tone)
+            )
+
+            HStack(spacing: 10) {
+                Button {
+                    perform(dailyCoachRecommendation.action)
+                } label: {
+                    Label(dailyCoachRecommendation.actionTitle, systemImage: "arrow.up.right.circle.fill")
+                        .font(.headline.weight(.black))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .foregroundStyle(.white)
+                        .background(color(for: dailyCoachRecommendation.tone), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
-            } label: {
-                Label(playButtonTitle, systemImage: "play.fill")
-                    .font(.headline.weight(.black))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 58)
-                    .foregroundStyle(.white)
-                    .background(PulseTheme.fitActionGradient)
-                    .clipShape(Capsule())
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    if hasActivePlanSession {
+                        ActiveWorkoutView(workout: focusWorkout)
+                    } else {
+                        FreeWorkoutStartView()
+                    }
+                } label: {
+                    Image(systemName: "play.fill")
+                        .font(.headline.weight(.black))
+                        .frame(width: 54, height: 54)
+                        .foregroundStyle(PulseTheme.primary)
+                        .background(PulseTheme.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(playButtonTitle)
             }
-            .buttonStyle(.plain)
         }
         .padding(18)
         .background(
             LinearGradient(
-                colors: [PulseTheme.accentMuted, PulseTheme.card],
+                colors: [PulseTheme.card, PulseTheme.primary.opacity(0.12), PulseTheme.accentMuted.opacity(0.55)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -568,57 +595,93 @@ struct TodayView: View {
 
     private var activationChecklist: some View {
         let missionProgress = min(max(store.weeklyCompletion, 0), 1)
+        let nextStep = nextBestSteps.first(where: { !$0.isCompleted }) ?? nextBestSteps.first
 
         return PulseCard(contentPadding: 18) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .center, spacing: 14) {
                     ProgressMissionRing(
                         progress: missionProgress,
                         color: batteryColor,
                         centerValue: "\(Int(missionProgress * 100))%"
                     )
-                    .frame(width: 92, height: 92)
+                    .frame(width: 68, height: 68)
 
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
-                            Label(localizedString("next_best_action"), systemImage: "flag.checkered")
+                            Label(localizedString("plan_3"), systemImage: "flag.checkered")
                                 .font(.caption.weight(.black))
                                 .textCase(.uppercase)
                                 .foregroundStyle(PulseTheme.primary)
                             Spacer(minLength: 0)
-                            Text("\(streakDays)🔥")
-                                .font(.caption.weight(.bold))
+                            Text(weekTargetText)
+                                .font(.caption.weight(.black))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 5)
-                                .background(PulseTheme.accent.opacity(0.12))
-                                .foregroundStyle(PulseTheme.accent)
+                                .background(PulseTheme.primary.opacity(0.12))
+                                .foregroundStyle(PulseTheme.primary)
                                 .clipShape(Capsule())
                         }
 
-                        Text(localizedString("do_the_smallest_useful_thing_for_today_s_progress"))
-                            .font(.subheadline)
+                        Text(planReadinessTitle)
+                            .font(.headline.weight(.black))
+
+                        Text(planReadinessMessage)
+                            .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
-
-                        HStack(spacing: 8) {
-                            MissionSignal(title: localizedString("week"), value: weekTargetText, color: PulseTheme.primary)
-                            MissionSignal(title: localizedString("battery"), value: "\(Int(batteryStatus.level))%", color: batteryColor)
-                        }
                     }
                 }
 
-                Divider()
-
-                ForEach(Array(nextBestSteps.prefix(3).enumerated()), id: \.element.id) { index, step in
-                    TodayActivationStepRow(step: step) {
+                if let step = nextStep {
+                    Button {
                         perform(step.action)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: step.isCompleted ? "checkmark.seal.fill" : step.systemImage)
+                                .font(.subheadline.weight(.black))
+                                .foregroundStyle(step.isCompleted ? PulseTheme.recovery : PulseTheme.primary)
+                                .frame(width: 38, height: 38)
+                                .background((step.isCompleted ? PulseTheme.recovery : PulseTheme.primary).opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(step.title)
+                                    .font(.subheadline.weight(.black))
+                                    .foregroundStyle(.primary)
+                                Text(step.message)
+                                    .font(.caption)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                    .lineLimit(2)
+                            }
+
+                            Spacer(minLength: 0)
+
+                            Text(step.isCompleted ? localizedString("done") : step.actionTitle)
+                                .font(.caption.weight(.black))
+                                .foregroundStyle(step.isCompleted ? PulseTheme.recovery : .white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(step.isCompleted ? PulseTheme.recovery.opacity(0.12) : PulseTheme.primary)
+                                .clipShape(Capsule())
+                        }
+                        .padding(12)
+                        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
-                    if index < min(nextBestSteps.count, 3) - 1 {
-                        Divider()
-                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
+    }
+
+    private var planReadinessTitle: String {
+        hasActivePlan ? "Plan ready" : localizedString("no_active_plan")
+    }
+
+    private var planReadinessMessage: String {
+        hasActivePlan
+            ? localizedString("do_the_smallest_useful_thing_for_today_s_progress")
+            : localizedString("create_a_routine_or_schedule_a_session_when_you_are_ready")
     }
 
     // MARK: – Active session hero (replaces the old separate banner)
@@ -870,6 +933,41 @@ struct TodayView: View {
             }
         case .openProgress:
             onSelectTab?(.progress)
+        }
+    }
+
+    private func perform(_ action: FitnessMetrics.DailyCoachRecommendation.Action) {
+        HapticService.impact(.light)
+        switch action {
+        case .startWorkout:
+            if todaysScheduledWorkout != nil || hasActivePlan {
+                workoutToStart = focusWorkout
+            } else {
+                showFreeWorkoutStart = true
+            }
+        case .createPlan:
+            showCreatePlan = true
+        case .scheduleWorkout:
+            showScheduleWorkout = true
+        case .openProgress:
+            onSelectTab?(.progress)
+        case .competitive(let competitiveAction):
+            if let destination = store.executeCompetitiveAction(competitiveAction) {
+                onSelectTab?(destination)
+            }
+        }
+    }
+
+    private func color(for tone: FitnessMetrics.DailyCoachRecommendation.Tone) -> Color {
+        switch tone {
+        case .primary:
+            return PulseTheme.primary
+        case .recovery:
+            return PulseTheme.recovery
+        case .warning:
+            return PulseTheme.warning
+        case .accent:
+            return PulseTheme.accent
         }
     }
 
@@ -1311,6 +1409,49 @@ private struct StatPill: View {
                 .opacity(0.7)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+private struct TodayCoachSummaryRow: View {
+    let recommendation: FitnessMetrics.DailyCoachRecommendation
+    let weekTargetText: String
+    let batteryLevel: Int
+    let color: Color
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: recommendation.systemImage)
+                .font(.headline.weight(.black))
+                .foregroundStyle(color)
+                .frame(width: 42, height: 42)
+                .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(localizedString("next_best_action"))
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .tracking(1.3)
+                    .textCase(.uppercase)
+                    .foregroundStyle(color)
+                Text(recommendation.title)
+                    .font(.subheadline.weight(.black))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                Text(recommendation.message)
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(PulseTheme.grouped.opacity(0.82), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke(color.opacity(0.16), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
     }
 }
 

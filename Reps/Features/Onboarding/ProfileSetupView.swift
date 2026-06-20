@@ -64,13 +64,15 @@ struct ProfileSetupView: View {
         VStack(spacing: 0) {
             progressHeader
 
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 22) {
                     stepContent
                 }
-                .padding(20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 20)
                 .padding(.bottom, bottomContentPadding)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .scrollDismissesKeyboard(.interactively)
         }
         .screenBackground()
@@ -135,7 +137,7 @@ struct ProfileSetupView: View {
             ProgressView(value: Double(stepIndex + 1), total: Double(steps.count))
                 .tint(PulseTheme.accent)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
         .padding(.top, 10)
         .padding(.bottom, 8)
     }
@@ -204,7 +206,7 @@ struct ProfileSetupView: View {
         VStack(alignment: .leading, spacing: 22) {
             VStack(alignment: .leading, spacing: 18) {
                 Text("train_with_a_plan_that_suits_you")
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
                     .lineLimit(4)
                     .minimumScaleFactor(0.75)
                 Text("reps_combines_your_metrics_goal_team_and_recovery_to_create_a_base_routine_and_t")
@@ -667,7 +669,10 @@ struct ProfileSetupView: View {
         }
 
         private var columns: [GridItem] {
-            [GridItem(.adaptive(minimum: 152), spacing: 10, alignment: .top)]
+            [
+                GridItem(.flexible(minimum: 132), spacing: 10, alignment: .top),
+                GridItem(.flexible(minimum: 132), spacing: 10, alignment: .top)
+            ]
         }
 
         var body: some View {
@@ -749,7 +754,7 @@ struct ProfileSetupView: View {
                     }
                     Spacer(minLength: 0)
                 }
-                .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: 138, alignment: .topLeading)
                 .padding(12)
                 .background(isSelected ? PulseTheme.elevated : PulseTheme.grouped)
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
@@ -973,10 +978,10 @@ struct ProfileSetupView: View {
                                         .padding(.vertical, 2)
                                 }
                                 
-                                HStack(spacing: 16) {
+                                HStack(alignment: .top, spacing: 12) {
                                     // Left: Image or Anatomy Map Thumbnail
                                     ExerciseMediaThumbnail(exercise: item.exercise, gender: selectedGender, catalog: store.exercises)
-                                        .frame(width: 76, height: 76)
+                                        .frame(width: 68, height: 68)
                                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                                         .overlay(
                                             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
@@ -991,7 +996,8 @@ struct ProfileSetupView: View {
                                             Text(RepsText.exerciseName(item.exercise.name, language: profile.preferredLanguage))
                                                 .font(.headline)
                                                 .foregroundStyle(.white)
-                                                .lineLimit(1)
+                                                .lineLimit(2)
+                                                .minimumScaleFactor(0.82)
                                             
                                             if item.priority == .primary {
                                                 Text("foco")
@@ -1329,7 +1335,7 @@ struct ProfileSetupView: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
         .padding(.top, 8)
         .padding(.bottom, 8)
         .background(.clear)

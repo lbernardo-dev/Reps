@@ -50,6 +50,7 @@ enum PulseTheme {
     static let controlRadius: CGFloat = 10
     static let compactRadius: CGFloat = 14
     static let cardRadius: CGFloat = 26
+    static let screenHorizontalPadding: CGFloat = 12
 
     static let minTapTarget: CGFloat = 44
 
@@ -397,20 +398,24 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
                     content
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .safeAreaPadding(.top, topContentPadding)
                 .padding(.bottom, 120)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .coordinateSpace(.named(StickyHeaderTitleReader.coordinateSpaceName))
             .onPreferenceChange(StickyHeaderTitlePreferenceKey.self) { markers in
                 let nextTitle = titleForVisibleSection(markers)
                 guard activeTitle != nextTitle else { return }
-                withAnimation(.snappy(duration: 0.18)) {
-                    activeTitle = nextTitle
+                DispatchQueue.main.async {
+                    guard activeTitle != nextTitle else { return }
+                    withAnimation(.snappy(duration: 0.18)) {
+                        activeTitle = nextTitle
+                    }
                 }
             }
 
@@ -457,7 +462,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
 
                 accessory
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.top, 10)
             .padding(.bottom, 14)
             .background {

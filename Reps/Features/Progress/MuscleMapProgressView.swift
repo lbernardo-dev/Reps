@@ -36,13 +36,30 @@ struct MuscleMapProgressView: View {
             }
     }
 
+    private var underTargetLoads: [MuscleLoad] {
+        loads.filter { $0.totalSets > 0 && $0.totalSets < 4 }
+    }
+
+    private var highVolumeLoads: [MuscleLoad] {
+        loads.filter { $0.totalSets > 12 }
+    }
+
+    private var growthZoneCount: Int {
+        loads.filter { $0.totalSets >= 4 && $0.totalSets <= 12 }.count
+    }
+
     var body: some View {
         VStack(spacing: 14) {
-            Text(selectedMode.subtitle)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(PulseTheme.secondaryText)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.bottom, 6)
+            MuscleCoverageSummaryCard(
+                subtitle: selectedMode.subtitle,
+                totalSegments: loads.count,
+                growthZoneCount: growthZoneCount,
+                underTargetCount: underTargetLoads.count,
+                highVolumeCount: highVolumeLoads.count,
+                topFocus: underTargetLoads.sorted { $0.totalSets < $1.totalSets }.first
+                    ?? highVolumeLoads.sorted { $0.totalSets > $1.totalSets }.first
+                    ?? loads.sorted { $0.totalSets > $1.totalSets }.first
+            )
 
             InteractiveBodyHeatmap(
                 loads: loads,
@@ -178,6 +195,124 @@ struct MuscleMapProgressView: View {
     }
 }
 
+private struct MuscleCoverageSummaryCard: View {
+    let subtitle: LocalizedStringKey
+    let totalSegments: Int
+    let growthZoneCount: Int
+    let underTargetCount: Int
+    let highVolumeCount: Int
+    let topFocus: MuscleLoad?
+
+    private var coverageRatio: Double {
+        guard totalSegments > 0 else { return 0 }
+        return Double(growthZoneCount) / Double(totalSegments)
+    }
+
+    private var headline: String {
+        if underTargetCount > 0 {
+            return localizedString("below_growth_zone")
+        }
+        if highVolumeCount > 0 {
+            return localizedString("high_volume_monitor_recovery")
+        }
+        return localizedString("productive_volume")
+    }
+
+    var body: some View {
+        PulseCard(contentPadding: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .stroke(PulseTheme.grouped, lineWidth: 7)
+                        Circle()
+                            .trim(from: 0, to: min(max(coverageRatio, 0), 1))
+                            .stroke(PulseTheme.growth, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        Text("\(Int(coverageRatio * 100))%")
+                            .font(.caption.weight(.black).monospacedDigit())
+                            .foregroundStyle(PulseTheme.growth)
+                    }
+                    .frame(width: 62, height: 62)
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("muscle_map")
+                            .font(.caption.weight(.black))
+                            .textCase(.uppercase)
+                            .foregroundStyle(PulseTheme.primaryBright)
+                        Text(headline)
+                            .font(.headline.weight(.black))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.78)
+                        Text(localizedKey(subtitle))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+
+                HStack(spacing: 8) {
+                    MuscleCoverageMetric(value: "\(growthZoneCount)", label: "growth_label", systemImage: "leaf.fill", color: PulseTheme.growth)
+                    MuscleCoverageMetric(value: "\(underTargetCount)", label: "alerts_label", systemImage: "arrow.down.circle.fill", color: PulseTheme.warning)
+                    MuscleCoverageMetric(value: "\(highVolumeCount)", label: "load", systemImage: "exclamationmark.triangle.fill", color: PulseTheme.destructive)
+                }
+
+                if let topFocus {
+                    HStack(spacing: 10) {
+                        Image(systemName: topFocus.totalSets > 12 ? "exclamationmark.triangle.fill" : "scope")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(topFocus.zoneColor)
+                            .frame(width: 28, height: 28)
+                            .background(topFocus.zoneColor.opacity(0.12), in: Circle())
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(topFocus.segment.title)
+                                .font(.caption.weight(.black))
+                            Text(topFocus.rangeText)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.72)
+                        }
+                        Spacer()
+                        Text("\(topFocus.displaySets)/12")
+                            .font(.caption.weight(.black).monospacedDigit())
+                            .foregroundStyle(topFocus.zoneColor)
+                    }
+                    .padding(10)
+                    .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+            }
+        }
+    }
+}
+
+private struct MuscleCoverageMetric: View {
+    let value: String
+    let label: LocalizedStringKey
+    let systemImage: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.black))
+                .foregroundStyle(color)
+            Text(value)
+                .font(.headline.weight(.black).monospacedDigit())
+            Text(localizedKey(label))
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+        }
+        .padding(9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
 private struct QuietFilterChip: View {
     let title: LocalizedStringKey
     var isSelected = false
@@ -270,97 +405,129 @@ private struct MuscleLoadCard: View {
     var isSelected = false
     var showsAnalysisHint = false
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                MuscleAnatomyThumbnail(segment: load.segment, intensity: load.intensity, gender: gender, size: 58)
+	    var body: some View {
+	        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                MuscleAnatomyThumbnail(segment: load.segment, intensity: load.intensity, gender: gender, size: 54)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .stroke(isSelected ? PulseTheme.primaryBright : Color.white.opacity(0.06), lineWidth: 1)
                     )
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(load.segment.title)
-                        .font(.system(size: 17, weight: .black))
-                        .foregroundStyle(.white)
-                    
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(load.segment.title)
+                            .font(.system(size: 18, weight: .black))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+
+                        Spacer(minLength: 8)
+
+                        MuscleZonePill(title: load.compactZoneTitle, color: load.zoneColor)
+                    }
+
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("\(load.displaySets)")
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .font(.system(size: 15, weight: .black, design: .rounded))
                             .foregroundStyle(load.zoneColor)
                         Text("/")
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(Color.white.opacity(0.3))
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.32))
                         Text("12 \(localizedString("weekly"))")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    
-                    if load.predictedSets > 0 {
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 10))
-                            Text("+\(load.predictedSets) \(localizedString("predicted"))")
-                                .font(.system(size: 11, weight: .bold))
+
+                        if load.predictedSets > 0 {
+                            Label("+\(load.predictedSets)", systemImage: "sparkles")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(PulseTheme.primaryBright)
+                                .padding(.leading, 2)
                         }
-                        .foregroundStyle(PulseTheme.primaryBright)
-                        .padding(.top, 2)
                     }
                 }
-
-                Spacer()
-
-                // Premium Zone Badge
-                Text(load.compactZoneTitle.uppercased())
-                    .font(.system(size: 10, weight: .black))
-                    .tracking(1)
-                    .foregroundStyle(load.zoneColor)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(
-                        load.zoneColor.opacity(0.12)
-                    )
-                    .overlay(
-                        Capsule()
-                            .stroke(load.zoneColor.opacity(0.3), lineWidth: 1)
-                    )
-                    .clipShape(Capsule())
             }
 
             RepsProgressiveSegmentBar(value: load.totalSets)
 
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 Text(load.rangeText)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(PulseTheme.tertiaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
                 Spacer()
                 Text("\(Int(load.totalVolumeKg)) kg")
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .font(.system(size: 13, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
             }
 
             if showsAnalysisHint {
-                HStack(spacing: 6) {
+                Divider()
+                    .overlay(Color.white.opacity(0.06))
+
+                HStack(spacing: 7) {
                     Image(systemName: "chart.xyaxis.line")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: 11, weight: .black))
                     Text(localizedString("view_frequency_and_contributions"))
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: 12, weight: .black))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .black))
                 }
                 .foregroundStyle(PulseTheme.primaryBright)
-                .padding(.top, 2)
             }
+	        }
+	        .padding(14)
+	        .background(
+	            ZStack {
+	                RoundedRectangle(cornerRadius: 20, style: .continuous)
+	                    .fill(Color.white.opacity(isSelected ? 0.045 : 0.025))
+
+	                LinearGradient(
+	                    colors: [
+	                        Color.white.opacity(isSelected ? 0.07 : 0.035),
+	                        load.zoneColor.opacity(isSelected ? 0.035 : 0.012),
+	                        Color.black.opacity(0.18)
+	                    ],
+	                    startPoint: .topLeading,
+	                    endPoint: .bottomTrailing
+	                )
+	            }
+	        )
+	        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+	        .overlay(
+	            RoundedRectangle(cornerRadius: 20, style: .continuous)
+	                .stroke(isSelected ? PulseTheme.primaryBright.opacity(0.82) : Color.white.opacity(0.075), lineWidth: isSelected ? 1.6 : 1)
+	        )
+	        .shadow(color: isSelected ? PulseTheme.primaryBright.opacity(0.10) : Color.black.opacity(0.14), radius: isSelected ? 12 : 8, x: 0, y: 5)
+	    }
+	}
+
+private struct MuscleZonePill: View {
+    let title: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 5, height: 5)
+            Text(title.uppercased())
+                .font(.system(size: 9, weight: .black))
+                .tracking(0.8)
         }
-        .padding(16)
-        .background(
-            isSelected ? Color.white.opacity(0.04) : Color.white.opacity(0.01)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .foregroundStyle(color)
+        .padding(.horizontal, 8)
+        .frame(height: 24)
+        .background(color.opacity(0.10), in: Capsule())
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(isSelected ? PulseTheme.primaryBright.opacity(0.8) : Color.white.opacity(0.05), lineWidth: isSelected ? 1.8 : 1)
+            Capsule()
+                .stroke(color.opacity(0.22), lineWidth: 1)
         )
-        .shadow(color: isSelected ? PulseTheme.primaryBright.opacity(0.08) : Color.clear, radius: 10, x: 0, y: 4)
     }
 }
 
@@ -379,7 +546,7 @@ private struct MuscleSegmentDetailSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(spacing: 12) {
                         MuscleSegmentHero(
@@ -453,9 +620,11 @@ private struct MuscleSegmentDetailSheet: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 20)
                 .padding(.bottom, 96)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .screenBackground()
             .navigationTitle(segment.title)
             .navigationBarTitleDisplayMode(.inline)
@@ -692,10 +861,10 @@ private struct MuscleAnatomyThumbnail: View {
                 ForEach(Array(segment.visibleSides.enumerated()), id: \.offset) { index, side in
                     body(side: side)
                         .frame(width: proxy.size.width * thumbnailBodyWidthMultiplier, height: proxy.size.height * 1.05)
-                        .scaleEffect(region.scale, anchor: region.anchor)
+                        .scaleEffect(viewport.scale, anchor: viewport.anchor)
                         .offset(
                             x: thumbnailXOffset(for: index, in: proxy.size),
-                            y: proxy.size.height * region.offset.height
+                            y: proxy.size.height * viewport.offset.height
                         )
                 }
             }
@@ -727,36 +896,15 @@ private struct MuscleAnatomyThumbnail: View {
 
     private func thumbnailXOffset(for index: Int, in size: CGSize) -> CGFloat {
         guard segment.visibleSides.count > 1 else {
-            return size.width * region.offset.width
+            return size.width * viewport.offset.width
         }
 
         let sideSpacing = size.width * 0.18
-        return (index == 0 ? -sideSpacing : sideSpacing) + size.width * region.offset.width
+        return (index == 0 ? -sideSpacing : sideSpacing) + size.width * viewport.offset.width
     }
 
-    private var region: MuscleThumbnailRegion {
-        switch segment {
-        case .chest:
-            MuscleThumbnailRegion(scale: 2.90, anchor: .center, offset: CGSize(width: -0.02, height: 0.30))
-        case .deltoids, .traps:
-            MuscleThumbnailRegion(scale: 2.82, anchor: .center, offset: CGSize(width: -0.02, height: 0.26))
-        case .upperBack:
-            MuscleThumbnailRegion(scale: 2.82, anchor: .center, offset: CGSize(width: -0.02, height: 0.25))
-        case .lowerBack:
-            MuscleThumbnailRegion(scale: 2.62, anchor: .center, offset: CGSize(width: -0.02, height: 0.08))
-        case .biceps, .triceps, .forearms:
-            MuscleThumbnailRegion(scale: 2.72, anchor: .center, offset: CGSize(width: 0.02, height: 0.15))
-        case .abs, .obliques:
-            MuscleThumbnailRegion(scale: 2.62, anchor: .center, offset: CGSize(width: -0.02, height: 0.00))
-        case .quads, .adductors:
-            MuscleThumbnailRegion(scale: 2.28, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.16))
-        case .hamstrings:
-            MuscleThumbnailRegion(scale: 2.24, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.10))
-        case .calves:
-            MuscleThumbnailRegion(scale: 2.18, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.06))
-        case .glutes:
-            MuscleThumbnailRegion(scale: 2.50, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.24))
-        }
+    private var viewport: AnatomyViewport {
+        segment.regionFocus.thumbnail
     }
 }
 
@@ -773,10 +921,10 @@ private struct MuscleSegmentHero: View {
                         .heatmap(heatmapData, configuration: .repsVolume)
                         .selected(Set(segment.muscles))
                         .frame(width: proxy.size.width * heroBodyWidthMultiplier, height: proxy.size.height * 1.18)
-                        .scaleEffect(region.scale, anchor: region.anchor)
+                        .scaleEffect(viewport.scale, anchor: viewport.anchor)
                         .offset(
                             x: heroXOffset(for: index, in: proxy.size),
-                            y: proxy.size.height * region.offset.height
+                            y: proxy.size.height * viewport.offset.height
                         )
                         .allowsHitTesting(false)
                 }
@@ -808,37 +956,16 @@ private struct MuscleSegmentHero: View {
 
     private func heroXOffset(for index: Int, in size: CGSize) -> CGFloat {
         guard segment.visibleSides.count > 1 else {
-            return size.width * region.offset.width
+            return size.width * viewport.offset.width
         }
 
         let sideSpacing = size.width * 0.18
-        return (index == 0 ? -sideSpacing : sideSpacing) + size.width * region.offset.width
+        return (index == 0 ? -sideSpacing : sideSpacing) + size.width * viewport.offset.width
     }
 
-    private var region: MuscleThumbnailRegion {
-        switch segment {
-        case .chest:
-            MuscleThumbnailRegion(scale: 1.48, anchor: .center, offset: CGSize(width: -0.02, height: 0.19))
-        case .deltoids, .traps, .upperBack:
-            MuscleThumbnailRegion(scale: 1.42, anchor: .center, offset: CGSize(width: -0.02, height: 0.17))
-        case .lowerBack:
-            MuscleThumbnailRegion(scale: 1.36, anchor: .center, offset: CGSize(width: -0.02, height: 0.07))
-        case .biceps, .triceps, .forearms:
-            MuscleThumbnailRegion(scale: 1.50, anchor: .center, offset: CGSize(width: 0.00, height: 0.12))
-        case .abs, .obliques:
-            MuscleThumbnailRegion(scale: 1.48, anchor: .center, offset: CGSize(width: -0.02, height: -0.01))
-        case .quads, .hamstrings, .calves, .adductors:
-            MuscleThumbnailRegion(scale: 1.34, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.12))
-        case .glutes:
-            MuscleThumbnailRegion(scale: 1.42, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.20))
-        }
+    private var viewport: AnatomyViewport {
+        segment.regionFocus.hero
     }
-}
-
-private struct MuscleThumbnailRegion {
-    let scale: CGFloat
-    let anchor: UnitPoint
-    let offset: CGSize
 }
 
 struct RepsProgressiveSegmentBar: View {
@@ -1071,6 +1198,23 @@ enum MuscleSegment: String, CaseIterable, Identifiable {
             [.back, .front]
         default:
             [preferredSide]
+        }
+    }
+
+    var regionFocus: AnatomyRegionFocus {
+        switch self {
+        case .chest: .chest
+        case .deltoids: .shoulders
+        case .traps: .traps
+        case .upperBack: .upperBack
+        case .lowerBack: .lowerBack
+        case .biceps, .triceps, .forearms: .arms
+        case .abs, .obliques: .core
+        case .quads: .quads
+        case .hamstrings: .hamstrings
+        case .glutes: .glutes
+        case .calves: .calves
+        case .adductors: .adductors
         }
     }
 

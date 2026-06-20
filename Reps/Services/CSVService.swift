@@ -339,3 +339,168 @@ struct CSVImporter {
         Double(value.replacingOccurrences(of: ",", with: "."))
     }
 }
+
+// MARK: - Strong CSV Import
+
+// Strong app exports a flat CSV with one row per set:
+// Date, Workout Name, Exercise Name, Set Order, Weight, Reps,
+// Distance, Seconds, Notes, Workout Notes, RPE
+struct StrongCSVImporter {
+    let csv: String
+
+    func workoutSessions(knownExercises: [Exercise]) -> [WorkoutSession] {
+        let rawLines = csv.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard rawLines.count > 1 else { return [] }
+
+        let rows = rawLines.dropFirst().compactMap { StrongRow(line: $0) }
+        guard !rows.isEmpty else { return [] }
+
+        // Preserve insertion order while grouping by (day + workout name)
+        var keyOrder: [String] = []
+        var grouped: [String: [StrongRow]] = [:]
+        for row in rows {
+            if grouped[row.sessionKey] == nil {
+                keyOrder.append(row.sessionKey)
+                grouped[row.sessionKey] = []
+            }
+            grouped[row.sessionKey]?.append(row)
+        }
+
+        return keyOrder.compactMap { key in
+            guard let sessionRows = grouped[key], let first = sessionRows.first else { return nil }
+            return buildSession(title: first.workoutName, date: first.date, rows: sessionRows, catalog: knownExercises)
+        }
+    }
+
+    private func buildSession(title: String, date: Date, rows: [StrongRow], catalog: [Exercise]) -> WorkoutSession {
+        var exOrder: [String] = []
+        var exGroups: [String: [StrongRow]] = [:]
+        for row in rows {
+            if exGroups[row.exerciseName] == nil {
+                exOrder.append(row.exerciseName)
+                exGroups[row.exerciseName] = []
+            }
+            exGroups[row.exerciseName]?.append(row)
+        }
+
+        let logs: [ExerciseLog] = exOrder.compactMap { name in
+            guard let exRows = exGroups[name] else { return nil }
+            let exercise = resolve(name: name, in: catalog)
+            let sets = exRows.enumerated().map { i, row in
+                SetLog(
+                    setNumber: row.setOrder ?? (i + 1),
+                    weightKg: row.weightKg ?? 0,
+                    reps: row.reps ?? 0,
+                    completed: true,
+                    rpe: row.rpe
+                )
+            }
+            let note = exRows.compactMap(\.notes).first { !$0.isEmpty } ?? ""
+            return ExerciseLog(exercise: exercise, notes: note, sets: sets)
+        }
+
+        let workoutNote = rows.compactMap(\.workoutNotes).first { !$0.isEmpty }
+        let duration = estimatedDuration(from: rows)
+
+        return WorkoutSession(
+            workoutTitle: title,
+            date: date,
+            origin: .routine,
+            location: .gym,
+            durationMinutes: duration,
+            sets: logs.flatMap(\.sets),
+            notes: workoutNote,
+            exerciseLogs: logs
+        )
+    }
+
+    private func resolve(name: String, in catalog: [Exercise]) -> Exercise {
+        let key = normalized(name)
+        if let hit = catalog.first(where: { normalized($0.name) == key }) { return hit }
+        if let hit = catalog.first(where: { $0.aliases.contains(where: { normalized($0) == key }) }) { return hit }
+        return Exercise(name: name, muscleGroup: "Other", equipment: "Other")
+    }
+
+    private func normalized(_ s: String) -> String {
+        s.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .replacingOccurrences(of: "-", with: " ")
+    }
+
+    private func estimatedDuration(from rows: [StrongRow]) -> Int {
+        let dates = rows.map(\.date)
+        guard let earliest = dates.min(), let latest = dates.max() else { return 45 }
+        let minutes = Int(latest.timeIntervalSince(earliest) / 60)
+        return minutes > 5 ? min(minutes + 10, 180) : 45
+    }
+}
+
+private struct StrongRow {
+    let date: Date
+    let workoutName: String
+    let exerciseName: String
+    let setOrder: Int?
+    let weightKg: Double?
+    let reps: Int?
+    let notes: String?
+    let workoutNotes: String?
+    let rpe: Double?
+
+    // Groups rows into the same session: day + workout name
+    var sessionKey: String {
+        let day = Calendar.current.startOfDay(for: date)
+        return "\(day.timeIntervalSince1970)|\(workoutName)"
+    }
+
+    init?(line: String) {
+        let fields = Self.parseLine(line)
+        guard fields.count >= 6 else { return nil }
+        guard let parsedDate = Self.parseStrongDate(fields[0]) else { return nil }
+
+        date = parsedDate
+        workoutName = fields[1]
+        exerciseName = fields[2]
+        setOrder = Int(fields[3])
+        weightKg = fields[4].isEmpty ? nil : Double(fields[4].replacingOccurrences(of: ",", with: "."))
+        reps = fields[5].isEmpty ? nil : Int(fields[5])
+        // Index 6 = distance, 7 = seconds, 8 = notes, 9 = workout notes, 10 = rpe
+        notes = fields.count > 8 && !fields[8].isEmpty ? fields[8] : nil
+        workoutNotes = fields.count > 9 && !fields[9].isEmpty ? fields[9] : nil
+        rpe = fields.count > 10 ? Double(fields[10]) : nil
+    }
+
+    // Strong uses "yyyy-MM-dd HH:mm:ss" (space separator, no timezone)
+    private static let strongDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
+    private static func parseStrongDate(_ value: String) -> Date? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let d = strongDateFormatter.date(from: trimmed) { return d }
+        if let d = ISO8601DateFormatter().date(from: trimmed) { return d }
+        // Try date-only "yyyy-MM-dd"
+        let shortFormatter = DateFormatter()
+        shortFormatter.dateFormat = "yyyy-MM-dd"
+        shortFormatter.locale = Locale(identifier: "en_US_POSIX")
+        return shortFormatter.date(from: trimmed)
+    }
+
+    private static func parseLine(_ line: String) -> [String] {
+        var values: [String] = []
+        var current = ""
+        var quoted = false
+        for ch in line {
+            if ch == "\"" { quoted.toggle() }
+            else if ch == "," && !quoted { values.append(current); current = "" }
+            else { current.append(ch) }
+        }
+        values.append(current)
+        return values.map { $0.replacingOccurrences(of: "\"\"", with: "\"") }
+    }
+}

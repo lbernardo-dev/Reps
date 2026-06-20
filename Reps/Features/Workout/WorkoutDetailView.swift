@@ -40,7 +40,7 @@ struct WorkoutDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 20) {
                 headerSection
                 heroCard
@@ -60,10 +60,12 @@ struct WorkoutDetailView: View {
                 
                 preparationCard
             }
-            .padding(20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+            .padding(.vertical, 20)
             .safeAreaPadding(.top, 8)
             .padding(.bottom, 96)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
@@ -84,7 +86,8 @@ struct WorkoutDetailView: View {
                     .background(PulseTheme.accent)
                     .clipShape(Capsule())
             }
-            .padding(20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+            .padding(.vertical, 20)
             .padding(.bottom, 8)
             .background(
                 LinearGradient(

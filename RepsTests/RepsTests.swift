@@ -248,6 +248,77 @@ struct RepsTests {
         #expect(shortRestProjection < longRestProjection)
     }
 
+    @Test func dailyCoachRecommendationStartsWithPlanCreationWhenNoPlanExists() {
+        let battery = FitnessMetrics.trainingBatteryStatus(
+            sessions: [],
+            scheduledWorkouts: [],
+            activePlan: .empty,
+            bodyMetrics: [],
+            health: HealthSyncState()
+        )
+        let summary = AnalyticsEngine.competitiveSummary(
+            sessions: [],
+            activePlan: .empty,
+            exercises: SeedData.exercises,
+            since: .now
+        )
+
+        let recommendation = FitnessMetrics.dailyCoachRecommendation(
+            battery: battery,
+            competitiveSummary: summary,
+            hasActivePlan: false,
+            hasTodayWorkout: false,
+            hasCompletedWorkout: false
+        )
+
+        #expect(recommendation.action == .createPlan)
+        #expect(recommendation.tone == .primary)
+    }
+
+    @Test func dailyCoachRecommendationProtectsRecoveryWhenBatteryIsCritical() {
+        let hardSessions = (0..<4).map { offset in
+            WorkoutSession(
+                workoutTitle: "Hard \(offset)",
+                date: Calendar.current.date(byAdding: .hour, value: -offset * 8, to: .now) ?? .now,
+                durationMinutes: 95,
+                sets: [
+                    SetLog(setNumber: 1, weightKg: 140, reps: 6, completed: true, rpe: 10),
+                    SetLog(setNumber: 2, weightKg: 130, reps: 8, completed: true, rpe: 9.5),
+                    SetLog(setNumber: 3, weightKg: 120, reps: 10, completed: true, rpe: 9.5),
+                    SetLog(setNumber: 4, weightKg: 110, reps: 12, completed: true, rpe: 9)
+                ],
+                sessionRPE: 10,
+                energyBefore: 5,
+                energyAfter: 1
+            )
+        }
+        let battery = FitnessMetrics.trainingBatteryStatus(
+            sessions: hardSessions,
+            scheduledWorkouts: [],
+            activePlan: SeedData.pushPullLegsPlan,
+            bodyMetrics: [BodyMetric(date: .now, weightKg: 80, heightCm: 178, sleepHours: 4.5, fatigue: 5, stress: 5, source: .manual)],
+            health: HealthSyncState()
+        )
+        let summary = AnalyticsEngine.competitiveSummary(
+            sessions: hardSessions,
+            activePlan: SeedData.pushPullLegsPlan,
+            exercises: SeedData.exercises,
+            since: Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .now
+        )
+
+        let recommendation = FitnessMetrics.dailyCoachRecommendation(
+            battery: battery,
+            competitiveSummary: summary,
+            hasActivePlan: true,
+            hasTodayWorkout: true,
+            hasCompletedWorkout: true
+        )
+
+        #expect(battery.state == .critical)
+        #expect(recommendation.action == .competitive(.scheduleRecovery))
+        #expect(recommendation.tone == .warning)
+    }
+
     @Test func csvGymPassRoundTripPreservesCodeValue() {
         let pass = GymPass(
             gymName: "Downtown Gym",

@@ -6,6 +6,7 @@ struct PlansView: View {
     @State private var showExerciseLibrary = false
     @State private var planToEdit: WorkoutPlan?
     @State private var showProfile = false
+    @State private var showProgramLibrary = false
 
     /// A few exercises spanning distinct muscle groups, for the library collage.
     private var collageExercises: [Exercise] {
@@ -34,71 +35,6 @@ struct PlansView: View {
                     }
                 }
             ) {
-                PulseCard {
-                        VStack(alignment: .leading, spacing: 14) {
-                            LibraryHeroHeader(
-                                exercises: collageExercises,
-                                exerciseCount: store.exercises.count,
-                                routineCount: store.workoutTemplates.count
-                            )
-
-                            HStack(spacing: 12) {
-                                Button {
-                                    showExerciseLibrary = true
-                                } label: {
-                                    LibraryShortcut(
-                                        title: "exercises_3",
-                                        subtitle: localizedFormat("exercises_available_format", store.exercises.count),
-                                        systemImage: "magnifyingglass"
-                                    )
-                                }
-                                .buttonStyle(.plain)
-
-                                NavigationLink {
-                                    WorkoutLibraryView()
-                                } label: {
-                                    LibraryShortcut(
-                                        title: "routines_label",
-                                        subtitle: localizedFormat("templates_count_format", store.workoutTemplates.count),
-                                        systemImage: "list.clipboard"
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .stickyHeaderTitle(localizedString("libraries"))
-
-                    PulseCard {
-                        VStack(alignment: .leading, spacing: 14) {
-                            ToolsHeroHeader()
-                            HStack(spacing: 12) {
-                                NavigationLink {
-                                    OneRepMaxCalculatorView()
-                                } label: {
-                                    LibraryShortcut(
-                                        title: "one_rep_max_calculator",
-                                        subtitle: localizedString("estimate_your_max"),
-                                        systemImage: "function"
-                                    )
-                                }
-                                .buttonStyle(.plain)
-
-                                NavigationLink {
-                                    PlateCalculatorView()
-                                } label: {
-                                    LibraryShortcut(
-                                        title: "weight_plates",
-                                        subtitle: localizedString("load_the_bar"),
-                                        systemImage: "circle.grid.3x3.fill"
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .stickyHeaderTitle(localizedString("tools"))
-
                     if hasActivePlan {
                         activePlanSection
                             .stickyHeaderTitle(localizedString("active_plan"))
@@ -107,8 +43,28 @@ struct PlansView: View {
                             .stickyHeaderTitle(localizedString("create_plan_2"))
                     }
 
-                    SectionHeader(title: "your_plans_header")
-                        .stickyHeaderTitle(localizedString("your_plans"))
+                    programDiscoverySection
+                        .stickyHeaderTitle(localizedString("browse_programs_button"))
+
+                    librarySection
+                        .stickyHeaderTitle(localizedString("libraries"))
+
+                    toolsSection
+                        .stickyHeaderTitle(localizedString("tools"))
+
+                    HStack {
+                        SectionHeader(title: "your_plans_header")
+                        Spacer()
+                        Button {
+                            showProgramLibrary = true
+                        } label: {
+                            Label(localizedString("browse_programs_button"), systemImage: "magnifyingglass")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.primary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .stickyHeaderTitle(localizedString("your_plans"))
 
                     PulseCard {
                         VStack(spacing: 0) {
@@ -174,6 +130,10 @@ struct PlansView: View {
             .sheet(isPresented: $showCreatePlan) {
                 CreatePlanView()
             }
+            .sheet(isPresented: $showProgramLibrary) {
+                ProgramLibraryView()
+                    .environment(store)
+            }
             .sheet(item: $planToEdit) { plan in
                 EditPlanView(plan: plan)
             }
@@ -199,70 +159,146 @@ struct PlansView: View {
         !store.activePlan.days.isEmpty
     }
 
-    @ViewBuilder
-    private var activePlanSection: some View {
-        SectionHeader(title: "active_plan_header")
-
+    private var librarySection: some View {
         PulseCard {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack {
-                    PulseChip(title: "in_progress_label", isSelected: true)
-                    Spacer()
-                    Menu {
-                        Button("edit_plan") {
-                            planToEdit = store.activePlan
-                        }
-                        Button("deactivate_plan") {
-                            store.deactivatePlan(store.activePlan)
-                        }
+            VStack(alignment: .leading, spacing: 14) {
+                LibraryHeroHeader(
+                    exercises: collageExercises,
+                    exerciseCount: store.exercises.count,
+                    routineCount: store.workoutTemplates.count
+                )
+
+                HStack(spacing: 12) {
+                    Button {
+                        showExerciseLibrary = true
                     } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .frame(width: 44, height: 44)
+                        LibraryShortcut(
+                            title: "exercises_3",
+                            subtitle: localizedFormat("exercises_available_format", store.exercises.count),
+                            systemImage: "magnifyingglass"
+                        )
                     }
-                    .accessibilityLabel("plan_actions")
-                }
+                    .buttonStyle(.plain)
 
-                Text(store.activePlan.name)
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
-
-                HStack(spacing: 16) {
-                    Label(locationTitle(store.activePlan.location), systemImage: "dumbbell.fill")
-                    Divider().frame(height: 18)
-                    Label(localizedFormat("days_per_week_short_format", store.activePlan.daysPerWeek), systemImage: "calendar")
-                }
-                .foregroundStyle(PulseTheme.secondaryText)
-
-                ProgressView(value: store.activePlan.completion)
-                    .tint(PulseTheme.accent)
-
-                HStack {
-                    Text(localizedFormat("week_of_total_format", store.activePlan.currentWeek, store.activePlan.totalWeeks))
-                    Spacer()
-                    Text(localizedFormat("percent_completed_format", Int(store.activePlan.completion * 100)))
-                }
-                .foregroundStyle(PulseTheme.secondaryText)
-
-                if let targetEventName = store.activePlan.targetEventName,
-                   let targetEventDate = store.activePlan.targetEventDate {
-                    Divider()
-                    PlanTargetEventSummary(
-                        eventName: targetEventName,
-                        eventDate: targetEventDate
-                    )
+                    NavigationLink {
+                        WorkoutLibraryView()
+                    } label: {
+                        LibraryShortcut(
+                            title: "routines_label",
+                            subtitle: localizedFormat("templates_count_format", store.workoutTemplates.count),
+                            systemImage: "list.clipboard"
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
+    }
+
+    private var toolsSection: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                ToolsHeroHeader()
+                HStack(spacing: 12) {
+                    NavigationLink {
+                        OneRepMaxCalculatorView()
+                    } label: {
+                        LibraryShortcut(
+                            title: "one_rep_max_calculator",
+                            subtitle: localizedString("estimate_your_max"),
+                            systemImage: "function"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        PlateCalculatorView()
+                    } label: {
+                        LibraryShortcut(
+                            title: "weight_plates",
+                            subtitle: localizedString("load_the_bar"),
+                            systemImage: "circle.grid.3x3.fill"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var programDiscoverySection: some View {
+        PulseCard(contentPadding: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(.white)
+                        .frame(width: 50, height: 50)
+                        .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(localizedString("browse_programs_button"))
+                            .font(.title3.weight(.black))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                        Text("Pick a ready-made block, then adapt days, music and exercises to your equipment.")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    PlanValuePill(value: "\(SeedData.defaultPlans.count)", label: "Programs", systemImage: "square.grid.2x2")
+                    PlanValuePill(value: "\(SeedData.ProgramMetadata.Category.allCases.count)", label: "Goals", systemImage: "scope")
+                    PlanValuePill(value: "\(store.exercises.count)", label: "Exercises", systemImage: "figure.strengthtraining.traditional")
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        showProgramLibrary = true
+                    } label: {
+                        Label(localizedString("browse_programs_button"), systemImage: "sparkles")
+                            .font(.headline.weight(.black))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .foregroundStyle(.white)
+                            .background(PulseTheme.primary, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        showCreatePlan = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.headline.weight(.black))
+                            .frame(width: 50, height: 50)
+                            .foregroundStyle(PulseTheme.primary)
+                            .background(PulseTheme.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(localizedString("create_plan"))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var activePlanSection: some View {
+        ActivePlanCommandCard(
+            plan: store.activePlan,
+            locationTitle: locationTitle(store.activePlan.location),
+            onEdit: { planToEdit = store.activePlan },
+            onDeactivate: { store.deactivatePlan(store.activePlan) }
+        )
 
         PlanMusicCard(plan: store.activePlan) {
             planToEdit = store.activePlan
         }
 
-        SectionHeader(title: "training_days_section")
-
-        PulseCard {
-            VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "training_days_section")
+            LazyVStack(spacing: 10) {
                 ForEach(store.activePlan.days) { day in
                     NavigationLink {
                         WorkoutDetailView(workout: day)
@@ -270,10 +306,6 @@ struct PlansView: View {
                         PlanDayRow(day: day)
                     }
                     .buttonStyle(.plain)
-
-                    if day.id != store.activePlan.days.last?.id {
-                        Divider()
-                    }
                 }
             }
         }
@@ -327,8 +359,124 @@ struct PlansView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                Button {
+                    showProgramLibrary = true
+                } label: {
+                    Label(localizedString("browse_programs_button"), systemImage: "magnifyingglass")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .foregroundStyle(PulseTheme.primary)
+                        .background(PulseTheme.primary.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
         }
+    }
+}
+
+private struct ActivePlanCommandCard: View {
+    let plan: WorkoutPlan
+    let locationTitle: String
+    let onEdit: () -> Void
+    let onDeactivate: () -> Void
+
+    var body: some View {
+        PulseCard(contentPadding: 18) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .stroke(PulseTheme.grouped, lineWidth: 8)
+                        Circle()
+                            .trim(from: 0, to: min(max(plan.completion, 0), 1))
+                            .stroke(PulseTheme.accent, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        Text("\(Int(plan.completion * 100))%")
+                            .font(.caption.weight(.black).monospacedDigit())
+                            .foregroundStyle(PulseTheme.accent)
+                    }
+                    .frame(width: 70, height: 70)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("in_progress_label", systemImage: "bolt.fill")
+                            .font(.caption.weight(.black))
+                            .textCase(.uppercase)
+                            .foregroundStyle(PulseTheme.accent)
+                        Text(plan.name)
+                            .font(.system(size: 27, weight: .black, design: .rounded))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.72)
+                        HStack(spacing: 8) {
+                            Label(locationTitle, systemImage: "mappin.and.ellipse")
+                            Text("·")
+                            Label(localizedFormat("days_per_week_short_format", plan.daysPerWeek), systemImage: "calendar")
+                        }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Menu {
+                        Button("edit_plan", action: onEdit)
+                        Button("deactivate_plan", role: .destructive, action: onDeactivate)
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .frame(width: 42, height: 42)
+                            .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .accessibilityLabel("plan_actions")
+                }
+
+                HStack(spacing: 8) {
+                    PlanValuePill(value: "\(plan.currentWeek)/\(plan.totalWeeks)", label: "Week", systemImage: "calendar")
+                    PlanValuePill(value: "\(plan.days.count)", label: "Days", systemImage: "list.clipboard")
+                    PlanValuePill(value: "\(plan.days.reduce(0) { $0 + $1.exercises.count })", label: localizedString("exercises_2"), systemImage: "dumbbell.fill")
+                }
+
+                if let targetEventName = plan.targetEventName,
+                   let targetEventDate = plan.targetEventDate {
+                    PlanTargetEventSummary(
+                        eventName: targetEventName,
+                        eventDate: targetEventDate
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct PlanValuePill: View {
+    let value: String
+    let label: String
+    let systemImage: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.black))
+                .foregroundStyle(PulseTheme.primary)
+            Text(value)
+                .font(.headline.weight(.black))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            Text(label)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -551,25 +699,68 @@ private struct PlanDayRow: View {
     let day: WorkoutDay
 
     var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "list.clipboard")
-                .font(.headline)
-                .foregroundStyle(PulseTheme.primary)
-                .frame(width: 42, height: 42)
-                .background(PulseTheme.primary.opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-            VStack(alignment: .leading, spacing: 3) {
-                Text(day.title)
-                    .font(.headline)
-                Text(localizedFormat("exercises_duration_format", day.exercises.count, day.durationMinutes))
-                    .font(.subheadline)
+        PulseCard(contentPadding: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(spacing: 2) {
+                    Text("\(day.exercises.count)")
+                        .font(.title3.weight(.black).monospacedDigit())
+                        .foregroundStyle(PulseTheme.primary)
+                    Text(localizedString("exercises_2"))
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                .frame(width: 56, height: 56)
+                .background(PulseTheme.primary.opacity(0.10), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(day.title)
+                                .font(.headline.weight(.black))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+                            Text(day.subtitle)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+                        }
+                        Spacer(minLength: 8)
+                        Label("\(day.durationMinutes) min", systemImage: "clock")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(1)
+                    }
+
+                    if !day.exercises.isEmpty {
+                        HStack(spacing: 6) {
+                            ForEach(day.exercises.prefix(3)) { workoutExercise in
+                                Text(workoutExercise.exercise.name)
+                                    .font(.caption2.weight(.bold))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 5)
+                                    .background(PulseTheme.grouped, in: Capsule())
+                            }
+                            if day.exercises.count > 3 {
+                                Text("+\(day.exercises.count - 3)")
+                                    .font(.caption2.weight(.black))
+                                    .foregroundStyle(PulseTheme.primary)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 5)
+                                    .background(PulseTheme.primary.opacity(0.12), in: Capsule())
+                            }
+                        }
+                    }
+                }
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.black))
                     .foregroundStyle(PulseTheme.secondaryText)
+                    .padding(.top, 4)
             }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .foregroundStyle(PulseTheme.secondaryText)
         }
-        .padding(.vertical, 10)
     }
 }
 
@@ -1022,7 +1213,7 @@ struct CreatePlanView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 wizardHeader
-                ScrollView {
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
                         switch step {
                         case .basics:
@@ -1035,9 +1226,11 @@ struct CreatePlanView: View {
                             musicReviewStep
                         }
                     }
-                    .padding(20)
+                    .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                    .padding(.vertical, 20)
                     .padding(.bottom, 96)
                 }
+                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
                 .screenBackground()
             }
             .navigationTitle("create_plan")
@@ -1072,7 +1265,8 @@ struct CreatePlanView: View {
                     }
                     .disabled(!canContinue)
                 }
-                .padding(20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 20)
                 .background(.ultraThinMaterial)
             }
             .sheet(item: pickerBinding) { target in
@@ -1103,7 +1297,7 @@ struct CreatePlanView: View {
                 .font(.subheadline)
                 .foregroundStyle(PulseTheme.secondaryText)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
         .padding(.vertical, 14)
         .background(PulseTheme.background)
     }
@@ -2211,11 +2405,11 @@ private struct PlanExercisePickerSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
                     TextField("search_by_name_muscle_or_team", text: $searchText)
                         .textFieldStyle(.roundedBorder)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             Picker("muscle", selection: $selectedMuscle) {
@@ -2227,7 +2421,7 @@ private struct PlanExercisePickerSheet: View {
                             }
                             .pickerStyle(.menu)
                         }
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                     }
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
@@ -2258,7 +2452,7 @@ private struct PlanExercisePickerSheet: View {
                             Toggle("mi_equipo", isOn: $onlyAvailableEquipment)
                                 .toggleStyle(.button)
                         }
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                     }
                     .font(.subheadline.weight(.semibold))
 
@@ -2288,10 +2482,11 @@ private struct PlanExercisePickerSheet: View {
                             .buttonStyle(.plain)
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 }
                 .padding(.vertical, 20)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .screenBackground()
             .navigationTitle("choose_exercise")
             .navigationBarTitleDisplayMode(.inline)

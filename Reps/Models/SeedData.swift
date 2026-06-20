@@ -919,4 +919,109 @@ enum SeedData {
             return ["Losing brace", "Using momentum", "Cutting the range of motion short"]
         }
     }
+
+    // MARK: - Program metadata
+
+    struct ProgramMetadata {
+        enum Category: String, CaseIterable, Identifiable {
+            case strength
+            case hypertrophy
+            case home
+            case beginner
+            var id: String { rawValue }
+            var displayName: String {
+                switch self {
+                case .strength:    return localizedString("program_category_strength")
+                case .hypertrophy: return localizedString("program_category_hypertrophy")
+                case .home:        return localizedString("program_category_home")
+                case .beginner:    return localizedString("program_category_beginner")
+                }
+            }
+            var systemImage: String {
+                switch self {
+                case .strength:    return "figure.strengthtraining.traditional"
+                case .hypertrophy: return "chart.bar.fill"
+                case .home:        return "house.fill"
+                case .beginner:    return "star.fill"
+                }
+            }
+        }
+
+        enum Level: String {
+            case beginner, intermediate, advanced
+            var displayName: String {
+                switch self {
+                case .beginner:     return localizedString("program_level_beginner")
+                case .intermediate: return localizedString("program_level_intermediate")
+                case .advanced:     return localizedString("program_level_advanced")
+                }
+            }
+            var color: String {
+                switch self {
+                case .beginner:     return "green"
+                case .intermediate: return "orange"
+                case .advanced:     return "red"
+                }
+            }
+        }
+
+        let tagline: String
+        let category: Category
+        let level: Level
+    }
+
+    static let programMetadata: [String: ProgramMetadata] = [
+        "Push Pull Legs": .init(
+            tagline: localizedString("program_ppl_tagline"),
+            category: .hypertrophy, level: .intermediate
+        ),
+        "Home Strength": .init(
+            tagline: localizedString("program_home_strength_tagline"),
+            category: .home, level: .beginner
+        ),
+        "Beginner Full Body": .init(
+            tagline: localizedString("program_beginner_full_body_tagline"),
+            category: .beginner, level: .beginner
+        ),
+        "Full Body Beginner 3-Day": .init(
+            tagline: localizedString("program_full_body_3day_tagline"),
+            category: .beginner, level: .beginner
+        ),
+        "Upper Lower 4-Day": .init(
+            tagline: localizedString("program_upper_lower_tagline"),
+            category: .strength, level: .intermediate
+        ),
+        "Push Pull Legs 3-Day": .init(
+            tagline: localizedString("program_ppl_3day_tagline"),
+            category: .hypertrophy, level: .beginner
+        ),
+        "Push Pull Legs 6-Day": .init(
+            tagline: localizedString("program_ppl_6day_tagline"),
+            category: .hypertrophy, level: .advanced
+        ),
+        "Home Dumbbell 4-Day": .init(
+            tagline: localizedString("program_home_dumbbell_tagline"),
+            category: .home, level: .intermediate
+        ),
+        "Home No Equipment 3-Day": .init(
+            tagline: localizedString("program_home_no_equipment_tagline"),
+            category: .home, level: .beginner
+        ),
+        "Strength 5x5": .init(
+            tagline: localizedString("program_5x5_tagline"),
+            category: .strength, level: .intermediate
+        ),
+        "Hypertrophy 8-Week": .init(
+            tagline: localizedString("program_hypertrophy_8week_tagline"),
+            category: .hypertrophy, level: .advanced
+        ),
+        "Glutes & Legs Focus": .init(
+            tagline: localizedString("program_glutes_legs_tagline"),
+            category: .hypertrophy, level: .intermediate
+        ),
+        "Express 30-Minute Strength": .init(
+            tagline: localizedString("program_express_tagline"),
+            category: .strength, level: .beginner
+        )
+    ]
 }

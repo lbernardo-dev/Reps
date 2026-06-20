@@ -153,7 +153,7 @@ struct TrainingBatteryView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 24) {
                 // Header navigation bar replacement
                 customNavBar
@@ -194,7 +194,7 @@ struct TrainingBatteryView: View {
                             .fontWeight(.medium)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(PulseTheme.secondaryText)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.vertical, 24)
@@ -215,9 +215,10 @@ struct TrainingBatteryView: View {
 
                 Spacer(minLength: 40)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.bottom, 60)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
     }

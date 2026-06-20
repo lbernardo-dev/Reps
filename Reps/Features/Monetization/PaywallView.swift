@@ -18,8 +18,7 @@ struct PaywallView: View {
     private let includedFeatures: [ProductFeature] = [
         .configurableProgression,
         .advancedAnalytics,
-        .automaticBackups,
-        .shareCards
+        .automaticBackups
     ]
 
     init(presentation: PaywallPresentation, onDismissReason: ((PaywallDismissReason) -> Void)? = nil) {
@@ -195,7 +194,7 @@ struct PaywallView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.top, 10)
                 .padding(.bottom, 8)
                 .background(.ultraThinMaterial)
@@ -399,7 +398,7 @@ struct SubscriptionCenterView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 18) {
                     PulseCard {
                         VStack(alignment: .leading, spacing: 12) {
@@ -422,8 +421,7 @@ struct SubscriptionCenterView: View {
                             ForEach([
                                 ProductFeature.configurableProgression,
                                 .advancedAnalytics,
-                                .automaticBackups,
-                                .shareCards
+                                .automaticBackups
                             ]) { feature in
                                 PaywallBenefitRow(feature: feature)
                             }
@@ -446,9 +444,11 @@ struct SubscriptionCenterView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 20)
                 .padding(.bottom, 24)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle("subscription")
             .navigationBarTitleDisplayMode(.inline)

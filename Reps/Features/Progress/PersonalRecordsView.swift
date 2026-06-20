@@ -51,7 +51,7 @@ struct PersonalRecordsView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 22) {
                 // PR Hero Section
                 VStack(spacing: 12) {
@@ -85,18 +85,19 @@ struct PersonalRecordsView: View {
                             systemImage: "trophy"
                         )
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 } else {
                     LazyVStack(spacing: 14) {
                         ForEach(personalRecords) { item in
                             PRCardView(item: item)
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 }
             }
             .padding(.bottom, 30)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .navigationTitle("wall_of_records")
         .navigationBarTitleDisplayMode(.inline)

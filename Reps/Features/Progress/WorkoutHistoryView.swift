@@ -97,7 +97,7 @@ struct WorkoutHistoryView: View {
                 .padding(.vertical, 10)
                 .background(PulseTheme.card)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .padding(.horizontal, 20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.top, 10)
                 
                 // Segmented Filters
@@ -128,12 +128,12 @@ struct WorkoutHistoryView: View {
                         .pickerStyle(.segmented)
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.bottom, 12)
             }
             .background(PulseTheme.background)
             
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
                     if filteredAndGroupedSessions.isEmpty {
                         PulseCard {
@@ -169,9 +169,10 @@ struct WorkoutHistoryView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.bottom, 116)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         }
         .screenBackground()
         .navigationTitle("history")
@@ -292,7 +293,7 @@ struct RouteWorkoutSummaryView: View {
     @State private var showExpandedMap = false
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 0) {
                 RouteWorkoutHero(
                     session: session,
@@ -328,11 +329,12 @@ struct RouteWorkoutSummaryView: View {
                         RouteWorkoutNotesCard(notes: notes)
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.bottom, 112)
                 .offset(y: -8)
             }
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .ignoresSafeArea(edges: .top)
         .background(Color.black)
         .sheet(isPresented: $showExpandedMap) {
@@ -356,7 +358,7 @@ struct StrengthWorkoutSummaryView: View {
     }
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 0) {
                 StrengthWorkoutHero(
                     session: session,
@@ -387,11 +389,12 @@ struct StrengthWorkoutSummaryView: View {
                         RouteWorkoutNotesCard(notes: notes)
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.bottom, 112)
                 .offset(y: -8)
             }
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .ignoresSafeArea(edges: .top)
         .background(Color.black)
     }
@@ -496,7 +499,7 @@ private struct StrengthWorkoutHero: View {
                 }
                 .padding(.top, 8)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.bottom, 24)
 
             HStack {
@@ -524,7 +527,7 @@ private struct StrengthWorkoutHero: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.top, 54)
             .frame(maxHeight: .infinity, alignment: .top)
         }
@@ -704,7 +707,7 @@ private struct RouteWorkoutHero: View {
                     .padding(.top, 8)
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.bottom, 24)
 
             HStack {
@@ -745,7 +748,7 @@ private struct RouteWorkoutHero: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.top, 54)
             .frame(maxHeight: .infinity, alignment: .top)
         }

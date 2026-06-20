@@ -56,7 +56,7 @@ struct ExerciseAnatomyThumbnail: View {
     }
 
     private var cacheKey: String {
-        return "v6-\(exercise.id.uuidString)-\(gender)-\(Int(size.rounded()))-\(descriptor.region.side)-\(descriptor.cacheKey)"
+        return "v7-\(exercise.id.uuidString)-\(gender)-\(Int(size.rounded()))-\(descriptor.region.side)-\(descriptor.cacheKey)"
     }
 
     private var cardioFallback: some View {
@@ -240,6 +240,107 @@ struct AnatomyRegion {
     let scale: CGFloat
     let anchor: UnitPoint
     let offset: CGSize
+}
+
+struct AnatomyViewport {
+    let scale: CGFloat
+    let anchor: UnitPoint
+    let offset: CGSize
+}
+
+enum AnatomyRegionFocus {
+    case upperBody
+    case chest
+    case back
+    case traps
+    case upperBack
+    case lowerBack
+    case neck
+    case shoulders
+    case arms
+    case legs
+    case quads
+    case hamstrings
+    case calves
+    case adductors
+    case glutes
+    case core
+    case fullBody
+    case cardio
+
+    var side: BodySide {
+        switch self {
+        case .back, .traps, .upperBack, .lowerBack, .hamstrings, .calves, .glutes:
+            .back
+        default:
+            .front
+        }
+    }
+
+    var thumbnail: AnatomyViewport {
+        switch self {
+        case .upperBody:
+            AnatomyViewport(scale: 2.24, anchor: .center, offset: CGSize(width: -0.01, height: 0.22))
+        case .chest:
+            AnatomyViewport(scale: 2.90, anchor: .center, offset: CGSize(width: -0.02, height: 0.30))
+        case .back, .traps, .upperBack:
+            AnatomyViewport(scale: 2.82, anchor: .center, offset: CGSize(width: -0.02, height: 0.25))
+        case .lowerBack:
+            AnatomyViewport(scale: 2.62, anchor: .center, offset: CGSize(width: -0.02, height: 0.08))
+        case .neck:
+            AnatomyViewport(scale: 2.95, anchor: .top, offset: CGSize(width: -0.02, height: 0.48))
+        case .shoulders:
+            AnatomyViewport(scale: 2.82, anchor: .center, offset: CGSize(width: -0.02, height: 0.28))
+        case .arms:
+            AnatomyViewport(scale: 2.72, anchor: .center, offset: CGSize(width: 0.02, height: 0.15))
+        case .legs:
+            AnatomyViewport(scale: 2.08, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.10))
+        case .quads, .adductors:
+            AnatomyViewport(scale: 2.58, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.58))
+        case .hamstrings:
+            AnatomyViewport(scale: 2.58, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.54))
+        case .calves:
+            AnatomyViewport(scale: 2.42, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.14))
+        case .glutes:
+            AnatomyViewport(scale: 3.04, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.98))
+        case .core:
+            AnatomyViewport(scale: 2.62, anchor: .center, offset: CGSize(width: -0.02, height: 0.00))
+        case .fullBody:
+            AnatomyViewport(scale: 1.72, anchor: .center, offset: CGSize(width: -0.01, height: 0.01))
+        case .cardio:
+            AnatomyViewport(scale: 1, anchor: .center, offset: .zero)
+        }
+    }
+
+    var hero: AnatomyViewport {
+        switch self {
+        case .chest:
+            AnatomyViewport(scale: 1.54, anchor: .center, offset: CGSize(width: -0.02, height: 0.20))
+        case .back, .traps, .upperBack, .shoulders:
+            AnatomyViewport(scale: 1.48, anchor: .center, offset: CGSize(width: -0.02, height: 0.18))
+        case .lowerBack:
+            AnatomyViewport(scale: 1.48, anchor: .center, offset: CGSize(width: -0.02, height: 0.12))
+        case .arms:
+            AnatomyViewport(scale: 1.50, anchor: .center, offset: CGSize(width: 0.00, height: 0.12))
+        case .core:
+            AnatomyViewport(scale: 1.56, anchor: .center, offset: CGSize(width: -0.02, height: 0.02))
+        case .quads, .adductors:
+            AnatomyViewport(scale: 1.48, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.04))
+        case .hamstrings:
+            AnatomyViewport(scale: 1.48, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.00))
+        case .calves:
+            AnatomyViewport(scale: 1.54, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.08))
+        case .glutes:
+            AnatomyViewport(scale: 1.62, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.22))
+        case .upperBody, .neck, .legs, .fullBody, .cardio:
+            thumbnail
+        }
+    }
+
+    var anatomyRegion: AnatomyRegion {
+        let viewport = thumbnail
+        return AnatomyRegion(side: side, scale: viewport.scale, anchor: viewport.anchor, offset: viewport.offset)
+    }
 }
 
 private enum ExerciseAnatomyFocus {
@@ -506,35 +607,28 @@ private enum ExerciseAnatomyFocus {
     }
 
     var region: AnatomyRegion {
+        regionFocus.anatomyRegion
+    }
+
+    private var regionFocus: AnatomyRegionFocus {
         switch self {
-        case .upperBody:
-            AnatomyRegion(side: .front, scale: 2.24, anchor: .center, offset: CGSize(width: -0.01, height: 0.22))
-        case .chest, .chestUpper, .chestLower:
-            AnatomyRegion(side: .front, scale: 2.90, anchor: .center, offset: CGSize(width: -0.02, height: 0.30))
-        case .back, .lats, .traps, .lowerBack:
-            AnatomyRegion(side: .back, scale: 2.82, anchor: .center, offset: CGSize(width: -0.02, height: 0.25))
-        case .neck:
-            AnatomyRegion(side: .front, scale: 2.95, anchor: .top, offset: CGSize(width: -0.02, height: 0.48))
-        case .shoulders:
-            AnatomyRegion(side: .front, scale: 2.82, anchor: .center, offset: CGSize(width: -0.02, height: 0.28))
-        case .arms, .biceps, .triceps, .forearms:
-            AnatomyRegion(side: .front, scale: 2.72, anchor: .center, offset: CGSize(width: 0.02, height: 0.15))
-        case .legs:
-            AnatomyRegion(side: .front, scale: 2.08, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.10))
-        case .quadriceps, .adductors, .hipFlexors:
-            AnatomyRegion(side: .front, scale: 2.28, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.16))
-        case .hamstrings:
-            AnatomyRegion(side: .back, scale: 2.24, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.10))
-        case .calves:
-            AnatomyRegion(side: .back, scale: 2.18, anchor: .bottom, offset: CGSize(width: -0.02, height: -0.06))
-        case .glutes:
-            AnatomyRegion(side: .back, scale: 2.50, anchor: .bottom, offset: CGSize(width: -0.02, height: 0.24))
-        case .core, .obliques:
-            AnatomyRegion(side: .front, scale: 2.62, anchor: .center, offset: CGSize(width: -0.02, height: 0.00))
-        case .fullBody:
-            AnatomyRegion(side: .front, scale: 1.72, anchor: .center, offset: CGSize(width: -0.01, height: 0.01))
-        case .cardio:
-            AnatomyRegion(side: .front, scale: 1, anchor: .center, offset: .zero)
+        case .upperBody: .upperBody
+        case .chest, .chestUpper, .chestLower: .chest
+        case .back, .lats: .back
+        case .traps: .traps
+        case .lowerBack: .lowerBack
+        case .neck: .neck
+        case .shoulders: .shoulders
+        case .arms, .biceps, .triceps, .forearms: .arms
+        case .legs: .legs
+        case .quadriceps, .hipFlexors: .quads
+        case .hamstrings: .hamstrings
+        case .calves: .calves
+        case .adductors: .adductors
+        case .glutes: .glutes
+        case .core, .obliques: .core
+        case .fullBody: .fullBody
+        case .cardio: .cardio
         }
     }
 }

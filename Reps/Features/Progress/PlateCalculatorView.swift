@@ -115,7 +115,7 @@ struct PlateCalculatorView: View {
     }
     
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 24) {
                 // Inputs Card
                 PulseCard {
@@ -207,7 +207,7 @@ struct PlateCalculatorView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 
                 if targetWeight > 0 {
                     // Barbell Visual Stack Card
@@ -315,11 +315,12 @@ struct PlateCalculatorView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 }
             }
             .padding(.vertical, 10)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .navigationTitle("plate_calculator")
         .navigationBarTitleDisplayMode(.inline)

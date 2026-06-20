@@ -34,6 +34,14 @@ struct ProgressDashboardView: View {
           )
             .stickyHeaderTitle(localizedString("this_week"))
 
+          ProgressCoachStrip(
+            step: nextBestSteps.first(where: { !$0.isCompleted }) ?? nextBestSteps.first,
+            weeklyCompletion: store.weeklyCompletion,
+            battery: store.trainingBattery,
+            onAction: perform
+          )
+          .stickyHeaderTitle(localizedString("progress_direction"))
+
           Picker("range", selection: $selectedRange) {
             ForEach(ProgressRange.allCases) { range in
               Text(range.title).tag(range)
@@ -41,7 +49,7 @@ struct ProgressDashboardView: View {
           }
           .pickerStyle(.segmented)
 
-          LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 8)], spacing: 8) {
+          LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
             ForEach(ProgressSection.allCases) { section in
               Button {
                 if section == .load,
@@ -55,8 +63,12 @@ struct ProgressDashboardView: View {
                   }
                 }
               } label: {
-                PulseChip(title: section.title, isSelected: selectedSection == section)
-                  .frame(maxWidth: .infinity)
+                ProgressSectionTile(
+                  section: section,
+                  isSelected: selectedSection == section,
+                  value: sectionValue(for: section),
+                  isLocked: section == .load && !store.hasFeatureAccess(.advancedAnalytics)
+                )
               }
               .buttonStyle(.plain)
             }
@@ -67,97 +79,55 @@ struct ProgressDashboardView: View {
           // pure analytics surface to avoid duplicating it across both tabs.
 
           if selectedSection == .general {
-            HStack(spacing: 14) {
-              Button {
+            ProgressExecutiveCard(
+              sessions: filteredSessions.count,
+              volumeKg: Int(FitnessMetrics.totalVolumeKg(for: filteredSessions)),
+              bestEstimatedOneRepMaxKg: Int(store.bestEstimatedOneRepMaxKg),
+              rangeTitle: selectedRange.subtitle,
+              primaryInsight: insightCards.first,
+              onOpenExercises: {
                 if store.requireFeature(.advancedAnalytics, source: .progressAdvancedAnalytics) {
                   activeDestination = .exerciseAnalytics
                 }
-              } label: {
-                AnalyticsShortcutCard(
-                  title: "exercises_3", subtitle: localizedFormat("with_history_count_format", exercisesWithHistory.count),
-                  systemImage: "chart.line.uptrend.xyaxis")
-              }
-              .buttonStyle(.plain)
-
-              Button {
+              },
+              onOpenHistory: {
                 if store.requireFeature(.advancedAnalytics, source: .progressAdvancedAnalytics) {
                   activeDestination = .workoutHistory
                 }
+              },
+              onOpenPRs: {
+                if store.requireFeature(.advancedAnalytics, source: .progressAdvancedAnalytics) {
+                  activeDestination = .personalRecords
+                }
+              }
+            )
+            .stickyHeaderTitle(localizedString("overview"))
+
+            HStack(spacing: 12) {
+              NavigationLink {
+                OneRepMaxCalculatorView()
               } label: {
-                AnalyticsShortcutCard(
-                  title: "history_label", subtitle: localizedFormat("sessions_subtitle_format", filteredSessions.count),
-                  systemImage: "list.clipboard")
+                ProgressToolTile(
+                  title: "calculadora_1rm",
+                  subtitle: "estimate_your_maximum_strength_and_load_zones",
+                  systemImage: "calculator.fill",
+                  color: PulseTheme.accent
+                )
+              }
+              .buttonStyle(.plain)
+
+              NavigationLink {
+                PlateCalculatorView()
+              } label: {
+                ProgressToolTile(
+                  title: "plate_calculator",
+                  subtitle: "knows_which_discs_to_load_on_each_side_of_the_bar",
+                  systemImage: "circle.grid.3x3.fill",
+                  color: PulseTheme.primaryBright
+                )
               }
               .buttonStyle(.plain)
             }
-            .stickyHeaderTitle(localizedString("overview"))
-
-            HStack(spacing: 14) {
-              MetricCard(
-                title: "workouts_label", value: "\(filteredSessions.count)",
-                subtitle: selectedRange.subtitle, systemImage: "dumbbell",
-                badgeColor: PulseTheme.primary)
-              MetricCard(
-                title: "volume_label",
-                value: "\(Int(FitnessMetrics.totalVolumeKg(for: filteredSessions)))",
-                subtitle: "kg_total", systemImage: "bag", badgeColor: PulseTheme.primaryBright)
-            }
-
-            NavigationLink {
-              OneRepMaxCalculatorView()
-            } label: {
-              PulseCard {
-                HStack(spacing: 14) {
-                  Image(systemName: "calculator.fill")
-                    .font(.headline)
-                    .foregroundStyle(PulseTheme.accent)
-                    .frame(width: 42, height: 42)
-                    .background(PulseTheme.accent.opacity(0.12))
-                    .clipShape(
-                      RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                  VStack(alignment: .leading, spacing: 3) {
-                    Text("calculadora_1rm")
-                      .font(.headline)
-                    Text("estimate_your_maximum_strength_and_load_zones")
-                      .font(.subheadline)
-                      .foregroundStyle(PulseTheme.secondaryText)
-                  }
-                  Spacer()
-                  Image(systemName: "chevron.right")
-                    .foregroundStyle(PulseTheme.secondaryText)
-                }
-              }
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink {
-              PlateCalculatorView()
-            } label: {
-              PulseCard {
-                HStack(spacing: 14) {
-                  Image(systemName: "circle.grid.3x3.fill")
-                    .font(.headline)
-                    .foregroundStyle(PulseTheme.primaryBright)
-                    .frame(width: 42, height: 42)
-                    .background(PulseTheme.primaryBright.opacity(0.12))
-                    .clipShape(
-                      RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                  VStack(alignment: .leading, spacing: 3) {
-                    Text("plate_calculator")
-                      .font(.headline)
-                    Text("knows_which_discs_to_load_on_each_side_of_the_bar")
-                      .font(.subheadline)
-                      .foregroundStyle(PulseTheme.secondaryText)
-                  }
-                  Spacer()
-                  Image(systemName: "chevron.right")
-                    .foregroundStyle(PulseTheme.secondaryText)
-                }
-              }
-            }
-            .buttonStyle(.plain)
           }
 
           if selectedSection == .cardio {
@@ -388,33 +358,6 @@ struct ProgressDashboardView: View {
                 .frame(height: 160)
               }
             }
-          }
-
-          if selectedSection == .general {
-            Button {
-              if store.requireFeature(.advancedAnalytics, source: .progressAdvancedAnalytics) {
-                activeDestination = .personalRecords
-              }
-            } label: {
-              PulseCard {
-                HStack {
-                  VStack(alignment: .leading, spacing: 22) {
-                    Label("personal_records", systemImage: "trophy")
-                    Text(
-                      "\(Int(FitnessMetrics.personalRecordWeightKg(for: store.workoutSessions) ?? 0))"
-                    )
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .foregroundStyle(PulseTheme.primary)
-                  }
-                  Spacer()
-                  Image(systemName: "trophy.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(PulseTheme.accent)
-                    .accessibilityHidden(true)
-                }
-              }
-            }
-            .buttonStyle(.plain)
           }
 
           if selectedSection == .exercises {
@@ -697,6 +640,33 @@ struct ProgressDashboardView: View {
     }
   }
 
+  private var nextBestSteps: [RetentionEngine.ActivationStep] {
+    RetentionEngine.nextBestSteps(
+      sessions: store.workoutSessions,
+      activePlan: store.activePlan,
+      scheduledWorkouts: store.scheduledWorkouts,
+      remindersEnabled: store.userProfile.remindersEnabled,
+      competitiveSummary: competitiveSummary
+    )
+  }
+
+  private func sectionValue(for section: ProgressSection) -> String {
+    switch section {
+    case .general:
+      return "\(filteredSessions.count)"
+    case .exercises:
+      return "\(exercisesWithHistory.count)"
+    case .muscles:
+      return "\(competitiveSummary.actualWeeklySets)/\(max(competitiveSummary.targetWeeklySets, 1))"
+    case .cardio:
+      return "\(filteredCardioLogs.count)"
+    case .body:
+      return store.hasBodyMetrics ? "\(String(format: "%.0f", store.displayedWeight.value))" : "-"
+    case .load:
+      return "\(Int(workload.fatigueScore))"
+    }
+  }
+
   @ViewBuilder
   private var bodyProgressCard: some View {
     PulseCard {
@@ -779,6 +749,29 @@ struct ProgressDashboardView: View {
       return
     }
     onSelectTab?(destination)
+  }
+
+  private func perform(_ action: RetentionEngine.ActivationAction?) {
+    HapticService.selection()
+    guard let action else {
+      onSelectTab?(.today)
+      return
+    }
+
+    switch action {
+    case .startWorkout:
+      onSelectTab?(.today)
+    case .createPlan:
+      onSelectTab?(.plans)
+    case .scheduleWorkout:
+      onSelectTab?(.calendar)
+    case .competitive(let competitiveAction):
+      perform(competitiveAction)
+    case .openProgress:
+      withAnimation(.snappy(duration: 0.2)) {
+        selectedSection = .general
+      }
+    }
   }
 }
 
@@ -880,7 +873,291 @@ private struct AnalyticsShortcutCard: View {
   }
 }
 
-private struct ProgressActionPlanCard: View {
+private struct ProgressExecutiveCard: View {
+  let sessions: Int
+  let volumeKg: Int
+  let bestEstimatedOneRepMaxKg: Int
+  let rangeTitle: LocalizedStringKey
+  let primaryInsight: FitnessMetrics.TrainingInsight?
+  let onOpenExercises: () -> Void
+  let onOpenHistory: () -> Void
+  let onOpenPRs: () -> Void
+
+  private var headline: String {
+    if sessions == 0 {
+      return localizedString("start_and_finish_workout_message")
+    }
+    if let primaryInsight {
+      return primaryInsight.title
+    }
+    return localizedString("performance")
+  }
+
+  private var message: String {
+    if let primaryInsight {
+      return primaryInsight.message
+    }
+    return localizedString("complete_a_session_with_sets_and_reps_to_unlock_practical_signals")
+  }
+
+  var body: some View {
+	    PulseCard(contentPadding: 15) {
+	      VStack(alignment: .leading, spacing: 14) {
+        HStack(alignment: .top, spacing: 12) {
+	          Image(systemName: primaryInsight?.systemImage ?? "chart.bar.fill")
+	            .font(.title3.weight(.black))
+	            .foregroundStyle(.white)
+	            .frame(width: 48, height: 48)
+	            .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+	            .overlay(
+	              RoundedRectangle(cornerRadius: 14, style: .continuous)
+	                .stroke(.white.opacity(0.18), lineWidth: 1)
+	            )
+
+          VStack(alignment: .leading, spacing: 5) {
+            Text(localizedKey(rangeTitle))
+              .font(.caption.weight(.black))
+              .textCase(.uppercase)
+              .foregroundStyle(PulseTheme.primary)
+            Text(headline)
+              .font(.title3.weight(.black))
+              .lineLimit(2)
+              .minimumScaleFactor(0.76)
+            Text(message)
+              .font(.subheadline.weight(.semibold))
+              .foregroundStyle(PulseTheme.secondaryText)
+              .fixedSize(horizontal: false, vertical: true)
+          }
+        }
+
+        HStack(spacing: 8) {
+          ProgressExecutiveMetric(value: "\(sessions)", label: "sessions", systemImage: "dumbbell.fill", color: PulseTheme.primary)
+          ProgressExecutiveMetric(value: "\(volumeKg)", label: "kg_total", systemImage: "scalemass.fill", color: PulseTheme.primaryBright)
+          ProgressExecutiveMetric(value: "\(bestEstimatedOneRepMaxKg)kg", label: "estimated_maximum", systemImage: "trophy.fill", color: PulseTheme.accent)
+        }
+
+	        HStack(spacing: 8) {
+	          Button(action: onOpenExercises) {
+	            Label("exercises_3", systemImage: "chart.line.uptrend.xyaxis")
+	              .font(.caption.weight(.black))
+	              .frame(maxWidth: .infinity)
+	              .frame(height: 40)
+	              .foregroundStyle(.black)
+	              .background(PulseTheme.primaryBright, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+	          }
+          .buttonStyle(.plain)
+
+	          Button(action: onOpenHistory) {
+	            Label("history_label", systemImage: "list.clipboard")
+	              .font(.caption.weight(.black))
+	              .frame(maxWidth: .infinity)
+	              .frame(height: 40)
+	              .foregroundStyle(.white.opacity(0.82))
+	              .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+	              .overlay(
+	                RoundedRectangle(cornerRadius: 12, style: .continuous)
+	                  .stroke(Color.white.opacity(0.07), lineWidth: 1)
+	              )
+	          }
+          .buttonStyle(.plain)
+
+	          Button(action: onOpenPRs) {
+	            Image(systemName: "trophy.fill")
+	              .font(.headline.weight(.black))
+	              .frame(width: 40, height: 40)
+	              .foregroundStyle(.white)
+	              .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel(localizedString("personal_records"))
+        }
+      }
+    }
+  }
+}
+
+private struct ProgressExecutiveMetric: View {
+  let value: String
+  let label: LocalizedStringKey
+  let systemImage: String
+  let color: Color
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 5) {
+      Image(systemName: systemImage)
+        .font(.caption.weight(.black))
+        .foregroundStyle(color)
+      Text(value)
+        .font(.headline.weight(.black).monospacedDigit())
+        .lineLimit(1)
+        .minimumScaleFactor(0.72)
+      Text(localizedKey(label))
+        .font(.caption2.weight(.bold))
+        .foregroundStyle(PulseTheme.secondaryText)
+        .lineLimit(1)
+        .minimumScaleFactor(0.68)
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct ProgressToolTile: View {
+  let title: LocalizedStringKey
+  let subtitle: LocalizedStringKey
+  let systemImage: String
+  let color: Color
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 9) {
+      Image(systemName: systemImage)
+        .font(.headline.weight(.black))
+        .foregroundStyle(color)
+        .frame(width: 38, height: 38)
+        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+      Text(localizedKey(title))
+        .font(.subheadline.weight(.black))
+        .lineLimit(1)
+        .minimumScaleFactor(0.72)
+      Text(localizedKey(subtitle))
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(PulseTheme.secondaryText)
+        .lineLimit(2)
+        .minimumScaleFactor(0.76)
+    }
+    .padding(14)
+    .frame(maxWidth: .infinity, minHeight: 132, alignment: .leading)
+    .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    .overlay(
+      RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+        .stroke(PulseTheme.separator, lineWidth: 1)
+    )
+  }
+}
+
+private struct ProgressCoachStrip: View {
+  let step: RetentionEngine.ActivationStep?
+  let weeklyCompletion: Double
+  let battery: FitnessMetrics.TrainingBatteryStatus
+  let onAction: (RetentionEngine.ActivationAction?) -> Void
+
+  private var color: Color {
+    if weeklyCompletion < 0.75 { return PulseTheme.warning }
+    switch battery.state {
+    case .charged, .steady: return PulseTheme.primary
+    case .low: return PulseTheme.warning
+    case .critical: return PulseTheme.destructive
+    }
+  }
+
+  var body: some View {
+    PulseCard(contentPadding: 14) {
+      HStack(spacing: 12) {
+        Image(systemName: step?.systemImage ?? "sparkles")
+          .font(.headline.weight(.black))
+          .foregroundStyle(color)
+          .frame(width: 42, height: 42)
+          .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+        VStack(alignment: .leading, spacing: 3) {
+          Text(step?.title ?? localizedString("progress_direction"))
+            .font(.subheadline.weight(.black))
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+          Text(step?.message ?? battery.suggestion)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(PulseTheme.secondaryText)
+            .lineLimit(2)
+            .minimumScaleFactor(0.78)
+        }
+
+        Spacer(minLength: 0)
+
+        Button {
+          onAction(step?.action)
+        } label: {
+          Text(step?.actionTitle ?? localizedString("open"))
+            .font(.caption.weight(.black))
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .frame(height: 36)
+            .background(color, in: Capsule())
+        }
+        .buttonStyle(.plain)
+      }
+    }
+  }
+}
+
+private struct ProgressSectionTile: View {
+  let section: ProgressSection
+  let isSelected: Bool
+	  let value: String
+	  let isLocked: Bool
+
+	  private var tileFill: Color {
+	    isSelected ? section.tint : Color.white.opacity(0.028)
+	  }
+
+	  private var tileStroke: Color {
+	    isSelected ? Color.white.opacity(0.12) : Color.white.opacity(0.075)
+	  }
+	
+	  var body: some View {
+	    HStack(spacing: 10) {
+      Image(systemName: isLocked ? "lock.fill" : section.systemImage)
+        .font(.headline.weight(.black))
+        .foregroundStyle(isSelected ? .white : section.tint)
+        .frame(width: 42, height: 42)
+        .background((isSelected ? Color.white.opacity(0.16) : section.tint.opacity(0.12)), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(localizedKey(section.title))
+          .font(.subheadline.weight(.black))
+          .foregroundStyle(isSelected ? .white : .primary)
+          .lineLimit(1)
+          .minimumScaleFactor(0.72)
+        Text(value)
+          .font(.caption.weight(.black).monospacedDigit())
+          .foregroundStyle(isSelected ? .white.opacity(0.82) : PulseTheme.secondaryText)
+          .lineLimit(1)
+      }
+
+      Spacer(minLength: 0)
+	    }
+	    .padding(12)
+	    .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
+	    .background(tileBackground)
+	    .overlay(
+	      RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+	        .stroke(tileStroke, lineWidth: 1)
+	    )
+	    .shadow(color: isSelected ? section.tint.opacity(0.12) : Color.black.opacity(0.10), radius: isSelected ? 10 : 6, x: 0, y: 4)
+	    .accessibilityElement(children: .combine)
+	  }
+
+	  private var tileBackground: some View {
+	    RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+	      .fill(tileFill)
+	      .overlay(
+	        LinearGradient(
+	          colors: [
+	            Color.white.opacity(isSelected ? 0.16 : 0.045),
+	            section.tint.opacity(isSelected ? 0.10 : 0.018),
+	            Color.black.opacity(0.08)
+	          ],
+	          startPoint: .topLeading,
+	          endPoint: .bottomTrailing
+	        )
+	      )
+	  }
+	}
+
+	private struct ProgressActionPlanCard: View {
   let steps: [RetentionEngine.ActivationStep]
   let weeklyCompletion: Double
   let battery: FitnessMetrics.TrainingBatteryStatus
@@ -900,8 +1177,16 @@ private struct ProgressActionPlanCard: View {
     return Double(completedSteps) / Double(steps.count)
   }
 
-  private var visibleStepCount: Int {
-    min(steps.count, 2)
+  private var visibleSteps: [RetentionEngine.ActivationStep] {
+    guard let pendingStep else {
+      return Array(steps.prefix(2))
+    }
+
+    var result = [pendingStep]
+    if let supportStep = steps.first(where: { $0.id != pendingStep.id && $0.isCompleted }) {
+      result.append(supportStep)
+    }
+    return result
   }
 
   private var batteryColor: Color {
@@ -926,7 +1211,7 @@ private struct ProgressActionPlanCard: View {
             color: batteryColor,
             centerValue: "\(Int(max(weeklyCompletion, 0) * 100))%"
           )
-          .frame(width: 92, height: 92)
+            .frame(width: 82, height: 82)
 
           VStack(alignment: .leading, spacing: 9) {
             Label(localizedString("progress_direction"), systemImage: "sparkles")
@@ -968,12 +1253,12 @@ private struct ProgressActionPlanCard: View {
         }
 
         VStack(spacing: 0) {
-          ForEach(Array(steps.prefix(visibleStepCount).enumerated()), id: \.element.id) { index, step in
+          ForEach(Array(visibleSteps.enumerated()), id: \.element.id) { index, step in
             ProgressActionStepRow(step: step) {
               onAction(step.action)
             }
 
-            if index < visibleStepCount - 1 {
+            if index < visibleSteps.count - 1 {
               Divider()
                 .padding(.leading, 52)
             }
@@ -1271,7 +1556,7 @@ struct ExerciseAnalyticsListView: View {
   let exercises: [Exercise]
 
   var body: some View {
-    ScrollView {
+    ScrollView(.vertical, showsIndicators: false) {
       VStack(spacing: 14) {
         if exercises.isEmpty {
           PulseCard {
@@ -1294,9 +1579,11 @@ struct ExerciseAnalyticsListView: View {
           }
         }
       }
-      .padding(20)
+      .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+      .padding(.vertical, 20)
       .padding(.bottom, 112)
     }
+    .scrollBounceBehavior(.basedOnSize, axes: .vertical)
     .screenBackground()
     .navigationTitle("exercises_3")
     .navigationBarTitleDisplayMode(.inline)
@@ -1469,6 +1756,28 @@ private enum ProgressSection: String, CaseIterable, Identifiable {
     case .cardio: "cardio"
     case .body: "body_2"
     case .load: "load"
+    }
+  }
+
+  var systemImage: String {
+    switch self {
+    case .general: "chart.bar.fill"
+    case .exercises: "chart.line.uptrend.xyaxis"
+    case .muscles: "figure.strengthtraining.traditional"
+    case .cardio: "figure.run"
+    case .body: "scalemass"
+    case .load: "waveform.path.ecg"
+    }
+  }
+
+  var tint: Color {
+    switch self {
+    case .general: PulseTheme.primary
+    case .exercises: PulseTheme.primaryBright
+    case .muscles: PulseTheme.accent
+    case .cardio: PulseTheme.recovery
+    case .body: PulseTheme.warning
+    case .load: PulseTheme.destructive
     }
   }
 }

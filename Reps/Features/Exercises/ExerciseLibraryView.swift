@@ -782,7 +782,7 @@ struct ExerciseDetailView: View {
                     .overlay(Color.white.opacity(0.08))
             }
             
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     switch selectedTab {
                     case .instructions:
@@ -793,9 +793,11 @@ struct ExerciseDetailView: View {
                         historyTabContent
                     }
                 }
-                .padding(20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 20)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         }
         .screenBackground()
         .navigationTitle(localizedString("Exercise"))
@@ -1877,7 +1879,7 @@ private struct SecondaryMuscleEditorView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 16) {
                     Text(localizedString("set_how_much_each_secondary_muscle_counts_toward_volume_and_weekly_sets_per_musc"))
                         .font(.subheadline)
@@ -1908,8 +1910,10 @@ private struct SecondaryMuscleEditorView: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 20)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .screenBackground()
             .navigationTitle(localizedString("secondary_muscles"))
             .navigationBarTitleDisplayMode(.inline)

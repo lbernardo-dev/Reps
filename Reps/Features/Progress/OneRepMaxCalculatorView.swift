@@ -47,7 +47,7 @@ struct OneRepMaxCalculatorView: View {
   }
 
   var body: some View {
-    ScrollView {
+    ScrollView(.vertical, showsIndicators: false) {
       VStack(spacing: 20) {
         // Calculator Card
         PulseCard {
@@ -119,14 +119,14 @@ struct OneRepMaxCalculatorView: View {
             }
           }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
 
         // Percentage Breakdown List
         if !percentageBreakdown.isEmpty {
           VStack(alignment: .leading, spacing: 10) {
             Text("intensity_percentage_table")
               .font(.headline)
-              .padding(.horizontal, 22)
+              .padding(.horizontal, PulseTheme.screenHorizontalPadding)
 
             PulseCard {
               VStack(spacing: 0) {
@@ -165,12 +165,13 @@ struct OneRepMaxCalculatorView: View {
                 }
               }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
           }
         }
       }
       .padding(.vertical, 10)
     }
+    .scrollBounceBehavior(.basedOnSize, axes: .vertical)
     .screenBackground()
     .navigationTitle("calculadora_1rm")
     .navigationBarTitleDisplayMode(.inline)

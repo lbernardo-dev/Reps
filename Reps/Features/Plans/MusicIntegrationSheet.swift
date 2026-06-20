@@ -21,14 +21,15 @@ struct MusicIntegrationSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
                     appleMusicView
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .screenBackground()
             .navigationTitle("connect_music")
             .navigationBarTitleDisplayMode(.inline)
