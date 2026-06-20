@@ -565,7 +565,7 @@ struct SocialHubView: View {
             } catch {
                 // Silently fail — UI stays consistent
             }
-            await MainActor.run { followingInProgress.remove(profile.id) }
+            await MainActor.run { _ = followingInProgress.remove(profile.id) }
         }
     }
 }
