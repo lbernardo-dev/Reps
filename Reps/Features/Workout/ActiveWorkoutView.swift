@@ -238,13 +238,7 @@ struct ActiveWorkoutView: View {
     }
 
     var body: some View {
-        Group {
-            if let finishedSession {
-                WorkoutSummaryView(session: finishedSession, onDone: closeSummaryAndOpenProgress)
-            } else {
-                activeWorkoutContent
-            }
-        }
+        activeWorkoutContent
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .onReceive(timer) { _ in
@@ -561,13 +555,6 @@ struct ActiveWorkoutView: View {
         }
     }
 
-    /// Closes the post-workout summary and lands the user on Progress. Clearing
-    /// the shared summary first prevents the main-tab sheet from re-presenting it.
-    private func closeSummaryAndOpenProgress() {
-        store.finishedSessionForSummary = nil
-        store.pendingMainTabSelection = .progress
-        dismiss()
-    }
 
     private func toggleWorkoutPause() {
         HapticService.selection()
@@ -659,7 +646,12 @@ struct ActiveWorkoutView: View {
             store.addCardioLog(cardioLog)
         }
         isFinishingWorkout = false
+        // Mark as finished (so onDisappear tears down background work) and close
+        // the active view. The summary is then presented at the MainTabView
+        // level (store.finishedSessionForSummary), which keeps the tab bar in
+        // context so closing it can land cleanly on Progress.
         finishedSession = session
+        dismiss()
     }
 
     private func publishActiveWorkoutStatus() {
