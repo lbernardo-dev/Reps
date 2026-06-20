@@ -305,7 +305,9 @@ struct SocialOnboardingView: View {
                     totalXP: xp,
                     totalSessions: store.workoutSessions.count,
                     streakDays: store.streakDays,
-                    totalVolumeKg: store.totalVolumeKg
+                    totalVolumeKg: store.totalVolumeKg,
+                    followingUsernames: store.userProfile.socialFollowingUsernames,
+                    avatarImageData: store.userProfile.avatarImageData
                 )
                 await MainActor.run {
                     store.userProfile.socialUsername = uname

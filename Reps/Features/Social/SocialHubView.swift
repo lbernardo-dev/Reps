@@ -437,11 +437,10 @@ struct SocialHubView: View {
     private struct LeaderboardEntry {
         let rank: Int
         let username: String
-        let displayName: String
         let xp: Int
-        let sessions: Int
-        let streakDays: Int
         let isMe: Bool
+        let avatarImageData: Data?
+        let isOnline: Bool
     }
 
     private var leaderboardEntries: [LeaderboardEntry] {
@@ -454,20 +453,38 @@ struct SocialHubView: View {
             totalVolumeKg: store.totalVolumeKg
         )
         let myUsername = store.userProfile.socialUsername ?? ""
-        var all: [(String, String, Int, Int, Int, Bool)] = following.map {
-            ($0.username, $0.displayName, $0.totalXP, $0.totalSessions, $0.streakDays, false)
+        var all: [(String, Int, Bool, Data?, Bool)] = following.map {
+            ($0.username, $0.totalXP, false, $0.avatarImageData, $0.isOnline)
         }
         if !myUsername.isEmpty {
-            all.append((myUsername, store.userProfile.displayName ?? myUsername,
-                        myXP, store.workoutSessions.count, store.streakDays, true))
+            all.append((myUsername, myXP, true, store.userProfile.avatarImageData, true))
         }
         return all
-            .sorted { $0.2 > $1.2 }
+            .sorted { $0.1 > $1.1 }
             .enumerated()
             .map { idx, e in
-                LeaderboardEntry(rank: idx + 1, username: e.0, displayName: e.1,
-                                 xp: e.2, sessions: e.3, streakDays: e.4, isMe: e.5)
+                LeaderboardEntry(rank: idx + 1, username: e.0, xp: e.1,
+                                 isMe: e.2, avatarImageData: e.3, isOnline: e.4)
             }
+    }
+
+    @ViewBuilder
+    private func avatarCircle(data: Data?, username: String, isMe: Bool, size: CGFloat) -> some View {
+        ZStack {
+            if let d = data, let img = UIImage(data: d) {
+                Image(uiImage: img)
+                    .resizable().scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+            } else {
+                Circle()
+                    .fill(isMe ? PulseTheme.accent.opacity(0.15) : PulseTheme.primary.opacity(0.08))
+                    .frame(width: size, height: size)
+                Text(String(username.prefix(1)).uppercased())
+                    .font(.system(size: size * 0.4, weight: .black, design: .rounded))
+                    .foregroundStyle(isMe ? PulseTheme.accent : PulseTheme.primary)
+            }
+        }
     }
 
     @ViewBuilder
@@ -544,13 +561,14 @@ struct SocialHubView: View {
                 VStack(spacing: 4) {
                     Text(medals[i])
                         .font(.system(size: isFirst ? 26 : 20))
-                    ZStack {
-                        Circle()
-                            .fill(entry.isMe ? PulseTheme.accent.opacity(0.15) : PulseTheme.primary.opacity(0.08))
-                            .frame(width: isFirst ? 52 : 42, height: isFirst ? 52 : 42)
-                        Text(String(entry.username.prefix(1)).uppercased())
-                            .font(.system(size: isFirst ? 22 : 17, weight: .black, design: .rounded))
-                            .foregroundStyle(entry.isMe ? PulseTheme.accent : PulseTheme.primary)
+                    let sz: CGFloat = isFirst ? 52 : 42
+                    ZStack(alignment: .bottomTrailing) {
+                        avatarCircle(data: entry.avatarImageData, username: entry.username,
+                                     isMe: entry.isMe, size: sz)
+                        if entry.isOnline {
+                            Circle().fill(.green).frame(width: 10, height: 10)
+                                .overlay(Circle().stroke(Color.black.opacity(0.6), lineWidth: 1.5))
+                        }
                     }
                     Text(entry.isMe ? localizedString("social_you_label") : "@\(entry.username)")
                         .font(.system(size: 11, weight: .bold))
@@ -573,19 +591,27 @@ struct SocialHubView: View {
                 .font(.system(size: 12, weight: .bold, design: .rounded).monospacedDigit())
                 .foregroundStyle(PulseTheme.secondaryText)
                 .frame(width: 26, alignment: .trailing)
-            ZStack {
-                Circle()
-                    .fill(entry.isMe ? PulseTheme.accent.opacity(0.12) : PulseTheme.primary.opacity(0.07))
-                    .frame(width: 30, height: 30)
-                Text(String(entry.username.prefix(1)).uppercased())
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundStyle(entry.isMe ? PulseTheme.accent : PulseTheme.primary)
+            ZStack(alignment: .bottomTrailing) {
+                avatarCircle(data: entry.avatarImageData, username: entry.username,
+                             isMe: entry.isMe, size: 30)
+                if entry.isOnline {
+                    Circle().fill(.green).frame(width: 8, height: 8)
+                        .overlay(Circle().stroke(Color.black.opacity(0.6), lineWidth: 1.5))
+                }
             }
             Text(entry.isMe ? localizedString("social_you_label") : "@\(entry.username)")
                 .font(.subheadline.weight(entry.isMe ? .bold : .regular))
                 .foregroundStyle(entry.isMe ? PulseTheme.accent : .primary)
                 .lineLimit(1)
             Spacer()
+            if entry.isOnline && !entry.isMe {
+                Text(localizedString("social_online"))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.green)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(.green.opacity(0.12))
+                    .clipShape(Capsule())
+            }
             Text("\(entry.xp) XP")
                 .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
                 .foregroundStyle(entry.isMe ? PulseTheme.accent : PulseTheme.primary)
@@ -614,20 +640,26 @@ struct SocialHubView: View {
 
     private func friendRow(_ friend: SocialProfile, isSelected: Bool) -> some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(PulseTheme.primary.opacity(0.08))
-                    .frame(width: 44, height: 44)
-                Text(String(friend.username.prefix(1)).uppercased())
-                    .font(.system(size: 18, weight: .black, design: .rounded))
-                    .foregroundStyle(PulseTheme.primary)
+            ZStack(alignment: .bottomTrailing) {
+                avatarCircle(data: friend.avatarImageData, username: friend.username, isMe: false, size: 44)
+                if friend.isOnline {
+                    Circle().fill(.green).frame(width: 11, height: 11)
+                        .overlay(Circle().stroke(Color.black.opacity(0.5), lineWidth: 1.5))
+                }
             }
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 4) {
                     Text("@\(friend.username)")
                         .font(.subheadline.weight(.semibold))
-                    if !friend.location.isEmpty {
+                    if friend.isOnline {
+                        Text(localizedString("social_online"))
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.green)
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(.green.opacity(0.12))
+                            .clipShape(Capsule())
+                    } else if !friend.location.isEmpty {
                         Text("· \(friend.location)")
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
@@ -1067,9 +1099,11 @@ struct SocialHubView: View {
         isLoadingFollowing = true
         do {
             let usernames = store.userProfile.socialFollowingUsernames
-            let f = try await SocialService.shared.fetchFollowing(myFollowingUsernames: usernames)
+            async let followingTask = SocialService.shared.fetchFollowing(myFollowingUsernames: usernames)
+            async let countTask = SocialService.shared.fetchFollowerCount(myUsername: store.userProfile.socialUsername ?? "")
+            let (f, count) = try await (followingTask, countTask)
             following = f
-            followerCount = f.count
+            followerCount = count
         } catch {
             loadError = error.localizedDescription
         }

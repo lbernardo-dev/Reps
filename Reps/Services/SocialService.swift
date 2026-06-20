@@ -72,7 +72,14 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
     var streakDays: Int
     var totalVolumeKg: Double
     var updatedAt: Date
-    var followingUsernames: [String]  // stored so friend-of-friend suggestions work
+    var followingUsernames: [String]
+    var avatarImageData: Data?        // decoded from CKAsset "avatarAsset"
+    var lastActiveAt: Date?           // updated on each foreground ping
+
+    var isOnline: Bool {
+        guard let t = lastActiveAt else { return false }
+        return Date().timeIntervalSince(t) < 600 // 10 min window
+    }
 
     init?(record: CKRecord) {
         guard
@@ -94,6 +101,14 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
         self.totalVolumeKg = record["totalVolumeKg"] as? Double ?? 0
         self.updatedAt = record.modificationDate ?? .now
         self.followingUsernames = record["followingUsernames"] as? [String] ?? []
+        self.lastActiveAt = record["lastActiveAt"] as? Date
+        if let asset = record["avatarAsset"] as? CKAsset,
+           let url = asset.fileURL,
+           let data = try? Data(contentsOf: url) {
+            self.avatarImageData = data
+        } else {
+            self.avatarImageData = nil
+        }
     }
 }
 
@@ -156,6 +171,26 @@ actor SocialService {
         }
     }
 
+    func fetchFollowerCount(myUsername: String) async -> Int {
+        guard !myUsername.isEmpty else { return 0 }
+        let pred = NSPredicate(format: "followingUsername == %@", myUsername.lowercased())
+        let query = CKQuery(recordType: "SocialFollow", predicate: pred)
+        do {
+            let result = try await publicDB.records(matching: query, resultsLimit: 1000)
+            return result.matchResults.count
+        } catch { return 0 }
+    }
+
+    func pingActivity(myUsername: String) async {
+        guard !myUsername.isEmpty else { return }
+        let rid = profileRecordID(username: myUsername.lowercased())
+        do {
+            let record = try await publicDB.record(for: rid)
+            record["lastActiveAt"] = Date() as CKRecordValue
+            try await publicDB.save(record)
+        } catch { }
+    }
+
     func createOrUpdateProfile(
         username: String,
         displayName: String,
@@ -168,7 +203,8 @@ actor SocialService {
         totalSessions: Int,
         streakDays: Int,
         totalVolumeKg: Double,
-        followingUsernames: [String] = []
+        followingUsernames: [String] = [],
+        avatarImageData: Data? = nil
     ) async throws {
         let myID = try await myRecordID()
         let normalized = username.lowercased()
@@ -204,6 +240,13 @@ actor SocialService {
         record["streakDays"] = Int64(streakDays) as CKRecordValue
         record["totalVolumeKg"] = totalVolumeKg as CKRecordValue
         record["followingUsernames"] = followingUsernames.map { $0.lowercased() } as CKRecordValue
+        record["lastActiveAt"] = Date() as CKRecordValue
+        if let data = avatarImageData,
+           let tmpURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
+               .appendingPathComponent("reps_avatar_\(normalized).jpg") {
+            try? data.write(to: tmpURL)
+            record["avatarAsset"] = CKAsset(fileURL: tmpURL)
+        }
 
         try await publicDB.save(record)
     }

@@ -6774,6 +6774,9 @@
         }
       }
     },
+    "#%@" : {
+
+    },
     "#8524DB" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -88185,6 +88188,23 @@
         }
       }
     },
+    "social_by_xp" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "by XP"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "por XP"
+          }
+        }
+      }
+    },
     "social_clear_searches" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -88436,6 +88456,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "¡Sígueme en Reps! @%@\nreps://social/@%@"
+          }
+        }
+      }
+    },
+    "social_leaderboard" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rankings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clasificación"
           }
         }
       }
@@ -88848,24 +88885,6 @@
         }
       }
     },
-    "social_you_label" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "You" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tú" } }
-      }
-    },
-    "social_leaderboard" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Rankings" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Clasificación" } }
-      }
-    },
-    "social_by_xp" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "by XP" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "por XP" } }
-      }
-    },
     "social_you_ahead" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -88881,6 +88900,29 @@
             "value" : "VAS GANANDO 🏆"
           }
         }
+      }
+    },
+    "social_you_label" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tú"
+          }
+        }
+      }
+    },
+    "social_online" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "online" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "conectado" } }
       }
     },
     "Solo datos registrados" : {

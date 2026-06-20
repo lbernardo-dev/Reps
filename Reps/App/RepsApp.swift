@@ -109,6 +109,9 @@ struct RepsApp: App {
                 Task {
                     await store.refreshStoreKitEntitlements()
                     await store.refreshICloudProEntitlement()
+                    if let uname = store.userProfile.socialUsername, store.userProfile.socialEnabled {
+                        await SocialService.shared.pingActivity(myUsername: uname)
+                    }
                 }
             }
         }
