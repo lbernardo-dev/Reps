@@ -100649,6 +100649,22 @@
           }
         }
       }
+    },
+    "document_session": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Document session"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Documenta la sesión"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

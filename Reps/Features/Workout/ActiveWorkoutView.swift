@@ -1572,8 +1572,8 @@ struct ActiveWorkoutView: View {
         PulseCard {
             SessionFeedbackPanel(
                 isExpanded: $showSessionFeedback,
-                title: isTreadmillCandidate ? "Cierre de cinta" : "Cierre de ruta",
-                systemImage: "flag.checkered",
+                title: "document_session",
+                systemImage: "camera.on.rectangle.fill",
                 notesPrompt: isTreadmillCandidate ? "Notas de cinta, ritmo o sensaciones" : "Notas de ruta, molestias o terreno",
                 audioIdleTitle: "Nota de voz",
                 audioRecordingTitle: "Guardar audio",
@@ -1671,8 +1671,8 @@ struct ActiveWorkoutView: View {
         PulseCard {
             SessionFeedbackPanel(
                 isExpanded: $showSessionFeedback,
-                title: "session_close",
-                systemImage: "waveform.path.ecg",
+                title: "document_session",
+                systemImage: "camera.on.rectangle.fill",
                 notesPrompt: "notes_prompt",
                 audioIdleTitle: "record_audio_note",
                 audioRecordingTitle: "save_audio_note",
@@ -3042,8 +3042,21 @@ private struct SessionFeedbackPanel: View {
             }
             .padding(.top, 12)
         } label: {
-            Label(localizedKey(title), systemImage: systemImage)
-                .font(.headline)
+            HStack(spacing: 10) {
+                Label(localizedKey(title), systemImage: systemImage)
+                    .font(.headline)
+                Spacer(minLength: 8)
+                // Media-type hint so the panel reads as the documentation menu
+                // even while collapsed.
+                HStack(spacing: 9) {
+                    Image(systemName: "text.alignleft")
+                    Image(systemName: "mic.fill")
+                    Image(systemName: "camera.fill")
+                    Image(systemName: "video.fill")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+            }
         }
     }
 
