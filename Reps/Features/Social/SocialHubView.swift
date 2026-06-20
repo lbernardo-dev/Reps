@@ -1104,6 +1104,7 @@ struct SocialHubView: View {
             let (f, count) = try await (followingTask, countTask)
             following = f
             followerCount = count
+            Task.detached { [f] in await store.checkLeaderboardChanges(following: f) }
         } catch {
             loadError = error.localizedDescription
         }

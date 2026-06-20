@@ -88925,6 +88925,42 @@
         "es" : { "stringUnit" : { "state" : "translated", "value" : "conectado" } }
       }
     },
+    "notif_rank_podium_lost_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You've been knocked off the podium" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Te han sacado del podio" } }
+      }
+    },
+    "notif_rank_podium_lost_body" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ just overtook you. Train to reclaim your spot! 💪" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%@ te acaba de superar. ¡Entrena para recuperar tu puesto! 💪" } }
+      }
+    },
+    "notif_rank_friend_podium_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Friend entered the podium 🏆" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Un amigo ha entrado en el podio 🏆" } }
+      }
+    },
+    "notif_rank_friend_podium_body" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ is now #%lld — can you beat them?" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%@ está ahora en el #%lld — ¿puedes superarle?" } }
+      }
+    },
+    "notif_rank_overtaken_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You've dropped in the rankings" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Has bajado en el ranking" } }
+      }
+    },
+    "notif_rank_overtaken_body" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ is ahead of you now — you're #%lld. Keep pushing! 🔥" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%@ te ha superado — ahora eres el #%lld. ¡Sigue adelante! 🔥" } }
+      }
+    },
     "Solo datos registrados" : {
       "extractionState" : "stale",
       "localizations" : {

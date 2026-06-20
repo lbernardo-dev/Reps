@@ -45,6 +45,21 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
         NotificationService.registerCategories()
         return true
     }
+
+    // CloudKit silent-push / CKSubscription delivery — must be implemented or
+    // the OS will throttle push delivery and may terminate the app on repeated failure.
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        // CloudKit subscription pushes carry "ck" key; let CKContainer handle them.
+        // All other silent pushes are treated as new-data available.
+        completionHandler(.newData)
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {}
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {}
 }
 
 @main

@@ -248,6 +248,98 @@ enum NotificationService {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [streakAtRiskIdentifier])
     }
 
+    // MARK: - Leaderboard rank-change notifications
+
+    private static let rankCacheKey = "leaderboard_rank_cache_v1"
+
+    struct LeaderboardSnapshot: Codable {
+        let username: String
+        let rank: Int
+        let xp: Int
+    }
+
+    static func checkAndNotifyLeaderboardChanges(
+        current: [(username: String, rank: Int, xp: Int)],
+        myUsername: String
+    ) async {
+        guard !myUsername.isEmpty,
+              !current.isEmpty,
+              await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .authorized
+        else { return }
+
+        let previous: [LeaderboardSnapshot]
+        if let data = UserDefaults.standard.data(forKey: rankCacheKey),
+           let decoded = try? JSONDecoder().decode([LeaderboardSnapshot].self, from: data) {
+            previous = decoded
+        } else {
+            // First run — just save, no notifications
+            saveLeaderboardSnapshot(current)
+            return
+        }
+
+        let prevDict = Dictionary(uniqueKeysWithValues: previous.map { ($0.username, $0) })
+        let myPrev = prevDict[myUsername.lowercased()]
+        let myNow = current.first { $0.username == myUsername.lowercased() }
+
+        // Notify: someone entered the podium and overtook me
+        for entry in current.prefix(3) where entry.username != myUsername.lowercased() {
+            let wasPrev = prevDict[entry.username]
+            if wasPrev == nil || (wasPrev?.rank ?? 99) > 3 {
+                // This friend just entered the podium
+                if let myPrevRank = myPrev?.rank, myPrevRank <= 3,
+                   let myNowRank = myNow?.rank, myNowRank > 3 {
+                    // I got kicked out of podium
+                    try? await scheduleRankChangeNotif(
+                        id: "rank_podium_lost",
+                        title: localizedString("notif_rank_podium_lost_title"),
+                        body: localizedFormat("notif_rank_podium_lost_body", "@\(entry.username)")
+                    )
+                } else {
+                    try? await scheduleRankChangeNotif(
+                        id: "rank_friend_podium_\(entry.username)",
+                        title: localizedString("notif_rank_friend_podium_title"),
+                        body: localizedFormat("notif_rank_friend_podium_body", "@\(entry.username)", entry.rank)
+                    )
+                }
+            }
+        }
+
+        // Notify: someone overtook me specifically
+        if let myPrevRank = myPrev?.rank, let myNowRank = myNow?.rank, myNowRank > myPrevRank {
+            let overtaker = current.first { $0.rank == myNowRank - 1 && $0.username != myUsername.lowercased() }
+            if let o = overtaker {
+                try? await scheduleRankChangeNotif(
+                    id: "rank_overtaken",
+                    title: localizedString("notif_rank_overtaken_title"),
+                    body: localizedFormat("notif_rank_overtaken_body", "@\(o.username)", myNowRank)
+                )
+            }
+        }
+
+        saveLeaderboardSnapshot(current)
+    }
+
+    private static func saveLeaderboardSnapshot(_ entries: [(username: String, rank: Int, xp: Int)]) {
+        let snapshots = entries.map { LeaderboardSnapshot(username: $0.username, rank: $0.rank, xp: $0.xp) }
+        if let data = try? JSONEncoder().encode(snapshots) {
+            UserDefaults.standard.set(data, forKey: rankCacheKey)
+        }
+    }
+
+    private static func scheduleRankChangeNotif(id: String, title: String, body: String) async throws {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.threadIdentifier = "leaderboard"
+        content.userInfo = [kindKey: Kind.retentionNudge.rawValue]
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 2, repeats: false)
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+        try await center.add(request)
+    }
+
     /// Celebrates a newly unlocked achievement.
     static func scheduleAchievementUnlocked(message: String, delay: TimeInterval = 3) async throws {
         let content = UNMutableNotificationContent()

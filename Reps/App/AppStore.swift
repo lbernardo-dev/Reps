@@ -3669,6 +3669,27 @@ final class AppStore {
         } catch {}
         isFeedLoading = false
     }
+
+    func checkLeaderboardChanges(following: [SocialProfile]) async {
+        guard let myUsername = userProfile.socialUsername, userProfile.socialEnabled else { return }
+        let myXP = GamificationEngine.totalXP(
+            sessions: workoutSessions,
+            cardioLogs: combinedCardioLogs,
+            bodyMetrics: bodyMetrics,
+            progressPhotos: progressPhotos,
+            streakDays: streakDays,
+            totalVolumeKg: totalVolumeKg
+        )
+        var all: [(String, Int)] = following.map { ($0.username.lowercased(), $0.totalXP) }
+        all.append((myUsername.lowercased(), myXP))
+        let ranked = all.sorted { $0.1 > $1.1 }
+            .enumerated()
+            .map { (username: $0.element.0, rank: $0.offset + 1, xp: $0.element.1) }
+        await NotificationService.checkAndNotifyLeaderboardChanges(
+            current: ranked,
+            myUsername: myUsername
+        )
+    }
 }
 
 private extension CardioLog {
