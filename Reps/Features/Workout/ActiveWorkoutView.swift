@@ -228,10 +228,10 @@ struct ActiveWorkoutView: View {
 
     private var currentRestLabel: LocalizedStringKey {
         guard lastSetCompletedAtSeconds != nil else {
-            return "Descanso pendiente"
+            return "pending_rest"
         }
 
-        return restSeconds == 0 ? "Listo" : "Descanso"
+        return restSeconds == 0 ? "ready" : "rest"
     }
 
     private var isSessionStarted: Bool {
@@ -295,7 +295,7 @@ struct ActiveWorkoutView: View {
             VideoPlayerSheet(bookmark: bookmark)
         }
         .sheet(isPresented: $showAddExercise) {
-            ExercisePickerSheet(title: "add_exercise_sheet_title", exercises: store.exercises, currentExercise: nil) { exercise in
+            ExercisePickerSheet(title: localizedString("add_exercise_sheet_title"), exercises: store.exercises, currentExercise: nil) { exercise in
                 addExercise(exercise)
                 showAddExercise = false
             }
@@ -468,8 +468,8 @@ struct ActiveWorkoutView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .safeAreaPadding(.top, 124)
-                    .padding(.top, 8)
+                    .safeAreaPadding(.top, 100)
+                    .padding(.top, 4)
                     .padding(.bottom, 128)
                 }
                 .scrollBounceBehavior(.basedOnSize, axes: .vertical)
@@ -1093,6 +1093,23 @@ struct ActiveWorkoutView: View {
                 }
                 sessionExerciseOrderCard
                 sessionControlCenterCard
+                PulseCard {
+                    DisclosureGroup(isExpanded: $showExerciseNotes) {
+                        ExerciseMediaNotesPanel(
+                            notes: selectedExerciseNotesBinding,
+                            isRecording: audioRecorder.isRecording,
+                            elapsedSeconds: Int(audioRecorder.elapsedSeconds),
+                            photoPickerItems: $exercisePhotoItems,
+                            attachments: selectedDraft?.mediaAttachments ?? [],
+                            onToggleAudio: toggleExerciseAudioNote,
+                            onCameraCapture: appendExerciseCameraImage
+                        )
+                    } label: {
+                        Label("notes_and_a_half", systemImage: "note.text")
+                            .font(.headline)
+                            .foregroundStyle(PulseTheme.primary)
+                    }
+                }
             }
         }
     }
@@ -1480,21 +1497,6 @@ struct ActiveWorkoutView: View {
                 .buttonStyle(.plain)
             }
 
-            DisclosureGroup(isExpanded: $showExerciseNotes) {
-                ExerciseMediaNotesPanel(
-                    notes: selectedExerciseNotesBinding,
-                    isRecording: audioRecorder.isRecording,
-                    elapsedSeconds: Int(audioRecorder.elapsedSeconds),
-                    photoPickerItems: $exercisePhotoItems,
-                    attachments: selectedDraft?.mediaAttachments ?? [],
-                    onToggleAudio: toggleExerciseAudioNote,
-                    onCameraCapture: appendExerciseCameraImage
-                )
-            } label: {
-                Label("notes_and_a_half", systemImage: "note.text")
-                    .font(.headline)
-                    .foregroundStyle(PulseTheme.primary)
-            }
         }
         .padding(12)
         .background(PulseTheme.grouped.opacity(0.68), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
@@ -1742,9 +1744,9 @@ struct ActiveWorkoutView: View {
                 isExpanded: $showSessionFeedback,
                 title: "document_session",
                 systemImage: "camera.on.rectangle.fill",
-                notesPrompt: "notes_prompt",
-                audioIdleTitle: "record_audio_note",
-                audioRecordingTitle: "save_audio_note",
+                notesPrompt: localizedString("notes_prompt"),
+                audioIdleTitle: localizedString("record_audio_note"),
+                audioRecordingTitle: localizedString("save_audio_note"),
                 sessionRPE: $sessionRPE,
                 energyBefore: $energyBefore,
                 energyAfter: $energyAfter,

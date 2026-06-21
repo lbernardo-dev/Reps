@@ -5,8 +5,11 @@ struct PlansView: View {
     @State private var showCreatePlan = false
     @State private var showExerciseLibrary = false
     @State private var planToEdit: WorkoutPlan?
+    @State private var selectedPlanForDetail: WorkoutPlan? = nil
     @State private var showProfile = false
     @State private var showProgramLibrary = false
+    @State private var showNotifications = false
+    @State private var showSocialHub = false
 
     /// A few exercises spanning distinct muscle groups, for the library collage.
     private var collageExercises: [Exercise] {
@@ -27,11 +30,59 @@ struct PlansView: View {
                 title: "plan_3",
                 subtitle: "create_and_tune_your_routine",
                 accessory: {
-                    HeaderAvatarButton(
-                        imageData: store.userProfile.avatarImageData,
-                        accessibilityLabel: "profile"
-                    ) {
-                        showProfile = true
+                    HStack(spacing: 6) {
+                        Button {
+                            HapticService.selection()
+                            showNotifications = true
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "bell.fill")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Circle())
+                                if store.hasUnreadBell {
+                                    Circle()
+                                        .fill(.red)
+                                        .frame(width: 9, height: 9)
+                                        .offset(x: -1, y: 1)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("notifications")
+
+                        if store.userProfile.socialEnabled {
+                            Button {
+                                HapticService.selection()
+                                showSocialHub = true
+                            } label: {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundStyle(PulseTheme.primary)
+                                        .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                        .background(.ultraThinMaterial)
+                                        .clipShape(Circle())
+                                    if store.unreadFeedCount > 0 {
+                                        Circle()
+                                            .fill(.red)
+                                            .frame(width: 9, height: 9)
+                                            .offset(x: -1, y: 1)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("social_hub")
+                        }
+
+                        HeaderAvatarButton(
+                            imageData: store.userProfile.avatarImageData,
+                            accessibilityLabel: "profile"
+                        ) {
+                            showProfile = true
+                        }
                     }
                 }
             ) {
@@ -66,62 +117,27 @@ struct PlansView: View {
                     }
                     .stickyHeaderTitle(localizedString("your_plans"))
 
-                    PulseCard {
-                        VStack(spacing: 0) {
-                            let inactivePlans = store.plans.filter { $0.id != store.activePlan.id }
-                            if inactivePlans.isEmpty {
-                                PulseEmptyState(
-                                    title: "no_saved_plans",
-                                    message: "create_plan_from_templates",
-                                    systemImage: "square.stack.3d.up"
-                                )
-                            }
+                    let inactivePlans = store.plans.filter { $0.id != store.activePlan.id }
+                    if inactivePlans.isEmpty {
+                        PulseCard {
+                            PulseEmptyState(
+                                title: "no_saved_plans",
+                                message: "create_plan_from_templates",
+                                systemImage: "square.stack.3d.up"
+                            )
+                        }
+                    } else {
+                        LazyVStack(spacing: 10) {
                             ForEach(inactivePlans) { plan in
-                                HStack(spacing: 0) {
-                                    Button {
-                                        HapticService.selection()
-                                        store.activatePlan(plan)
-                                    } label: {
-                                        PlanRow(plan: plan)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .contentShape(Rectangle())
-                                    }
-                                    .buttonStyle(.plain)
-
-                                    Menu {
-                                        Button("activar") {
-                                            HapticService.selection()
-                                            store.activatePlan(plan)
-                                        }
-                                        Button("edit_plan") {
-                                            planToEdit = plan
-                                        }
-                                        Button("delete", role: .destructive) {
-                                            store.deletePlan(plan)
-                                        }
-                                    } label: {
-                                        Image(systemName: "ellipsis")
-                                            .font(.title3.weight(.semibold))
-                                            .foregroundStyle(PulseTheme.secondaryText)
-                                            .frame(width: 44, height: 44)
-                                            .contentShape(Rectangle())
-                                    }
-                                }
-                                .contextMenu {
-                                    Button("activar") {
-                                        HapticService.selection()
-                                        store.activatePlan(plan)
-                                    }
-                                    Button("edit_plan") {
-                                        planToEdit = plan
-                                    }
-                                    Button("delete", role: .destructive) {
-                                        store.deletePlan(plan)
-                                    }
-                                }
-
-                                if plan.id != inactivePlans.last?.id {
-                                    Divider().padding(.leading, 72)
+                                PlanCard(plan: plan) {
+                                    selectedPlanForDetail = plan
+                                } onActivate: {
+                                    HapticService.selection()
+                                    store.activatePlan(plan)
+                                } onEdit: {
+                                    planToEdit = plan
+                                } onDelete: {
+                                    store.deletePlan(plan)
                                 }
                             }
                         }
@@ -137,11 +153,29 @@ struct PlansView: View {
             .sheet(item: $planToEdit) { plan in
                 EditPlanView(plan: plan)
             }
+            .sheet(item: $selectedPlanForDetail) { plan in
+                PlanDetailSheet(plan: plan) {
+                    store.activatePlan(plan)
+                    selectedPlanForDetail = nil
+                } onEdit: {
+                    selectedPlanForDetail = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        planToEdit = plan
+                    }
+                }
+                .environment(store)
+            }
             .navigationDestination(isPresented: $showExerciseLibrary) {
                 ExerciseLibraryView()
             }
             .navigationDestination(isPresented: $showProfile) {
                 ProfileView()
+            }
+            .navigationDestination(isPresented: $showNotifications) {
+                NotificationsView()
+            }
+            .navigationDestination(isPresented: $showSocialHub) {
+                SocialHubView()
             }
             .toolbar(.hidden, for: .navigationBar)
         }
@@ -241,7 +275,7 @@ struct PlansView: View {
                             .font(.title3.weight(.black))
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
-                        Text("Pick a ready-made block, then adapt days, music and exercises to your equipment.")
+                        Text(localizedString("program_discovery_subtitle"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -249,9 +283,9 @@ struct PlansView: View {
                 }
 
                 HStack(spacing: 8) {
-                    PlanValuePill(value: "\(SeedData.defaultPlans.count)", label: "Programs", systemImage: "square.grid.2x2")
-                    PlanValuePill(value: "\(SeedData.ProgramMetadata.Category.allCases.count)", label: "Goals", systemImage: "scope")
-                    PlanValuePill(value: "\(store.exercises.count)", label: "Exercises", systemImage: "figure.strengthtraining.traditional")
+                    PlanValuePill(value: "\(SeedData.defaultPlans.count)", label: localizedString("program_library_title"), systemImage: "square.grid.2x2")
+                    PlanValuePill(value: "\(SeedData.ProgramMetadata.Category.allCases.count)", label: localizedString("goals"), systemImage: "scope")
+                    PlanValuePill(value: "\(store.exercises.count)", label: localizedString("exercises_2"), systemImage: "figure.strengthtraining.traditional")
                 }
 
                 HStack(spacing: 10) {
@@ -671,6 +705,233 @@ private struct PlanTargetEventSummary: View {
         .padding(12)
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    }
+}
+
+private struct PlanCard: View {
+    let plan: WorkoutPlan
+    let onTap: () -> Void
+    let onActivate: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    private var locationColor: Color {
+        switch plan.location {
+        case .gym: return PulseTheme.primary
+        case .home: return PulseTheme.recovery
+        case .both: return PulseTheme.accent
+        }
+    }
+
+    private var locationIcon: String {
+        switch plan.location {
+        case .gym: return "dumbbell.fill"
+        case .home: return "house.fill"
+        case .both: return "bolt.fill"
+        }
+    }
+
+    private var topExerciseNames: [String] {
+        Array(plan.days.flatMap { $0.exercises }.prefix(4).map { $0.exercise.name })
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 14) {
+                Image(systemName: locationIcon)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .background(locationColor, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(plan.name)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .foregroundStyle(.primary)
+
+                    HStack(spacing: 10) {
+                        Label(localizedFormat("days_per_week_short_format", plan.daysPerWeek), systemImage: "calendar")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+
+                        let totalEx = plan.days.flatMap { $0.exercises }.count
+                        if totalEx > 0 {
+                            Label("\(totalEx)", systemImage: "dumbbell")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+
+                    if !topExerciseNames.isEmpty {
+                        HStack(spacing: 4) {
+                            ForEach(topExerciseNames.prefix(3), id: \.self) { name in
+                                Text(name)
+                                    .font(.caption2.weight(.semibold))
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 3)
+                                    .background(PulseTheme.grouped)
+                                    .clipShape(Capsule())
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            if topExerciseNames.count > 3 {
+                                Text("+\(plan.days.flatMap { $0.exercises }.count - 3)")
+                                    .font(.caption2.weight(.black))
+                                    .foregroundStyle(locationColor)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                HStack(spacing: 0) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText.opacity(0.5))
+                        .padding(.trailing, 4)
+
+                    Menu {
+                        Button {
+                            onActivate()
+                        } label: {
+                            Label(localizedString("activate_plan"), systemImage: "bolt.fill")
+                        }
+                        Button {
+                            onEdit()
+                        } label: {
+                            Label(localizedString("edit_plan"), systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            onDelete()
+                        } label: {
+                            Label(localizedString("delete"), systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .frame(width: 36, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(14)
+            .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                    .stroke(PulseTheme.separator, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button {
+                onActivate()
+            } label: {
+                Label(localizedString("activate_plan"), systemImage: "bolt.fill")
+            }
+            Button {
+                onEdit()
+            } label: {
+                Label(localizedString("edit_plan"), systemImage: "pencil")
+            }
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label(localizedString("delete"), systemImage: "trash")
+            }
+        }
+    }
+}
+
+private struct PlanDetailSheet: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let plan: WorkoutPlan
+    let onActivate: () -> Void
+    let onEdit: () -> Void
+
+    private var locationColor: Color {
+        switch plan.location {
+        case .gym: return PulseTheme.primary
+        case .home: return PulseTheme.recovery
+        case .both: return PulseTheme.accent
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    PulseCard {
+                        HStack(spacing: 14) {
+                            Image(systemName: plan.location == .gym ? "dumbbell.fill" : plan.location == .home ? "house.fill" : "bolt.fill")
+                                .font(.title2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 56, height: 56)
+                                .background(locationColor, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(plan.name)
+                                    .font(.title3.weight(.bold))
+                                HStack(spacing: 12) {
+                                    Label(localizedFormat("days_per_week_short_format", plan.daysPerWeek), systemImage: "calendar")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                    Label("\(plan.days.count) \(localizedString("days"))", systemImage: "figure.strengthtraining.traditional")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                            }
+                            Spacer()
+                        }
+                    }
+
+                    if !plan.days.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(localizedString("training_days_section"))
+                                .font(.headline)
+                            LazyVStack(spacing: 10) {
+                                ForEach(plan.days) { day in
+                                    PlanDayRow(day: day)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(minLength: 60)
+                }
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.top, 16)
+            }
+            .screenBackground()
+            .navigationTitle(Text(plan.name))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(localizedString("cancel")) { dismiss() }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button(localizedString("edit_plan")) { onEdit() }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                Button(action: onActivate) {
+                    Label(localizedString("activate_plan"), systemImage: "bolt.fill")
+                        .font(.headline.weight(.black))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .foregroundStyle(.white)
+                        .background(locationColor, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial)
+            }
+        }
     }
 }
 

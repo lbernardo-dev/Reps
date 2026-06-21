@@ -21,7 +21,7 @@ struct ExerciseMediaNotesPanel: View {
 
             HStack(spacing: 10) {
                 Button(action: onToggleAudio) {
-                    Label(isRecording ? "Guardar audio" : "Grabar audio", systemImage: isRecording ? "stop.fill" : "mic.fill")
+                    Label(localizedString(isRecording ? "save_audio_note" : "record_audio_note"), systemImage: isRecording ? "stop.fill" : "mic.fill")
                         .font(.subheadline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 46)

@@ -838,7 +838,7 @@ struct ExerciseDetailView: View {
             }
         }
         .fullScreenCover(isPresented: $showCamera) {
-            CameraPicker { image in
+            CameraPicker(isPresented: $showCamera) { image in
                 if let data = image.jpegData(compressionQuality: 0.8) {
                     var updated = currentExercise
                     updated.customImageData = data

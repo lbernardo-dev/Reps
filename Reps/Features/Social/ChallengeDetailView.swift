@@ -182,6 +182,7 @@ struct ChallengeDetailView: View {
 
     private func formatDate(_ date: Date) -> String {
         let f = DateFormatter()
+        f.locale = Locale(identifier: store.userProfile.preferredLanguage)
         f.dateStyle = .medium
         f.timeStyle = .none
         return f.string(from: date)
@@ -190,8 +191,8 @@ struct ChallengeDetailView: View {
     private func formatValue(_ v: Double) -> String {
         switch challenge.metric {
         case .volumeKg: return String(format: "%.0f kg", v)
-        case .streak:   return String(format: "%.0f sessions", v)
-        case .prCount:  return String(format: "%.0f PRs", v)
+        case .streak:   return "\(Int(v)) \(localizedString("sessions_2"))"
+        case .prCount:  return "\(Int(v)) PRs"
         }
     }
 

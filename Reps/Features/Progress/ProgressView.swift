@@ -7,6 +7,9 @@ struct ProgressDashboardView: View {
   @State private var selectedRange: ProgressRange = .week
   @State private var selectedSection: ProgressSection = .muscles
   @State private var activeDestination: ProgressDestination?
+  @State private var showNotifications = false
+  @State private var showSocialHub = false
+  @State private var showProfile = false
 
   var onSelectTab: ((AppTab) -> Void)? = nil
 
@@ -17,12 +20,60 @@ struct ProgressDashboardView: View {
         subtitle: "performance",
         topContentPadding: 128,
         accessory: {
-            NavigationLink {
-              CalendarView()
-            } label: {
-              StreakBadge(days: store.streakDays)
+            HStack(spacing: 6) {
+                Button {
+                    HapticService.selection()
+                    showNotifications = true
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                        if store.hasUnreadBell {
+                            Circle()
+                                .fill(.red)
+                                .frame(width: 9, height: 9)
+                                .offset(x: -1, y: 1)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("notifications")
+
+                if store.userProfile.socialEnabled {
+                    Button {
+                        HapticService.selection()
+                        showSocialHub = true
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(PulseTheme.primary)
+                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                            if store.unreadFeedCount > 0 {
+                                Circle()
+                                    .fill(.red)
+                                    .frame(width: 9, height: 9)
+                                    .offset(x: -1, y: 1)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("social_hub")
+                }
+
+                HeaderAvatarButton(
+                    imageData: store.userProfile.avatarImageData,
+                    accessibilityLabel: "profile"
+                ) {
+                    showProfile = true
+                }
             }
-            .buttonStyle(.plain)
         }
       ) {
 
@@ -33,6 +84,16 @@ struct ProgressDashboardView: View {
             onTapSessions: { withAnimation(.snappy(duration: 0.2)) { selectedSection = .general } }
           )
             .stickyHeaderTitle(localizedString("this_week"))
+
+          if !store.workoutSessions.isEmpty {
+            ProgressWeekContextCard(
+              sessionsThisWeek: heroMetrics.sessionsThisWeek,
+              volumeThisWeek: heroMetrics.volumeThisWeek,
+              sessionsLastWeek: heroMetrics.sessionsLastWeek,
+              volumeLastWeek: heroMetrics.volumeLastWeek,
+              streak: heroMetrics.streak
+            )
+          }
 
           ProgressCoachStrip(
             step: nextBestSteps.first(where: { !$0.isCompleted }) ?? nextBestSteps.first,
@@ -571,6 +632,15 @@ struct ProgressDashboardView: View {
           }
       }
       .toolbar(.hidden, for: .navigationBar)
+      .navigationDestination(isPresented: $showNotifications) {
+        NotificationsView()
+      }
+      .navigationDestination(isPresented: $showSocialHub) {
+        SocialHubView()
+      }
+      .navigationDestination(isPresented: $showProfile) {
+        ProfileView()
+      }
     }
   }
 
@@ -593,7 +663,9 @@ struct ProgressDashboardView: View {
       sessionsThisWeek: thisWeek.count,
       sessionsLastWeek: lastWeek.count,
       volumeThisWeek: FitnessMetrics.totalVolumeKg(for: thisWeek),
-      volumeLastWeek: FitnessMetrics.totalVolumeKg(for: lastWeek)
+      volumeLastWeek: FitnessMetrics.totalVolumeKg(for: lastWeek),
+      totalSessions: store.workoutSessions.count,
+      totalVolumeKg: FitnessMetrics.totalVolumeKg(for: store.workoutSessions)
     )
   }
 
@@ -1633,6 +1705,8 @@ struct ProgressHeroMetrics {
   let sessionsLastWeek: Int
   let volumeThisWeek: Double      // kg
   let volumeLastWeek: Double
+  var totalSessions: Int = 0
+  var totalVolumeKg: Double = 0
 
   /// Percentage change vs last week, or nil when there is no baseline.
   var volumeDelta: Double? {
@@ -1644,7 +1718,7 @@ struct ProgressHeroMetrics {
 }
 
 /// Graphical, at-a-glance summary of the current week: an adherence ring plus
-/// streak, volume and session tiles with week-over-week trend.
+/// streak, volume and session tiles with week-over-week trend, plus all-time totals row.
 struct ProgressHeroCard: View {
   let metrics: ProgressHeroMetrics
   var onTapStreak: (() -> Void)? = nil
@@ -1652,44 +1726,205 @@ struct ProgressHeroCard: View {
   var onTapSessions: (() -> Void)? = nil
 
   var body: some View {
-    PulseCard {
-      HStack(spacing: 0) {
-        HeroTile(
-          systemImage: "flame.fill",
-          tint: PulseTheme.accent,
-          value: "\(metrics.streak)",
-          title: localizedString("streak"),
-          trend: nil,
-          onTap: onTapStreak
-        )
-        HeroTileDivider()
-        HeroTile(
-          systemImage: "scalemass.fill",
-          tint: PulseTheme.primaryBright,
-          value: volumeText,
-          title: localizedString("volume_label"),
-          trend: metrics.volumeDelta.map { HeroTrend(percent: $0) },
-          onTap: onTapVolume
-        )
-        HeroTileDivider()
-        HeroTile(
-          systemImage: "dumbbell.fill",
-          tint: PulseTheme.primary,
-          value: "\(metrics.sessionsThisWeek)",
-          title: localizedString("sessions"),
-          trend: metrics.sessionsLastWeek > 0 ? HeroTrend(countDelta: metrics.sessionsDelta) : nil,
-          onTap: onTapSessions
-        )
+    PulseCard(contentPadding: 0) {
+      VStack(spacing: 0) {
+        // ── Week header ─────────────────────────────────
+        HStack {
+          Label(localizedString("this_week"), systemImage: "calendar")
+            .font(.caption.weight(.black))
+            .textCase(.uppercase)
+            .foregroundStyle(PulseTheme.primary)
+          Spacer()
+          if let dir = weekDirection {
+            HStack(spacing: 4) {
+              Image(systemName: dir.icon)
+                .font(.system(size: 10, weight: .black))
+              Text(dir.label)
+                .font(.caption.weight(.black))
+            }
+            .foregroundStyle(dir.color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(dir.color.opacity(0.12), in: Capsule())
+          }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
+
+        // ── Three metric tiles ──────────────────────────
+        HStack(spacing: 0) {
+          HeroTile(
+            systemImage: "flame.fill",
+            tint: PulseTheme.accent,
+            value: "\(metrics.streak)",
+            title: localizedString("streak"),
+            subtitle: localizedString("days"),
+            trend: nil,
+            onTap: onTapStreak
+          )
+          Rectangle()
+            .fill(PulseTheme.separator)
+            .frame(width: 1, height: 54)
+          HeroTile(
+            systemImage: "scalemass.fill",
+            tint: PulseTheme.primaryBright,
+            value: volumeText,
+            title: localizedString("volume_label"),
+            subtitle: nil,
+            trend: metrics.volumeDelta.map { HeroTrend(percent: $0) },
+            onTap: onTapVolume
+          )
+          Rectangle()
+            .fill(PulseTheme.separator)
+            .frame(width: 1, height: 54)
+          HeroTile(
+            systemImage: "dumbbell.fill",
+            tint: PulseTheme.primary,
+            value: "\(metrics.sessionsThisWeek)",
+            title: localizedString("sessions"),
+            subtitle: nil,
+            trend: metrics.sessionsLastWeek > 0 ? HeroTrend(countDelta: metrics.sessionsDelta) : nil,
+            onTap: onTapSessions
+          )
+        }
+        .padding(.bottom, 12)
+
+        // ── Divider ─────────────────────────────────────
+        Divider().padding(.horizontal, 16)
+
+        // ── All-time totals ──────────────────────────────
+        HStack(spacing: 0) {
+          TotalStatPill(
+            label: localizedString("total_sessions"),
+            value: "\(metrics.totalSessions)"
+          )
+          Rectangle()
+            .fill(PulseTheme.separator)
+            .frame(width: 1, height: 24)
+          TotalStatPill(
+            label: localizedString("volume_label"),
+            value: totalVolumeAllTimeText
+          )
+          Rectangle()
+            .fill(PulseTheme.separator)
+            .frame(width: 1, height: 24)
+          TotalStatPill(
+            label: localizedString("adherence"),
+            value: "\(Int(metrics.adherence * 100))%"
+          )
+        }
+        .padding(.vertical, 10)
       }
     }
   }
 
+  private var weekDirection: (icon: String, label: String, color: Color)? {
+    let sessionDelta = metrics.sessionsDelta
+    let volDelta = metrics.volumeDelta ?? 0
+    if sessionDelta > 0 || volDelta > 5 {
+      return ("arrow.up.right", "+\(sessionDelta) sessions", PulseTheme.primaryBright)
+    } else if sessionDelta < 0 || volDelta < -5 {
+      return ("arrow.down.right", "\(sessionDelta) sessions", PulseTheme.destructive)
+    }
+    return nil
+  }
+
   private var volumeText: String {
     let v = metrics.volumeThisWeek
-    if v >= 1000 {
-      return String(format: "%.1ft", v / 1000)
-    }
+    if v >= 1000 { return String(format: "%.1ft", v / 1000) }
     return "\(Int(v.rounded())) kg"
+  }
+
+  private var totalVolumeAllTimeText: String {
+    let v = metrics.totalVolumeKg
+    if v >= 1000 { return String(format: "%.1ft", v / 1000) }
+    return "\(Int(v.rounded())) kg"
+  }
+}
+
+private struct TotalStatPill: View {
+  let label: String
+  let value: String
+
+  var body: some View {
+    VStack(spacing: 2) {
+      Text(value)
+        .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
+        .foregroundStyle(.primary)
+      Text(label)
+        .font(.system(size: 9, weight: .semibold))
+        .foregroundStyle(PulseTheme.secondaryText)
+        .lineLimit(1)
+    }
+    .frame(maxWidth: .infinity)
+  }
+}
+
+private struct ProgressWeekContextCard: View {
+  let sessionsThisWeek: Int
+  let volumeThisWeek: Double
+  let sessionsLastWeek: Int
+  let volumeLastWeek: Double
+  let streak: Int
+
+  private var volumeDelta: Double {
+    guard volumeLastWeek > 0 else { return 0 }
+    return ((volumeThisWeek - volumeLastWeek) / volumeLastWeek) * 100
+  }
+
+  private var sessionsDelta: Int { sessionsThisWeek - sessionsLastWeek }
+
+  var body: some View {
+    PulseCard {
+      VStack(alignment: .leading, spacing: 12) {
+        Label(localizedString("progress_direction"), systemImage: "chart.line.uptrend.xyaxis")
+          .font(.caption.weight(.black))
+          .foregroundStyle(PulseTheme.primary)
+          .textCase(.uppercase)
+
+        HStack(spacing: 16) {
+          contextStat(
+            icon: "dumbbell.fill",
+            value: sessionsDelta >= 0 ? "+\(sessionsDelta)" : "\(sessionsDelta)",
+            label: localizedString("vs_last_week"),
+            isPositive: sessionsDelta >= 0
+          )
+          contextStat(
+            icon: "scalemass.fill",
+            value: String(format: "%+.0f%%", volumeDelta),
+            label: localizedString("volume_label"),
+            isPositive: volumeDelta >= 0
+          )
+          contextStat(
+            icon: "flame.fill",
+            value: "\(streak)d",
+            label: localizedString("streak"),
+            isPositive: streak > 0
+          )
+        }
+      }
+    }
+  }
+
+  private func contextStat(icon: String, value: String, label: String, isPositive: Bool) -> some View {
+    HStack(spacing: 8) {
+      Image(systemName: icon)
+        .font(.subheadline.weight(.bold))
+        .foregroundStyle(isPositive ? PulseTheme.primaryBright : PulseTheme.destructive)
+        .frame(width: 32, height: 32)
+        .background((isPositive ? PulseTheme.primaryBright : PulseTheme.destructive).opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+      VStack(alignment: .leading, spacing: 2) {
+        Text(value)
+          .font(.system(size: 14, weight: .black, design: .rounded).monospacedDigit())
+          .foregroundStyle(isPositive ? PulseTheme.primaryBright : PulseTheme.destructive)
+        Text(label)
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(PulseTheme.secondaryText)
+      }
+      Spacer()
+    }
+    .frame(maxWidth: .infinity)
   }
 }
 
@@ -1721,6 +1956,7 @@ private struct HeroTile: View {
   let tint: Color
   let value: String
   let title: String
+  var subtitle: String? = nil
   let trend: HeroTrend?
   var onTap: (() -> Void)? = nil
 
@@ -1752,6 +1988,13 @@ private struct HeroTile: View {
         .font(.system(size: 10, weight: .semibold))
         .foregroundStyle(PulseTheme.secondaryText)
         .lineLimit(1)
+
+      if let subtitle {
+        Text(subtitle)
+          .font(.system(size: 9, weight: .semibold))
+          .foregroundStyle(PulseTheme.secondaryText.opacity(0.7))
+          .lineLimit(1)
+      }
 
       if let trend {
         HStack(spacing: 2) {

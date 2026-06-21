@@ -234,10 +234,10 @@ struct ActiveWorkoutCommandCard: View {
     }
 
     private var primaryTitle: String {
-        if !isSessionStarted { return "Start Workout" }
-        if isPaused { return "Resume" }
-        if isResting { return "Next set" }
-        return "Complete set"
+        if !isSessionStarted { return localizedString("start_workout") }
+        if isPaused { return localizedString("resume_workout") }
+        if isResting { return localizedString("next_set") }
+        return localizedString("complete_set")
     }
 
     private var primaryIcon: String {
@@ -257,7 +257,7 @@ struct ActiveWorkoutCommandCard: View {
                         totalSets: totalSets,
                         color: commandColor
                     )
-                    .frame(width: 68, height: 68)
+                    .frame(width: 84, height: 84)
 
                     VStack(alignment: .leading, spacing: 5) {
                         Text(localizedString("next_best_action"))
@@ -265,7 +265,7 @@ struct ActiveWorkoutCommandCard: View {
                             .tracking(1.5)
                             .textCase(.uppercase)
                             .foregroundStyle(commandColor)
-                        Text(isResting ? "Recover for the next set" : nextSetTitle)
+                        Text(isResting ? localizedString("recover_for_next_set") : nextSetTitle)
                             .font(.title3.weight(.black))
                             .lineLimit(2)
                             .minimumScaleFactor(0.78)

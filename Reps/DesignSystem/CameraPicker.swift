@@ -6,7 +6,7 @@ import UIKit
 /// UIKit camera picker wrapped for SwiftUI.
 /// Falls back gracefully when the camera is not available (simulator, denied).
 struct CameraPicker: UIViewControllerRepresentable {
-    @Environment(\.dismiss) private var dismiss
+    @Binding var isPresented: Bool
     let onCapture: (UIImage) -> Void
 
     static var isAvailable: Bool {
@@ -25,27 +25,27 @@ struct CameraPicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onCapture: onCapture, dismiss: dismiss)
+        Coordinator(onCapture: onCapture, isPresented: $isPresented)
     }
 
     final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         let onCapture: (UIImage) -> Void
-        let dismiss: DismissAction
+        var isPresented: Binding<Bool>
 
-        init(onCapture: @escaping (UIImage) -> Void, dismiss: DismissAction) {
+        init(onCapture: @escaping (UIImage) -> Void, isPresented: Binding<Bool>) {
             self.onCapture = onCapture
-            self.dismiss = dismiss
+            self.isPresented = isPresented
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             if let image = info[.originalImage] as? UIImage {
                 onCapture(image)
             }
-            dismiss()
+            isPresented.wrappedValue = false
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            dismiss()
+            isPresented.wrappedValue = false
         }
     }
 }
@@ -64,6 +64,7 @@ struct MediaSourceMenu<LabelContent: View>: View {
     @State private var showCamera = false
     @State private var showVideoCamera = false
     @State private var showPermissionDenied = false
+    @State private var showGalleryPicker = false
 
     var body: some View {
         Menu {
@@ -116,20 +117,23 @@ struct MediaSourceMenu<LabelContent: View>: View {
                 #endif
             }
 
-            PhotosPicker(selection: $photoPickerItems, maxSelectionCount: maxSelectionCount, matching: .images) {
+            Button {
+                showGalleryPicker = true
+            } label: {
                 Label("choose_from_gallery", systemImage: "photo.on.rectangle")
             }
         } label: {
             label()
         }
+        .photosPicker(isPresented: $showGalleryPicker, selection: $photoPickerItems, maxSelectionCount: maxSelectionCount, matching: .images)
         .fullScreenCover(isPresented: $showCamera) {
-            CameraPicker { image in
+            CameraPicker(isPresented: $showCamera) { image in
                 onCameraCapture(image)
             }
             .ignoresSafeArea()
         }
         .fullScreenCover(isPresented: $showVideoCamera) {
-            VideoCameraPicker { data, thumbnail in
+            VideoCameraPicker(isPresented: $showVideoCamera) { data, thumbnail in
                 onVideoCapture?(data, thumbnail)
             }
             .ignoresSafeArea()
@@ -147,7 +151,7 @@ struct MediaSourceMenu<LabelContent: View>: View {
 
 /// UIKit camera wrapped for SwiftUI to record a short video clip.
 struct VideoCameraPicker: UIViewControllerRepresentable {
-    @Environment(\.dismiss) private var dismiss
+    @Binding var isPresented: Bool
     let onCapture: (Data, UIImage?) -> Void
 
     static var isAvailable: Bool {
@@ -158,8 +162,8 @@ struct VideoCameraPicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
+        picker.mediaTypes = ["public.movie"]   // must precede cameraCaptureMode
         picker.cameraCaptureMode = .video
-        picker.mediaTypes = ["public.movie"]
         picker.videoQuality = .typeMedium
         picker.videoMaximumDuration = 60
         picker.delegate = context.coordinator
@@ -169,27 +173,27 @@ struct VideoCameraPicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onCapture: onCapture, dismiss: dismiss)
+        Coordinator(onCapture: onCapture, isPresented: $isPresented)
     }
 
     final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         let onCapture: (Data, UIImage?) -> Void
-        let dismiss: DismissAction
+        var isPresented: Binding<Bool>
 
-        init(onCapture: @escaping (Data, UIImage?) -> Void, dismiss: DismissAction) {
+        init(onCapture: @escaping (Data, UIImage?) -> Void, isPresented: Binding<Bool>) {
             self.onCapture = onCapture
-            self.dismiss = dismiss
+            self.isPresented = isPresented
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             if let url = info[.mediaURL] as? URL, let data = try? Data(contentsOf: url) {
                 onCapture(data, VideoThumbnail.generate(from: url))
             }
-            dismiss()
+            isPresented.wrappedValue = false
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            dismiss()
+            isPresented.wrappedValue = false
         }
     }
 }

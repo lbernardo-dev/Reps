@@ -572,12 +572,17 @@ struct TodayView: View {
                 SummaryChip(title: locationLabel, systemImage: "mappin.and.ellipse", color: PulseTheme.primaryBright)
             }
 
-            TodayCoachSummaryRow(
-                recommendation: dailyCoachRecommendation,
-                weekTargetText: weekTargetText,
-                batteryLevel: batteryStatus.level,
-                color: color(for: dailyCoachRecommendation.tone)
-            )
+            Button {
+                perform(dailyCoachRecommendation.action)
+            } label: {
+                TodayCoachSummaryRow(
+                    recommendation: dailyCoachRecommendation,
+                    weekTargetText: weekTargetText,
+                    batteryLevel: batteryStatus.level,
+                    color: color(for: dailyCoachRecommendation.tone)
+                )
+            }
+            .buttonStyle(.plain)
 
             HStack(spacing: 10) {
                 Button {
@@ -602,8 +607,8 @@ struct TodayView: View {
                     Image(systemName: "play.fill")
                         .font(.headline.weight(.black))
                         .frame(width: 54, height: 54)
-                        .foregroundStyle(PulseTheme.primary)
-                        .background(PulseTheme.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        .foregroundStyle(.white)
+                        .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(playButtonTitle)
@@ -760,7 +765,7 @@ struct TodayView: View {
     }
 
     private var planReadinessTitle: String {
-        hasActivePlan ? "Plan ready" : localizedString("no_active_plan")
+        hasActivePlan ? localizedString("plan_ready") : localizedString("no_active_plan")
     }
 
     private var planReadinessMessage: String {
@@ -1300,37 +1305,60 @@ struct TodayView: View {
 
     private var progressAndRecovery: some View {
         HStack(spacing: 12) {
-            PulseCard(minHeight: 125) {
+            // Last Workout
+            PulseCard(contentPadding: 14) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label(localizedString("last_workout"), systemImage: "clock.arrow.circlepath")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                    Spacer(minLength: 0)
-                    Text(lastWorkout.map { RepsText.workoutTitle($0.workoutTitle, language: store.userProfile.preferredLanguage) } ?? (localizedString("no_workouts")))
-                        .font(.headline)
+                    HStack(spacing: 7) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 26, height: 26)
+                            .background(PulseTheme.primary.opacity(0.85))
+                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        Text(localizedString("last_workout"))
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(1)
+                    }
+                    Text(lastWorkout.map { RepsText.workoutTitle($0.workoutTitle, language: store.userProfile.preferredLanguage) } ?? localizedString("no_workouts"))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
                         .lineLimit(2)
-                        .minimumScaleFactor(0.85)
+                        .minimumScaleFactor(0.80)
                     Text(lastWorkoutSubtitle)
-                        .font(.subheadline)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
                 }
             }
+            .aspectRatio(1, contentMode: .fit)
 
-            PulseCard(minHeight: 125) {
+            // Health / Steps
+            PulseCard(contentPadding: 14) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label(localizedString("health"), systemImage: "heart.fill")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                    Spacer(minLength: 0)
-                    Text(store.todayHealthMetric.map { "\($0.steps, specifier: "%.0f")" } ?? "--")
-                        .font(.title2.bold().monospacedDigit())
+                    HStack(spacing: 7) {
+                        Image(systemName: "figure.walk")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 26, height: 26)
+                            .background(Color.green.opacity(0.85))
+                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        Text(localizedString("health"))
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(1)
+                    }
+                    Text(store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--")
+                        .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
+                        .foregroundStyle(store.todayHealthMetric != nil ? Color.green : PulseTheme.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                     Text(localizedString("steps_today"))
-                        .font(.subheadline)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
                 }
             }
+            .aspectRatio(1, contentMode: .fit)
         }
     }
 
@@ -2199,10 +2227,9 @@ private struct WellnessWidget: View {
             Text(localizedKey(subtitle))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
         }
-        .frame(width: 166, height: 126, alignment: .topLeading)
+        .frame(width: 166, height: 166, alignment: .topLeading)
         .padding(14)
         .background(PulseTheme.card)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))

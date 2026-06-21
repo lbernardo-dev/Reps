@@ -119,19 +119,6 @@ struct SocialHubView: View {
                 .font(.system(size: 19, weight: .bold, design: .rounded))
             Spacer()
             HStack(spacing: 10) {
-                #if DEBUG
-                if store.userProfile.socialUsername != nil {
-                    Button {
-                        publishDebugPost()
-                    } label: {
-                        Image(systemName: "hammer.fill")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    .buttonStyle(.plain)
-                }
-                #endif
-
                 // Notification bell
                 Button {
                     HapticService.selection()
@@ -360,8 +347,49 @@ struct SocialHubView: View {
                 .padding(.vertical, 8)
             }
         } else {
+            if !following.filter({ $0.isOnline }).isEmpty {
+                activeFriendsStrip
+            }
             ForEach(store.feedPosts) { post in
                 workoutFeedCard(post)
+            }
+        }
+    }
+
+    private var activeFriendsStrip: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Circle()
+                        .fill(.green)
+                        .frame(width: 7, height: 7)
+                        .overlay(Circle().stroke(PulseTheme.card, lineWidth: 1))
+                    Text(localizedString("active_now"))
+                        .font(.caption.weight(.black))
+                        .textCase(.uppercase)
+                        .foregroundStyle(.green)
+                    Spacer()
+                }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(following.filter { $0.isOnline }) { friend in
+                            VStack(spacing: 4) {
+                                ZStack(alignment: .bottomTrailing) {
+                                    avatarCircle(data: friend.avatarImageData, username: friend.username, isMe: false, size: 48)
+                                    Circle()
+                                        .fill(.green)
+                                        .frame(width: 13, height: 13)
+                                        .overlay(Circle().stroke(PulseTheme.card, lineWidth: 2))
+                                }
+                                Text("@\(friend.username)")
+                                    .font(.caption2.weight(.semibold))
+                                    .lineLimit(1)
+                                    .frame(width: 56)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
             }
         }
     }
@@ -369,14 +397,15 @@ struct SocialHubView: View {
     private func workoutFeedCard(_ post: WorkoutPost) -> some View {
         let isLiked = likedPostIDs.contains(post.id)
         let isLiking = likingInProgress.contains(post.id)
-        return PulseCard {
-            VStack(alignment: .leading, spacing: 12) {
-                // Header
+        let isRecent = post.createdAt.timeIntervalSinceNow > -7200 // within 2 hours
+        return PulseCard(contentPadding: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                // ── Header ──────────────────────────────────────
                 HStack(spacing: 10) {
                     ZStack {
-                        Circle().fill(PulseTheme.primary.opacity(0.10)).frame(width: 38, height: 38)
+                        Circle().fill(PulseTheme.primary.opacity(0.10)).frame(width: 42, height: 42)
                         Text(String(post.ownerUsername.prefix(1)).uppercased())
-                            .font(.system(size: 16, weight: .black, design: .rounded))
+                            .font(.system(size: 18, weight: .black, design: .rounded))
                             .foregroundStyle(PulseTheme.primary)
                     }
                     VStack(alignment: .leading, spacing: 1) {
@@ -387,66 +416,52 @@ struct SocialHubView: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
                     Spacer()
-                    HStack(spacing: 14) {
-                        // Like
-                        Button {
-                            toggleLike(post: post)
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: isLiked ? "heart.fill" : "heart")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(isLiked ? PulseTheme.destructive : PulseTheme.secondaryText)
-                                if post.likeCount > 0 {
-                                    Text("\(post.likeCount)")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                }
-                            }
-                            .opacity(isLiking ? 0.5 : 1)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isLiking)
-
-                        // Comments
-                        Button {
-                            commentsPost = post
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "bubble.left")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(PulseTheme.secondaryText)
-                                if post.commentCount > 0 {
-                                    Text("\(post.commentCount)")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
+                    if isRecent {
+                        Text("LIVE")
+                            .font(.system(size: 9, weight: .black, design: .rounded))
+                            .tracking(1)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.red, in: Capsule())
                     }
                 }
+                .padding(.horizontal, 14)
+                .padding(.top, 14)
+                .padding(.bottom, 10)
 
-                // Workout title
+                // ── Workout title ────────────────────────────────
                 Text(post.workoutTitle)
-                    .font(.headline)
+                    .font(.headline.weight(.bold))
+                    .padding(.horizontal, 14)
 
-                // Stats row
-                HStack(spacing: 16) {
-                    feedStat(icon: "clock", value: durationLabel(post.durationSeconds))
-                    if post.volumeKg > 0 {
-                        feedStat(icon: "scalemass", value: volumeLabel(post.volumeKg))
+                // ── Stats chips row ──────────────────────────────
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        if post.durationSeconds > 0 {
+                            feedStatChip(icon: "clock.fill", value: durationLabel(post.durationSeconds), color: PulseTheme.primary)
+                        }
+                        if post.volumeKg > 0 {
+                            feedStatChip(icon: "scalemass.fill", value: volumeLabel(post.volumeKg), color: PulseTheme.primaryBright)
+                        }
+                        if !post.exerciseNames.isEmpty {
+                            feedStatChip(icon: "dumbbell.fill", value: "\(post.exerciseNames.count) ex", color: PulseTheme.accent)
+                        }
                     }
-                    feedStat(icon: "dumbbell", value: "\(post.exerciseNames.count)")
+                    .padding(.horizontal, 14)
                 }
+                .padding(.vertical, 8)
 
-                // Caption (for custom posts or when set)
+                // ── Caption ──────────────────────────────────────
                 if let cap = post.caption, !cap.isEmpty, cap != post.workoutTitle {
                     Text(cap)
                         .font(.subheadline)
                         .foregroundStyle(.primary.opacity(0.9))
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 6)
                 }
 
-                // Exercise chips
+                // ── Exercise chips ────────────────────────────────
                 if !post.exerciseNames.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
@@ -467,15 +482,78 @@ struct SocialHubView: View {
                                     .clipShape(Capsule())
                             }
                         }
+                        .padding(.horizontal, 14)
                     }
+                    .padding(.bottom, 6)
                 }
 
-                // Photos (up to 3)
+                // ── Photos ────────────────────────────────────────
                 if !post.photoDataList.isEmpty {
                     feedPhotoGrid(post.photoDataList)
+                        .padding(.horizontal, 0)
+                }
+
+                // ── Divider + action bar ─────────────────────────
+                Divider()
+                HStack(spacing: 0) {
+                    // Like
+                    Button {
+                        toggleLike(post: post)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: isLiked ? "heart.fill" : "heart")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(isLiked ? PulseTheme.destructive : PulseTheme.secondaryText)
+                            if post.likeCount > 0 {
+                                Text("\(post.likeCount)")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(isLiking ? 0.5 : 1)
+                    .disabled(isLiking)
+
+                    Divider().frame(height: 20)
+
+                    // Comments
+                    Button {
+                        commentsPost = post
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bubble.left")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            if post.commentCount > 0 {
+                                Text("\(post.commentCount)")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
+    }
+
+    private func feedStatChip(icon: String, value: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .bold))
+            Text(value)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.10))
+        .clipShape(Capsule())
     }
 
     private func feedPhotoGrid(_ photoList: [Data]) -> some View {
@@ -506,17 +584,6 @@ struct SocialHubView: View {
             .frame(height: 220)
             .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-
-    private func feedStat(icon: String, value: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(PulseTheme.secondaryText)
-            Text(value)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(PulseTheme.secondaryText)
-        }
     }
 
     private func durationLabel(_ seconds: Int) -> String {
@@ -629,24 +696,29 @@ struct SocialHubView: View {
     }
 
     private func challengeRow(_ ch: SocialChallenge) -> some View {
-        Button {
+        let daysLeft = Int(ch.endDate.timeIntervalSinceNow / 86400)
+        let iconName = ch.metric == .volumeKg ? "scalemass.fill" : ch.metric == .streak ? "flame.fill" : "medal.fill"
+        let iconGradient = ch.isActive
+            ? LinearGradient(colors: [PulseTheme.accent, PulseTheme.primaryBright], startPoint: .topLeading, endPoint: .bottomTrailing)
+            : LinearGradient(colors: [PulseTheme.secondaryText.opacity(0.4), PulseTheme.secondaryText.opacity(0.25)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        return Button {
             HapticService.selection()
             selectedChallenge = ch
         } label: {
             PulseCard {
                 HStack(spacing: 12) {
-                    Image(systemName: ch.metric == .volumeKg ? "scalemass.fill" : ch.metric == .streak ? "flame.fill" : "medal.fill")
+                    Image(systemName: iconName)
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.white)
                         .frame(width: 36, height: 36)
-                        .background(ch.isActive ? PulseTheme.accent : PulseTheme.secondaryText.opacity(0.4))
+                        .background(iconGradient)
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(ch.title)
                             .font(.subheadline.weight(.bold))
                             .lineLimit(1)
-                        Text(LocalizedStringKey("challenge_metric_\(ch.metric.rawValue)"))
+                        Text(localizedString("challenge_metric_\(ch.metric.rawValue)"))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -655,18 +727,23 @@ struct SocialHubView: View {
 
                     VStack(alignment: .trailing, spacing: 3) {
                         if ch.isActive {
-                            Text("challenge_active")
+                            Text(localizedString("challenge_active"))
                                 .font(.caption2.weight(.heavy))
                                 .textCase(.uppercase)
                                 .foregroundStyle(PulseTheme.recovery)
                         } else {
-                            Text("challenge_ended")
+                            Text(localizedString("challenge_ended"))
                                 .font(.caption2.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
                         Text(localizedFormat("challenge_participants_count", ch.participantCount))
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
+                        if daysLeft > 0 && ch.isActive {
+                            Text(localizedFormat("days_remaining_format", daysLeft))
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
                     }
 
                     Image(systemName: "chevron.right")
@@ -874,6 +951,18 @@ struct SocialHubView: View {
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
+                }
+                if friend.streakDays > 0 {
+                    HStack(spacing: 3) {
+                        Text("🔥")
+                            .font(.system(size: 10))
+                        Text("\(friend.streakDays)d")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(.orange)
+                    }
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(.orange.opacity(0.10))
+                    .clipShape(Capsule())
                 }
             }
 
@@ -1238,28 +1327,6 @@ struct SocialHubView: View {
         UserDefaults.standard.set(searches, forKey: Self.recentSearchesKey)
     }
 
-    #if DEBUG
-    private func publishDebugPost() {
-        guard let uname = store.userProfile.socialUsername else { return }
-        let dname = store.userProfile.displayName ?? uname
-        let sid = UUID().uuidString
-        Task {
-            try? await SocialService.shared.publishPost(
-                username: uname,
-                displayName: dname,
-                sessionID: sid,
-                workoutTitle: "Debug Workout 🛠",
-                durationSeconds: 3600,
-                volumeKg: 4200,
-                exerciseNames: ["Bench Press", "Squat", "Deadlift", "Pull-Up", "OHP"]
-            )
-            // Fetch directly by record ID — no CKQuery index needed
-            if let post = try? await SocialService.shared.fetchPost(username: uname, sessionID: sid) {
-                store.feedPosts.insert(post, at: 0)
-            }
-        }
-    }
-    #endif
 
     private func toggleLike(post: WorkoutPost) {
         let wasLiked = likedPostIDs.contains(post.id)

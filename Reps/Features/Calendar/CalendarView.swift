@@ -7,6 +7,8 @@ struct CalendarView: View {
     @State private var visibleMonth = Date()
     @State private var selectedDate = Date()
     @State private var showProfile = false
+    @State private var showNotifications = false
+    @State private var showSocialHub = false
 
     var body: some View {
         NavigationStack {
@@ -14,11 +16,59 @@ struct CalendarView: View {
                 title: "calendar_2",
                 subtitle: "plan_and_review_load",
                 accessory: {
-                    HeaderAvatarButton(
-                        imageData: store.userProfile.avatarImageData,
-                        accessibilityLabel: "profile"
-                    ) {
-                        showProfile = true
+                    HStack(spacing: 6) {
+                        Button {
+                            HapticService.selection()
+                            showNotifications = true
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "bell.fill")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Circle())
+                                if store.hasUnreadBell {
+                                    Circle()
+                                        .fill(.red)
+                                        .frame(width: 9, height: 9)
+                                        .offset(x: -1, y: 1)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("notifications")
+
+                        if store.userProfile.socialEnabled {
+                            Button {
+                                HapticService.selection()
+                                showSocialHub = true
+                            } label: {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundStyle(PulseTheme.primary)
+                                        .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                        .background(.ultraThinMaterial)
+                                        .clipShape(Circle())
+                                    if store.unreadFeedCount > 0 {
+                                        Circle()
+                                            .fill(.red)
+                                            .frame(width: 9, height: 9)
+                                            .offset(x: -1, y: 1)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("social_hub")
+                        }
+
+                        HeaderAvatarButton(
+                            imageData: store.userProfile.avatarImageData,
+                            accessibilityLabel: "profile"
+                        ) {
+                            showProfile = true
+                        }
                     }
                 }
             ) {
@@ -50,6 +100,10 @@ struct CalendarView: View {
                                 let hasWorkout = !loggedWorkouts(on: day).isEmpty
                                 let hasScheduled = !scheduledWorkouts(on: day).isEmpty
                                 let isSelected = Calendar.current.isDate(day, inSameDayAs: selectedDate)
+                                let volume = sessionVolumeKg(on: day)
+                                let maxVol = maxDayVolume
+                                let intensity: Double = volume > 0 ? min(volume / max(maxVol, 1), 1.0) : 0
+                                let dotSize: CGFloat = volume > 0 ? 5 + intensity * 4 : 5
                                 Button {
                                     selectedDate = day
                                 } label: {
@@ -65,8 +119,8 @@ struct CalendarView: View {
                                                 .fill(hasScheduled ? PulseTheme.accent : .clear)
                                                 .frame(width: 5, height: 5)
                                             Circle()
-                                                .fill(hasWorkout ? PulseTheme.primary : .clear)
-                                                .frame(width: 5, height: 5)
+                                                .fill(hasWorkout ? PulseTheme.primary.opacity(0.5 + intensity * 0.5) : .clear)
+                                                .frame(width: dotSize, height: dotSize)
                                         }
                                     }
                                 }
@@ -163,6 +217,7 @@ struct CalendarView: View {
                                     }
                                 }
                             }
+                            selectedDayVolumeCard
                             if loggedWorkouts(on: selectedDate).isEmpty {
                                 if !plannedSessions.isEmpty {
                                     EmptyView()
@@ -184,6 +239,12 @@ struct CalendarView: View {
             .navigationDestination(isPresented: $showProfile) {
                 ProfileView()
             }
+            .navigationDestination(isPresented: $showNotifications) {
+                NotificationsView()
+            }
+            .navigationDestination(isPresented: $showSocialHub) {
+                SocialHubView()
+            }
             .toolbar(.hidden, for: .navigationBar)
         }
         .onAppear {
@@ -192,6 +253,33 @@ struct CalendarView: View {
         .onChange(of: store.calendarFocusedDate) { _, newDate in
             applyFocusedDate(newDate)
         }
+    }
+
+    @ViewBuilder
+    private var selectedDayVolumeCard: some View {
+        let sessions = loggedWorkouts(on: selectedDate)
+        if !sessions.isEmpty {
+            let dayVolume = FitnessMetrics.totalVolumeKg(for: sessions)
+            if dayVolume > 0 {
+                HStack {
+                    Image(systemName: "scalemass.fill")
+                        .foregroundStyle(PulseTheme.primaryBright)
+                        .font(.caption.weight(.bold))
+                    Text(localizedFormat("volume_kg_format", Int(dayVolume)))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.primaryBright)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(PulseTheme.primaryBright.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+        }
+    }
+
+    private var monthSessions: [WorkoutSession] {
+        guard let interval = Calendar.current.dateInterval(of: .month, for: visibleMonth) else { return [] }
+        return store.workoutSessions.filter { interval.contains($0.date) }
     }
 
     private var calendarCommandCard: some View {
@@ -205,11 +293,33 @@ struct CalendarView: View {
                         .font(.title2.bold())
                         .foregroundStyle(PulseTheme.primary)
                 }
+                if store.streakDays > 0 {
+                    HStack(spacing: 6) {
+                        Image(systemName: "flame.fill")
+                            .foregroundStyle(PulseTheme.accent)
+                            .font(.caption.weight(.bold))
+                        Text(localizedFormat("streak_days_format", store.streakDays))
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.accent)
+                        Spacer()
+                    }
+                }
                 HStack(spacing: 10) {
                     let scheduledWord = localizedString("scheduled_3")
                     CalendarSummaryPill(title: "\(weekScheduled.count)", subtitle: LocalizedStringKey(scheduledWord), systemImage: "calendar.badge.clock")
                     CalendarSummaryPill(title: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg", systemImage: "scalemass")
                     CalendarSummaryPill(title: "\(weekSessions.reduce(0) { $0 + $1.durationMinutes })", subtitle: "min", systemImage: "timer")
+                }
+                if !monthSessions.isEmpty {
+                    HStack(spacing: 4) {
+                        Text(localizedFormat("month_sessions_format", monthSessions.count))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        Spacer()
+                        Text(localizedFormat("volume_kg_format", Int(FitnessMetrics.totalVolumeKg(for: monthSessions))))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
                 }
                 Button {
                     showSchedule = true
@@ -304,7 +414,7 @@ struct CalendarView: View {
                 parts.append("\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km")
             }
             if let steps = session.steps {
-                parts.append("\(Int(steps)) pasos")
+                parts.append(localizedFormat("steps_count_format", Int(steps)))
             }
             return parts.joined(separator: " · ")
         }
@@ -315,6 +425,21 @@ struct CalendarView: View {
 
     private func exerciseLogs(for session: WorkoutSession) -> [ExerciseLog] {
         FitnessMetrics.completedExerciseLogs(in: session)
+    }
+
+    private func sessionVolumeKg(on date: Date) -> Double {
+        FitnessMetrics.totalVolumeKg(for: loggedWorkouts(on: date))
+    }
+
+    private var maxDayVolume: Double {
+        guard let interval = Calendar.current.dateInterval(of: .month, for: visibleMonth),
+              let range = Calendar.current.range(of: .day, in: .month, for: visibleMonth) else { return 1 }
+        let start = interval.start
+        return range.compactMap { d -> Double? in
+            guard let date = Calendar.current.date(byAdding: .day, value: d - 1, to: start) else { return nil }
+            let vol = sessionVolumeKg(on: date)
+            return vol > 0 ? vol : nil
+        }.max() ?? 1
     }
 
     private func changeMonth(by value: Int) {

@@ -2033,32 +2033,6 @@ private struct VersionInfoScreen: View {
             }
             .stickyHeaderTitle(localizedString("build"))
 
-            #if DEBUG
-            PulseCard(backgroundColor: PulseTheme.grouped) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("crashlytics")
-                        .font(.headline)
-
-                    Text("this_button_forces_a_test_crash_to_validate_firebase_crashlytics_on_device_or_in")
-                        .font(.subheadline)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Button(role: .destructive) {
-                        TelemetryService.shared.triggerTestCrash()
-                    } label: {
-                        Label("send_test_crash", systemImage: "exclamationmark.triangle.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .foregroundStyle(.white)
-                            .background(PulseTheme.destructive)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            #endif
         }
         .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
@@ -2526,7 +2500,7 @@ struct ProgressPhotoEditorView: View {
                 }
             }
             .fullScreenCover(isPresented: $showCamera) {
-                CameraPicker { image in
+                CameraPicker(isPresented: $showCamera) { image in
                     if let compressed = image.jpegData(compressionQuality: 0.72) {
                         imageData = compressed
                     }

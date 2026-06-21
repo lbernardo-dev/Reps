@@ -29,7 +29,8 @@ struct CreateChallengeView: View {
                             Text(localizedString("challenge_metric_\(m.rawValue)")).tag(m)
                         }
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.inline)
+                    .labelsHidden()
                 }
 
                 Section(header: Text(localizedString("challenge_duration"))) {
@@ -79,12 +80,12 @@ struct CreateChallengeView: View {
                 creatorUsername: uname,
                 creatorDisplayName: dname
             )
-            // Auto-join the creator.
-            try await SocialService.shared.joinChallenge(ch.id, username: uname, displayName: dname)
-            // Insert immediately so the list shows up without waiting for the CKQuery index.
+            // Insert immediately so the list shows even if join fails.
             if !store.activeChallenges.contains(where: { $0.id == ch.id }) {
                 store.activeChallenges.insert(ch, at: 0)
             }
+            // Auto-join creator — non-fatal.
+            try? await SocialService.shared.joinChallenge(ch.id, username: uname, displayName: dname)
             dismiss()
         } catch {
             self.error = error.localizedDescription
