@@ -786,6 +786,45 @@ final class SavedShareCardRecord {
     }
 }
 
+/// Campos extendidos del carnet (periodo, plan, local, facturas, imagen de
+/// respaldo) serializados como JSON en `GymPassRecord.detailsData`. Evita migrar
+/// el esquema cada vez que el modelo crece y mantiene el round-trip por Codable.
+private struct GymPassDetails: Codable {
+    var imageData: Data?
+    var isActive: Bool = true
+    var startDate: Date?
+    var endDate: Date?
+    var planName: String?
+    var price: Double?
+    var currencyCode: String?
+    var billingCycle: BillingCycle?
+    var nextRenewalDate: Date?
+    var renewalReminderEnabled: Bool = false
+    var venueAddress: String?
+    var venuePhone: String?
+    var venueWebsite: String?
+    var venueHours: String?
+    var invoices: [GymInvoice] = []
+
+    init(pass: GymPass) {
+        imageData = pass.imageData
+        isActive = pass.isActive
+        startDate = pass.startDate
+        endDate = pass.endDate
+        planName = pass.planName
+        price = pass.price
+        currencyCode = pass.currencyCode
+        billingCycle = pass.billingCycle
+        nextRenewalDate = pass.nextRenewalDate
+        renewalReminderEnabled = pass.renewalReminderEnabled
+        venueAddress = pass.venueAddress
+        venuePhone = pass.venuePhone
+        venueWebsite = pass.venueWebsite
+        venueHours = pass.venueHours
+        invoices = pass.invoices
+    }
+}
+
 @Model
 final class GymPassRecord {
     var id: UUID
@@ -795,6 +834,7 @@ final class GymPassRecord {
     var codeType: String
     var colorHex: String
     var notes: String?
+    var detailsData: Data?
 
     init(pass: GymPass) {
         id = pass.id
@@ -804,17 +844,34 @@ final class GymPassRecord {
         codeType = pass.codeType.rawValue
         colorHex = pass.colorHex
         notes = pass.notes
+        detailsData = try? JSONEncoder().encode(GymPassDetails(pass: pass))
     }
 
     var domain: GymPass {
-        GymPass(
+        let details = detailsData.flatMap { try? JSONDecoder().decode(GymPassDetails.self, from: $0) }
+        return GymPass(
             id: id,
             gymName: gymName,
             membershipID: membershipID,
             codeValue: codeValue,
             codeType: GymPass.CodeType(rawValue: codeType) ?? .qr,
             colorHex: colorHex,
-            notes: notes
+            notes: notes,
+            imageData: details?.imageData,
+            isActive: details?.isActive ?? true,
+            startDate: details?.startDate,
+            endDate: details?.endDate,
+            planName: details?.planName,
+            price: details?.price,
+            currencyCode: details?.currencyCode,
+            billingCycle: details?.billingCycle,
+            nextRenewalDate: details?.nextRenewalDate,
+            renewalReminderEnabled: details?.renewalReminderEnabled ?? false,
+            venueAddress: details?.venueAddress,
+            venuePhone: details?.venuePhone,
+            venueWebsite: details?.venueWebsite,
+            venueHours: details?.venueHours,
+            invoices: details?.invoices ?? []
         )
     }
 }
@@ -826,6 +883,10 @@ final class GymVisitRecord {
     var date: Date
     var locationNote: String?
     var workoutTitle: String?
+    var address: String?
+    var latitude: Double?
+    var longitude: Double?
+    var workoutSessionIDsData: Data?
 
     init(visit: GymVisit) {
         id = visit.id
@@ -833,10 +894,24 @@ final class GymVisitRecord {
         date = visit.date
         locationNote = visit.locationNote
         workoutTitle = visit.workoutTitle
+        address = visit.address
+        latitude = visit.latitude
+        longitude = visit.longitude
+        workoutSessionIDsData = encodeStrings(visit.workoutSessionIDs.map(\.uuidString))
     }
 
     var domain: GymVisit {
-        GymVisit(id: id, gymName: gymName, date: date, locationNote: locationNote, workoutTitle: workoutTitle)
+        GymVisit(
+            id: id,
+            gymName: gymName,
+            date: date,
+            locationNote: locationNote,
+            workoutTitle: workoutTitle,
+            address: address,
+            latitude: latitude,
+            longitude: longitude,
+            workoutSessionIDs: decodeStrings(workoutSessionIDsData).compactMap(UUID.init)
+        )
     }
 }
 

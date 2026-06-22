@@ -11,6 +11,7 @@ enum NotificationService {
         case personalRecord
         case streakAtRisk
         case achievementUnlocked
+        case gymRenewal
     }
 
     /// User-tappable action surfaced on the notification (long-press / Notification Center).
@@ -63,6 +64,7 @@ enum NotificationService {
     private static let streakAtRiskIdentifier = "streak-at-risk"
     private static let achievementPrefix = "achievement-"
     private static let snoozePrefix = "snoozed-"
+    private static let gymRenewalPrefix = "gym-renewal-"
 
     private static let kindKey = "notification_kind"
     private static let scheduledWorkoutIDKey = "scheduled_workout_id"
@@ -248,6 +250,48 @@ enum NotificationService {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [streakAtRiskIdentifier])
     }
 
+    // MARK: - Gym membership renewal reminders
+
+    /// Schedules a reminder ahead of a gym membership renewal/expiry. Identifier
+    /// is stable per pass so re-saving replaces the previous reminder. Fires
+    /// `daysBefore` days before `renewalDate` at the given hour.
+    static func scheduleGymRenewalReminder(
+        passID: UUID,
+        gymName: String,
+        renewalDate: Date,
+        daysBefore: Int = 3,
+        hour: Int = 9,
+        now: Date = .now
+    ) async throws {
+        cancelGymRenewalReminder(passID: passID)
+
+        let calendar = Calendar.current
+        let dayBefore = calendar.date(byAdding: .day, value: -daysBefore, to: renewalDate) ?? renewalDate
+        let fireDate = notificationDate(for: dayBefore, hour: hour, minute: 0)
+        guard fireDate > now.addingTimeInterval(60) else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = localizedString("notif_gym_renewal_title")
+        content.body = localizedFormat("notif_gym_renewal_body_format", gymName)
+        content.sound = .default
+        content.threadIdentifier = "gym-renewal"
+        content.userInfo = [kindKey: Kind.gymRenewal.rawValue]
+
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+        let request = UNNotificationRequest(
+            identifier: "\(gymRenewalPrefix)\(passID.uuidString)",
+            content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        )
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    static func cancelGymRenewalReminder(passID: UUID) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: ["\(gymRenewalPrefix)\(passID.uuidString)"]
+        )
+    }
+
     // MARK: - Leaderboard rank-change notifications
 
     private static let rankCacheKey = "leaderboard_rank_cache_v1"
@@ -352,6 +396,54 @@ enum NotificationService {
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, delay), repeats: false)
         let request = UNNotificationRequest(
             identifier: "\(achievementPrefix)\(UUID().uuidString)",
+            content: content,
+            trigger: trigger
+        )
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    private static let socialPrefix = "social-"
+
+    /// Turns a CloudKit social subscription push into a visible local notification.
+    /// `subscriptionID` is the one set in SocialService ("new-follower-…" / "new-like-…").
+    static func postCloudKitSocialNotification(subscriptionID: String) {
+        let content = UNMutableNotificationContent()
+        content.sound = .default
+        content.threadIdentifier = "social"
+
+        if subscriptionID.hasPrefix("new-follower-") {
+            content.title = localizedString("notif_new_follower_title")
+            content.body = localizedString("notif_new_follower_body")
+        } else if subscriptionID.hasPrefix("new-like-") {
+            content.title = localizedString("notif_new_like_title")
+            content.body = localizedString("notif_new_like_body")
+        } else {
+            return
+        }
+
+        // No routing kind: tapping simply opens the app (the social hub is not a
+        // root tab), which keeps the launch path free of navigation side effects.
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "\(socialPrefix)\(UUID().uuidString)",
+            content: content,
+            trigger: trigger
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Celebrates a goal the user just reached. Routes to the progress tab.
+    static func scheduleGoalReached(goalTitle: String, delay: TimeInterval = 3) async throws {
+        let content = UNMutableNotificationContent()
+        content.title = localizedString("notif_goal_reached_title")
+        content.body = localizedFormat("notif_goal_reached_body_format", goalTitle)
+        content.sound = .default
+        content.threadIdentifier = "achievements"
+        content.userInfo = [kindKey: Kind.achievementUnlocked.rawValue]
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, delay), repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "\(achievementPrefix)goal-\(UUID().uuidString)",
             content: content,
             trigger: trigger
         )
@@ -673,6 +765,21 @@ final class NotificationRouter: NSObject, ObservableObject, UNUserNotificationCe
     ) async {
         let userInfo = response.notification.request.content.userInfo
         let action = NotificationService.Action(actionIdentifier: response.actionIdentifier)
+        let actionID = response.actionIdentifier
+        let categoryID = response.notification.request.content.categoryIdentifier
+        let requestID = response.notification.request.identifier
+
+        // Crash breadcrumb: tapping a notification launches/foregrounds the app,
+        // and this is exactly the path that has been terminating silently. The
+        // trail is attached to the next crash report so we can see how far we got.
+        await MainActor.run {
+            TelemetryService.shared.setCrashKey("notification", forKey: "launch_source")
+            TelemetryService.shared.breadcrumb("notif.did_receive", [
+                "action_id": actionID,
+                "category": categoryID,
+                "identifier": requestID
+            ])
+        }
 
         // Snooze never needs the app UI: reschedule directly and stop.
         if action == .snooze {
@@ -681,6 +788,9 @@ final class NotificationRouter: NSObject, ObservableObject, UNUserNotificationCe
         }
 
         guard let target = NotificationService.notificationTarget(from: userInfo) else {
+            await MainActor.run {
+                TelemetryService.shared.breadcrumb("notif.no_target")
+            }
             return
         }
 

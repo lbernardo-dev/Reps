@@ -527,8 +527,8 @@ struct SocialHubView: View {
                             Image(systemName: "bubble.left")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
-                            if post.commentCount > 0 {
-                                Text("\(post.commentCount)")
+                            if commentCount(post) > 0 {
+                                Text("\(commentCount(post))")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(PulseTheme.secondaryText)
                             }
@@ -538,7 +538,39 @@ struct SocialHubView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                // ── Comments preview (Instagram-style) ───────────
+                commentsPreview(post)
             }
+        }
+    }
+
+    private func commentCount(_ post: WorkoutPost) -> Int {
+        store.commentSummaries[post.id]?.count ?? 0
+    }
+
+    @ViewBuilder
+    private func commentsPreview(_ post: WorkoutPost) -> some View {
+        if let summary = store.commentSummaries[post.id], summary.count > 0 {
+            VStack(alignment: .leading, spacing: 3) {
+                if summary.count > 1 {
+                    Text(localizedFormat("comments_view_all", summary.count))
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                if let last = summary.lastComment {
+                    (Text("@\(last.ownerUsername) ").font(.subheadline.weight(.semibold))
+                        + Text(last.text).font(.subheadline))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture { commentsPost = post }
+            .padding(.horizontal, 14)
+            .padding(.top, 2)
+            .padding(.bottom, 12)
         }
     }
 

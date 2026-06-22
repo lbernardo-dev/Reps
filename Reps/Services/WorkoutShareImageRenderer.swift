@@ -48,7 +48,9 @@ struct WorkoutShareImageRenderer {
         return render(session: session)
     }
 
-    // Returns just the map tiles (no route overlay) sized for the receipt visual summary panel.
+    // Returns the receipt visual-summary map with the route polyline baked in.
+    // The polyline is projected with `snap.point(for:)` so it stays perfectly aligned
+    // with the underlying map tiles (a linearly-stretched SwiftUI overlay does not).
     static func renderRouteMapBackground(routePoints: [RoutePoint]) async -> UIImage? {
         guard routePoints.count >= 2 else { return nil }
         let coords = routePoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
@@ -67,7 +69,33 @@ struct WorkoutShareImageRenderer {
         opts.region = MKCoordinateRegion(center: center, span: span)
         opts.size = CGSize(width: 375, height: 175)
         opts.scale = 2.0
-        return try? await MKMapSnapshotter(options: opts).start().image
+
+        guard let snap = try? await MKMapSnapshotter(options: opts).start() else { return nil }
+
+        let fmt = UIGraphicsImageRendererFormat(); fmt.scale = 2.0
+        return UIGraphicsImageRenderer(size: opts.size, format: fmt).image { ctx in
+            snap.image.draw(at: .zero)
+            let cg = ctx.cgContext
+            let mapped = coords.map { snap.point(for: $0) }
+
+            // Route polyline (white)
+            cg.setStrokeColor(UIColor.white.withAlphaComponent(0.95).cgColor)
+            cg.setLineWidth(3.5); cg.setLineCap(.round); cg.setLineJoin(.round)
+            cg.move(to: mapped[0])
+            mapped.dropFirst().forEach { cg.addLine(to: $0) }
+            cg.strokePath()
+
+            // Start dot (white)
+            if let f = mapped.first {
+                cg.setFillColor(UIColor.white.cgColor)
+                cg.addEllipse(in: CGRect(x: f.x - 4.5, y: f.y - 4.5, width: 9, height: 9)); cg.fillPath()
+            }
+            // End dot (lime)
+            if let l = mapped.last {
+                cg.setFillColor(UIColor(red: 0.73, green: 1.0, blue: 0.0, alpha: 1).cgColor)
+                cg.addEllipse(in: CGRect(x: l.x - 5.5, y: l.y - 5.5, width: 11, height: 11)); cg.fillPath()
+            }
+        }
     }
 
     // Async render that includes a real map background for outdoor route sessions.

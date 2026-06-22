@@ -1,3 +1,4 @@
+import CloudKit
 import Combine
 import SwiftUI
 import UserNotifications
@@ -41,8 +42,13 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         TelemetryService.shared.configure()
+        TelemetryService.shared.breadcrumb("app.did_finish_launching")
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
         NotificationService.registerCategories()
+        // Required for CloudKit subscription (silent) push delivery. This does
+        // not prompt the user — the alert prompt is the separate authorization
+        // request — it only obtains the APNs token CloudKit needs to route pushes.
+        application.registerForRemoteNotifications()
         return true
     }
 
@@ -53,8 +59,14 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
         didReceiveRemoteNotification userInfo: [AnyHashable: Any],
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
-        // CloudKit subscription pushes carry "ck" key; let CKContainer handle them.
-        // All other silent pushes are treated as new-data available.
+        // CloudKit subscriptions fire content-available (silent) pushes, which
+        // show no banner on their own. Convert the recognised ones into a visible
+        // local notification so the user actually sees "new follower" / "new like".
+        TelemetryService.shared.breadcrumb("notif.did_receive_remote")
+        if let ckNotification = CKNotification(fromRemoteNotificationDictionary: userInfo),
+           let subscriptionID = ckNotification.subscriptionID {
+            NotificationService.postCloudKitSocialNotification(subscriptionID: subscriptionID)
+        }
         completionHandler(.newData)
     }
 
@@ -101,6 +113,10 @@ struct RepsApp: App {
                     ])
                 }
                 .onReceive(NotificationRouter.shared.$latestTarget.compactMap { $0 }) { target in
+                    TelemetryService.shared.breadcrumb("notif.on_receive_target", [
+                        "kind": target.kind.rawValue,
+                        "action": String(describing: target.action)
+                    ])
                     store.handleNotificationTarget(target)
                     NotificationRouter.shared.consumeLatestTarget()
                 }
@@ -122,10 +138,12 @@ struct RepsApp: App {
                 store.refreshNotificationSchedule()
                 store.refreshHealthKitDataIfNeeded(reason: "foreground")
                 Task {
+                    store.runEngagementChecks()
                     await store.refreshStoreKitEntitlements()
                     await store.refreshICloudProEntitlement()
                     if let uname = store.userProfile.socialUsername, store.userProfile.socialEnabled {
                         await SocialService.shared.pingActivity(myUsername: uname)
+                        await store.flushPendingComments()
                     }
                 }
             }

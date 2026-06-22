@@ -1,5 +1,6 @@
 import CloudKit
 import Foundation
+import Network
 
 // MARK: - WorkoutPost Model
 
@@ -49,12 +50,34 @@ struct WorkoutPost: Identifiable, Equatable, Hashable, Sendable {
 
 // MARK: - WorkoutComment Model
 
-struct WorkoutComment: Identifiable, Equatable, Hashable, Sendable {
+struct WorkoutComment: Identifiable, Equatable, Hashable, Sendable, Codable {
     let id: String
     var ownerUsername: String
     var ownerDisplayName: String
     var text: String
     var createdAt: Date
+    var ownerAvatarData: Data?        // decoded from CKAsset "avatarAsset"
+    /// True while the comment lives only in the local outbox and has not yet
+    /// been confirmed in CloudKit (e.g. written while offline).
+    var isPending: Bool = false
+
+    init(
+        id: String,
+        ownerUsername: String,
+        ownerDisplayName: String,
+        text: String,
+        createdAt: Date,
+        ownerAvatarData: Data?,
+        isPending: Bool = false
+    ) {
+        self.id = id
+        self.ownerUsername = ownerUsername
+        self.ownerDisplayName = ownerDisplayName
+        self.text = text
+        self.createdAt = createdAt
+        self.ownerAvatarData = ownerAvatarData
+        self.isPending = isPending
+    }
 
     init?(record: CKRecord) {
         guard
@@ -66,7 +89,25 @@ struct WorkoutComment: Identifiable, Equatable, Hashable, Sendable {
         self.ownerDisplayName = record["ownerDisplayName"] as? String ?? owner
         self.text = text
         self.createdAt = record.creationDate ?? .now
+        self.isPending = false
+        if let asset = record["avatarAsset"] as? CKAsset,
+           let url = asset.fileURL,
+           let data = try? Data(contentsOf: url) {
+            self.ownerAvatarData = data
+        } else {
+            self.ownerAvatarData = nil
+        }
     }
+}
+
+// MARK: - CommentSummary
+
+/// Lightweight per-post comment digest used to render the feed card
+/// ("View all N comments" + latest comment preview) without loading the
+/// full thread.
+struct CommentSummary: Equatable, Sendable, Codable {
+    var count: Int
+    var lastComment: WorkoutComment?
 }
 
 // MARK: - Public Profile Model
@@ -149,6 +190,32 @@ actor SocialService {
     private let container = CKContainer(identifier: "iCloud.com.romerodev.repsfitness")
     private var publicDB: CKDatabase { container.publicCloudDatabase }
     private var _myRecordID: CKRecord.ID?
+
+    // MARK: - Reachability
+    //
+    // Lightweight, system-provided path monitoring so social writes degrade to
+    // a deferred outbox when offline and auto-flush the moment connectivity
+    // returns. Runs on its own background queue — no main-thread impact.
+
+    private let pathMonitor = NWPathMonitor()
+    private var isOnline = true
+    private var monitoringStarted = false
+
+    private func startMonitoringIfNeeded() {
+        guard !monitoringStarted else { return }
+        monitoringStarted = true
+        pathMonitor.pathUpdateHandler = { [weak self] path in
+            let online = path.status == .satisfied
+            Task { await self?.handleReachabilityChange(online) }
+        }
+        pathMonitor.start(queue: DispatchQueue(label: "com.reps.social.path"))
+    }
+
+    private func handleReachabilityChange(_ online: Bool) async {
+        let cameOnline = online && !isOnline
+        isOnline = online
+        if cameOnline { await flushOutbox() }
+    }
 
     // MARK: - Identity
 
@@ -566,14 +633,110 @@ actor SocialService {
         }
     }
 
-    // MARK: - Comments
+    // MARK: - Comments (offline-first, deferred sync)
     //
     // WorkoutComment recordName: "WorkoutComment_<postID>_<uuid>"
-    // Requires a QUERYABLE index on `postRecordName` in CloudKit Dashboard.
-    // Fallback: record IDs are cached locally in UserDefaults so comments can be
-    // fetched directly (no index) until the Dashboard index is provisioned.
+    //
+    // Design:
+    //  • Every comment thread is mirrored to an on-disk cache so the feed and
+    //    the thread render instantly and work fully offline.
+    //  • Writes are optimistic: the comment appears immediately and is pushed to
+    //    CloudKit. If the push fails (offline / transient), it lands in a
+    //    persistent outbox and is flushed automatically when connectivity
+    //    returns (NWPathMonitor) or on the next foreground / feed load.
+    //  • Counts are derived from the actual comment set (not a racy denormalized
+    //    counter), so two people commenting at once can never drift the total.
+    //
+    // CloudKit reads prefer a QUERYABLE index on `postRecordName`; without it,
+    // they fall back to locally cached record IDs, and finally to the on-disk
+    // cache when fully offline.
 
     private static let commentIndexKey = "comment_record_names_v1"
+    private static let maxCachedCommentsPerPost = 50
+
+    private var commentsCache: [String: [WorkoutComment]] = [:]
+    private var outbox: [PendingComment] = []
+    private var cacheLoaded = false
+
+    struct PendingComment: Codable, Sendable {
+        var comment: WorkoutComment
+        var postID: String
+    }
+
+    // MARK: Cache persistence
+
+    private var socialCacheDir: URL? {
+        guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
+                                                  in: .userDomainMask).first else { return nil }
+        let dir = base.appendingPathComponent("Reps/Social", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: dir.path) {
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        return dir
+    }
+    private var commentsCacheURL: URL? { socialCacheDir?.appendingPathComponent("comments_cache_v1.json") }
+    private var outboxURL: URL? { socialCacheDir?.appendingPathComponent("comment_outbox_v1.json") }
+
+    private func ensureLoaded() {
+        guard !cacheLoaded else { return }
+        cacheLoaded = true
+        startMonitoringIfNeeded()
+        if let url = commentsCacheURL, let data = try? Data(contentsOf: url),
+           let decoded = try? JSONDecoder().decode([String: [WorkoutComment]].self, from: data) {
+            commentsCache = decoded
+        }
+        if let url = outboxURL, let data = try? Data(contentsOf: url),
+           let decoded = try? JSONDecoder().decode([PendingComment].self, from: data) {
+            outbox = decoded
+            // Re-surface any still-pending comments into the cache so they show
+            // immediately after a cold launch.
+            for p in outbox { mergeIntoCache([p.comment], postID: p.postID) }
+        }
+    }
+
+    private func persistCache() {
+        guard let url = commentsCacheURL else { return }
+        // Strip avatar bytes from the on-disk copy to keep the cache small and
+        // fast — avatars are re-hydrated from CloudKit on the next online refresh.
+        var lean: [String: [WorkoutComment]] = [:]
+        for (pid, list) in commentsCache {
+            lean[pid] = list.map {
+                var c = $0; c.ownerAvatarData = nil; return c
+            }
+        }
+        if let data = try? JSONEncoder().encode(lean) {
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+
+    private func persistOutbox() {
+        guard let url = outboxURL else { return }
+        if let data = try? JSONEncoder().encode(outbox) {
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+
+    /// Inserts/updates comments in the in-memory cache, de-duplicating by id,
+    /// preserving freshly fetched avatar bytes, sorted oldest→newest, capped.
+    private func mergeIntoCache(_ incoming: [WorkoutComment], postID: String) {
+        var byID: [String: WorkoutComment] = [:]
+        var order: [String] = []
+        for c in (commentsCache[postID] ?? []) + incoming {
+            if let existing = byID[c.id] {
+                // Prefer the non-pending / avatar-bearing version.
+                var merged = c.isPending ? existing : c
+                merged.ownerAvatarData = c.ownerAvatarData ?? existing.ownerAvatarData
+                byID[c.id] = merged
+            } else {
+                byID[c.id] = c
+                order.append(c.id)
+            }
+        }
+        let sorted = order.compactMap { byID[$0] }.sorted { $0.createdAt < $1.createdAt }
+        commentsCache[postID] = Array(sorted.suffix(Self.maxCachedCommentsPerPost))
+    }
+
+    // MARK: Local index (record IDs, used as a no-index CloudKit fallback)
 
     private func saveCommentID(_ recordName: String, forPost postID: String) {
         var index = loadCommentIndex()
@@ -594,47 +757,180 @@ actor SocialService {
         return index
     }
 
+    // MARK: Public API
+
+    /// Adds a comment optimistically. Never throws: if the network write fails
+    /// the comment is queued and synced later. The returned comment is `isPending`
+    /// until confirmed in CloudKit.
     func addComment(
         postID: String,
         text: String,
         ownerUsername: String,
-        ownerDisplayName: String
-    ) async throws -> WorkoutComment {
-        let myID = try await myRecordID()
-        let rid = CKRecord.ID(recordName: "WorkoutComment_\(postID)_\(UUID().uuidString)")
-        let record = CKRecord(recordType: "WorkoutComment", recordID: rid)
-        record["postRecordName"] = postID as CKRecordValue
-        record["ownerUsername"] = ownerUsername.lowercased() as CKRecordValue
-        record["ownerDisplayName"] = ownerDisplayName as CKRecordValue
-        record["ownerRecordName"] = myID.recordName as CKRecordValue
-        record["text"] = text as CKRecordValue
-        try await publicDB.save(record)
-        saveCommentID(rid.recordName, forPost: postID)
-        guard let comment = WorkoutComment(record: record) else {
-            throw NSError(domain: "SocialService", code: 0, userInfo: nil)
+        ownerDisplayName: String,
+        ownerAvatarData: Data? = nil
+    ) async -> WorkoutComment {
+        ensureLoaded()
+        let recordName = "WorkoutComment_\(postID)_\(UUID().uuidString)"
+        let comment = WorkoutComment(
+            id: recordName,
+            ownerUsername: ownerUsername.lowercased(),
+            ownerDisplayName: ownerDisplayName,
+            text: text,
+            createdAt: Date(),
+            ownerAvatarData: ownerAvatarData,
+            isPending: true
+        )
+        mergeIntoCache([comment], postID: postID)
+        persistCache()
+
+        if isOnline {
+            if let synced = try? await pushComment(comment, postID: postID) {
+                mergeIntoCache([synced], postID: postID)
+                persistCache()
+                return synced
+            }
         }
+        // Offline or push failed → defer.
+        enqueue(comment, postID: postID)
         return comment
     }
 
-    func fetchComments(postID: String, limit: Int = 50) async throws -> [WorkoutComment] {
-        let pred = NSPredicate(format: "postRecordName == %@", postID)
+    /// Pushes a single comment to CloudKit using its stable local record name so
+    /// retries are idempotent.
+    private func pushComment(_ comment: WorkoutComment, postID: String) async throws -> WorkoutComment {
+        let myID = try await myRecordID()
+        let rid = CKRecord.ID(recordName: comment.id)
+        let record = CKRecord(recordType: "WorkoutComment", recordID: rid)
+        record["postRecordName"] = postID as CKRecordValue
+        record["ownerUsername"] = comment.ownerUsername as CKRecordValue
+        record["ownerDisplayName"] = comment.ownerDisplayName as CKRecordValue
+        record["ownerRecordName"] = myID.recordName as CKRecordValue
+        record["text"] = comment.text as CKRecordValue
+
+        var tmpURL: URL?
+        defer { if let u = tmpURL { try? FileManager.default.removeItem(at: u) } }
+        if let data = comment.ownerAvatarData {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("comment_avatar_\(UUID().uuidString).jpg")
+            if (try? data.write(to: url)) != nil {
+                tmpURL = url
+                record["avatarAsset"] = CKAsset(fileURL: url)
+            }
+        }
+
+        let saved = try await publicDB.save(record)
+        saveCommentID(rid.recordName, forPost: postID)
+        guard var synced = WorkoutComment(record: saved) else {
+            throw NSError(domain: "SocialService", code: 0, userInfo: nil)
+        }
+        synced.ownerAvatarData = synced.ownerAvatarData ?? comment.ownerAvatarData
+        return synced
+    }
+
+    private func enqueue(_ comment: WorkoutComment, postID: String) {
+        guard !outbox.contains(where: { $0.comment.id == comment.id }) else { return }
+        outbox.append(PendingComment(comment: comment, postID: postID))
+        persistOutbox()
+    }
+
+    /// Drains the outbox when online. Safe to call repeatedly; keeps any entry
+    /// that still fails for a later attempt.
+    func flushOutbox() async {
+        ensureLoaded()
+        guard isOnline, !outbox.isEmpty else { return }
+        for pending in outbox {
+            if let synced = try? await pushComment(pending.comment, postID: pending.postID) {
+                mergeIntoCache([synced], postID: pending.postID)
+                outbox.removeAll { $0.comment.id == pending.comment.id }
+            }
+        }
+        persistOutbox()
+        persistCache()
+    }
+
+    /// Returns the full thread for a post: cached comments refreshed from
+    /// CloudKit when online. Never throws — degrades to the local cache offline.
+    func fetchComments(postID: String) async -> [WorkoutComment] {
+        ensureLoaded()
+        if isOnline { await refreshComments(forPosts: [postID]) }
+        return commentsCache[postID] ?? []
+    }
+
+    /// Instant, network-free thread for first paint.
+    func cachedComments(postID: String) -> [WorkoutComment] {
+        ensureLoaded()
+        return commentsCache[postID] ?? []
+    }
+
+    /// Instant, network-free summary for a single post.
+    func cachedSummary(postID: String) -> CommentSummary {
+        ensureLoaded()
+        let list = commentsCache[postID] ?? []
+        return CommentSummary(count: list.count, lastComment: list.last)
+    }
+
+    /// Refreshes comments for the given posts (when online) and returns an
+    /// accurate per-post summary derived from the actual comment set.
+    func commentSummaries(forPosts postIDs: [String]) async -> [String: CommentSummary] {
+        ensureLoaded()
+        if isOnline { await refreshComments(forPosts: postIDs) }
+        var out: [String: CommentSummary] = [:]
+        for pid in postIDs {
+            let list = commentsCache[pid] ?? []
+            out[pid] = CommentSummary(count: list.count, lastComment: list.last)
+        }
+        return out
+    }
+
+    // MARK: Network refresh
+
+    private func refreshComments(forPosts postIDs: [String]) async {
+        guard isOnline, !postIDs.isEmpty else { return }
+        var serverByPost: [String: [WorkoutComment]] = [:]
+        var resolvedPosts = Set<String>()   // posts we got an authoritative answer for
+
+        // Primary: one batched query for all posts (needs queryable index).
+        let pred = NSPredicate(format: "postRecordName IN %@", postIDs)
         let query = CKQuery(recordType: "WorkoutComment", predicate: pred)
         query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
         do {
-            let result = try await publicDB.records(matching: query, resultsLimit: limit)
-            let fromQuery = result.matchResults
-                .compactMap { _, res in (try? res.get()).flatMap(WorkoutComment.init) }
-            if !fromQuery.isEmpty { return fromQuery }
-        } catch { /* no index yet — fall through to local cache */ }
+            let result = try await publicDB.records(matching: query, resultsLimit: 400)
+            for (_, res) in result.matchResults {
+                guard let rec = try? res.get(), let c = WorkoutComment(record: rec) else { continue }
+                let pid = (rec["postRecordName"] as? String) ?? ""
+                serverByPost[pid, default: []].append(c)
+                saveCommentID(c.id, forPost: pid)
+            }
+            // The query is authoritative for every requested post (empty = no comments).
+            resolvedPosts.formUnion(postIDs)
+        } catch {
+            // No index yet → fall back to direct fetch by locally cached IDs.
+            let index = loadCommentIndex()
+            for pid in postIDs {
+                let ids = (index[pid] ?? []).map { CKRecord.ID(recordName: $0) }
+                guard !ids.isEmpty else { continue }
+                if let results = try? await publicDB.records(for: ids) {
+                    let comments = results.values
+                        .compactMap { try? $0.get() }
+                        .compactMap(WorkoutComment.init)
+                    serverByPost[pid] = comments
+                    resolvedPosts.insert(pid)
+                }
+            }
+        }
 
-        // Fallback: fetch directly by locally cached record IDs (no index required)
-        let index = loadCommentIndex()
-        let ids = (index[postID] ?? []).prefix(limit).map { CKRecord.ID(recordName: $0) }
-        guard !ids.isEmpty else { return [] }
-        let results = try await publicDB.records(for: Array(ids))
-        return results.values
-            .compactMap { res in (try? res.get()).flatMap(WorkoutComment.init) }
-            .sorted { $0.createdAt < $1.createdAt }
+        // Reconcile: replace the synced portion of each resolved post's cache
+        // with the server truth, then re-append any still-pending outbox entries.
+        for pid in resolvedPosts {
+            let server = serverByPost[pid] ?? []
+            let serverIDs = Set(server.map(\.id))
+            let stillPending = outbox
+                .filter { $0.postID == pid && !serverIDs.contains($0.comment.id) }
+                .map(\.comment)
+            commentsCache[pid] = []   // reset so removed/foreign comments don't linger
+            mergeIntoCache(server + stillPending, postID: pid)
+        }
+        persistCache()
     }
 
     // MARK: - Push subscriptions

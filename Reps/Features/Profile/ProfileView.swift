@@ -4,6 +4,8 @@ import UIKit
 import CoreImage
 import UniformTypeIdentifiers
 import StoreKit
+import MapKit
+import CoreLocation
 
 // TODO: Replace with real URLs before App Store submission
 private enum AppLegalLinks {
@@ -523,8 +525,29 @@ struct ProfileView: View {
                         systemImage: "wallet.pass"
                     )
                 } else {
-                    ForEach(store.gymPasses) { pass in
-                        GymPassPreview(pass: pass)
+                    let active = store.gymPasses.filter(\.isActive)
+                    let history = store.gymPasses
+                        .filter { !$0.isActive }
+                        .sorted { ($0.endDate ?? .distantPast) > ($1.endDate ?? .distantPast) }
+
+                    ForEach(active) { pass in
+                        gymPassRow(pass)
+                    }
+
+                    if !history.isEmpty {
+                        DisclosureGroup {
+                            VStack(spacing: 10) {
+                                ForEach(history) { pass in
+                                    gymPassRow(pass)
+                                }
+                            }
+                            .padding(.top, 6)
+                        } label: {
+                            Text("gym_history")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        .tint(PulseTheme.secondaryText)
                     }
                 }
 
@@ -536,6 +559,34 @@ struct ProfileView: View {
                         GymVisitRow(visit: visit)
                     }
                 }
+            }
+        }
+    }
+
+    private func gymPassRow(_ pass: GymPass) -> some View {
+        Button {
+            activeSheet = .editGymPass(pass)
+        } label: {
+            GymPassPreview(pass: pass)
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button {
+                activeSheet = .editGymPass(pass)
+            } label: {
+                Label("edit", systemImage: "pencil")
+            }
+            if pass.isActive {
+                Button {
+                    store.endMembership(pass)
+                } label: {
+                    Label("end_membership", systemImage: "calendar.badge.minus")
+                }
+            }
+            Button(role: .destructive) {
+                store.deleteGymPass(pass)
+            } label: {
+                Label("delete", systemImage: "trash")
             }
         }
     }
@@ -735,6 +786,8 @@ struct ProfileView: View {
             ProgressPhotoEditorView()
         case .addGymPass:
             GymPassEditorView()
+        case .editGymPass(let pass):
+            GymPassEditorView(pass: pass)
         case .addGymVisit:
             GymVisitEditorView()
         case .receiptPreview(let card):
@@ -1833,6 +1886,7 @@ private enum ProfileSheet: Identifiable {
     case quickMetricEditor
     case addProgressPhoto
     case addGymPass
+    case editGymPass(GymPass)
     case addGymVisit
     case receiptPreview(SavedShareCard)
     case feedback
@@ -1847,6 +1901,7 @@ private enum ProfileSheet: Identifiable {
         case .quickMetricEditor: "quickMetricEditor"
         case .addProgressPhoto: "addProgressPhoto"
         case .addGymPass: "addGymPass"
+        case .editGymPass(let pass): "editGymPass-\(pass.id.uuidString)"
         case .addGymVisit: "addGymVisit"
         case .receiptPreview(let card): "receiptPreview-\(card.id.uuidString)"
         case .feedback: "feedback"
@@ -2213,21 +2268,39 @@ private struct GymPassPreview: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            CodePreview(value: pass.codeValue, type: pass.codeType)
+            CodePreview(value: pass.codeValue, type: pass.codeType, imageData: pass.imageData)
                 .frame(width: 86, height: 86)
                 .background(.white)
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                .opacity(pass.isActive ? 1 : 0.55)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(pass.gymName)
                     .font(.headline)
-                Text(pass.membershipID)
-                    .font(.subheadline.monospaced())
-                    .foregroundStyle(PulseTheme.secondaryText)
-                if let notes = pass.notes, !notes.isEmpty {
+                if !pass.membershipID.isEmpty {
+                    Text(pass.membershipID)
+                        .font(.subheadline.monospaced())
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+
+                HStack(spacing: 6) {
+                    statusBadge
+                    if !pass.invoices.isEmpty {
+                        Label("\(pass.invoices.count)", systemImage: "doc.text")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                }
+
+                if pass.isActive, pass.renewalReminderEnabled, let renewal = pass.nextRenewalDate {
+                    Label(renewal.formatted(date: .abbreviated, time: .omitted), systemImage: "bell")
+                        .font(.caption2)
+                        .foregroundStyle(PulseTheme.accent)
+                } else if let notes = pass.notes, !notes.isEmpty {
                     Text(notes)
                         .font(.caption)
                         .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(1)
                 }
             }
             Spacer()
@@ -2236,14 +2309,34 @@ private struct GymPassPreview: View {
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
+
+    @ViewBuilder
+    private var statusBadge: some View {
+        if pass.isActive {
+            Text("membership_active")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(PulseTheme.primary)
+        } else {
+            let ended = pass.endDate.map { $0.formatted(date: .abbreviated, time: .omitted) }
+            Text(ended.map { localizedFormat("membership_ended_format", $0) } ?? localizedString("membership_ended"))
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+    }
 }
 
 private struct CodePreview: View {
     let value: String
     let type: GymPass.CodeType
+    var imageData: Data? = nil
 
     var body: some View {
-        if let image = generatedImage {
+        if value.isEmpty, let imageData, let uiImage = UIImage(data: imageData) {
+            // No machine-readable code: show the captured photo of the card.
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFit()
+        } else if let image = generatedImage {
             Image(uiImage: image)
                 .interpolation(.none)
                 .resizable()
@@ -2278,11 +2371,16 @@ private struct GymVisitRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(visit.gymName)
                     .font(.subheadline.weight(.semibold))
+                if let address = visit.address, !address.isEmpty {
+                    Text(address)
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
                 Text(visit.date.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
                 if let workoutTitle = visit.workoutTitle, !workoutTitle.isEmpty {
-                    Text(workoutTitle)
+                    Label(workoutTitle, systemImage: "dumbbell.fill")
                         .font(.caption)
                         .foregroundStyle(PulseTheme.primary)
                 }
@@ -2608,34 +2706,83 @@ private struct ProgressPhotoEmptyPreview: View {
 struct GymPassEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppStore.self) private var store
-    @State private var gymName = ""
-    @State private var membershipID = ""
-    @State private var codeValue = ""
-    @State private var codeType: GymPass.CodeType = .qr
-    @State private var notes = ""
+    @StateObject private var permissions = PermissionService.shared
+
+    private let editingID: UUID?
+
+    // Código
+    @State private var codeValue: String
+    @State private var codeType: GymPass.CodeType
+    @State private var cardImageData: Data?
+
+    // Membresía
+    @State private var gymName: String
+    @State private var membershipID: String
+    @State private var startDate: Date
+    @State private var isActive: Bool
+    @State private var endDate: Date
+
+    // Plan
+    @State private var planName: String
+    @State private var priceText: String
+    @State private var currencyCode: String
+    @State private var billingCycle: BillingCycle
+    @State private var hasRenewal: Bool
+    @State private var nextRenewalDate: Date
+    @State private var renewalReminderEnabled: Bool
+
+    // Local
+    @State private var venueAddress: String
+    @State private var venuePhone: String
+    @State private var venueWebsite: String
+    @State private var venueHours: String
+
+    // Facturas / notas
+    @State private var invoices: [GymInvoice]
+    @State private var notes: String
+
+    // UI
+    @State private var showScanner = false
+    @State private var showPermissionDenied = false
+    @State private var photoItem: PhotosPickerItem?
+    @State private var invoiceBeingEdited: GymInvoice?
+
+    init(pass: GymPass? = nil) {
+        editingID = pass?.id
+        _codeValue = State(initialValue: pass?.codeValue ?? "")
+        _codeType = State(initialValue: pass?.codeType ?? .qr)
+        _cardImageData = State(initialValue: pass?.imageData)
+        _gymName = State(initialValue: pass?.gymName ?? "")
+        _membershipID = State(initialValue: pass?.membershipID ?? "")
+        _startDate = State(initialValue: pass?.startDate ?? .now)
+        _isActive = State(initialValue: pass?.isActive ?? true)
+        _endDate = State(initialValue: pass?.endDate ?? .now)
+        _planName = State(initialValue: pass?.planName ?? "")
+        _priceText = State(initialValue: pass?.price.map { String(format: "%.2f", $0) } ?? "")
+        _currencyCode = State(initialValue: pass?.currencyCode ?? (Locale.current.currency?.identifier ?? "USD"))
+        _billingCycle = State(initialValue: pass?.billingCycle ?? .monthly)
+        _hasRenewal = State(initialValue: pass?.nextRenewalDate != nil)
+        _nextRenewalDate = State(initialValue: pass?.nextRenewalDate
+            ?? Calendar.current.date(byAdding: .month, value: 1, to: .now) ?? .now)
+        _renewalReminderEnabled = State(initialValue: pass?.renewalReminderEnabled ?? false)
+        _venueAddress = State(initialValue: pass?.venueAddress ?? "")
+        _venuePhone = State(initialValue: pass?.venuePhone ?? "")
+        _venueWebsite = State(initialValue: pass?.venueWebsite ?? "")
+        _venueHours = State(initialValue: pass?.venueHours ?? "")
+        _invoices = State(initialValue: pass?.invoices ?? [])
+        _notes = State(initialValue: pass?.notes ?? "")
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("tarjeta") {
-                    TextField("gym_2", text: $gymName)
-                    TextField("id_socio", text: $membershipID)
-                    Picker("training_type", selection: $codeType) {
-                        Text("qr").tag(GymPass.CodeType.qr)
-                        Text("barcode_2").tag(GymPass.CodeType.barcode)
-                    }
-                    .pickerStyle(.segmented)
-                    TextField("valor_qr_barcode", text: $codeValue)
-                        .textInputAutocapitalization(.never)
+                codeSection
+                membershipSection
+                planSection
+                venueSection
+                invoicesSection
+                Section("notes_2") {
                     TextField("notes_2", text: $notes, axis: .vertical)
-                }
-
-                if !codeValue.isEmpty {
-                    Section("preview") {
-                        CodePreview(value: codeValue, type: codeType)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 160)
-                    }
                 }
             }
             .navigationTitle("gym_card")
@@ -2646,19 +2793,399 @@ struct GymPassEditorView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("save") { save() }
-                        .disabled(gymName.isEmpty || codeValue.isEmpty)
+                        .disabled(gymName.isEmpty || (codeValue.isEmpty && cardImageData == nil))
+                }
+            }
+            .fullScreenCover(isPresented: $showScanner) {
+                scannerCover
+            }
+            .sheet(item: $invoiceBeingEdited) { invoice in
+                GymInvoiceEditorView(invoice: invoice, defaultCurrency: currencyCode) { saved in
+                    upsertInvoice(saved)
+                }
+            }
+            .onChange(of: photoItem) { _, newItem in
+                guard let newItem else { return }
+                Task { await handlePickedPhoto(newItem) }
+            }
+            .alert("permission_denied", isPresented: $showPermissionDenied) {
+                Button("abrir_ajustes") { permissions.openSettings() }
+                Button("cancel", role: .cancel) {}
+            } message: {
+                Text(permissions.deniedMessage ?? localizedString("perm_camera_needed"))
+            }
+        }
+    }
+
+    // MARK: - Sections
+
+    private var codeSection: some View {
+        Section("gym_code") {
+            if !codeValue.isEmpty || cardImageData != nil {
+                CodePreview(value: codeValue, type: codeType, imageData: cardImageData)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 150)
+            }
+
+            if CodeScannerView.isSupported {
+                Button { requestScan() } label: {
+                    Label("scan_code", systemImage: "camera.viewfinder")
+                }
+            }
+
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                Label("import_code_from_photo", systemImage: "photo.on.rectangle")
+            }
+
+            Picker("code_type", selection: $codeType) {
+                Text("qr").tag(GymPass.CodeType.qr)
+                Text("barcode_2").tag(GymPass.CodeType.barcode)
+            }
+            .pickerStyle(.segmented)
+
+            TextField("valor_qr_barcode", text: $codeValue)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+
+            if cardImageData != nil {
+                Button(role: .destructive) { cardImageData = nil } label: {
+                    Label("remove_card_image", systemImage: "trash")
                 }
             }
         }
     }
 
+    private var membershipSection: some View {
+        Section("membership") {
+            TextField("gym_2", text: $gymName)
+            TextField("id_socio", text: $membershipID)
+            DatePicker("start_date", selection: $startDate, displayedComponents: .date)
+            Toggle("membership_active", isOn: $isActive)
+            if !isActive {
+                DatePicker("end_date", selection: $endDate, displayedComponents: .date)
+            }
+        }
+    }
+
+    private var planSection: some View {
+        Section("plan_details") {
+            TextField("plan_name", text: $planName)
+            HStack {
+                TextField("price", text: $priceText)
+                    .keyboardType(.decimalPad)
+                TextField("currency", text: $currencyCode)
+                    .textInputAutocapitalization(.characters)
+                    .frame(width: 80)
+            }
+            Picker("billing_cycle", selection: $billingCycle) {
+                ForEach(BillingCycle.allCases) { cycle in
+                    Text(billingCycleLabel(cycle)).tag(cycle)
+                }
+            }
+            Toggle("has_renewal", isOn: $hasRenewal)
+            if hasRenewal {
+                DatePicker("next_renewal", selection: $nextRenewalDate, displayedComponents: .date)
+                Toggle("payment_reminder", isOn: $renewalReminderEnabled)
+            }
+        }
+    }
+
+    private var venueSection: some View {
+        Section("venue_details") {
+            TextField("address", text: $venueAddress, axis: .vertical)
+            TextField("phone", text: $venuePhone)
+                .keyboardType(.phonePad)
+            TextField("website", text: $venueWebsite)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            TextField("opening_hours", text: $venueHours, axis: .vertical)
+        }
+    }
+
+    private var invoicesSection: some View {
+        Section("invoices") {
+            ForEach(invoices.sorted { $0.date > $1.date }) { invoice in
+                Button {
+                    invoiceBeingEdited = invoice
+                } label: {
+                    GymInvoiceRow(invoice: invoice)
+                }
+                .buttonStyle(.plain)
+            }
+            .onDelete { offsets in
+                let sorted = invoices.sorted { $0.date > $1.date }
+                let ids = offsets.map { sorted[$0].id }
+                invoices.removeAll { ids.contains($0.id) }
+            }
+
+            Button {
+                invoiceBeingEdited = GymInvoice(amount: 0, currencyCode: currencyCode)
+            } label: {
+                Label("add_invoice", systemImage: "plus.circle")
+            }
+        }
+    }
+
+    private var scannerCover: some View {
+        ZStack(alignment: .topTrailing) {
+            CodeScannerView(
+                onScan: { code in
+                    codeValue = code.value
+                    codeType = code.type
+                    cardImageData = nil
+                    showScanner = false
+                },
+                onCancel: { showScanner = false }
+            )
+            .ignoresSafeArea()
+
+            Button { showScanner = false } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.largeTitle)
+                    .foregroundStyle(.white, .black.opacity(0.4))
+                    .padding()
+            }
+        }
+    }
+
+    // MARK: - Actions
+
+    private func requestScan() {
+        Task {
+            if await permissions.requestCamera() {
+                showScanner = true
+            } else {
+                showPermissionDenied = true
+            }
+        }
+    }
+
+    private func handlePickedPhoto(_ item: PhotosPickerItem) async {
+        guard let data = try? await item.loadTransferable(type: Data.self),
+              let image = UIImage(data: data) else { return }
+        if let scanned = BarcodeImageDetector.detect(in: image) {
+            await MainActor.run {
+                codeValue = scanned.value
+                codeType = scanned.type
+                cardImageData = nil
+            }
+        } else {
+            // No legible code: keep the photo as a visual fallback.
+            let stored = image.jpegData(compressionQuality: 0.7) ?? data
+            await MainActor.run {
+                cardImageData = stored
+                codeValue = ""
+            }
+        }
+    }
+
+    private func upsertInvoice(_ invoice: GymInvoice) {
+        if let index = invoices.firstIndex(where: { $0.id == invoice.id }) {
+            invoices[index] = invoice
+        } else {
+            invoices.append(invoice)
+        }
+    }
+
+    private func billingCycleLabel(_ cycle: BillingCycle) -> String {
+        switch cycle {
+        case .weekly: localizedString("billing_weekly")
+        case .monthly: localizedString("billing_monthly")
+        case .quarterly: localizedString("billing_quarterly")
+        case .annual: localizedString("billing_annual")
+        case .oneTime: localizedString("billing_one_time")
+        }
+    }
+
     private func save() {
-        store.addGymPass(GymPass(
+        let pass = GymPass(
+            id: editingID ?? UUID(),
             gymName: gymName,
             membershipID: membershipID.isEmpty ? codeValue : membershipID,
             codeValue: codeValue,
             codeType: codeType,
-            notes: notes.isEmpty ? nil : notes
+            notes: notes.isEmpty ? nil : notes,
+            imageData: cardImageData,
+            isActive: isActive,
+            startDate: startDate,
+            endDate: isActive ? nil : endDate,
+            planName: planName.isEmpty ? nil : planName,
+            price: Double(priceText.replacingOccurrences(of: ",", with: ".")),
+            currencyCode: currencyCode.isEmpty ? nil : currencyCode,
+            billingCycle: billingCycle,
+            nextRenewalDate: hasRenewal ? nextRenewalDate : nil,
+            renewalReminderEnabled: hasRenewal && renewalReminderEnabled,
+            venueAddress: venueAddress.isEmpty ? nil : venueAddress,
+            venuePhone: venuePhone.isEmpty ? nil : venuePhone,
+            venueWebsite: venueWebsite.isEmpty ? nil : venueWebsite,
+            venueHours: venueHours.isEmpty ? nil : venueHours,
+            invoices: invoices
+        )
+
+        if editingID == nil {
+            store.addGymPass(pass)
+        } else {
+            store.updateGymPass(pass)
+        }
+        dismiss()
+    }
+}
+
+private struct GymInvoiceRow: View {
+    let invoice: GymInvoice
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: invoice.attachmentIsPDF ? "doc.fill" : (invoice.attachmentData != nil ? "photo.fill" : "doc.text"))
+                .foregroundStyle(PulseTheme.accent)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(invoice.amount.formatted(.currency(code: invoice.currencyCode)))
+                    .font(.subheadline.weight(.semibold))
+                Text(invoice.date.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                if let note = invoice.note, !note.isEmpty {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(1)
+                }
+            }
+            Spacer()
+        }
+    }
+}
+
+struct GymInvoiceEditorView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    private let invoiceID: UUID
+    let onSave: (GymInvoice) -> Void
+
+    @State private var date: Date
+    @State private var amountText: String
+    @State private var currencyCode: String
+    @State private var hasPeriod: Bool
+    @State private var periodStart: Date
+    @State private var periodEnd: Date
+    @State private var note: String
+    @State private var attachmentData: Data?
+    @State private var attachmentIsPDF: Bool
+    @State private var photoItem: PhotosPickerItem?
+    @State private var showFileImporter = false
+
+    init(invoice: GymInvoice, defaultCurrency: String, onSave: @escaping (GymInvoice) -> Void) {
+        invoiceID = invoice.id
+        self.onSave = onSave
+        _date = State(initialValue: invoice.date)
+        _amountText = State(initialValue: invoice.amount > 0 ? String(format: "%.2f", invoice.amount) : "")
+        _currencyCode = State(initialValue: invoice.currencyCode.isEmpty ? defaultCurrency : invoice.currencyCode)
+        _hasPeriod = State(initialValue: invoice.periodStart != nil)
+        _periodStart = State(initialValue: invoice.periodStart ?? invoice.date)
+        _periodEnd = State(initialValue: invoice.periodEnd
+            ?? Calendar.current.date(byAdding: .month, value: 1, to: invoice.date) ?? invoice.date)
+        _note = State(initialValue: invoice.note ?? "")
+        _attachmentData = State(initialValue: invoice.attachmentData)
+        _attachmentIsPDF = State(initialValue: invoice.attachmentIsPDF)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("invoice") {
+                    DatePicker("date_2", selection: $date, displayedComponents: .date)
+                    HStack {
+                        TextField("amount", text: $amountText)
+                            .keyboardType(.decimalPad)
+                        TextField("currency", text: $currencyCode)
+                            .textInputAutocapitalization(.characters)
+                            .frame(width: 80)
+                    }
+                    Toggle("billing_period", isOn: $hasPeriod)
+                    if hasPeriod {
+                        DatePicker("period_start", selection: $periodStart, displayedComponents: .date)
+                        DatePicker("period_end", selection: $periodEnd, displayedComponents: .date)
+                    }
+                    TextField("notes_2", text: $note, axis: .vertical)
+                }
+
+                Section("attachment") {
+                    if let attachmentData {
+                        if !attachmentIsPDF, let uiImage = UIImage(data: attachmentData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 180)
+                        } else {
+                            Label("pdf_attached", systemImage: "doc.fill")
+                        }
+                        Button(role: .destructive) {
+                            self.attachmentData = nil
+                            attachmentIsPDF = false
+                        } label: {
+                            Label("remove_attachment", systemImage: "trash")
+                        }
+                    } else {
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Label("attach_photo", systemImage: "photo")
+                        }
+                        Button { showFileImporter = true } label: {
+                            Label("attach_pdf", systemImage: "doc")
+                        }
+                    }
+                }
+            }
+            .navigationTitle("invoice")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("save") { save() }
+                        .disabled(amount == nil)
+                }
+            }
+            .onChange(of: photoItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self) {
+                        await MainActor.run {
+                            attachmentData = data
+                            attachmentIsPDF = false
+                        }
+                    }
+                }
+            }
+            .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.pdf]) { result in
+                if case let .success(url) = result {
+                    let needsScope = url.startAccessingSecurityScopedResource()
+                    defer { if needsScope { url.stopAccessingSecurityScopedResource() } }
+                    if let data = try? Data(contentsOf: url) {
+                        attachmentData = data
+                        attachmentIsPDF = true
+                    }
+                }
+            }
+        }
+    }
+
+    private var amount: Double? {
+        Double(amountText.replacingOccurrences(of: ",", with: "."))
+    }
+
+    private func save() {
+        guard let amount else { return }
+        onSave(GymInvoice(
+            id: invoiceID,
+            date: date,
+            amount: amount,
+            currencyCode: currencyCode.isEmpty ? "USD" : currencyCode,
+            periodStart: hasPeriod ? periodStart : nil,
+            periodEnd: hasPeriod ? periodEnd : nil,
+            note: note.isEmpty ? nil : note,
+            attachmentData: attachmentData,
+            attachmentIsPDF: attachmentIsPDF
         ))
         dismiss()
     }
@@ -2670,16 +3197,86 @@ struct GymVisitEditorView: View {
     @State private var gymName = ""
     @State private var date = Date()
     @State private var locationNote = ""
-    @State private var workoutTitle = ""
+    @State private var address: String?
+    @State private var coordinate: CLLocationCoordinate2D?
+    @State private var selectedWorkoutIDs: [UUID] = []
+    @State private var showingPlacePicker = false
+    @State private var showingWorkoutPicker = false
+
+    private var gymWorkouts: [WorkoutSession] {
+        store.workoutSessions
+            .filter { $0.location == .gym }
+            .sorted { $0.date > $1.date }
+    }
+
+    private var selectedWorkouts: [WorkoutSession] {
+        selectedWorkoutIDs.compactMap { id in
+            store.workoutSessions.first { $0.id == id }
+        }
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("visita") {
-                    TextField("gym_local", text: $gymName)
+                Section("place") {
+                    Button {
+                        showingPlacePicker = true
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "mappin.and.ellipse")
+                                .foregroundStyle(PulseTheme.accent)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(gymName.isEmpty ? localizedString("search_or_pick_on_map") : gymName)
+                                    .foregroundStyle(gymName.isEmpty ? PulseTheme.secondaryText : Color.primary)
+                                if let address, !address.isEmpty {
+                                    Text(address)
+                                        .font(.caption)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+
+                    if let coordinate {
+                        GymVisitMapPreview(coordinate: coordinate)
+                            .frame(height: 130)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    }
+
                     DatePicker("date_2", selection: $date)
                     TextField("location_or_room", text: $locationNote)
-                    TextField("training_done", text: $workoutTitle)
+                }
+
+                Section("training_done") {
+                    Button {
+                        showingWorkoutPicker = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "dumbbell.fill")
+                                .foregroundStyle(PulseTheme.accent)
+                            Text(selectedWorkoutIDs.isEmpty ? localizedString("select_trainings") : localizedFormat("count_trainings_selected", selectedWorkoutIDs.count))
+                                .foregroundStyle(selectedWorkoutIDs.isEmpty ? PulseTheme.secondaryText : Color.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+
+                    ForEach(selectedWorkouts) { session in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(session.workoutTitle)
+                                .font(.subheadline)
+                            Text(session.date.formatted(date: .abbreviated, time: .shortened))
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
                 }
 
                 if !store.gymPasses.isEmpty {
@@ -2703,17 +3300,328 @@ struct GymVisitEditorView: View {
                         .disabled(gymName.isEmpty)
                 }
             }
+            .sheet(isPresented: $showingPlacePicker) {
+                GymLocationPickerView { place in
+                    gymName = place.name
+                    address = place.address
+                    coordinate = place.coordinate
+                }
+            }
+            .sheet(isPresented: $showingWorkoutPicker) {
+                GymVisitWorkoutPickerView(
+                    workouts: gymWorkouts,
+                    selectedIDs: $selectedWorkoutIDs
+                )
+            }
         }
     }
 
     private func save() {
+        let titles = selectedWorkouts.map(\.workoutTitle)
         store.addGymVisit(GymVisit(
             gymName: gymName,
             date: date,
             locationNote: locationNote.isEmpty ? nil : locationNote,
-            workoutTitle: workoutTitle.isEmpty ? nil : workoutTitle
+            workoutTitle: titles.isEmpty ? nil : titles.joined(separator: ", "),
+            address: address,
+            latitude: coordinate?.latitude,
+            longitude: coordinate?.longitude,
+            workoutSessionIDs: selectedWorkoutIDs
         ))
         dismiss()
+    }
+}
+
+// MARK: - Gym visit map preview
+
+private struct GymVisitMapPreview: View {
+    let coordinate: CLLocationCoordinate2D
+
+    var body: some View {
+        Map(initialPosition: .region(MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
+        ))) {
+            Marker("", coordinate: coordinate)
+                .tint(PulseTheme.accent)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Picked place
+
+struct PickedPlace {
+    var name: String
+    var address: String?
+    var coordinate: CLLocationCoordinate2D
+}
+
+// MARK: - Gym location picker (search + tap on map)
+
+struct GymLocationPickerView: View {
+    @Environment(\.dismiss) private var dismiss
+    let onSelect: (PickedPlace) -> Void
+
+    @State private var query = ""
+    @StateObject private var completer = AddressSearchCompleter()
+    @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var pinCoordinate: CLLocationCoordinate2D?
+    @State private var pinName: String = ""
+    @State private var pinAddress: String?
+    @State private var isResolving = false
+    private let geocoder = CLGeocoder()
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                MapReader { proxy in
+                    Map(position: $cameraPosition) {
+                        if let pinCoordinate {
+                            Marker(pinName.isEmpty ? localizedString("selected_location") : pinName, coordinate: pinCoordinate)
+                                .tint(PulseTheme.accent)
+                        }
+                        UserAnnotation()
+                    }
+                    .mapControls {
+                        MapUserLocationButton()
+                    }
+                    .onTapGesture { location in
+                        if let coordinate = proxy.convert(location, from: .local) {
+                            select(coordinate: coordinate, name: nil, address: nil, recenter: false)
+                            reverseGeocode(coordinate)
+                        }
+                    }
+                }
+                .frame(maxHeight: .infinity)
+
+                if !completer.results.isEmpty && !query.isEmpty {
+                    List(completer.results, id: \.self) { result in
+                        Button {
+                            resolve(completion: result)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(result.title)
+                                    .foregroundStyle(Color.primary)
+                                if !result.subtitle.isEmpty {
+                                    Text(result.subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
+                    .frame(maxHeight: 240)
+                }
+
+                if let pinCoordinate {
+                    selectionBar(coordinate: pinCoordinate)
+                }
+            }
+            .searchable(text: $query, prompt: Text("search_address"))
+            .onChange(of: query) { _, newValue in
+                completer.update(query: newValue)
+            }
+            .navigationTitle("choose_location")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("cancel") { dismiss() }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func selectionBar(coordinate: CLLocationCoordinate2D) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "mappin.circle.fill")
+                    .foregroundStyle(PulseTheme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pinName.isEmpty ? localizedString("selected_location") : pinName)
+                        .font(.subheadline.weight(.semibold))
+                    if let pinAddress, !pinAddress.isEmpty {
+                        Text(pinAddress)
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                }
+                Spacer()
+                if isResolving {
+                    ProgressView()
+                }
+            }
+            Button {
+                onSelect(PickedPlace(
+                    name: pinName.isEmpty ? (pinAddress ?? localizedString("selected_location")) : pinName,
+                    address: pinAddress,
+                    coordinate: coordinate
+                ))
+                dismiss()
+            } label: {
+                Text("use_this_location")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(PulseTheme.accent)
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+    }
+
+    private func select(coordinate: CLLocationCoordinate2D, name: String?, address: String?, recenter: Bool) {
+        pinCoordinate = coordinate
+        if let name { pinName = name }
+        if let address { pinAddress = address }
+        if recenter {
+            cameraPosition = .region(MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            ))
+        }
+    }
+
+    private func resolve(completion: MKLocalSearchCompletion) {
+        query = ""
+        completer.results = []
+        isResolving = true
+        let request = MKLocalSearch.Request(completion: completion)
+        MKLocalSearch(request: request).start { response, _ in
+            Task { @MainActor in
+                isResolving = false
+                guard let item = response?.mapItems.first else { return }
+                let coordinate = item.placemark.coordinate
+                pinName = item.name ?? completion.title
+                pinAddress = Self.formatAddress(item.placemark)
+                select(coordinate: coordinate, name: pinName, address: pinAddress, recenter: true)
+            }
+        }
+    }
+
+    private func reverseGeocode(_ coordinate: CLLocationCoordinate2D) {
+        isResolving = true
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        geocoder.reverseGeocodeLocation(location) { placemarks, _ in
+            Task { @MainActor in
+                isResolving = false
+                guard let placemark = placemarks?.first else { return }
+                pinName = placemark.name ?? placemark.thoroughfare ?? localizedString("selected_location")
+                pinAddress = Self.formatAddress(placemark)
+            }
+        }
+    }
+
+    private static func formatAddress(_ placemark: CLPlacemark) -> String? {
+        let parts = [
+            [placemark.thoroughfare, placemark.subThoroughfare].compactMap { $0 }.joined(separator: " "),
+            placemark.locality,
+            placemark.administrativeArea,
+            placemark.postalCode
+        ].compactMap { $0?.isEmpty == false ? $0 : nil }
+        let joined = parts.joined(separator: ", ")
+        return joined.isEmpty ? nil : joined
+    }
+
+    private static func formatAddress(_ placemark: MKPlacemark) -> String? {
+        formatAddress(placemark as CLPlacemark)
+    }
+}
+
+// MARK: - Address search completer
+
+@MainActor
+final class AddressSearchCompleter: NSObject, ObservableObject, MKLocalSearchCompleterDelegate {
+    @Published var results: [MKLocalSearchCompletion] = []
+    private let completer = MKLocalSearchCompleter()
+
+    override init() {
+        super.init()
+        completer.delegate = self
+        completer.resultTypes = [.address, .pointOfInterest]
+    }
+
+    func update(query: String) {
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
+            results = []
+            return
+        }
+        completer.queryFragment = query
+    }
+
+    nonisolated func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        // MKLocalSearchCompleter delivers delegate callbacks on the main thread.
+        MainActor.assumeIsolated {
+            results = self.completer.results
+        }
+    }
+
+    nonisolated func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        MainActor.assumeIsolated {
+            results = []
+        }
+    }
+}
+
+// MARK: - Workout multi-select picker
+
+struct GymVisitWorkoutPickerView: View {
+    @Environment(\.dismiss) private var dismiss
+    let workouts: [WorkoutSession]
+    @Binding var selectedIDs: [UUID]
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if workouts.isEmpty {
+                    ContentUnavailableView(
+                        localizedString("no_gym_workouts"),
+                        systemImage: "dumbbell",
+                        description: Text("no_gym_workouts_description")
+                    )
+                } else {
+                    List(workouts) { session in
+                        Button {
+                            toggle(session.id)
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(session.workoutTitle)
+                                        .foregroundStyle(Color.primary)
+                                    Text(session.date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.caption)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                                Spacer()
+                                if selectedIDs.contains(session.id) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(PulseTheme.accent)
+                                } else {
+                                    Image(systemName: "circle")
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("select_trainings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func toggle(_ id: UUID) {
+        if let index = selectedIDs.firstIndex(of: id) {
+            selectedIDs.remove(at: index)
+        } else {
+            selectedIDs.append(id)
+        }
     }
 }
 

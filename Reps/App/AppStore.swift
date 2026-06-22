@@ -56,7 +56,14 @@ final class AppStore {
     var pendingSocialSearch: String? = nil
     var unreadFeedCount: Int = 0
     var hasUnreadBell: Bool = false
+    /// In-app notification inbox (bell). Single source of truth so the list and
+    /// badge update reactively the moment an event is appended.
+    private(set) var activityEvents: [NotificationEvent] = []
     var feedPosts: [WorkoutPost] = []
+    /// Accurate per-post comment digests (count + latest comment) used to render
+    /// the feed cards. Populated after the feed loads and updated as the user
+    /// comments. Derived from the actual comment set, so it stays correct offline.
+    var commentSummaries: [String: CommentSummary] = [:]
     var isFeedLoading: Bool = false
     var activeChallenges: [SocialChallenge] = []
     var isChallengesLoading: Bool = false
@@ -174,6 +181,7 @@ final class AppStore {
         }
         RepsLocalization.use(userProfile.preferredLanguage)
         cleanupJunkHealthWorkoutsIfNeeded()
+        _ = loadActivityEvents()
 
         iCloudBackupDate = ICloudBackupService.lastBackupDate()
 
@@ -228,6 +236,12 @@ final class AppStore {
     }
 
     func handleNotificationTarget(_ target: NotificationService.NotificationTarget) {
+        TelemetryService.shared.breadcrumb("notif.handle_target", [
+            "kind": target.kind.rawValue,
+            "action": String(describing: target.action),
+            "has_workout_id": target.scheduledWorkoutID != nil
+        ])
+
         // "Mark as done" resolves in place: flip the scheduled workout to
         // completed and surface a confirmation, then land on the calendar.
         if target.action == .markDone {
@@ -250,6 +264,13 @@ final class AppStore {
                 scheduledWorkoutID: nil
             )
         case .dailySummary, .batteryRecoverySuggestion, .retentionNudge, .streakAtRisk:
+            notificationDestination = NotificationDestination(
+                tab: .today,
+                focusDate: nil,
+                scheduledWorkoutID: nil
+            )
+        default:
+            // gymRenewal / open / logWorkout / markDone / snooze — land on Today.
             notificationDestination = NotificationDestination(
                 tab: .today,
                 focusDate: nil,
@@ -807,9 +828,52 @@ final class AppStore {
 
     func addGymPass(_ pass: GymPass) {
         gymPasses.append(pass)
+        syncRenewalReminder(for: pass)
         TelemetryService.shared.log(.gymPassAdded, parameters: [
             "code_type": pass.codeType.rawValue
         ])
+    }
+
+    func updateGymPass(_ pass: GymPass) {
+        guard let index = gymPasses.firstIndex(where: { $0.id == pass.id }) else {
+            addGymPass(pass)
+            return
+        }
+        gymPasses[index] = pass
+        syncRenewalReminder(for: pass)
+    }
+
+    func deleteGymPass(_ pass: GymPass) {
+        gymPasses.removeAll { $0.id == pass.id }
+        NotificationService.cancelGymRenewalReminder(passID: pass.id)
+    }
+
+    /// Marks a membership as ended (it drops into the history section) and
+    /// cancels its renewal reminder.
+    func endMembership(_ pass: GymPass, on date: Date = .now) {
+        guard let index = gymPasses.firstIndex(where: { $0.id == pass.id }) else { return }
+        gymPasses[index].isActive = false
+        gymPasses[index].endDate = date
+        gymPasses[index].renewalReminderEnabled = false
+        NotificationService.cancelGymRenewalReminder(passID: pass.id)
+    }
+
+    /// Schedules or cancels the renewal reminder to match the pass state.
+    private func syncRenewalReminder(for pass: GymPass) {
+        guard pass.isActive,
+              pass.renewalReminderEnabled,
+              userProfile.remindersEnabled,
+              let renewalDate = pass.nextRenewalDate else {
+            NotificationService.cancelGymRenewalReminder(passID: pass.id)
+            return
+        }
+        Task {
+            try? await NotificationService.scheduleGymRenewalReminder(
+                passID: pass.id,
+                gymName: pass.gymName,
+                renewalDate: renewalDate
+            )
+        }
     }
 
     func addGymVisit(_ visit: GymVisit) {
@@ -1028,14 +1092,20 @@ final class AppStore {
 
         // Celebrate a personal record set during this session (PRs are flagged
         // while logging via ExerciseHistoryAnalyzer.isPersonalRecord).
-        if userProfile.remindersEnabled,
-           let prExerciseName = session.exerciseLogs?
-               .first(where: { log in log.sets.contains { $0.isPersonalRecord && $0.completed } })?
-               .exercise.name {
-            Task {
-                try? await NotificationService.schedulePersonalRecordCelebration(exerciseName: prExerciseName)
+        if let prExerciseName = session.exerciseLogs?
+            .first(where: { log in log.sets.contains { $0.isPersonalRecord && $0.completed } })?
+            .exercise.name {
+            recordPersonalRecordEvent(exerciseName: prExerciseName, date: session.date)
+            if userProfile.remindersEnabled {
+                Task {
+                    try? await NotificationService.schedulePersonalRecordCelebration(exerciseName: prExerciseName)
+                }
             }
         }
+
+        // Re-evaluate engagement state right after finishing so a goal reached
+        // during this session is celebrated without waiting for the next launch.
+        runEngagementChecks()
     }
 
     /// Writes a freshly-finished, phone-logged session to Apple Health (if it did
@@ -1156,7 +1226,8 @@ final class AppStore {
     static func isLikelyDuplicateSession(_ a: WorkoutSession, _ b: WorkoutSession) -> Bool {
         let aStart = a.startedAt ?? a.date
         let bStart = b.startedAt ?? b.date
-        guard abs(aStart.timeIntervalSince(bStart)) < 300 else { return false }
+        // Same 15-min window as isLikelyDuplicateWorkout; duration/activity guards below.
+        guard abs(aStart.timeIntervalSince(bStart)) < 900 else { return false }
 
         let tolerance = max(2, Int(Double(max(b.durationMinutes, 1)) * 0.15))
         guard abs(a.durationMinutes - b.durationMinutes) <= tolerance else { return false }
@@ -3167,10 +3238,16 @@ final class AppStore {
         
         let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie())
         let sessionLocation = Self.location(for: workout)
-        
+
+        // Clasificación gruesa del workout entrante (locomoción/cardio vs fuerza u
+        // otro) para no fusionar un workout ajeno de un tipo distinto dentro de la
+        // sesión activa: p. ej. una caminata del Watch dentro de una sesión de fuerza.
+        let incomingIsCardioMovement = Self.isCardioMovementActivity(workout.workoutActivityType) || !routePoints.isEmpty
+
         // 2. Comprobar si hay un entrenamiento en progreso coincidente para finalizar o mezclar
         if let activeStatus = activeWorkoutStatus,
-           abs(activeStatus.startedAt.timeIntervalSince(workout.startDate)) < 5400 { // Margen de 1.5 horas
+           abs(activeStatus.startedAt.timeIntervalSince(workout.startDate)) < 5400, // Margen de 1.5 horas
+           incomingIsCardioMovement == (activeWorkout?.isCardioMovement ?? (activeStatus.isOutdoorRoute ?? false)) {
             
             // Compilar sesión activa
             let logs = activeWorkoutDrafts.compactMap { draft -> ExerciseLog? in
@@ -3394,7 +3471,10 @@ final class AppStore {
     /// imported twice.
     static func isLikelyDuplicateWorkout(existing: WorkoutSession, workout: HKWorkout, activities: [String]) -> Bool {
         let existingStart = existing.startedAt ?? existing.date
-        guard abs(existingStart.timeIntervalSince(workout.startDate)) < 300 else { return false }
+        // 15-min window: covers the human lag between starting the same effort in
+        // Reps and in the iOS/Watch app. The duration (±15%) and activity-type
+        // guards below keep two genuinely distinct sessions from collapsing.
+        guard abs(existingStart.timeIntervalSince(workout.startDate)) < 900 else { return false }
 
         let workoutMinutes = Int(workout.duration / 60)
         let tolerance = max(2, Int(Double(max(workoutMinutes, 1)) * 0.15))
@@ -3627,6 +3707,18 @@ final class AppStore {
             return .gym
         }
     }
+
+    /// Coarse "is this a locomotion/cardio workout" test used to keep an incoming
+    /// Health workout from being merged into an active Reps session of a different
+    /// kind (e.g. a walk folding into a strength session).
+    static func isCardioMovementActivity(_ type: HKWorkoutActivityType) -> Bool {
+        switch type {
+        case .walking, .running, .cycling, .hiking, .swimming, .elliptical, .rowing:
+            return true
+        default:
+            return false
+        }
+    }
     
     static func nameForActivityType(_ type: HKWorkoutActivityType) -> String {
         switch type {
@@ -3699,27 +3791,31 @@ final class AppStore {
     }
 
     func saveActivityEvent(icon: String, colorName: String, title: String, subtitle: String, date: Date) {
-        var events = loadActivityEvents()
         let event = NotificationEvent(icon: icon, colorName: colorName, title: title, subtitle: subtitle, date: date)
-        events.insert(event, at: 0)
-        if let data = try? JSONEncoder().encode(Array(events.prefix(20))) {
+        activityEvents.insert(event, at: 0)
+        activityEvents = Array(activityEvents.prefix(30))
+        if let data = try? JSONEncoder().encode(activityEvents) {
             UserDefaults.standard.set(data, forKey: Self.activityEventsKey)
         }
         hasUnreadBell = true
     }
 
+    @discardableResult
     func loadActivityEvents() -> [NotificationEvent] {
-        guard let data = UserDefaults.standard.data(forKey: Self.activityEventsKey),
-              let events = try? JSONDecoder().decode([NotificationEvent].self, from: data) else {
-            return []
+        if activityEvents.isEmpty,
+           let data = UserDefaults.standard.data(forKey: Self.activityEventsKey),
+           let events = try? JSONDecoder().decode([NotificationEvent].self, from: data) {
+            activityEvents = events
         }
-        return events
+        return activityEvents
     }
 
     func loadFeed() async {
         var usernames = userProfile.socialFollowingUsernames
         if let own = userProfile.socialUsername { usernames.append(own.lowercased()) }
         guard !usernames.isEmpty else { return }
+        // Drain any comments written while offline before refreshing.
+        await SocialService.shared.flushOutbox()
         isFeedLoading = true
         do {
             let posts = try await SocialService.shared.fetchFeed(followingUsernames: usernames)
@@ -3728,6 +3824,22 @@ final class AppStore {
             unreadFeedCount = posts.filter { $0.createdAt > lastCheck }.count
         } catch {}
         isFeedLoading = false
+        // Comment digests load after the feed is visible so they never delay it.
+        let ids = feedPosts.map(\.id)
+        if !ids.isEmpty {
+            commentSummaries = await SocialService.shared.commentSummaries(forPosts: ids)
+        }
+    }
+
+    /// Refreshes a single post's comment digest after the user comments, so the
+    /// feed card reflects the new count/preview immediately.
+    func refreshCommentSummary(postID: String) async {
+        commentSummaries[postID] = await SocialService.shared.cachedSummary(postID: postID)
+    }
+
+    /// Flushes queued (offline) comments. Called on foreground.
+    func flushPendingComments() async {
+        await SocialService.shared.flushOutbox()
     }
 
     func loadChallenges() async {

@@ -58,6 +58,18 @@ struct ActiveWorkoutPinnedHeader: View {
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .disabled(isFinishingWorkout)
+                } else {
+                    Button(action: onPrimaryAction) {
+                        Label(localizedString("start"), systemImage: "play.fill")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 110, height: 44)
+                            .background(PulseTheme.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .disabled(!canStartWorkout)
+                    .opacity(canStartWorkout ? 1 : 0.5)
+                    .accessibilityLabel(localizedString("start_workout"))
                 }
             }
             .frame(width: contentWidth)

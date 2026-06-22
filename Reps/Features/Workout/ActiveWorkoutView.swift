@@ -3799,9 +3799,12 @@ struct WorkoutSummaryView: View {
     @State private var generatedImage: UIImage?
     @State private var isImageSaved = false
     @State private var prShareImage: UIImage?
+    @State private var prShareTitle: String = ""
     @State private var isShowingPRShareSheet = false
     @State private var isSharingToFeed = false
     @State private var feedShared = false
+    @State private var feedComposeImage: UIImage?
+    @State private var isShowingFeedCompose = false
 
     private var completedSets: [SetLog] {
         FitnessMetrics.completedSets(in: session)
@@ -3911,6 +3914,10 @@ struct WorkoutSummaryView: View {
                                                     reps: pr.reps,
                                                     date: session.date
                                                 )
+                                                prShareTitle = localizedFormat(
+                                                    "share_pr_title_format",
+                                                    RepsText.exerciseName(pr.exercise.name, language: store.userProfile.preferredLanguage)
+                                                )
                                                 isShowingPRShareSheet = true
                                             } label: {
                                                 Image(systemName: "square.and.arrow.up")
@@ -3993,15 +4000,15 @@ struct WorkoutSummaryView: View {
                         // Share to social feed (receipt card or route map)
                         if store.userProfile.socialEnabled, store.userProfile.socialUsername != nil {
                             Button {
-                                shareToFeed()
+                                composeFeedPost()
                             } label: {
                                 HStack(spacing: 8) {
                                     if isSharingToFeed {
                                         ProgressView().tint(.white).scaleEffect(0.8)
                                     } else {
-                                        Image(systemName: feedShared ? "checkmark.circle.fill" : "person.2.fill")
+                                        Image(systemName: feedShared ? "checkmark.circle.fill" : "square.and.pencil")
                                     }
-                                    Text(feedShared ? localizedString("share_feed_done") : localizedString("share_feed_button"))
+                                    Text(feedShared ? localizedString("share_feed_done") : localizedString("feed_post_compose_button"))
                                 }
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundStyle(.white)
@@ -4067,14 +4074,49 @@ struct WorkoutSummaryView: View {
         }
         .sheet(isPresented: $isShowingShareSheet) {
             if let image = generatedImage {
-                ActivityViewController(activityItems: [image])
+                ActivityViewController(activityItems: [
+                    ShareImageItemSource(image: image, title: shareTitle)
+                ])
             }
         }
         .sheet(isPresented: $isShowingPRShareSheet) {
             if let image = prShareImage {
-                ActivityViewController(activityItems: [image])
+                ActivityViewController(activityItems: [
+                    ShareImageItemSource(image: image, title: prShareTitle)
+                ])
             }
         }
+        .sheet(isPresented: $isShowingFeedCompose) {
+            if let image = feedComposeImage {
+                CreatePostView(
+                    prefilledImage: image,
+                    prefilledCaption: defaultFeedCaption,
+                    onPosted: { withAnimation { feedShared = true } }
+                )
+            }
+        }
+    }
+
+    private var shareTitle: String {
+        localizedFormat("share_workout_title_format", session.workoutTitle)
+    }
+
+    private var totalVolumeKg: Int {
+        Int(FitnessMetrics.totalVolumeKg(for: [session]))
+    }
+
+    private var defaultFeedCaption: String {
+        var caption = localizedFormat(
+            "feed_default_caption_format",
+            session.workoutTitle,
+            durationText,
+            totalVolumeKg,
+            completedSets.count
+        )
+        if !sessionPRs.isEmpty {
+            caption += localizedFormat("feed_default_caption_pr_format", sessionPRs.count)
+        }
+        return caption
     }
 
     private func shareSession() {
@@ -4085,27 +4127,14 @@ struct WorkoutSummaryView: View {
         isShowingShareSheet = true
     }
 
-    private func shareToFeed() {
-        guard let uname = store.userProfile.socialUsername else { return }
-        let dname = store.userProfile.displayName ?? uname
+    private func composeFeedPost() {
         isSharingToFeed = true
         Task {
             let img = await WorkoutShareImageRenderer.renderForFeed(session: session)
-            guard let data = img.jpegData(compressionQuality: 0.82) else {
-                await MainActor.run { isSharingToFeed = false }
-                return
-            }
-            let caption = session.workoutTitle
-            let post = try? await SocialService.shared.publishCustomPost(
-                username: uname,
-                displayName: dname,
-                caption: caption,
-                photoDataList: [data]
-            )
             await MainActor.run {
-                if let post { store.feedPosts.insert(post, at: 0) }
+                feedComposeImage = img
                 isSharingToFeed = false
-                withAnimation { feedShared = true }
+                isShowingFeedCompose = true
             }
         }
     }

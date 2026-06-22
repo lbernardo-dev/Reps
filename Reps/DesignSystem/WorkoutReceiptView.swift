@@ -628,8 +628,12 @@ private struct ReceiptRoutePanel: View {
                     )
             }
 
-            if hasTrace {
-                ReceiptRouteTrace(routePoints: routePoints, hasMapBackground: hasMap)
+            if hasMap {
+                // The route polyline is already baked into the snapshot image
+                // (correctly projected), so no overlay trace is needed here.
+                EmptyView()
+            } else if hasTrace {
+                ReceiptRouteTrace(routePoints: routePoints, hasMapBackground: false)
                     .padding(10)
             } else {
                 VStack(spacing: 8) {

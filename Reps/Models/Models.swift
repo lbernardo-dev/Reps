@@ -107,6 +107,27 @@ struct ProgressPhoto: Codable, Identifiable, Hashable {
     var note: String?
 }
 
+enum BillingCycle: String, Codable, CaseIterable, Identifiable {
+    case weekly
+    case monthly
+    case quarterly
+    case annual
+    case oneTime
+    var id: String { rawValue }
+}
+
+struct GymInvoice: Codable, Identifiable, Hashable {
+    var id = UUID()
+    var date: Date = .now
+    var amount: Double
+    var currencyCode: String = "USD"
+    var periodStart: Date?
+    var periodEnd: Date?
+    var note: String?
+    var attachmentData: Data?     // imagen o PDF del recibo
+    var attachmentIsPDF: Bool = false
+}
+
 struct GymPass: Codable, Identifiable, Hashable {
     enum CodeType: String, Codable, CaseIterable, Identifiable {
         case qr
@@ -121,6 +142,31 @@ struct GymPass: Codable, Identifiable, Hashable {
     var codeType: CodeType
     var colorHex: String = "#8524DB"
     var notes: String?
+
+    // Captura / respaldo visual: imagen del carnet cuando no hay código legible.
+    var imageData: Data?
+
+    // Periodo / estado (el histórico es la lista de pases activos + pasados).
+    var isActive: Bool = true
+    var startDate: Date?
+    var endDate: Date?
+
+    // Detalles del plan.
+    var planName: String?
+    var price: Double?
+    var currencyCode: String?
+    var billingCycle: BillingCycle?
+    var nextRenewalDate: Date?
+    var renewalReminderEnabled: Bool = false
+
+    // Datos del local.
+    var venueAddress: String?
+    var venuePhone: String?
+    var venueWebsite: String?
+    var venueHours: String?
+
+    // Facturas.
+    var invoices: [GymInvoice] = []
 }
 
 struct GymVisit: Codable, Identifiable, Hashable {
@@ -129,6 +175,14 @@ struct GymVisit: Codable, Identifiable, Hashable {
     var date: Date
     var locationNote: String?
     var workoutTitle: String?
+    var address: String? = nil
+    var latitude: Double? = nil
+    var longitude: Double? = nil
+    var workoutSessionIDs: [UUID] = []
+
+    var hasCoordinate: Bool {
+        latitude != nil && longitude != nil
+    }
 }
 
 struct Exercise: Codable, Identifiable, Hashable {

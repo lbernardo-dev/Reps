@@ -79,6 +79,31 @@ final class TelemetryService {
         #endif
     }
 
+    /// Writes a Crashlytics-only breadcrumb (no Analytics event). Use to trace
+    /// fragile launch paths — the trail is attached to the next crash report,
+    /// so a silent termination still tells us exactly how far execution got.
+    func breadcrumb(_ message: String, _ values: [String: Any?] = [:]) {
+        ensureConfigured()
+        guard isConfigured else { return }
+
+        #if canImport(FirebaseCrashlytics)
+        Crashlytics.crashlytics().log(message)
+        sanitize(values).forEach { key, value in
+            Crashlytics.crashlytics().setCustomValue(value, forKey: key)
+        }
+        #endif
+    }
+
+    /// Pins a long-lived custom key onto crash reports (e.g. launch_source).
+    func setCrashKey(_ value: String, forKey key: String) {
+        ensureConfigured()
+        guard isConfigured else { return }
+
+        #if canImport(FirebaseCrashlytics)
+        Crashlytics.crashlytics().setCustomValue(value, forKey: key)
+        #endif
+    }
+
     func record(_ error: Error, context: String, parameters: [String: Any?] = [:]) {
         ensureConfigured()
         guard isConfigured else { return }

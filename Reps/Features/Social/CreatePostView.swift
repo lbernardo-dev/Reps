@@ -5,11 +5,26 @@ struct CreatePostView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
 
-    @State private var caption = ""
+    /// Called when a post is successfully published. Useful for callers that
+    /// pre-fill the composer (e.g. the post-workout summary) and want to update
+    /// their own UI state once the post lands in the feed.
+    var onPosted: (() -> Void)? = nil
+
+    @State private var caption: String
     @State private var selectedItems: [PhotosPickerItem] = []
-    @State private var selectedImages: [UIImage] = []
+    @State private var selectedImages: [UIImage]
     @State private var isPosting = false
     @State private var errorMessage: String?
+
+    init(
+        prefilledImage: UIImage? = nil,
+        prefilledCaption: String? = nil,
+        onPosted: (() -> Void)? = nil
+    ) {
+        self.onPosted = onPosted
+        _caption = State(initialValue: prefilledCaption ?? "")
+        _selectedImages = State(initialValue: prefilledImage.map { [$0] } ?? [])
+    }
 
     private var canPost: Bool {
         !isPosting && (!caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !selectedImages.isEmpty)
@@ -184,6 +199,7 @@ struct CreatePostView: View {
                     await MainActor.run {
                         store.feedPosts.insert(post, at: 0)
                         isPosting = false
+                        onPosted?()
                         dismiss()
                     }
                 } else {

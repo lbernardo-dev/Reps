@@ -130,6 +130,9 @@ struct MainTabView: View {
             return
         }
 
+        TelemetryService.shared.breadcrumb("notif.apply_destination", [
+            "tab": destination.tab.telemetryName
+        ])
         select(destination.tab)
         if destination.tab == .calendar {
             store.calendarFocusedDate = destination.focusDate

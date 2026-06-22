@@ -8,76 +8,90 @@ struct CommentsView: View {
     @State private var isLoading = true
     @State private var draftText = ""
     @State private var isSending = false
+    @FocusState private var inputFocused: Bool
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                ZStack {
-                    if isLoading {
-                        ProgressView().tint(PulseTheme.primary)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if comments.isEmpty {
-                        PulseEmptyState(
-                            title: "comments_empty_title",
-                            message: "comments_empty_message",
-                            systemImage: "bubble.left"
-                        )
+        VStack(spacing: 0) {
+            header
+            Divider()
+
+            ZStack {
+                if isLoading {
+                    ProgressView().tint(PulseTheme.primary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        ScrollView {
-                            LazyVStack(spacing: 0) {
-                                ForEach(Array(comments.enumerated()), id: \.element.id) { idx, comment in
-                                    commentRow(comment)
-                                    if idx < comments.count - 1 {
-                                        Divider().padding(.leading, 54)
-                                    }
-                                }
+                } else if comments.isEmpty {
+                    PulseEmptyState(
+                        title: "comments_empty_title",
+                        message: "comments_empty_message",
+                        systemImage: "bubble.left"
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(comments) { comment in
+                                commentRow(comment)
                             }
-                            .padding(.vertical, 8)
                         }
+                        .padding(.vertical, 6)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                Divider()
-                inputBar
-            }
-            .screenBackground()
-            .navigationTitle(Text(LocalizedStringKey("comments")))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(localizedString("close")) { dismiss() }
-                }
-            }
+            Divider()
+            inputBar
         }
+        .screenBackground()
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
         .task { await loadComments() }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        Text(LocalizedStringKey("comments"))
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .overlay(alignment: .trailing) {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 26))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(PulseTheme.tertiaryText)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 14)
+            }
     }
 
     // MARK: - Row
 
     private func commentRow(_ comment: WorkoutComment) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(PulseTheme.primary.opacity(0.10))
-                    .frame(width: 36, height: 36)
-                Text(String(comment.ownerUsername.prefix(1)).uppercased())
-                    .font(.system(size: 14, weight: .black, design: .rounded))
-                    .foregroundStyle(PulseTheme.primary)
-            }
-            VStack(alignment: .leading, spacing: 2) {
+            avatar(data: comment.ownerAvatarData, username: comment.ownerUsername, size: 36)
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text("@\(comment.ownerUsername)")
                         .font(.caption.weight(.bold))
-                    Text(comment.createdAt, style: .relative)
-                        .font(.caption2)
-                        .foregroundStyle(PulseTheme.tertiaryText)
+                    if comment.isPending {
+                        Label(LocalizedStringKey("comment_sending"), systemImage: "clock")
+                            .font(.caption2)
+                            .labelStyle(.titleAndIcon)
+                            .foregroundStyle(PulseTheme.tertiaryText)
+                    } else {
+                        Text(comment.createdAt, style: .relative)
+                            .font(.caption2)
+                            .foregroundStyle(PulseTheme.tertiaryText)
+                    }
                 }
                 Text(comment.text)
                     .font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer()
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -87,14 +101,19 @@ struct CommentsView: View {
 
     private var inputBar: some View {
         HStack(spacing: 10) {
+            avatar(data: store.userProfile.avatarImageData,
+                   username: store.userProfile.socialUsername ?? "?",
+                   size: 32)
+
             TextField(LocalizedStringKey("comments_placeholder"), text: $draftText, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.subheadline)
                 .lineLimit(1...4)
+                .focused($inputFocused)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(PulseTheme.grouped)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             Button {
                 let text = draftText
@@ -106,26 +125,50 @@ struct CommentsView: View {
                 } else {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30))
-                        .foregroundStyle(
-                            draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                ? PulseTheme.secondaryText
-                                : PulseTheme.primary
-                        )
+                        .foregroundStyle(canSend ? PulseTheme.primary : PulseTheme.secondaryText)
                 }
             }
             .buttonStyle(.plain)
-            .disabled(draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
+            .disabled(!canSend || isSending)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial)
+    }
+
+    private var canSend: Bool {
+        !draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    // MARK: - Avatar
+
+    private func avatar(data: Data?, username: String, size: CGFloat) -> some View {
+        ZStack {
+            if let d = data, let img = UIImage(data: d) {
+                Image(uiImage: img)
+                    .resizable().scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+            } else {
+                Circle()
+                    .fill(PulseTheme.primary.opacity(0.10))
+                    .frame(width: size, height: size)
+                Text(String(username.prefix(1)).uppercased())
+                    .font(.system(size: size * 0.4, weight: .black, design: .rounded))
+                    .foregroundStyle(PulseTheme.primary)
+            }
+        }
     }
 
     // MARK: - Async actions
 
     private func loadComments() async {
-        isLoading = true
-        comments = (try? await SocialService.shared.fetchComments(postID: post.id)) ?? []
+        // Instant first paint from the local cache (works fully offline)…
+        let cached = await SocialService.shared.cachedComments(postID: post.id)
+        comments = cached
+        isLoading = cached.isEmpty
+        // …then reconcile with CloudKit when online (no-op otherwise).
+        comments = await SocialService.shared.fetchComments(postID: post.id)
         isLoading = false
     }
 
@@ -135,14 +178,18 @@ struct CommentsView: View {
         isSending = true
         draftText = ""
         let dname = store.userProfile.displayName ?? uname
-        if let comment = try? await SocialService.shared.addComment(
+        // Optimistic + deferred: returns immediately, syncs (or queues) in the
+        // background. Never throws.
+        _ = await SocialService.shared.addComment(
             postID: post.id,
             text: trimmed,
             ownerUsername: uname,
-            ownerDisplayName: dname
-        ) {
-            comments.append(comment)
-        }
+            ownerDisplayName: dname,
+            ownerAvatarData: store.userProfile.avatarImageData
+        )
+        comments = await SocialService.shared.cachedComments(postID: post.id)
+        await store.refreshCommentSummary(postID: post.id)
+        HapticService.selection()
         isSending = false
     }
 }

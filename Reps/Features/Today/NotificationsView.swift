@@ -29,7 +29,7 @@ struct NotificationsView: View {
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
 
-            let items = store.loadActivityEvents()
+            let items = store.activityEvents
             if items.isEmpty {
                 PulseCard {
                     PulseEmptyState(
