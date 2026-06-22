@@ -20,7 +20,7 @@ struct RepsLoadingView: View {
     @State private var glowScale: CGFloat = 1.0
 
     private var currentMessage: String {
-        guard !messages.isEmpty else { return "Preparando Reps..." }
+        guard !messages.isEmpty else { return localizedString("loading_preparing_reps") }
         return messages[messageIndex % messages.count]
     }
 

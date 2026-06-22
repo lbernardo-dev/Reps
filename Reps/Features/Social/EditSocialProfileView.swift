@@ -88,9 +88,8 @@ struct EditSocialProfileView: View {
                     Text(localizedString("location_2"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
-                    TextField(localizedString("social_location_placeholder"), text: $location)
+                    AddressSearchField(title: localizedString("social_location_placeholder"), text: $location)
                         .font(.subheadline)
-                        .autocorrectionDisabled()
                 }
             }
             .padding(14)

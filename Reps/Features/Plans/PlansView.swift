@@ -895,7 +895,12 @@ private struct PlanDetailSheet: View {
                                 .font(.headline)
                             LazyVStack(spacing: 10) {
                                 ForEach(plan.days) { day in
-                                    PlanDayRow(day: day)
+                                    NavigationLink {
+                                        WorkoutDetailView(workout: day)
+                                    } label: {
+                                        PlanDayRow(day: day)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }

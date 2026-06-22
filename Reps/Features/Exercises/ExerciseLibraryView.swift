@@ -116,7 +116,7 @@ struct ExerciseLibraryView: View {
                             selectedEnvironment = nil
                         }
                         ForEach(Exercise.Environment.allCases) { environment in
-                            Button(environment.localizedString(language: store.userProfile.preferredLanguage)) {
+                            Button(environment.localizedDisplayName) {
                                 selectedEnvironment = environment
                             }
                         }
@@ -127,7 +127,7 @@ struct ExerciseLibraryView: View {
                             selectedDifficulty = nil
                         }
                         ForEach(Exercise.Difficulty.allCases) { difficulty in
-                            Button(difficulty.localizedString(language: store.userProfile.preferredLanguage)) {
+                            Button(difficulty.localizedDisplayName) {
                                 selectedDifficulty = difficulty
                             }
                         }
@@ -249,11 +249,11 @@ struct ExerciseLibraryView: View {
     }
 
     private var environmentFilterTitle: String {
-        selectedEnvironment?.localizedString(language: store.userProfile.preferredLanguage) ?? (localizedString("any_environment"))
+        selectedEnvironment?.localizedDisplayName ?? localizedString("any_environment")
     }
 
     private var difficultyFilterTitle: String {
-        selectedDifficulty?.localizedString(language: store.userProfile.preferredLanguage) ?? (localizedString("any_difficulty"))
+        selectedDifficulty?.localizedDisplayName ?? localizedString("any_difficulty")
     }
 
 }
@@ -397,19 +397,11 @@ private extension Exercise.Difficulty {
         }
     }
 
-    func localizedString(language: String) -> String {
-        guard language.hasPrefix("es") else {
-            return switch self {
-            case .low: "Beginner"
-            case .medium: "Intermediate"
-            case .high: "Advanced"
-            }
-        }
-
-        return switch self {
-        case .low: "Principiante"
-        case .medium: "Intermedio"
-        case .high: "Avanzado"
+    var localizedDisplayName: String {
+        switch self {
+        case .low: localizedString("Beginner")
+        case .medium: localizedString("Intermediate")
+        case .high: localizedString("Advanced")
         }
     }
 }
@@ -423,19 +415,11 @@ private extension Exercise.Environment {
         }
     }
 
-    func localizedString(language: String) -> String {
-        guard language.hasPrefix("es") else {
-            return switch self {
-            case .home: "Home"
-            case .gym: "Gym"
-            case .both: "Home and gym"
-            }
-        }
-
-        return switch self {
-        case .home: "Casa"
-        case .gym: "Gimnasio"
-        case .both: "Casa y gimnasio"
+    var localizedDisplayName: String {
+        switch self {
+        case .home: localizedString("Home")
+        case .gym: localizedString("Gym")
+        case .both: localizedString("Home and gym")
         }
     }
 }
@@ -1300,20 +1284,7 @@ struct ExerciseDetailView: View {
     }
 
     private func localizedMuscle(_ value: String) -> String {
-        guard store.userProfile.preferredLanguage.hasPrefix("es") else { return value }
-        return switch value.trimmingCharacters(in: .whitespacesAndNewlines).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).lowercased() {
-        case "arms": "Brazos"
-        case "back": "Espalda"
-        case "cardio": "Cardio"
-        case "chest": "Pecho"
-        case "core", "abdominals": "Core"
-        case "full body": "Cuerpo completo"
-        case "glutes": "Glúteos"
-        case "legs": "Piernas"
-        case "neck": "Cuello"
-        case "shoulders": "Hombros"
-        default: value
-        }
+        RepsText.muscle(value, language: store.userProfile.preferredLanguage)
     }
 }
 

@@ -334,9 +334,10 @@ struct SecondaryButton: View {
 
 struct SectionHeader: View {
     let title: String
+    @Environment(\.locale) private var locale
 
     var body: some View {
-        Text(verbatim: localizedString(title).capitalizingFirstLetter())
+        Text(verbatim: String(localized: String.LocalizationValue(title), locale: locale).capitalizingFirstLetter())
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(PulseTheme.secondaryText)
             .accessibilityAddTraits(.isHeader)
@@ -346,17 +347,26 @@ struct SectionHeader: View {
 /// Standard card-section title: resolves the localization key, enforces sentence-case, and
 /// renders with `.headline` weight. Use instead of `Text("key").font(.headline)` inside cards.
 struct CardTitle: View {
-    private let text: String
+    private let key: String?
+    private let verbatimText: String?
+    @Environment(\.locale) private var locale
 
     init(_ key: String) {
-        self.text = localizedString(key).capitalizingFirstLetter()
+        self.key = key
+        self.verbatimText = nil
     }
 
     init(verbatim string: String) {
-        self.text = string.capitalizingFirstLetter()
+        self.key = nil
+        self.verbatimText = string
     }
 
     var body: some View {
+        let text: String = if let key {
+            String(localized: String.LocalizationValue(key), locale: locale).capitalizingFirstLetter()
+        } else {
+            (verbatimText ?? "").capitalizingFirstLetter()
+        }
         Text(verbatim: text)
             .font(.headline)
     }
@@ -378,6 +388,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
     let content: Content
 
     @State private var activeTitle: String
+    @Environment(\.locale) private var locale
 
     init(
         title: String,
@@ -394,6 +405,10 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
         self.accessory = accessory()
         self.content = content()
         _activeTitle = State(initialValue: localizedString(title))
+    }
+
+    private func localizedTitle(for key: String) -> String {
+        String(localized: String.LocalizationValue(key), locale: locale)
     }
 
     var body: some View {
@@ -422,6 +437,9 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
             stickyHeader
         }
         .screenBackground()
+        .onChange(of: locale) { _, _ in
+            activeTitle = localizedTitle(for: title)
+        }
     }
 
     private var stickyHeader: some View {
@@ -495,7 +513,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
         return markers
             .filter { $0.minY <= threshold }
             .max { $0.minY < $1.minY }?
-            .title ?? localizedString(title)
+            .title ?? localizedTitle(for: title)
     }
 }
 

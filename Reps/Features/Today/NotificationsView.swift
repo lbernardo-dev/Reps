@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NotificationsView: View {
     @Environment(AppStore.self) private var store
+    @State private var activeDestination: InboxDestination?
 
     var body: some View {
         ScrollView {
@@ -18,6 +19,20 @@ struct NotificationsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .onAppear { store.markBellAsRead() }
+        .navigationDestination(item: $activeDestination) { destination in
+            switch destination {
+            case .workoutHistory:
+                WorkoutHistoryView(sessions: store.workoutSessions.sorted { $0.date > $1.date })
+            case .personalRecords:
+                PersonalRecordsView()
+            case .session(let id):
+                if let session = store.workoutSessions.first(where: { $0.id.uuidString == id }) {
+                    WorkoutSessionDetailView(session: session)
+                } else {
+                    WorkoutHistoryView(sessions: store.workoutSessions.sorted { $0.date > $1.date })
+                }
+            }
+        }
     }
 
     // MARK: - Activity
@@ -43,7 +58,17 @@ struct NotificationsView: View {
                 PulseCard {
                     VStack(spacing: 0) {
                         ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
-                            activityRow(item)
+                            if let destination = item.destination {
+                                Button {
+                                    HapticService.selection()
+                                    activeDestination = destination
+                                } label: {
+                                    activityRow(item, isTappable: true)
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                activityRow(item, isTappable: false)
+                            }
                             if idx < items.count - 1 { Divider().padding(.leading, 54) }
                         }
                     }
@@ -52,7 +77,7 @@ struct NotificationsView: View {
         }
     }
 
-    private func activityRow(_ item: NotificationEvent) -> some View {
+    private func activityRow(_ item: NotificationEvent, isTappable: Bool) -> some View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
@@ -65,17 +90,26 @@ struct NotificationsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
                 Text(item.subtitle)
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
             Spacer()
-            Text(item.date, style: .relative)
-                .font(.caption2)
-                .foregroundStyle(PulseTheme.tertiaryText)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(item.date, style: .relative)
+                    .font(.caption2)
+                    .foregroundStyle(PulseTheme.tertiaryText)
+                if isTappable {
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(PulseTheme.tertiaryText)
+                }
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
+        .contentShape(Rectangle())
     }
 
     // MARK: - Settings

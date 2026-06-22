@@ -158,7 +158,7 @@ struct RepsWorkoutLiveActivity: Widget {
                         compactMetric("time_label", icon: "timer", theme: theme) {
                             elapsedTimerText(snapshot)
                         }
-                        compactMetric("Restante", icon: "hourglass", theme: theme) {
+                        compactMetric("metric_remaining", icon: "hourglass", theme: theme) {
                             Text(snapshot.restEndDate == nil ? snapshot.remainingText : snapshot.restText)
                         }
                         compactMetric("volume_label", icon: "scalemass", theme: theme) {

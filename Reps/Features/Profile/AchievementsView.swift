@@ -3,23 +3,16 @@ import PhotosUI
 
 struct AchievementBadge: Identifiable {
     let id = UUID()
-    let titleEN: String
-    let titleES: String
-    let descEN: String
-    let descES: String
+    let titleKey: String
+    let descKey: String
     let systemImage: String
     let color: Color
     let isCompleted: Bool
     let progressValue: Double?
     let progressTarget: Double?
 
-    var title: String {
-        RepsLocalization.language.hasPrefix("es") ? titleES : titleEN
-    }
-
-    var description: String {
-        RepsLocalization.language.hasPrefix("es") ? descES : descEN
-    }
+    var title: String { localizedString(titleKey) }
+    var description: String { localizedString(descKey) }
 }
 
 struct AchievementsView: View {
@@ -81,10 +74,8 @@ struct AchievementsView: View {
         return [
             // ── Consistency
             AchievementBadge(
-                titleEN: "First Step",
-                titleES: "Primer Paso",
-                descEN: "Complete and log your very first workout.",
-                descES: "Completa y registra tu primer entrenamiento.",
+                titleKey: "achievement_first_step_title",
+                descKey: "achievement_first_step_desc",
                 systemImage: "figure.walk",
                 color: .orange,
                 isCompleted: sessionCount >= 1,
@@ -92,10 +83,8 @@ struct AchievementsView: View {
                 progressTarget: 1.0
             ),
             AchievementBadge(
-                titleEN: "Iron Consistency",
-                titleES: "Consistencia de Hierro",
-                descEN: "Achieve a workout streak of 3 consecutive days.",
-                descES: "Alcanza una racha de entrenamiento de 3 días consecutivos.",
+                titleKey: "achievement_iron_consistency_title",
+                descKey: "achievement_iron_consistency_desc",
                 systemImage: "flame.fill",
                 color: PulseTheme.accent,
                 isCompleted: ironConsistency,
@@ -103,10 +92,8 @@ struct AchievementsView: View {
                 progressTarget: 3.0
             ),
             AchievementBadge(
-                titleEN: "Habit Builder",
-                titleES: "Constructor de Hábitos",
-                descEN: "Keep a 7-day workout streak.",
-                descES: "Mantén una racha de 7 días de entrenamiento.",
+                titleKey: "achievement_habit_builder_title",
+                descKey: "achievement_habit_builder_desc",
                 systemImage: "flame.circle.fill",
                 color: .orange,
                 isCompleted: habitBuilder,
@@ -114,10 +101,8 @@ struct AchievementsView: View {
                 progressTarget: 7.0
             ),
             AchievementBadge(
-                titleEN: "Unstoppable",
-                titleES: "Imparable",
-                descEN: "Reach a 21-day workout streak.",
-                descES: "Logra una racha de 21 días de entrenamiento.",
+                titleKey: "achievement_unstoppable_title",
+                descKey: "achievement_unstoppable_desc",
                 systemImage: "bolt.circle.fill",
                 color: .yellow,
                 isCompleted: unstoppable,
@@ -126,10 +111,8 @@ struct AchievementsView: View {
             ),
             // ── Volume / Sessions
             AchievementBadge(
-                titleEN: "Getting Started",
-                titleES: "Empezando",
-                descEN: "Log 5 workout sessions.",
-                descES: "Registra 5 sesiones de entrenamiento.",
+                titleKey: "achievement_getting_started_title",
+                descKey: "achievement_getting_started_desc",
                 systemImage: "dumbbell",
                 color: PulseTheme.primary,
                 isCompleted: sessionCount >= 5,
@@ -137,10 +120,8 @@ struct AchievementsView: View {
                 progressTarget: 5.0
             ),
             AchievementBadge(
-                titleEN: "Dedicated",
-                titleES: "Dedicado",
-                descEN: "Complete 25 workout sessions.",
-                descES: "Completa 25 sesiones de entrenamiento.",
+                titleKey: "achievement_dedicated_title",
+                descKey: "achievement_dedicated_desc",
                 systemImage: "dumbbell.fill",
                 color: PulseTheme.primaryBright,
                 isCompleted: sessionCount >= 25,
@@ -148,10 +129,8 @@ struct AchievementsView: View {
                 progressTarget: 25.0
             ),
             AchievementBadge(
-                titleEN: "Veteran",
-                titleES: "Veterano",
-                descEN: "Reach 100 completed workout sessions.",
-                descES: "Alcanza 100 sesiones de entrenamiento completadas.",
+                titleKey: "achievement_veteran_title",
+                descKey: "achievement_veteran_desc",
                 systemImage: "medal.fill",
                 color: .yellow,
                 isCompleted: sessionCount >= 100,
@@ -160,10 +139,8 @@ struct AchievementsView: View {
             ),
             // ── Strength / Volume
             AchievementBadge(
-                titleEN: "Titan Lifter",
-                titleES: "Levantador Titán",
-                descEN: "Hit 5,000 kg of total cumulative volume or a PR over 80 kg.",
-                descES: "Supera 5,000 kg de volumen total acumulado o un récord de 80 kg.",
+                titleKey: "achievement_titan_lifter_title",
+                descKey: "achievement_titan_lifter_desc",
                 systemImage: "figure.strengthtraining.traditional",
                 color: PulseTheme.primaryBright,
                 isCompleted: titanLifter,
@@ -171,10 +148,8 @@ struct AchievementsView: View {
                 progressTarget: 5000.0
             ),
             AchievementBadge(
-                titleEN: "Iron Giant",
-                titleES: "Gigante de Hierro",
-                descEN: "Accumulate 50,000 kg of total lifting volume.",
-                descES: "Acumula 50,000 kg de volumen total de levantamiento.",
+                titleKey: "achievement_iron_giant_title",
+                descKey: "achievement_iron_giant_desc",
                 systemImage: "bolt.fill",
                 color: .yellow,
                 isCompleted: ironGiant,
@@ -183,10 +158,8 @@ struct AchievementsView: View {
             ),
             // ── Personal Records
             AchievementBadge(
-                titleEN: "Record Breaker",
-                titleES: "Rompe Récords",
-                descEN: "Set your first personal record.",
-                descES: "Establece tu primer récord personal.",
+                titleKey: "achievement_record_breaker_title",
+                descKey: "achievement_record_breaker_desc",
                 systemImage: "trophy",
                 color: PulseTheme.accent,
                 isCompleted: recordBreaker,
@@ -194,10 +167,8 @@ struct AchievementsView: View {
                 progressTarget: 1.0
             ),
             AchievementBadge(
-                titleEN: "PR Machine",
-                titleES: "Máquina de PRs",
-                descEN: "Set 10 personal records across your workouts.",
-                descES: "Establece 10 récords personales en tus entrenamientos.",
+                titleKey: "achievement_pr_machine_title",
+                descKey: "achievement_pr_machine_desc",
                 systemImage: "trophy.fill",
                 color: .yellow,
                 isCompleted: prMachine,
@@ -206,10 +177,8 @@ struct AchievementsView: View {
             ),
             // ── Cardio / Health
             AchievementBadge(
-                titleEN: "Endurance Hero",
-                titleES: "Héroe de Resistencia",
-                descEN: "Log a cardio session over 45 minutes or sync 3 cardio workouts.",
-                descES: "Registra una sesión cardio de +45 min o sincroniza 3 entrenos de cardio.",
+                titleKey: "achievement_endurance_hero_title",
+                descKey: "achievement_endurance_hero_desc",
                 systemImage: "figure.run",
                 color: PulseTheme.primaryBright,
                 isCompleted: enduranceHero,
@@ -217,10 +186,8 @@ struct AchievementsView: View {
                 progressTarget: 3.0
             ),
             AchievementBadge(
-                titleEN: "Cardio Devotee",
-                titleES: "Fanático del Cardio",
-                descEN: "Complete 10 cardio sessions.",
-                descES: "Completa 10 sesiones de cardio.",
+                titleKey: "achievement_cardio_devotee_title",
+                descKey: "achievement_cardio_devotee_desc",
                 systemImage: "heart.circle.fill",
                 color: PulseTheme.destructive,
                 isCompleted: cardioDevotee,
@@ -229,10 +196,8 @@ struct AchievementsView: View {
             ),
             // ── Apple Integration
             AchievementBadge(
-                titleEN: "Apple Watch Link",
-                titleES: "Enlace Apple Watch",
-                descEN: "Sync and import a workout from Apple Health or Apple Watch.",
-                descES: "Sincroniza e importa un entreno de Apple Health o Apple Watch.",
+                titleKey: "achievement_apple_watch_link_title",
+                descKey: "achievement_apple_watch_link_desc",
                 systemImage: "applewatch",
                 color: PulseTheme.primary,
                 isCompleted: watchConnected,
@@ -240,10 +205,8 @@ struct AchievementsView: View {
                 progressTarget: 1.0
             ),
             AchievementBadge(
-                titleEN: "Ring Closer",
-                titleES: "Cerrador de Anillos",
-                descEN: "Reach 10,000 steps or 600 active kcal in a single day in Apple Health.",
-                descES: "Supera 10,000 pasos o 600 kcal activas en un solo día en Apple Health.",
+                titleKey: "achievement_ring_closer_title",
+                descKey: "achievement_ring_closer_desc",
                 systemImage: "circle.circle.fill",
                 color: PulseTheme.destructive,
                 isCompleted: ringCloser,
@@ -252,10 +215,8 @@ struct AchievementsView: View {
             ),
             // ── Variety
             AchievementBadge(
-                titleEN: "Full Body",
-                titleES: "Cuerpo Completo",
-                descEN: "Hit 5 different muscle groups across your workout history.",
-                descES: "Trabaja 5 grupos musculares diferentes en tu historial.",
+                titleKey: "achievement_full_body_title",
+                descKey: "achievement_full_body_desc",
                 systemImage: "figure.mixed.cardio",
                 color: PulseTheme.primaryBright,
                 isCompleted: fullBody,
@@ -263,10 +224,8 @@ struct AchievementsView: View {
                 progressTarget: 5.0
             ),
             AchievementBadge(
-                titleEN: "Evidence Keeper",
-                titleES: "Guardián de Evidencia",
-                descEN: "Add 3 or more progress photos to track your transformation.",
-                descES: "Añade 3 o más fotos de progreso para registrar tu transformación.",
+                titleKey: "achievement_evidence_keeper_title",
+                descKey: "achievement_evidence_keeper_desc",
                 systemImage: "camera.fill",
                 color: .purple,
                 isCompleted: evidenceKeeper,
@@ -321,7 +280,7 @@ struct AchievementsView: View {
                     HStack(spacing: 6) {
                         Text(lvl.title)
                             .font(.system(size: 18, weight: .bold, design: .rounded))
-                        Text("Lv. \(lvl.level)")
+                        Text(localizedFormat("player_level_abbr_format", "\(lvl.level)"))
                             .font(.system(size: 10, weight: .bold, design: .rounded))
                             .foregroundStyle(PulseTheme.primary)
                             .padding(.horizontal, 6)
@@ -330,7 +289,7 @@ struct AchievementsView: View {
                             .clipShape(Capsule())
                     }
                     if lvl.isMaxLevel {
-                        Text(RepsLocalization.language.hasPrefix("es") ? "Nivel máximo — GOAT status" : "Max level — GOAT status")
+                        Text(localizedString("player_level_max_label"))
                             .font(.caption)
                             .foregroundStyle(PulseTheme.accent)
                     } else {

@@ -41,7 +41,7 @@ struct ExerciseAnatomyThumbnail: View {
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Musculos trabajados por \(exercise.name)")
+        .accessibilityLabel(localizedFormat("anatomy_muscles_accessibility_format", exercise.name))
         .onAppear {
             guard renderedImage == nil, !descriptor.muscles.isEmpty else { return }
             renderedImage = AnatomyThumbnailImageCache.shared.render(

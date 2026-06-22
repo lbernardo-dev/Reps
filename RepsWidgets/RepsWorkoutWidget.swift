@@ -303,7 +303,7 @@ private struct ActiveWorkoutView: View {
 
                 // Next/Current exercise preview
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("siguiente")
+                    Text(localizedKey("widget_next_label"))
                         .font(.system(size: 8, weight: .black))
                         .foregroundStyle(theme.secondaryForeground)
                     Text(entry.snapshot.nextExerciseName ?? entry.snapshot.exerciseName ?? localizedKey("next_set"))
@@ -389,9 +389,9 @@ private struct ActiveWorkoutView: View {
                     }
 
                     HStack(spacing: 6) {
-                        metricPill(title: "Restante", value: entry.snapshot.remainingText, icon: "hourglass")
+                        metricPill(title: "metric_remaining", value: entry.snapshot.remainingText, icon: "hourglass")
                         metricPill(title: "volume_label", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
-                        metricPill(title: "Agua", value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
+                        metricPill(title: "metric_water", value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
                     }
                 }
             }
@@ -501,7 +501,7 @@ private struct ActiveWorkoutView: View {
                         .foregroundStyle(theme.secondaryForeground)
 
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(entry.snapshot.exerciseName ?? "Ejercicio actual")
+                        Text(entry.snapshot.exerciseName ?? localizedKey("widget_current_exercise"))
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(theme.secondaryForeground)
                             .lineLimit(1)

@@ -2,8 +2,7 @@ import Foundation
 
 struct PlayerLevel {
     let level: Int
-    let titleEN: String
-    let titleES: String
+    let titleKey: String
     let totalXP: Int
     let xpIntoCurrentLevel: Int
     let xpToNextLevel: Int
@@ -11,23 +10,23 @@ struct PlayerLevel {
     let isMaxLevel: Bool
 
     var title: String {
-        RepsLocalization.language.hasPrefix("es") ? titleES : titleEN
+        localizedString(titleKey)
     }
 }
 
 enum GamificationEngine {
     // MARK: - Level table (cumulative XP to reach that level)
-    private static let levelTable: [(level: Int, xp: Int, en: String, es: String)] = [
-        (1,     0,    "Rookie",      "Principiante"),
-        (2,   150,    "Amateur",     "Amateur"),
-        (3,   400,    "Trainee",     "Aprendiz"),
-        (4,   800,    "Lifter",      "Levantador"),
-        (5,  1400,    "Athlete",     "Atleta"),
-        (6,  2200,    "Competitor",  "Competidor"),
-        (7,  3200,    "Champion",    "Campeón"),
-        (8,  4500,    "Elite",       "Élite"),
-        (9,  6000,    "Legend",      "Leyenda"),
-        (10, 8000,    "GOAT",        "GOAT"),
+    private static let levelTable: [(level: Int, xp: Int, key: String)] = [
+        (1,     0,    "player_level_rookie"),
+        (2,   150,    "player_level_amateur"),
+        (3,   400,    "player_level_trainee"),
+        (4,   800,    "player_level_lifter"),
+        (5,  1400,    "player_level_athlete"),
+        (6,  2200,    "player_level_competitor"),
+        (7,  3200,    "player_level_champion"),
+        (8,  4500,    "player_level_elite"),
+        (9,  6000,    "player_level_legend"),
+        (10, 8000,    "player_level_goat"),
     ]
 
     // MARK: - XP calculation
@@ -91,8 +90,7 @@ enum GamificationEngine {
 
         return PlayerLevel(
             level: current.level,
-            titleEN: current.en,
-            titleES: current.es,
+            titleKey: current.key,
             totalXP: xp,
             xpIntoCurrentLevel: into,
             xpToNextLevel: isMax ? 0 : span - into,

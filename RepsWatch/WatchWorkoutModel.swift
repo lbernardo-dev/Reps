@@ -186,7 +186,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
         standaloneWorkoutID = UUID()
         // The standalone snapshot writer tags sessions started on the watch;
         // a recovered route session without an iPhone-driven workout is standalone.
-        let wasStandalone = snapshot.sessionTitle == "Iniciado desde Apple Watch"
+        let wasStandalone = snapshot.sessionTitle == localizedString("watch_session_started_watch")
         isStandaloneRouteWorkout = isLocalRouteWorkout && (wasStandalone || !snapshot.hasActiveWorkout)
 
         if isLocalRouteWorkout, state == .running {
@@ -686,7 +686,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
     private static func workoutTitle(for configuration: HKWorkoutConfiguration) -> String {
         switch configuration.activityType {
         case .running:
-            return "Carrera"
+            return localizedString("running")
         case .walking:
             return localizedString("walking")
         case .flexibility:
@@ -703,7 +703,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             hasActiveWorkout: true,
             planTitle: nil,
             workoutTitle: title,
-            sessionTitle: "Iniciado desde iPhone",
+            sessionTitle: localizedString("watch_session_started_iphone"),
             elapsedSeconds: 0,
             pausedSeconds: 0,
             completedSets: 0,
@@ -799,7 +799,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             hasActiveWorkout: true,
             planTitle: nil,
             workoutTitle: activity.title,
-            sessionTitle: "Iniciado desde Apple Watch",
+            sessionTitle: localizedString("watch_session_started_watch"),
             elapsedSeconds: elapsed,
             pausedSeconds: currentPausedSeconds,
             completedSets: 0,
@@ -835,7 +835,7 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             routeSpeedKmh: routeSpeedKmh,
             routePointCount: routePointCount,
             routeSteps: routeSteps,
-            summary: "\(activity.title) en curso desde Apple Watch",
+            summary: localizedFormat("watch_route_summary_format", activity.title),
             updatedAt: .now,
             streakDays: snapshot.streakDays,
             weeklyCompletion: snapshot.weeklyCompletion,
@@ -1236,16 +1236,18 @@ extension WatchWorkoutModel: WCSessionDelegate {
         currentExerciseIndex = index
     }
 
-    static let quickAddExercises: [(name: String, tracking: String)] = [
-        ("Sentadilla", "weightReps"),
-        ("Press de banca", "weightReps"),
-        ("Peso muerto", "weightReps"),
-        ("Press militar", "weightReps"),
-        ("Remo con barra", "weightReps"),
-        ("Dominadas", "repsOnly"),
-        ("Fondos", "repsOnly"),
-        ("Curl de bíceps", "weightReps")
-    ]
+    static var quickAddExercises: [(name: String, tracking: String)] {
+        [
+            (localizedString("exercise_squat"), "weightReps"),
+            (localizedString("exercise_bench_press"), "weightReps"),
+            (localizedString("exercise_deadlift"), "weightReps"),
+            (localizedString("exercise_overhead_press"), "weightReps"),
+            (localizedString("exercise_barbell_row"), "weightReps"),
+            (localizedString("exercise_pullups"), "repsOnly"),
+            (localizedString("exercise_dips"), "repsOnly"),
+            (localizedString("exercise_bicep_curl"), "weightReps")
+        ]
+    }
 
     func addExercise(named name: String, trackingType: String) {
         let starterSet = WatchSet(weightKg: 0, reps: trackingType == "repsOnly" ? 10 : 0)

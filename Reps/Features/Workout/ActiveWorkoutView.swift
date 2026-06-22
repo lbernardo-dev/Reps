@@ -2401,7 +2401,7 @@ private struct ExercisePickerSheet: View {
                             Picker("training_type", selection: $selectedType) {
                                 Text("all").tag(Optional<Exercise.ExerciseType>.none)
                                 ForEach(Exercise.ExerciseType.allCases) { type in
-                                    Text(type.title(language: store.userProfile.preferredLanguage)).tag(Optional(type))
+                                    Text(type.localizedTitle).tag(Optional(type))
                                 }
                             }
                             .pickerStyle(.menu)
@@ -2409,7 +2409,7 @@ private struct ExercisePickerSheet: View {
                             Picker("difficulty_2", selection: $selectedDifficulty) {
                                 Text("any").tag(Optional<Exercise.Difficulty>.none)
                                 ForEach(Exercise.Difficulty.allCases) { difficulty in
-                                    Text(difficulty.title(language: store.userProfile.preferredLanguage)).tag(Optional(difficulty))
+                                    Text(difficulty.localizedTitle).tag(Optional(difficulty))
                                 }
                             }
                             .pickerStyle(.menu)
@@ -2417,7 +2417,7 @@ private struct ExercisePickerSheet: View {
                             Picker("environment_2", selection: $selectedEnvironment) {
                                 Text("any").tag(Optional<Exercise.Environment>.none)
                                 ForEach(Exercise.Environment.allCases) { environment in
-                                    Text(environment.title(language: store.userProfile.preferredLanguage)).tag(Optional(environment))
+                                    Text(environment.localizedTitle).tag(Optional(environment))
                                 }
                             }
                             .pickerStyle(.menu)
@@ -2533,33 +2533,33 @@ private struct ExercisePickerSheet: View {
 }
 
 private extension Exercise.ExerciseType {
-    func title(language: String) -> String {
+    var localizedTitle: String {
         switch self {
-        case .strength: language.hasPrefix("es") ? "Fuerza" : "Strength"
+        case .strength: localizedString("Strength")
         case .cardio: "Cardio"
-        case .mobility: language.hasPrefix("es") ? "Movilidad" : "Mobility"
-        case .stretching: language.hasPrefix("es") ? "Estiramientos" : "Stretching"
+        case .mobility: localizedString("Mobility")
+        case .stretching: localizedString("Stretching")
         case .hiit: "HIIT"
         }
     }
 }
 
 private extension Exercise.Difficulty {
-    func title(language: String) -> String {
+    var localizedTitle: String {
         switch self {
-        case .low: language.hasPrefix("es") ? "Principiante" : "Beginner"
-        case .medium: language.hasPrefix("es") ? "Intermedio" : "Intermediate"
-        case .high: language.hasPrefix("es") ? "Avanzado" : "Advanced"
+        case .low: localizedString("Beginner")
+        case .medium: localizedString("Intermediate")
+        case .high: localizedString("Advanced")
         }
     }
 }
 
 private extension Exercise.Environment {
-    func title(language: String) -> String {
+    var localizedTitle: String {
         switch self {
-        case .home: language.hasPrefix("es") ? "Casa" : "Home"
-        case .gym: language.hasPrefix("es") ? "Gimnasio" : "Gym"
-        case .both: language.hasPrefix("es") ? "Casa y gym" : "Home and gym"
+        case .home: localizedString("Home")
+        case .gym: localizedString("Gym")
+        case .both: localizedString("Home and gym")
         }
     }
 }

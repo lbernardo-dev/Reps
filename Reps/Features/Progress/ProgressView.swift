@@ -1566,7 +1566,7 @@ private struct CompetitiveMuscleGapRow: View {
 
   var body: some View {
     HStack(spacing: 10) {
-      Image(systemName: point.kind == "Faltan" ? "arrow.down.circle.fill" : "exclamationmark.triangle.fill")
+      Image(systemName: point.kind == localizedString("muscle_target_kind_missing") ? "arrow.down.circle.fill" : "exclamationmark.triangle.fill")
         .font(.subheadline)
         .foregroundStyle(color)
         .frame(width: 28, height: 28)

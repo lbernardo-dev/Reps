@@ -601,8 +601,8 @@ final class AppStore {
 
             guard snapshot.isAllowed else {
                 iCloudProEntitlementMessage = snapshot.allowedHashesConfigured
-                    ? "Esta cuenta iCloud no está en la allowlist Pro."
-                    : "Hash iCloud listo vía \(sourceLabel). Añádelo a RepsProICloudRecordIDHashes para activar Pro en tus dispositivos."
+                    ? localizedString("icloud_pro_not_in_allowlist")
+                    : localizedFormat("icloud_pro_hash_ready_format", sourceLabel)
                 revokeICloudOwnerEntitlementIfNeeded()
                 return false
             }
@@ -613,7 +613,7 @@ final class AppStore {
             monetization.provider = .iCloudOwner
             monetization.renewsAt = nil
             monetization.lastEntitlementSyncDate = .now
-            iCloudProEntitlementMessage = "Acceso Pro de propietario activo por iCloud."
+            iCloudProEntitlementMessage = localizedString("icloud_pro_owner_active")
             return true
         } catch {
             iCloudProRecordHash = nil
@@ -1033,7 +1033,8 @@ final class AppStore {
             colorName: "primaryBright",
             title: sessionTitle,
             subtitle: localizedFormat("session_completed_subtitle", durationMin),
-            date: session.date
+            date: session.date,
+            destination: .session(id: session.id.uuidString)
         )
 
         // Streak milestone badge
@@ -1044,7 +1045,8 @@ final class AppStore {
                 colorName: "orange",
                 title: localizedFormat("streak_milestone_title", currentStreak),
                 subtitle: localizedString("streak_milestone_subtitle"),
-                date: session.date
+                date: session.date,
+                destination: .workoutHistory
             )
         }
 
@@ -1712,7 +1714,7 @@ final class AppStore {
             heartRateBefore: nil,
             heartRateAfter: nil,
             rpe: nil,
-            notes: "Importado desde Apple Watch.",
+            notes: localizedString("watch_imported_note"),
             routePoints: routePoints
         )
         _ = importCardioLogs([cardioLog])
@@ -1815,7 +1817,7 @@ final class AppStore {
             contextTag: .normal,
             durationMinutes: summary.durationMinutes,
             sets: allSets,
-            notes: "Registrado desde Apple Watch.",
+            notes: localizedString("watch_logged_note"),
             exerciseLogs: exerciseLogs,
             sessionRPE: nil,
             energyBefore: nil,
@@ -3790,8 +3792,8 @@ final class AppStore {
         hasUnreadBell = false
     }
 
-    func saveActivityEvent(icon: String, colorName: String, title: String, subtitle: String, date: Date) {
-        let event = NotificationEvent(icon: icon, colorName: colorName, title: title, subtitle: subtitle, date: date)
+    func saveActivityEvent(icon: String, colorName: String, title: String, subtitle: String, date: Date, destination: InboxDestination? = nil) {
+        let event = NotificationEvent(icon: icon, colorName: colorName, title: title, subtitle: subtitle, date: date, destination: destination)
         activityEvents.insert(event, at: 0)
         activityEvents = Array(activityEvents.prefix(30))
         if let data = try? JSONEncoder().encode(activityEvents) {

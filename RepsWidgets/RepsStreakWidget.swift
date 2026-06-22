@@ -151,7 +151,7 @@ private struct SmallStreakView: View {
             }
             .padding(.vertical, -4)
 
-            Text(hasPlan ? "COMPLETADOS" : "SIN PLAN" as LocalizedStringKey)
+            Text(hasPlan ? "streak_completed_label" : "streak_no_plan_label" as LocalizedStringKey)
                 .font(.system(size: 8, weight: .black))
                 .foregroundStyle(theme.secondaryForeground)
 

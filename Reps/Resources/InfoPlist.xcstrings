@@ -154,23 +154,6 @@
         }
       }
     },
-    "NSPhotoLibraryAddUsageDescription": {
-      "comment": "Privacy - Photo Library Additions Usage Description",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StreakRep needs permission to save progress images when you choose to export or share them."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StreakRep necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas."
-          }
-        }
-      }
-    },
     "NSPhotoLibraryUsageDescription": {
       "comment": "Privacy - Photo Library Usage Description",
       "localizations": {

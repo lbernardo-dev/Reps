@@ -113,7 +113,7 @@ struct PaywallView: View {
                         Button {
                             Task { await restorePurchases() }
                         } label: {
-                            Text(isRestoring ? "Restaurando..." : "Restaurar licencias")
+                            Text(isRestoring ? localizedString("paywall_restoring") : localizedString("paywall_restore_licenses"))
                                 .font(.footnote.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .foregroundStyle(PulseTheme.primary)

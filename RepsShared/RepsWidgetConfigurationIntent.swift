@@ -33,18 +33,18 @@ public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
     }
 
     public static var typeDisplayRepresentation: TypeDisplayRepresentation {
-        TypeDisplayRepresentation(name: "Color de fondo")
+        TypeDisplayRepresentation(name: "widget_background_color")
     }
 
     public static var caseDisplayRepresentations: [WidgetColor: DisplayRepresentation] {
         [
-            .blue: DisplayRepresentation(stringLiteral: "Azul"),
-            .green: DisplayRepresentation(stringLiteral: "Verde"),
-            .orange: DisplayRepresentation(stringLiteral: "Naranja"),
-            .purple: DisplayRepresentation(stringLiteral: "Morado"),
-            .red: DisplayRepresentation(stringLiteral: "Rojo"),
-            .yellow: DisplayRepresentation(stringLiteral: "Amarillo"),
-            .system: DisplayRepresentation(stringLiteral: "Sistema")
+            .blue: DisplayRepresentation(stringLiteral: "color_blue"),
+            .green: DisplayRepresentation(stringLiteral: "color_green"),
+            .orange: DisplayRepresentation(stringLiteral: "color_orange"),
+            .purple: DisplayRepresentation(stringLiteral: "color_purple"),
+            .red: DisplayRepresentation(stringLiteral: "color_red"),
+            .yellow: DisplayRepresentation(stringLiteral: "color_yellow"),
+            .system: DisplayRepresentation(stringLiteral: "color_system")
         ]
     }
 
@@ -273,8 +273,8 @@ enum LiveActivityCommandBridge {
 }
 
 public struct ToggleWorkoutPauseLiveActivityIntent: LiveActivityIntent {
-    public static let title: LocalizedStringResource = "Pausar o reanudar entreno"
-    public static let description = IntentDescription("Pausa o reanuda el entreno en curso.")
+    public static let title: LocalizedStringResource = "intent_toggle_pause_title"
+    public static let description = IntentDescription("intent_toggle_pause_desc")
 
     public init() {}
 
@@ -286,8 +286,8 @@ public struct ToggleWorkoutPauseLiveActivityIntent: LiveActivityIntent {
 }
 
 public struct CompleteSetLiveActivityIntent: LiveActivityIntent {
-    public static let title: LocalizedStringResource = "Completar serie"
-    public static let description = IntentDescription("Marca la serie actual como completada.")
+    public static let title: LocalizedStringResource = "intent_complete_set_title"
+    public static let description = IntentDescription("intent_complete_set_desc")
 
     public init() {}
 
@@ -298,8 +298,8 @@ public struct CompleteSetLiveActivityIntent: LiveActivityIntent {
 }
 
 public struct NextExerciseLiveActivityIntent: LiveActivityIntent {
-    public static let title: LocalizedStringResource = "Siguiente ejercicio"
-    public static let description = IntentDescription("Avanza al siguiente ejercicio del entreno.")
+    public static let title: LocalizedStringResource = "intent_next_exercise_title"
+    public static let description = IntentDescription("intent_next_exercise_desc")
 
     public init() {}
 
@@ -310,8 +310,8 @@ public struct NextExerciseLiveActivityIntent: LiveActivityIntent {
 }
 
 public struct AddWaterLiveActivityIntent: LiveActivityIntent {
-    public static let title: LocalizedStringResource = "Añadir agua"
-    public static let description = IntentDescription("Registra agua durante el entreno.")
+    public static let title: LocalizedStringResource = "intent_add_water_title"
+    public static let description = IntentDescription("intent_add_water_desc")
 
     public init() {}
 
@@ -322,8 +322,8 @@ public struct AddWaterLiveActivityIntent: LiveActivityIntent {
 }
 
 public struct MusicToggleLiveActivityIntent: LiveActivityIntent {
-    public static let title: LocalizedStringResource = "Reproducir o pausar música"
-    public static let description = IntentDescription("Alterna la reproducción de música.")
+    public static let title: LocalizedStringResource = "intent_music_toggle_title"
+    public static let description = IntentDescription("intent_music_toggle_desc")
 
     public init() {}
 
@@ -334,8 +334,8 @@ public struct MusicToggleLiveActivityIntent: LiveActivityIntent {
 }
 
 public struct MusicNextLiveActivityIntent: LiveActivityIntent {
-    public static let title: LocalizedStringResource = "Siguiente pista"
-    public static let description = IntentDescription("Salta a la siguiente canción.")
+    public static let title: LocalizedStringResource = "intent_music_next_title"
+    public static let description = IntentDescription("intent_music_next_desc")
 
     public init() {}
 
@@ -346,8 +346,8 @@ public struct MusicNextLiveActivityIntent: LiveActivityIntent {
 }
 
 public struct MusicPreviousLiveActivityIntent: LiveActivityIntent {
-    public static let title: LocalizedStringResource = "Pista anterior"
-    public static let description = IntentDescription("Vuelve a la canción anterior.")
+    public static let title: LocalizedStringResource = "intent_music_prev_title"
+    public static let description = IntentDescription("intent_music_prev_desc")
 
     public init() {}
 

@@ -144,7 +144,7 @@ struct MediaSourceMenu<LabelContent: View>: View {
             }
             Button("cancel", role: .cancel) {}
         } message: {
-            Text(permissions.deniedMessage ?? "El acceso a la cámara está bloqueado. Actívalo en Ajustes.")
+            Text(permissions.deniedMessage ?? localizedString("camera_access_blocked_message"))
         }
     }
 }

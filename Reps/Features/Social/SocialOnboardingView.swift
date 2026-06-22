@@ -188,9 +188,8 @@ struct SocialOnboardingView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .frame(width: 20)
-                    TextField(localizedString("social_location_placeholder"), text: $location)
+                    AddressSearchField(title: localizedString("social_location_placeholder"), text: $location)
                         .font(.subheadline)
-                        .autocorrectionDisabled()
                 }
                 .padding(14)
 

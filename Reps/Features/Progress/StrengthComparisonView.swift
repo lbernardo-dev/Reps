@@ -17,12 +17,11 @@ private enum ComparisonVerdict {
     case noData
 
     var label: String {
-        let es = RepsLocalization.language.hasPrefix("es")
         switch self {
-        case .stronger: return es ? "MÁS FUERTE" : "STRONGER"
-        case .declining: return es ? "BAJANDO" : "DECLINING"
-        case .same: return es ? "MISMO NIVEL" : "SAME LEVEL"
-        case .noData: return es ? "SIN DATOS" : "NO DATA"
+        case .stronger: return localizedString("comparison_verdict_stronger")
+        case .declining: return localizedString("comparison_verdict_declining")
+        case .same: return localizedString("comparison_verdict_same")
+        case .noData: return localizedString("comparison_verdict_no_data")
         }
     }
 
@@ -125,23 +124,16 @@ struct StrengthComparisonView: View {
     }
 
     private func shareText(exercise: Exercise, current: ExercisePeriodStats, previous: ExercisePeriodStats, v: ComparisonVerdict) -> String {
-        let isES = RepsLocalization.language.hasPrefix("es")
         let name = exercise.name
         let orm = formatWeight(current.oneRepMaxKg)
         let unit = weightUnit
         switch v {
         case .stronger(let pct):
-            return isES
-                ? "💪 Soy más fuerte en \(name)! 1RM: \(orm) \(unit) (+\(Int(pct))% vs hace 4 semanas). #Reps"
-                : "💪 I got stronger in \(name)! 1RM: \(orm) \(unit) (+\(Int(pct))% vs 4 weeks ago). #Reps"
+            return localizedFormat("comparison_share_stronger_format", name, orm, unit, Int(pct))
         case .declining(let pct):
-            return isES
-                ? "📉 Trabajo pendiente en \(name). 1RM: \(orm) \(unit) (-\(Int(pct))% vs hace 4 semanas). #Reps"
-                : "📉 Work in progress in \(name). 1RM: \(orm) \(unit) (-\(Int(pct))% vs 4 weeks ago). #Reps"
+            return localizedFormat("comparison_share_declining_format", name, orm, unit, Int(pct))
         default:
-            return isES
-                ? "🏋️ Mi fuerza en \(name) se mantiene: \(orm) \(unit). #Reps"
-                : "🏋️ Holding strong in \(name): \(orm) \(unit). #Reps"
+            return localizedFormat("comparison_share_steady_format", name, orm, unit)
         }
     }
 
@@ -164,7 +156,7 @@ struct StrengthComparisonView: View {
                     ShareLink(item: shareText(exercise: exercise, current: current, previous: previous, v: v)) {
                         HStack(spacing: 8) {
                             Image(systemName: "square.and.arrow.up")
-                            Text(RepsLocalization.language.hasPrefix("es") ? "Compartir reto" : "Share challenge")
+                            Text(localizedString("comparison_share_challenge"))
                         }
                         .font(.headline)
                         .foregroundStyle(.black)
@@ -198,7 +190,7 @@ struct StrengthComparisonView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
-                    Text(RepsLocalization.language.hasPrefix("es") ? "Progreso" : "Progress")
+                    Text(localizedString("comparison_back_progress"))
                         .font(.headline)
                 }
                 .foregroundStyle(PulseTheme.primary)
@@ -207,7 +199,7 @@ struct StrengthComparisonView: View {
 
             Spacer()
 
-            Text(RepsLocalization.language.hasPrefix("es") ? "Comparar fuerza" : "Compare strength")
+            Text(localizedString("comparison_title"))
                 .font(.system(size: 19, weight: .bold, design: .rounded))
 
             Spacer()
@@ -230,11 +222,9 @@ struct StrengthComparisonView: View {
                     .foregroundStyle(PulseTheme.primary)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(RepsLocalization.language.hasPrefix("es") ? "Tú vs tu yo anterior" : "You vs your past self")
+                Text(localizedString("comparison_intro_title"))
                     .font(.headline)
-                Text(RepsLocalization.language.hasPrefix("es")
-                    ? "Últ. 4 semanas vs las 4 anteriores"
-                    : "Last 4 weeks vs the 4 before that")
+                Text(localizedString("comparison_intro_subtitle"))
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -294,15 +284,15 @@ struct StrengthComparisonView: View {
 
                 // Column headers
                 HStack {
-                    Text(RepsLocalization.language.hasPrefix("es") ? "Métrica" : "Metric")
+                    Text(localizedString("comparison_col_metric"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                     Spacer()
-                    Text(RepsLocalization.language.hasPrefix("es") ? "Ahora" : "Now")
+                    Text(localizedString("comparison_col_now"))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.primary)
                         .frame(width: 72, alignment: .center)
-                    Text(RepsLocalization.language.hasPrefix("es") ? "Antes" : "Before")
+                    Text(localizedString("comparison_col_before"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .frame(width: 72, alignment: .center)
@@ -310,21 +300,21 @@ struct StrengthComparisonView: View {
 
                 // Rows
                 comparisonRow(
-                    title: RepsLocalization.language.hasPrefix("es") ? "1RM Estimado" : "Est. 1RM",
+                    title: localizedString("comparison_row_1rm"),
                     systemImage: "trophy.fill",
                     color: PulseTheme.accent,
                     currentVal: current.oneRepMaxKg,
                     previousVal: previous.oneRepMaxKg
                 )
                 comparisonRow(
-                    title: RepsLocalization.language.hasPrefix("es") ? "Peso máximo" : "Max weight",
+                    title: localizedString("comparison_row_max_weight"),
                     systemImage: "scalemass.fill",
                     color: PulseTheme.primary,
                     currentVal: current.maxWeightKg,
                     previousVal: previous.maxWeightKg
                 )
                 comparisonRow(
-                    title: RepsLocalization.language.hasPrefix("es") ? "Volumen/sesión" : "Volume/session",
+                    title: localizedString("comparison_row_volume_session"),
                     systemImage: "chart.bar.fill",
                     color: PulseTheme.primaryBright,
                     currentVal: current.bestSessionVolumeKg,
@@ -336,10 +326,7 @@ struct StrengthComparisonView: View {
                     Image(systemName: "calendar")
                         .font(.caption)
                         .foregroundStyle(PulseTheme.secondaryText)
-                    let es = RepsLocalization.language.hasPrefix("es")
-                    Text(es
-                        ? "\(current.sessionCount) sesiones ahora · \(previous.sessionCount) antes"
-                        : "\(current.sessionCount) sessions now · \(previous.sessionCount) before")
+                    Text(localizedFormat("comparison_sessions_format", current.sessionCount, previous.sessionCount))
                         .font(.caption)
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -403,7 +390,7 @@ struct StrengthComparisonView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(PulseTheme.primary)
-                Text(RepsLocalization.language.hasPrefix("es") ? "Ejercicios con historial" : "Exercises with history")
+                Text(localizedString("comparison_exercises_with_history"))
                     .font(.headline)
             }
             .padding(.horizontal, 4)
@@ -414,7 +401,7 @@ struct StrengthComparisonView: View {
                     .foregroundStyle(PulseTheme.secondaryText)
                     .font(.subheadline)
                 TextField(
-                    RepsLocalization.language.hasPrefix("es") ? "Buscar ejercicio..." : "Search exercise...",
+                    localizedString("comparison_search_placeholder"),
                     text: $searchText
                 )
                 .font(.subheadline)
@@ -434,10 +421,8 @@ struct StrengthComparisonView: View {
             if filteredExercises.isEmpty {
                 PulseCard {
                     PulseEmptyState(
-                        title: RepsLocalization.language.hasPrefix("es") ? "Sin historial aún" : "No history yet",
-                        message: RepsLocalization.language.hasPrefix("es")
-                            ? "Completa entrenamientos con ejercicios de fuerza para ver la comparación."
-                            : "Complete strength workouts to see the comparison.",
+                        title: LocalizedStringKey("comparison_no_history_title"),
+                        message: LocalizedStringKey("comparison_no_history_msg"),
                         systemImage: "dumbbell"
                     )
                     .padding(.vertical, 8)

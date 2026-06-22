@@ -263,7 +263,7 @@ struct ProfileView: View {
                         .font(.headline)
                     Spacer()
 
-                    Text("Lv. \(lvl.level) · \(lvl.title)")
+                    Text(localizedFormat("player_level_abbr_title_format", "\(lvl.level)", lvl.title))
                         .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundStyle(PulseTheme.primary)
                         .padding(.horizontal, 8)
@@ -2892,7 +2892,12 @@ struct GymPassEditorView: View {
 
     private var venueSection: some View {
         Section("venue_details") {
-            TextField("address", text: $venueAddress, axis: .vertical)
+            AddressSearchField(title: localizedString("address"), text: $venueAddress, axis: .vertical) { place in
+                if gymName.trimmingCharacters(in: .whitespaces).isEmpty { gymName = place.name }
+                venueAddress = place.address ?? place.name
+                if let phone = place.phone, venuePhone.isEmpty { venuePhone = phone }
+                if let website = place.website, venueWebsite.isEmpty { venueWebsite = website }
+            }
             TextField("phone", text: $venuePhone)
                 .keyboardType(.phonePad)
             TextField("website", text: $venueWebsite)
@@ -3355,6 +3360,27 @@ struct PickedPlace {
     var name: String
     var address: String?
     var coordinate: CLLocationCoordinate2D
+    var phone: String? = nil
+    var website: String? = nil
+
+    init(name: String, address: String?, coordinate: CLLocationCoordinate2D,
+         phone: String? = nil, website: String? = nil) {
+        self.name = name
+        self.address = address
+        self.coordinate = coordinate
+        self.phone = phone
+        self.website = website
+    }
+
+    /// Builds a place from a MapKit point-of-interest, extracting every datum
+    /// the public API exposes (name, full address, coordinate, phone, website).
+    init(from item: MKMapItem, fallbackName: String? = nil) {
+        self.name = item.name ?? fallbackName ?? ""
+        self.address = GymLocationPickerView.formatAddress(item.placemark)
+        self.coordinate = item.placemark.coordinate
+        self.phone = item.phoneNumber
+        self.website = item.url?.absoluteString
+    }
 }
 
 // MARK: - Gym location picker (search + tap on map)
@@ -3369,6 +3395,8 @@ struct GymLocationPickerView: View {
     @State private var pinCoordinate: CLLocationCoordinate2D?
     @State private var pinName: String = ""
     @State private var pinAddress: String?
+    @State private var pinPhone: String?
+    @State private var pinWebsite: String?
     @State private var isResolving = false
     private let geocoder = CLGeocoder()
 
@@ -3457,7 +3485,9 @@ struct GymLocationPickerView: View {
                 onSelect(PickedPlace(
                     name: pinName.isEmpty ? (pinAddress ?? localizedString("selected_location")) : pinName,
                     address: pinAddress,
-                    coordinate: coordinate
+                    coordinate: coordinate,
+                    phone: pinPhone,
+                    website: pinWebsite
                 ))
                 dismiss()
             } label: {
@@ -3495,6 +3525,8 @@ struct GymLocationPickerView: View {
                 let coordinate = item.placemark.coordinate
                 pinName = item.name ?? completion.title
                 pinAddress = Self.formatAddress(item.placemark)
+                pinPhone = item.phoneNumber
+                pinWebsite = item.url?.absoluteString
                 select(coordinate: coordinate, name: pinName, address: pinAddress, recenter: true)
             }
         }
@@ -3509,11 +3541,14 @@ struct GymLocationPickerView: View {
                 guard let placemark = placemarks?.first else { return }
                 pinName = placemark.name ?? placemark.thoroughfare ?? localizedString("selected_location")
                 pinAddress = Self.formatAddress(placemark)
+                // A raw map tap has no business listing — clear POI-only details.
+                pinPhone = nil
+                pinWebsite = nil
             }
         }
     }
 
-    private static func formatAddress(_ placemark: CLPlacemark) -> String? {
+    nonisolated static func formatAddress(_ placemark: CLPlacemark) -> String? {
         let parts = [
             [placemark.thoroughfare, placemark.subThoroughfare].compactMap { $0 }.joined(separator: " "),
             placemark.locality,
@@ -3524,7 +3559,7 @@ struct GymLocationPickerView: View {
         return joined.isEmpty ? nil : joined
     }
 
-    private static func formatAddress(_ placemark: MKPlacemark) -> String? {
+    nonisolated static func formatAddress(_ placemark: MKPlacemark) -> String? {
         formatAddress(placemark as CLPlacemark)
     }
 }
@@ -3561,6 +3596,115 @@ final class AddressSearchCompleter: NSObject, ObservableObject, MKLocalSearchCom
         MainActor.assumeIsolated {
             results = []
         }
+    }
+}
+
+// MARK: - Reusable address field (type-ahead + map picker)
+//
+// Drop-in replacement for a plain address/location TextField. As the user types
+// it shows MapKit autocomplete suggestions inline; a map button opens the full
+// search-and-tap picker. When `onPlace` is provided the caller receives the full
+// resolved place (address, phone, website, coordinate) so several fields can be
+// filled from one selection (e.g. a gym card). Works in Forms and plain stacks.
+struct AddressSearchField: View {
+    let title: String
+    @Binding var text: String
+    var axis: Axis = .horizontal
+    var onPlace: ((PickedPlace) -> Void)? = nil
+
+    @StateObject private var completer = AddressSearchCompleter()
+    @FocusState private var focused: Bool
+    @State private var showMap = false
+    /// Suppresses the next `onChange` so applying a selection doesn't re-trigger search.
+    @State private var suppressSearch = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                TextField(title, text: $text, axis: axis)
+                    .focused($focused)
+                    .autocorrectionDisabled()
+                Button {
+                    focused = false
+                    showMap = true
+                } label: {
+                    Image(systemName: "mappin.and.ellipse")
+                        .foregroundStyle(PulseTheme.accent)
+                }
+                .buttonStyle(.borderless)
+            }
+
+            if focused, !completer.results.isEmpty {
+                let items = Array(completer.results.prefix(4))
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(items.enumerated()), id: \.offset) { idx, r in
+                        Button { choose(r) } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "mappin.circle")
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(r.title)
+                                        .font(.subheadline)
+                                        .foregroundStyle(Color.primary)
+                                    if !r.subtitle.isEmpty {
+                                        Text(r.subtitle)
+                                            .font(.caption)
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                    }
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .contentShape(Rectangle())
+                            .padding(.vertical, 7)
+                        }
+                        .buttonStyle(.plain)
+                        if idx < items.count - 1 { Divider() }
+                    }
+                }
+                .padding(.horizontal, 10)
+                .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+        }
+        .onChange(of: text) { _, newValue in
+            if suppressSearch { suppressSearch = false; return }
+            completer.update(query: newValue)
+        }
+        .onChange(of: focused) { _, isFocused in
+            if !isFocused { completer.results = [] }
+        }
+        .sheet(isPresented: $showMap) {
+            GymLocationPickerView { place in apply(place) }
+        }
+    }
+
+    private func choose(_ completion: MKLocalSearchCompletion) {
+        completer.results = []
+        let request = MKLocalSearch.Request(completion: completion)
+        MKLocalSearch(request: request).start { response, _ in
+            Task { @MainActor in
+                if let item = response?.mapItems.first {
+                    apply(PickedPlace(from: item, fallbackName: completion.title))
+                } else {
+                    // Couldn't resolve a map item — keep the typed text.
+                    suppressSearch = true
+                    text = [completion.title, completion.subtitle]
+                        .filter { !$0.isEmpty }
+                        .joined(separator: ", ")
+                    focused = false
+                }
+            }
+        }
+    }
+
+    private func apply(_ place: PickedPlace) {
+        suppressSearch = true
+        if let onPlace {
+            onPlace(place)
+        } else {
+            text = place.address ?? place.name
+        }
+        completer.results = []
+        focused = false
     }
 }
 

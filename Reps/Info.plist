@@ -44,9 +44,7 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>StreakRep necesita acceso al micrófono para grabar notas de voz dentro de tus entrenamientos.</string>
 	<key>NSMotionUsageDescription</key>
-	<string>StreakRep usa sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>StreakRep necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas.</string>
+	<string>StreakRep usa los sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>StreakRep necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos.</string>
 	<key>NSSupportsLiveActivities</key>

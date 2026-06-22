@@ -404,20 +404,7 @@ struct ExerciseProgressView: View {
     }
 
     private func localizedMuscle(_ value: String) -> String {
-        guard store.userProfile.preferredLanguage.hasPrefix("es") else { return value }
-        return switch value.trimmingCharacters(in: .whitespacesAndNewlines).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).lowercased() {
-        case "arms": "Brazos"
-        case "back": "Espalda"
-        case "cardio": "Cardio"
-        case "chest": "Pecho"
-        case "core", "abdominals": "Core"
-        case "full body": "Cuerpo completo"
-        case "glutes": "Glúteos"
-        case "legs": "Piernas"
-        case "neck": "Cuello"
-        case "shoulders": "Hombros"
-        default: value
-        }
+        RepsText.muscle(value, language: store.userProfile.preferredLanguage)
     }
 
     private var exerciseTechniqueCard: some View {
@@ -794,10 +781,10 @@ struct ResistanceCurveCard: View {
                     .frame(height: 210)
 
                 HStack(spacing: 8) {
-                    PressureLegendDot(title: "Baja", color: ResistanceCurveProfile.pressureColor(for: 0.22))
-                    PressureLegendDot(title: "Media", color: ResistanceCurveProfile.pressureColor(for: 0.52))
-                    PressureLegendDot(title: "Alta", color: ResistanceCurveProfile.pressureColor(for: 0.78))
-                    PressureLegendDot(title: "Pico", color: ResistanceCurveProfile.pressureColor(for: 0.95))
+                    PressureLegendDot(title: localizedString("pressure_low"), color: ResistanceCurveProfile.pressureColor(for: 0.22))
+                    PressureLegendDot(title: localizedString("pressure_medium"), color: ResistanceCurveProfile.pressureColor(for: 0.52))
+                    PressureLegendDot(title: localizedString("pressure_high"), color: ResistanceCurveProfile.pressureColor(for: 0.78))
+                    PressureLegendDot(title: localizedString("pressure_peak"), color: ResistanceCurveProfile.pressureColor(for: 0.95))
                 }
             }
         }

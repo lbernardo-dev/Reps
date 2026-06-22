@@ -86,11 +86,8 @@ struct CalendarView: View {
                     .foregroundStyle(PulseTheme.primary)
 
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 14) {
-                        let weekdays = store.userProfile.preferredLanguage.hasPrefix("es")
-                            ? ["L", "M", "X", "J", "V", "S", "D"]
-                            : ["M", "T", "W", "T", "F", "S", "S"]
-                        ForEach(weekdays.indices, id: \.self) { index in
-                            Text(weekdays[index])
+                        ForEach(localizedWeekdaySymbols.indices, id: \.self) { index in
+                            Text(localizedWeekdaySymbols[index])
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
@@ -253,6 +250,13 @@ struct CalendarView: View {
         .onChange(of: store.calendarFocusedDate) { _, newDate in
             applyFocusedDate(newDate)
         }
+    }
+
+    private var localizedWeekdaySymbols: [String] {
+        var cal = Calendar(identifier: .gregorian)
+        cal.locale = RepsLocalization.locale
+        let symbols = cal.veryShortWeekdaySymbols
+        return Array(symbols.dropFirst()) + [symbols[0]]
     }
 
     @ViewBuilder

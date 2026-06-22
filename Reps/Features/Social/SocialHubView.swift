@@ -216,7 +216,7 @@ struct SocialHubView: View {
                         Text("@\(uname)")
                             .font(.headline)
                         HStack(spacing: 6) {
-                            Text("Lv.\(lvl.level) · \(lvl.title)")
+                            Text(localizedFormat("player_level_abbr_title_format", "\(lvl.level)", lvl.title))
                                 .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .foregroundStyle(PulseTheme.primary)
                                 .padding(.horizontal, 7).padding(.vertical, 3)
@@ -973,7 +973,7 @@ struct SocialHubView: View {
                         .lineLimit(1)
                 } else {
                     HStack(spacing: 4) {
-                        Text("Lv.\(friend.level)")
+                        Text(localizedFormat("player_level_abbr_format", "\(friend.level)"))
                             .font(.system(size: 10, weight: .bold, design: .rounded))
                             .foregroundStyle(PulseTheme.primary)
                             .padding(.horizontal, 5).padding(.vertical, 2)
@@ -1185,7 +1185,7 @@ struct SocialHubView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text("@\(profile.username)")
                     .font(.subheadline.weight(.semibold))
-                Text("Lv.\(profile.level) · \(profile.levelTitle)")
+                Text(localizedFormat("player_level_abbr_title_format", "\(profile.level)", profile.levelTitle))
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
@@ -1287,7 +1287,7 @@ struct SocialHubView: View {
                         myWins: xp >= friend.totalXP)
                 compRow(icon: "chart.bar.fill", color: PulseTheme.primary,
                         title: localizedString("social_level"),
-                        myVal: "Lv.\(lvl.level)", theirVal: "Lv.\(friend.level)",
+                        myVal: localizedFormat("player_level_abbr_format", "\(lvl.level)"), theirVal: localizedFormat("player_level_abbr_format", "\(friend.level)"),
                         myWins: lvl.level >= friend.level)
                 compRow(icon: "dumbbell.fill", color: PulseTheme.primaryBright,
                         title: localizedString("social_sessions"),

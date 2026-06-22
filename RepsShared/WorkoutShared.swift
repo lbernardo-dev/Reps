@@ -99,9 +99,9 @@ enum WatchRouteWorkoutActivity: String, Codable, Hashable, Sendable {
     var title: String {
         switch self {
         case .walking:
-            return "Caminata libre"
+            return localizedString("route_activity_walking")
         case .running:
-            return "Carrera libre"
+            return localizedString("route_activity_running")
         }
     }
 }
@@ -311,14 +311,14 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
         routeSpeedKmh: nil,
         routePointCount: nil,
         routeSteps: nil,
-        summary: "Sin entreno activo",
+        summary: localizedString("widget_no_active_workout"),
         updatedAt: .now,
         streakDays: 0,
         weeklyCompletion: 0.0,
         trainingBatteryLevel: 100,
         trainingBatteryState: "charged",
-        trainingBatteryTitle: "Cargada",
-        trainingBatterySuggestion: "Buen momento para entrenar.",
+        trainingBatteryTitle: localizedString("battery_state_charged"),
+        trainingBatterySuggestion: localizedString("battery_suggestion_good"),
         trainingBatterySystemImage: "battery.100percent",
         nextWorkoutDayName: nil,
         nextWorkoutDayDescription: nil,

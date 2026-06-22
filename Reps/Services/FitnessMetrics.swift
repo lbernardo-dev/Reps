@@ -21,11 +21,11 @@ enum FitnessMetrics {
         var recommendedRangeText: String {
             switch completedSets {
             case 0...7:
-                return "Por debajo de 10 series semanales"
+                return localizedString("muscle_range_below_10")
             case 8...20:
-                return "Dentro del rango 10-20 series"
+                return localizedString("muscle_range_10_20")
             default:
-                return "Por encima de 20 series semanales"
+                return localizedString("muscle_range_above_20")
             }
         }
 
@@ -732,8 +732,8 @@ enum AnalyticsEngine {
 
         let muscleTargets = allMuscles.sorted().flatMap { muscle -> [MuscleTargetPoint] in
             [
-                MuscleTargetPoint(muscleGroup: muscle, kind: "Objetivo", sets: targetByMuscle[muscle, default: 0]),
-                MuscleTargetPoint(muscleGroup: muscle, kind: "Real", sets: actualByMuscle[muscle, default: 0])
+                MuscleTargetPoint(muscleGroup: muscle, kind: localizedString("muscle_target_kind_target"), sets: targetByMuscle[muscle, default: 0]),
+                MuscleTargetPoint(muscleGroup: muscle, kind: localizedString("muscle_target_kind_actual"), sets: actualByMuscle[muscle, default: 0])
             ]
         }
 
@@ -741,7 +741,7 @@ enum AnalyticsEngine {
             let target = targetByMuscle[muscle, default: 0]
             let actual = actualByMuscle[muscle, default: 0]
             guard target >= 4, actual < Int(Double(target) * 0.75) else { return nil }
-            return MuscleTargetPoint(muscleGroup: muscle, kind: "Faltan", sets: target - actual)
+            return MuscleTargetPoint(muscleGroup: muscle, kind: localizedString("muscle_target_kind_missing"), sets: target - actual)
         }
         .sorted { $0.sets > $1.sets }
 
@@ -749,7 +749,7 @@ enum AnalyticsEngine {
             let target = targetByMuscle[muscle, default: 0]
             let actual = actualByMuscle[muscle, default: 0]
             guard target > 0, actual > Int(Double(target) * 1.35) else { return nil }
-            return MuscleTargetPoint(muscleGroup: muscle, kind: "Exceso", sets: actual - target)
+            return MuscleTargetPoint(muscleGroup: muscle, kind: localizedString("muscle_target_kind_excess"), sets: actual - target)
         }
         .sorted { $0.sets > $1.sets }
 
@@ -833,8 +833,8 @@ enum AnalyticsEngine {
 
         if completionRate < 0.75 {
             recommendations.append(CompetitiveRecommendation(
-                title: "Sube la adherencia",
-                message: "Completa al menos el 75% del plan semanal antes de endurecer progresiones.",
+                title: localizedString("recommendation_adherence_title"),
+                message: localizedString("recommendation_adherence_msg"),
                 systemImage: "calendar.badge.exclamationmark",
                 action: .reviewPlan
             ))
@@ -842,8 +842,8 @@ enum AnalyticsEngine {
 
         if let muscle = undertrainedMuscles.first {
             recommendations.append(CompetitiveRecommendation(
-                title: "Prioriza \(muscle.muscleGroup)",
-                message: "Faltan \(muscle.sets) series para acercarte al objetivo semanal.",
+                title: localizedFormat("recommendation_prioritize_format", muscle.muscleGroup),
+                message: localizedFormat("recommendation_prioritize_msg_format", muscle.sets),
                 systemImage: "target",
                 action: .scheduleUndertrainedMuscle(muscle.muscleGroup)
             ))
@@ -851,8 +851,8 @@ enum AnalyticsEngine {
 
         if let muscle = overtrainedMuscles.first {
             recommendations.append(CompetitiveRecommendation(
-                title: "Controla \(muscle.muscleGroup)",
-                message: "Vas \(muscle.sets) series por encima del objetivo. Considera recortar accesorios.",
+                title: localizedFormat("recommendation_control_format", muscle.muscleGroup),
+                message: localizedFormat("recommendation_control_msg_format", muscle.sets),
                 systemImage: "gauge.with.needle",
                 action: .scheduleRecovery
             ))
@@ -860,8 +860,8 @@ enum AnalyticsEngine {
 
         if let stalled = stalledExercises.first {
             recommendations.append(CompetitiveRecommendation(
-                title: "Rompe el estancamiento",
-                message: "\(stalled.exercise.name) no mejora frente a su mejor 1RM estimado reciente. Prueba descarga, repeticiones objetivo o cambio de variante.",
+                title: localizedString("recommendation_break_plateau_title"),
+                message: localizedFormat("recommendation_break_plateau_msg_format", stalled.exercise.name),
                 systemImage: "arrow.triangle.2.circlepath",
                 action: .scheduleDeloadExercise(stalled.exercise.id)
             ))
@@ -870,8 +870,10 @@ enum AnalyticsEngine {
         if recommendations.isEmpty {
             let delta = actualWeeklySets - targetWeeklySets
             recommendations.append(CompetitiveRecommendation(
-                title: "Semana equilibrada",
-                message: delta >= 0 ? "El volumen real cubre el objetivo del plan." : "Estás a \(abs(delta)) series de cubrir el objetivo semanal.",
+                title: localizedString("recommendation_balanced_week_title"),
+                message: delta >= 0
+                    ? localizedString("recommendation_balanced_week_msg_on_target")
+                    : localizedFormat("recommendation_balanced_week_msg_off_format", abs(delta)),
                 systemImage: "checkmark.seal",
                 action: .none
             ))

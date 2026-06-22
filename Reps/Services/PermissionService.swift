@@ -14,7 +14,6 @@ final class PermissionService: ObservableObject {
     @Published var microphone: PermissionStatus = .notDetermined
     @Published var camera: PermissionStatus = .notDetermined
     @Published var notifications: PermissionStatus = .notDetermined
-    @Published var location: PermissionStatus = .notDetermined
     @Published var photoLibrary: PermissionStatus = .notDetermined
 
     /// Human-readable message shown when a permission was denied.

@@ -80,7 +80,7 @@ private struct RepsFriendsWidgetView: View {
                     Text("—")
                         .font(.system(size: 28, weight: .black))
                         .foregroundStyle(.white.opacity(0.4))
-                    Text("Open Reps to sync")
+                    Text(localizedKey("widget_open_reps_to_sync"))
                         .font(.system(size: 10))
                         .foregroundStyle(.white.opacity(0.4))
                         .multilineTextAlignment(.center)
@@ -101,7 +101,7 @@ private struct RepsFriendsWidgetView: View {
                     Image(systemName: "trophy.fill")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(Color(red: 1.0, green: 0.8, blue: 0.2))
-                    Text("Friends Leaderboard")
+                    Text(localizedKey("widget_friends_leaderboard"))
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.white)
                     Spacer()
@@ -113,7 +113,7 @@ private struct RepsFriendsWidgetView: View {
 
                 if entry.entries.isEmpty {
                     Spacer()
-                    Text("Follow friends in the app to see rankings")
+                    Text(localizedKey("widget_follow_friends_hint"))
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.5))
                         .multilineTextAlignment(.center)

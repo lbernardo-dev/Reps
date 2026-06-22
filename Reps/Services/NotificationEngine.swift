@@ -89,7 +89,8 @@ extension AppStore {
             colorName: "primaryBright",
             title: localizedString("inbox_weekly_recap_title"),
             subtitle: localizedFormat("inbox_weekly_recap_subtitle_format", lastWeekSessions.count, volumeText),
-            date: now
+            date: now,
+            destination: .workoutHistory
         )
 
         // Evolution: volume trend vs the week before that.
@@ -103,7 +104,8 @@ extension AppStore {
                         colorName: "primaryBright",
                         title: localizedString("inbox_volume_up_title"),
                         subtitle: localizedFormat("inbox_volume_up_subtitle_format", delta),
-                        date: now
+                        date: now,
+                        destination: .workoutHistory
                     )
                 }
             }
@@ -170,7 +172,8 @@ extension AppStore {
             colorName: "yellow",
             title: localizedString("inbox_pr_title"),
             subtitle: localizedFormat("notif_pr_body_format", exerciseName),
-            date: date
+            date: date,
+            destination: .personalRecords
         )
     }
 

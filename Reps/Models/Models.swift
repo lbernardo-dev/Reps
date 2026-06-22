@@ -418,7 +418,7 @@ struct WorkoutPlan: Codable, Identifiable {
 extension WorkoutPlan {
     static let empty = WorkoutPlan(
         id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
-        name: "Sin plan activo",
+        name: localizedString("plan_no_active_plan"),
         location: .gym,
         daysPerWeek: 0,
         currentWeek: 0,
@@ -430,7 +430,7 @@ extension WorkoutPlan {
 
     static var freshEmpty: WorkoutPlan {
         WorkoutPlan(
-            name: "Sin plan activo",
+            name: localizedString("plan_no_active_plan"),
             location: .gym,
             daysPerWeek: 0,
             currentWeek: 0,
