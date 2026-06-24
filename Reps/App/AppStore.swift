@@ -2622,7 +2622,8 @@ final class AppStore {
     func createEquipmentRoutine(
         location: UserProfile.TrainingLocation,
         equipment: [String],
-        daysPerWeek: Int
+        daysPerWeek: Int,
+        name: String? = nil
     ) -> WorkoutPlan {
         let normalized = Set(
             OnboardingLocationCatalog.normalizedEquipment(from: equipment)
@@ -2635,9 +2636,9 @@ final class AppStore {
         let template = prefersHome ? SeedData.homeStrengthPlan : SeedData.pushPullLegsPlan
         var suggested = template
         suggested.id = UUID()
-        suggested.name = prefersHome
+        suggested.name = name ?? (prefersHome
             ? localizedKey("home_based_on_my_equipment")
-            : localizedKey("recommended_gym")
+            : localizedKey("recommended_gym"))
         suggested.daysPerWeek = max(1, daysPerWeek)
         addPlan(suggested, activate: true)
         health.message = localizedFormat("routine_created_active_in_plans_message", suggested.name)

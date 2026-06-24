@@ -53,7 +53,7 @@ struct GoalsView: View {
         }
         .background(PulseTheme.background)
         .navigationTitle("goals_title")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -187,9 +187,18 @@ struct GoalCard: View {
                                 statusBadge
                             }
                             if let deadline = goal.deadline {
-                                Text(localizedFormat("goal_deadline_fmt", deadline.formatted(date: .abbreviated, time: .omitted)))
-                                    .font(.caption)
-                                    .foregroundStyle(goal.isOverdue ? PulseTheme.destructive : PulseTheme.secondaryText)
+                                HStack(spacing: 4) {
+                                    Text(localizedFormat("goal_deadline_fmt", deadline.formatted(date: .abbreviated, time: .omitted)))
+                                        .foregroundStyle(goal.isOverdue ? PulseTheme.destructive : PulseTheme.secondaryText)
+                                    if let reason = goal.reason, !reason.isEmpty {
+                                        Text("·")
+                                            .foregroundStyle(PulseTheme.tertiaryText)
+                                        Text(reason)
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                            .lineLimit(1)
+                                    }
+                                }
+                                .font(.caption)
                             }
                             HStack(spacing: 4) {
                                 Text(goal.current.formatted(.number.precision(.fractionLength(0...1))))
@@ -285,6 +294,7 @@ struct GoalEditorView: View {
     @State private var unit = "kg"
     @State private var hasDeadline = false
     @State private var deadline = Date.now.addingTimeInterval(60 * 60 * 24 * 90)
+    @State private var reason = ""
     @State private var showDeleteConfirm = false
 
     private var isEditing: Bool { existingGoal != nil }
@@ -388,10 +398,7 @@ struct GoalEditorView: View {
                 TextField("0", text: $current)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
-                Text(unit)
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .frame(width: 40, alignment: .leading)
+                    .onChange(of: current) { _, v in current = filterDecimal(v) }
             }
             HStack {
                 Text("goal_target_label")
@@ -400,10 +407,7 @@ struct GoalEditorView: View {
                 TextField("0", text: $target)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
-                Text(unit)
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .frame(width: 40, alignment: .leading)
+                    .onChange(of: target) { _, v in target = filterDecimal(v) }
             }
             HStack {
                 Text("goal_unit_label")
@@ -432,6 +436,13 @@ struct GoalEditorView: View {
                     in: Date.now...,
                     displayedComponents: .date
                 )
+                HStack {
+                    Text("goal_reason_label")
+                        .foregroundStyle(PulseTheme.secondaryText)
+                    Spacer()
+                    TextField("goal_reason_placeholder", text: $reason)
+                        .multilineTextAlignment(.trailing)
+                }
             }
         }
     }
@@ -465,6 +476,7 @@ struct GoalEditorView: View {
             hasDeadline = true
             deadline = d
         }
+        reason = g.reason ?? ""
     }
 
     private func applyKindDefaults(_ k: Goal.Kind) {
@@ -492,6 +504,7 @@ struct GoalEditorView: View {
         let currentVal = Double(current.replacingOccurrences(of: ",", with: ".")) ?? 0
         let targetVal = Double(target.replacingOccurrences(of: ",", with: ".")) ?? 0
         let dl: Date? = hasDeadline ? deadline : nil
+        let resolvedReason = hasDeadline ? reason.trimmingCharacters(in: .whitespaces) : nil
 
         if var g = existingGoal {
             g.kind = kind
@@ -500,6 +513,7 @@ struct GoalEditorView: View {
             g.target = targetVal
             g.unit = unit.trimmingCharacters(in: .whitespaces)
             g.deadline = dl
+            g.reason = resolvedReason.flatMap { $0.isEmpty ? nil : $0 }
             store.updateGoal(g)
         } else {
             store.addGoal(Goal(
@@ -508,7 +522,8 @@ struct GoalEditorView: View {
                 current: currentVal,
                 target: targetVal,
                 unit: unit.trimmingCharacters(in: .whitespaces),
-                deadline: dl
+                deadline: dl,
+                reason: resolvedReason.flatMap { $0.isEmpty ? nil : $0 }
             ))
         }
         dismiss()
@@ -519,6 +534,15 @@ struct GoalEditorView: View {
             store.deleteGoal(id: g.id)
         }
         dismiss()
+    }
+
+    private func filterDecimal(_ text: String) -> String {
+        let normalized = text.replacingOccurrences(of: ",", with: ".")
+        var seenDot = false
+        return String(normalized.filter { ch in
+            if ch == "." { if seenDot { return false }; seenDot = true; return true }
+            return ch.isNumber
+        })
     }
 }
 

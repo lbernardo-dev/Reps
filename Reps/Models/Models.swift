@@ -734,6 +734,7 @@ struct Goal: Codable, Identifiable {
     var target: Double
     var unit: String
     var deadline: Date?
+    var reason: String? = nil
 
     var progress: Double {
         guard target > 0 else { return 0 }
