@@ -1085,29 +1085,44 @@ struct TodayView: View {
                 }
                 .buttonStyle(.plain)
 
-                WellnessWidget(
-                    title: "exercise_2",
-                    value: store.todayHealthMetric.map { "\(Int($0.exerciseMinutes ?? 0)) min" } ?? "--",
-                    subtitle: "Apple Watch / Health",
-                    systemImage: "applewatch",
-                    color: PulseTheme.primaryBright
-                )
+                NavigationLink {
+                    ExerciseView()
+                } label: {
+                    WellnessWidget(
+                        title: "exercise_2",
+                        value: store.todayHealthMetric.map { "\(Int($0.exerciseMinutes ?? 0)) min" } ?? "--",
+                        subtitle: "Apple Watch / Health",
+                        systemImage: "applewatch",
+                        color: PulseTheme.primaryBright
+                    )
+                }
+                .buttonStyle(.plain)
 
-                WellnessWidget(
-                    title: "hydration",
-                    value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
-                    subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en Reps", $0) } ?? (localizedString("no_local_log")),
-                    systemImage: "drop.fill",
-                    color: PulseTheme.primaryBright
-                )
+                NavigationLink {
+                    HydrationView()
+                } label: {
+                    WellnessWidget(
+                        title: "hydration",
+                        value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
+                        subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en Reps", $0) } ?? (localizedString("no_local_log")),
+                        systemImage: "drop.fill",
+                        color: PulseTheme.primaryBright
+                    )
+                }
+                .buttonStyle(.plain)
 
-                WellnessWidget(
-                    title: "HRV",
-                    value: store.todayHealthMetric?.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--",
-                    subtitle: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? (localizedString("no_resting_hr")),
-                    systemImage: "waveform.path.ecg",
-                    color: PulseTheme.accent
-                )
+                NavigationLink {
+                    HRVView()
+                } label: {
+                    WellnessWidget(
+                        title: "HRV",
+                        value: store.todayHealthMetric?.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--",
+                        subtitle: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? (localizedString("no_resting_hr")),
+                        systemImage: "waveform.path.ecg",
+                        color: PulseTheme.accent
+                    )
+                }
+                .buttonStyle(.plain)
             }
             .padding(.vertical, 2)
         }

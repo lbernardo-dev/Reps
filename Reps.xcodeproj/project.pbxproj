@@ -113,6 +113,10 @@
 		DA79A3AAA95C4B3664799090 /* RepsFriendsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96F240FA1D49782F58CDB521 /* RepsFriendsWidget.swift */; };
 		DE692FD7D748E7262B28A488 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F78E1E25B873B458B724462 /* PaywallView.swift */; };
 		DE8849EDABC0F4181011DC88 /* TrainingBatteryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050D0A2463DEAE5070D1A87 /* TrainingBatteryView.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* HealthWidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7B8C9D0E1F2A1 /* HealthWidgetShared.swift */; };
+		C3D4E5F6A7B8C9D0E1F2A1B2 /* HydrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6A7B8C9D0E1F2A1B2C3 /* HydrationView.swift */; };
+		E5F6A7B8C9D0E1F2A1B2C3D4 /* ExerciseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A7B8C9D0E1F2A1B2C3D4E5 /* ExerciseView.swift */; };
+		A7B8C9D0E1F2A1B2C3D4E5F6 /* HRVView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C9D0E1F2A1B2C3D4E5F6A7 /* HRVView.swift */; };
 		E0977AC22F9FE41517FB9AA6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 93621471CB3E1736B6202A5E /* PrivacyInfo.xcprivacy */; };
 		E2729D508BDEA2AB59601765 /* SwiftDataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBBA5AE4E473D263E3CE2A52 /* SwiftDataModels.swift */; };
 		E2F0AAC0598EE3534790FBAB /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B31D5E2BE507A45C4B26BED6 /* InfoPlist.xcstrings */; };
@@ -250,6 +254,10 @@
 		BE3B39142A43DB573171B14F /* RepsWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RepsWidgets.entitlements; sourceTree = "<group>"; };
 		BE6D0F0B234F59F0C8C83FC9 /* ExerciseLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLibraryView.swift; sourceTree = "<group>"; };
 		C050D0A2463DEAE5070D1A87 /* TrainingBatteryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingBatteryView.swift; sourceTree = "<group>"; };
+		B2C3D4E5F6A7B8C9D0E1F2A1 /* HealthWidgetShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthWidgetShared.swift; sourceTree = "<group>"; };
+		D4E5F6A7B8C9D0E1F2A1B2C3 /* HydrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydrationView.swift; sourceTree = "<group>"; };
+		F6A7B8C9D0E1F2A1B2C3D4E5 /* ExerciseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseView.swift; sourceTree = "<group>"; };
+		B8C9D0E1F2A1B2C3D4E5F6A7 /* HRVView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVView.swift; sourceTree = "<group>"; };
 		C0EA950DDAF04C644A5992BB /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		C2690AE3D301DC3DD21B4F5C /* WorkoutHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryView.swift; sourceTree = "<group>"; };
 		C3A9CCD420922854020A7B5F /* ActiveWorkoutExerciseOrderComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutExerciseOrderComponents.swift; sourceTree = "<group>"; };
@@ -530,6 +538,10 @@
 				9FC166A8D0AD44BF8B4C6A88 /* RecommendedWorkoutCard.swift */,
 				5207FC54AA0F20CA9E4C36D1 /* TodayView.swift */,
 				C050D0A2463DEAE5070D1A87 /* TrainingBatteryView.swift */,
+				B2C3D4E5F6A7B8C9D0E1F2A1 /* HealthWidgetShared.swift */,
+				D4E5F6A7B8C9D0E1F2A1B2C3 /* HydrationView.swift */,
+				F6A7B8C9D0E1F2A1B2C3D4E5 /* ExerciseView.swift */,
+				B8C9D0E1F2A1B2C3D4E5F6A7 /* HRVView.swift */,
 			);
 			path = Today;
 			sourceTree = "<group>";
@@ -902,6 +914,10 @@
 				15CB0EB913EA694C83854740 /* TodayView.swift in Sources */,
 				DE8849EDABC0F4181011DC88 /* TrainingBatteryView.swift in Sources */,
 				5713E020663B429CA2E51869 /* RecommendedWorkoutCard.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* HealthWidgetShared.swift in Sources */,
+				C3D4E5F6A7B8C9D0E1F2A1B2 /* HydrationView.swift in Sources */,
+				E5F6A7B8C9D0E1F2A1B2C3D4 /* ExerciseView.swift in Sources */,
+				A7B8C9D0E1F2A1B2C3D4E5F6 /* HRVView.swift in Sources */,
 				9154E19651ED841295151476 /* WelcomeView.swift in Sources */,
 				0EF2DDE77D4576BA9AF9C1E3 /* WorkoutAppleMusicPlayer.swift in Sources */,
 				72D71C5C282BD6A560BD1B58 /* WorkoutBackgroundKeepAlive.swift in Sources */,
