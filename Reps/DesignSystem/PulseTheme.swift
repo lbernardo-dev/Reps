@@ -567,6 +567,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                 VStack(alignment: .leading, spacing: 18) {
                     content
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .safeAreaPadding(.top, topContentPadding)
                 .padding(.bottom, bottomContentPadding)

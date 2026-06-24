@@ -61,6 +61,8 @@
 		571B9B9626B8C28B2BCAD209 /* FitnessMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AE6FC6EDB425205F8F3592B /* FitnessMetrics.swift */; };
 		57F30AE0D42A47FBA0E3E615 /* ChallengeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D2E2BD1BC824D5A88FB58D0 /* ChallengeDetailView.swift */; };
 		594D0C956088954A48F4B170 /* AchievementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A904A266B4DEB099D8FCEEF1 /* AchievementsView.swift */; };
+		E3D8F8890E741C0F0745DF81 /* EquipmentRoutineWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5131589CB3959E1FC0BCD548 /* EquipmentRoutineWizardView.swift */; };
+		0CB3F0F48F26B86F611C1839 /* GoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F11C6C4DFBEB14093B1E508 /* GoalsView.swift */; };
 		5B3EC7C5D1D72EE4CEB36805 /* OnboardingResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4617C0AE3AEA837ABBC7266 /* OnboardingResult.swift */; };
 		A0B1C2D3E4F5061728394B01 /* OnboardingLocationCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B1C2D3E4F5061728394B02 /* OnboardingLocationCatalog.swift */; };
 		5B802E55705A97B1CC7F2066 /* RepsWorkoutLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80CCCB65745D555ACB923F2 /* RepsWorkoutLiveActivity.swift */; };
@@ -244,6 +246,8 @@
 		A7546415D658D1F30651D879 /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
 		CD5C0DE5CA11E001A55E0002 /* CodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeScannerView.swift; sourceTree = "<group>"; };
 		A904A266B4DEB099D8FCEEF1 /* AchievementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementsView.swift; sourceTree = "<group>"; };
+		5131589CB3959E1FC0BCD548 /* EquipmentRoutineWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EquipmentRoutineWizardView.swift; sourceTree = "<group>"; };
+		3F11C6C4DFBEB14093B1E508 /* GoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalsView.swift; sourceTree = "<group>"; };
 		AE253B386C668DF85E574C66 /* AnatomyThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnatomyThumbnail.swift; sourceTree = "<group>"; };
 		AF2BB82DF974745D5746570F /* WorkoutShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutShared.swift; sourceTree = "<group>"; };
 		AFD9F5578585D85B9F2794F3 /* SmartProgressionAdvisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartProgressionAdvisor.swift; sourceTree = "<group>"; };
@@ -359,10 +363,19 @@
 			isa = PBXGroup;
 			children = (
 				A904A266B4DEB099D8FCEEF1 /* AchievementsView.swift */,
+				5131589CB3959E1FC0BCD548 /* EquipmentRoutineWizardView.swift */,
 				1AACCD6E1BE104C3FD7B706C /* ProfileDetailView.swift */,
 				5E1ADC30960DF398B94738B6 /* ProfileView.swift */,
 			);
 			path = Profile;
+			sourceTree = "<group>";
+		};
+		8A67ED3F58453D0C11DBD5BC /* Goals */ = {
+			isa = PBXGroup;
+			children = (
+				3F11C6C4DFBEB14093B1E508 /* GoalsView.swift */,
+			);
+			path = Goals;
 			sourceTree = "<group>";
 		};
 		311E0BC2EF60F75E5CF3F870 /* Features */ = {
@@ -374,6 +387,7 @@
 				9D87489AE4B798C6046A8E64 /* Onboarding */,
 				7D375D96B4159040E81DE6C7 /* Plans */,
 				288DC6DB27BC9A3CA7D562AA /* Profile */,
+				8A67ED3F58453D0C11DBD5BC /* Goals */,
 				91A6928061858076E972D876 /* Progress */,
 				DFB05F0624D7A97BACAC8329 /* Social */,
 				AC08BAFE0FCBB1B478DF329F /* Today */,
@@ -846,6 +860,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				594D0C956088954A48F4B170 /* AchievementsView.swift in Sources */,
+				E3D8F8890E741C0F0745DF81 /* EquipmentRoutineWizardView.swift in Sources */,
+				0CB3F0F48F26B86F611C1839 /* GoalsView.swift in Sources */,
 				3C778549F2E3F1EA31F5BE72 /* ActiveWorkoutExerciseOrderComponents.swift in Sources */,
 				94C180146CA2EED0D2DFDFB9 /* ActiveWorkoutHeaderComponents.swift in Sources */,
 				92C41F51EF63ED0A5EC21CEF /* ActiveWorkoutMediaComponents.swift in Sources */,
@@ -1054,7 +1070,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202606111;
+				CURRENT_PROJECT_VERSION = 100202606241;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
@@ -1125,7 +1141,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202606111;
+				CURRENT_PROJECT_VERSION = 100202606241;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;

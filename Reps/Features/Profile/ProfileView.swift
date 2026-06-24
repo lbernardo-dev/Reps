@@ -19,7 +19,7 @@ struct ProfileView: View {
     @Environment(\.requestReview) private var requestReview
     @Environment(AppStore.self) private var store
     var onOpenPlans: (() -> Void)?
-    @StateObject private var healthKit = HealthKitService()
+    @StateObject private var healthKit = HealthKitService.shared
     @State private var weightText = ""
     @State private var heightText = ""
     @State private var activeSheet: ProfileSheet?
@@ -32,7 +32,6 @@ struct ProfileView: View {
     @State private var shareImageURL: URL?
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var localPaywall: PaywallPresentation?
-    @State private var suggestedPlanConfirmation: SuggestedPlanConfirmation?
     @State private var activeDestination: ProfileDestination?
 
     var body: some View {
@@ -246,14 +245,7 @@ struct ProfileView: View {
     }
 
     private var achievementsCard: some View {
-        let xp = GamificationEngine.totalXP(
-            sessions: store.workoutSessions,
-            cardioLogs: store.combinedCardioLogs,
-            bodyMetrics: store.bodyMetrics,
-            progressPhotos: store.progressPhotos,
-            streakDays: store.streakDays,
-            totalVolumeKg: store.totalVolumeKg
-        )
+        let xp = store.playerXP
         let lvl = GamificationEngine.playerLevel(for: xp)
         return PulseCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -718,12 +710,12 @@ struct ProfileView: View {
                     }
 
                     ProfileToolButton(
-                        title: "goal",
-                        subtitle: "strength_or_body",
+                        title: "goals_title",
+                        subtitle: "goal_hub_subtitle",
                         systemImage: "target",
                         color: .orange
                     ) {
-                        activeSheet = .goalEditor
+                        activeDestination = .goals
                     }
 
                     ProfileToolButton(
@@ -732,7 +724,7 @@ struct ProfileView: View {
                         systemImage: "wand.and.sparkles",
                         color: PulseTheme.primaryBright
                     ) {
-                        createSuggestedEquipmentPlan()
+                        activeSheet = .equipmentRoutineWizard
                     }
                 }
             }
@@ -770,8 +762,6 @@ struct ProfileView: View {
     @ViewBuilder
     private func profileSheetDestination(_ sheet: ProfileSheet) -> some View {
         switch sheet {
-        case .goalEditor:
-            GoalEditorView()
         case .cardioLog:
             CardioLogEditorView()
         case .bodyLog:
@@ -799,6 +789,8 @@ struct ProfileView: View {
             SubscriptionCenterView()
         case .socialOnboarding:
             SocialOnboardingView()
+        case .equipmentRoutineWizard:
+            EquipmentRoutineWizardView(profile: store.userProfile)
         }
     }
 
@@ -807,6 +799,8 @@ struct ProfileView: View {
         switch destination {
         case .exerciseLibrary:
             ExerciseLibraryView()
+        case .goals:
+            GoalsView()
         case .dataPrivacy:
             dataPrivacyCenter
         case .supportProduct:
@@ -1260,12 +1254,6 @@ struct ProfileView: View {
         }
     }
 
-    private func createSuggestedEquipmentPlan() {
-        let plan = store.createSuggestedPlanForAvailableEquipment()
-        HapticService.notification(.success)
-        suggestedPlanConfirmation = SuggestedPlanConfirmation(plan: plan)
-    }
-
     private func sendFeedback(_ message: String) {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -1526,27 +1514,6 @@ struct ProfileView: View {
                 Button("cancel", role: .cancel) {}
             } message: {
                 Text("workouts_routines_metrics_photos_cards_and_local_settings_will_be_removed_export")
-            }
-            .alert(item: $suggestedPlanConfirmation) { confirmation in
-                if onOpenPlans == nil {
-                    Alert(
-                        title: Text("routine_created"),
-                        message: Text(localizedFormat("routine_active_days_per_week_format", confirmation.name, confirmation.daysPerWeek)),
-                        dismissButton: .default(Text("ok"))
-                    )
-                } else {
-                    Alert(
-                        title: Text("routine_created"),
-                        message: Text(localizedFormat("routine_active_days_per_week_format", confirmation.name, confirmation.daysPerWeek)),
-                        primaryButton: .default(Text("view_plans")) {
-                            dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                onOpenPlans?()
-                            }
-                        },
-                        secondaryButton: .cancel(Text("continue"))
-                    )
-                }
             }
             .fullScreenCover(item: $localPaywall) { presentation in
                 PaywallView(presentation: presentation) { reason in
@@ -1865,6 +1832,7 @@ private struct ProfileToolCard: View {
 
 private enum ProfileDestination: String, Identifiable {
     case exerciseLibrary
+    case goals
     case dataPrivacy
     case supportProduct
     case help
@@ -1876,7 +1844,6 @@ private enum ProfileDestination: String, Identifiable {
 }
 
 private enum ProfileSheet: Identifiable {
-    case goalEditor
     case cardioLog
     case bodyLog
     case quickMetricEditor
@@ -1888,10 +1855,10 @@ private enum ProfileSheet: Identifiable {
     case feedback
     case subscription
     case socialOnboarding
+    case equipmentRoutineWizard
 
     var id: String {
         switch self {
-        case .goalEditor: "goalEditor"
         case .cardioLog: "cardioLog"
         case .bodyLog: "bodyLog"
         case .quickMetricEditor: "quickMetricEditor"
@@ -1903,6 +1870,7 @@ private enum ProfileSheet: Identifiable {
         case .feedback: "feedback"
         case .subscription: "subscription"
         case .socialOnboarding: "socialOnboarding"
+        case .equipmentRoutineWizard: "equipmentRoutineWizard"
         }
     }
 }
@@ -1911,18 +1879,6 @@ private struct SupportInfoSection: Identifiable {
     let id = UUID()
     let title: String
     let rows: [String]
-}
-
-private struct SuggestedPlanConfirmation: Identifiable {
-    let id: UUID
-    let name: String
-    let daysPerWeek: Int
-
-    init(plan: WorkoutPlan) {
-        id = plan.id
-        name = plan.name
-        daysPerWeek = plan.daysPerWeek
-    }
 }
 
 private struct SupportInfoScreen: View {
@@ -2382,55 +2338,6 @@ private struct GymVisitRow: View {
                 }
             }
         }
-    }
-}
-
-struct GoalEditorView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(AppStore.self) private var store
-
-    @State private var kind: Goal.Kind = .strength
-    @State private var title = ""
-    @State private var current = ""
-    @State private var target = ""
-    @State private var unit = "kg"
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("goal") {
-                    Picker("training_type", selection: $kind) {
-                        ForEach(Goal.Kind.allCases) { kind in
-                            Text(kind.displayName).tag(kind)
-                        }
-                    }
-                    TextField("qualification", text: $title)
-                    TextField("actual", text: $current)
-                        .keyboardType(.decimalPad)
-                    TextField("meta", text: $target)
-                        .keyboardType(.decimalPad)
-                    TextField("unidad", text: $unit)
-                }
-            }
-            .navigationTitle("create_goal")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("save") { save() }
-                        .disabled(title.isEmpty || Double(target.replacingOccurrences(of: ",", with: ".")) == nil)
-                }
-            }
-        }
-    }
-
-    private func save() {
-        let currentValue = Double(current.replacingOccurrences(of: ",", with: ".")) ?? 0
-        let targetValue = Double(target.replacingOccurrences(of: ",", with: ".")) ?? 0
-        store.addGoal(Goal(kind: kind, title: title, current: currentValue, target: targetValue, unit: unit, deadline: nil))
-        dismiss()
     }
 }
 
@@ -3854,7 +3761,7 @@ struct CardioLogEditorView: View {
 struct BodyWellnessEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppStore.self) private var store
-    @StateObject private var healthKit = HealthKitService()
+    @StateObject private var healthKit = HealthKitService.shared
 
     @State private var date = Date()
     @State private var weight = ""
@@ -4214,17 +4121,6 @@ private extension CardioLog.ActivityType {
         case .rowing: "rowing"
         case .hiit: "HIIT"
         case .other: "other"
-        }
-    }
-}
-
-private extension Goal.Kind {
-    var displayName: LocalizedStringKey {
-        switch self {
-        case .strength: "strength"
-        case .consistency: "consistency"
-        case .bodyWeight: "bodyweight"
-        case .custom: "custom"
         }
     }
 }

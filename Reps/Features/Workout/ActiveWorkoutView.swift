@@ -20,7 +20,7 @@ struct ActiveWorkoutView: View {
     @StateObject private var routeTracker = WorkoutRouteTracker()
     @StateObject private var audioRecorder = WorkoutAudioRecorder()
     @StateObject private var musicPlayer = WorkoutAppleMusicPlayer.shared
-    @StateObject private var healthKit = HealthKitService()
+    @StateObject private var healthKit = HealthKitService.shared
     @StateObject private var motionResumeDetector = WorkoutMotionResumeDetector()
     @State private var elapsedSeconds = 0
     @State private var pausedSeconds = 0
@@ -631,6 +631,9 @@ struct ActiveWorkoutView: View {
         )
         store.applyAimForMoreIntent(from: exerciseDrafts, dayID: workout.id)
         store.finishWorkout(session)
+        if waterLiters > 0 {
+            try? await healthKit.saveDailyNutrition(waterLiters: waterLiters, dietaryEnergyKcal: nil)
+        }
         if let cardioLog = WorkoutSessionBuilder.cardioLog(
             from: session,
             sensorSummary: sensorSummary,
@@ -1061,30 +1064,27 @@ struct ActiveWorkoutView: View {
     /// log → rest → next loop. Each child is already a self-contained card.
     private var moreSessionToolsSection: some View {
         VStack(spacing: 18) {
-            Button {
-                HapticService.selection()
-                withAnimation(.snappy(duration: 0.25)) {
-                    showMoreTools.toggle()
+            PulseCard {
+                Button {
+                    HapticService.selection()
+                    withAnimation(.snappy(duration: 0.25)) {
+                        showMoreTools.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Label("more_session_tools", systemImage: "slider.horizontal.3")
+                            .font(.headline)
+                            .foregroundStyle(PulseTheme.primary)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .rotationEffect(.degrees(showMoreTools ? 180 : 0))
+                    }
+                    .contentShape(Rectangle())
                 }
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.subheadline.weight(.bold))
-                    Text("more_session_tools")
-                        .font(.subheadline.weight(.bold))
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.caption.weight(.bold))
-                        .rotationEffect(.degrees(showMoreTools ? 180 : 0))
-                }
-                .foregroundStyle(PulseTheme.secondaryText)
-                .padding(.horizontal, 18)
-                .frame(height: 50)
-                .frame(maxWidth: .infinity)
-                .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                .contentShape(Rectangle())
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             if showMoreTools {
                 batteryCard
@@ -1093,23 +1093,6 @@ struct ActiveWorkoutView: View {
                 }
                 sessionExerciseOrderCard
                 sessionControlCenterCard
-                PulseCard {
-                    DisclosureGroup(isExpanded: $showExerciseNotes) {
-                        ExerciseMediaNotesPanel(
-                            notes: selectedExerciseNotesBinding,
-                            isRecording: audioRecorder.isRecording,
-                            elapsedSeconds: Int(audioRecorder.elapsedSeconds),
-                            photoPickerItems: $exercisePhotoItems,
-                            attachments: selectedDraft?.mediaAttachments ?? [],
-                            onToggleAudio: toggleExerciseAudioNote,
-                            onCameraCapture: appendExerciseCameraImage
-                        )
-                    } label: {
-                        Label("notes_and_a_half", systemImage: "note.text")
-                            .font(.headline)
-                            .foregroundStyle(PulseTheme.primary)
-                    }
-                }
             }
         }
     }

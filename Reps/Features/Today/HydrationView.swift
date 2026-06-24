@@ -46,6 +46,7 @@ struct HydrationView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                HealthWidgetDetailNavBar(title: localizedString("hydration"))
                 gaugeCard.padding(.top, 8)
                 stylePicker
                 addWaterCard
@@ -55,9 +56,8 @@ struct HydrationView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
         }
-        .navigationTitle(localizedString("hydration"))
-        .navigationBarTitleDisplayMode(.large)
         .background(PulseTheme.background.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
         .sensoryFeedback(.success, trigger: logFeedback)
     }
 
@@ -75,7 +75,9 @@ struct HydrationView: View {
                     .foregroundStyle(PulseTheme.primaryBright)
                     .multilineTextAlignment(.center)
 
-                gaugeView.frame(height: 220)
+                gaugeView
+                    .frame(height: 220)
+                    .frame(maxWidth: .infinity, alignment: .center)
 
                 // Single non-duplicate summary row
                 HStack(spacing: 24) {
@@ -329,14 +331,7 @@ struct HydrationView: View {
 
     // MARK: - Action
     private func logWater() {
-        let metric = BodyMetric(
-            date: Date(),
-            weightKg: store.currentWeight,
-            heightCm: store.currentHeight,
-            waterLiters: amountMl / 1000.0,
-            source: .manual
-        )
-        store.saveBodyMetric(metric)
+        store.logWater(liters: amountMl / 1000.0)
         logFeedback.toggle()
     }
 }

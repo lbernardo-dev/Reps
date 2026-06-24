@@ -83,6 +83,7 @@ struct RepsApp: App {
     init() {
         FirebaseBootstrap.configureIfNeeded()
         TelemetryService.shared.configure()
+        UNUserNotificationCenter.current().delegate = NotificationRouter.shared
         _store = State(initialValue: AppStore())
     }
 
@@ -104,6 +105,7 @@ struct RepsApp: App {
 
                     store.syncWidgets()
                     store.refreshHealthKitDataIfNeeded(reason: "app_task")
+                    drainNotificationTargets()
                     TelemetryService.shared.updateUserProperties(store.userProfile)
                     TelemetryService.shared.log(.appOpen, parameters: [
                         "onboarding_completed": store.userProfile.onboardingCompleted,
@@ -112,13 +114,8 @@ struct RepsApp: App {
                         "plan_count": store.plans.count
                     ])
                 }
-                .onReceive(NotificationRouter.shared.$latestTarget.compactMap { $0 }) { target in
-                    TelemetryService.shared.breadcrumb("notif.on_receive_target", [
-                        "kind": target.kind.rawValue,
-                        "action": String(describing: target.action)
-                    ])
-                    store.handleNotificationTarget(target)
-                    NotificationRouter.shared.consumeLatestTarget()
+                .onReceive(NotificationCenter.default.publisher(for: .repsNotificationTargetReady)) { _ in
+                    drainNotificationTargets()
                 }
                 .onOpenURL { url in
                     if store.handleSocialDeepLink(url) { return }
@@ -137,6 +134,7 @@ struct RepsApp: App {
                 store.syncWidgets()
                 store.refreshNotificationSchedule()
                 store.refreshHealthKitDataIfNeeded(reason: "foreground")
+                drainNotificationTargets()
                 Task {
                     store.runEngagementChecks()
                     await store.refreshStoreKitEntitlements()
@@ -147,6 +145,18 @@ struct RepsApp: App {
                     }
                 }
             }
+        }
+    }
+
+    @MainActor
+    private func drainNotificationTargets() {
+        let targets = NotificationRouter.shared.drainPendingTargets()
+        for target in targets {
+            TelemetryService.shared.breadcrumb("notif.drain_target", [
+                "kind": target.kind.rawValue,
+                "action": String(describing: target.action)
+            ])
+            store.handleNotificationTarget(target)
         }
     }
 }

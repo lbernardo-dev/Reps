@@ -2,7 +2,7 @@ import Foundation
 import UserNotifications
 
 enum NotificationService {
-    enum Kind: String {
+    enum Kind: String, Sendable {
         case workoutReminder
         case missedWorkoutCheck
         case dailySummary
@@ -15,7 +15,7 @@ enum NotificationService {
     }
 
     /// User-tappable action surfaced on the notification (long-press / Notification Center).
-    enum Action: Equatable {
+    enum Action: Equatable, Sendable {
         case open            // default tap
         case logWorkout      // open straight into logging
         case markDone        // mark the scheduled workout complete
@@ -31,7 +31,7 @@ enum NotificationService {
         }
     }
 
-    struct NotificationTarget: Equatable {
+    struct NotificationTarget: Equatable, Sendable {
         let kind: Kind
         let scheduledWorkoutID: UUID?
         let scheduledDate: Date?
@@ -451,9 +451,7 @@ enum NotificationService {
     }
 
     /// Re-schedules the notification ~1h later (snooze action handler).
-    static func snooze(userInfo: [AnyHashable: Any], delay: TimeInterval = 3600) async {
-        guard let target = notificationTarget(from: userInfo) else { return }
-
+    static func snooze(target: NotificationTarget, delay: TimeInterval = 3600) async {
         let content = UNMutableNotificationContent()
         switch target.kind {
         case .workoutReminder, .missedWorkoutCheck:
@@ -464,7 +462,7 @@ enum NotificationService {
         }
         content.body = localizedString("notif_streak_at_risk_body")
         content.sound = .default
-        content.userInfo = userInfo
+        content.userInfo = notificationUserInfo(for: target)
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(60, delay), repeats: false)
         let request = UNNotificationRequest(
@@ -626,6 +624,19 @@ enum NotificationService {
         ]
     }
 
+    private static func notificationUserInfo(for target: NotificationTarget) -> [AnyHashable: Any] {
+        var userInfo: [AnyHashable: Any] = [
+            kindKey: target.kind.rawValue
+        ]
+        if let scheduledWorkoutID = target.scheduledWorkoutID {
+            userInfo[scheduledWorkoutIDKey] = scheduledWorkoutID.uuidString
+        }
+        if let scheduledDate = target.scheduledDate {
+            userInfo[scheduledWorkoutDateKey] = iso8601String(from: scheduledDate)
+        }
+        return userInfo
+    }
+
     private static func uniqueUpcomingWorkouts(from scheduledWorkouts: [ScheduledWorkout]) -> [ScheduledWorkout] {
         var seen = Set<String>()
 
@@ -741,34 +752,104 @@ enum NotificationService {
     }
 }
 
-final class NotificationRouter: NSObject, ObservableObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
+extension Notification.Name {
+    static let repsNotificationTargetReady = Notification.Name("RepsNotificationTargetReady")
+}
+
+private final class NotificationCompletionBox: @unchecked Sendable {
+    private let completion: () -> Void
+
+    init(_ completion: @escaping () -> Void) {
+        self.completion = completion
+    }
+
+    @MainActor
+    func call() {
+        completion()
+    }
+}
+
+private final class NotificationPresentationCompletionBox: @unchecked Sendable {
+    private let completion: (UNNotificationPresentationOptions) -> Void
+
+    init(_ completion: @escaping (UNNotificationPresentationOptions) -> Void) {
+        self.completion = completion
+    }
+
+    @MainActor
+    func call(_ options: UNNotificationPresentationOptions) {
+        completion(options)
+    }
+}
+
+final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
     static let shared = NotificationRouter()
 
     @MainActor
-    @Published private(set) var latestTarget: NotificationService.NotificationTarget?
+    private var pendingTargets: [NotificationService.NotificationTarget] = []
 
     @MainActor
-    func consumeLatestTarget() {
-        latestTarget = nil
+    func drainPendingTargets() -> [NotificationService.NotificationTarget] {
+        let targets = pendingTargets
+        pendingTargets.removeAll()
+        return targets
+    }
+
+    @MainActor
+    private func enqueue(_ target: NotificationService.NotificationTarget) {
+        pendingTargets.append(target)
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .repsNotificationTargetReady, object: nil)
+        }
     }
 
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound, .badge]
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        let completion = NotificationPresentationCompletionBox(completionHandler)
+        DispatchQueue.main.async {
+            completion.call(self.presentationOptions)
+        }
     }
 
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
         let userInfo = response.notification.request.content.userInfo
+        let target = NotificationService.notificationTarget(from: userInfo)
         let action = NotificationService.Action(actionIdentifier: response.actionIdentifier)
         let actionID = response.actionIdentifier
         let categoryID = response.notification.request.content.categoryIdentifier
         let requestID = response.notification.request.identifier
+        let completion = NotificationCompletionBox(completionHandler)
 
+        Task {
+            await handle(
+                target: target,
+                action: action,
+                actionID: actionID,
+                categoryID: categoryID,
+                requestID: requestID
+            )
+            await completion.call()
+        }
+    }
+
+    private var presentationOptions: UNNotificationPresentationOptions {
+        [.banner, .sound, .badge]
+    }
+
+    private func handle(
+        target: NotificationService.NotificationTarget?,
+        action: NotificationService.Action,
+        actionID: String,
+        categoryID: String,
+        requestID: String
+    ) async {
         // Crash breadcrumb: tapping a notification launches/foregrounds the app,
         // and this is exactly the path that has been terminating silently. The
         // trail is attached to the next crash report so we can see how far we got.
@@ -783,11 +864,13 @@ final class NotificationRouter: NSObject, ObservableObject, UNUserNotificationCe
 
         // Snooze never needs the app UI: reschedule directly and stop.
         if action == .snooze {
-            await NotificationService.snooze(userInfo: userInfo)
+            if let target {
+                await NotificationService.snooze(target: target)
+            }
             return
         }
 
-        guard let target = NotificationService.notificationTarget(from: userInfo) else {
+        guard let target else {
             await MainActor.run {
                 TelemetryService.shared.breadcrumb("notif.no_target")
             }
@@ -795,8 +878,6 @@ final class NotificationRouter: NSObject, ObservableObject, UNUserNotificationCe
         }
 
         let resolved = target.with(action: action)
-        await MainActor.run {
-            latestTarget = resolved
-        }
+        await enqueue(resolved)
     }
 }

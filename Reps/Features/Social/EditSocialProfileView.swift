@@ -131,14 +131,7 @@ struct EditSocialProfileView: View {
         let locVal = location.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let uname = store.userProfile.socialUsername else { dismiss(); return }
 
-        let xp = GamificationEngine.totalXP(
-            sessions: store.workoutSessions,
-            cardioLogs: store.combinedCardioLogs,
-            bodyMetrics: store.bodyMetrics,
-            progressPhotos: store.progressPhotos,
-            streakDays: store.streakDays,
-            totalVolumeKg: store.totalVolumeKg
-        )
+        let xp = store.playerXP
         let lvl = GamificationEngine.playerLevel(for: xp)
         let dname = store.userProfile.displayName ?? uname
         let planName = store.activePlan.name

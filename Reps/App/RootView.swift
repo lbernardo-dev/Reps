@@ -136,6 +136,9 @@ struct MainTabView: View {
         select(destination.tab)
         if destination.tab == .calendar {
             store.calendarFocusedDate = destination.focusDate
+            if destination.action == .logWorkout {
+                store.calendarWorkoutToOpenID = destination.scheduledWorkoutID
+            }
         }
         store.consumeNotificationDestination()
     }

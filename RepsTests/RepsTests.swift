@@ -2056,4 +2056,181 @@ struct RepsTests {
         #expect(store.activePaywall?.source == .progressAdvancedAnalytics)
         #expect(store.activePaywall?.feature == .advancedAnalytics)
     }
+
+    @Test func notificationTargetParsesScheduledWorkoutPayload() throws {
+        let workoutID = UUID()
+        let date = try #require(ISO8601DateFormatter().date(from: "2026-06-24T08:00:00Z"))
+        let target = NotificationService.notificationTarget(from: [
+            "notification_kind": "workoutReminder",
+            "scheduled_workout_id": workoutID.uuidString,
+            "scheduled_workout_date": ISO8601DateFormatter().string(from: date)
+        ])
+
+        #expect(target?.kind == .workoutReminder)
+        #expect(target?.scheduledWorkoutID == workoutID)
+        #expect(target?.scheduledDate == date)
+        #expect(target?.action == .open)
+    }
+
+    @Test func notificationTargetIgnoresNotificationsWithoutRoutingPayload() {
+        #expect(NotificationService.notificationTarget(from: [:]) == nil)
+        #expect(NotificationService.notificationTarget(from: ["notification_kind": "unknown"]) == nil)
+    }
+
+    @Test @MainActor func notificationTargetsRouteToExpectedTabs() {
+        let store = AppStore(
+            persistence: SwiftDataPersistence(inMemory: true),
+            startsBackgroundServices: false
+        )
+        let date = Date(timeIntervalSince1970: 1_781_078_400)
+        let workoutID = UUID()
+        let cases: [(NotificationService.Kind, AppTab, Date?, UUID?)] = [
+            (.workoutReminder, .calendar, date, workoutID),
+            (.missedWorkoutCheck, .calendar, date, workoutID),
+            (.dailySummary, .today, nil, nil),
+            (.batteryRecoverySuggestion, .today, nil, nil),
+            (.retentionNudge, .today, nil, nil),
+            (.personalRecord, .progress, nil, nil),
+            (.achievementUnlocked, .progress, nil, nil),
+            (.streakAtRisk, .today, nil, nil),
+            (.gymRenewal, .today, nil, nil)
+        ]
+
+        for testCase in cases {
+            store.handleNotificationTarget(NotificationService.NotificationTarget(
+                kind: testCase.0,
+                scheduledWorkoutID: workoutID,
+                scheduledDate: date,
+                action: .open
+            ))
+
+            #expect(store.notificationDestination?.tab == testCase.1)
+            #expect(store.notificationDestination?.focusDate == testCase.2)
+            #expect(store.notificationDestination?.scheduledWorkoutID == testCase.3)
+            #expect(store.notificationDestination?.action == .open)
+            store.consumeNotificationDestination()
+        }
+    }
+
+    @Test @MainActor func notificationLogWorkoutActionPreservesScheduledWorkoutDestination() {
+        let store = AppStore(
+            persistence: SwiftDataPersistence(inMemory: true),
+            startsBackgroundServices: false
+        )
+        let scheduled = ScheduledWorkout(
+            date: Date(timeIntervalSince1970: 1_781_078_400),
+            workoutDay: SeedData.pushDay,
+            status: .scheduled
+        )
+        store.scheduledWorkouts = [scheduled]
+
+        store.handleNotificationTarget(NotificationService.NotificationTarget(
+            kind: .workoutReminder,
+            scheduledWorkoutID: scheduled.id,
+            scheduledDate: scheduled.date,
+            action: .logWorkout
+        ))
+
+        #expect(store.notificationDestination?.tab == .calendar)
+        #expect(store.notificationDestination?.focusDate == scheduled.date)
+        #expect(store.notificationDestination?.scheduledWorkoutID == scheduled.id)
+        #expect(store.notificationDestination?.action == .logWorkout)
+    }
+
+    @Test @MainActor func notificationMarkDoneActionCompletesScheduledWorkout() {
+        let store = AppStore(
+            persistence: SwiftDataPersistence(inMemory: true),
+            startsBackgroundServices: false
+        )
+        let scheduled = ScheduledWorkout(
+            date: Date(timeIntervalSince1970: 1_781_078_400),
+            workoutDay: SeedData.pullDay,
+            status: .scheduled
+        )
+        store.scheduledWorkouts = [scheduled]
+
+        store.handleNotificationTarget(NotificationService.NotificationTarget(
+            kind: .missedWorkoutCheck,
+            scheduledWorkoutID: scheduled.id,
+            scheduledDate: scheduled.date,
+            action: .markDone
+        ))
+
+        #expect(store.scheduledWorkouts.first?.status == .completed)
+        #expect(store.notificationDestination?.tab == .calendar)
+        #expect(store.notificationDestination?.action == .markDone)
+    }
+
+    @Test func currentNotificationSchedulersCreateRoutableRequests() async throws {
+        let center = UNUserNotificationCenter.current()
+        center.removeAllPendingNotificationRequests()
+        center.removeAllDeliveredNotifications()
+        defer {
+            center.removeAllPendingNotificationRequests()
+            center.removeAllDeliveredNotifications()
+        }
+
+        let scheduled = ScheduledWorkout(
+            date: Date().addingTimeInterval(172_800),
+            workoutDay: SeedData.pushDay,
+            status: .scheduled
+        )
+
+        NotificationService.scheduleRestEndNotification(after: 120, nextExerciseName: "Bench Press")
+        try await NotificationService.scheduleWorkoutReminder(for: scheduled)
+        try await NotificationService.scheduleMissedWorkoutCheck(for: scheduled)
+        try await NotificationService.scheduleDailySummary(hour: 23, minute: 55)
+        try await NotificationService.scheduleBatteryRecoverySuggestion(level: 42, suggestion: "Take a lighter day.")
+        try await NotificationService.scheduleRetentionNudge(
+            title: "Plan tomorrow",
+            body: "Keep momentum.",
+            date: Date().addingTimeInterval(7_200)
+        )
+        try await NotificationService.schedulePersonalRecordCelebration(exerciseName: "Squat", delay: 120)
+        let streakBaseDate = try #require(ISO8601DateFormatter().date(from: "2026-06-24T08:00:00Z"))
+        try await NotificationService.scheduleStreakAtRiskReminder(
+            currentStreak: 3,
+            hour: 12,
+            minute: 0,
+            now: streakBaseDate
+        )
+        try await NotificationService.scheduleGymRenewalReminder(
+            passID: UUID(),
+            gymName: "Test Gym",
+            renewalDate: Date().addingTimeInterval(604_800)
+        )
+        try await NotificationService.scheduleAchievementUnlocked(message: "Unlocked", delay: 120)
+        try await NotificationService.scheduleGoalReached(goalTitle: "Bench 100", delay: 120)
+        NotificationService.postCloudKitSocialNotification(subscriptionID: "new-follower-test")
+        NotificationService.postCloudKitSocialNotification(subscriptionID: "new-like-test")
+
+        try await Task.sleep(nanoseconds: 500_000_000)
+        let requests = await center.pendingNotificationRequests()
+        let byIdentifier = Dictionary(uniqueKeysWithValues: requests.map { ($0.identifier, $0) })
+        let routableKinds = Set(requests.compactMap { $0.content.userInfo["notification_kind"] as? String })
+
+        #expect(byIdentifier["rest-timer-end"] != nil)
+        #expect(byIdentifier["daily-summary"]?.content.userInfo["notification_kind"] as? String == "dailySummary")
+        #expect(byIdentifier["battery-recovery-suggestion"]?.content.userInfo["notification_kind"] as? String == "batteryRecoverySuggestion")
+        #expect(byIdentifier["streak-at-risk"]?.content.userInfo["notification_kind"] as? String == "streakAtRisk")
+        #expect(requests.contains { $0.identifier.hasPrefix("workout-reminder-") && $0.content.categoryIdentifier == "WORKOUT_REMINDER" })
+        #expect(requests.contains { $0.identifier.hasPrefix("missed-workout-") && $0.content.categoryIdentifier == "MISSED_WORKOUT" })
+        #expect(requests.contains { $0.identifier.hasPrefix("retention-nudge-") && ($0.content.userInfo["notification_kind"] as? String) == "retentionNudge" })
+        #expect(requests.contains { $0.identifier.hasPrefix("personal-record-") && ($0.content.userInfo["notification_kind"] as? String) == "personalRecord" })
+        #expect(requests.contains { $0.identifier.hasPrefix("gym-renewal-") && ($0.content.userInfo["notification_kind"] as? String) == "gymRenewal" })
+        #expect(requests.contains { $0.identifier.hasPrefix("achievement-") && ($0.content.userInfo["notification_kind"] as? String) == "achievementUnlocked" })
+        #expect(requests.contains { $0.identifier.hasPrefix("achievement-goal-") && ($0.content.userInfo["notification_kind"] as? String) == "achievementUnlocked" })
+        #expect(requests.filter { $0.identifier.hasPrefix("social-") }.count == 2)
+        #expect(routableKinds.isSuperset(of: [
+            "workoutReminder",
+            "missedWorkoutCheck",
+            "dailySummary",
+            "batteryRecoverySuggestion",
+            "retentionNudge",
+            "personalRecord",
+            "streakAtRisk",
+            "gymRenewal",
+            "achievementUnlocked"
+        ]))
+    }
 }

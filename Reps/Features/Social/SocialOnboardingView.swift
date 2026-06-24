@@ -387,14 +387,7 @@ struct SocialOnboardingView: View {
     private func saveProfile() {
         guard canContinue else { return }
         isSaving = true
-        let xp = GamificationEngine.totalXP(
-            sessions: store.workoutSessions,
-            cardioLogs: store.combinedCardioLogs,
-            bodyMetrics: store.bodyMetrics,
-            progressPhotos: store.progressPhotos,
-            streakDays: store.streakDays,
-            totalVolumeKg: store.totalVolumeKg
-        )
+        let xp = store.playerXP
         let lvl = GamificationEngine.playerLevel(for: xp)
         let uname = username
         let dname = store.userProfile.displayName ?? uname

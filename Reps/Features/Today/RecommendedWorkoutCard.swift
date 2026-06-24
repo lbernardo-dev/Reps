@@ -28,12 +28,14 @@ struct RecommendedWorkoutCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("recommended_workout_title")
                             .font(.headline)
+                            .lineLimit(1)
                         Text(batteryLabel)
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-
-                    Spacer()
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                     Text("\(workout.durationMinutes) min")
                         .font(.caption.weight(.semibold))
@@ -41,6 +43,7 @@ struct RecommendedWorkoutCard: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(PulseTheme.grouped, in: Capsule())
+                        .fixedSize()
                 }
 
                 if !workout.subtitle.isEmpty {

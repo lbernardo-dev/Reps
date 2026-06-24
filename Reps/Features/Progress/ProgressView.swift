@@ -353,6 +353,7 @@ struct ProgressDashboardView: View {
                     .foregroundStyle(PulseTheme.primary)
                   }
                   .frame(height: 150)
+                  .allowsHitTesting(false)
                 }
               }
             }
@@ -384,6 +385,7 @@ struct ProgressDashboardView: View {
                     .position(by: .value(localizedString("type_label"), point.kind))
                   }
                   .frame(height: 190)
+                  .allowsHitTesting(false)
                   .chartYAxis {
                     AxisMarks(position: .leading, values: .automatic(desiredCount: 4))
                   }
@@ -452,6 +454,7 @@ struct ProgressDashboardView: View {
                   .foregroundStyle(PulseTheme.accent)
                 }
                 .frame(height: 160)
+                .allowsHitTesting(false)
               }
             }
           }
@@ -554,6 +557,7 @@ struct ProgressDashboardView: View {
                   }
                 }
                 .frame(height: 160)
+                .allowsHitTesting(false)
                 .chartYAxis {
                   AxisMarks(position: .leading, values: .automatic(desiredCount: 3))
                 }
@@ -571,15 +575,9 @@ struct ProgressDashboardView: View {
                   Text("\(store.bestEstimatedOneRepMaxKg, specifier: "%.0f") kg")
                     .font(.headline)
                 }
-                Chart(store.goals) { goal in
-                  BarMark(x: .value("Goal", goal.title), y: .value("Current", goal.current))
-                    .foregroundStyle(PulseTheme.primary)
-                  RuleMark(y: .value("Target", goal.target))
-                    .foregroundStyle(PulseTheme.accent)
-                }
-                .frame(height: 160)
               }
             }
+            goalsProgressSection
           }
 
           if selectedSection == .body {
@@ -657,6 +655,11 @@ struct ProgressDashboardView: View {
     let lastWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: thisWeekStart) ?? thisWeekStart
     let thisWeek = store.workoutSessions.filter { $0.date >= thisWeekStart }
     let lastWeek = store.workoutSessions.filter { $0.date >= lastWeekStart && $0.date < thisWeekStart }
+    let weekActivityDays: [Bool] = (0..<7).map { offset in
+      guard let date = calendar.date(byAdding: .day, value: offset, to: thisWeekStart) else { return false }
+      let dayStart = calendar.startOfDay(for: date)
+      return thisWeek.contains { calendar.startOfDay(for: $0.date) == dayStart }
+    }
     return ProgressHeroMetrics(
       streak: store.streakDays,
       adherence: store.weeklyCompletion,
@@ -665,7 +668,9 @@ struct ProgressDashboardView: View {
       volumeThisWeek: FitnessMetrics.totalVolumeKg(for: thisWeek),
       volumeLastWeek: FitnessMetrics.totalVolumeKg(for: lastWeek),
       totalSessions: store.workoutSessions.count,
-      totalVolumeKg: FitnessMetrics.totalVolumeKg(for: store.workoutSessions)
+      totalVolumeKg: FitnessMetrics.totalVolumeKg(for: store.workoutSessions),
+      weekStart: thisWeekStart,
+      weekActivityDays: weekActivityDays
     )
   }
 
@@ -736,6 +741,40 @@ struct ProgressDashboardView: View {
     FitnessMetrics.muscleVolumePoints(for: store.workoutSessions, since: selectedRange.startDate)
   }
 
+  @ViewBuilder
+  private var goalsProgressSection: some View {
+    if store.goals.isEmpty {
+      PulseCard {
+        PulseEmptyState(
+          title: "goal_progress_empty_title",
+          message: "goal_progress_empty_sub",
+          systemImage: "target"
+        )
+      }
+    } else {
+      VStack(spacing: 8) {
+        HStack {
+          Text("goals_title")
+            .font(.headline)
+          Spacer()
+          Text(localizedFormat("goal_summary_active_fmt", store.goals.filter { !$0.isAchieved }.count))
+            .font(.subheadline)
+            .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .padding(.horizontal, 4)
+        ForEach(store.goals.prefix(3)) { goal in
+          GoalCard(goal: goal) {}
+        }
+        if store.goals.count > 3 {
+          Text(localizedFormat("goal_more_fmt", store.goals.count - 3))
+            .font(.caption)
+            .foregroundStyle(PulseTheme.secondaryText)
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+      }
+    }
+  }
+
   private var insightCards: [FitnessMetrics.TrainingInsight] {
     FitnessMetrics.insightCards(
       for: store.workoutSessions, goals: store.goals, since: selectedRange.startDate)
@@ -800,6 +839,7 @@ struct ProgressDashboardView: View {
               .foregroundStyle(PulseTheme.primary)
           }
           .frame(height: 150)
+          .allowsHitTesting(false)
 
           HStack {
             Label(
@@ -1700,15 +1740,16 @@ struct ExerciseAnalyticsListView: View {
 
 struct ProgressHeroMetrics {
   let streak: Int
-  let adherence: Double          // 0...1 weekly plan completion
+  let adherence: Double
   let sessionsThisWeek: Int
   let sessionsLastWeek: Int
-  let volumeThisWeek: Double      // kg
+  let volumeThisWeek: Double
   let volumeLastWeek: Double
   var totalSessions: Int = 0
   var totalVolumeKg: Double = 0
+  var weekStart: Date = .now
+  var weekActivityDays: [Bool] = Array(repeating: false, count: 7)
 
-  /// Percentage change vs last week, or nil when there is no baseline.
   var volumeDelta: Double? {
     guard volumeLastWeek > 0 else { return nil }
     return (volumeThisWeek - volumeLastWeek) / volumeLastWeek * 100
@@ -1728,32 +1769,32 @@ struct ProgressHeroCard: View {
   var body: some View {
     PulseCard(contentPadding: 0) {
       VStack(spacing: 0) {
-        // ── Week header ─────────────────────────────────
-        HStack {
+        // ── Header ──────────────────────────────────────
+        HStack(alignment: .center, spacing: 8) {
           Label(localizedString("this_week"), systemImage: "calendar")
             .font(.caption.weight(.black))
             .textCase(.uppercase)
             .foregroundStyle(PulseTheme.primary)
           Spacer()
           if let dir = weekDirection {
-            HStack(spacing: 4) {
+            HStack(spacing: 3) {
               Image(systemName: dir.icon)
-                .font(.system(size: 10, weight: .black))
+                .font(.system(size: 9, weight: .black))
               Text(dir.label)
-                .font(.caption.weight(.black))
+                .font(.caption2.weight(.black))
             }
             .foregroundStyle(dir.color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(dir.color.opacity(0.12), in: Capsule())
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(dir.color.opacity(0.14), in: Capsule())
           }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
 
-        // ── Three metric tiles ──────────────────────────
-        HStack(spacing: 0) {
+        // ── Three metric mini-cards ──────────────────────
+        HStack(spacing: 10) {
           HeroTile(
             systemImage: "flame.fill",
             tint: PulseTheme.accent,
@@ -1763,9 +1804,6 @@ struct ProgressHeroCard: View {
             trend: nil,
             onTap: onTapStreak
           )
-          Rectangle()
-            .fill(PulseTheme.separator)
-            .frame(width: 1, height: 54)
           HeroTile(
             systemImage: "scalemass.fill",
             tint: PulseTheme.primaryBright,
@@ -1775,9 +1813,6 @@ struct ProgressHeroCard: View {
             trend: metrics.volumeDelta.map { HeroTrend(percent: $0) },
             onTap: onTapVolume
           )
-          Rectangle()
-            .fill(PulseTheme.separator)
-            .frame(width: 1, height: 54)
           HeroTile(
             systemImage: "dumbbell.fill",
             tint: PulseTheme.primary,
@@ -1788,7 +1823,11 @@ struct ProgressHeroCard: View {
             onTap: onTapSessions
           )
         }
-        .padding(.bottom, 12)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 4)
+
+        // ── 7-day activity strip ─────────────────────────
+        WeekActivityStrip(weekStart: metrics.weekStart, activeDays: metrics.weekActivityDays)
 
         // ── Divider ─────────────────────────────────────
         Divider().padding(.horizontal, 16)
@@ -1814,7 +1853,7 @@ struct ProgressHeroCard: View {
             value: "\(Int(metrics.adherence * 100))%"
           )
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
       }
     }
   }
@@ -1848,18 +1887,83 @@ private struct TotalStatPill: View {
   let value: String
 
   var body: some View {
-    VStack(spacing: 2) {
+    VStack(spacing: 3) {
       Text(value)
-        .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
+        .font(.system(size: 17, weight: .black, design: .rounded).monospacedDigit())
         .foregroundStyle(.primary)
       Text(label)
-        .font(.system(size: 9, weight: .semibold))
+        .font(.system(size: 10, weight: .semibold))
         .foregroundStyle(PulseTheme.secondaryText)
         .lineLimit(1)
+        .minimumScaleFactor(0.78)
     }
     .frame(maxWidth: .infinity)
   }
 }
+private struct WeekActivityStrip: View {
+  let weekStart: Date
+  let activeDays: [Bool]
+
+  private struct DayInfo: Identifiable {
+    let id: Int
+    let label: String
+    let active: Bool
+    let isToday: Bool
+  }
+
+  private var dayInfos: [DayInfo] {
+    let cal = Calendar.current
+    let todayStart = cal.startOfDay(for: .now)
+    return (0..<7).compactMap { offset -> DayInfo? in
+      guard let date = cal.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
+      let weekday = cal.component(.weekday, from: date)
+      return DayInfo(
+        id: offset,
+        label: cal.veryShortWeekdaySymbols[weekday - 1].uppercased(),
+        active: offset < activeDays.count && activeDays[offset],
+        isToday: cal.startOfDay(for: date) == todayStart
+      )
+    }
+  }
+
+  var body: some View {
+    HStack(spacing: 0) {
+      ForEach(dayInfos) { day in
+        VStack(spacing: 5) {
+          ZStack {
+            Circle()
+              .fill(day.active ? PulseTheme.primary : Color.clear)
+              .frame(width: 28, height: 28)
+            Circle()
+              .strokeBorder(
+                day.active
+                  ? Color.clear
+                  : (day.isToday ? PulseTheme.primary.opacity(0.65) : Color.white.opacity(0.13)),
+                lineWidth: 1.5
+              )
+              .frame(width: 28, height: 28)
+            if day.active {
+              Image(systemName: "checkmark")
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(.white)
+            }
+          }
+          Text(day.label)
+            .font(.system(size: 10, weight: day.isToday ? .black : .medium))
+            .foregroundStyle(
+              day.active
+                ? .primary
+                : (day.isToday ? PulseTheme.primary : PulseTheme.secondaryText)
+            )
+        }
+        .frame(maxWidth: .infinity)
+      }
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 12)
+  }
+}
+
 
 private struct ProgressWeekContextCard: View {
   let sessionsThisWeek: Int
@@ -1973,31 +2077,33 @@ private struct HeroTile: View {
   }
 
   private var content: some View {
-    VStack(spacing: 5) {
+    VStack(alignment: .leading, spacing: 8) {
       Image(systemName: systemImage)
-        .font(.subheadline.weight(.bold))
+        .font(.system(size: 14, weight: .black))
         .foregroundStyle(tint)
+        .frame(width: 36, height: 36)
+        .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
       Text(value)
-        .font(.system(size: 19, weight: .black, design: .rounded))
+        .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
         .foregroundStyle(.white)
         .lineLimit(1)
-        .minimumScaleFactor(0.6)
-
-      Text(title)
-        .font(.system(size: 10, weight: .semibold))
-        .foregroundStyle(PulseTheme.secondaryText)
-        .lineLimit(1)
+        .minimumScaleFactor(0.55)
 
       if let subtitle {
-        Text(subtitle)
-          .font(.system(size: 9, weight: .semibold))
-          .foregroundStyle(PulseTheme.secondaryText.opacity(0.7))
+        Text("\(title) \(subtitle)")
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(PulseTheme.secondaryText)
+          .lineLimit(1)
+      } else {
+        Text(title)
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(PulseTheme.secondaryText)
           .lineLimit(1)
       }
 
       if let trend {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
           Image(systemName: trend.isUp ? "arrow.up.right" : "arrow.down.right")
             .font(.system(size: 8, weight: .black))
           Text(trend.label)
@@ -2005,14 +2111,31 @@ private struct HeroTile: View {
         }
         .foregroundStyle(trend.isUp ? PulseTheme.primaryBright : PulseTheme.destructive)
         .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background((trend.isUp ? PulseTheme.primaryBright : PulseTheme.destructive).opacity(0.14), in: Capsule())
-      } else {
-        // Keep tiles vertically aligned when one has no trend badge.
-        Color.clear.frame(height: 16)
+        .padding(.vertical, 3)
+        .background(
+          (trend.isUp ? PulseTheme.primaryBright : PulseTheme.destructive).opacity(0.15),
+          in: Capsule()
+        )
       }
     }
-    .frame(maxWidth: .infinity)
+    .padding(12)
+    .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
+    .background(
+      RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .fill(Color.white.opacity(0.045))
+        .overlay(
+          LinearGradient(
+            colors: [tint.opacity(0.10), Color.clear],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+        )
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .stroke(tint.opacity(0.20), lineWidth: 1)
+    )
+    .shadow(color: tint.opacity(0.10), radius: 8, x: 0, y: 4)
   }
 }
 

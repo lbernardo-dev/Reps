@@ -60,6 +60,13 @@ enum FitnessMetrics {
         let message: String
         let suggestion: String
         let systemImage: String
+        // Breakdown fields for UI display — single source of truth
+        let decayedFatigue: Double
+        let wellnessPenalty: Double
+        let restDays: Int
+        let sleepCredit: Double
+        let hrvCredit: Double
+        let fatigueCredit: Double
     }
 
     struct DailyCoachRecommendation: Equatable {
@@ -290,12 +297,23 @@ enum FitnessMetrics {
             .filter { $0.date >= weekStart && $0.date <= now }
             .reduce(0) { $0 + sessionBatteryCost($1) }
         let planPressure = planBatteryPressure(activePlan, scheduledWorkouts: scheduledWorkouts, now: now)
-        let recoveryCredit = recoveryCredit(
-            sessions: sessions,
-            bodyMetrics: bodyMetrics,
-            health: health,
-            now: now
-        )
+
+        // Recovery sub-breakdown (single computation, exposed in result for UI)
+        let latestBodyMetric = bodyMetrics.sorted { $0.date > $1.date }.first
+        let lastSession = sessions.sorted { $0.date > $1.date }.first
+        let restDays: Int
+        if let lastSession {
+            restDays = max(calendar.dateComponents([.day], from: calendar.startOfDay(for: lastSession.date), to: calendar.startOfDay(for: now)).day ?? 0, 0)
+        } else {
+            restDays = 2
+        }
+        let sleepCredit = latestBodyMetric?.sleepHours.map { clamp(($0 - 6) * 4, lower: -8, upper: 8) } ?? 0
+        let fatigueCredit = latestBodyMetric?.fatigue.map { clamp(Double(3 - $0) * 3, lower: -8, upper: 6) } ?? 0
+        let hrvCredit = health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.heartRateVariabilityMS.map { hrv in
+            clamp((hrv - 45) / 8, lower: -5, upper: 6)
+        } ?? 0
+        let recoveryCredit = clamp(Double(restDays) * 11 + sleepCredit + fatigueCredit + hrvCredit, lower: -12, upper: 36)
+
         let wellnessPenalty = wellnessPenalty(bodyMetrics: bodyMetrics, health: health, now: now)
         let fatigueLoad = decayedFatigue + planPressure + wellnessPenalty
         let level = Int(clamp(100 - fatigueLoad + recoveryCredit, lower: 5, upper: 100).rounded())
@@ -343,7 +361,13 @@ enum FitnessMetrics {
             title: title,
             message: message,
             suggestion: suggestion,
-            systemImage: systemImage
+            systemImage: systemImage,
+            decayedFatigue: decayedFatigue,
+            wellnessPenalty: wellnessPenalty,
+            restDays: restDays,
+            sleepCredit: sleepCredit,
+            hrvCredit: hrvCredit,
+            fatigueCredit: fatigueCredit
         )
     }
 

@@ -69,6 +69,7 @@ struct UserProfile: Codable {
     var mainGoal: MainGoal = .buildMuscle
     var experience: Experience = .intermediate
     var weeklyTrainingDays = 4
+    var preferredSessionLengthMinutes: Int? = nil
     var availableEquipment: [String] = []
     var showRPE = false
     var showRIR = false
@@ -724,6 +725,8 @@ struct Goal: Codable, Identifiable {
         var id: String { rawValue }
     }
 
+    enum Status { case active, achieved, overdue }
+
     var id = UUID()
     var kind: Kind = .strength
     var title: String
@@ -731,6 +734,24 @@ struct Goal: Codable, Identifiable {
     var target: Double
     var unit: String
     var deadline: Date?
+
+    var progress: Double {
+        guard target > 0 else { return 0 }
+        return min(current / target, 1.0)
+    }
+
+    var isAchieved: Bool { progress >= 1.0 }
+
+    var isOverdue: Bool {
+        guard let deadline, !isAchieved else { return false }
+        return deadline < Date.now
+    }
+
+    var status: Status {
+        if isAchieved { return .achieved }
+        if isOverdue { return .overdue }
+        return .active
+    }
 }
 
 struct BodyMetric: Codable, Identifiable {

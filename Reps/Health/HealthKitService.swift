@@ -4,6 +4,7 @@ import HealthKit
 
 @MainActor
 final class HealthKitService: ObservableObject {
+    static let shared = HealthKitService()
     private let healthStore = HKHealthStore()
 
     var isAvailable: Bool {

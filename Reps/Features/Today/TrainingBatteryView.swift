@@ -45,7 +45,7 @@ struct TrainingBatteryView: View {
     private var batteryColor: Color {
         switch batteryStatus.state {
         case .charged:
-            return PulseTheme.primaryBright
+            return PulseTheme.recovery
         case .steady:
             return PulseTheme.primary
         case .low:
@@ -55,81 +55,16 @@ struct TrainingBatteryView: View {
         }
     }
 
-    // MARK: - Recomputed Internal Physiological Balance Factors
-    private var latestMetric: BodyMetric? {
-        store.bodyMetrics.sorted { $0.date > $1.date }.first
-    }
-
-    private var restDays: Int {
-        let calendar = Calendar.current
-        let lastSession = store.workoutSessions.sorted { $0.date > $1.date }.first
-        if let lastSession {
-            return max(calendar.dateComponents([.day], from: calendar.startOfDay(for: lastSession.date), to: calendar.startOfDay(for: .now)).day ?? 0, 0)
-        } else {
-            return 2
-        }
-    }
-
-    private var sleepCredit: Double {
-        latestMetric?.sleepHours.map { clamp(($0 - 6) * 4, lower: -8, upper: 8) } ?? 0
-    }
-
-    private var hrvCredit: Double {
-        store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.heartRateVariabilityMS.map { hrv in
-            clamp((hrv - 45) / 8, lower: -5, upper: 6)
-        } ?? 0
-    }
-
-    private var fatigueCredit: Double {
-        latestMetric?.fatigue.map { clamp(Double(3 - $0) * 3, lower: -8, upper: 6) } ?? 0
-    }
-
-    private var restDaysCredit: Double {
-        Double(restDays) * 11.0
-    }
-
-    private var decayedFatigue: Double {
-        let calendar = Calendar.current
-        let now = Date.now
-        let recentSessions = store.workoutSessions.filter { $0.date >= calendar.date(byAdding: .day, value: -10, to: now) ?? now }
-        return recentSessions.reduce(0.0) { total, session in
-            let ageHours = max(now.timeIntervalSince(session.date) / 3_600, 0)
-            let decay = pow(0.72, ageHours / 24)
-            return total + FitnessMetrics.sessionBatteryCost(session) * decay
-        }
-    }
-
-    private var planPressure: Double {
-        let calendar = Calendar.current
-        let now = Date.now
-        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
-        let upcoming = store.scheduledWorkouts.filter { workout in
-            workout.status == .scheduled
-                && workout.date >= weekStart
-                && workout.date <= (calendar.date(byAdding: .day, value: 7, to: weekStart) ?? now)
-        }
-        let plannedDays = upcoming.isEmpty ? store.activePlan.days : upcoming.map(\.workoutDay)
-        guard !plannedDays.isEmpty else { return 0 }
-        let averageCost = plannedDays.reduce(0) { $0 + FitnessMetrics.workoutBatteryCost($1) } / Double(plannedDays.count)
-        let frequencyPressure = max(Double(store.activePlan.daysPerWeek - 3), 0) * 1.8
-        return clamp((averageCost / 10) + frequencyPressure, lower: 0, upper: 16)
-    }
-
-    private var wellnessPenalty: Double {
-        let fatigue = Double(max((latestMetric?.fatigue ?? 3) - 3, 0)) * 5
-        let stress = Double(max((latestMetric?.stress ?? 3) - 3, 0)) * 4
-        let sleep = max(0, 6.5 - (latestMetric?.sleepHours ?? 7)) * 5
-        let activeEnergy = store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.activeEnergyKcal ?? 0
-        let activityPenalty = activeEnergy > 900 ? 5.0 : 0.0
-        return fatigue + stress + sleep + activityPenalty
-    }
+    // MARK: - Balance sheet derived from canonical batteryStatus (no local recomputation)
+    private var restDaysCredit: Double { Double(batteryStatus.restDays) * 11.0 }
 
     private var totalRecovery: Double {
-        restDaysCredit + max(0, sleepCredit) + max(0, hrvCredit) + max(0, fatigueCredit)
+        restDaysCredit + max(0, batteryStatus.sleepCredit) + max(0, batteryStatus.hrvCredit) + max(0, batteryStatus.fatigueCredit)
     }
 
     private var totalFatigue: Double {
-        decayedFatigue + planPressure + wellnessPenalty + max(0, -sleepCredit) + max(0, -hrvCredit) + max(0, -fatigueCredit)
+        batteryStatus.decayedFatigue + batteryStatus.planPressure + batteryStatus.wellnessPenalty
+            + max(0, -batteryStatus.sleepCredit) + max(0, -batteryStatus.hrvCredit) + max(0, -batteryStatus.fatigueCredit)
     }
 
     // MARK: - Upcoming Workout Projection
@@ -376,9 +311,9 @@ struct TrainingBatteryView: View {
                             .padding(.bottom, 2)
 
                         BalanceRow(label: localizedString("rest_days"), value: String(format: "+%.0f", restDaysCredit), icon: "calendar.badge.clock", color: PulseTheme.primaryBright)
-                        BalanceRow(label: localizedString("hours_of_sleep"), value: String(format: "+%.0f", max(0, sleepCredit)), icon: "bed.double.fill", color: PulseTheme.primaryBright, active: sleepCredit > 0)
-                        BalanceRow(label: localizedString("hrv_recovery"), value: String(format: "+%.0f", max(0, hrvCredit)), icon: "waveform.path.ecg", color: PulseTheme.primaryBright, active: hrvCredit > 0)
-                        BalanceRow(label: localizedString("perceived_energy_stress"), value: String(format: "+%.0f", max(0, fatigueCredit)), icon: "face.smiling", color: PulseTheme.primaryBright, active: fatigueCredit > 0)
+                        BalanceRow(label: localizedString("hours_of_sleep"), value: String(format: "+%.0f", max(0, batteryStatus.sleepCredit)), icon: "bed.double.fill", color: PulseTheme.primaryBright, active: batteryStatus.sleepCredit > 0)
+                        BalanceRow(label: localizedString("hrv_recovery"), value: String(format: "+%.0f", max(0, batteryStatus.hrvCredit)), icon: "waveform.path.ecg", color: PulseTheme.primaryBright, active: batteryStatus.hrvCredit > 0)
+                        BalanceRow(label: localizedString("perceived_energy_stress"), value: String(format: "+%.0f", max(0, batteryStatus.fatigueCredit)), icon: "face.smiling", color: PulseTheme.primaryBright, active: batteryStatus.fatigueCredit > 0)
                     }
 
                     Divider()
@@ -391,17 +326,17 @@ struct TrainingBatteryView: View {
                             .foregroundStyle(PulseTheme.destructive)
                             .padding(.bottom, 2)
 
-                        BalanceRow(label: localizedString("decayed_fatigue"), value: String(format: "-%.0f", decayedFatigue), icon: "clock.arrow.circlepath", color: PulseTheme.destructive)
-                        BalanceRow(label: localizedString("active_plan_pressure"), value: String(format: "-%.0f", planPressure), icon: "crown.fill", color: PulseTheme.destructive)
-                        BalanceRow(label: localizedString("body_stress_and_wellness"), value: String(format: "-%.0f", wellnessPenalty), icon: "exclamationmark.triangle.fill", color: PulseTheme.destructive)
+                        BalanceRow(label: localizedString("decayed_fatigue"), value: String(format: "-%.0f", batteryStatus.decayedFatigue), icon: "clock.arrow.circlepath", color: PulseTheme.destructive)
+                        BalanceRow(label: localizedString("active_plan_pressure"), value: String(format: "-%.0f", batteryStatus.planPressure), icon: "crown.fill", color: PulseTheme.destructive)
+                        BalanceRow(label: localizedString("body_stress_and_wellness"), value: String(format: "-%.0f", batteryStatus.wellnessPenalty), icon: "exclamationmark.triangle.fill", color: PulseTheme.destructive)
 
                         // Penalties as positive fatigue values
-                        if sleepCredit < 0 {
-                            BalanceRow(label: localizedString("sleep_penalty"), value: String(format: "-%.0f", -sleepCredit), icon: "moon.fill", color: PulseTheme.destructive)
-                        } else if hrvCredit < 0 {
-                            BalanceRow(label: localizedString("hrv_penalty"), value: String(format: "-%.0f", -hrvCredit), icon: "heart.broken.fill", color: PulseTheme.destructive)
-                        } else if fatigueCredit < 0 {
-                            BalanceRow(label: localizedString("felt_fatigue"), value: String(format: "-%.0f", -fatigueCredit), icon: "brain.headprofile", color: PulseTheme.destructive)
+                        if batteryStatus.sleepCredit < 0 {
+                            BalanceRow(label: localizedString("sleep_penalty"), value: String(format: "-%.0f", -batteryStatus.sleepCredit), icon: "moon.fill", color: PulseTheme.destructive)
+                        } else if batteryStatus.hrvCredit < 0 {
+                            BalanceRow(label: localizedString("hrv_penalty"), value: String(format: "-%.0f", -batteryStatus.hrvCredit), icon: "heart.broken.fill", color: PulseTheme.destructive)
+                        } else if batteryStatus.fatigueCredit < 0 {
+                            BalanceRow(label: localizedString("felt_fatigue"), value: String(format: "-%.0f", -batteryStatus.fatigueCredit), icon: "brain.headprofile", color: PulseTheme.destructive)
                         }
                     }
                 }
@@ -439,7 +374,7 @@ struct TrainingBatteryView: View {
                 // Rest days since last workout
                 MiniMetricTile(
                     title: "real_rest",
-                    value: localizedFormat(restDays == 1 ? "day_singular_count_format" : "days_plural_count_format", restDays),
+                    value: localizedFormat(batteryStatus.restDays == 1 ? "day_singular_count_format" : "days_plural_count_format", batteryStatus.restDays),
                     subtitle: "since_last_session",
                     systemImage: "bed.double.fill",
                     color: PulseTheme.accent
@@ -565,7 +500,7 @@ struct TrainingBatteryView: View {
         case 55..<80:
             return PulseTheme.primary
         default:
-            return PulseTheme.primaryBright
+            return PulseTheme.recovery
         }
     }
 

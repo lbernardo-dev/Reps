@@ -89,6 +89,7 @@ struct HRVView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                HealthWidgetDetailNavBar(title: localizedString("hrv_heart_rate"))
                 gaugeCard.padding(.top, 8)
                 stylePicker
                 trendCard
@@ -97,9 +98,8 @@ struct HRVView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
         }
-        .navigationTitle(localizedString("hrv_heart_rate"))
-        .navigationBarTitleDisplayMode(.large)
         .background(PulseTheme.background.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     // MARK: - Gauge Card
@@ -115,7 +115,8 @@ struct HRVView: View {
                     .font(.title3.bold())
                     .foregroundStyle(zone.color)
 
-                gaugeView.frame(height: 220)
+                gaugeView
+                    .frame(maxWidth: .infinity, minHeight: 220, maxHeight: 220, alignment: .center)
 
                 HStack(spacing: 16) {
                     VStack(spacing: 2) {
@@ -145,7 +146,9 @@ struct HRVView: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
                 }
+                .frame(maxWidth: .infinity)
             }
+            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 
@@ -153,9 +156,9 @@ struct HRVView: View {
     private var gaugeView: some View {
         let ms = latestHRV ?? 0
         switch selectedStyle {
-        case .signal:   HRVSignalGauge(ms: ms, zone: zone)
-        case .ring:     HRVFrequencyRing(ms: ms, zone: zone)
-        case .spectrum: HRVZoneSpectrum(ms: ms, zone: zone, avgMs: avgHRV7 ?? 0)
+        case .signal:   HRVSignalGauge(ms: ms, zone: zone).frame(maxWidth: .infinity)
+        case .ring:     HRVFrequencyRing(ms: ms, zone: zone).frame(maxWidth: .infinity)
+        case .spectrum: HRVZoneSpectrum(ms: ms, zone: zone, avgMs: avgHRV7 ?? 0).frame(maxWidth: .infinity)
         }
     }
 
@@ -182,6 +185,7 @@ struct HRVView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
+                        .frame(minHeight: 74)
                         .background(sel ? zone.color : PulseTheme.card)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -367,6 +371,7 @@ struct HRVSignalGauge: View {
                         .foregroundStyle(zone.color)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
     }
 }
@@ -408,8 +413,7 @@ struct HRVFrequencyRing: View {
                 .frame(width: 170, height: 170)
 
             VStack(spacing: 3) {
-                Text(localizedString("heart_rate_variability").uppercased()
-                    .split(separator: " ").prefix(2).joined(separator: " "))
+                Text(localizedString("HRV").uppercased())
                     .font(.system(size: 8, weight: .black, design: .rounded))
                     .tracking(1.2)
                     .foregroundStyle(PulseTheme.secondaryText)
@@ -432,6 +436,7 @@ struct HRVFrequencyRing: View {
                     .clipShape(Capsule())
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 }
 
@@ -488,6 +493,8 @@ struct HRVZoneSpectrum: View {
                 }
             }
         }
+        .frame(maxWidth: 330)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .padding(.horizontal, 4)
     }
 }

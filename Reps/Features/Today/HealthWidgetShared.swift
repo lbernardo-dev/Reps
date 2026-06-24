@@ -1,5 +1,43 @@
 import SwiftUI
 
+// MARK: - Detail navigation bar used across health widget detail views
+struct HealthWidgetDetailNavBar: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let title: String
+
+    var body: some View {
+        HStack {
+            Button {
+                HapticService.selection()
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .navigationGlassCircle(.secondary)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Text(title)
+                .font(.system(size: 19, weight: .bold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            Spacer()
+
+            Image(systemName: "chevron.left")
+                .font(.system(size: 18, weight: .bold))
+                .opacity(0)
+                .frame(width: 38, height: 38)
+        }
+        .padding(.vertical, 14)
+    }
+}
+
 // MARK: - Insight row used across health detail views
 struct HealthInsightRow: View {
     let icon: String

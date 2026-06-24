@@ -44,6 +44,7 @@ struct ExerciseView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                HealthWidgetDetailNavBar(title: localizedString("exercise_2"))
                 gaugeCard.padding(.top, 8)
                 stylePicker
                 weeklyTrendCard
@@ -52,9 +53,8 @@ struct ExerciseView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
         }
-        .navigationTitle(localizedString("exercise_2"))
-        .navigationBarTitleDisplayMode(.large)
         .background(PulseTheme.background.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     // metricsGrid removed — data moved to gauge card to avoid duplication
@@ -375,24 +375,30 @@ struct ExerciseSegmentGauge: View {
             let activeCount = Int(Double(segments) * fraction)
             let pulsing = activeCount < segments && Int(fraction * Double(segments) * 10) % 10 > 0
             let labelW: CGFloat = 26
-            let barW = geo.size.width - labelW - 14 // 14 = padding+spacing
+            let horizontalSpacing: CGFloat = 8
+            let rowSpacing: CGFloat = 8
+            let totalSpacing = rowSpacing * CGFloat(max(segments - 1, 0))
+            let rowHeight = max(16, (geo.size.height - totalSpacing) / CGFloat(segments))
+            let barHeight = max(14, rowHeight * 0.72)
+            let cornerRadius = min(7, barHeight / 2)
+            let barW = max(0, geo.size.width - labelW - horizontalSpacing)
 
-            VStack(spacing: 5) {
+            VStack(spacing: rowSpacing) {
                 ForEach((0..<segments).reversed(), id: \.self) { i in
                     let isActive = i < activeCount
                     let isPulsing = pulsing && i == activeCount
 
-                    HStack(spacing: 6) {
+                    HStack(spacing: horizontalSpacing) {
                         Text(i % 2 == 0 ? "\((i + 1) * 5)m" : "")
                             .font(.system(size: 8, weight: .bold, design: .rounded))
                             .foregroundStyle(PulseTheme.secondaryText.opacity(0.6))
                             .frame(width: labelW, alignment: .trailing)
 
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .fill(isActive ? color : (isPulsing ? color.opacity(0.55) : color.opacity(0.1)))
-                            .frame(width: barW, height: 14)
+                            .frame(width: barW, height: barHeight)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                                     .stroke(isActive ? .white.opacity(0.18) : .clear, lineWidth: 1)
                             )
                             .shadow(color: isActive ? color.opacity(0.4) : .clear, radius: 4, y: 1)
@@ -402,9 +408,10 @@ struct ExerciseSegmentGauge: View {
                                 value: isPulsing
                             )
                     }
+                    .frame(height: rowHeight)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .center)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
         }
     }
 }

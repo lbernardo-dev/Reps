@@ -1,0 +1,466 @@
+import SwiftUI
+
+struct EquipmentRoutineWizardView: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var step = 0
+    @State private var selectedLocationID: String
+    @State private var selectedEquipment: [String]
+    @State private var daysPerWeek: Int
+    @State private var showConfirmCreate = false
+
+    private let totalSteps = 3
+
+    init(profile: UserProfile) {
+        let locationID = OnboardingLocationCatalog.locations.first {
+            $0.profileLocation == profile.trainingLocation
+        }?.id ?? OnboardingLocationCatalog.defaultLocation.id
+        _selectedLocationID = State(initialValue: locationID)
+        let equipment = profile.availableEquipment.isEmpty
+            ? OnboardingLocationCatalog.location(for: locationID).equipment
+            : profile.availableEquipment
+        _selectedEquipment = State(initialValue: equipment)
+        _daysPerWeek = State(initialValue: max(2, min(6, profile.weeklyTrainingDays)))
+    }
+
+    private var selectedLocation: OnboardingTrainingLocationOption {
+        OnboardingLocationCatalog.location(for: selectedLocationID)
+    }
+
+    private var resolvedPlanName: String {
+        let normalized = Set(
+            OnboardingLocationCatalog.normalizedEquipment(from: selectedEquipment)
+                .map { $0.lowercased() }
+        )
+        let prefersHome = selectedLocation.profileLocation == .home
+            || normalized.contains("dumbbells")
+            || normalized.contains("resistance band")
+            || normalized.contains("bodyweight")
+        return prefersHome
+            ? localizedString("home_based_on_my_equipment")
+            : localizedString("recommended_gym")
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    stepIndicator
+
+                    Group {
+                        switch step {
+                        case 0: locationStep
+                        case 1: equipmentStep
+                        default: frequencyStep
+                        }
+                    }
+                    .animation(.spring(duration: 0.35), value: step)
+                    .id(step)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 108)
+            }
+            .navigationTitle(LocalizedStringKey("equipment_routine"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(LocalizedStringKey("cancel")) { dismiss() }
+                }
+            }
+            .safeAreaInset(edge: .bottom) { bottomBar }
+            .confirmationDialog(
+                LocalizedStringKey("equip_routine_confirm_title"),
+                isPresented: $showConfirmCreate,
+                titleVisibility: .visible
+            ) {
+                Button(LocalizedStringKey("create_routine")) { performCreate() }
+                Button(LocalizedStringKey("cancel"), role: .cancel) {}
+            } message: {
+                Text(LocalizedStringKey("equip_routine_confirm_message"))
+            }
+        }
+    }
+
+    // MARK: - Step Indicator
+
+    private var stepIndicator: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<totalSteps, id: \.self) { i in
+                Capsule()
+                    .fill(i <= step ? Color.white : PulseTheme.separator)
+                    .frame(width: i == step ? 24 : 8, height: 6)
+                    .animation(.spring(duration: 0.3), value: step)
+            }
+            Spacer()
+        }
+    }
+
+    // MARK: - Steps
+
+    private var locationStep: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            wizardStepHeader(
+                title: "equip_routine_step1_title",
+                subtitle: "equip_routine_step1_subtitle"
+            )
+            VStack(spacing: 10) {
+                ForEach(OnboardingLocationCatalog.locations) { loc in
+                    WizardOptionCard(
+                        title: loc.title,
+                        subtitle: loc.subtitle,
+                        icon: loc.icon,
+                        isSelected: selectedLocationID == loc.id
+                    ) {
+                        selectedLocationID = loc.id
+                        selectedEquipment = loc.equipment
+                    }
+                }
+            }
+        }
+    }
+
+    private var equipmentStep: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            wizardStepHeader(
+                title: "equip_routine_step2_title",
+                subtitle: "equip_routine_step2_subtitle"
+            )
+            PulseCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(LocalizedStringKey("available_equipment"))
+                        .font(.headline)
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 104), spacing: 10)],
+                        alignment: .leading,
+                        spacing: 10
+                    ) {
+                        ForEach(OnboardingLocationCatalog.coreEquipment, id: \.self) { item in
+                            WizardEquipmentChip(
+                                title: OnboardingLocationCatalog.localizedEquipmentKey(item),
+                                isSelected: selectedEquipment.contains(item)
+                            ) {
+                                if let idx = selectedEquipment.firstIndex(of: item) {
+                                    selectedEquipment.remove(at: idx)
+                                } else {
+                                    selectedEquipment.append(item)
+                                }
+                            }
+                        }
+                    }
+                    Text(LocalizedStringKey("onboarding_equipment_refine_hint"))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+        }
+    }
+
+    private var frequencyStep: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            wizardStepHeader(
+                title: "equip_routine_step3_title",
+                subtitle: "equip_routine_step3_subtitle"
+            )
+            WizardDaysPicker(days: $daysPerWeek)
+            routinePreviewCard
+        }
+    }
+
+    private var routinePreviewCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    Image(systemName: "wand.and.sparkles")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 42, height: 42)
+                        .background(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(resolvedPlanName)
+                            .font(.headline)
+                        Text(LocalizedStringKey("equip_routine_preview_label"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    Spacer()
+                }
+                Rectangle()
+                    .fill(PulseTheme.separator)
+                    .frame(height: 1)
+                previewRow(
+                    icon: "location.fill",
+                    label: "equip_routine_preview_location",
+                    value: localizedString(selectedLocation.titleKey)
+                )
+                previewRow(
+                    icon: "dumbbell.fill",
+                    label: "equip_routine_preview_equipment",
+                    value: "\(selectedEquipment.count)"
+                )
+                previewRow(
+                    icon: "calendar",
+                    label: "onboarding_schedule_days_label",
+                    value: localizedFormat("equip_routine_preview_days_format", daysPerWeek)
+                )
+            }
+        }
+    }
+
+    private func previewRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .frame(width: 18)
+            Text(LocalizedStringKey(label))
+                .font(.subheadline)
+                .foregroundStyle(PulseTheme.secondaryText)
+            Spacer()
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+        }
+    }
+
+    // MARK: - Bottom Bar
+
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 12) {
+                if step > 0 {
+                    Button {
+                        step -= 1
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chevron.left")
+                                .font(.subheadline.weight(.bold))
+                            Text(LocalizedStringKey("equip_routine_back"))
+                                .font(.headline.weight(.semibold))
+                        }
+                        .frame(height: 52)
+                        .padding(.horizontal, 20)
+                        .background(PulseTheme.grouped)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .wizardPressableFeedback(scale: 0.965)
+                }
+
+                Button {
+                    if step < totalSteps - 1 {
+                        step += 1
+                    } else {
+                        showConfirmCreate = true
+                    }
+                } label: {
+                    Text(step < totalSteps - 1
+                         ? LocalizedStringKey("next")
+                         : LocalizedStringKey("create_routine"))
+                        .font(.headline.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(.white)
+                        .foregroundStyle(.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .wizardPressableFeedback(scale: 0.97)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(.ultraThinMaterial)
+        }
+    }
+
+    // MARK: - Helpers
+
+    @ViewBuilder
+    private func wizardStepHeader(title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(LocalizedStringKey(title))
+                .font(.system(size: 28, weight: .heavy))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+            Text(LocalizedStringKey(subtitle))
+                .font(.callout.weight(.medium))
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func performCreate() {
+        store.createEquipmentRoutine(
+            location: selectedLocation.profileLocation,
+            equipment: selectedEquipment,
+            daysPerWeek: daysPerWeek
+        )
+        HapticService.notification(.success)
+        dismiss()
+    }
+}
+
+// MARK: - Private Components
+
+private struct WizardOptionCard: View {
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(isSelected ? .white : .white.opacity(0.72))
+                    .frame(width: 48, height: 48)
+                    .background(.white.opacity(isSelected ? 0.14 : 0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(isSelected ? .white : PulseTheme.tertiaryText)
+            }
+            .padding(15)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(isSelected ? .white.opacity(0.08) : PulseTheme.card)
+            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                    .stroke(
+                        isSelected ? .white.opacity(0.9) : PulseTheme.separator,
+                        lineWidth: isSelected ? 1.6 : 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .wizardPressableFeedback(scale: 0.965)
+        .sensoryFeedback(.selection, trigger: isSelected)
+    }
+}
+
+private struct WizardEquipmentChip: View {
+    let title: LocalizedStringKey
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.bold))
+                .padding(.horizontal, 14)
+                .frame(height: 40)
+                .foregroundStyle(isSelected ? .black : PulseTheme.secondaryText)
+                .background(isSelected ? PulseTheme.accent : PulseTheme.grouped)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .wizardPressableFeedback(scale: 0.94)
+        .sensoryFeedback(.selection, trigger: isSelected)
+    }
+}
+
+private struct WizardDaysPicker: View {
+    @Binding var days: Int
+    private let options = [2, 3, 4, 5, 6]
+
+    var body: some View {
+        PulseCard(contentPadding: 18) {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(LocalizedStringKey("onboarding_schedule_days_label"))
+                        .font(.headline)
+                    Spacer()
+                    Text(dayHint)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.72)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: 180)
+                }
+                HStack(alignment: .lastTextBaseline, spacing: 8) {
+                    Text("\(days)")
+                        .font(.system(size: 68, weight: .heavy))
+                        .contentTransition(.numericText(value: Double(days)))
+                    Text(LocalizedStringKey("onboarding_schedule_days_unit"))
+                        .font(.title2.weight(.black))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                HStack(spacing: 8) {
+                    ForEach(options, id: \.self) { option in
+                        Button {
+                            days = option
+                        } label: {
+                            Text("\(option)")
+                                .font(.headline.monospacedDigit())
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .foregroundStyle(days == option ? .black : PulseTheme.secondaryText)
+                                .background(days == option ? .white : PulseTheme.grouped)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .wizardPressableFeedback(scale: 0.94)
+                    }
+                }
+            }
+        }
+        .sensoryFeedback(.selection, trigger: days)
+    }
+
+    private var dayHint: String {
+        switch days {
+        case 2: localizedString("onboarding_schedule_2_days")
+        case 3: localizedString("onboarding_schedule_3_days")
+        case 4: localizedString("onboarding_schedule_4_days")
+        case 5: localizedString("onboarding_schedule_5_days")
+        case 6: localizedString("onboarding_schedule_6_days")
+        default: localizedString("onboarding_schedule_4_days")
+        }
+    }
+}
+
+// MARK: - Press Feedback
+
+private struct WizardPressableFeedback: ViewModifier {
+    var pressedScale: CGFloat = 0.96
+    @State private var isPressed = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPressed ? pressedScale : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        if !isPressed {
+                            isPressed = true
+                            HapticService.impact(.light)
+                        }
+                    }
+                    .onEnded { _ in isPressed = false }
+            )
+    }
+}
+
+private extension View {
+    func wizardPressableFeedback(scale: CGFloat = 0.96) -> some View {
+        modifier(WizardPressableFeedback(pressedScale: scale))
+    }
+}

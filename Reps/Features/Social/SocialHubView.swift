@@ -184,14 +184,7 @@ struct SocialHubView: View {
     // MARK: - My Profile Card
 
     private var myProfileCard: some View {
-        let xp = GamificationEngine.totalXP(
-            sessions: store.workoutSessions,
-            cardioLogs: store.combinedCardioLogs,
-            bodyMetrics: store.bodyMetrics,
-            progressPhotos: store.progressPhotos,
-            streakDays: store.streakDays,
-            totalVolumeKg: store.totalVolumeKg
-        )
+        let xp = store.playerXP
         let lvl = GamificationEngine.playerLevel(for: xp)
         let uname = store.userProfile.socialUsername ?? "—"
         let bio = store.userProfile.socialBio
@@ -647,14 +640,7 @@ struct SocialHubView: View {
     }
 
     private var leaderboardEntries: [LeaderboardEntry] {
-        let myXP = GamificationEngine.totalXP(
-            sessions: store.workoutSessions,
-            cardioLogs: store.combinedCardioLogs,
-            bodyMetrics: store.bodyMetrics,
-            progressPhotos: store.progressPhotos,
-            streakDays: store.streakDays,
-            totalVolumeKg: store.totalVolumeKg
-        )
+        let myXP = store.playerXP
         let myUsername = store.userProfile.socialUsername ?? ""
         var all: [(String, Int, Bool, Data?, Bool)] = following.map {
             ($0.username, $0.totalXP, false, $0.avatarImageData, $0.isOnline)
@@ -1231,14 +1217,7 @@ struct SocialHubView: View {
     // MARK: - Friend Comparison Card
 
     private func friendComparisonCard(friend: SocialProfile) -> some View {
-        let xp = GamificationEngine.totalXP(
-            sessions: store.workoutSessions,
-            cardioLogs: store.combinedCardioLogs,
-            bodyMetrics: store.bodyMetrics,
-            progressPhotos: store.progressPhotos,
-            streakDays: store.streakDays,
-            totalVolumeKg: store.totalVolumeKg
-        )
+        let xp = store.playerXP
         let lvl = GamificationEngine.playerLevel(for: xp)
         let myName = store.userProfile.socialUsername ?? localizedString("social_you")
         let myAhead = xp > friend.totalXP
@@ -1408,14 +1387,7 @@ struct SocialHubView: View {
     }
 
     private func saveLeaderboardToWidget(following: [SocialProfile]) {
-        let myXP = GamificationEngine.totalXP(
-            sessions: store.workoutSessions,
-            cardioLogs: store.combinedCardioLogs,
-            bodyMetrics: store.bodyMetrics,
-            progressPhotos: store.progressPhotos,
-            streakDays: store.streakDays,
-            totalVolumeKg: store.totalVolumeKg
-        )
+        let myXP = store.playerXP
         let myUsername = store.userProfile.socialUsername ?? ""
         var all: [(String, Int, Bool)] = following.map { ($0.username, $0.totalXP, false) }
         if !myUsername.isEmpty { all.append((myUsername, myXP, true)) }

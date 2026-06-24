@@ -531,13 +531,14 @@ struct TodayView: View {
                         Text(titleText)
                             .font(.system(size: 30, weight: .black, design: .rounded))
                             .foregroundStyle(.primary)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.72)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
 
                         if !store.activePlan.days.isEmpty {
                             focusWorkoutMenu
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                     Text(subtitleText)
                         .font(.subheadline.weight(.semibold))
@@ -545,8 +546,7 @@ struct TodayView: View {
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 if hasActivePlan {
                     Button {
@@ -1319,10 +1319,10 @@ struct TodayView: View {
     }
 
     private var progressAndRecovery: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
             // Last Workout
-            PulseCard(contentPadding: 14) {
-                VStack(alignment: .leading, spacing: 8) {
+            PulseCard(minHeight: 110, contentPadding: 14) {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 7) {
                         Image(systemName: "clock.arrow.circlepath")
                             .font(.system(size: 12, weight: .bold))
@@ -1335,21 +1335,24 @@ struct TodayView: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                             .lineLimit(1)
                     }
+                    Spacer(minLength: 4)
                     Text(lastWorkout.map { RepsText.workoutTitle($0.workoutTitle, language: store.userProfile.preferredLanguage) } ?? localizedString("no_workouts"))
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .lineLimit(2)
-                        .minimumScaleFactor(0.80)
+                        .minimumScaleFactor(0.78)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(lastWorkoutSubtitle)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
             }
-            .aspectRatio(1, contentMode: .fit)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Health / Steps
-            PulseCard(contentPadding: 14) {
-                VStack(alignment: .leading, spacing: 8) {
+            PulseCard(minHeight: 110, contentPadding: 14) {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 7) {
                         Image(systemName: "figure.walk")
                             .font(.system(size: 12, weight: .bold))
@@ -1362,6 +1365,7 @@ struct TodayView: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                             .lineLimit(1)
                     }
+                    Spacer(minLength: 4)
                     Text(store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--")
                         .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
                         .foregroundStyle(store.todayHealthMetric != nil ? Color.green : PulseTheme.secondaryText)
@@ -1373,7 +1377,7 @@ struct TodayView: View {
                         .lineLimit(1)
                 }
             }
-            .aspectRatio(1, contentMode: .fit)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -1569,6 +1573,7 @@ private struct TodayCoachSummaryRow: View {
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Spacer(minLength: 0)
@@ -2065,7 +2070,7 @@ private struct MiniTrendCard<Chart: View>: View {
                 Spacer(minLength: 8)
 
                 chart
-                    .frame(height: 42)
+                    .frame(height: 42, alignment: .bottom)
                     .frame(maxWidth: .infinity)
             }
             .frame(height: 130, alignment: .top)

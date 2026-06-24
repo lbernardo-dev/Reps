@@ -9,6 +9,7 @@ struct CalendarView: View {
     @State private var showProfile = false
     @State private var showNotifications = false
     @State private var showSocialHub = false
+    @State private var notificationWorkout: WorkoutDay?
 
     var body: some View {
         NavigationStack {
@@ -254,13 +255,20 @@ struct CalendarView: View {
             .navigationDestination(isPresented: $showSocialHub) {
                 SocialHubView()
             }
+            .navigationDestination(item: $notificationWorkout) { workout in
+                ActiveWorkoutView(workout: workout)
+            }
             .toolbar(.hidden, for: .navigationBar)
         }
         .onAppear {
             applyFocusedDate(store.calendarFocusedDate)
+            applyWorkoutToOpen(store.calendarWorkoutToOpenID)
         }
         .onChange(of: store.calendarFocusedDate) { _, newDate in
             applyFocusedDate(newDate)
+        }
+        .onChange(of: store.calendarWorkoutToOpenID) { _, workoutID in
+            applyWorkoutToOpen(workoutID)
         }
     }
 
@@ -472,6 +480,16 @@ struct CalendarView: View {
         visibleMonth = date
         selectedDate = date
         store.calendarFocusedDate = nil
+    }
+
+    private func applyWorkoutToOpen(_ workoutID: UUID?) {
+        guard let workoutID,
+              let scheduled = store.scheduledWorkouts.first(where: { $0.id == workoutID }) else {
+            return
+        }
+
+        notificationWorkout = scheduled.workoutDay
+        store.calendarWorkoutToOpenID = nil
     }
 }
 

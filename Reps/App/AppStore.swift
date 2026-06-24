@@ -15,6 +15,7 @@ final class AppStore {
         let tab: AppTab
         let focusDate: Date?
         let scheduledWorkoutID: UUID?
+        let action: NotificationService.Action
     }
 
     var userProfile = UserProfile() {
@@ -32,7 +33,7 @@ final class AppStore {
     private(set) var storeKitErrorMessage: String?
     private(set) var iCloudProRecordHash: String?
     private(set) var iCloudProEntitlementMessage: String?
-    var activePlan = WorkoutPlan.empty { didSet { save(scope: .plans) } }
+    var activePlan = WorkoutPlan.empty { didSet { save(scope: .plans); updateTrainingBattery() } }
     var plans: [WorkoutPlan] = [] { didSet { save(scope: .plans) } }
     var workoutTemplates: [WorkoutDay] = SeedData.workoutTemplates { didSet { save(scope: .workoutTemplates) } }
     var exercises: [Exercise] = SeedData.exercises { didSet { save(scope: .exerciseLibrary) } }
@@ -40,16 +41,17 @@ final class AppStore {
         didSet {
             reconcileNotificationStateIfNeeded()
             save(scope: .scheduledWorkouts)
+            updateTrainingBattery()
         }
     }
-    var workoutSessions: [WorkoutSession] = [] { didSet { save(scope: .workoutSessions) } }
+    var workoutSessions: [WorkoutSession] = [] { didSet { save(scope: .workoutSessions); updateTrainingBattery() } }
     var cardioLogs: [CardioLog] = [] { didSet { save(scope: .cardioLogs) } }
-    var bodyMetrics: [BodyMetric] = [] { didSet { save(scope: .bodyMetrics) } }
+    var bodyMetrics: [BodyMetric] = [] { didSet { save(scope: .bodyMetrics); updateTrainingBattery() } }
     var progressPhotos: [ProgressPhoto] = [] { didSet { save(scope: .progressPhotos) } }
     var gymPasses: [GymPass] = [] { didSet { save(scope: .gymPasses) } }
     var gymVisits: [GymVisit] = [] { didSet { save(scope: .gymVisits) } }
     var goals: [Goal] = [] { didSet { save(scope: .goals) } }
-    var health = HealthSyncState() { didSet { save(scope: .health) } }
+    var health = HealthSyncState() { didSet { save(scope: .health); updateTrainingBattery() } }
     var isSyncingExerciseLibrary = false
     var exerciseLibrarySyncMessage: String?
     var iCloudBackupDate: Date? = nil
@@ -90,6 +92,7 @@ final class AppStore {
     var isUsingFallbackStorage = false
     var notificationDestination: NotificationDestination?
     var calendarFocusedDate: Date?
+    var calendarWorkoutToOpenID: UUID?
     /// Set by flows that want the main tab bar to switch after they finish
     /// (e.g. closing the post-workout summary jumps to Progress).
     var pendingMainTabSelection: AppTab?
@@ -110,7 +113,7 @@ final class AppStore {
     @ObservationIgnored private let persistence: SwiftDataPersistence
     @ObservationIgnored private let iCloudProEntitlementService: ICloudProEntitlementService
     @ObservationIgnored private let shareImageRenderer: (WorkoutSession?) -> UIImage
-    @ObservationIgnored private let healthKitService = HealthKitService()
+    @ObservationIgnored private let healthKitService = HealthKitService.shared
     @ObservationIgnored private var nativeWorkoutSessionService: NativeWorkoutSessionService?
     @ObservationIgnored private var isRestoring = false
     @ObservationIgnored private var hasAttemptedExerciseLibrarySync = false
@@ -255,26 +258,30 @@ final class AppStore {
             notificationDestination = NotificationDestination(
                 tab: .calendar,
                 focusDate: focusDate,
-                scheduledWorkoutID: target.scheduledWorkoutID
+                scheduledWorkoutID: target.scheduledWorkoutID,
+                action: target.action
             )
         case .personalRecord, .achievementUnlocked:
             notificationDestination = NotificationDestination(
                 tab: .progress,
                 focusDate: nil,
-                scheduledWorkoutID: nil
+                scheduledWorkoutID: nil,
+                action: target.action
             )
         case .dailySummary, .batteryRecoverySuggestion, .retentionNudge, .streakAtRisk:
             notificationDestination = NotificationDestination(
                 tab: .today,
                 focusDate: nil,
-                scheduledWorkoutID: nil
+                scheduledWorkoutID: nil,
+                action: target.action
             )
         default:
-            // gymRenewal / open / logWorkout / markDone / snooze — land on Today.
+            // gymRenewal and notifications without a navigable root land on Today.
             notificationDestination = NotificationDestination(
                 tab: .today,
                 focusDate: nil,
-                scheduledWorkoutID: nil
+                scheduledWorkoutID: nil,
+                action: target.action
             )
         }
     }
@@ -344,13 +351,12 @@ final class AppStore {
         return FitnessMetrics.weeklyCompletion(completedWorkouts: completedThisWeek, plannedWorkouts: activePlan.daysPerWeek)
     }
 
-    var currentWeight: Double {
-        bodyMetrics.sorted { $0.date < $1.date }.last?.weightKg ?? 0
+    private var latestBodyMetricByDate: BodyMetric? {
+        bodyMetrics.max(by: { $0.date < $1.date })
     }
 
-    var currentHeight: Double {
-        bodyMetrics.sorted { $0.date < $1.date }.last?.heightCm ?? 0
-    }
+    var currentWeight: Double { latestBodyMetricByDate?.weightKg ?? 0 }
+    var currentHeight: Double { latestBodyMetricByDate?.heightCm ?? 0 }
 
     var hasBodyMetrics: Bool {
         bodyMetrics.contains { $0.weightKg > 0 || $0.heightCm > 0 }
@@ -414,6 +420,17 @@ final class AppStore {
         FitnessMetrics.bestEstimatedOneRepMaxKg(for: workoutSessions) ?? 0
     }
 
+    var playerXP: Int {
+        GamificationEngine.totalXP(
+            sessions: workoutSessions,
+            cardioLogs: combinedCardioLogs,
+            bodyMetrics: bodyMetrics,
+            progressPhotos: progressPhotos,
+            streakDays: streakDays,
+            totalVolumeKg: totalVolumeKg
+        )
+    }
+
     var todayHealthMetric: DailyHealthMetric? {
         let calendar = Calendar.current
         return health.latestDailyMetrics.last { calendar.isDateInToday($0.date) }
@@ -430,8 +447,14 @@ final class AppStore {
         return "\(workoutText). \(healthText)."
     }
 
-    var trainingBattery: FitnessMetrics.TrainingBatteryStatus {
-        FitnessMetrics.trainingBatteryStatus(
+    // Cached — recomputed only when sessions/schedule/plan/metrics/health actually change.
+    private(set) var trainingBattery = FitnessMetrics.trainingBatteryStatus(
+        sessions: [], scheduledWorkouts: [], activePlan: .empty, bodyMetrics: [], health: HealthSyncState()
+    )
+
+    private func updateTrainingBattery() {
+        guard !isRestoring else { return }
+        trainingBattery = FitnessMetrics.trainingBatteryStatus(
             sessions: workoutSessions,
             scheduledWorkouts: scheduledWorkouts,
             activePlan: activePlan,
@@ -809,6 +832,14 @@ final class AppStore {
             "has_weight": metric.weightKg > 0,
             "has_height": metric.heightCm > 0
         ])
+    }
+
+    func logWater(liters: Double) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            try? await healthKitService.saveDailyNutrition(waterLiters: liters, dietaryEnergyKcal: nil)
+            refreshHealthKitDataIfNeeded(force: true, reason: "water_logged")
+        }
     }
 
     func updateLatestBodyMetrics(weightKg: Double, heightCm: Double) {
@@ -2569,18 +2600,45 @@ final class AppStore {
         ])
     }
 
+    func updateGoal(_ goal: Goal) {
+        guard let idx = goals.firstIndex(where: { $0.id == goal.id }) else { return }
+        goals[idx] = goal
+    }
+
+    func deleteGoal(id: UUID) {
+        goals.removeAll { $0.id == id }
+    }
+
     @discardableResult
     func createSuggestedPlanForAvailableEquipment() -> WorkoutPlan {
-        sanitizeAvailableEquipment()
-        let equipment = Set(userProfile.availableEquipment.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() })
-        let prefersHome = userProfile.trainingLocation == .home
-            || equipment.contains("dumbbells")
-            || equipment.contains("resistance band")
-            || equipment.contains("bodyweight")
+        createEquipmentRoutine(
+            location: userProfile.trainingLocation,
+            equipment: userProfile.availableEquipment,
+            daysPerWeek: userProfile.weeklyTrainingDays
+        )
+    }
+
+    @discardableResult
+    func createEquipmentRoutine(
+        location: UserProfile.TrainingLocation,
+        equipment: [String],
+        daysPerWeek: Int
+    ) -> WorkoutPlan {
+        let normalized = Set(
+            OnboardingLocationCatalog.normalizedEquipment(from: equipment)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+        )
+        let prefersHome = location == .home
+            || normalized.contains("dumbbells")
+            || normalized.contains("resistance band")
+            || normalized.contains("bodyweight")
         let template = prefersHome ? SeedData.homeStrengthPlan : SeedData.pushPullLegsPlan
         var suggested = template
         suggested.id = UUID()
-        suggested.name = prefersHome ? localizedKey("home_based_on_my_equipment") : localizedKey("recommended_gym")
+        suggested.name = prefersHome
+            ? localizedKey("home_based_on_my_equipment")
+            : localizedKey("recommended_gym")
+        suggested.daysPerWeek = max(1, daysPerWeek)
         addPlan(suggested, activate: true)
         health.message = localizedFormat("routine_created_active_in_plans_message", suggested.name)
         return suggested
@@ -2987,10 +3045,11 @@ final class AppStore {
         savedShareCards = snapshot.savedShareCards
         
         sanitizeAvailableEquipment()
-        
+
         isRestoring = false
+        updateTrainingBattery()
         persistence.save(currentSnapshot)
-        
+
         // Keep shared widgets & watch in sync after database restore
         let widgetSnapshot = sharedWorkoutSnapshot()
         SharedWorkoutStore.save(widgetSnapshot)

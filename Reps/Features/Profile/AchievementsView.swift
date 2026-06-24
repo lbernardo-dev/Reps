@@ -24,15 +24,7 @@ struct AchievementsView: View {
 
     // MARK: - Player Level
     private var playerLevel: PlayerLevel {
-        let xp = GamificationEngine.totalXP(
-            sessions: store.workoutSessions,
-            cardioLogs: store.combinedCardioLogs,
-            bodyMetrics: store.bodyMetrics,
-            progressPhotos: store.progressPhotos,
-            streakDays: store.streakDays,
-            totalVolumeKg: store.totalVolumeKg
-        )
-        return GamificationEngine.playerLevel(for: xp)
+        GamificationEngine.playerLevel(for: store.playerXP)
     }
 
     // MARK: - Achievements Calculation

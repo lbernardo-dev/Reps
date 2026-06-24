@@ -900,6 +900,7 @@ private struct OnboardingDraft {
         profile.mainGoal = mainGoal
         profile.experience = experience
         profile.weeklyTrainingDays = weeklyTrainingDays
+        profile.preferredSessionLengthMinutes = sessionLengthMinutes
         profile.trainingLocation = trainingLocation
         profile.availableEquipment = normalizedEquipment
         profile.dateOfBirth = Calendar.current.date(byAdding: .year, value: -age, to: .now)
