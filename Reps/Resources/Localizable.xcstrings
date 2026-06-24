@@ -22277,6 +22277,22 @@
         }
       }
     },
+    "Fat stores": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fat stores"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grasa corporal"
+          }
+        }
+      }
+    },
     "Fatiga": {
       "comment": "A label displayed above the fatigue rating.",
       "extractionState": "stale",
@@ -33900,6 +33916,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "PR"
+          }
+        }
+      }
+    },
+    "PROGRESS": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PROGRESS"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PROGRESO"
           }
         }
       }
@@ -82565,6 +82597,22 @@
         }
       }
     },
+    "muscle +": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "muscle +"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "músculo +"
+          }
+        }
+      }
+    },
     "muscle_analysis": {
       "extractionState": "manual",
       "localizations": {
@@ -86089,6 +86137,102 @@
         }
       }
     },
+    "onboarding_setup_create": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create it for me"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Créalo por mí"
+          }
+        }
+      }
+    },
+    "onboarding_setup_create_sub": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We'll build a personalized plan based on your goals"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crearemos un plan personalizado según tus objetivos"
+          }
+        }
+      }
+    },
+    "onboarding_setup_self": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I'll build it myself"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo construyo yo mismo"
+          }
+        }
+      }
+    },
+    "onboarding_setup_self_sub": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jump straight in and create your own workouts"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empieza directamente y crea tus propios entrenamientos"
+          }
+        }
+      }
+    },
+    "onboarding_setup_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How do you want to get started?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cómo quieres empezar?"
+          }
+        }
+      }
+    },
+    "onboarding_setup_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your training plan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu plan de entrenamiento"
+          }
+        }
+      }
+    },
     "onboarding_btn_start_with_plan": {
       "localizations": {
         "en": {
@@ -87868,6 +88012,102 @@
         }
       }
     },
+    "onboarding_plan_days_weeks_fmt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d days/week for %d weeks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d días/semana durante %d semanas"
+          }
+        }
+      }
+    },
+    "onboarding_plan_exer_dot_min_fmt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d exercises · %d min"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d ejercicios · %d min"
+          }
+        }
+      }
+    },
+    "onboarding_plan_exercises_min_fmt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d exercises - %d min"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d ejercicios - %d min"
+          }
+        }
+      }
+    },
+    "onboarding_plan_full_weeks_fmt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full %d-week block"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloque completo de %d semanas"
+          }
+        }
+      }
+    },
+    "onboarding_plan_more_days_blk_fmt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%d more days in this block"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%d días más en este bloque"
+          }
+        }
+      }
+    },
+    "onboarding_plan_more_days_fmt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%d more days in the block"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%d días más en el bloque"
+          }
+        }
+      }
+    },
     "onboarding_plan_projection_caption": {
       "localizations": {
         "en": {
@@ -87928,6 +88168,166 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem "
+          }
+        }
+      }
+    },
+    "onboarding_pro_all_days_fmt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All %d days · complete %d-week plan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los %d días · plan completo de %d semanas"
+          }
+        }
+      }
+    },
+    "onboarding_pro_benefit_cues": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coaching cues on every exercise"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indicaciones en cada ejercicio"
+          }
+        }
+      }
+    },
+    "onboarding_pro_benefit_overload": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progressive overload every week"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobrecarga progresiva cada semana"
+          }
+        }
+      }
+    },
+    "onboarding_pro_benefit_weights": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starting weights calibrated for you"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pesos iniciales calibrados para ti"
+          }
+        }
+      }
+    },
+    "onboarding_pro_exercise_row_fmt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d sets · %@ · %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d series · %@ · %@"
+          }
+        }
+      }
+    },
+    "onboarding_pro_more_exer_fmt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%d more exercises · Pro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%d ejercicios más · Pro"
+          }
+        }
+      }
+    },
+    "onboarding_pro_reps_pro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reps Pro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reps Pro"
+          }
+        }
+      }
+    },
+    "onboarding_pro_sets_reps_load": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sets · Reps · Load · Pro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Series · Reps · Carga · Pro"
+          }
+        }
+      }
+    },
+    "onboarding_pro_trial_detail": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7 days free · cancel anytime"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7 días gratis · cancela cuando quieras"
+          }
+        }
+      }
+    },
+    "onboarding_pro_unlock_cta": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock my plan — 7 days free"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquear mi plan — 7 días gratis"
           }
         }
       }
@@ -101215,6 +101615,23 @@
         }
       }
     },
+    "social_challenge_save_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t save this challenge. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos guardar este desafío. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "social_clear_searches": {
       "extractionState": "stale",
       "localizations": {
@@ -101279,6 +101696,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Editar perfil"
+          }
+        }
+      }
+    },
+    "social_error_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something went wrong"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo completar"
           }
         }
       }
@@ -101453,193 +101887,6 @@
         }
       }
     },
-    "social_invite_text": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow me on Reps! @%@\nreps://social/@%@"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "¡Sígueme en Reps! @%@\nreps://social/@%@"
-          }
-        }
-      }
-    },
-    "social_leaderboard": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rankings"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clasificación"
-          }
-        }
-      }
-    },
-    "social_level": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Level"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nivel"
-          }
-        }
-      }
-    },
-    "social_location_placeholder": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "City, country"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ciudad, país"
-          }
-        }
-      }
-    },
-    "social_no_friends_message": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search for your friends in Discover and follow them to compare progress."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Busca a tus amigos en la pestaña Descubrir y síguelos para comparar progreso."
-          }
-        }
-      }
-    },
-    "social_no_friends_yet": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No friends yet"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sin amigos aún"
-          }
-        }
-      }
-    },
-    "social_no_results": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No results"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sin resultados"
-          }
-        }
-      }
-    },
-    "social_no_results_message": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No user found with that username."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se encontró ningún usuario con ese nombre."
-          }
-        }
-      }
-    },
-    "social_onboarding_description": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pick a username to appear in the Reps community and compare your progress with friends."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Elige un nombre de usuario para aparecer en la comunidad Reps y comparar tu progreso con amigos."
-          }
-        }
-      }
-    },
-    "social_challenge_save_failed": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "We couldn’t save this challenge. Try again."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No pudimos guardar este desafío. Inténtalo de nuevo."
-          }
-        }
-      }
-    },
-    "social_error_title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Something went wrong"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se pudo completar"
-          }
-        }
-      }
-    },
     "social_icloud_checking_message": {
       "extractionState": "manual",
       "localizations": {
@@ -101793,6 +102040,159 @@
         }
       }
     },
+    "social_invite_text": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow me on Reps! @%@\nreps://social/@%@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Sígueme en Reps! @%@\nreps://social/@%@"
+          }
+        }
+      }
+    },
+    "social_leaderboard": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rankings"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clasificación"
+          }
+        }
+      }
+    },
+    "social_level": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Level"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nivel"
+          }
+        }
+      }
+    },
+    "social_location_placeholder": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "City, country"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ciudad, país"
+          }
+        }
+      }
+    },
+    "social_no_friends_message": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search for your friends in Discover and follow them to compare progress."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Busca a tus amigos en la pestaña Descubrir y síguelos para comparar progreso."
+          }
+        }
+      }
+    },
+    "social_no_friends_yet": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No friends yet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin amigos aún"
+          }
+        }
+      }
+    },
+    "social_no_results": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No results"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin resultados"
+          }
+        }
+      }
+    },
+    "social_no_results_message": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No user found with that username."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró ningún usuario con ese nombre."
+          }
+        }
+      }
+    },
+    "social_onboarding_description": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick a username to appear in the Reps community and compare your progress with friends."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un nombre de usuario para aparecer en la comunidad Reps y comparar tu progreso con amigos."
+          }
+        }
+      }
+    },
     "social_online": {
       "extractionState": "stale",
       "localizations": {
@@ -101857,23 +102257,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Búsquedas recientes"
-          }
-        }
-      }
-    },
-    "social_username_check_failed": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "We couldn’t verify this username. Check your connection and try again."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No pudimos verificar este nombre. Revisa tu conexión e inténtalo de nuevo."
           }
         }
       }
@@ -102010,6 +102393,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Disponible"
+          }
+        }
+      }
+    },
+    "social_username_check_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t verify this username. Check your connection and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos verificar este nombre. Revisa tu conexión e inténtalo de nuevo."
           }
         }
       }
@@ -106502,6 +106902,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tendencia"
+          }
+        }
+      }
+    },
+    "trend down": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "trend down"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "baja"
           }
         }
       }

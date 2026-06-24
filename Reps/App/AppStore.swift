@@ -775,14 +775,22 @@ final class AppStore {
         sanitizeAvailableEquipment()
         userProfile.onboardingCompleted = true
         bodyMetrics.append(result.bodyMetric)
-        addPlan(result.plan, activate: true)
+        if let plan = result.plan {
+            addPlan(plan, activate: result.activatePlan)
+            TelemetryService.shared.log(.onboardingCompleted, parameters: [
+                "source": "profile_setup",
+                "has_plan": true,
+                "plan_activated": result.activatePlan,
+                "days_per_week": plan.daysPerWeek,
+                "plan_days": plan.days.count
+            ])
+        } else {
+            TelemetryService.shared.log(.onboardingCompleted, parameters: [
+                "source": "profile_setup",
+                "has_plan": false
+            ])
+        }
         TelemetryService.shared.updateUserProperties(userProfile)
-        TelemetryService.shared.log(.onboardingCompleted, parameters: [
-            "source": "profile_setup",
-            "has_plan": true,
-            "days_per_week": result.plan.daysPerWeek,
-            "plan_days": result.plan.days.count
-        ])
     }
 
     func saveBodyMetrics(weightKg: Double, heightCm: Double, source: BodyMetric.Source = .manual) {

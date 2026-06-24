@@ -117,6 +117,8 @@ struct ProfileSetupView: View {
             heroStep
         case .value:
             valueStep
+        case .setup:
+            setupStep
         case .goal:
             goalStep
         case .experience:
@@ -198,6 +200,37 @@ struct ProfileSetupView: View {
                 minutes: draft.sessionLengthMinutes
             )
             .frame(height: 540)
+        }
+    }
+
+    private var setupStep: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            OnboardingTitle(
+                title: "onboarding_setup_title",
+                subtitle: "onboarding_setup_subtitle"
+            )
+
+            VStack(spacing: 12) {
+                OnboardingOptionCard(
+                    title: "onboarding_setup_create",
+                    subtitle: "onboarding_setup_create_sub",
+                    icon: "sparkles",
+                    tint: PulseTheme.primary,
+                    isSelected: !draft.buildsOwnPlan
+                ) {
+                    draft.buildsOwnPlan = false
+                }
+
+                OnboardingOptionCard(
+                    title: "onboarding_setup_self",
+                    subtitle: "onboarding_setup_self_sub",
+                    icon: "wrench.fill",
+                    tint: PulseTheme.secondaryText,
+                    isSelected: draft.buildsOwnPlan
+                ) {
+                    draft.buildsOwnPlan = true
+                }
+            }
         }
     }
 
@@ -681,6 +714,10 @@ struct ProfileSetupView: View {
             finishOnboarding()
             return
         }
+        if step == .setup && draft.buildsOwnPlan {
+            finishOnboarding()
+            return
+        }
         step = steps[min(stepIndex + 1, steps.count - 1)]
     }
 
@@ -705,8 +742,16 @@ struct ProfileSetupView: View {
     private func makeResult() -> OnboardingResult {
         var profile = draft.makeProfile()
         profile.onboardingCompleted = true
+        guard !draft.buildsOwnPlan else {
+            return OnboardingResult(profile: profile, bodyMetric: bodyMetric, plan: nil, activatePlan: false)
+        }
         let plan = cachedPlan ?? buildPlan()
-        return OnboardingResult(profile: profile, bodyMetric: bodyMetric, plan: plan)
+        return OnboardingResult(
+            profile: profile,
+            bodyMetric: bodyMetric,
+            plan: plan,
+            activatePlan: store.monetization.hasProAccess
+        )
     }
 
     private func startPlanGeneration() {
@@ -795,6 +840,7 @@ private struct OnboardingDraft {
     var bodyMapPreference: BodyMapPreference = .mapA
     var focusMuscles: Set<String> = []
     var preferredLanguage = UserProfile.deviceDefaultLanguage
+    var buildsOwnPlan = false
 
     static let focusOptions = ["Chest", "Back", "Shoulders", "Arms", "Legs", "Glutes", "Core"]
 
@@ -870,6 +916,7 @@ private struct OnboardingDraft {
 private enum OnboardingStep: CaseIterable {
     case hero
     case value
+    case setup
     case goal
     case experience
     case schedule
@@ -888,7 +935,6 @@ private enum OnboardingStep: CaseIterable {
         default: "onboarding_btn_continue"
         }
     }
-
 }
 
 private enum BodyMapPreference: String, CaseIterable, Identifiable {
@@ -1451,55 +1497,6 @@ private struct PlanProjectionCard: View {
     }
 }
 
-private struct PlanSummaryCard: View {
-    let plan: WorkoutPlan
-
-    var body: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("onboarding_suggested_plan")
-                            .font(.headline)
-                        Text("\(plan.daysPerWeek) days/week for \(plan.totalWeeks) weeks")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    Spacer()
-                    Image(systemName: "sparkles")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.black)
-                        .frame(width: 36, height: 36)
-                        .background(.white)
-                        .clipShape(Circle())
-                }
-
-                ForEach(plan.days.prefix(3)) { day in
-                    HStack(spacing: 10) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(PulseTheme.primaryBright)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(day.title)
-                                .font(.subheadline.weight(.bold))
-                            Text("\(day.exercises.count) exercises - \(day.durationMinutes) min")
-                                .font(.caption)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                        Spacer()
-                    }
-                }
-
-                if plan.days.count > 3 {
-                    Text("+\(plan.days.count - 3) more days in the block")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.primary)
-                }
-            }
-        }
-    }
-}
-
-
 private struct PlanDay1LockedPreviewCard: View {
     let day: WorkoutDay
     let gender: BodyGender
@@ -1514,7 +1511,7 @@ private struct PlanDay1LockedPreviewCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(day.title)
                             .font(.title3.weight(.bold))
-                        Text("\(day.exercises.count) exercises · \(day.durationMinutes) min")
+                        Text(verbatim: localizedFormat("onboarding_plan_exer_dot_min_fmt", day.exercises.count, day.durationMinutes))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -1542,7 +1539,7 @@ private struct PlanDay1LockedPreviewCard: View {
                         Image(systemName: "lock.fill")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.accent)
-                        Text("+\(day.exercises.count - 5) more exercises · Pro")
+                        Text(verbatim: localizedFormat("onboarding_pro_more_exer_fmt", day.exercises.count - 5))
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.accent)
                     }
@@ -1587,12 +1584,12 @@ private struct PlanExerciseRow: View {
                         Image(systemName: "lock.fill")
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(PulseTheme.accent)
-                        Text("Sets · Reps · Load · Pro")
+                        Text("onboarding_pro_sets_reps_load")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.accent)
                     }
                 } else {
-                    Text("\(item.targetSets) sets · \(item.repRange) · \(item.previous)")
+                    Text(verbatim: localizedFormat("onboarding_pro_exercise_row_fmt", item.targetSets, item.repRange, item.previous))
                         .font(.caption.weight(.medium))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
@@ -1616,7 +1613,7 @@ private struct PlanLockedDaysCard: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Text("Full \(plan.totalWeeks)-week block")
+                    Text(verbatim: localizedFormat("onboarding_plan_full_weeks_fmt", plan.totalWeeks))
                         .font(.headline)
                     Spacer()
                     if !isPro {
@@ -1645,7 +1642,7 @@ private struct PlanLockedDaysCard: View {
                             Text(day.title)
                                 .font(.subheadline.weight(.bold))
                                 .foregroundStyle(isPro ? .primary : PulseTheme.secondaryText)
-                            Text("\(day.exercises.count) exercises · \(day.durationMinutes) min")
+                            Text(verbatim: localizedFormat("onboarding_plan_exer_dot_min_fmt", day.exercises.count, day.durationMinutes))
                                 .font(.caption)
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
@@ -1670,7 +1667,7 @@ private struct PlanLockedDaysCard: View {
                             Image(systemName: "lock.fill")
                                 .font(.subheadline.weight(.bold))
                                 .foregroundStyle(PulseTheme.accent)
-                            Text("+\(otherDays.count - 3) more days in this block")
+                            Text(verbatim: localizedFormat("onboarding_plan_more_days_blk_fmt", otherDays.count - 3))
                                 .font(.subheadline.weight(.bold))
                                 .foregroundStyle(PulseTheme.accent)
                         }
@@ -1699,9 +1696,9 @@ private struct PlanUnlockProCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Reps Pro")
+                        Text("onboarding_pro_reps_pro")
                             .font(.headline)
-                        Text("7 days free · cancel anytime")
+                        Text("onboarding_pro_trial_detail")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.accent)
                     }
@@ -1709,17 +1706,17 @@ private struct PlanUnlockProCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    PlanBenefitRow(icon: "chart.line.uptrend.xyaxis", text: "Progressive overload every week")
-                    PlanBenefitRow(icon: "scalemass.fill", text: "Starting weights calibrated for you")
-                    PlanBenefitRow(icon: "text.bubble.fill", text: "Coaching cues on every exercise")
-                    PlanBenefitRow(icon: "lock.open.fill", text: "All \(daysPerWeek) days · complete \(totalWeeks)-week plan")
+                    PlanBenefitRow(icon: "chart.line.uptrend.xyaxis", text: "onboarding_pro_benefit_overload")
+                    PlanBenefitRow(icon: "scalemass.fill", text: "onboarding_pro_benefit_weights")
+                    PlanBenefitRow(icon: "text.bubble.fill", text: "onboarding_pro_benefit_cues")
+                    PlanBenefitRow(icon: "lock.open.fill", text: localizedFormat("onboarding_pro_all_days_fmt", daysPerWeek, totalWeeks))
                 }
 
                 Button(action: onUnlock) {
                     HStack(spacing: 8) {
                         Image(systemName: "bolt.fill")
                             .font(.subheadline.weight(.black))
-                        Text("Unlock my plan — 7 days free")
+                        Text("onboarding_pro_unlock_cta")
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
@@ -1749,7 +1746,7 @@ private struct PlanBenefitRow: View {
                 .font(.caption.weight(.bold))
                 .foregroundStyle(PulseTheme.accent)
                 .frame(width: 18)
-            Text(text)
+            Text(LocalizedStringKey(text))
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.primary)
         }

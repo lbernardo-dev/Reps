@@ -129,11 +129,15 @@ struct PlansView: View {
                     } else {
                         LazyVStack(spacing: 10) {
                             ForEach(inactivePlans) { plan in
-                                PlanCard(plan: plan) {
+                                PlanCard(plan: plan, isLocked: !store.monetization.hasProAccess) {
                                     selectedPlanForDetail = plan
                                 } onActivate: {
-                                    HapticService.selection()
-                                    store.activatePlan(plan)
+                                    if store.monetization.hasProAccess {
+                                        HapticService.selection()
+                                        store.activatePlan(plan)
+                                    } else {
+                                        store.presentPaywall(source: .onboarding, feature: nil, trigger: .featureGate)
+                                    }
                                 } onEdit: {
                                     planToEdit = plan
                                 } onDelete: {
@@ -710,6 +714,7 @@ private struct PlanTargetEventSummary: View {
 
 private struct PlanCard: View {
     let plan: WorkoutPlan
+    var isLocked: Bool = false
     let onTap: () -> Void
     let onActivate: () -> Void
     let onEdit: () -> Void
@@ -738,11 +743,22 @@ private struct PlanCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 14) {
-                Image(systemName: locationIcon)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 52, height: 52)
-                    .background(locationColor, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                ZStack(alignment: .bottomTrailing) {
+                    Image(systemName: locationIcon)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 52, height: 52)
+                        .background(locationColor, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                    if isLocked {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 18, height: 18)
+                            .background(PulseTheme.accent, in: Circle())
+                            .offset(x: 4, y: 4)
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(plan.name)

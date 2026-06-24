@@ -3,7 +3,8 @@ import Foundation
 struct OnboardingResult {
     var profile: UserProfile
     var bodyMetric: BodyMetric
-    var plan: WorkoutPlan
+    var plan: WorkoutPlan?
+    var activatePlan: Bool
 }
 
 enum OnboardingPlanBuilder {
