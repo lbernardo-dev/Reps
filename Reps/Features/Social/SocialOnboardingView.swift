@@ -1,4 +1,9 @@
+import CloudKit
 import SwiftUI
+
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct SocialOnboardingView: View {
     @Environment(AppStore.self) private var store
@@ -7,17 +12,22 @@ struct SocialOnboardingView: View {
     @State private var username = ""
     @State private var bio = ""
     @State private var location = ""
-    @State private var isChecking = false
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var availabilityStatus: AvailabilityStatus = .idle
+    @State private var isCheckingICloud = true
+    @State private var iCloudIssue: SocialICloudAccountIssue?
 
     private enum AvailabilityStatus {
-        case idle, checking, available, taken, tooShort
+        case idle, checking, available, taken, tooShort, checkFailed, iCloudUnavailable
     }
 
     private var canContinue: Bool {
-        availabilityStatus == .available && !isSaving
+        iCloudIssue == nil && !isCheckingICloud && availabilityStatus == .available && !isSaving
+    }
+
+    private var isICloudBlocked: Bool {
+        isCheckingICloud || iCloudIssue != nil
     }
 
     var body: some View {
@@ -25,6 +35,7 @@ struct SocialOnboardingView: View {
             ScrollView {
                 VStack(spacing: 28) {
                     headerSection
+                    iCloudRequirementCard
                     usernameSection
                     optionalFieldsSection
                     privacyNote
@@ -36,7 +47,7 @@ struct SocialOnboardingView: View {
             }
             .screenBackground()
             .navigationBarTitleDisplayMode(.inline)
-            .alert(localizedString("ok"), isPresented: Binding(
+            .alert(localizedString("social_error_title"), isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
@@ -60,6 +71,10 @@ struct SocialOnboardingView: View {
                     }
                 }
             }
+        }
+        .task { await refreshICloudStatus() }
+        .onReceive(NotificationCenter.default.publisher(for: .CKAccountChanged)) { _ in
+            Task { await refreshICloudStatus() }
         }
     }
 
@@ -87,6 +102,56 @@ struct SocialOnboardingView: View {
             }
         }
         .padding(.top, 12)
+    }
+
+    @ViewBuilder
+    private var iCloudRequirementCard: some View {
+        if isCheckingICloud || iCloudIssue != nil {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(PulseTheme.primary.opacity(0.12))
+                        .frame(width: 34, height: 34)
+                    if isCheckingICloud {
+                        ProgressView()
+                            .tint(PulseTheme.primary)
+                            .scaleEffect(0.75)
+                    } else {
+                        Image(systemName: "icloud.slash")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(PulseTheme.primary)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(localizedString(isCheckingICloud ? "social_icloud_checking_title" : "social_icloud_required_title"))
+                        .font(.subheadline.weight(.bold))
+                    Text(iCloudIssue?.localizedMessage ?? localizedString("social_icloud_checking_message"))
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if iCloudIssue != nil {
+                        Button {
+                            openSettings()
+                        } label: {
+                            Label(localizedString("social_icloud_open_settings"), systemImage: "gear")
+                                .font(.caption.weight(.bold))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(PulseTheme.primary)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .background(PulseTheme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(PulseTheme.primary.opacity(0.22), lineWidth: 1)
+            )
+        }
     }
 
     private var usernameSection: some View {
@@ -123,6 +188,8 @@ struct SocialOnboardingView: View {
 
             statusLabel
         }
+        .disabled(isICloudBlocked)
+        .opacity(isICloudBlocked ? 0.58 : 1)
     }
 
     @ViewBuilder
@@ -136,6 +203,9 @@ struct SocialOnboardingView: View {
         case .taken:
             Image(systemName: "xmark.circle.fill")
                 .foregroundStyle(PulseTheme.destructive)
+        case .checkFailed, .iCloudUnavailable:
+            Image(systemName: "exclamationmark.circle.fill")
+                .foregroundStyle(PulseTheme.warning)
         default:
             EmptyView()
         }
@@ -159,6 +229,16 @@ struct SocialOnboardingView: View {
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .padding(.horizontal, 4)
+        case .checkFailed:
+            Text(localizedString("social_username_check_failed"))
+                .font(.caption)
+                .foregroundStyle(PulseTheme.warning)
+                .padding(.horizontal, 4)
+        case .iCloudUnavailable:
+            Text(localizedString("social_icloud_username_disabled"))
+                .font(.caption)
+                .foregroundStyle(PulseTheme.warning)
+                .padding(.horizontal, 4)
         default:
             Text(localizedString("social_username_hint"))
                 .font(.caption)
@@ -171,6 +251,7 @@ struct SocialOnboardingView: View {
         switch availabilityStatus {
         case .available: return PulseTheme.primaryBright.opacity(0.6)
         case .taken: return PulseTheme.destructive.opacity(0.5)
+        case .checkFailed, .iCloudUnavailable: return PulseTheme.warning.opacity(0.55)
         default: return PulseTheme.separator
         }
     }
@@ -225,6 +306,8 @@ struct SocialOnboardingView: View {
                     .padding(.horizontal, 4)
             }
         }
+        .disabled(isICloudBlocked)
+        .opacity(isICloudBlocked ? 0.58 : 1)
     }
 
     private var privacyNote: some View {
@@ -248,7 +331,35 @@ struct SocialOnboardingView: View {
 
     // MARK: - Logic
 
+    private func refreshICloudStatus() async {
+        await MainActor.run {
+            isCheckingICloud = true
+            if availabilityStatus == .available {
+                availabilityStatus = .checking
+            }
+        }
+
+        let issue = await SocialService.shared.iCloudAccountIssue()
+
+        await MainActor.run {
+            iCloudIssue = issue
+            isCheckingICloud = false
+
+            if issue != nil {
+                availabilityStatus = .iCloudUnavailable
+            } else if username.count >= 3 {
+                scheduleAvailabilityCheck()
+            } else {
+                availabilityStatus = username.isEmpty ? .idle : .tooShort
+            }
+        }
+    }
+
     private func scheduleAvailabilityCheck() {
+        guard !isICloudBlocked else {
+            availabilityStatus = .iCloudUnavailable
+            return
+        }
         let u = username
         guard u.count >= 3, u.count <= 20 else {
             availabilityStatus = u.isEmpty ? .idle : .tooShort
@@ -265,10 +376,9 @@ struct SocialOnboardingView: View {
                     availabilityStatus = available ? .available : .taken
                 }
             } catch {
-                // Network or schema error — optimistically allow the user to proceed.
                 await MainActor.run {
                     guard username == u else { return }
-                    availabilityStatus = .available
+                    handleAvailabilityError(error)
                 }
             }
         }
@@ -318,10 +428,48 @@ struct SocialOnboardingView: View {
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = error.localizedDescription
+                    handleSaveError(error)
                     isSaving = false
                 }
             }
         }
+    }
+
+    private func handleAvailabilityError(_ error: Error) {
+        guard let socialError = error as? SocialServiceError else {
+            availabilityStatus = .checkFailed
+            return
+        }
+
+        switch socialError {
+        case .iCloudUnavailable(let issue):
+            iCloudIssue = issue
+            availabilityStatus = .iCloudUnavailable
+        default:
+            availabilityStatus = .checkFailed
+        }
+    }
+
+    private func handleSaveError(_ error: Error) {
+        if let socialError = error as? SocialServiceError {
+            switch socialError {
+            case .iCloudUnavailable(let issue):
+                iCloudIssue = issue
+                availabilityStatus = .iCloudUnavailable
+            case .usernameTaken:
+                availabilityStatus = .taken
+            case .malformedChallengeRecord:
+                errorMessage = socialError.localizedDescription
+            }
+        } else {
+            errorMessage = localizedString("social_profile_save_failed")
+        }
+    }
+
+    private func openSettings() {
+        #if canImport(UIKit)
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+        #endif
     }
 }

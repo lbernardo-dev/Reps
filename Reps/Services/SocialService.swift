@@ -110,6 +110,45 @@ struct CommentSummary: Equatable, Sendable, Codable {
     var lastComment: WorkoutComment?
 }
 
+// MARK: - CloudKit Account Availability
+
+enum SocialICloudAccountIssue: Equatable, Sendable {
+    case noAccount
+    case restricted
+    case temporarilyUnavailable
+    case couldNotDetermine
+
+    var localizedMessage: String {
+        switch self {
+        case .noAccount:
+            localizedString("social_icloud_no_account_message")
+        case .restricted:
+            localizedString("social_icloud_restricted_message")
+        case .temporarilyUnavailable:
+            localizedString("social_icloud_temporarily_unavailable_message")
+        case .couldNotDetermine:
+            localizedString("social_icloud_unknown_message")
+        }
+    }
+}
+
+enum SocialServiceError: LocalizedError, Equatable, Sendable {
+    case iCloudUnavailable(SocialICloudAccountIssue)
+    case usernameTaken
+    case malformedChallengeRecord
+
+    var errorDescription: String? {
+        switch self {
+        case .iCloudUnavailable(let issue):
+            issue.localizedMessage
+        case .usernameTaken:
+            localizedString("social_username_taken")
+        case .malformedChallengeRecord:
+            localizedString("social_challenge_save_failed")
+        }
+    }
+}
+
 // MARK: - Public Profile Model
 
 struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
@@ -219,7 +258,45 @@ actor SocialService {
 
     // MARK: - Identity
 
+    func iCloudAccountIssue() async -> SocialICloudAccountIssue? {
+        let issue: SocialICloudAccountIssue?
+        do {
+            issue = Self.issue(for: try await container.accountStatus())
+        } catch {
+            issue = .couldNotDetermine
+        }
+
+        if issue != nil {
+            _myRecordID = nil
+        }
+        return issue
+    }
+
+    private func requireICloudAccount() async throws {
+        if let issue = await iCloudAccountIssue() {
+            throw SocialServiceError.iCloudUnavailable(issue)
+        }
+    }
+
+    private static func issue(for status: CKAccountStatus) -> SocialICloudAccountIssue? {
+        switch status {
+        case .available:
+            nil
+        case .noAccount:
+            .noAccount
+        case .restricted:
+            .restricted
+        case .temporarilyUnavailable:
+            .temporarilyUnavailable
+        case .couldNotDetermine:
+            .couldNotDetermine
+        @unknown default:
+            .couldNotDetermine
+        }
+    }
+
     func myRecordID() async throws -> CKRecord.ID {
+        try await requireICloudAccount()
         if let cached = _myRecordID { return cached }
         let id = try await container.userRecordID()
         _myRecordID = id
@@ -240,6 +317,7 @@ actor SocialService {
 
     // Direct record lookup — no index required.
     func checkAvailability(username: String) async throws -> Bool {
+        try await requireICloudAccount()
         let rid = profileRecordID(username: username)
         do {
             let record = try await publicDB.record(for: rid)
@@ -264,6 +342,7 @@ actor SocialService {
 
     func pingActivity(myUsername: String) async {
         guard !myUsername.isEmpty else { return }
+        guard await iCloudAccountIssue() == nil else { return }
         let rid = profileRecordID(username: myUsername.lowercased())
         do {
             let record = try await publicDB.record(for: rid)
@@ -287,6 +366,7 @@ actor SocialService {
         followingUsernames: [String] = [],
         avatarImageData: Data? = nil
     ) async throws {
+        try await requireICloudAccount()
         let myID = try await myRecordID()
         let normalized = username.lowercased()
         let rid = profileRecordID(username: normalized)
@@ -297,11 +377,7 @@ actor SocialService {
             // If this record belongs to someone else the username is taken.
             let owner = existing["ownerRecordName"] as? String ?? ""
             guard owner == myID.recordName else {
-                throw NSError(
-                    domain: "SocialService",
-                    code: 409,
-                    userInfo: [NSLocalizedDescriptionKey: "Username already taken."]
-                )
+                throw SocialServiceError.usernameTaken
             }
             record = existing
         } catch let ck as CKError where ck.code == .unknownItem {
@@ -336,6 +412,7 @@ actor SocialService {
     // friend-of-friend suggestions work for other users.
     func updateMyFollowingList(myUsername: String, followingUsernames: [String]) async {
         guard !myUsername.isEmpty else { return }
+        guard await iCloudAccountIssue() == nil else { return }
         let rid = profileRecordID(username: myUsername.lowercased())
         do {
             let record = try await publicDB.record(for: rid)
@@ -518,6 +595,7 @@ actor SocialService {
         volumeKg: Double,
         exerciseNames: [String]
     ) async throws {
+        try await requireICloudAccount()
         let rid = postRecordID(username: username, sessionID: sessionID)
         let record = CKRecord(recordType: "WorkoutPost", recordID: rid)
         record["ownerUsername"] = username.lowercased() as CKRecordValue
@@ -541,6 +619,7 @@ actor SocialService {
         caption: String,
         photoDataList: [Data]
     ) async throws -> WorkoutPost? {
+        try await requireICloudAccount()
         let postID = "WorkoutPost_\(username.lowercased())_\(UUID().uuidString)"
         let rid = CKRecord.ID(recordName: postID)
         let record = CKRecord(recordType: "WorkoutPost", recordID: rid)
@@ -941,6 +1020,7 @@ actor SocialService {
     // Silently no-ops when subscription save fails.
 
     func subscribeToSocialActivity(myUsername: String) async {
+        guard await iCloudAccountIssue() == nil else { return }
         let username = myUsername.lowercased()
 
         // New follower
@@ -1062,6 +1142,7 @@ extension SocialService {
         creatorUsername: String,
         creatorDisplayName: String
     ) async throws -> SocialChallenge {
+        try await requireICloudAccount()
         let uuid = UUID().uuidString
         let rid = challengeRecordID(uuid)
         let record = CKRecord(recordType: "Challenge", recordID: rid)
@@ -1075,7 +1156,7 @@ extension SocialService {
         record["participantCount"]     = Int64(0) as CKRecordValue
         try await publicDB.save(record)
         guard let ch = SocialChallenge(record: record) else {
-            throw NSError(domain: "SocialService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Bad challenge record"])
+            throw SocialServiceError.malformedChallengeRecord
         }
         return ch
     }
@@ -1105,6 +1186,7 @@ extension SocialService {
         username: String,
         displayName: String
     ) async throws {
+        try await requireICloudAccount()
         let rid = participationRecordID(challengeID: challengeID, username: username)
         // Check if already joined.
         if (try? await publicDB.record(for: rid)) != nil { return }
@@ -1125,6 +1207,7 @@ extension SocialService {
     }
 
     func updateMyChallengeProgress(challengeID: String, username: String, value: Double) async {
+        guard await iCloudAccountIssue() == nil else { return }
         let rid = participationRecordID(challengeID: challengeID, username: username)
         do {
             let record = try await publicDB.record(for: rid)

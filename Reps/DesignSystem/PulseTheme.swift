@@ -554,6 +554,13 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
         String(localized: String.LocalizationValue(key), locale: locale)
     }
 
+    private var bottomContentPadding: CGFloat {
+        if #available(iOS 26.0, *) {
+            return 24
+        }
+        return 120
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             ScrollView(.vertical, showsIndicators: false) {
@@ -562,7 +569,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                 }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .safeAreaPadding(.top, topContentPadding)
-                .padding(.bottom, 120)
+                .padding(.bottom, bottomContentPadding)
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .coordinateSpace(.named(StickyHeaderTitleReader.coordinateSpaceName))

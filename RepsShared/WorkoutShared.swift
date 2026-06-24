@@ -14,7 +14,9 @@ import WidgetKit
 
 #if canImport(SwiftUI)
 enum RepsLocalization {
-    nonisolated(unsafe) private static var activeLanguage = "es"
+    nonisolated(unsafe) private static var activeLanguage: String = {
+        Locale.current.language.languageCode?.identifier == "es" ? "es" : "en"
+    }()
 
     static var language: String {
         activeLanguage

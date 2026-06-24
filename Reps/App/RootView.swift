@@ -69,7 +69,7 @@ struct MainTabView: View {
                 }
             }
             .overlay(alignment: .bottomTrailing) {
-                if !isTabBarHidden && selectedTab != .progress {
+                if showsLegacyQuickActionButton {
                     quickActionFloatingButton
                         .padding(.trailing, 16)
                         .padding(.bottom, quickActionFloatingButtonBottomPadding)
@@ -140,34 +140,69 @@ struct MainTabView: View {
         store.consumeNotificationDestination()
     }
 
+    @ViewBuilder
     private var nativeTabView: some View {
-        let tabView = TabView(selection: tabSelection) {
+        if #available(iOS 26.0, *) {
+            mainTabView
+                .tabViewBottomAccessory {
+                    if !isQuickMenuExpanded {
+                        QuickLogTabAccessory {
+                            toggleQuickMenu()
+                        }
+                    }
+                }
+                .tabBarMinimizeBehavior(.onScrollDown)
+        } else {
+            mainTabView
+        }
+    }
+
+    private var mainTabView: some View {
+        TabView(selection: tabSelection) {
             TodayView(onSelectTab: { select($0) })
                 .id(todayResetID)
-                .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+                .toolbar(isMainTabBarHidden ? .hidden : .visible, for: .tabBar)
                 .tabItem { Label(AppTab.today.title, systemImage: AppTab.today.systemImage) }
                 .tag(AppTab.today)
 
             CalendarView()
                 .id(calendarResetID)
-                .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+                .toolbar(isMainTabBarHidden ? .hidden : .visible, for: .tabBar)
                 .tabItem { Label(AppTab.calendar.title, systemImage: AppTab.calendar.systemImage) }
                 .tag(AppTab.calendar)
 
             PlansView()
                 .id(plansResetID)
-                .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+                .toolbar(isMainTabBarHidden ? .hidden : .visible, for: .tabBar)
                 .tabItem { Label(AppTab.plans.title, systemImage: AppTab.plans.systemImage) }
                 .tag(AppTab.plans)
 
             ProgressDashboardView(onSelectTab: { select($0) })
                 .id(progressResetID)
-                .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+                .toolbar(isMainTabBarHidden ? .hidden : .visible, for: .tabBar)
                 .tabItem { Label(AppTab.progress.title, systemImage: AppTab.progress.systemImage) }
                 .tag(AppTab.progress)
         }
+    }
 
-        return AnyView(tabView)
+    private var isMainTabBarHidden: Bool {
+        if isTabBarHidden {
+            return true
+        }
+        if #available(iOS 26.0, *) {
+            return isQuickMenuExpanded
+        }
+        return false
+    }
+
+    private var showsLegacyQuickActionButton: Bool {
+        guard !isTabBarHidden else {
+            return false
+        }
+        if #available(iOS 26.0, *) {
+            return false
+        }
+        return true
     }
 
     private var tabSelection: Binding<AppTab> {
@@ -187,24 +222,17 @@ struct MainTabView: View {
 
     private var quickActionFloatingButton: some View {
         Button {
-            HapticService.selection()
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
-                isQuickMenuExpanded.toggle()
-            }
-            TelemetryService.shared.log(.quickMenuToggled, parameters: [
-                "expanded": isQuickMenuExpanded
-            ])
+            toggleQuickMenu()
         } label: {
             ZStack {
                 Image(systemName: "plus")
-                    .font(.system(size: isQuickMenuExpanded ? 25 : (selectedTab == .progress ? 19 : 22), weight: .heavy))
+                    .font(.system(size: isQuickMenuExpanded ? 25 : 22, weight: .heavy))
                     .foregroundStyle(.white)
                     .rotationEffect(.degrees(isQuickMenuExpanded ? 135 : 0))
             }
             .frame(width: quickActionButtonSize, height: quickActionButtonSize)
             .navigationGlassCircle(.primary)
             .scaleEffect(isQuickMenuExpanded ? 1.08 : 1.0)
-            .opacity(selectedTab == .progress && !isQuickMenuExpanded ? 0.82 : 1)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -212,11 +240,11 @@ struct MainTabView: View {
     }
 
     private var quickActionFloatingButtonBottomPadding: CGFloat {
-        isQuickMenuExpanded ? 18 : (selectedTab == .progress ? 36 : 74)
+        isQuickMenuExpanded ? 18 : 74
     }
 
     private var quickActionButtonSize: CGFloat {
-        isQuickMenuExpanded ? 58 : (selectedTab == .progress ? 46 : 52)
+        isQuickMenuExpanded ? 58 : 52
     }
 
     /// The active window's top safe-area inset. The quick-menu overlay can be hosted by views
@@ -232,7 +260,10 @@ struct MainTabView: View {
 
     private var quickMenuOverlay: some View {
         GeometryReader { proxy in
-            quickMenuOverlayContent(topInset: max(proxy.safeAreaInsets.top, windowTopSafeAreaInset))
+            quickMenuOverlayContent(
+                topInset: max(proxy.safeAreaInsets.top, windowTopSafeAreaInset),
+                bottomInset: proxy.safeAreaInsets.bottom
+            )
         }
         .ignoresSafeArea(.container, edges: .top)
     }
@@ -241,7 +272,7 @@ struct MainTabView: View {
         max(topInset + 32, 96)
     }
 
-    private func quickMenuOverlayContent(topInset: CGFloat) -> some View {
+    private func quickMenuOverlayContent(topInset: CGFloat, bottomInset: CGFloat) -> some View {
         VStack(spacing: 0) {
             QuickMenuProgressionChart()
                 .padding(.top, quickMenuTopPadding(for: topInset))
@@ -275,35 +306,70 @@ struct MainTabView: View {
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.trailing, 20)
-            .padding(.bottom, 172)
+            .padding(.bottom, quickMenuActionsBottomPadding)
+
+            if #available(iOS 26.0, *) {
+                QuickMenuCloseButton {
+                    toggleQuickMenu()
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, max(bottomInset, 12) + 12)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-        .background {
-            ZStack {
-                Color.black
+        .background { quickMenuBackdrop(bottomInset: bottomInset) }
+    }
 
-                Circle()
-                    .fill(PulseTheme.accent.opacity(0.07))
-                    .frame(width: 320, height: 320)
-                    .blur(radius: 80)
-                    .offset(x: -160, y: -260)
-
-                Circle()
-                    .fill(PulseTheme.primaryBright.opacity(0.05))
-                    .frame(width: 320, height: 320)
-                    .blur(radius: 80)
-                    .offset(x: 160, y: -220)
-            }
-            .background(.ultraThinMaterial)
-            .ignoresSafeArea()
-            .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                    isQuickMenuExpanded = false
-                }
-            }
-            .transition(.opacity)
+    private var quickMenuActionsBottomPadding: CGFloat {
+        if #available(iOS 26.0, *) {
+            return 18
         }
+        return 172
+    }
+
+    @ViewBuilder
+    private func quickMenuBackdrop(bottomInset: CGFloat) -> some View {
+        if #available(iOS 26.0, *) {
+            quickMenuBackdropFill
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        isQuickMenuExpanded = false
+                    }
+                }
+                .transition(.opacity)
+        } else {
+            quickMenuBackdropFill
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        isQuickMenuExpanded = false
+                    }
+                }
+                .transition(.opacity)
+        }
+    }
+
+    private var quickMenuBackdropFill: some View {
+        ZStack {
+            Color.black
+
+            Circle()
+                .fill(PulseTheme.accent.opacity(0.07))
+                .frame(width: 320, height: 320)
+                .blur(radius: 80)
+                .offset(x: -160, y: -260)
+
+            Circle()
+                .fill(PulseTheme.primaryBright.opacity(0.05))
+                .frame(width: 320, height: 320)
+                .blur(radius: 80)
+                .offset(x: 160, y: -220)
+        }
+        .background(.ultraThinMaterial)
     }
 
     private func select(_ tab: AppTab) {
@@ -315,6 +381,16 @@ struct MainTabView: View {
             reset(tab)
         }
         selectedTab = tab
+    }
+
+    private func toggleQuickMenu() {
+        HapticService.selection()
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+            isQuickMenuExpanded.toggle()
+        }
+        TelemetryService.shared.log(.quickMenuToggled, parameters: [
+            "expanded": isQuickMenuExpanded
+        ])
     }
 
     private func open(_ action: QuickAction) {
@@ -354,6 +430,84 @@ struct MainTabView: View {
         case .progress:
             progressResetID = UUID()
         }
+    }
+}
+
+@available(iOS 26.0, *)
+private struct QuickLogTabAccessory: View {
+    @Environment(\.tabViewBottomAccessoryPlacement) private var placement
+
+    let action: () -> Void
+
+    private var isInline: Bool {
+        placement == .inline
+    }
+
+    var body: some View {
+        Button(action: action) {
+            accessoryContent
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: isInline ? 58 : 56)
+                .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(localizedString("quick_menu_open"))
+    }
+
+    private var accessoryContent: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "plus")
+                .font(.system(size: 19, weight: .bold))
+                .frame(width: 34, height: 34)
+
+            Text("Quick Log")
+                .font(.system(size: isInline ? 19 : 18, weight: .bold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 20, weight: .bold))
+                .symbolRenderingMode(.hierarchical)
+                .frame(width: 34, height: 34)
+        }
+    }
+}
+
+@available(iOS 26.0, *)
+private struct QuickMenuCloseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 18, weight: .bold))
+                    .frame(width: 34, height: 34)
+
+                Text("Close")
+                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 19, weight: .bold))
+                    .symbolRenderingMode(.hierarchical)
+                    .frame(width: 34, height: 34)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 58)
+            .padding(.horizontal, 18)
+            .contentShape(Capsule(style: .continuous))
+            .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(localizedString("quick_menu_close"))
     }
 }
 

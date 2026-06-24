@@ -460,25 +460,25 @@ struct TodayView: View {
                 MiniTrendCard(
                     title: "volume_3",
                     subtitle: "weekly_trend",
-                    value: "\(compactNumber(displayedWeight(fromKilograms: FitnessMetrics.totalVolumeKg(for: weekSessions)))) \(displayedVolumeUnit)",
+                    value: compactNumber(displayedWeight(fromKilograms: FitnessMetrics.totalVolumeKg(for: weekSessions))),
+                    unit: displayedVolumeUnit,
                     systemImage: "scalemass.fill",
                     trendText: volumeTrendText,
                     color: PulseTheme.accent
                 ) {
                     MiniAreaChart(values: weeklyVolumeValues, color: PulseTheme.accent)
-                        .frame(height: 54)
                 }
 
                 MiniTrendCard(
                     title: "this_week",
                     subtitle: "daily_reps",
-                    value: "\(weekCompletedSets.reduce(0) { $0 + $1.reps }) reps",
+                    value: "\(weekCompletedSets.reduce(0) { $0 + $1.reps })",
+                    unit: "reps",
                     systemImage: "arrow.up.right",
                     trendText: weekRepsTrendText,
                     color: PulseTheme.primary
                 ) {
                     MiniBarChart(points: weeklyRepsPoints, color: PulseTheme.primary)
-                        .frame(height: 54)
                 }
             }
 
@@ -1979,6 +1979,7 @@ private struct MiniTrendCard<Chart: View>: View {
     let title: String
     let subtitle: String
     let value: String
+    let unit: String
     let systemImage: String
     let trendText: String?
     let color: Color
@@ -1988,6 +1989,7 @@ private struct MiniTrendCard<Chart: View>: View {
         title: String,
         subtitle: String,
         value: String,
+        unit: String,
         systemImage: String,
         trendText: String?,
         color: Color,
@@ -1996,6 +1998,7 @@ private struct MiniTrendCard<Chart: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.value = value
+        self.unit = unit
         self.systemImage = systemImage
         self.trendText = trendText
         self.color = color
@@ -2008,8 +2011,8 @@ private struct MiniTrendCard<Chart: View>: View {
     }
 
     var body: some View {
-        PulseCard(minHeight: 156, contentPadding: 14, backgroundColor: color.opacity(0.08)) {
-            VStack(alignment: .leading, spacing: 8) {
+        PulseCard(contentPadding: 14, backgroundColor: color.opacity(0.08)) {
+            VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: systemImage)
                         .font(.caption.weight(.bold))
@@ -2030,14 +2033,27 @@ private struct MiniTrendCard<Chart: View>: View {
                     }
                 }
 
-                Text(value)
-                    .font(.system(size: 25, weight: .black, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.64)
+                Spacer(minLength: 8)
+
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(value)
+                        .font(.system(size: 31, weight: .black, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.primary)
+                    Text(unit)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+                Spacer(minLength: 8)
 
                 chart
+                    .frame(height: 42)
+                    .frame(maxWidth: .infinity)
             }
+            .frame(height: 130, alignment: .top)
         }
     }
 }
@@ -2204,12 +2220,12 @@ private struct WellnessWidget: View {
     let color: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: systemImage)
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(.white)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 30, height: 30)
                     .background(color)
                     .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 Text(localizedKey(title))
@@ -2219,18 +2235,21 @@ private struct WellnessWidget: View {
             }
 
             Text(value)
-                .font(.system(size: 25, weight: .bold, design: .rounded))
+                .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundStyle(color)
                 .lineLimit(1)
-                .minimumScaleFactor(0.78)
+                .minimumScaleFactor(0.7)
 
             Text(localizedKey(subtitle))
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(PulseTheme.secondaryText)
-                .lineLimit(1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
         }
-        .frame(width: 166, height: 166, alignment: .topLeading)
-        .padding(14)
+        .frame(width: 166, height: 128, alignment: .topLeading)
+        .padding(12)
         .background(PulseTheme.card)
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
         .overlay(

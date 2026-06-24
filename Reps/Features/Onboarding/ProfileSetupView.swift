@@ -1,3 +1,4 @@
+import Charts
 import MuscleMap
 import SwiftUI
 
@@ -8,11 +9,13 @@ struct ProfileSetupView: View {
     @State private var step: OnboardingStep = .hero
     @State private var cachedPlan: WorkoutPlan?
     @State private var generationProgress = 0.0
-    @State private var generationStatusText = "Preparing your plan"
+    @State private var generationStatusText = localizedString("onboarding_gen_preparing")
     @State private var isGenerationComplete = false
     @State private var generationPulse = false
     @State private var generationTask: Task<Void, Never>?
+    @State private var testimonialIndex = 0
     @State private var contentAppeared = false
+    @State private var showingBackFromPlan = false
 
     var onFinish: (OnboardingResult) -> Void
 
@@ -44,11 +47,17 @@ struct ProfileSetupView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if step != .hero {
+            if step != .hero && (step != .generating || isGenerationComplete) {
                 OnboardingProgressHeader(
                     progress: progressValue,
-                    canGoBack: stepIndex > 0 && step != .generating,
-                    onBack: moveBackward
+                    canGoBack: stepIndex > 0,
+                    onBack: {
+                        if step == .generating {
+                            showingBackFromPlan = true
+                        } else {
+                            moveBackward()
+                        }
+                    }
                 )
             }
 
@@ -86,6 +95,18 @@ struct ProfileSetupView: View {
         }
         .onDisappear {
             generationTask?.cancel()
+        }
+        .alert(
+            LocalizedStringKey("onboarding_plan_back_title"),
+            isPresented: $showingBackFromPlan
+        ) {
+            Button(LocalizedStringKey("onboarding_plan_back_confirm"), role: .destructive) {
+                isGenerationComplete = false
+                moveBackward()
+            }
+            Button(LocalizedStringKey("onboarding_plan_back_cancel"), role: .cancel) {}
+        } message: {
+            Text(LocalizedStringKey("onboarding_plan_back_message"))
         }
     }
 
@@ -138,13 +159,20 @@ struct ProfileSetupView: View {
             }
 
             VStack(spacing: 14) {
-                Text("Meet StreakRep.\nYour smartest training partner.")
+                (Text("onboarding_hero_meet")
+                    + Text("StreakRep")
+                        .foregroundStyle(LinearGradient(
+                            colors: [PulseTheme.accent, PulseTheme.warning],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ))
+                    + Text("onboarding_hero_partner"))
                     .font(.system(size: 38, weight: .heavy))
                     .multilineTextAlignment(.center)
-                    .lineLimit(3)
+                    .lineLimit(4)
                     .minimumScaleFactor(0.76)
 
-                Text("Science-backed programming tailored to your body, goals, and schedule.")
+                Text("onboarding_hero_tagline")
                     .font(.body.weight(.medium))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .multilineTextAlignment(.center)
@@ -160,8 +188,8 @@ struct ProfileSetupView: View {
     private var valueStep: some View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
-                title: "From plan to progress",
-                subtitle: "A short setup gives you a real first workout, not a generic template."
+                title: "onboarding_value_title",
+                subtitle: "onboarding_value_subtitle"
             )
 
             OnboardingProgressBodyHero(
@@ -176,8 +204,8 @@ struct ProfileSetupView: View {
     private var goalStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "What is your main goal?",
-                subtitle: "This changes volume, rep ranges, rests, and exercise priority."
+                title: "onboarding_goal_title",
+                subtitle: "onboarding_goal_subtitle"
             )
 
             VStack(spacing: 12) {
@@ -199,8 +227,8 @@ struct ProfileSetupView: View {
     private var experienceStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "How long have you trained?",
-                subtitle: "We will avoid starting too easy or too aggressive."
+                title: "onboarding_exp_title",
+                subtitle: "onboarding_exp_subtitle"
             )
 
             VStack(spacing: 12) {
@@ -222,23 +250,23 @@ struct ProfileSetupView: View {
     private var scheduleStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "How much can you train?",
-                subtitle: "We will build something you can actually repeat."
+                title: "onboarding_schedule_title",
+                subtitle: "onboarding_schedule_subtitle"
             )
 
             OnboardingNumberPicker(
-                title: "Workouts per week",
+                title: "onboarding_schedule_days_label",
                 value: $draft.weeklyTrainingDays,
-                options: Array(2...6),
-                unit: "days",
+                options: Array(1...7),
+                unit: "onboarding_schedule_days_unit",
                 helper: scheduleHelperText
             )
 
             OnboardingNumberPicker(
-                title: "Session length",
+                title: "onboarding_schedule_duration_label",
                 value: $draft.sessionLengthMinutes,
-                options: [30, 45, 60, 75, 90],
-                unit: "min",
+                options: [15, 30, 45, 60, 75, 90],
+                unit: "onboarding_schedule_duration_unit",
                 helper: durationHelperText
             )
         }
@@ -247,8 +275,8 @@ struct ProfileSetupView: View {
     private var equipmentStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "Where do you train?",
-                subtitle: "We will only use exercises that match your setup."
+                title: "onboarding_equipment_title",
+                subtitle: "onboarding_equipment_subtitle"
             )
 
             VStack(spacing: 12) {
@@ -267,13 +295,13 @@ struct ProfileSetupView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Available equipment")
+                    Text("onboarding_equipment_available_label")
                         .font(.headline)
 
                     FlowLayout(spacing: 10) {
                         ForEach(OnboardingLocationCatalog.coreEquipment, id: \.self) { equipment in
                             EquipmentChip(
-                                title: equipment,
+                                title: OnboardingLocationCatalog.localizedEquipmentKey(equipment),
                                 isSelected: draft.availableEquipment.contains(equipment)
                             ) {
                                 draft.toggleEquipment(equipment)
@@ -281,7 +309,7 @@ struct ProfileSetupView: View {
                         }
                     }
 
-                    Text("You can refine the full equipment list later in Profile.")
+                    Text("onboarding_equipment_refine_hint")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -292,14 +320,14 @@ struct ProfileSetupView: View {
     private var baselineStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "Set your starting point",
-                subtitle: "These values help estimate initial loads and body progress."
+                title: "onboarding_baseline_title",
+                subtitle: "onboarding_baseline_subtitle"
             )
 
             OnboardingMetricSlider(
-                title: "Age",
+                title: "onboarding_baseline_age",
                 valueText: "\(draft.age)",
-                unit: "yrs",
+                unit: "onboarding_baseline_age_unit",
                 icon: "calendar",
                 value: Binding(
                     get: { Double(draft.age) },
@@ -310,9 +338,9 @@ struct ProfileSetupView: View {
             )
 
             OnboardingMetricSlider(
-                title: "Height",
+                title: "onboarding_baseline_height",
                 valueText: String(format: "%.0f", draft.heightCm),
-                unit: "cm",
+                unit: "onboarding_baseline_height_unit",
                 icon: "ruler",
                 value: $draft.heightCm,
                 range: 130...220,
@@ -320,9 +348,9 @@ struct ProfileSetupView: View {
             )
 
             OnboardingMetricSlider(
-                title: "Weight",
+                title: "onboarding_baseline_weight",
                 valueText: String(format: "%.1f", draft.weightKg),
-                unit: "kg",
+                unit: "onboarding_baseline_weight_unit",
                 icon: "scalemass.fill",
                 value: $draft.weightKg,
                 range: 35...180,
@@ -331,9 +359,9 @@ struct ProfileSetupView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Body map preference")
+                    Text("onboarding_baseline_anatomy_label")
                         .font(.headline)
-                    Text("Used only for anatomy views and muscle visualizations.")
+                    Text("onboarding_baseline_anatomy_subtitle")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(PulseTheme.secondaryText)
 
@@ -362,8 +390,8 @@ struct ProfileSetupView: View {
     private var focusStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             OnboardingTitle(
-                title: "Want to prioritize a muscle group?",
-                subtitle: "Pick one or two areas, or keep the plan balanced."
+                title: "onboarding_focus_title",
+                subtitle: "onboarding_focus_subtitle"
             )
 
             OnboardingBodyPair(gender: selectedGender, selectedMuscles: selectedFocusMuscles) { muscle in
@@ -376,128 +404,197 @@ struct ProfileSetupView: View {
             FlowLayout(spacing: 10) {
                 ForEach(OnboardingDraft.focusOptions, id: \.self) { focus in
                     EquipmentChip(
-                        title: focus,
+                        title: OnboardingDraft.localizedFocusKey(focus),
                         isSelected: draft.focusMuscles.contains(focus)
                     ) {
                         draft.toggleFocus(focus)
                     }
                 }
+                EquipmentChip(
+                    title: "onboarding_focus_all",
+                    isSelected: draft.allFocusSelected
+                ) {
+                    draft.toggleAllFocus()
+                }
             }
-
-            Button {
-                draft.focusMuscles.removeAll()
-                moveForward()
-            } label: {
-                Text("Use a balanced plan")
-                    .font(.subheadline.weight(.bold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .background(PulseTheme.grouped)
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
         }
     }
 
     private var generatingStep: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
             if !isGenerationComplete {
-                RepsLoadingView(
-                    messages: [generationStatusText],
-                    progress: generationProgress,
-                    layout: .panel
-                )
-                .padding(.top, 42)
-                .frame(maxWidth: .infinity, minHeight: 430)
+                planGeneratingView
             } else {
-                VStack(spacing: 22) {
-                    OnboardingTitle(
-                        title: "Your first block is ready",
-                        subtitle: "We matched your goal, time, equipment, and starting point."
-                    )
-
-                    OnboardingBodyPair(gender: selectedGender, heatmap: generationHeatmap)
-                        .frame(height: 410)
-                        .scaleEffect(generationPulse ? 1.02 : 0.98)
-                        .opacity(generationPulse ? 1 : 0.82)
-
-                    HStack(spacing: 8) {
-                        GenerationPill(title: "Days", value: "\(generatedPlan.daysPerWeek)")
-                        GenerationPill(title: "Sets", value: "\(weeklySetTotal)")
-                        GenerationPill(title: "Weeks", value: "\(generatedPlan.totalWeeks)")
-                    }
-
-                    PlanSummaryCard(plan: generatedPlan)
-                }
-                .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                planCompleteView
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
         .frame(maxWidth: .infinity)
     }
 
-    private var readyStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            OnboardingTitle(
-                title: "Your first workout is ready",
-                subtitle: "Start with a clear session now. You can review the full plan anytime in Plans."
-            )
+    private var activeGenerationStep: Int {
+        if generationProgress < 0.25 { return 0 }
+        if generationProgress < 0.55 { return 1 }
+        if generationProgress < 0.82 { return 2 }
+        return 3
+    }
 
-            PlanSummaryCard(plan: generatedPlan)
+    private static let planTestimonials: [(text: String, author: String)] = [
+        (text: "I finally have a plan that fits my schedule and recovery.", author: "Alex R."),
+        (text: "The first week was tough but by week 3 I was hooked.", author: "Maria K."),
+        (text: "Finally an app that actually adapts to my life.", author: "Carlos M."),
+    ]
 
-            if let firstDay = generatedPlan.days.first {
-                PulseCard {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack(alignment: .firstTextBaseline) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(firstDay.title)
-                                    .font(.title3.weight(.bold))
-                                Text("\(firstDay.exercises.count) exercises - about \(firstDay.durationMinutes) min")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(PulseTheme.secondaryText)
-                            }
-                            Spacer()
-                            Image(systemName: "sparkles")
-                                .font(.headline.weight(.bold))
-                                .foregroundStyle(.black)
-                                .frame(width: 36, height: 36)
-                                .background(.white)
-                                .clipShape(Circle())
-                        }
+    private var planGeneratingView: some View {
+        VStack(alignment: .leading, spacing: 26) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("onboarding_personalizing_title")
+                    .font(.system(size: 34, weight: .heavy))
+                Text("onboarding_personalizing_subtitle")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            .padding(.top, 8)
 
-                        ForEach(firstDay.exercises.prefix(3)) { item in
-                            HStack(spacing: 12) {
-                                ExerciseMediaThumbnail(exercise: item.exercise, gender: selectedGender, catalog: store.exercises)
-                                    .frame(width: 56, height: 56)
-                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            VStack(alignment: .leading, spacing: 10) {
+                Text("PROGRESS")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .tracking(1.2)
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(RepsText.exerciseName(item.exercise.name, language: draft.preferredLanguage))
-                                        .font(.subheadline.weight(.bold))
-                                        .lineLimit(2)
-                                    Text("\(item.targetSets) sets - \(item.repRange)")
-                                        .font(.caption.weight(.medium))
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                }
-                                Spacer(minLength: 0)
-                            }
-                        }
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(.white.opacity(0.10))
+                        Capsule()
+                            .fill(LinearGradient(
+                                colors: [PulseTheme.primaryBright, PulseTheme.accent],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ))
+                            .frame(width: max(16, proxy.size.width * generationProgress))
+                    }
+                }
+                .frame(height: 5)
+            }
+
+            PulseCard {
+                let stepTitles: [LocalizedStringKey] = [
+                    "onboarding_step_saving_profile",
+                    "onboarding_step_preferences",
+                    "onboarding_step_volume",
+                    "onboarding_step_templates"
+                ]
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(stepTitles.enumerated()), id: \.offset) { index, title in
+                        GenerationStepRow(
+                            title: title,
+                            isCompleted: index < activeGenerationStep,
+                            isActive: index == activeGenerationStep,
+                            isLast: index == stepTitles.count - 1
+                        )
                     }
                 }
             }
 
             PulseCard(backgroundColor: PulseTheme.grouped) {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "bell.badge.fill")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Next: reminders and Apple Health")
-                            .font(.headline)
-                        Text("We will ask for those later, when there is a clear reason. This setup finishes with your plan.")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
+                VStack(alignment: .leading, spacing: 10) {
+                    Image(systemName: "quote.opening")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.28))
+
+                    Text(Self.planTestimonials[testimonialIndex].text)
+                        .font(.body.weight(.medium))
+                        .italic()
+                        .foregroundStyle(.white.opacity(0.84))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .id(testimonialIndex)
+                        .transition(.opacity)
+
+                    Text("— \(Self.planTestimonials[testimonialIndex].author)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+
+            Spacer(minLength: 16)
+        }
+        .frame(maxWidth: .infinity)
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(3.5))
+                withAnimation(.easeInOut(duration: 0.45)) {
+                    testimonialIndex = (testimonialIndex + 1) % Self.planTestimonials.count
+                }
+            }
+        }
+    }
+
+    private var planCompleteView: some View {
+        VStack(spacing: 22) {
+            OnboardingTitle(
+                title: "onboarding_generating_title",
+                subtitle: "onboarding_generating_subtitle"
+            )
+
+            OnboardingBodyPair(gender: selectedGender, heatmap: generationHeatmap)
+                .frame(height: 410)
+                .scaleEffect(generationPulse ? 1.02 : 0.98)
+                .opacity(generationPulse ? 1 : 0.82)
+
+            HStack(spacing: 8) {
+                GenerationPill(title: "onboarding_pill_days", value: "\(generatedPlan.daysPerWeek)")
+                GenerationPill(title: "onboarding_pill_sets", value: "\(weeklySetTotal)")
+                GenerationPill(title: "onboarding_pill_weeks", value: "\(generatedPlan.totalWeeks)")
+            }
+
+            PlanProjectionCard(
+                plan: generatedPlan,
+                weeklySetTotal: weeklySetTotal,
+                goal: draft.mainGoal,
+                experience: draft.experience,
+                focusMuscles: Array(draft.focusMuscles).sorted(),
+                locationID: draft.selectedLocationID
+            )
+        }
+    }
+
+    private var readyStep: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            OnboardingTitle(
+                title: "onboarding_ready_title",
+                subtitle: "onboarding_ready_subtitle"
+            )
+
+            HStack(spacing: 8) {
+                GenerationPill(title: "onboarding_pill_days", value: "\(generatedPlan.daysPerWeek)")
+                GenerationPill(title: "onboarding_pill_sets", value: "\(weeklySetTotal)")
+                GenerationPill(title: "onboarding_pill_weeks", value: "\(generatedPlan.totalWeeks)")
+            }
+
+            if let firstDay = generatedPlan.days.first {
+                PlanDay1LockedPreviewCard(
+                    day: firstDay,
+                    gender: selectedGender,
+                    language: draft.preferredLanguage,
+                    exercises: store.exercises,
+                    isPro: store.monetization.hasProAccess
+                )
+            }
+
+            if generatedPlan.days.count > 1 {
+                PlanLockedDaysCard(
+                    plan: generatedPlan,
+                    isPro: store.monetization.hasProAccess
+                )
+            }
+
+            if !store.monetization.hasProAccess {
+                PlanUnlockProCard(
+                    totalWeeks: generatedPlan.totalWeeks,
+                    daysPerWeek: generatedPlan.daysPerWeek
+                ) {
+                    store.presentPaywall(source: .onboarding, feature: nil, trigger: .onboarding)
                 }
             }
         }
@@ -523,7 +620,7 @@ struct ProfileSetupView: View {
                 Button {
                     finishOnboarding()
                 } label: {
-                    Text("Go to Today")
+                    Text(store.monetization.hasProAccess ? "onboarding_btn_start_with_plan" : "onboarding_btn_continue_free")
                         .font(.subheadline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 38)
@@ -543,30 +640,37 @@ struct ProfileSetupView: View {
         step == .ready ? 128 : 82
     }
 
-    private var scheduleHelperText: String {
+    private var scheduleHelperText: LocalizedStringKey {
         switch draft.weeklyTrainingDays {
-        case 2: "Minimal and easy to recover from"
-        case 3: "Simple full-body or push/pull/legs rhythm"
-        case 4: "Strong balance for most lifters"
-        case 5: "Higher volume with careful recovery"
-        default: "Aggressive schedule for consistent athletes"
+        case 1: "onboarding_schedule_1_day"
+        case 2: "onboarding_schedule_2_days"
+        case 3: "onboarding_schedule_3_days"
+        case 4: "onboarding_schedule_4_days"
+        case 5: "onboarding_schedule_5_days"
+        case 6: "onboarding_schedule_6_days"
+        default: "onboarding_schedule_7_days"
         }
     }
 
-    private var durationHelperText: String {
+    private var durationHelperText: LocalizedStringKey {
         switch draft.sessionLengthMinutes {
-        case 30: "Short and focused sessions"
-        case 45: "Efficient sessions with core movements"
-        case 60: "Best default for strength and muscle"
-        case 75: "More accessories and rest time"
-        default: "Long sessions with full volume"
+        case 15: "onboarding_duration_15min"
+        case 30: "onboarding_duration_30min"
+        case 45: "onboarding_duration_45min"
+        case 60: "onboarding_duration_60min"
+        case 75: "onboarding_duration_75min"
+        default: "onboarding_duration_90min"
         }
     }
 
     private func primaryAction() {
         switch step {
         case .ready:
-            finishOnboarding()
+            if store.monetization.hasProAccess {
+                finishOnboarding()
+            } else {
+                store.presentPaywall(source: .onboarding, feature: nil, trigger: .onboarding)
+            }
         default:
             moveForward()
         }
@@ -609,16 +713,16 @@ struct ProfileSetupView: View {
         generationTask?.cancel()
         cachedPlan = buildPlan()
         generationProgress = 0
-        generationStatusText = "Saving your profile"
+        generationStatusText = localizedString("onboarding_gen_saving")
         isGenerationComplete = false
         generationPulse = false
 
         generationTask = Task {
             let updates: [(delay: UInt64, progress: Double, text: String)] = [
-                (450_000_000, 0.25, "Filtering exercises by equipment"),
-                (900_000_000, 0.55, "Adjusting weekly volume"),
-                (1_350_000_000, 0.82, "Preparing your first workout"),
-                (1_800_000_000, 1.0, "Plan ready")
+                (450_000_000, 0.25, localizedString("onboarding_gen_filtering")),
+                (900_000_000, 0.55, localizedString("onboarding_gen_adjusting")),
+                (1_350_000_000, 0.82, localizedString("onboarding_gen_first_workout")),
+                (1_800_000_000, 1.0, localizedString("onboarding_gen_ready"))
             ]
 
             for update in updates {
@@ -694,6 +798,19 @@ private struct OnboardingDraft {
 
     static let focusOptions = ["Chest", "Back", "Shoulders", "Arms", "Legs", "Glutes", "Core"]
 
+    static func localizedFocusKey(_ focus: String) -> LocalizedStringKey {
+        switch focus {
+        case "Chest":     return "muscle_group_chest"
+        case "Back":      return "muscle_group_back"
+        case "Shoulders": return "muscle_group_shoulders"
+        case "Arms":      return "muscle_group_arms"
+        case "Legs":      return "muscle_group_legs"
+        case "Glutes":    return "muscle_group_glutes"
+        case "Core":      return "muscle_group_core"
+        default:          return LocalizedStringKey(focus)
+        }
+    }
+
     mutating func applyLocation(_ location: OnboardingTrainingLocationOption) {
         selectedLocationID = location.id
         trainingLocation = location.profileLocation
@@ -712,11 +829,23 @@ private struct OnboardingDraft {
         }
     }
 
+    var allFocusSelected: Bool {
+        Self.focusOptions.allSatisfy { focusMuscles.contains($0) }
+    }
+
     mutating func toggleFocus(_ focus: String) {
         if focusMuscles.contains(focus) {
             focusMuscles.remove(focus)
         } else {
             focusMuscles.insert(focus)
+        }
+    }
+
+    mutating func toggleAllFocus() {
+        if allFocusSelected {
+            focusMuscles.removeAll()
+        } else {
+            focusMuscles = Set(Self.focusOptions)
         }
     }
 
@@ -750,13 +879,13 @@ private enum OnboardingStep: CaseIterable {
     case generating
     case ready
 
-    var primaryButtonTitle: String {
+    var primaryButtonTitle: LocalizedStringKey {
         switch self {
-        case .hero: "Get started"
-        case .value: "Start setup"
-        case .generating: "See my plan"
-        case .ready: "Start with my plan"
-        default: "Continue"
+        case .hero: "onboarding_btn_get_started"
+        case .value: "onboarding_btn_start_setup"
+        case .generating: "onboarding_btn_see_my_plan"
+        case .ready: "onboarding_btn_unlock_plan"
+        default: "onboarding_btn_continue"
         }
     }
 
@@ -769,11 +898,11 @@ private enum BodyMapPreference: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    var title: LocalizedStringKey {
         switch self {
-        case .mapA: "Map A"
-        case .mapB: "Map B"
-        case .preferNotToSay: "Skip"
+        case .mapA: "onboarding_body_map_male"
+        case .mapB: "onboarding_body_map_female"
+        case .preferNotToSay: "onboarding_body_map_skip"
         }
     }
 
@@ -834,8 +963,8 @@ private struct OnboardingProgressHeader: View {
 }
 
 private struct OnboardingTitle: View {
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
@@ -853,8 +982,8 @@ private struct OnboardingTitle: View {
 }
 
 private struct OnboardingOptionCard: View {
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
     let icon: String
     let tint: Color
     let isSelected: Bool
@@ -902,11 +1031,11 @@ private struct OnboardingOptionCard: View {
 }
 
 private struct OnboardingNumberPicker: View {
-    let title: String
+    let title: LocalizedStringKey
     @Binding var value: Int
     let options: [Int]
-    let unit: String
-    let helper: String
+    let unit: LocalizedStringKey
+    let helper: LocalizedStringKey
 
     var body: some View {
         PulseCard(contentPadding: 18) {
@@ -956,9 +1085,9 @@ private struct OnboardingNumberPicker: View {
 }
 
 private struct OnboardingMetricSlider: View {
-    let title: String
+    let title: LocalizedStringKey
     let valueText: String
-    let unit: String
+    let unit: LocalizedStringKey
     let icon: String
     @Binding var value: Double
     let range: ClosedRange<Double>
@@ -1034,7 +1163,7 @@ private struct TickRail: View {
 }
 
 private struct EquipmentChip: View {
-    let title: String
+    let title: LocalizedStringKey
     let isSelected: Bool
     let action: () -> Void
 
@@ -1065,7 +1194,7 @@ private struct FlowLayout<Content: View>: View {
 }
 
 private struct HeroSignal: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
 
     var body: some View {
@@ -1085,8 +1214,8 @@ private struct HeroSignal: View {
 
 private struct OnboardingBenefit: View {
     let icon: String
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
 
     var body: some View {
         PulseCard {
@@ -1106,7 +1235,7 @@ private struct OnboardingBenefit: View {
 }
 
 private struct OnboardingSignal: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
     let color: Color
 
@@ -1126,7 +1255,7 @@ private struct OnboardingSignal: View {
 }
 
 private struct GenerationPill: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
 
     var body: some View {
@@ -1144,6 +1273,184 @@ private struct GenerationPill: View {
     }
 }
 
+private struct GenerationStepRow: View {
+    let title: LocalizedStringKey
+    let isCompleted: Bool
+    let isActive: Bool
+    let isLast: Bool
+    @State private var pulse = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                ZStack {
+                    if isCompleted {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(PulseTheme.primaryBright)
+                    } else if isActive {
+                        Circle()
+                            .stroke(PulseTheme.primaryBright, lineWidth: 2.5)
+                            .frame(width: 22, height: 22)
+                            .scaleEffect(pulse ? 1.15 : 0.88)
+                            .opacity(pulse ? 1 : 0.55)
+                            .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
+                    } else {
+                        Circle()
+                            .stroke(.white.opacity(0.22), lineWidth: 1.5)
+                            .frame(width: 22, height: 22)
+                    }
+                }
+                .frame(width: 26, height: 26)
+
+                Text(title)
+                    .font(.subheadline.weight(isActive ? .bold : .medium))
+                    .foregroundStyle(isActive ? .white : (isCompleted ? .white.opacity(0.75) : PulseTheme.secondaryText))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.vertical, 11)
+            .padding(.horizontal, 4)
+            .background(isActive ? .white.opacity(0.07) : .clear)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            if !isLast {
+                HStack(spacing: 14) {
+                    Rectangle()
+                        .fill(isCompleted ? PulseTheme.primaryBright.opacity(0.5) : .white.opacity(0.14))
+                        .frame(width: 1.5, height: 14)
+                        .frame(width: 26)
+                    Spacer()
+                }
+            }
+        }
+        .onAppear { pulse = isActive }
+        .onChange(of: isActive) { _, v in pulse = v }
+        .animation(.spring(response: 0.4, dampingFraction: 0.78), value: isCompleted)
+        .animation(.spring(response: 0.4, dampingFraction: 0.78), value: isActive)
+    }
+}
+
+private struct PlanProjectionCard: View {
+    let plan: WorkoutPlan
+    let weeklySetTotal: Int
+    let goal: UserProfile.MainGoal
+    let experience: UserProfile.Experience
+    let focusMuscles: [String]
+    let locationID: String
+
+    private struct WeekPoint: Identifiable {
+        let id: Int
+        let sets: Int
+        let isDeload: Bool
+    }
+
+    private var projection: [WeekPoint] {
+        let total = max(1, plan.totalWeeks)
+        return (1...total).map { week in
+            let mesoLen = 4
+            let mesocycle = (week - 1) / mesoLen
+            let weekInMeso = ((week - 1) % mesoLen) + 1
+            let isDeload = weekInMeso == mesoLen && total >= 8
+            let sets: Int
+            if isDeload {
+                sets = Int(Double(weeklySetTotal) * (1.0 + Double(mesocycle) * 0.12) * 0.68)
+            } else {
+                let factor = 1.0 + Double(mesocycle) * 0.12 + Double(weekInMeso - 1) * 0.05
+                sets = Int(Double(weeklySetTotal) * factor)
+            }
+            return WeekPoint(id: week, sets: sets, isDeload: isDeload)
+        }
+    }
+
+    private var axisWeeks: [Int] {
+        let total = plan.totalWeeks
+        if total <= 4 { return Array(1...total) }
+        if total <= 8 { return [1, 4, total] }
+        return Array(stride(from: 1, through: total, by: 4))
+    }
+
+    private struct TagEntry: Identifiable {
+        let id: Int
+        let icon: String
+        let text: String
+    }
+
+    private var tags: [TagEntry] {
+        var result: [TagEntry] = []
+        result.append(TagEntry(id: 0, icon: goal.icon, text: goal.shortTitle))
+        result.append(TagEntry(id: 1, icon: experience.icon, text: experience.shortLabel))
+        if !focusMuscles.isEmpty {
+            let label = focusMuscles.prefix(2).joined(separator: " · ")
+            result.append(TagEntry(id: 2, icon: "sparkle", text: label))
+        }
+        let location = OnboardingLocationCatalog.location(for: locationID)
+        result.append(TagEntry(id: 3, icon: location.icon, text: localizedString(location.titleKey)))
+        return result
+    }
+
+    var body: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(LocalizedStringKey("onboarding_plan_projection_title"))
+                            .font(.headline)
+                        Text(LocalizedStringKey("onboarding_plan_projection_caption"))
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    Spacer()
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(tags) { tag in
+                            Label(tag.text, systemImage: tag.icon)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.white.opacity(0.88))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(PulseTheme.grouped)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+
+                Chart(projection) { point in
+                    BarMark(
+                        x: .value("Week", point.id),
+                        y: .value("Sets", point.sets)
+                    )
+                    .foregroundStyle(
+                        point.isDeload
+                            ? AnyShapeStyle(PulseTheme.primaryBright.opacity(0.28))
+                            : AnyShapeStyle(LinearGradient(
+                                colors: [PulseTheme.primaryBright, PulseTheme.accent],
+                                startPoint: .bottom,
+                                endPoint: .top
+                            ))
+                    )
+                    .cornerRadius(3)
+                }
+                .chartYAxis(.hidden)
+                .chartXAxis {
+                    AxisMarks(values: axisWeeks) { value in
+                        AxisValueLabel {
+                            if let week = value.as(Int.self) {
+                                Text(localizedString("onboarding_plan_wk") + "\(week)")
+                                    .font(.caption2)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                        }
+                    }
+                }
+                .frame(height: 88)
+            }
+        }
+    }
+}
+
 private struct PlanSummaryCard: View {
     let plan: WorkoutPlan
 
@@ -1152,7 +1459,7 @@ private struct PlanSummaryCard: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Suggested plan")
+                        Text("onboarding_suggested_plan")
                             .font(.headline)
                         Text("\(plan.daysPerWeek) days/week for \(plan.totalWeeks) weeks")
                             .font(.subheadline.weight(.semibold))
@@ -1188,6 +1495,263 @@ private struct PlanSummaryCard: View {
                         .foregroundStyle(PulseTheme.primary)
                 }
             }
+        }
+    }
+}
+
+
+private struct PlanDay1LockedPreviewCard: View {
+    let day: WorkoutDay
+    let gender: BodyGender
+    let language: String
+    let exercises: [Exercise]
+    let isPro: Bool
+
+    var body: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(day.title)
+                            .font(.title3.weight(.bold))
+                        Text("\(day.exercises.count) exercises · \(day.durationMinutes) min")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    Spacer()
+                    Image(systemName: "sparkles")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 36, height: 36)
+                        .background(.white)
+                        .clipShape(Circle())
+                }
+
+                ForEach(Array(day.exercises.prefix(5).enumerated()), id: \.offset) { index, item in
+                    PlanExerciseRow(
+                        item: item,
+                        gender: gender,
+                        language: language,
+                        exercises: exercises,
+                        isLocked: !isPro && index > 0
+                    )
+                }
+
+                if !isPro && day.exercises.count > 5 {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lock.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.accent)
+                        Text("+\(day.exercises.count - 5) more exercises · Pro")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.accent)
+                    }
+                    .padding(.top, 2)
+                }
+            }
+        }
+    }
+}
+
+private struct PlanExerciseRow: View {
+    let item: WorkoutExercise
+    let gender: BodyGender
+    let language: String
+    let exercises: [Exercise]
+    let isLocked: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ExerciseMediaThumbnail(exercise: item.exercise, gender: gender, catalog: exercises)
+                .frame(width: 56, height: 56)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(.black.opacity(isLocked ? 0.45 : 0))
+                )
+                .overlay(
+                    Image(systemName: "lock.fill")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.white)
+                        .opacity(isLocked ? 1 : 0)
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(RepsText.exerciseName(item.exercise.name, language: language))
+                    .font(.subheadline.weight(.bold))
+                    .lineLimit(2)
+                    .foregroundStyle(isLocked ? PulseTheme.secondaryText : .primary)
+
+                if isLocked {
+                    HStack(spacing: 5) {
+                        Image(systemName: "lock.fill")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(PulseTheme.accent)
+                        Text("Sets · Reps · Load · Pro")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.accent)
+                    }
+                } else {
+                    Text("\(item.targetSets) sets · \(item.repRange) · \(item.previous)")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct PlanLockedDaysCard: View {
+    let plan: WorkoutPlan
+    let isPro: Bool
+
+    var otherDays: [WorkoutDay] {
+        Array(plan.days.dropFirst())
+    }
+
+    var body: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("Full \(plan.totalWeeks)-week block")
+                        .font(.headline)
+                    Spacer()
+                    if !isPro {
+                        Text("PRO")
+                            .font(.caption2.weight(.black))
+                            .tracking(0.8)
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(PulseTheme.accent)
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding(.bottom, 14)
+
+                ForEach(Array(otherDays.prefix(isPro ? otherDays.count : 3).enumerated()), id: \.offset) { index, day in
+                    HStack(spacing: 10) {
+                        if isPro {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(PulseTheme.primaryBright)
+                        } else {
+                            Image(systemName: "lock.fill")
+                                .foregroundStyle(PulseTheme.accent.opacity(0.7))
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(day.title)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(isPro ? .primary : PulseTheme.secondaryText)
+                            Text("\(day.exercises.count) exercises · \(day.durationMinutes) min")
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 6)
+
+                    if index < min(otherDays.count, isPro ? otherDays.count : 3) - 1 {
+                        Divider()
+                            .overlay(PulseTheme.separator)
+                    }
+                }
+
+                if !isPro && otherDays.count > 3 {
+                    ZStack(alignment: .center) {
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                            .frame(height: 56)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                        HStack(spacing: 8) {
+                            Image(systemName: "lock.fill")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(PulseTheme.accent)
+                            Text("+\(otherDays.count - 3) more days in this block")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(PulseTheme.accent)
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+            }
+        }
+    }
+}
+
+private struct PlanUnlockProCard: View {
+    let totalWeeks: Int
+    let daysPerWeek: Int
+    let onUnlock: () -> Void
+
+    var body: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 10) {
+                    Image(systemName: "bolt.heart.fill")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 40, height: 40)
+                        .background(PulseTheme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Reps Pro")
+                            .font(.headline)
+                        Text("7 days free · cancel anytime")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.accent)
+                    }
+                    Spacer()
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    PlanBenefitRow(icon: "chart.line.uptrend.xyaxis", text: "Progressive overload every week")
+                    PlanBenefitRow(icon: "scalemass.fill", text: "Starting weights calibrated for you")
+                    PlanBenefitRow(icon: "text.bubble.fill", text: "Coaching cues on every exercise")
+                    PlanBenefitRow(icon: "lock.open.fill", text: "All \(daysPerWeek) days · complete \(totalWeeks)-week plan")
+                }
+
+                Button(action: onUnlock) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "bolt.fill")
+                            .font(.subheadline.weight(.black))
+                        Text("Unlock my plan — 7 days free")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .foregroundStyle(.black)
+                    .background(PulseTheme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .pressableFeedback(scale: 0.97)
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke(PulseTheme.accent.opacity(0.5), lineWidth: 1.5)
+        )
+    }
+}
+
+private struct PlanBenefitRow: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(PulseTheme.accent)
+                .frame(width: 18)
+            Text(text)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.primary)
         }
     }
 }
@@ -1230,7 +1794,7 @@ private struct OnboardingProgressBodyHero: View {
                     let modelWidth = min((proxy.size.width + 42) / 2, 186)
 
                     HStack(spacing: -42) {
-                        bodyFigure(gender: .male, side: .front, scale: 1.04)
+                        bodyFigure(gender: .male, side: .front, scale: 1.18)
                             .frame(width: modelWidth, height: proxy.size.height)
                         bodyFigure(gender: .female, side: .back, scale: 0.94)
                             .frame(width: modelWidth, height: proxy.size.height)
@@ -1246,10 +1810,6 @@ private struct OnboardingProgressBodyHero: View {
                 HStack(spacing: 8) {
                     fatTrendBadge
                         .frame(width: 90, height: 58)
-                    Spacer(minLength: 4)
-                    setupBadge
-                        .frame(width: 136)
-                        .layoutPriority(1)
                     Spacer(minLength: 4)
                     strengthBadge
                         .frame(width: 90, height: 58)
@@ -1441,33 +2001,33 @@ private extension View {
 }
 
 private extension UserProfile.MainGoal {
-    var title: String {
+    var title: LocalizedStringKey {
         switch self {
-        case .buildMuscle: "Build muscle"
-        case .bodyRecomposition: "Body recomposition"
-        case .loseFat: "Lose fat"
-        case .getStronger: "Get stronger"
-        case .stayActive: "Stay consistent"
+        case .buildMuscle: "onboarding_goal_build_muscle"
+        case .bodyRecomposition: "onboarding_goal_recomp"
+        case .loseFat: "onboarding_goal_lose_fat"
+        case .getStronger: "onboarding_goal_get_stronger"
+        case .stayActive: "onboarding_goal_stay_active"
         }
     }
 
     var shortTitle: String {
         switch self {
-        case .buildMuscle: "Muscle"
-        case .bodyRecomposition: "Recomp"
-        case .loseFat: "Fat loss"
-        case .getStronger: "Strength"
-        case .stayActive: "Consistency"
+        case .buildMuscle: localizedString("onboarding_goal_build_muscle_short")
+        case .bodyRecomposition: localizedString("onboarding_goal_recomp_short")
+        case .loseFat: localizedString("onboarding_goal_lose_fat_short")
+        case .getStronger: localizedString("onboarding_goal_get_stronger_short")
+        case .stayActive: localizedString("onboarding_goal_stay_active_short")
         }
     }
 
-    var subtitle: String {
+    var subtitle: LocalizedStringKey {
         switch self {
-        case .buildMuscle: "Prioritize hypertrophy and progressive volume"
-        case .bodyRecomposition: "Build muscle while gradually losing fat"
-        case .loseFat: "Keep muscle while improving conditioning"
-        case .getStronger: "Lower reps, heavier work, longer rests"
-        case .stayActive: "Simple sessions that build the habit"
+        case .buildMuscle: "onboarding_goal_build_muscle_sub"
+        case .bodyRecomposition: "onboarding_goal_recomp_sub"
+        case .loseFat: "onboarding_goal_lose_fat_sub"
+        case .getStronger: "onboarding_goal_get_stronger_sub"
+        case .stayActive: "onboarding_goal_stay_active_sub"
         }
     }
 
@@ -1493,19 +2053,19 @@ private extension UserProfile.MainGoal {
 }
 
 private extension UserProfile.Experience {
-    var title: String {
+    var title: LocalizedStringKey {
         switch self {
-        case .beginner: "Beginner"
-        case .intermediate: "Intermediate"
-        case .advanced: "Advanced"
+        case .beginner: "onboarding_exp_beginner"
+        case .intermediate: "onboarding_exp_intermediate"
+        case .advanced: "onboarding_exp_advanced"
         }
     }
 
-    var subtitle: String {
+    var subtitle: LocalizedStringKey {
         switch self {
-        case .beginner: "Less than 1 year training consistently"
-        case .intermediate: "1-3 years with regular sessions"
-        case .advanced: "3+ years and comfortable with progression"
+        case .beginner: "onboarding_exp_beginner_sub"
+        case .intermediate: "onboarding_exp_intermediate_sub"
+        case .advanced: "onboarding_exp_advanced_sub"
         }
     }
 
@@ -1514,6 +2074,14 @@ private extension UserProfile.Experience {
         case .beginner: "figure.walk"
         case .intermediate: "figure.run"
         case .advanced: "figure.strengthtraining.traditional"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .beginner: localizedString("onboarding_exp_beginner")
+        case .intermediate: localizedString("onboarding_exp_intermediate")
+        case .advanced: localizedString("onboarding_exp_advanced")
         }
     }
 }

@@ -1,27 +1,28 @@
 import Foundation
+import SwiftUI
 
 struct OnboardingLocationCatalog {
     static let locations: [OnboardingTrainingLocationOption] = [
         .init(
             id: "full_gym",
-            title: "Full gym",
-            subtitle: "Barbells, machines, cables, and more",
+            titleKey: "onboarding_loc_full_gym",
+            subtitleKey: "onboarding_loc_full_gym_sub",
             icon: "figure.strengthtraining.traditional",
             profileLocation: .gym,
             equipment: ["Barbell", "Dumbbells", "Cables", "Machines", "Bench", "Bodyweight", "Cardio"]
         ),
         .init(
             id: "home_gym",
-            title: "Home gym",
-            subtitle: "Dumbbells, bands, bench, and basics",
+            titleKey: "onboarding_loc_home_gym",
+            subtitleKey: "onboarding_loc_home_gym_sub",
             icon: "house.fill",
             profileLocation: .home,
             equipment: ["Dumbbells", "Bands", "Bench", "Bodyweight"]
         ),
         .init(
             id: "minimal_setup",
-            title: "Minimal setup",
-            subtitle: "Bodyweight and simple accessories",
+            titleKey: "onboarding_loc_minimal",
+            subtitleKey: "onboarding_loc_minimal_sub",
             icon: "figure.strengthtraining.functional",
             profileLocation: .home,
             equipment: ["Bodyweight", "Bands"]
@@ -58,13 +59,30 @@ struct OnboardingLocationCatalog {
             }
         }
     }
+
+    static func localizedEquipmentKey(_ name: String) -> LocalizedStringKey {
+        switch name {
+        case "Barbell":    return "equip_barbell"
+        case "Dumbbells":  return "equip_dumbbells"
+        case "Cables":     return "equip_cables"
+        case "Machines":   return "equip_machines"
+        case "Bands":      return "equip_bands"
+        case "Bench":      return "equip_bench"
+        case "Bodyweight": return "equip_bodyweight"
+        case "Cardio":     return "equip_cardio"
+        default:           return LocalizedStringKey(name)
+        }
+    }
 }
 
 struct OnboardingTrainingLocationOption: Identifiable, Equatable {
     let id: String
-    let title: String
-    let subtitle: String
+    let titleKey: String
+    let subtitleKey: String
     let icon: String
     let profileLocation: UserProfile.TrainingLocation
     let equipment: [String]
+
+    var title: LocalizedStringKey { LocalizedStringKey(titleKey) }
+    var subtitle: LocalizedStringKey { LocalizedStringKey(subtitleKey) }
 }
