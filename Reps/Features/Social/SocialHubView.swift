@@ -108,10 +108,15 @@ struct SocialHubView: View {
                 dismiss()
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "chevron.left").font(.system(size: 18, weight: .bold))
-                    Text(localizedString("profile")).font(.headline)
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .navigationGlassCircle(.secondary)
+                    Text(localizedString("profile"))
+                        .font(.headline)
+                        .foregroundStyle(.white)
                 }
-                .foregroundStyle(PulseTheme.primary)
             }
             .buttonStyle(.plain)
             Spacer()

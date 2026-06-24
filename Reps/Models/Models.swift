@@ -10,6 +10,7 @@ struct UserProfile: Codable {
 
     enum MainGoal: String, CaseIterable, Codable, Identifiable {
         case buildMuscle = "Build Muscle"
+        case bodyRecomposition = "Body Recomposition"
         case loseFat = "Lose Fat"
         case getStronger = "Get Stronger"
         case stayActive = "Stay Active"

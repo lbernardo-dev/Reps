@@ -76,12 +76,24 @@ struct CalendarView: View {
                         .stickyHeaderTitle(localizedString("this_week"))
 
                     HStack {
-                        Button { changeMonth(by: -1) } label: { Image(systemName: "chevron.left") }
+                        Button { changeMonth(by: -1) } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                                .navigationGlassCircle(.secondary)
+                        }
                         Spacer()
                         Text(formattedMonth(visibleMonth))
                             .font(.title.bold())
                         Spacer()
-                        Button { changeMonth(by: 1) } label: { Image(systemName: "chevron.right") }
+                        Button { changeMonth(by: 1) } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                                .navigationGlassCircle(.secondary)
+                        }
                     }
                     .foregroundStyle(PulseTheme.primary)
 

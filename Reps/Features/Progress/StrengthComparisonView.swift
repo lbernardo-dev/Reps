@@ -190,10 +190,13 @@ struct StrengthComparisonView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .navigationGlassCircle(.secondary)
                     Text(localizedString("comparison_back_progress"))
                         .font(.headline)
+                        .foregroundStyle(.white)
                 }
-                .foregroundStyle(PulseTheme.primary)
             }
             .buttonStyle(.plain)
 

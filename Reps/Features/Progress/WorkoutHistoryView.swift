@@ -605,9 +605,7 @@ private struct StrengthWorkoutHero: View {
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 52, height: 52)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                        .navigationGlassCircle(.secondary)
                 }
                 .buttonStyle(.plain)
 
@@ -813,9 +811,7 @@ private struct RouteWorkoutHero: View {
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 52, height: 52)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                        .navigationGlassCircle(.secondary)
                 }
                 .buttonStyle(.plain)
 
@@ -1117,9 +1113,9 @@ private struct RouteWorkoutExpandedMap: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.title3.weight(.bold))
+                        .foregroundStyle(.white)
                         .frame(width: 52, height: 52)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
+                        .destructiveGlassCircle(.secondary)
                 }
                 .buttonStyle(.plain)
 

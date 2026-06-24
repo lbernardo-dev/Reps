@@ -48,10 +48,9 @@ struct ProfileView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(.white)
                                 .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                .background(PulseTheme.primary.opacity(0.10))
-                                .clipShape(Circle())
+                                .navigationGlassCircle(.secondary)
                         }
                         .buttonStyle(.plain)
 
@@ -838,10 +837,9 @@ struct ProfileView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(.white)
                                 .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                .background(PulseTheme.primary.opacity(0.10))
-                                .clipShape(Circle())
+                                .navigationGlassCircle(.secondary)
                         }
                         .buttonStyle(.plain)
 
@@ -1005,10 +1003,9 @@ struct ProfileView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(.white)
                                 .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                .background(PulseTheme.primary.opacity(0.10))
-                                .clipShape(Circle())
+                                .navigationGlassCircle(.secondary)
                         }
                         .buttonStyle(.plain)
 
@@ -1578,10 +1575,9 @@ struct SettingsView: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.white)
                         .frame(width: 40, height: 40)
-                        .background(PulseTheme.grouped)
-                        .clipShape(Circle())
+                        .destructiveGlassCircle(.secondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(localizedString("close_settings"))
@@ -4237,6 +4233,7 @@ private extension UserProfile.MainGoal {
     var displayNameText: String {
         switch self {
         case .buildMuscle: localizedKey("gain_muscle")
+        case .bodyRecomposition: "Body recomposition"
         case .loseFat: localizedKey("lose_fat")
         case .getStronger: localizedKey("more_strength")
         case .stayActive: localizedKey("stay_active")

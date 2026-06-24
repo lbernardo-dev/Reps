@@ -2912,9 +2912,9 @@ private struct ExpandedRouteMapView: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.headline.weight(.bold))
+                        .foregroundStyle(.white)
                         .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
+                        .destructiveGlassCircle(.secondary)
                 }
                 .buttonStyle(.plain)
             }
@@ -4060,10 +4060,9 @@ struct WorkoutSummaryView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
+                            .foregroundStyle(.white)
                             .frame(width: 32, height: 32)
-                            .background(PulseTheme.elevated)
-                            .clipShape(Circle())
+                            .destructiveGlassCircle(.secondary)
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 14)

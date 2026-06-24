@@ -18,9 +18,8 @@ struct ActiveWorkoutPinnedHeader: View {
                     Image(systemName: "xmark")
                         .font(.body.weight(.bold))
                         .frame(width: 44, height: 44)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .background(PulseTheme.grouped)
-                        .clipShape(Circle())
+                        .foregroundStyle(.white)
+                        .destructiveGlassCircle(.secondary)
                 }
                 .accessibilityLabel("return")
 

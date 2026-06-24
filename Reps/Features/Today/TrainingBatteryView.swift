@@ -233,10 +233,13 @@ struct TrainingBatteryView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .navigationGlassCircle(.secondary)
                     Text(localizedString("back_2"))
                         .font(.headline)
+                        .foregroundStyle(.white)
                 }
-                .foregroundStyle(PulseTheme.primary)
             }
             .buttonStyle(.plain)
 

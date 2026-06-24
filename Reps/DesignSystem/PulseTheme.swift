@@ -66,6 +66,151 @@ enum PulseTheme {
     }
 }
 
+enum NavigationGlassProminence {
+    case primary
+    case secondary
+    case disabled
+
+    var tintOpacity: Double {
+        switch self {
+        case .primary:
+            return 0.30
+        case .secondary:
+            return 0.18
+        case .disabled:
+            return 0.10
+        }
+    }
+
+    var strokeOpacity: Double {
+        switch self {
+        case .primary:
+            return 0.58
+        case .secondary:
+            return 0.38
+        case .disabled:
+            return 0.22
+        }
+    }
+
+    var shadowOpacity: Double {
+        switch self {
+        case .primary:
+            return 0.20
+        case .secondary:
+            return 0.10
+        case .disabled:
+            return 0.04
+        }
+    }
+}
+
+extension View {
+    func navigationGlassCapsule(
+        _ prominence: NavigationGlassProminence = .primary,
+        tint: Color = PulseTheme.accent
+    ) -> some View {
+        modifier(NavigationGlassCapsuleModifier(prominence: prominence, tint: tint))
+    }
+
+    func navigationGlassCircle(
+        _ prominence: NavigationGlassProminence = .secondary,
+        tint: Color = PulseTheme.accent
+    ) -> some View {
+        modifier(NavigationGlassCircleModifier(prominence: prominence, tint: tint))
+    }
+
+    func destructiveGlassCapsule(_ prominence: NavigationGlassProminence = .secondary) -> some View {
+        navigationGlassCapsule(prominence, tint: PulseTheme.destructive)
+    }
+
+    func destructiveGlassCircle(_ prominence: NavigationGlassProminence = .secondary) -> some View {
+        navigationGlassCircle(prominence, tint: PulseTheme.destructive)
+    }
+}
+
+private struct NavigationGlassCapsuleModifier: ViewModifier {
+    let prominence: NavigationGlassProminence
+    let tint: Color
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                if #available(iOS 26.0, *) {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(
+                            .regular.tint(tint.opacity(prominence.tintOpacity)).interactive(),
+                            in: Capsule(style: .continuous)
+                        )
+                } else {
+                    ZStack {
+                        Capsule(style: .continuous)
+                            .fill(.ultraThinMaterial)
+                        Capsule(style: .continuous)
+                            .fill(tint.opacity(prominence.tintOpacity * 0.65))
+                    }
+                }
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(0.36),
+                                tint.opacity(prominence.strokeOpacity)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: tint.opacity(prominence.shadowOpacity), radius: 18, y: 8)
+    }
+}
+
+private struct NavigationGlassCircleModifier: ViewModifier {
+    let prominence: NavigationGlassProminence
+    let tint: Color
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                if #available(iOS 26.0, *) {
+                    Circle()
+                        .fill(.clear)
+                        .glassEffect(
+                            .regular.tint(tint.opacity(prominence.tintOpacity)).interactive(),
+                            in: Circle()
+                        )
+                } else {
+                    ZStack {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                        Circle()
+                            .fill(tint.opacity(prominence.tintOpacity * 0.65))
+                    }
+                }
+            }
+            .overlay {
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(0.34),
+                                tint.opacity(prominence.strokeOpacity)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: tint.opacity(prominence.shadowOpacity), radius: 12, y: 5)
+    }
+}
+
 enum RepsText {
     static func exerciseName(_ value: String, language: String) -> String {
         guard language.hasPrefix("es") else { return value }
@@ -294,9 +439,8 @@ struct PrimaryButton: View {
             .frame(height: 58)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.black)
-        .background(PulseTheme.accent)
-        .clipShape(Capsule())
+        .foregroundStyle(.white)
+        .navigationGlassCapsule(.primary)
     }
 }
 
@@ -325,9 +469,8 @@ struct SecondaryButton: View {
             .frame(height: 52)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.primary)
-        .background(PulseTheme.grouped)
-        .clipShape(Capsule())
+        .foregroundStyle(.white)
+        .navigationGlassCapsule(.secondary)
         .accessibilityAddTraits(.isButton)
     }
 }
@@ -452,10 +595,9 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(.white)
                             .frame(width: 42, height: 42)
-                            .background(PulseTheme.primary.opacity(0.10))
-                            .clipShape(Circle())
+                            .navigationGlassCircle(.secondary)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("back_2")
@@ -595,8 +737,7 @@ struct HeaderAvatarButton: View {
             }
             .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
             .clipShape(Circle())
-            .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 2))
-            .shadow(color: .black.opacity(0.16), radius: 5, y: 2)
+            .navigationGlassCircle(.secondary)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)

@@ -62,6 +62,7 @@
 		57F30AE0D42A47FBA0E3E615 /* ChallengeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D2E2BD1BC824D5A88FB58D0 /* ChallengeDetailView.swift */; };
 		594D0C956088954A48F4B170 /* AchievementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A904A266B4DEB099D8FCEEF1 /* AchievementsView.swift */; };
 		5B3EC7C5D1D72EE4CEB36805 /* OnboardingResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4617C0AE3AEA837ABBC7266 /* OnboardingResult.swift */; };
+		A0B1C2D3E4F5061728394B01 /* OnboardingLocationCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B1C2D3E4F5061728394B02 /* OnboardingLocationCatalog.swift */; };
 		5B802E55705A97B1CC7F2066 /* RepsWorkoutLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80CCCB65745D555ACB923F2 /* RepsWorkoutLiveActivity.swift */; };
 		5C561560E7F6B79FCA7A14D5 /* EditSocialProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B4CDEDA58CBFA0C9AB9D8D2 /* EditSocialProfileView.swift */; };
 		5F9AA871BBC23C64162D14E8 /* OneRepMaxCalculatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14586CFEF76851389015CC51 /* OneRepMaxCalculatorView.swift */; };
@@ -253,6 +254,7 @@
 		C2690AE3D301DC3DD21B4F5C /* WorkoutHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryView.swift; sourceTree = "<group>"; };
 		C3A9CCD420922854020A7B5F /* ActiveWorkoutExerciseOrderComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutExerciseOrderComponents.swift; sourceTree = "<group>"; };
 		C4617C0AE3AEA837ABBC7266 /* OnboardingResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingResult.swift; sourceTree = "<group>"; };
+		A0B1C2D3E4F5061728394B02 /* OnboardingLocationCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingLocationCatalog.swift; sourceTree = "<group>"; };
 		C4F220D40B58161D207B08BA /* ProgramLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramLibraryView.swift; sourceTree = "<group>"; };
 		C5BF1ED538CBE15F2EDE37AE /* ProgressionRecommendationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionRecommendationCard.swift; sourceTree = "<group>"; };
 		C69B0543BC4F024E364CD79A /* ICloudBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudBackupService.swift; sourceTree = "<group>"; };
@@ -504,6 +506,7 @@
 		9D87489AE4B798C6046A8E64 /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
+				A0B1C2D3E4F5061728394B02 /* OnboardingLocationCatalog.swift */,
 				C4617C0AE3AEA837ABBC7266 /* OnboardingResult.swift */,
 				E116F57A08B4F5BA7E061433 /* ProfileSetupView.swift */,
 				D03010CDFBB1E924806441A8 /* WelcomeView.swift */,
@@ -866,6 +869,7 @@
 				4DD5973D7549AC9555F81FA2 /* NotificationService.swift in Sources */,
 				AE01E3120C4F47A1B0DE0001 /* NotificationEngine.swift in Sources */,
 				B73247E3664F97B0132752EF /* NotificationsView.swift in Sources */,
+				A0B1C2D3E4F5061728394B01 /* OnboardingLocationCatalog.swift in Sources */,
 				5B3EC7C5D1D72EE4CEB36805 /* OnboardingResult.swift in Sources */,
 				5F9AA871BBC23C64162D14E8 /* OneRepMaxCalculatorView.swift in Sources */,
 				DE692FD7D748E7262B28A488 /* PaywallView.swift in Sources */,

@@ -38,10 +38,9 @@ struct ProgramLibraryView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(PulseTheme.secondaryText)
+                            .foregroundStyle(.white)
                             .frame(width: 32, height: 32)
-                            .background(PulseTheme.card)
-                            .clipShape(Circle())
+                            .destructiveGlassCircle(.secondary)
                     }
                     .buttonStyle(.plain)
                 }

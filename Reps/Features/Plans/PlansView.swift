@@ -1513,9 +1513,8 @@ struct CreatePlanView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .foregroundStyle(PulseTheme.primary)
-                            .background(PulseTheme.card)
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            .foregroundStyle(.white)
+                            .navigationGlassCapsule(step == .basics ? .disabled : .secondary)
                     }
                     .disabled(step == .basics)
                     .opacity(step == .basics ? 0.45 : 1)
@@ -1526,8 +1525,7 @@ struct CreatePlanView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
                             .foregroundStyle(.white)
-                            .background(canContinue ? PulseTheme.primary : PulseTheme.secondaryText.opacity(0.35))
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            .navigationGlassCapsule(canContinue ? .primary : .disabled)
                     }
                     .disabled(!canContinue)
                 }
@@ -2524,10 +2522,9 @@ private struct EditableWorkoutExerciseRow: View {
                 Button(role: .destructive, action: onDelete) {
                     Image(systemName: "trash")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.red.opacity(0.8))
+                        .foregroundStyle(.white)
                         .frame(width: 36, height: 36)
-                        .background(Color.red.opacity(0.10))
-                        .clipShape(Circle())
+                        .destructiveGlassCircle(.secondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(localizedFormat("delete_exercise_format", item.exercise.name))

@@ -196,20 +196,13 @@ struct MainTabView: View {
             ])
         } label: {
             ZStack {
-                Circle()
-                    .fill(PulseTheme.fitActionGradient)
-                    .frame(width: quickActionButtonSize, height: quickActionButtonSize)
-                    .overlay {
-                        Circle()
-                            .stroke(.white.opacity(0.26), lineWidth: 1.5)
-                    }
-                    .shadow(color: PulseTheme.fitOrange.opacity(selectedTab == .progress ? 0.16 : 0.26), radius: selectedTab == .progress ? 7 : 10, x: 0, y: 6)
-
                 Image(systemName: "plus")
                     .font(.system(size: isQuickMenuExpanded ? 25 : (selectedTab == .progress ? 19 : 22), weight: .heavy))
                     .foregroundStyle(.white)
                     .rotationEffect(.degrees(isQuickMenuExpanded ? 135 : 0))
             }
+            .frame(width: quickActionButtonSize, height: quickActionButtonSize)
+            .navigationGlassCircle(.primary)
             .scaleEffect(isQuickMenuExpanded ? 1.08 : 1.0)
             .opacity(selectedTab == .progress && !isQuickMenuExpanded ? 0.82 : 1)
             .contentShape(Circle())

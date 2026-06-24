@@ -183,6 +183,9 @@ enum OnboardingPlanBuilder {
         case .loseFat:
             repRange = exercise.trackingType == .duration ? "40-60 sec" : "10-15"
             rest = 60
+        case .bodyRecomposition:
+            repRange = exercise.trackingType == .duration ? "35-50 sec" : "8-12"
+            rest = 75
         case .stayActive:
             repRange = exercise.trackingType == .duration ? "30-45 sec" : "8-12"
             rest = 75

@@ -83,6 +83,7 @@ struct ProfileDetailView: View {
             Section("training_settings") {
                 Picker("main_objective", selection: $mainGoal) {
                     Text("gain_muscle").tag(UserProfile.MainGoal.buildMuscle)
+                    Text("Body recomposition").tag(UserProfile.MainGoal.bodyRecomposition)
                     Text("lose_fat").tag(UserProfile.MainGoal.loseFat)
                     Text("more_strength").tag(UserProfile.MainGoal.getStronger)
                     Text("stay_active").tag(UserProfile.MainGoal.stayActive)

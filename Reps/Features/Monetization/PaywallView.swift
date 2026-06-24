@@ -208,6 +208,9 @@ struct PaywallView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 34, height: 34)
+                            .destructiveGlassCircle(.secondary)
                     }
                 }
             }
