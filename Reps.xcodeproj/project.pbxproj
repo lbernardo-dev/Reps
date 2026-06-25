@@ -101,6 +101,7 @@
 		AB060AEE9C8DA146B13BE710 /* WorkoutReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75F48E903FC027A25C691AD9 /* WorkoutReceiptView.swift */; };
 		AC55B17F5521F73E2EF8A159 /* SmartProgressionAdvisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFD9F5578585D85B9F2794F3 /* SmartProgressionAdvisor.swift */; };
 		ACDC7479449EBF00793E0AFB /* CreateChallengeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC3840D58A6BB64084A3784 /* CreateChallengeView.swift */; };
+		412098EBDECF464F9C52CDE7 /* StreakRepFit2.icon in Resources */ = {isa = PBXBuildFile; fileRef = EE434650A618AB318510D605 /* StreakRepFit2.icon */; };
 		B16D6C3D6404FA08098A033F /* StreakRepFit2.icon in Resources */ = {isa = PBXBuildFile; fileRef = EE434650A618AB318510D605 /* StreakRepFit2.icon */; };
 		B244444DC91F7901D069A6E7 /* WorkoutShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF2BB82DF974745D5746570F /* WorkoutShared.swift */; };
 		B4C98D41ED857AF09B4C5C97 /* AppSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACEC4BB22C072ED9B0069C1 /* AppSnapshot.swift */; };
@@ -811,6 +812,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C6BDC1A9655AF33E79C6847 /* Assets.xcassets in Resources */,
+				412098EBDECF464F9C52CDE7 /* StreakRepFit2.icon in Resources */,
 				569BA3500A2E3B7A507C4400 /* InfoPlist.xcstrings in Resources */,
 				73E11A0A5F1B20892C3BF91D /* Localizable.xcstrings in Resources */,
 				6F5CC8058CB016D740233F29 /* PrivacyInfo.xcprivacy in Resources */,
@@ -1199,7 +1201,7 @@
 		6F3AB2473C31CC9ACB9BC34A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
 				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RepsWatch/Info.plist;
@@ -1256,7 +1258,7 @@
 		CEFD8405E7DEF8522AA68218 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
 				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RepsWatch/Info.plist;
