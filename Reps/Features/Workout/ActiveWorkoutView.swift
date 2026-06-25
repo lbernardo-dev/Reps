@@ -3539,8 +3539,6 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
         }
         shouldStartAfterAuthorization = false
         isTracking = true
-        // Requires the "location" UIBackgroundMode; keeps GPS samples flowing
-        // while the screen is locked or the app is in the background mid-route.
         manager.allowsBackgroundLocationUpdates = true
         manager.pausesLocationUpdatesAutomatically = false
         manager.showsBackgroundLocationIndicator = true
