@@ -74,6 +74,7 @@ final class AppStore {
     var isChallengesLoading: Bool = false
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
+    var pendingMilestonePaywall: Bool = false
     var activeWorkoutStatus: ActiveWorkoutStatus? {
         didSet {
             let shouldReloadWidgets = shouldReloadWidgetTimelines(from: oldValue, to: activeWorkoutStatus)
@@ -1016,6 +1017,9 @@ final class AppStore {
 
     func finishWorkout(_ session: WorkoutSession) {
         workoutSessions.append(session)
+        if workoutSessions.count == 5 && !monetization.hasProAccess {
+            pendingMilestonePaywall = true
+        }
         TelemetryService.shared.log(.workoutFinished, parameters: [
             "origin": session.origin.rawValue,
             "location": session.location.rawValue,
@@ -2095,7 +2099,8 @@ final class AppStore {
                 widgetAccentColorName: userProfile.widgetAccentColorName,
                 preferredLanguage: userProfile.preferredLanguage,
                 exercisesData: nil,
-                estimatedMaxHeartRate: watchEstimatedMaxHeartRate
+                estimatedMaxHeartRate: watchEstimatedMaxHeartRate,
+                hasWatchAccess: monetization.hasProAccess
             )
         }
 
@@ -2155,7 +2160,8 @@ final class AppStore {
             widgetAccentColorName: userProfile.widgetAccentColorName,
             preferredLanguage: userProfile.preferredLanguage,
             exercisesData: status.isRouteWorkout ? nil : watchExercisesData(),
-            estimatedMaxHeartRate: watchEstimatedMaxHeartRate
+            estimatedMaxHeartRate: watchEstimatedMaxHeartRate,
+            hasWatchAccess: monetization.hasProAccess
         )
     }
 
@@ -4667,6 +4673,7 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
         context["preferredLanguage"] = snapshot.preferredLanguage
         context["exercisesData"] = snapshot.exercisesData
         context["estimatedMaxHeartRate"] = snapshot.estimatedMaxHeartRate
+        context["hasWatchAccess"] = snapshot.hasWatchAccess
 
         try? session.updateApplicationContext(context)
         if session.isReachable {

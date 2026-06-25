@@ -91,6 +91,10 @@ struct MainTabView: View {
             WorkoutSummaryView(session: session) {
                 store.finishedSessionForSummary = nil
                 store.pendingMainTabSelection = .progress
+                if store.pendingMilestonePaywall {
+                    store.pendingMilestonePaywall = false
+                    store.presentPaywall(source: .onboarding, feature: nil, trigger: .featureGate)
+                }
             }
         }
         .onAppear {

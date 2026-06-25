@@ -1030,7 +1030,8 @@ extension WatchWorkoutModel: WCSessionDelegate {
             widgetAccentColorName: context["widgetAccentColorName"] as? String ?? "system",
             preferredLanguage: context["preferredLanguage"] as? String,
             exercisesData: context["exercisesData"] as? Data,
-            estimatedMaxHeartRate: context["estimatedMaxHeartRate"] as? Double
+            estimatedMaxHeartRate: context["estimatedMaxHeartRate"] as? Double,
+            hasWatchAccess: context["hasWatchAccess"] as? Bool ?? true
         )
     }
 

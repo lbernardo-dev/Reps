@@ -18099,6 +18099,91 @@
         }
       }
     },
+    "watch_integration_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch"
+          }
+        }
+      }
+    },
+    "watch_integration_summary": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start and track workouts from your wrist."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia y registra entrenamientos desde tu muñeca."
+          }
+        }
+      }
+    },
+    "watch_integration_benefit": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Train hands-free — log sets, track routes and intervals from your Watch."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrena sin manos: registra series, rutas e intervalos desde el Watch."
+          }
+        }
+      }
+    },
+    "watch_pro_required_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reps Pro Required"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requiere Reps Pro"
+          }
+        }
+      }
+    },
+    "watch_pro_required_subtitle": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock Watch workouts from the iPhone app."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquea los entrenamientos en el Watch desde la app del iPhone."
+          }
+        }
+      }
+    },
     "automatic_milestones": {
       "extractionState": "stale",
       "localizations": {

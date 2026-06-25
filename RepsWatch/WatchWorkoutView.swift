@@ -30,6 +30,9 @@ struct WatchStartView: View {
     private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
 
     var body: some View {
+        if !model.snapshot.hasWatchAccess {
+            WatchProLockedView()
+        } else {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 10) {
@@ -63,6 +66,25 @@ struct WatchStartView: View {
             }
             .navigationTitle("Reps")
         }
+        } // end hasWatchAccess
+    }
+}
+
+private struct WatchProLockedView: View {
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "crown.fill")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(.yellow)
+            Text(localizedString("watch_pro_required_title"))
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .multilineTextAlignment(.center)
+            Text(localizedString("watch_pro_required_subtitle"))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
     }
 }
 

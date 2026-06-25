@@ -296,6 +296,8 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
     var exercisesData: Data? = nil
     /// Estimated max heart rate (≈ 220 − age) for HR-zone coloring on the Watch.
     var estimatedMaxHeartRate: Double? = nil
+    /// Whether the user holds an active Pro entitlement — synced from iOS so the Watch can gate Pro-only features.
+    var hasWatchAccess: Bool = true
 
     /// Decoded planned exercises from `exercisesData`, if present.
     var plannedExercises: [SharedPlannedExercise] {

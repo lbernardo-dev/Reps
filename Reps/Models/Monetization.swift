@@ -30,6 +30,7 @@ enum ProductFeature: String, CaseIterable, Identifiable, Codable {
     case configurableProgression
     case automaticBackups
     case shareCards
+    case watchIntegration
 
     var id: String { rawValue }
 
@@ -52,6 +53,7 @@ enum ProductFeature: String, CaseIterable, Identifiable, Codable {
         case .configurableProgression: return localizedString("configurable_progression_title")
         case .automaticBackups:       return localizedString("automatic_backups_title")
         case .shareCards:             return localizedString("share_cards_title")
+        case .watchIntegration:       return localizedString("watch_integration_title")
         }
     }
 
@@ -65,6 +67,7 @@ enum ProductFeature: String, CaseIterable, Identifiable, Codable {
         case .configurableProgression: return localizedString("configurable_progression_summary")
         case .automaticBackups:       return localizedString("automatic_backups_summary")
         case .shareCards:             return localizedString("share_cards_summary")
+        case .watchIntegration:       return localizedString("watch_integration_summary")
         }
     }
 
@@ -78,6 +81,7 @@ enum ProductFeature: String, CaseIterable, Identifiable, Codable {
         case .configurableProgression: return localizedString("configurable_progression_benefit")
         case .automaticBackups:       return localizedString("automatic_backups_benefit")
         case .shareCards:             return localizedString("share_cards_benefit")
+        case .watchIntegration:       return localizedString("watch_integration_benefit")
         }
     }
 
@@ -99,6 +103,8 @@ enum ProductFeature: String, CaseIterable, Identifiable, Codable {
             return "externaldrive.fill"
         case .shareCards:
             return "square.and.arrow.up.fill"
+        case .watchIntegration:
+            return "applewatch"
         }
     }
 }
@@ -109,9 +115,9 @@ enum ProductAccess {
 
     static func isEnabled(_ feature: ProductFeature, proEnabled: Bool = false) -> Bool {
         switch feature {
-        case .unlimitedLogging, .exerciseLibrary, .customRoutines, .basicAnalytics, .shareCards:
+        case .unlimitedLogging, .exerciseLibrary, .customRoutines, .basicAnalytics:
             return true
-        case .advancedAnalytics, .configurableProgression, .automaticBackups:
+        case .shareCards, .advancedAnalytics, .configurableProgression, .automaticBackups, .watchIntegration:
             return proEnabled
         }
     }
