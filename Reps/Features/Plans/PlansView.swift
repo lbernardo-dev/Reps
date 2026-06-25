@@ -159,8 +159,12 @@ struct PlansView: View {
             }
             .sheet(item: $selectedPlanForDetail) { plan in
                 PlanDetailSheet(plan: plan) {
-                    store.activatePlan(plan)
-                    selectedPlanForDetail = nil
+                    if store.monetization.hasProAccess {
+                        store.activatePlan(plan)
+                        selectedPlanForDetail = nil
+                    } else {
+                        store.presentPaywall(source: .onboarding, feature: nil, trigger: .featureGate)
+                    }
                 } onEdit: {
                     selectedPlanForDetail = nil
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

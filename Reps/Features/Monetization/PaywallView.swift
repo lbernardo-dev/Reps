@@ -437,7 +437,7 @@ struct SubscriptionCenterView: View {
                             store.presentPaywall(source: .profileSubscription, feature: nil, trigger: .manual)
                         }
                     } label: {
-                        Text(store.monetization.hasProAccess ? "Ver estado Pro" : "Desbloquear Reps Pro")
+                        Text(store.monetization.hasProAccess ? localizedString("paywall_manage_pro_title") : localizedString("paywall_unlock_pro_title"))
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)

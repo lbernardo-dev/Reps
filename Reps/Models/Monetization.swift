@@ -153,7 +153,7 @@ enum SubscriptionBillingCycle: String, Codable, CaseIterable, Identifiable {
         case .weekly:   return localizedString("weekly_billing_title")
         case .monthly:  return localizedString("monthly_billing_title")
         case .annual:   return localizedString("annual_billing_title")
-        case .lifetime: return "Lifetime"
+        case .lifetime: return localizedString("Lifetime")
         }
     }
 
@@ -296,14 +296,14 @@ struct MonetizationState: Codable, Equatable {
             case .trial:                        return localizedString("pro_trial_status")
             case .active:                       return localizedString("pro_active_status")
             case .gracePeriod:                  return localizedString("pro_grace_status")
-            case .inactive, .cancelled, .expired: return "Reps Pro"
+            case .inactive, .cancelled, .expired: return localizedString("Reps Pro")
             }
         }
 
         switch status {
         case .cancelled: return localizedString("pro_cancelled_status")
         case .expired:   return localizedString("pro_expired_status")
-        default:         return "Reps Free"
+        default:         return localizedString("Reps Free")
         }
     }
 }
