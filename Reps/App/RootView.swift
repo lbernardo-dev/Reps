@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 struct RootView: View {
@@ -47,6 +48,7 @@ struct RootView: View {
 
 struct MainTabView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.requestReview) private var requestReview
     @State private var selectedTab: AppTab = .today
     @State private var isTabBarHidden = false
     @State private var isQuickMenuExpanded = false
@@ -112,6 +114,12 @@ struct MainTabView: View {
                 "tab": newTab.telemetryName,
                 "source": "selection"
             ])
+        }
+        .onChange(of: store.pendingReviewRequest) { _, shouldRequest in
+            if shouldRequest {
+                store.pendingReviewRequest = false
+                requestReview()
+            }
         }
         .onPreferenceChange(MainTabBarHiddenPreferenceKey.self) { hidden in
             withAnimation(.snappy(duration: 0.22)) {

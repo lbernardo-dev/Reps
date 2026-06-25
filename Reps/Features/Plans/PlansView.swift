@@ -3,6 +3,26 @@ import SwiftUI
 struct PlansView: View {
     @Environment(AppStore.self) private var store
     @State private var showCreatePlan = false
+
+    private var isProOrHasNoPlan: Bool {
+        store.monetization.hasProAccess || store.plans.isEmpty
+    }
+
+    private func tryOpenCreatePlan() {
+        if isProOrHasNoPlan {
+            showCreatePlan = true
+        } else {
+            store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+        }
+    }
+
+    private func tryOpenProgramLibrary() {
+        if isProOrHasNoPlan {
+            showProgramLibrary = true
+        } else {
+            store.presentPaywall(source: .programLibrary, feature: nil, trigger: .featureGate)
+        }
+    }
     @State private var showExerciseLibrary = false
     @State private var planToEdit: WorkoutPlan?
     @State private var selectedPlanForDetail: WorkoutPlan? = nil
@@ -107,7 +127,7 @@ struct PlansView: View {
                         SectionHeader(title: "your_plans_header")
                         Spacer()
                         Button {
-                            showProgramLibrary = true
+                            tryOpenProgramLibrary()
                         } label: {
                             Label(localizedString("browse_programs_button"), systemImage: "magnifyingglass")
                                 .font(.caption.weight(.semibold))
@@ -298,7 +318,7 @@ struct PlansView: View {
 
                 HStack(spacing: 10) {
                     Button {
-                        showProgramLibrary = true
+                        tryOpenProgramLibrary()
                     } label: {
                         Label(localizedString("browse_programs_button"), systemImage: "sparkles")
                             .font(.headline.weight(.black))
@@ -310,7 +330,7 @@ struct PlansView: View {
                     .buttonStyle(.plain)
 
                     Button {
-                        showCreatePlan = true
+                        tryOpenCreatePlan()
                     } label: {
                         Image(systemName: "plus")
                             .font(.headline.weight(.black))
@@ -376,7 +396,7 @@ struct PlansView: View {
 
                 HStack(spacing: 10) {
                     Button {
-                        showCreatePlan = true
+                        tryOpenCreatePlan()
                     } label: {
                         Label("create_plan", systemImage: "plus")
                             .font(.subheadline.weight(.bold))
@@ -403,7 +423,7 @@ struct PlansView: View {
                 }
 
                 Button {
-                    showProgramLibrary = true
+                    tryOpenProgramLibrary()
                 } label: {
                     Label(localizedString("browse_programs_button"), systemImage: "magnifyingglass")
                         .font(.subheadline.weight(.semibold))

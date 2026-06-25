@@ -75859,6 +75859,167 @@
         }
       }
     },
+    "paywall_multiple_plans_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Build multiple training blocks" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Crea varios bloques de entrenamiento" } }
+      }
+    },
+    "paywall_multiple_plans_subtitle": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Pro athletes train smarter — one program per goal." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Los atletas Pro entrenan con un programa por objetivo." } }
+      }
+    },
+    "paywall_multiple_plans_bullet_1": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Unlimited training programs: cut, bulk, strength, cardio…" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Programas ilimitados: definición, volumen, fuerza, cardio…" } }
+      }
+    },
+    "paywall_multiple_plans_bullet_2": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Switch programs in one tap without losing progress." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Cambia de programa con un toque sin perder progreso." } }
+      }
+    },
+    "paywall_preview_multiple_plans": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Train with purpose" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Entrena con propósito" } }
+      }
+    },
+    "paywall_plan_activation_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Your plan is ready — activate it" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Tu plan está listo — actívalo" } }
+      }
+    },
+    "paywall_plan_activation_subtitle": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Upgrade to Pro and start your personalized program today." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Hazte Pro y empieza hoy tu programa personalizado." } }
+      }
+    },
+    "paywall_program_library_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Access 20+ expert programs" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Accede a más de 20 programas de expertos" } }
+      }
+    },
+    "paywall_program_library_subtitle": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "From 5k runs to powerlifting — a program for every goal." } },
+        "es": { "stringUnit": { "state": "translated", "value": "De 5k a powerlifting — un programa para cada objetivo." } }
+      }
+    },
+    "paywall_pro_insights_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Unlock advanced insights" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Desbloquea insights avanzados" } }
+      }
+    },
+    "paywall_pro_insights_subtitle": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "See what's really happening with your training — volume trends, recovery, PR velocity and more." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Descubre qué pasa realmente con tu entrenamiento: tendencias de volumen, recuperación, velocidad de PR y más." } }
+      }
+    },
+    "paywall_pro_insights_bullet_1": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Volume, fatigue & recovery trends updated every session." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Tendencias de volumen, fatiga y recuperación en cada sesión." } }
+      }
+    },
+    "paywall_pro_insights_bullet_2": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "PR velocity prediction: know when your next record is coming." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Predicción de velocidad de PR: sabe cuándo llegará tu próximo récord." } }
+      }
+    },
+    "paywall_preview_pro_insights": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Train smarter" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Entrena con inteligencia" } }
+      }
+    },
+    "pro_insights_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Pro Insights" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Insights Pro" } }
+      }
+    },
+    "pro_badge": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "PRO" } },
+        "es": { "stringUnit": { "state": "translated", "value": "PRO" } }
+      }
+    },
+    "unlock_pro_insights_cta": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Unlock Pro Insights" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Desbloquear Insights Pro" } }
+      }
+    },
+    "pro_insight_volume_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Volume trend +12% this week" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Tendencia de volumen +12% esta semana" } }
+      }
+    },
+    "pro_insight_volume_detail": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Compared to last 4-week average" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Comparado con la media de las últimas 4 semanas" } }
+      }
+    },
+    "pro_insight_recovery_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Recovery window: chest ready in 42 h" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Ventana de recuperación: pecho listo en 42 h" } }
+      }
+    },
+    "pro_insight_recovery_detail": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Based on your session intensity and HRV" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Basado en tu intensidad de sesión y VFC" } }
+      }
+    },
+    "pro_insight_pr_velocity_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Squat PR in ~3 sessions" } },
+        "es": { "stringUnit": { "state": "translated", "value": "PR de sentadilla en ~3 sesiones" } }
+      }
+    },
+    "pro_insight_pr_velocity_detail": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Progression rate: +1.2 kg / session" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Tasa de progresión: +1,2 kg / sesión" } }
+      }
+    },
     "paywall_receipt_gallery_subtitle": {
       "extractionState": "stale",
       "localizations": {

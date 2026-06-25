@@ -193,6 +193,10 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
     case backupCenter
     case shareCards
     case receiptGallery
+    case multiplePlans
+    case planActivation
+    case programLibrary
+    case proInsights
 
     var id: String { rawValue }
 
@@ -207,6 +211,10 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
         case .backupCenter:             return localizedString("paywall_protect_data_title")
         case .shareCards:               return localizedString("paywall_share_progress_title")
         case .receiptGallery:           return localizedString("paywall_unlock_pro_gallery_title")
+        case .multiplePlans:            return localizedString("paywall_multiple_plans_title")
+        case .planActivation:           return localizedString("paywall_plan_activation_title")
+        case .programLibrary:           return localizedString("paywall_program_library_title")
+        case .proInsights:              return localizedString("paywall_pro_insights_title")
         }
     }
 
@@ -221,6 +229,10 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
         case .backupCenter:             return localizedString("paywall_backup_subtitle")
         case .shareCards:               return localizedString("paywall_share_cards_subtitle")
         case .receiptGallery:           return localizedString("paywall_receipt_gallery_subtitle")
+        case .multiplePlans:            return localizedString("paywall_multiple_plans_subtitle")
+        case .planActivation:           return localizedString("paywall_plan_activation_subtitle")
+        case .programLibrary:           return localizedString("paywall_program_library_subtitle")
+        case .proInsights:              return localizedString("paywall_pro_insights_subtitle")
         }
     }
 
@@ -232,6 +244,8 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
         case .progressAdvancedAnalytics, .progressLoad: return localizedString("paywall_preview_decisions")
         case .backupCenter:                      return localizedString("paywall_preview_history_control")
         case .shareCards, .receiptGallery:       return localizedString("paywall_preview_share_progress")
+        case .multiplePlans, .planActivation, .programLibrary: return localizedString("paywall_preview_multiple_plans")
+        case .proInsights:                       return localizedString("paywall_preview_pro_insights")
         }
     }
 
@@ -255,6 +269,10 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
             return [localizedString("paywall_share_cards_bullet_1"), localizedString("paywall_share_cards_bullet_2")]
         case .receiptGallery:
             return [localizedString("paywall_receipt_gallery_bullet_1"), localizedString("paywall_receipt_gallery_bullet_2")]
+        case .multiplePlans, .planActivation, .programLibrary:
+            return [localizedString("paywall_multiple_plans_bullet_1"), localizedString("paywall_multiple_plans_bullet_2")]
+        case .proInsights:
+            return [localizedString("paywall_pro_insights_bullet_1"), localizedString("paywall_pro_insights_bullet_2")]
         }
     }
 }

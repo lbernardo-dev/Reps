@@ -75,6 +75,7 @@ final class AppStore {
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
     var pendingMilestonePaywall: Bool = false
+    var pendingReviewRequest: Bool = false
     var activeWorkoutStatus: ActiveWorkoutStatus? {
         didSet {
             let shouldReloadWidgets = shouldReloadWidgetTimelines(from: oldValue, to: activeWorkoutStatus)
@@ -809,7 +810,7 @@ final class AppStore {
         userProfile.onboardingCompleted = true
         bodyMetrics.append(result.bodyMetric)
         if let plan = result.plan {
-            addPlan(plan, activate: result.activatePlan)
+            addPlan(plan, activate: result.activatePlan && monetization.hasProAccess)
             TelemetryService.shared.log(.onboardingCompleted, parameters: [
                 "source": "profile_setup",
                 "has_plan": true,
@@ -1019,6 +1020,10 @@ final class AppStore {
         workoutSessions.append(session)
         if workoutSessions.count == 5 && !monetization.hasProAccess {
             pendingMilestonePaywall = true
+        }
+        let reviewThreshold = monetization.hasProAccess ? 10 : 3
+        if workoutSessions.count == reviewThreshold || workoutSessions.count == reviewThreshold * 3 {
+            pendingReviewRequest = true
         }
         TelemetryService.shared.log(.workoutFinished, parameters: [
             "origin": session.origin.rawValue,
@@ -2166,6 +2171,10 @@ final class AppStore {
     }
 
     func addPlan(_ plan: WorkoutPlan, activate: Bool) {
+        guard monetization.hasProAccess || plans.isEmpty else {
+            presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+            return
+        }
         plans.append(plan)
         TelemetryService.shared.log(.planCreated, parameters: [
             "activate": activate,
