@@ -76,6 +76,8 @@ struct ProfileView: View {
                     }
                 }
             ) {
+                accountCard
+                    .stickyHeaderTitle(localizedString("account"))
                 bodyMetricsCard
                     .stickyHeaderTitle(localizedString("metrics_2"))
                 // Only surface body indices once there are metrics to derive
@@ -95,6 +97,8 @@ struct ProfileView: View {
                     .stickyHeaderTitle(localizedString("gyms"))
                 healthCard
                     .stickyHeaderTitle(localizedString("apple_health"))
+                HealthGoalsView()
+                    .stickyHeaderTitle(localizedString("health_goals"))
                 toolsCard
                     .stickyHeaderTitle(localizedString("actions"))
                 settingsCard
@@ -121,6 +125,47 @@ struct ProfileView: View {
     }
 
 
+
+    private var accountCard: some View {
+        PulseCard {
+            NavigationLink {
+                ProfileDetailView()
+            } label: {
+                HStack(spacing: 14) {
+                    AvatarMiniView(imageData: store.userProfile.avatarImageData, size: 48)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        if let name = store.userProfile.displayName, !name.isEmpty {
+                            Text(name)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                        } else {
+                            Text("profile")
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                        }
+
+                        if let email = store.userProfile.email, !email.isEmpty {
+                            Text(email)
+                                .font(.subheadline)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        } else {
+                            Text(localizedString("profile_setup_hint"))
+                                .font(.subheadline)
+                                .foregroundStyle(PulseTheme.primary)
+                        }
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
 
     private var bodyMetricsCard: some View {
         PulseCard {
@@ -325,35 +370,11 @@ struct ProfileView: View {
                                 Button {
                                     activeSheet = .receiptPreview(card)
                                 } label: {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        if let uiImage = UIImage(data: card.imageData) {
-                                            Image(uiImage: uiImage)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(width: 100, height: 160)
-                                                .clipShape(SerratedThumbnailShape())
-                                                .overlay(
-                                                    SerratedThumbnailShape()
-                                                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                                                )
-                                        } else {
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .fill(PulseTheme.grouped)
-                                                .frame(width: 100, height: 160)
-                                        }
-                                        
-                                        Text(card.workoutTitle)
-                                            .font(.caption2.weight(.bold))
-                                            .foregroundStyle(.primary)
-                                            .lineLimit(1)
-                                            .frame(width: 100, alignment: .leading)
-                                        
-                                        Text(receiptDateString(card.date))
-                                            .font(.system(size: 8, weight: .semibold))
-                                            .foregroundStyle(PulseTheme.secondaryText)
-                                            .lineLimit(1)
-                                            .frame(width: 100, alignment: .leading)
-                                    }
+                                    SavedShareCardThumbnail(
+                                        card: card,
+                                        language: store.userProfile.preferredLanguage,
+                                        style: .compact
+                                    )
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -364,14 +385,6 @@ struct ProfileView: View {
             }
         }
     }
-    
-    private func receiptDateString(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd MMM yyyy"
-        formatter.locale = Locale(identifier: store.userProfile.preferredLanguage)
-        return formatter.string(from: date).uppercased()
-    }
-
     private var socialCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -1033,6 +1046,19 @@ struct ProfileView: View {
                             TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "feedback"])
                             activeSheet = .feedback
                         }
+
+                        ShareLink(
+                            item: WorkoutReceiptDeepLink.appStoreURL,
+                            message: Text(localizedKey("share_app_subtitle"))
+                        ) {
+                            ProfileToolCard(
+                                title: localizedString("share_app"),
+                                subtitle: localizedString("share_app_subtitle"),
+                                systemImage: "square.and.arrow.up",
+                                color: PulseTheme.primaryBright
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .stickyHeaderTitle(localizedString("contacto"))
@@ -4177,65 +4203,5 @@ private struct AvatarMiniView: View {
         .clipShape(Circle())
         .overlay(Circle().stroke(.white, lineWidth: 2))
         .shadow(color: .black.opacity(0.12), radius: 3)
-    }
-}
-
-private struct ReceiptPreviewSheet: View {
-    let card: SavedShareCard
-    @Environment(\.dismiss) private var dismiss
-    @State private var uiImage: UIImage? = nil
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                if let img = uiImage {
-                    Image(uiImage: img)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: .infinity)
-                        .shadow(color: Color.black.opacity(0.24), radius: 12, x: 0, y: 6)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 12)
-                } else {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-
-                Spacer(minLength: 12)
-
-                if let img = uiImage {
-                    ShareLink(item: Image(uiImage: img), preview: SharePreview(card.workoutTitle, image: Image(uiImage: img))) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "square.and.arrow.up")
-                            Text("share_receipt")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(PulseTheme.primaryBright)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .padding(.horizontal, 24)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, 24)
-                }
-            }
-            .frame(maxHeight: .infinity)
-            .screenBackground()
-            .navigationTitle(card.workoutTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("close") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-        .onAppear {
-            uiImage = UIImage(data: card.imageData)
-        }
     }
 }

@@ -30,10 +30,8 @@ struct HydrationView: View {
     @State private var amountMl: Double = 250
     @State private var logFeedback = false
 
-    // 45 ml per kg bodyweight, clamped 1.5–5.0 L
     private var goalLiters: Double {
-        let w = store.currentWeight
-        return w > 0 ? min(max(w * 0.045, 1.5), 5.0) : 2.5
+        max(store.userProfile.dailyWaterGoalLiters, 0.1)
     }
 
     private var todayLiters: Double { store.todayHealthMetric?.waterLiters ?? 0 }
@@ -319,12 +317,9 @@ struct HydrationView: View {
                                title: localizedString("hydration_low_title"),
                                message: localizedString("hydration_drink_more"))
                 }
-                let w = store.currentWeight
-                if w > 0 {
-                    HealthInsightRow(icon: "person.fill", color: PulseTheme.primary,
-                               title: localizedString("hydration_goal_based"),
-                               message: String(format: localizedString("hydration_goal_formula_fmt"), Int(w), Int(goalLiters * 1000)))
-                }
+                HealthInsightRow(icon: "target", color: PulseTheme.primary,
+                           title: localizedString("hydration_goal_based"),
+                           message: localizedFormat("hydration_goal_target_fmt", Int(goalLiters * 1000)))
             }
         }
     }

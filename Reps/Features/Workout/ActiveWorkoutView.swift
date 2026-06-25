@@ -3555,10 +3555,7 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
     }
 
     func paceText(elapsedSeconds: Int) -> String {
-        guard let pace = averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds) else {
-            return "--"
-        }
-        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
+        SharedWorkoutSnapshot.routePaceText(averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds))
     }
 
     func averagePaceSecondsPerKm(elapsedSeconds: Int) -> Double? {
@@ -3576,10 +3573,7 @@ private final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationM
     }
 
     func speedText(elapsedSeconds: Int) -> String {
-        guard let speed = averageSpeedKmh(elapsedSeconds: elapsedSeconds) else {
-            return "--"
-        }
-        return String(format: "%.1f km/h", speed)
+        SharedWorkoutSnapshot.routeSpeedText(averageSpeedKmh(elapsedSeconds: elapsedSeconds))
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {

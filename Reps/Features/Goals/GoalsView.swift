@@ -35,6 +35,8 @@ struct GoalsView: View {
                 summaryCard
                     .padding(.top, 4)
 
+                HealthGoalsView()
+
                 filterChips
 
                 if filteredGoals.isEmpty {

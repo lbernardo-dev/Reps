@@ -81,6 +81,7 @@ final class HealthKitService: ObservableObject {
             HKQuantityType(.heartRate),
             HKQuantityType(.restingHeartRate),
             HKQuantityType(.heartRateVariabilitySDNN),
+            HKQuantityType(.vo2Max),
             HKCategoryType(.sleepAnalysis),
             HKSeriesType.workoutRoute(),
             HKWorkoutType.workoutType()
@@ -194,6 +195,12 @@ final class HealthKitService: ObservableObject {
             unit: .secondUnit(with: .milli),
             days: days
         )
+        let vo2Max = try await dailyAverageValues(
+            for: HKQuantityType(.vo2Max),
+            unit: HKUnit(from: "ml/kg*min"),
+            days: days
+        )
+        let sleepPerDay = try await dailySleepHours(days: days)
 
         let calendar = Calendar.current
         let dates = Set(steps.keys)
@@ -203,19 +210,29 @@ final class HealthKitService: ObservableObject {
             .union(water.keys)
             .union(restingHeartRate.keys)
             .union(heartRateVariability.keys)
+            .union(vo2Max.keys)
+            .union(sleepPerDay.keys)
 
         return dates.sorted().map { date in
-            DailyHealthMetric(
+            let day = calendar.startOfDay(for: date)
+            return DailyHealthMetric(
                 date: date,
-                steps: steps[calendar.startOfDay(for: date)] ?? 0,
-                activeEnergyKcal: activeEnergy[calendar.startOfDay(for: date)] ?? 0,
-                dietaryEnergyKcal: dietaryEnergy[calendar.startOfDay(for: date)] ?? 0,
-                waterLiters: water[calendar.startOfDay(for: date)] ?? 0,
-                exerciseMinutes: exerciseMinutes[calendar.startOfDay(for: date)],
-                restingHeartRate: restingHeartRate[calendar.startOfDay(for: date)],
-                heartRateVariabilityMS: heartRateVariability[calendar.startOfDay(for: date)]
+                steps: steps[day] ?? 0,
+                activeEnergyKcal: activeEnergy[day] ?? 0,
+                dietaryEnergyKcal: dietaryEnergy[day] ?? 0,
+                waterLiters: water[day] ?? 0,
+                exerciseMinutes: exerciseMinutes[day],
+                restingHeartRate: restingHeartRate[day],
+                heartRateVariabilityMS: heartRateVariability[day],
+                sleepHours: sleepPerDay[day],
+                vo2MaxMlKgMin: vo2Max[day]
             )
         }
+    }
+
+    func fetchLatestVO2Max() async throws -> Double? {
+        guard isAvailable else { throw HealthKitError.unavailable }
+        return try await latestQuantity(for: HKQuantityType(.vo2Max), unit: HKUnit(from: "ml/kg*min"))
     }
 
     func saveBodyMetrics(weightKg: Double, heightCm: Double, date: Date = .now) async throws {
@@ -607,6 +624,33 @@ final class HealthKitService: ObservableObject {
         }
 
         return values
+    }
+
+    private func dailySleepHours(days: Int) async throws -> [Date: Double] {
+        let calendar = Calendar.current
+        let endDate = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now)
+        let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) ?? endDate
+        let sleepType = HKCategoryType(.sleepAnalysis)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.categorySample(type: sleepType, predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .forward)],
+            limit: HKObjectQueryNoLimit
+        )
+        let samples = try await descriptor.result(for: healthStore)
+        let asleepValues: Set<Int> = [
+            HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
+            HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+            HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+            HKCategoryValueSleepAnalysis.asleepREM.rawValue
+        ]
+        var result: [Date: Double] = [:]
+        for sample in samples where asleepValues.contains(sample.value) {
+            let dayKey = calendar.startOfDay(for: sample.startDate)
+            let hours = sample.endDate.timeIntervalSince(sample.startDate) / 3600
+            result[dayKey, default: 0] += hours
+        }
+        return result
     }
 
     private func dailyAverageValues(for type: HKQuantityType, unit: HKUnit, days: Int) async throws -> [Date: Double] {

@@ -492,17 +492,11 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func routeDistanceText(_ snapshot: SharedWorkoutSnapshot) -> String {
-        guard let distance = snapshot.routeDistanceKm, distance > 0 else {
-            return "0.00 km"
-        }
-        return String(format: "%.2f km", distance)
+        snapshot.routeDistanceText
     }
 
     private func routePaceText(_ snapshot: SharedWorkoutSnapshot) -> String {
-        guard let pace = snapshot.routePaceSecondsPerKm, pace.isFinite, pace > 0 else {
-            return "--"
-        }
-        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
+        snapshot.routePaceText
     }
 
     private func routeSubtitle(_ snapshot: SharedWorkoutSnapshot) -> String {

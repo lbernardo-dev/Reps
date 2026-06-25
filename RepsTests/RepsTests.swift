@@ -4,15 +4,16 @@ import UIKit
 import MuscleMap
 @testable import Reps
 
+@Suite(.serialized)
 struct RepsTests {
     @Test func weeklyCompletionCapsAtOne() async throws {
-        let store = await AppStore()
+        let store = await AppStore(persistence: SwiftDataPersistence(inMemory: true))
         let completion = await store.weeklyCompletion
         #expect(completion <= 1)
     }
 
     @Test @MainActor func suggestedPlanUsesNormalizedResistanceBandEquipment() {
-        let store = AppStore()
+        let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
         store.userProfile.trainingLocation = .gym
         store.userProfile.availableEquipment = ["Resistance Band"]
 

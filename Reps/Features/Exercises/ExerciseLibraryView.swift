@@ -2,7 +2,6 @@ import CryptoKit
 import PhotosUI
 import MuscleMap
 import SwiftUI
-import Charts
 
 struct ExerciseLibraryView: View {
     @Environment(\.dismiss) private var dismiss
@@ -644,7 +643,7 @@ struct ExerciseDetailView: View {
     @State private var showSecondaryEditor = false
 
     // History and progress state
-    @State private var metric = ProgressMetric.weight
+    @State private var metric = ExerciseProgressMetric.weight
     @State private var selectedHistoryRange = ExerciseHistoryRange.sixMonths
 
     private enum ExerciseTab: String, CaseIterable, Identifiable {
@@ -658,47 +657,6 @@ struct ExerciseDetailView: View {
             case .instructions: return localizedString("instructions")
             case .info: return localizedString("info")
             case .history: return localizedString("history")
-            }
-        }
-    }
-
-    private enum ProgressMetric: String, CaseIterable, Identifiable {
-        case weight = "Peso"
-        case reps = "Reps"
-        case volume = "Volumen"
-        case oneRepMax = "1RM"
-        case sets = "Series"
-        var id: String { rawValue }
-        
-        var localizedTitle: String {
-            switch self {
-            case .weight: return localizedString("weight")
-            case .reps: return localizedString("reps")
-            case .volume: return localizedString("volume")
-            case .oneRepMax: return "1RM"
-            case .sets: return localizedString("sets")
-            }
-        }
-    }
-
-    private enum ExerciseHistoryRange: String, CaseIterable, Identifiable {
-        case week = "1S"
-        case month = "1M"
-        case threeMonths = "3M"
-        case sixMonths = "6M"
-        case year = "12M"
-        case max = "MAX"
-        var id: String { rawValue }
-
-        var startDate: Date {
-            let calendar = Calendar.current
-            switch self {
-            case .week: return calendar.date(byAdding: .day, value: -7, to: .now) ?? .distantPast
-            case .month: return calendar.date(byAdding: .month, value: -1, to: .now) ?? .distantPast
-            case .threeMonths: return calendar.date(byAdding: .month, value: -3, to: .now) ?? .distantPast
-            case .sixMonths: return calendar.date(byAdding: .month, value: -6, to: .now) ?? .distantPast
-            case .year: return calendar.date(byAdding: .year, value: -1, to: .now) ?? .distantPast
-            case .max: return .distantPast
             }
         }
     }
@@ -1210,29 +1168,17 @@ struct ExerciseDetailView: View {
                 .pickerStyle(.segmented)
 
                 Picker("metrics", selection: $metric) {
-                    ForEach(ProgressMetric.allCases) { metric in
+                    ForEach(ExerciseProgressMetric.allCases) { metric in
                         Text(metric.localizedTitle).tag(metric)
                     }
                 }
                 .pickerStyle(.segmented)
 
                 PulseCard {
-                    VStack(alignment: .leading, spacing: 14) {
-                        CardTitle("activity_2")
-                        Chart(rangedPoints) { point in
-                            LineMark(
-                                x: .value("Fecha", point.date),
-                                y: .value(metric.localizedTitle, value(for: point))
-                            )
-                            .foregroundStyle(PulseTheme.primary)
-                            PointMark(
-                                x: .value("Fecha", point.date),
-                                y: .value(metric.localizedTitle, value(for: point))
-                            )
-                            .foregroundStyle(PulseTheme.accent)
-                        }
-                        .frame(height: 220)
-                    }
+                    ExercisePerformanceChart(
+                        points: rangedPoints,
+                        metric: metric
+                    )
                 }
 
                 PulseCard {
@@ -1247,7 +1193,7 @@ struct ExerciseDetailView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                Text("\(Int(value(for: point))) \(metric.localizedTitle)")
+                                Text(metric.valueText(for: point))
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(PulseTheme.secondaryText)
                             }
@@ -1268,22 +1214,6 @@ struct ExerciseDetailView: View {
         case .weightReps: localizedString("weight_and_reps")
         case .repsOnly: localizedString("reps_only")
         case .duration: localizedString("duration_4")
-        }
-    }
-
-
-    private func value(for point: FitnessMetrics.ExerciseProgressPoint) -> Double {
-        switch metric {
-        case .weight:
-            return point.maxWeightKg
-        case .reps:
-            return Double(point.maxReps)
-        case .volume:
-            return point.totalVolumeKg
-        case .oneRepMax:
-            return point.estimatedOneRepMaxKg
-        case .sets:
-            return Double(point.completedSets)
         }
     }
 

@@ -57,11 +57,10 @@ struct UserProfile: Codable {
     var avatarImageData: Data?
     var preferredLanguage = UserProfile.deviceDefaultLanguage
 
-    /// Fresh installs follow the device language. English is the catalog's source
-    /// language and the most complete, so anything non-Spanish falls back to it
-    /// rather than forcing a partially-translated Spanish UI.
+    /// Fresh installs use the app's development language so shared services,
+    /// widgets and tests start from one deterministic localization baseline.
     static var deviceDefaultLanguage: String {
-        Locale.current.language.languageCode?.identifier == "es" ? "es" : "en"
+        "es"
     }
     var units: Units = .metric
     var distanceUnit: DistanceUnit = .kilometers
@@ -84,6 +83,22 @@ struct UserProfile: Codable {
     var targetEventDate: Date?
     /// Raw value of WidgetColor — synced to the App Group so all widgets read it
     var widgetAccentColorName: String = "system"
+
+    // ── Health goals
+    enum CalorieGoalType: String, CaseIterable, Codable, Identifiable {
+        case fatLoss       = "calorie_goal_fat_loss"
+        case recomposition = "calorie_goal_recomposition"
+        case strength      = "calorie_goal_strength"
+        case buildMuscle   = "calorie_goal_build_muscle"
+        var id: String { rawValue }
+        var localizedLabel: String { localizedTitle(rawValue) }
+    }
+
+    var sleepTargetHours: Double = 7.5
+    var dailyCalorieGoalKcal: Int? = nil
+    var calorieGoalType: CalorieGoalType = .recomposition
+    var dailyWaterGoalLiters: Double = 2.5
+    var dailyStepsGoal: Int = 8_000
 
     // Track B — social / community features
     var socialEnabled: Bool = false
@@ -834,6 +849,8 @@ struct DailyHealthMetric: Codable, Identifiable, Hashable {
     var exerciseMinutes: Double?
     var restingHeartRate: Double?
     var heartRateVariabilityMS: Double?
+    var sleepHours: Double?
+    var vo2MaxMlKgMin: Double?
 }
 
 struct HealthSyncState: Codable {
@@ -863,4 +880,13 @@ struct ExerciseSessionDraft: Codable, Equatable, Hashable {
     var voiceNote: String = ""
     var sets: [SetLog]
     var mediaAttachments: [WorkoutMediaAttachment] = []
+}
+
+struct AchievementUnlockBanner: Identifiable, Sendable, Equatable {
+    let id: String
+    let title: String
+    let description: String
+    let systemImage: String
+    let colorName: String
+    let xpReward: Int
 }

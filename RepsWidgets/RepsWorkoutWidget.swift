@@ -193,17 +193,11 @@ private struct RepsWorkoutWidgetView: View {
     }
 
     private func routeDistanceText(compact: Bool = false) -> String {
-        guard let distance = entry.snapshot.routeDistanceKm, distance > 0 else {
-            return compact ? "0.0" : "0.00 km"
-        }
-        return compact ? String(format: "%.1f", distance) : String(format: "%.2f km", distance)
+        SharedWorkoutSnapshot.routeDistanceText(entry.snapshot.routeDistanceKm, compact: compact)
     }
 
     private func routePaceText() -> String {
-        guard let pace = entry.snapshot.routePaceSecondsPerKm, pace.isFinite, pace > 0 else {
-            return "--"
-        }
-        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
+        entry.snapshot.routePaceText
     }
 }
 
@@ -542,17 +536,11 @@ private struct ActiveWorkoutView: View {
     }
 
     private func routeDistanceText() -> String {
-        guard let distance = entry.snapshot.routeDistanceKm, distance > 0 else {
-            return "0.00 km"
-        }
-        return String(format: "%.2f km", distance)
+        entry.snapshot.routeDistanceText
     }
 
     private func routePaceText() -> String {
-        guard let pace = entry.snapshot.routePaceSecondsPerKm, pace.isFinite, pace > 0 else {
-            return "--"
-        }
-        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))/km"
+        entry.snapshot.routePaceText
     }
 
     private var currentExerciseDetailText: String {

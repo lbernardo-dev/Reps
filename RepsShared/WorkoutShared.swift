@@ -14,9 +14,7 @@ import WidgetKit
 
 #if canImport(SwiftUI)
 enum RepsLocalization {
-    nonisolated(unsafe) private static var activeLanguage: String = {
-        Locale.current.language.languageCode?.identifier == "es" ? "es" : "en"
-    }()
+    nonisolated(unsafe) private static var activeLanguage: String = "es"
 
     static var language: String {
         activeLanguage
@@ -35,7 +33,14 @@ enum RepsLocalization {
     }
 
     static func string(_ key: String) -> String {
-        String(localized: String.LocalizationValue(key), locale: locale)
+        if let path = Bundle.main.path(forResource: activeLanguage, ofType: "lproj"),
+           let languageBundle = Bundle(path: path) {
+            let localized = languageBundle.localizedString(forKey: key, value: nil, table: nil)
+            if localized != key {
+                return localized
+            }
+        }
+        return String(localized: String.LocalizationValue(key), bundle: .main, locale: locale)
     }
 }
 
@@ -52,7 +57,35 @@ func localizedString(_ key: String) -> String {
     #if canImport(SwiftUI)
     RepsLocalization.string(key)
     #else
-    String(localized: String.LocalizationValue(key))
+    String(localized: String.LocalizationValue(key), bundle: .main)
+    #endif
+}
+
+extension String {
+    func firstWordInitialUppercased(locale: Locale = .current) -> String {
+        guard let firstIndex = firstIndex(where: { !$0.isWhitespace }) else {
+            return self
+        }
+        let prefix = self[..<firstIndex]
+        let first = String(self[firstIndex]).uppercased(with: locale)
+        let rest = self[index(after: firstIndex)...]
+        return String(prefix) + first + rest
+    }
+}
+
+func localizedTitle(_ key: String) -> String {
+    #if canImport(SwiftUI)
+    localizedString(key).firstWordInitialUppercased(locale: RepsLocalization.locale)
+    #else
+    localizedString(key).firstWordInitialUppercased()
+    #endif
+}
+
+func localizedTitleText(_ text: String) -> String {
+    #if canImport(SwiftUI)
+    text.firstWordInitialUppercased(locale: RepsLocalization.locale)
+    #else
+    text.firstWordInitialUppercased()
     #endif
 }
 
@@ -375,6 +408,71 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
             return String(format: "%d:%02d:%02d", hours, minutes, remainingSeconds)
         }
         return String(format: "%02d:%02d", minutes, remainingSeconds)
+    }
+
+    static func validPositive(_ value: Double?) -> Double? {
+        guard let value, value.isFinite, value > 0 else {
+            return nil
+        }
+        return value
+    }
+
+    static func routeDistanceText(_ distanceKm: Double?, compact: Bool = false) -> String {
+        guard let distance = validPositive(distanceKm) else {
+            return compact ? "0.0" : "0.00 km"
+        }
+        return compact ? String(format: "%.1f", distance) : String(format: "%.2f km", distance)
+    }
+
+    static func routePaceText(_ secondsPerKm: Double?) -> String {
+        guard let secondsPerKm = validPositive(secondsPerKm) else {
+            return "--"
+        }
+        let seconds = Int(secondsPerKm)
+        return "\(seconds / 60):\(String(format: "%02d", seconds % 60))/km"
+    }
+
+    static func routeSpeedText(_ speedKmh: Double?) -> String {
+        guard let speedKmh = validPositive(speedKmh) else {
+            return "--"
+        }
+        return String(format: "%.1f km/h", speedKmh)
+    }
+
+    static func integerMetricText(_ value: Double?) -> String {
+        guard let value = validPositive(value) else {
+            return "--"
+        }
+        return "\(Int(value))"
+    }
+
+    static func heartRateText(_ value: Double?) -> String {
+        guard let value = validPositive(value) else {
+            return "--"
+        }
+        return "\(Int(value)) lpm"
+    }
+
+    var routeDistanceText: String {
+        Self.routeDistanceText(routeDistanceKm)
+    }
+
+    var compactRouteDistanceText: String {
+        Self.routeDistanceText(routeDistanceKm, compact: true)
+    }
+
+    var routePaceText: String {
+        Self.routePaceText(routePaceSecondsPerKm)
+    }
+
+    var routeSpeedText: String {
+        Self.routeSpeedText(routeSpeedKmh)
+    }
+
+    var routeSubtitleText: String {
+        [routeDistanceText, routePaceText]
+            .filter { $0 != "--" }
+            .joined(separator: " · ")
     }
 }
 

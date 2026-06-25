@@ -490,6 +490,155 @@ struct TodayView: View {
                     goalText: weightGoalText
                 )
             }
+
+            intensityCard
+        }
+    }
+
+    private var intensityCard: some View {
+        let sessions7d = store.workoutSessions.filter {
+            $0.date >= Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .now
+        }
+        let allSets = sessions7d.flatMap { FitnessMetrics.completedSets(in: $0) }
+        let rpeValues = allSets.compactMap(\.rpe)
+        let avgRPE = rpeValues.isEmpty ? nil : rpeValues.reduce(0, +) / Double(rpeValues.count)
+        let productiveSets = rpeValues.filter { $0 >= 6 && $0 <= 8 }.count
+        let totalRPESets = rpeValues.count
+        let distribution = AnalyticsEngine.intensityDistribution(for: sessions7d)
+
+        let topExercise = sessions7d
+            .flatMap { $0.exerciseLogs ?? [] }
+            .max(by: { ($0.sets.filter(\.completed).count) < ($1.sets.filter(\.completed).count) })
+        let heaviestSet = sessions7d
+            .flatMap { $0.exerciseLogs ?? [] }
+            .flatMap { $0.sets }
+            .filter { $0.completed && $0.weightKg > 0 }
+            .max(by: { $0.weightKg < $1.weightKg })
+
+        return PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    Image(systemName: "bolt.fill")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 34, height: 34)
+                        .background(PulseTheme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(localizedString("intensity").uppercased())
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .tracking(1.2)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        Text(avgRPE.map { String(format: "%.1f", $0) } ?? "--")
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                        Text(localizedString("avg_rpe"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    Spacer()
+                    if totalRPESets > 0 {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(localizedString("seven_days"))
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Text("\(totalRPESets) sets")
+                                .font(.subheadline.weight(.bold))
+                            Text(totalRPESets > 0 ? "\(productiveSets)/\(totalRPESets) " + localizedString("in_6_8_zone") : "--")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.recovery)
+                        }
+                    }
+                }
+
+                if totalRPESets > 0 {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(localizedString("rpe_distribution").uppercased())
+                            .font(.system(size: 9, weight: .black, design: .rounded))
+                            .tracking(1.2)
+                            .foregroundStyle(PulseTheme.secondaryText)
+
+                        GeometryReader { geo in
+                            let total = max(distribution.reduce(0) { $0 + $1.count }, 1)
+                            HStack(spacing: 2) {
+                                ForEach(distribution, id: \.label) { bucket in
+                                    let fraction = CGFloat(bucket.count) / CGFloat(total)
+                                    let color: Color = bucket.label.contains("6") || bucket.label.contains("7")
+                                        ? PulseTheme.recovery
+                                        : (bucket.label.contains("9") ? PulseTheme.destructive : PulseTheme.secondaryText.opacity(0.3))
+                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                        .fill(color)
+                                        .frame(width: max(geo.size.width * fraction - 2, 4))
+                                }
+                            }
+                            .frame(height: 10)
+                        }
+                        .frame(height: 10)
+
+                        HStack {
+                            Text("< 6 · \(distribution.first(where: { $0.label.contains("0") })?.count ?? 0)")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Spacer()
+                            Text("6–8 · \(productiveSets)")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(PulseTheme.recovery)
+                            Spacer()
+                            Text("9+ · \(distribution.last?.count ?? 0)")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(PulseTheme.destructive)
+                        }
+                    }
+                }
+
+                if let top = topExercise {
+                    Divider()
+                    HStack(spacing: 10) {
+                        Image(systemName: "trophy.fill")
+                            .foregroundStyle(PulseTheme.accent)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(localizedString("top_exercise").uppercased())
+                                .font(.system(size: 8, weight: .black, design: .rounded))
+                                .tracking(1)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Text(RepsText.exerciseName(top.exercise.name, language: store.userProfile.preferredLanguage))
+                                .font(.subheadline.weight(.semibold))
+                                .lineLimit(1)
+                            let completedSets = top.sets.filter(\.completed).count
+                            Text("\(completedSets) sets")
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+                }
+
+                if let heavy = heaviestSet {
+                    HStack(spacing: 10) {
+                        Image(systemName: "dumbbell.fill")
+                            .foregroundStyle(PulseTheme.primary)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(localizedString("heaviest_set").uppercased())
+                                .font(.system(size: 8, weight: .black, design: .rounded))
+                                .tracking(1)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            let wStr = heavy.weightKg.truncatingRemainder(dividingBy: 1) == 0
+                                ? "\(Int(heavy.weightKg)) kg"
+                                : String(format: "%.1f kg", heavy.weightKg)
+                            let rpeStr = heavy.rpe.map { " @ RPE \(Int($0))" } ?? ""
+                            Text("\(wStr) × \(heavy.reps)\(rpeStr)")
+                                .font(.subheadline.weight(.semibold))
+                                .lineLimit(1)
+                        }
+                    }
+                }
+
+                if sessions7d.isEmpty {
+                    Text(localizedString("log_workouts_to_see_intensity"))
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
         }
     }
 
@@ -1079,6 +1228,7 @@ struct TodayView: View {
                         title: "battery_2",
                         value: "\(batteryStatus.level)%",
                         subtitle: batteryStatus.suggestion,
+                        localizesSubtitle: false,
                         systemImage: batteryStatus.systemImage,
                         color: batteryColor
                     )
@@ -1091,7 +1241,7 @@ struct TodayView: View {
                     WellnessWidget(
                         title: "exercise_2",
                         value: store.todayHealthMetric.map { "\(Int($0.exerciseMinutes ?? 0)) min" } ?? "--",
-                        subtitle: "Apple Watch / Health",
+                        subtitle: "apple_watch_health",
                         systemImage: "applewatch",
                         color: PulseTheme.primaryBright
                     )
@@ -1105,6 +1255,7 @@ struct TodayView: View {
                         title: "hydration",
                         value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
                         subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en Reps", $0) } ?? (localizedString("no_local_log")),
+                        localizesSubtitle: latestMetric?.waterLiters == nil,
                         systemImage: "drop.fill",
                         color: PulseTheme.primaryBright
                     )
@@ -1118,8 +1269,52 @@ struct TodayView: View {
                         title: "HRV",
                         value: store.todayHealthMetric?.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--",
                         subtitle: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? (localizedString("no_resting_hr")),
+                        localizesSubtitle: store.todayHealthMetric?.restingHeartRate == nil,
                         systemImage: "waveform.path.ecg",
                         color: PulseTheme.accent
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    VO2MaxView()
+                } label: {
+                    WellnessWidget(
+                        title: "VO₂ Max",
+                        value: store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first(where: { $0.vo2MaxMlKgMin != nil })?.vo2MaxMlKgMin.map { String(format: "%.1f", $0) } ?? "--",
+                        subtitle: "ml/kg/min",
+                        localizesSubtitle: false,
+                        systemImage: "lungs.fill",
+                        color: PulseTheme.primaryBright
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    SleepView()
+                } label: {
+                    let todaySleep = store.health.latestDailyMetrics
+                        .sorted { $0.date > $1.date }
+                        .first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours
+                    WellnessWidget(
+                        title: "sleep",
+                        value: todaySleep.map { String(format: "%.1fh", $0) } ?? "--",
+                        subtitle: localizedString("last_recorded"),
+                        systemImage: "moon.zzz.fill",
+                        color: Color(red: 0.55, green: 0.42, blue: 0.95)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    StepsView()
+                } label: {
+                    WellnessWidget(
+                        title: "steps",
+                        value: store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--",
+                        subtitle: localizedFormat("goal_format", store.userProfile.dailyStepsGoal),
+                        systemImage: "figure.walk",
+                        color: Color.orange
                     )
                 }
                 .buttonStyle(.plain)
@@ -2236,6 +2431,7 @@ private struct WellnessWidget: View {
     let title: String
     let value: String
     let subtitle: String
+    var localizesSubtitle = true
     let systemImage: String
     let color: Color
 
@@ -2260,7 +2456,7 @@ private struct WellnessWidget: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
-            Text(localizedKey(subtitle))
+            Text(localizesSubtitle ? localizedKey(subtitle) : subtitle)
                 .font(.caption2)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .lineLimit(2)

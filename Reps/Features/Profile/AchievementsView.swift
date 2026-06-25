@@ -10,6 +10,7 @@ struct AchievementBadge: Identifiable {
     let isCompleted: Bool
     let progressValue: Double?
     let progressTarget: Double?
+    var xpReward: Int = 0
 
     var title: String { localizedString(titleKey) }
     var description: String { localizedString(descKey) }
@@ -62,6 +63,12 @@ struct AchievementsView: View {
         let muscleGroups = Set(sessions.flatMap { $0.exerciseLogs ?? [] }.map { $0.exercise.muscleGroup })
         let fullBody = muscleGroups.count >= 5
         let evidenceKeeper = photoCount >= 3
+
+        // Hydration
+        let firstSip = healthMetrics.contains { $0.waterLiters > 0 }
+        let goalLiters = store.userProfile.dailyWaterGoalLiters
+        let hydrationGoalDays = healthMetrics.filter { $0.waterLiters >= goalLiters }.count
+        let morningHydrator = store.seenAchievementKeys.contains("achievement_morning_hydrator_title")
 
         return [
             // ── Consistency
@@ -222,7 +229,39 @@ struct AchievementsView: View {
                 color: .purple,
                 isCompleted: evidenceKeeper,
                 progressValue: Double(min(photoCount, 3)),
-                progressTarget: 3.0
+                progressTarget: 3.0,
+                xpReward: 15
+            ),
+            // ── Hydration
+            AchievementBadge(
+                titleKey: "achievement_first_sip_title",
+                descKey: "achievement_first_sip_desc",
+                systemImage: "drop.fill",
+                color: .blue,
+                isCompleted: firstSip,
+                progressValue: firstSip ? 1.0 : 0.0,
+                progressTarget: 1.0,
+                xpReward: 10
+            ),
+            AchievementBadge(
+                titleKey: "achievement_morning_hydrator_title",
+                descKey: "achievement_morning_hydrator_desc",
+                systemImage: "sunrise.fill",
+                color: .orange,
+                isCompleted: morningHydrator,
+                progressValue: morningHydrator ? 1.0 : 0.0,
+                progressTarget: 1.0,
+                xpReward: 5
+            ),
+            AchievementBadge(
+                titleKey: "achievement_hydration_hero_title",
+                descKey: "achievement_hydration_hero_desc",
+                systemImage: "drop.circle.fill",
+                color: PulseTheme.primaryBright,
+                isCompleted: hydrationGoalDays >= 3,
+                progressValue: Double(min(hydrationGoalDays, 3)),
+                progressTarget: 3.0,
+                xpReward: 25
             ),
         ]
     }
@@ -243,7 +282,7 @@ struct AchievementsView: View {
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .sheet(item: $selectedReceiptForPreview) { card in
-            LocalReceiptPreviewSheet(card: card)
+            ReceiptPreviewSheet(card: card)
         }
         .fullScreenCover(item: $localPaywall) { presentation in
             PaywallView(presentation: presentation) { reason in
@@ -422,40 +461,10 @@ struct AchievementsView: View {
                         Button {
                             selectedReceiptForPreview = card
                         } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                if let uiImage = UIImage(data: card.imageData) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(maxWidth: .infinity)
-                                        .clipShape(SerratedThumbnailShape()) // Clip the bottom serrated style in grid too!
-                                        .overlay(
-                                            SerratedThumbnailShape()
-                                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                                        )
-                                        .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
-                                } else {
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .fill(PulseTheme.grouped)
-                                        .frame(height: 220)
-                                }
-                                
-                                Text(card.workoutTitle)
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(1)
-                                
-                                Text(receiptDateString(card.date))
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundStyle(PulseTheme.secondaryText)
-                                    .lineLimit(1)
-                            }
-                            .padding(8)
-                            .background(PulseTheme.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(PulseTheme.separator, lineWidth: 1)
+                            SavedShareCardThumbnail(
+                                card: card,
+                                language: store.userProfile.preferredLanguage,
+                                style: .grid
                             )
                         }
                         .buttonStyle(.plain)
@@ -463,13 +472,6 @@ struct AchievementsView: View {
                 }
             }
         }
-    }
-    
-    private func receiptDateString(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd MMM yyyy"
-        formatter.locale = Locale(identifier: store.userProfile.preferredLanguage)
-        return formatter.string(from: date).uppercased()
     }
 }
 
@@ -547,8 +549,87 @@ private struct AchievementTile: View {
     }
 }
 
-// MARK: - Local Receipt Preview Sheet
-private struct LocalReceiptPreviewSheet: View {
+struct SavedShareCardThumbnail: View {
+    enum Style {
+        case grid
+        case compact
+    }
+
+    let card: SavedShareCard
+    let language: String
+    var style: Style = .grid
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: spacing) {
+            receiptImage
+
+            Text(card.workoutTitle)
+                .font(titleFont)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .frame(width: compactWidth, alignment: .leading)
+
+            Text(SavedShareCardDateFormatter.string(from: card.date, language: language))
+                .font(dateFont)
+                .foregroundStyle(PulseTheme.secondaryText)
+                .lineLimit(1)
+                .frame(width: compactWidth, alignment: .leading)
+        }
+        .padding(style == .grid ? 8 : 0)
+        .background {
+            if style == .grid {
+                PulseTheme.card
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: style == .grid ? 16 : 0, style: .continuous))
+        .overlay {
+            if style == .grid {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(PulseTheme.separator, lineWidth: 1)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var receiptImage: some View {
+        if let uiImage = UIImage(data: card.imageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: style == .grid ? .fit : .fill)
+                .frame(width: compactWidth, height: compactHeight)
+                .frame(maxWidth: style == .grid ? .infinity : nil)
+                .clipShape(SerratedThumbnailShape())
+                .overlay(
+                    SerratedThumbnailShape()
+                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(style == .grid ? 0.15 : 0), radius: 6, y: 3)
+        } else {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(PulseTheme.grouped)
+                .frame(width: compactWidth, height: compactHeight)
+                .frame(maxWidth: style == .grid ? .infinity : nil)
+        }
+    }
+
+    private var spacing: CGFloat { style == .grid ? 8 : 6 }
+    private var compactWidth: CGFloat? { style == .compact ? 100 : nil }
+    private var compactHeight: CGFloat { style == .compact ? 160 : 220 }
+    private var titleFont: Font { style == .grid ? .caption.weight(.bold) : .caption2.weight(.bold) }
+    private var dateFont: Font { style == .grid ? .system(size: 9, weight: .bold) : .system(size: 8, weight: .semibold) }
+}
+
+enum SavedShareCardDateFormatter {
+    static func string(from date: Date, language: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd MMM yyyy"
+        formatter.locale = Locale(identifier: language)
+        return formatter.string(from: date).uppercased()
+    }
+}
+
+// MARK: - Receipt Preview Sheet
+struct ReceiptPreviewSheet: View {
     let card: SavedShareCard
     @Environment(\.dismiss) private var dismiss
     @State private var uiImage: UIImage? = nil
@@ -582,8 +663,8 @@ private struct LocalReceiptPreviewSheet: View {
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(PulseTheme.accent)
-                        .clipShape(Capsule())
+                        .background(PulseTheme.primaryBright)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .padding(.horizontal, 24)
                     }
                     .buttonStyle(.plain)
@@ -595,7 +676,7 @@ private struct LocalReceiptPreviewSheet: View {
             .navigationTitle(card.workoutTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button(localizedString("close")) {
                         dismiss()
                     }

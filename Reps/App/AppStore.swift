@@ -24,6 +24,9 @@ final class AppStore {
             if oldValue.remindersEnabled != userProfile.remindersEnabled {
                 reconcileNotificationStateIfNeeded()
             }
+            if oldValue.sleepTargetHours != userProfile.sleepTargetHours {
+                updateTrainingBattery()
+            }
             save(scope: .profile)
         }
     }
@@ -96,6 +99,7 @@ final class AppStore {
     /// Set by flows that want the main tab bar to switch after they finish
     /// (e.g. closing the post-workout summary jumps to Progress).
     var pendingMainTabSelection: AppTab?
+    var pendingAchievementUnlocks: [AchievementUnlockBanner] = []
     var activePaywall: PaywallPresentation? {
         didSet {
             if activePaywall == nil, let previous = oldValue {
@@ -124,6 +128,8 @@ final class AppStore {
     @ObservationIgnored private var transactionUpdatesTask: Task<Void, Never>?
     @ObservationIgnored private var isAutomaticHealthSyncInProgress = false
     @ObservationIgnored private var lastAutomaticHealthRefreshDate: Date?
+    @ObservationIgnored let seenAchievementsKey = "reps_seenAchievementKeys_v1"
+    @ObservationIgnored var seenAchievementKeys: Set<String> = []
     // Written once during init (MainActor) and read in deinit for cleanup.
     @ObservationIgnored nonisolated(unsafe) private var liveActivityCommandObserver: NSObjectProtocol?
 
@@ -142,6 +148,7 @@ final class AppStore {
             return WorkoutShareImageRenderer.render(title: "Reps Workout", duration: 0, volume: 0, sets: 0)
         }
         self.isUsingFallbackStorage = persistence.didFallbackToInMemory
+        self.seenAchievementKeys = Set(UserDefaults.standard.stringArray(forKey: seenAchievementsKey) ?? [])
         WatchSyncService.shared.configure(
             commandHandler: { [weak self] command in
                 self?.handleWatchCommand(command)
@@ -183,6 +190,7 @@ final class AppStore {
             SharedWorkoutStore.save(sharedWorkoutSnapshot())
         }
         RepsLocalization.use(userProfile.preferredLanguage)
+        evaluateExistingAchievementUnlocks()
         cleanupJunkHealthWorkoutsIfNeeded()
         _ = loadActivityEvents()
 
@@ -459,7 +467,8 @@ final class AppStore {
             scheduledWorkouts: scheduledWorkouts,
             activePlan: activePlan,
             bodyMetrics: bodyMetrics,
-            health: health
+            health: health,
+            sleepTarget: userProfile.sleepTargetHours
         )
     }
 
@@ -835,10 +844,18 @@ final class AppStore {
     }
 
     func logWater(liters: Double) {
+        let logHour = Calendar.current.component(.hour, from: Date())
+        let isFirstEverLog = health.latestDailyMetrics.allSatisfy { $0.waterLiters == 0 }
         Task { @MainActor [weak self] in
             guard let self else { return }
             try? await healthKitService.saveDailyNutrition(waterLiters: liters, dietaryEnergyKcal: nil)
-            refreshHealthKitDataIfNeeded(force: true, reason: "water_logged")
+            if let dailyMetrics = try? await healthKitService.fetchDailyMetrics() {
+                health.latestDailyMetrics = dailyMetrics
+                health.lastSyncDate = .now
+            } else {
+                refreshHealthKitDataIfNeeded(force: true, reason: "water_logged")
+            }
+            evaluateHydrationAchievements(isFirstEverLog: isFirstEverLog, logHour: logHour)
         }
     }
 
@@ -1147,6 +1164,7 @@ final class AppStore {
         // Re-evaluate engagement state right after finishing so a goal reached
         // during this session is celebrated without waiting for the next launch.
         runEngagementChecks()
+        evaluateWorkoutAchievements()
     }
 
     /// Writes a freshly-finished, phone-logged session to Apple Health (if it did
@@ -2800,6 +2818,9 @@ final class AppStore {
 
     private func reconcileNotificationStateIfNeeded() {
         guard !isRestoring else {
+            return
+        }
+        guard !Self.isRunningUnitTests else {
             return
         }
 

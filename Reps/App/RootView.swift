@@ -77,6 +77,12 @@ struct MainTabView: View {
                         .transition(.scale(scale: 0.6, anchor: .bottomTrailing).combined(with: .opacity))
                 }
             }
+            .overlay {
+                if !store.pendingAchievementUnlocks.isEmpty {
+                    AchievementUnlockOverlay()
+                        .environment(store)
+                }
+            }
             .ignoresSafeArea(.keyboard, edges: .bottom)
         .sheet(item: $presentedQuickAction) { action in
             quickActionDestination(action)

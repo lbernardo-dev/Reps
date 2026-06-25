@@ -72,6 +72,49 @@ struct HealthInsightRow: View {
     }
 }
 
+struct HealthStatItem: Identifiable, Equatable {
+    let id: String
+    let value: String
+    let label: String
+
+    init(id: String? = nil, value: String, label: String) {
+        self.id = id ?? label
+        self.value = value
+        self.label = label
+    }
+}
+
+struct HealthStatsHeader: View {
+    let items: [HealthStatItem]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                if index > 0 {
+                    Divider().frame(height: 36)
+                }
+                statCell(item)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(PulseTheme.card)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+    }
+
+    private func statCell(_ item: HealthStatItem) -> some View {
+        VStack(spacing: 4) {
+            Text(item.value)
+                .font(.system(size: 22, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(.primary)
+            Text(item.label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
 // MARK: - Mini metric tile for health detail views
 struct HealthMiniTile: View {
     let title: String

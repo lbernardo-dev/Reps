@@ -278,6 +278,7 @@ enum FitnessMetrics {
         activePlan: WorkoutPlan,
         bodyMetrics: [BodyMetric],
         health: HealthSyncState,
+        sleepTarget: Double = 7.0,
         now: Date = .now
     ) -> TrainingBatteryStatus {
         let calendar = Calendar.current
@@ -307,7 +308,7 @@ enum FitnessMetrics {
         } else {
             restDays = 2
         }
-        let sleepCredit = latestBodyMetric?.sleepHours.map { clamp(($0 - 6) * 4, lower: -8, upper: 8) } ?? 0
+        let sleepCredit = latestBodyMetric?.sleepHours.map { clamp(($0 - sleepTarget) * 4, lower: -8, upper: 8) } ?? 0
         let fatigueCredit = latestBodyMetric?.fatigue.map { clamp(Double(3 - $0) * 3, lower: -8, upper: 6) } ?? 0
         let hrvCredit = health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.heartRateVariabilityMS.map { hrv in
             clamp((hrv - 45) / 8, lower: -5, upper: 6)
@@ -2330,47 +2331,16 @@ enum RouteMetricsBuilder {
             paceSecondsPerKm: paceSecondsPerKm,
             speedKmh: speedKmh,
             pointCount: pointCount,
-            paceText: paceText(for: paceSecondsPerKm),
-            speedText: speedText(for: speedKmh),
-            stepsText: integerText(for: steps),
-            heartRateText: heartRateText(for: heartRate),
-            energyText: integerText(for: activeEnergy)
+            paceText: SharedWorkoutSnapshot.routePaceText(paceSecondsPerKm),
+            speedText: SharedWorkoutSnapshot.routeSpeedText(speedKmh),
+            stepsText: SharedWorkoutSnapshot.integerMetricText(steps),
+            heartRateText: SharedWorkoutSnapshot.heartRateText(heartRate),
+            energyText: SharedWorkoutSnapshot.integerMetricText(activeEnergy)
         )
     }
 
     private static func validPositive(_ value: Double?) -> Double? {
-        guard let value, value.isFinite, value > 0 else {
-            return nil
-        }
-        return value
-    }
-
-    private static func paceText(for secondsPerKm: Double?) -> String {
-        guard let secondsPerKm = validPositive(secondsPerKm) else {
-            return "--"
-        }
-        return "\(Int(secondsPerKm) / 60):\(String(format: "%02d", Int(secondsPerKm) % 60))/km"
-    }
-
-    private static func speedText(for speedKmh: Double?) -> String {
-        guard let speedKmh = validPositive(speedKmh) else {
-            return "--"
-        }
-        return String(format: "%.1f km/h", speedKmh)
-    }
-
-    private static func integerText(for value: Double?) -> String {
-        guard let value = validPositive(value) else {
-            return "--"
-        }
-        return "\(Int(value))"
-    }
-
-    private static func heartRateText(for value: Double?) -> String {
-        guard let value = validPositive(value) else {
-            return "--"
-        }
-        return "\(Int(value)) lpm"
+        SharedWorkoutSnapshot.validPositive(value)
     }
 }
 
