@@ -33,40 +33,67 @@ struct WatchStartView: View {
         if !model.snapshot.hasWatchAccess {
             WatchProLockedView()
         } else {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 10) {
-                    WatchProgressDashboard()
-                    WatchTodaySessionCard()
+            NavigationStack {
+                ScrollView {
+                    VStack(spacing: 10) {
+                        WatchProgressDashboard()
+                        WatchTodaySessionCard()
 
-                    Text(localizedString("Start"))
-                        .font(.system(size: 11, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, 2)
+                        if let gymName = model.snapshot.gymPassName {
+                            WatchGymPassCard(
+                                gymName: gymName,
+                                memberID: model.snapshot.gymMembershipID
+                            )
+                        }
 
-                    WatchStartRow(title: localizedString("Strength"), subtitle: localizedString("Log your sets"), icon: "dumbbell.fill", color: accent) {
-                        model.startStrengthWorkout()
+                        Text(localizedString("Start"))
+                            .font(.system(size: 11, weight: .heavy, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 2)
+
+                        WatchStartRow(
+                            title: localizedString("Strength"),
+                            subtitle: localizedString("Log your sets"),
+                            icon: "dumbbell.fill",
+                            color: accent
+                        ) {
+                            model.startStrengthWorkout()
+                        }
+                        WatchStartRow(
+                            title: localizedString("Walk"),
+                            subtitle: localizedString("Outdoor · GPS"),
+                            icon: "figure.walk",
+                            color: WatchTheme.success
+                        ) {
+                            model.startStandaloneRouteWorkout(activity: .walking)
+                        }
+                        WatchStartRow(
+                            title: localizedString("Run"),
+                            subtitle: localizedString("Pace · distance"),
+                            icon: "figure.run",
+                            color: .green
+                        ) {
+                            model.startStandaloneRouteWorkout(activity: .running)
+                        }
+                        NavigationLink {
+                            WatchIntervalPickerView()
+                        } label: {
+                            WatchStartRowLabel(
+                                title: localizedString("Intervals"),
+                                subtitle: localizedString("HIIT by phases"),
+                                icon: "bolt.heart.fill",
+                                color: .red
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    WatchStartRow(title: localizedString("Walk"), subtitle: localizedString("Outdoor · GPS"), icon: "figure.walk", color: WatchTheme.success) {
-                        model.startStandaloneRouteWorkout(activity: .walking)
-                    }
-                    WatchStartRow(title: localizedString("Run"), subtitle: localizedString("Pace · distance"), icon: "figure.run", color: .green) {
-                        model.startStandaloneRouteWorkout(activity: .running)
-                    }
-                    NavigationLink {
-                        WatchIntervalPickerView()
-                    } label: {
-                        WatchStartRowLabel(title: localizedString("Intervals"), subtitle: localizedString("HIIT by phases"), icon: "bolt.heart.fill", color: .red)
-                    }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 4)
+                    .padding(.bottom, 10)
                 }
-                .padding(.horizontal, 4)
-                .padding(.bottom, 10)
+                .navigationTitle("Reps")
             }
-            .navigationTitle("Reps")
         }
-        } // end hasWatchAccess
     }
 }
 
@@ -119,7 +146,6 @@ private struct WatchProgressDashboard: View {
                 Spacer(minLength: 0)
             }
 
-            // Training battery bar — a real, attractive at-a-glance gauge.
             VStack(alignment: .leading, spacing: 3) {
                 GeometryReader { proxy in
                     ZStack(alignment: .leading) {
@@ -185,6 +211,86 @@ private struct WatchTodaySessionCard: View {
     }
 }
 
+// MARK: - Gym Pass card
+
+private struct WatchGymPassCard: View {
+    let gymName: String
+    let memberID: String?
+
+    var body: some View {
+        NavigationLink {
+            WatchGymPassDetailView(gymName: gymName, memberID: memberID)
+        } label: {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle().fill(Color.blue.opacity(0.16)).frame(width: 34, height: 34)
+                    Image(systemName: "creditcard.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.blue)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(localizedString("Gym Pass"))
+                        .font(.system(size: 9, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.secondary)
+                    Text(gymName)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous)
+                    .stroke(Color.blue.opacity(0.16), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(localizedString("Gym Pass")): \(gymName)")
+    }
+}
+
+private struct WatchGymPassDetailView: View {
+    let gymName: String
+    let memberID: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                Image(systemName: "creditcard.fill")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundStyle(.blue)
+                    .padding(.top, 6)
+
+                Text(gymName)
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                if let memberID {
+                    Text(memberID)
+                        .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(2)
+                        .padding(.horizontal, 8)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 12)
+        }
+        .navigationTitle(localizedString("Gym Pass"))
+    }
+}
+
 private struct WatchMiniStat: View {
     let icon: String
     let value: String
@@ -241,6 +347,7 @@ private struct WatchStartRow: View {
             WatchStartRowLabel(title: title, subtitle: subtitle, icon: icon, color: color)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }
 
@@ -271,7 +378,7 @@ private struct WatchStartRowLabel: View {
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(.tertiary)
         }
-        .padding(.vertical, 9)
+        .padding(.vertical, 10)
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
@@ -306,12 +413,13 @@ private struct WatchIntervalPickerView: View {
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundStyle(.red)
                         }
-                        .padding(.vertical, 9)
+                        .padding(.vertical, 10)
                         .padding(.horizontal, 10)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.red.opacity(0.10), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("\(preset.name), \(preset.rounds) rondas")
                 }
             }
             .padding(.horizontal, 4)
@@ -368,10 +476,133 @@ struct WatchActiveWorkoutView: View {
     }
 }
 
+// MARK: - Route: now page
+
+struct WatchRouteNowView: View {
+    @EnvironmentObject private var model: WatchWorkoutModel
+    @State private var showStopConfirmation = false
+
+    private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
+    private var distanceKm: Double { model.routeDistanceKm ?? model.snapshot.routeDistanceKm ?? 0 }
+    private var hrText: String { (model.heartRate ?? model.snapshot.heartRate).map { "\(Int($0))" } ?? "--" }
+    private var hrZoneLabel: String { model.heartRateZone.map { "Z\($0)" } ?? localizedString("Pulse") }
+    private var hrColor: Color { WatchTheme.zoneColor(model.heartRateZone) }
+
+    var body: some View {
+        VStack(spacing: 5) {
+            // Activity type + paused badge
+            HStack(spacing: 5) {
+                Image(systemName: activityIcon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.secondary)
+                Text(model.snapshot.workoutTitle)
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 0)
+                if model.state == .paused {
+                    Text("PAUSED")
+                        .font(.system(size: 9, weight: .black, design: .rounded))
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(.orange.opacity(0.14), in: Capsule())
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.top, 4)
+
+            // Big distance
+            VStack(spacing: -2) {
+                Text(String(format: "%.2f", distanceKm))
+                    .font(.system(size: 52, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white)
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                Text("km")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+
+            // Pace · Time · HR pills
+            HStack(spacing: 4) {
+                WatchStatPill(title: localizedString("Pace"), value: paceText, color: .orange)
+                WatchStatPill(title: localizedString("Time"), value: SharedWorkoutSnapshot.durationText(model.elapsedSeconds), color: accent)
+                WatchStatPill(title: hrZoneLabel, value: hrText, color: hrColor)
+            }
+            .padding(.horizontal, 6)
+
+            // Controls
+            HStack(spacing: 16) {
+                Button { model.togglePause() } label: {
+                    Image(systemName: model.state == .paused ? "play.fill" : "pause.fill")
+                }
+                .buttonStyle(WatchCircleButtonStyle(
+                    color: model.state == .paused ? WatchTheme.success : WatchTheme.warning,
+                    size: 48
+                ))
+                .accessibilityLabel(model.state == .paused ? localizedString("Resume") : localizedString("Pause"))
+
+                Button { showStopConfirmation = true } label: {
+                    Image(systemName: "stop.fill")
+                }
+                .buttonStyle(WatchCircleButtonStyle(color: WatchTheme.destructive, size: 48))
+                .accessibilityLabel(localizedString("End"))
+            }
+            .padding(.top, 2)
+            .padding(.bottom, 6)
+        }
+        .confirmationDialog("", isPresented: $showStopConfirmation, titleVisibility: .hidden) {
+            Button(localizedString("End"), role: .destructive) { model.stop() }
+        }
+    }
+
+    private var activityIcon: String {
+        let t = model.snapshot.workoutTitle.lowercased()
+        return (t.contains("carrera") || t.contains("run")) ? "figure.run" : "figure.walk"
+    }
+
+    private var paceText: String {
+        guard let pace = model.routePaceSecondsPerKm ?? model.snapshot.routePaceSecondsPerKm,
+              pace.isFinite, pace > 0 else { return "--" }
+        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))"
+    }
+}
+
+// MARK: - Route: summary page
+
+struct WatchRouteSummaryView: View {
+    @EnvironmentObject private var model: WatchWorkoutModel
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 8) {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    WatchBigMetric(value: stepsText, label: localizedString("Steps"), icon: "shoeprints.fill", color: .green)
+                    WatchBigMetric(value: speedText, label: "km/h", icon: "gauge.with.needle", color: .blue)
+                    WatchBigMetric(value: kcalText, label: "kcal", icon: "flame.fill", color: .orange)
+                    WatchBigMetric(value: hrText, label: "lpm", icon: "heart.fill", color: WatchTheme.zoneColor(model.heartRateZone))
+                }
+                WatchEndButton()
+            }
+            .padding(.horizontal, 5)
+            .padding(.bottom, 8)
+        }
+    }
+
+    private var stepsText: String { (model.routeSteps ?? model.snapshot.routeSteps).map { "\(Int($0))" } ?? "--" }
+    private var speedText: String { (model.routeSpeedKmh ?? model.snapshot.routeSpeedKmh).map { String(format: "%.1f", $0) } ?? "--" }
+    private var kcalText: String { "\(Int(model.snapshot.activeEnergyKcal ?? model.activeEnergy))" }
+    private var hrText: String { (model.heartRate ?? model.snapshot.heartRate).map { "\(Int($0))" } ?? "--" }
+}
+
 // MARK: - Strength: now page (set logging)
 
 struct WatchStrengthNowView: View {
     @EnvironmentObject private var model: WatchWorkoutModel
+    @State private var showStopConfirmation = false
 
     private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
 
@@ -389,6 +620,9 @@ struct WatchStrengthNowView: View {
                 logger
             }
         }
+        .confirmationDialog("", isPresented: $showStopConfirmation, titleVisibility: .hidden) {
+            Button(localizedString("End"), role: .destructive) { model.stop() }
+        }
     }
 
     private var header: some View {
@@ -399,6 +633,7 @@ struct WatchStrengthNowView: View {
             .buttonStyle(WatchCircleButtonStyle(color: accent, size: 30))
             .disabled(model.currentExerciseIndex == 0)
             .opacity(model.currentExerciseIndex == 0 ? 0.3 : 1)
+            .accessibilityLabel(localizedString("Previous exercise"))
 
             VStack(spacing: 1) {
                 Text(model.currentExercise?.name ?? localizedString("Exercise"))
@@ -419,6 +654,7 @@ struct WatchStrengthNowView: View {
             .buttonStyle(WatchCircleButtonStyle(color: accent, size: 30))
             .disabled(model.currentExerciseIndex >= model.exercises.count - 1)
             .opacity(model.currentExerciseIndex >= model.exercises.count - 1 ? 0.3 : 1)
+            .accessibilityLabel(localizedString("Next exercise"))
         }
     }
 
@@ -428,15 +664,19 @@ struct WatchStrengthNowView: View {
                 Image(systemName: model.state == .paused ? "play.fill" : "pause.fill")
             }
             .buttonStyle(WatchCircleButtonStyle(color: model.state == .paused ? WatchTheme.success : WatchTheme.warning, size: 30))
+            .accessibilityLabel(model.state == .paused ? localizedString("Resume") : localizedString("Pause"))
+
             Spacer()
             Text(SharedWorkoutSnapshot.durationText(model.elapsedSeconds))
                 .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
                 .foregroundStyle(.secondary)
             Spacer()
-            Button { model.stop() } label: {
+
+            Button { showStopConfirmation = true } label: {
                 Image(systemName: "xmark")
             }
             .buttonStyle(WatchCircleButtonStyle(color: WatchTheme.destructive, size: 30))
+            .accessibilityLabel(localizedString("End"))
         }
     }
 
@@ -451,10 +691,6 @@ struct WatchStrengthNowView: View {
                         label: "kg",
                         format: weightString(model.currentSetWeight),
                         accent: accent,
-                        crownBinding: Binding(
-                            get: { model.currentSetWeight },
-                            set: { model.setActiveWeight($0) }
-                        ),
                         onDec: { model.adjustWeight(by: -2.5) },
                         onInc: { model.adjustWeight(by: 2.5) }
                     )
@@ -473,6 +709,19 @@ struct WatchStrengthNowView: View {
                     .foregroundStyle(.secondary)
             }
 
+            if let next = model.nextExerciseNameForDisplay {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.secondary)
+                    Text(next)
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+
             Button {
                 model.completeCurrentSet()
             } label: {
@@ -484,6 +733,7 @@ struct WatchStrengthNowView: View {
             .buttonStyle(.plain)
             .background(WatchTheme.success, in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
             .foregroundStyle(.white)
+            .accessibilityLabel(localizedString("Complete set"))
 
             HStack(spacing: 6) {
                 WatchTag(text: localizedString("warm_up_short"), color: .yellow) { model.addSet(type: .warmUp) }
@@ -582,6 +832,7 @@ struct WatchStrengthNowView: View {
                         .background(WatchTheme.cardFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(item.name)
                 }
                 WatchEndButton()
             }
@@ -594,7 +845,7 @@ struct WatchStrengthNowView: View {
     }
 }
 
-// MARK: - Strength: summary page (volume per exercise)
+// MARK: - Strength: summary page
 
 struct WatchStrengthSummaryView: View {
     @EnvironmentObject private var model: WatchWorkoutModel
@@ -653,6 +904,7 @@ struct WatchStrengthSummaryView: View {
                         .background(WatchTheme.cardFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(exercise.name)
                 }
 
                 WatchEndButton()
@@ -663,136 +915,87 @@ struct WatchStrengthSummaryView: View {
     }
 }
 
-// MARK: - Route: now & summary
-
-struct WatchRouteNowView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
-    private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
-
-    private var distanceKm: Double { model.routeDistanceKm ?? model.snapshot.routeDistanceKm ?? 0 }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 9) {
-                Text(String(format: "%.2f", distanceKm))
-                    .font(.system(size: 44, weight: .black, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                Text("km")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 6) {
-                    WatchStatPill(title: localizedString("Time"), value: SharedWorkoutSnapshot.durationText(model.elapsedSeconds), color: accent)
-                    WatchStatPill(title: localizedString("Pace"), value: paceText, color: .orange)
-                }
-
-                HStack(spacing: 10) {
-                    Button { model.togglePause() } label: {
-                        Image(systemName: model.state == .paused ? "play.fill" : "pause.fill")
-                    }
-                    .buttonStyle(WatchCircleButtonStyle(color: model.state == .paused ? WatchTheme.success : WatchTheme.warning, size: 48))
-
-                    Button { model.stop() } label: {
-                        Image(systemName: "stop.fill")
-                    }
-                    .buttonStyle(WatchCircleButtonStyle(color: WatchTheme.destructive, size: 48))
-                }
-                .padding(.top, 4)
-            }
-            .padding(.horizontal, 5)
-            .padding(.bottom, 8)
-        }
-    }
-
-    private var paceText: String {
-        guard let pace = model.routePaceSecondsPerKm ?? model.snapshot.routePaceSecondsPerKm, pace.isFinite, pace > 0 else { return "--" }
-        return "\(Int(pace) / 60):\(String(format: "%02d", Int(pace) % 60))"
-    }
-}
-
-struct WatchRouteSummaryView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 8) {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    WatchBigMetric(value: stepsText, label: localizedString("Steps"), icon: "shoeprints.fill", color: .green)
-                    WatchBigMetric(value: speedText, label: "km/h", icon: "gauge.with.needle", color: .blue)
-                    WatchBigMetric(value: kcalText, label: "kcal", icon: "flame.fill", color: .orange)
-                    WatchBigMetric(value: hrText, label: "lpm", icon: "heart.fill", color: WatchTheme.zoneColor(model.heartRateZone))
-                }
-                WatchEndButton()
-            }
-            .padding(.horizontal, 5)
-            .padding(.bottom, 8)
-        }
-    }
-
-    private var stepsText: String { (model.routeSteps ?? model.snapshot.routeSteps).map { "\(Int($0))" } ?? "--" }
-    private var speedText: String { (model.routeSpeedKmh ?? model.snapshot.routeSpeedKmh).map { String(format: "%.1f", $0) } ?? "--" }
-    private var kcalText: String { "\(Int(model.snapshot.activeEnergyKcal ?? model.activeEnergy))" }
-    private var hrText: String { (model.heartRate ?? model.snapshot.heartRate).map { "\(Int($0))" } ?? "--" }
-}
-
-// MARK: - Interval: now & summary
+// MARK: - Interval: now page
 
 struct WatchIntervalNowView: View {
     @EnvironmentObject private var model: WatchWorkoutModel
+    @State private var showStopConfirmation = false
 
     private var phaseColor: Color { model.intervalIsWork ? .red : WatchTheme.success }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 8) {
-                if let preset = model.intervalPreset {
-                    Text(model.intervalIsWork ? localizedString("WORK") : localizedString("REST"))
-                        .font(.system(size: 12, weight: .black, design: .rounded))
-                        .foregroundStyle(phaseColor)
-
-                    Text("\(model.intervalPhaseRemaining)s")
-                        .font(.system(size: 52, weight: .black, design: .rounded).monospacedDigit())
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-
-                    Text(localizedFormat("Round %d/%d", min(model.intervalRound + 1, preset.rounds), preset.rounds))
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(.secondary)
-
-                    HStack(spacing: 6) {
-                        WatchStatPill(title: localizedString("Total"), value: SharedWorkoutSnapshot.durationText(model.elapsedSeconds), color: .blue)
-                        WatchStatPill(title: localizedString("Pulse"), value: hrText, color: WatchTheme.zoneColor(model.heartRateZone))
-                    }
-
-                    HStack(spacing: 10) {
-                        Button { model.togglePause() } label: {
-                            Image(systemName: model.state == .paused ? "play.fill" : "pause.fill")
-                        }
-                        .buttonStyle(WatchCircleButtonStyle(color: model.state == .paused ? WatchTheme.success : WatchTheme.warning, size: 44))
-
-                        Button { model.skipIntervalPhase() } label: {
-                            Image(systemName: "forward.fill")
-                        }
-                        .buttonStyle(WatchCircleButtonStyle(color: .blue, size: 44))
-
-                        Button { model.stop() } label: {
-                            Image(systemName: "stop.fill")
-                        }
-                        .buttonStyle(WatchCircleButtonStyle(color: WatchTheme.destructive, size: 44))
-                    }
+        VStack(spacing: 6) {
+            if let preset = model.intervalPreset {
+                // Phase label
+                Text(model.intervalIsWork ? localizedString("WORK") : localizedString("REST"))
+                    .font(.system(size: 13, weight: .black, design: .rounded))
+                    .foregroundStyle(phaseColor)
                     .padding(.top, 4)
+
+                // Big countdown
+                Text("\(model.intervalPhaseRemaining)s")
+                    .font(.system(size: 54, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .frame(maxWidth: .infinity)
+
+                // Round + name
+                Text(localizedFormat("Round %d/%d", min(model.intervalRound + 1, preset.rounds), preset.rounds))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(.secondary)
+
+                // Stats pills
+                HStack(spacing: 4) {
+                    WatchStatPill(
+                        title: localizedString("Total"),
+                        value: SharedWorkoutSnapshot.durationText(model.elapsedSeconds),
+                        color: .blue
+                    )
+                    WatchStatPill(
+                        title: localizedString("Pulse"),
+                        value: hrText,
+                        color: WatchTheme.zoneColor(model.heartRateZone)
+                    )
                 }
+                .padding(.horizontal, 6)
+
+                // Controls
+                HStack(spacing: 10) {
+                    Button { model.togglePause() } label: {
+                        Image(systemName: model.state == .paused ? "play.fill" : "pause.fill")
+                    }
+                    .buttonStyle(WatchCircleButtonStyle(
+                        color: model.state == .paused ? WatchTheme.success : WatchTheme.warning, size: 42
+                    ))
+                    .accessibilityLabel(model.state == .paused ? localizedString("Resume") : localizedString("Pause"))
+
+                    Button { model.skipIntervalPhase() } label: {
+                        Image(systemName: "forward.fill")
+                    }
+                    .buttonStyle(WatchCircleButtonStyle(color: .blue, size: 42))
+                    .accessibilityLabel(localizedString("Skip"))
+
+                    Button { showStopConfirmation = true } label: {
+                        Image(systemName: "stop.fill")
+                    }
+                    .buttonStyle(WatchCircleButtonStyle(color: WatchTheme.destructive, size: 42))
+                    .accessibilityLabel(localizedString("End"))
+                }
+                .padding(.top, 2)
+                .padding(.bottom, 6)
             }
-            .padding(.horizontal, 5)
-            .padding(.bottom, 8)
+        }
+        .padding(.horizontal, 6)
+        .confirmationDialog("", isPresented: $showStopConfirmation, titleVisibility: .hidden) {
+            Button(localizedString("End"), role: .destructive) { model.stop() }
         }
     }
 
     private var hrText: String { (model.heartRate ?? model.snapshot.heartRate).map { "\(Int($0))" } ?? "--" }
 }
+
+// MARK: - Interval: summary page
 
 struct WatchIntervalSummaryView: View {
     @EnvironmentObject private var model: WatchWorkoutModel
@@ -801,10 +1004,20 @@ struct WatchIntervalSummaryView: View {
         ScrollView {
             VStack(spacing: 8) {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    WatchBigMetric(value: "\(min(model.intervalRound + 1, model.intervalPreset?.rounds ?? 0))", label: localizedString("round"), icon: "repeat", color: .red)
+                    WatchBigMetric(
+                        value: "\(min(model.intervalRound + 1, model.intervalPreset?.rounds ?? 0))",
+                        label: localizedString("round"),
+                        icon: "repeat",
+                        color: .red
+                    )
                     WatchBigMetric(value: kcalText, label: "kcal", icon: "flame.fill", color: .orange)
                     WatchBigMetric(value: hrText, label: "lpm", icon: "heart.fill", color: WatchTheme.zoneColor(model.heartRateZone))
-                    WatchBigMetric(value: SharedWorkoutSnapshot.durationText(model.elapsedSeconds), label: localizedString("time"), icon: "timer", color: .blue)
+                    WatchBigMetric(
+                        value: SharedWorkoutSnapshot.durationText(model.elapsedSeconds),
+                        label: localizedString("time"),
+                        icon: "timer",
+                        color: .blue
+                    )
                 }
                 WatchEndButton()
             }
@@ -817,7 +1030,7 @@ struct WatchIntervalSummaryView: View {
     private var hrText: String { (model.heartRate ?? model.snapshot.heartRate).map { "\(Int($0))" } ?? "--" }
 }
 
-// MARK: - Metrics page (shared)
+// MARK: - Metrics page (shared middle tab)
 
 struct WatchMetricsPage: View {
     @EnvironmentObject private var model: WatchWorkoutModel
@@ -849,9 +1062,28 @@ struct WatchMetricsPage: View {
                         WatchBigMetric(value: "\(Int(model.totalVolumeKg))", label: localizedString("kg vol"), icon: "chart.bar.fill", color: accent)
                         WatchBigMetric(value: "\(model.totalCompletedSets)", label: localizedString("Sets"), icon: "checkmark.seal.fill", color: WatchTheme.success)
                     } else {
-                        WatchBigMetric(value: String(format: "%.2f", model.routeDistanceKm ?? model.snapshot.routeDistanceKm ?? 0), label: "km", icon: "location.fill", color: accent)
+                        WatchBigMetric(
+                            value: String(format: "%.2f", model.routeDistanceKm ?? model.snapshot.routeDistanceKm ?? 0),
+                            label: "km",
+                            icon: "location.fill",
+                            color: accent
+                        )
                         WatchBigMetric(value: stepsText, label: localizedString("steps"), icon: "shoeprints.fill", color: .green)
                     }
+                }
+
+                // Music controls — only shown when iPhone is playing something
+                let snapshot = model.snapshot
+                if snapshot.musicTitle != nil || snapshot.isMusicPlaying != nil {
+                    WatchMusicBar(snapshot: snapshot,
+                                  onPrev:   { model.musicPrev() },
+                                  onToggle: { model.musicToggle() },
+                                  onNext:   { model.musicNext() })
+                }
+
+                // Water logging
+                WatchWaterRow(waterLiters: model.snapshot.waterLiters) {
+                    model.addWater()
                 }
 
                 WatchEndButton()
@@ -869,11 +1101,12 @@ struct WatchMetricsPage: View {
 
 // MARK: - Reusable components
 
+/// Weight/value stepper without Digital Crown rotation to avoid conflicting
+/// with ScrollView scrolling. Use the +/- buttons for adjustment.
 struct WatchValueStepper: View {
     let label: String
     let format: String
     let accent: Color
-    let crownBinding: Binding<Double>
     let onDec: () -> Void
     let onInc: () -> Void
 
@@ -891,23 +1124,17 @@ struct WatchValueStepper: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .stroke(accent, lineWidth: 1.5)
                 )
-                .focusable(true)
-                .digitalCrownRotation(
-                    crownBinding,
-                    from: 0, through: 1000, by: 0.5,
-                    sensitivity: .low,
-                    isContinuous: false,
-                    isHapticFeedbackEnabled: true
-                )
 
             HStack(spacing: 6) {
                 Button(action: onDec) { Image(systemName: "minus") }
-                    .buttonStyle(WatchCircleButtonStyle(color: accent, size: 28))
+                    .buttonStyle(WatchCircleButtonStyle(color: accent, size: 30))
+                    .accessibilityLabel("Reducir \(label)")
                 Text(label)
                     .font(.system(size: 9, weight: .bold, design: .rounded))
                     .foregroundStyle(.secondary)
                 Button(action: onInc) { Image(systemName: "plus") }
-                    .buttonStyle(WatchCircleButtonStyle(color: accent, size: 28))
+                    .buttonStyle(WatchCircleButtonStyle(color: accent, size: 30))
+                    .accessibilityLabel("Aumentar \(label)")
             }
         }
     }
@@ -930,12 +1157,14 @@ struct WatchRepsStepper: View {
 
             HStack(spacing: 6) {
                 Button(action: onDec) { Image(systemName: "minus") }
-                    .buttonStyle(WatchCircleButtonStyle(color: accent, size: 28))
+                    .buttonStyle(WatchCircleButtonStyle(color: accent, size: 30))
+                    .accessibilityLabel("Reducir repeticiones")
                 Text("reps")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
                     .foregroundStyle(.secondary)
                 Button(action: onInc) { Image(systemName: "plus") }
-                    .buttonStyle(WatchCircleButtonStyle(color: accent, size: 28))
+                    .buttonStyle(WatchCircleButtonStyle(color: accent, size: 30))
+                    .accessibilityLabel("Aumentar repeticiones")
             }
         }
     }
@@ -1050,9 +1279,10 @@ struct WatchTag: View {
 
 struct WatchEndButton: View {
     @EnvironmentObject private var model: WatchWorkoutModel
+    @State private var showConfirmation = false
 
     var body: some View {
-        Button { model.stop() } label: {
+        Button { showConfirmation = true } label: {
             Label(localizedString("End"), systemImage: "stop.fill")
                 .font(.system(size: 14, weight: .bold, design: .rounded))
                 .frame(maxWidth: .infinity)
@@ -1062,6 +1292,95 @@ struct WatchEndButton: View {
         .background(WatchTheme.destructive.opacity(0.16), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
         .foregroundStyle(WatchTheme.destructive)
         .padding(.top, 4)
+        .accessibilityLabel(localizedString("End workout"))
+        .confirmationDialog("", isPresented: $showConfirmation, titleVisibility: .hidden) {
+            Button(localizedString("End"), role: .destructive) { model.stop() }
+        }
+    }
+}
+
+// MARK: - Music controls (relayed to iPhone)
+
+struct WatchMusicBar: View {
+    let snapshot: SharedWorkoutSnapshot
+    let onPrev: () -> Void
+    let onToggle: () -> Void
+    let onNext: () -> Void
+
+    var body: some View {
+        VStack(spacing: 5) {
+            HStack(spacing: 5) {
+                Image(systemName: "music.note")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.purple)
+                Text(snapshot.musicTitle ?? localizedString("Music"))
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                if let artist = snapshot.musicArtist {
+                    Text("· \(artist)")
+                        .font(.system(size: 10, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                Spacer(minLength: 0)
+            }
+            HStack(spacing: 10) {
+                Button(action: onPrev) { Image(systemName: "backward.fill") }
+                    .buttonStyle(WatchCircleButtonStyle(color: .purple, size: 30))
+                    .accessibilityLabel("Anterior")
+                Button(action: onToggle) {
+                    Image(systemName: snapshot.isMusicPlaying == true ? "pause.fill" : "play.fill")
+                }
+                .buttonStyle(WatchCircleButtonStyle(color: .purple, size: 34))
+                .accessibilityLabel(snapshot.isMusicPlaying == true ? localizedString("Pause") : "Play")
+                Button(action: onNext) { Image(systemName: "forward.fill") }
+                    .buttonStyle(WatchCircleButtonStyle(color: .purple, size: 30))
+                    .accessibilityLabel("Siguiente")
+            }
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.purple.opacity(0.08), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous)
+                .stroke(Color.purple.opacity(0.18), lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Water logging (relayed to iPhone)
+
+struct WatchWaterRow: View {
+    let waterLiters: Double?
+    let onAdd: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "drop.fill")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.cyan)
+            Text(String(format: "%.2f L", waterLiters ?? 0))
+                .font(.system(size: 14, weight: .black, design: .rounded).monospacedDigit())
+                .foregroundStyle(.white)
+            Spacer(minLength: 0)
+            Button(action: onAdd) {
+                Text("+250 ml")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(.cyan)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Color.cyan.opacity(0.14), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Añadir 250 ml de agua")
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(WatchTheme.cardFill, in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
     }
 }
 

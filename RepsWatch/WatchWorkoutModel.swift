@@ -1309,7 +1309,7 @@ extension WatchWorkoutModel: WCSessionDelegate {
         var snap = SharedWorkoutSnapshot.empty
         snap.hasActiveWorkout = true
         snap.workoutTitle = standaloneTitle.isEmpty ? localizedString("Strength") : standaloneTitle
-        snap.sessionTitle = "Iniciado desde Apple Watch"
+        snap.sessionTitle = localizedString("watch_session_started_watch")
         snap.elapsedSeconds = elapsedSeconds
         snap.completedSets = totalCompletedSets
         snap.totalSets = totalSetCount
@@ -1469,6 +1469,38 @@ extension WatchWorkoutModel: WCSessionDelegate {
         intervalFinished = false
         localRestEndDate = nil
         standaloneTitle = ""
+    }
+
+    // MARK: - Remote commands (relayed to iPhone via WatchConnectivity)
+
+    func addWater() {
+        send(command: .addWater)
+        WatchTheme.haptic(.click)
+    }
+
+    func musicToggle() {
+        send(command: .musicToggle)
+        WatchTheme.haptic(.click)
+    }
+
+    func musicNext() {
+        send(command: .musicNext)
+        WatchTheme.haptic(.click)
+    }
+
+    func musicPrev() {
+        send(command: .musicPrevious)
+        WatchTheme.haptic(.click)
+    }
+
+    /// Next exercise name for the strength now view: from the phone snapshot
+    /// during phone-driven sessions, or from the local exercise array when standalone.
+    var nextExerciseNameForDisplay: String? {
+        if mode == .phoneStrength {
+            return snapshot.nextExerciseName
+        }
+        let nextIdx = currentExerciseIndex + 1
+        return exercises.indices.contains(nextIdx) ? exercises[nextIdx].name : nil
     }
 }
 

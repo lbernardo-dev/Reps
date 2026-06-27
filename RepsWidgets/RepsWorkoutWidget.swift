@@ -21,8 +21,12 @@ struct RepsWorkoutProvider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsWorkoutEntry> {
-        let entry = RepsWorkoutEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
-        return Timeline(entries: [entry], policy: .atEnd)
+        let snapshot = SharedWorkoutStore.load()
+        let entry = RepsWorkoutEntry(date: .now, snapshot: snapshot, configuredBackgroundColor: configuration.backgroundColor)
+        let policy: TimelineReloadPolicy = snapshot.hasActiveWorkout
+            ? .atEnd
+            : .after(nextMidnight())
+        return Timeline(entries: [entry], policy: policy)
     }
 }
 
@@ -64,12 +68,11 @@ private struct RepsWorkoutWidgetView: View {
 
     var body: some View {
         let _ = RepsLocalization.use(entry.snapshot.preferredLanguage)
-        let contentColor = WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
         let backgroundColor = WidgetColor.resolved(
             appColorName: entry.snapshot.widgetAccentColorName,
             widgetBackgroundColor: entry.configuredBackgroundColor
         )
-        let theme = contentColor.theme
+        let theme = backgroundColor.theme
 
         switch family {
         case .accessoryCircular:
@@ -385,7 +388,7 @@ private struct ActiveWorkoutView: View {
                     HStack(spacing: 6) {
                         metricPill(title: "metric_remaining", value: entry.snapshot.remainingText, icon: "hourglass")
                         metricPill(title: "volume_label", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
-                        metricPill(title: "metric_water", value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
+                        metricPill(title: "metric_water", value: entry.snapshot.waterLiters.map { String(format: "%.1f L", $0) } ?? "--", icon: "waterbottle.fill")
                     }
                 }
             }
@@ -526,9 +529,9 @@ private struct ActiveWorkoutView: View {
             }
 
             HStack(spacing: 6) {
-                metricPill(title: "Restante", value: entry.snapshot.remainingText, icon: "hourglass")
+                metricPill(title: "metric_remaining", value: entry.snapshot.remainingText, icon: "hourglass")
                 metricPill(title: "volume_label", value: "\(entry.snapshot.volumeKg) kg", icon: "scalemass")
-                metricPill(title: "Agua", value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill")
+                metricPill(title: "metric_water", value: entry.snapshot.waterLiters.map { String(format: "%.1f L", $0) } ?? "--", icon: "waterbottle.fill")
             }
 
             workoutControlButtons(includesCompleteSet: !isResting)
@@ -680,7 +683,7 @@ private struct InactiveWorkoutView: View {
                 HStack(spacing: 8) {
                     statPill(value: localizedFormat("days_count_format", entry.snapshot.streakDays), icon: "flame.fill", color: .orange)
                     statPill(value: "\(entry.snapshot.trainingBatteryLevel)%", icon: "battery.100percent", color: theme.tint)
-                    statPill(value: String(format: "%.1f L", entry.snapshot.waterLiters ?? 0), icon: "waterbottle.fill", color: theme.secondaryForeground)
+                    statPill(value: entry.snapshot.waterLiters.map { String(format: "%.1f L", $0) } ?? "--", icon: "waterbottle.fill", color: theme.secondaryForeground)
                 }
             } else {
                 HStack(spacing: 3) {

@@ -22,7 +22,7 @@ struct RepsStreakProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsStreakEntry> {
         let entry = RepsStreakEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
-        return Timeline(entries: [entry], policy: .atEnd)
+        return Timeline(entries: [entry], policy: .after(nextMidnight()))
     }
 }
 
@@ -49,12 +49,11 @@ private struct RepsStreakWidgetView: View {
 
     var body: some View {
         let _ = RepsLocalization.use(entry.snapshot.preferredLanguage)
-        let contentColor = WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
         let backgroundColor = WidgetColor.resolved(
             appColorName: entry.snapshot.widgetAccentColorName,
             widgetBackgroundColor: entry.configuredBackgroundColor
         )
-        let theme = contentColor.theme
+        let theme = backgroundColor.theme
         let streak = entry.snapshot.streakDays
         let completion = entry.snapshot.weeklyCompletion
         let hasPlan = entry.snapshot.nextWorkoutDayName != nil || entry.snapshot.planTitle != nil
@@ -68,6 +67,7 @@ private struct RepsStreakWidgetView: View {
                     .font(.system(size: 10, weight: .bold))
             }
             .gaugeStyle(.accessoryCircular)
+            .widgetURL(URL(string: "reps://workout"))
 
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
@@ -82,6 +82,7 @@ private struct RepsStreakWidgetView: View {
                     .lineLimit(1)
                     .opacity(hasPlan ? 1 : 0.7)
             }
+            .widgetURL(URL(string: "reps://workout"))
 
         case .accessoryInline:
             Text(localizedFormat("reps_streak_inline_format", streak, Int(completion * 100)))

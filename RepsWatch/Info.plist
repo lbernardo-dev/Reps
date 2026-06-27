@@ -30,6 +30,11 @@
 	<string>StreakRep Watch usa el movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras.</string>
 	<key>WKApplication</key>
 	<true/>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+		<string>location</string>
+	</array>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.romerodev.repsfitness</string>
 </dict>

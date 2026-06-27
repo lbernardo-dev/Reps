@@ -175,6 +175,9 @@ targets:
         NSMotionUsageDescription: StreakRep Watch usa el movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras.
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.romerodev.repsfitness
+        WKBackgroundModes:
+          - workout-processing
+          - location
     entitlements:
       path: RepsWatch/RepsWatch.entitlements
       properties:

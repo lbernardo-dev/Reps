@@ -22,7 +22,7 @@ struct RepsBatteryProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsBatteryEntry> {
         let entry = RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
-        return Timeline(entries: [entry], policy: .atEnd)
+        return Timeline(entries: [entry], policy: .after(nextMidnight()))
     }
 }
 
@@ -58,12 +58,11 @@ private struct RepsBatteryWidgetView: View {
 
     var body: some View {
         let _ = RepsLocalization.use(entry.snapshot.preferredLanguage)
-        let contentColor = WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
         let backgroundColor = WidgetColor.resolved(
             appColorName: entry.snapshot.widgetAccentColorName,
             widgetBackgroundColor: entry.configuredBackgroundColor
         )
-        let theme = contentColor.theme
+        let theme = backgroundColor.theme
         let level = entry.snapshot.trainingBatteryLevel
         let bColor = batteryColor(for: level)
 
@@ -76,6 +75,7 @@ private struct RepsBatteryWidgetView: View {
                     .font(.system(size: 10, weight: .bold))
             }
             .gaugeStyle(.accessoryCircular)
+            .widgetURL(URL(string: "reps://workout"))
 
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
@@ -93,6 +93,7 @@ private struct RepsBatteryWidgetView: View {
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
             }
+            .widgetURL(URL(string: "reps://workout"))
 
         case .accessoryInline:
             Text(localizedFormat("reps_battery_inline_format", level, localizedKey(entry.snapshot.trainingBatteryTitle)))
@@ -100,12 +101,12 @@ private struct RepsBatteryWidgetView: View {
 
         default:
             if family == .systemSmall {
-                SmallBatteryView(entry: entry, theme: theme, bColor: bColor, level: level, resolvedColor: contentColor)
+                SmallBatteryView(entry: entry, theme: theme, bColor: bColor, level: level, resolvedColor: backgroundColor)
                     .padding(14)
                     .repsWidgetBackground(backgroundColor)
                     .widgetURL(URL(string: "reps://workout"))
             } else {
-                MediumBatteryView(entry: entry, theme: theme, bColor: bColor, level: level, resolvedColor: contentColor)
+                MediumBatteryView(entry: entry, theme: theme, bColor: bColor, level: level, resolvedColor: backgroundColor)
                     .padding(14)
                     .repsWidgetBackground(backgroundColor)
                     .widgetURL(URL(string: "reps://workout"))

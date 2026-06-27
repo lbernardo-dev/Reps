@@ -484,7 +484,8 @@ enum SharedWorkoutStore {
     private static let widgetKinds = [
         "RepsWorkoutWidget",
         "RepsBatteryWidget",
-        "RepsStreakWidget"
+        "RepsStreakWidget",
+        "RepsFriendsWidget"
     ]
     private static let minimumTimelineReloadInterval: TimeInterval = 3
 

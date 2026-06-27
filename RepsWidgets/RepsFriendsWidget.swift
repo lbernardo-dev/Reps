@@ -58,6 +58,7 @@ struct RepsFriendsWidget: Widget {
         .description(localizedKey("friends_widget_description"))
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()
+        .containerBackgroundRemovable(true)
     }
 }
 
@@ -69,12 +70,11 @@ private struct RepsFriendsWidgetView: View {
 
     var body: some View {
         let _ = RepsLocalization.use(entry.snapshot.preferredLanguage)
-        let contentColor = WidgetColor.from(name: entry.snapshot.widgetAccentColorName)
         let backgroundColor = WidgetColor.resolved(
             appColorName: entry.snapshot.widgetAccentColorName,
             widgetBackgroundColor: entry.configuredBackgroundColor
         )
-        let theme = contentColor.theme
+        let theme = backgroundColor.theme
         switch family {
         case .systemSmall: smallView(backgroundColor: backgroundColor, theme: theme)
         default: mediumView(backgroundColor: backgroundColor, theme: theme)
@@ -91,7 +91,7 @@ private struct RepsFriendsWidgetView: View {
                 Text("#\(me.rank)")
                     .font(.system(size: 32, weight: .black, design: .rounded))
                     .foregroundStyle(theme.foreground)
-                Text("among \(entry.entries.count) friends")
+                Text(localizedFormat("among %@ friends", String(entry.entries.count)))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(theme.secondaryForeground)
                     .multilineTextAlignment(.center)
@@ -110,6 +110,7 @@ private struct RepsFriendsWidgetView: View {
         }
         .padding(12)
         .repsWidgetBackground(backgroundColor)
+        .widgetURL(URL(string: "reps://social"))
     }
 
     private func mediumView(backgroundColor: WidgetColor, theme: WidgetTheme) -> some View {
@@ -122,7 +123,7 @@ private struct RepsFriendsWidgetView: View {
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(theme.foreground)
                 Spacer()
-                Text("by XP")
+                Text(localizedKey("social_by_xp"))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(theme.secondaryForeground)
             }
@@ -146,6 +147,7 @@ private struct RepsFriendsWidgetView: View {
         }
         .padding(14)
         .repsWidgetBackground(backgroundColor)
+        .widgetURL(URL(string: "reps://social"))
     }
 
     private func leaderboardRow(_ e: SharedLeaderboardEntry, theme: WidgetTheme) -> some View {
@@ -155,7 +157,7 @@ private struct RepsFriendsWidgetView: View {
             Text(rankLabel)
                 .font(.system(size: e.rank <= 3 ? 14 : 11, weight: .bold))
                 .frame(width: 22, alignment: .leading)
-            Text(e.isMe ? "You" : "@\(e.username)")
+            Text(e.isMe ? localizedKey("social_you_label") : "@\(e.username)")
                 .font(.system(size: 12, weight: e.isMe ? .bold : .regular))
                 .foregroundStyle(e.isMe ? theme.tint : theme.foreground)
                 .lineLimit(1)
