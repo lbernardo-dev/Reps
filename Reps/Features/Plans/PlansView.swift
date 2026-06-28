@@ -645,27 +645,31 @@ private struct LibraryShortcut: View {
     let systemImage: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Image(systemName: systemImage)
-                .font(.headline)
-                .foregroundStyle(PulseTheme.primary)
-                .frame(width: 38, height: 38)
-                .background(PulseTheme.primary.opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(PulseTheme.primaryBright)
+                .frame(width: 36, height: 36)
+                .background(PulseTheme.primaryBright.opacity(0.12), in: Circle())
             Text(localizedKey(title))
-                .font(.headline)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
             Text(localizedKey(subtitle))
-                .font(.caption)
+                .font(.system(size: 11, weight: .medium, design: .rounded))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
         }
         .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 116, alignment: .leading)
-        .background(PulseTheme.grouped)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+        .background(PulseTheme.card)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(PulseTheme.separator, lineWidth: 1)
+        )
     }
 }
 

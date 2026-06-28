@@ -20,19 +20,19 @@ enum PulseTheme {
     static let growth = Color(red: 0.20, green: 0.78, blue: 0.45)
 
     static let background = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? UIColor(red: 0.95, green: 0.96, blue: 0.98, alpha: 1.0) : .black
+        traits.userInterfaceStyle == .light ? UIColor(red: 0.95, green: 0.96, blue: 0.98, alpha: 1.0) : UIColor(red: 0.08, green: 0.08, blue: 0.09, alpha: 1.0)
     })
     
     static let card = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? .white : UIColor(red: 0.08, green: 0.08, blue: 0.09, alpha: 1.0)
+        traits.userInterfaceStyle == .light ? .white : UIColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 1.0)
     })
     
     static let grouped = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? UIColor(red: 0.91, green: 0.91, blue: 0.94, alpha: 1.0) : UIColor(red: 0.15, green: 0.15, blue: 0.17, alpha: 1.0)
+        traits.userInterfaceStyle == .light ? UIColor(red: 0.91, green: 0.91, blue: 0.94, alpha: 1.0) : UIColor(red: 0.16, green: 0.16, blue: 0.18, alpha: 1.0)
     })
     
     static let elevated = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? UIColor(red: 0.86, green: 0.86, blue: 0.89, alpha: 1.0) : UIColor(red: 0.19, green: 0.19, blue: 0.21, alpha: 1.0)
+        traits.userInterfaceStyle == .light ? UIColor(red: 0.86, green: 0.86, blue: 0.89, alpha: 1.0) : UIColor(red: 0.20, green: 0.20, blue: 0.22, alpha: 1.0)
     })
     
     static let secondaryText = Color(uiColor: UIColor { traits in
@@ -44,7 +44,7 @@ enum PulseTheme {
     })
     
     static let separator = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? UIColor.black.withAlphaComponent(0.06) : UIColor.white.withAlphaComponent(0.08)
+        traits.userInterfaceStyle == .light ? UIColor.black.withAlphaComponent(0.06) : UIColor.white.withAlphaComponent(0.04)
     })
 
     static let controlRadius: CGFloat = 10

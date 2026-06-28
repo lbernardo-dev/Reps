@@ -2073,7 +2073,7 @@ private struct SummaryMetricTile: View {
     }
 
     private var card: some View {
-        PulseCard(minHeight: 112, contentPadding: 12, backgroundColor: color.opacity(0.08)) {
+        PulseCard(minHeight: 112, contentPadding: 12, backgroundColor: PulseTheme.card) {
             VStack(alignment: .leading, spacing: 7) {
                 HStack(alignment: .top, spacing: 4) {
                     Image(systemName: systemImage)
@@ -2091,7 +2091,7 @@ private struct SummaryMetricTile: View {
 
                 Text(value)
                     .font(.system(size: 28, weight: .black, design: .rounded).monospacedDigit())
-                    .foregroundStyle(color)
+                    .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
 
@@ -2152,12 +2152,12 @@ private struct ActivityMatrixCard: View {
     }
 
     var body: some View {
-        PulseCard(contentPadding: 16, backgroundColor: color.opacity(0.07)) {
+        PulseCard(contentPadding: 16, backgroundColor: PulseTheme.card) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(localizedKey(title))
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(color)
+                        .foregroundStyle(.white)
                     Spacer()
                     Text(progressText)
                         .font(.caption.weight(.black).monospacedDigit())
@@ -2226,7 +2226,7 @@ private struct MiniTrendCard<Chart: View>: View {
     }
 
     var body: some View {
-        PulseCard(contentPadding: 14, backgroundColor: color.opacity(0.08)) {
+        PulseCard(contentPadding: 14, backgroundColor: PulseTheme.card) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: systemImage)
@@ -2235,7 +2235,7 @@ private struct MiniTrendCard<Chart: View>: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(localizedKey(title))
                             .font(.caption.weight(.black))
-                            .foregroundStyle(color)
+                            .foregroundStyle(.white)
                         Text(localizedKey(subtitle))
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(PulseTheme.tertiaryText)
@@ -2439,26 +2439,27 @@ private struct WellnessWidget: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: systemImage)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 30, height: 30)
-                    .background(color)
-                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(color)
+                    .frame(width: 32, height: 32)
+                    .background(color.opacity(0.12), in: Circle())
                 Text(localizedKey(title))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(1)
             }
 
+            Spacer(minLength: 2)
+
             Text(value)
                 .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(color)
+                .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
             Text(localizesSubtitle ? localizedKey(subtitle) : subtitle)
                 .font(.caption2)
-                .foregroundStyle(PulseTheme.secondaryText)
+                .foregroundStyle(PulseTheme.tertiaryText)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 

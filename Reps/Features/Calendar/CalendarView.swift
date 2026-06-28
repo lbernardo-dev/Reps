@@ -119,17 +119,17 @@ struct CalendarView: View {
                                 } label: {
                                     VStack(spacing: 4) {
                                         Text("\(Calendar.current.component(.day, from: day))")
-                                            .font(.headline)
-                                            .frame(width: 40, height: 40)
-                                            .background(isSelected ? PulseTheme.primary : .clear)
-                                            .foregroundStyle(isSelected ? .white : .primary)
+                                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                                            .frame(width: 32, height: 32)
+                                            .background(isSelected ? Color.white : .clear)
+                                            .foregroundStyle(isSelected ? .black : .white)
                                             .clipShape(Circle())
                                         HStack(spacing: 3) {
                                             Circle()
                                                 .fill(hasScheduled ? PulseTheme.accent : .clear)
                                                 .frame(width: 5, height: 5)
                                             Circle()
-                                                .fill(hasWorkout ? PulseTheme.primary.opacity(0.5 + intensity * 0.5) : .clear)
+                                                .fill(hasWorkout ? PulseTheme.primaryBright : .clear)
                                                 .frame(width: dotSize, height: dotSize)
                                         }
                                     }
@@ -142,7 +142,11 @@ struct CalendarView: View {
                     }
                     .padding()
                     .background(PulseTheme.card)
-                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(PulseTheme.separator, lineWidth: 1)
+                    )
                     .stickyHeaderTitle(formattedMonth(visibleMonth))
 
                     PulseCard {

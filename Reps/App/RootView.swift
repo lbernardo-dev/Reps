@@ -58,6 +58,25 @@ struct MainTabView: View {
     @State private var plansResetID = UUID()
     @State private var progressResetID = UUID()
 
+    init() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 1.0)
+        
+        let itemAppearance = UITabBarItemAppearance()
+        itemAppearance.normal.iconColor = .gray
+        itemAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.gray]
+        itemAppearance.selected.iconColor = .white
+        itemAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.white]
+        
+        appearance.stackedLayoutAppearance = itemAppearance
+        appearance.inlineLayoutAppearance = itemAppearance
+        appearance.compactInlineLayoutAppearance = itemAppearance
+        
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
+
     private var freeWorkout: WorkoutDay {
         WorkoutDay.freeWorkout
     }

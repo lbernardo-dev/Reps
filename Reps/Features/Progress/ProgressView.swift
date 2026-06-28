@@ -1253,11 +1253,11 @@ private struct ProgressSectionTile: View {
 	  let isLocked: Bool
 
 	  private var tileFill: Color {
-	    isSelected ? section.tint : Color.white.opacity(0.028)
+	    isSelected ? Color.white.opacity(0.06) : PulseTheme.card
 	  }
 
 	  private var tileStroke: Color {
-	    isSelected ? Color.white.opacity(0.12) : Color.white.opacity(0.075)
+	    isSelected ? Color.white.opacity(0.18) : PulseTheme.separator
 	  }
 	
 	  var body: some View {
@@ -1938,28 +1938,28 @@ private struct WeekActivityStrip: View {
         VStack(spacing: 5) {
           ZStack {
             Circle()
-              .fill(day.active ? PulseTheme.primary : Color.clear)
-              .frame(width: 28, height: 28)
+              .fill(day.active ? Color.white : Color.clear)
+              .frame(width: 24, height: 24)
             Circle()
               .strokeBorder(
                 day.active
                   ? Color.clear
-                  : (day.isToday ? PulseTheme.primary.opacity(0.65) : Color.white.opacity(0.13)),
+                  : (day.isToday ? Color.white.opacity(0.85) : Color.white.opacity(0.12)),
                 lineWidth: 1.5
               )
-              .frame(width: 28, height: 28)
+              .frame(width: 24, height: 24)
             if day.active {
               Image(systemName: "checkmark")
-                .font(.system(size: 11, weight: .black))
-                .foregroundStyle(.white)
+                .font(.system(size: 9, weight: .black))
+                .foregroundStyle(.black)
             }
           }
           Text(day.label)
-            .font(.system(size: 10, weight: day.isToday ? .black : .medium))
+            .font(.system(size: 9, weight: .bold, design: .rounded))
             .foregroundStyle(
               day.active
-                ? .primary
-                : (day.isToday ? PulseTheme.primary : PulseTheme.secondaryText)
+                ? .white
+                : (day.isToday ? .white : PulseTheme.secondaryText)
             )
         }
         .frame(maxWidth: .infinity)

@@ -442,30 +442,28 @@ private struct ExerciseLibraryRow: View {
     let catalog: [Exercise]
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 14) {
             ExerciseMediaThumbnail(exercise: exercise, gender: gender, catalog: catalog)
-                .frame(width: 72, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
-            VStack(alignment: .leading, spacing: 3) {
-                Text(exercise.name).font(.headline)
+                .frame(width: 58, height: 58)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(exercise.name)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
                     .lineLimit(2)
                 Text("\(ExerciseTextLocalizer.muscle(exercise.muscleGroup, language: language)) · \(ExerciseTextLocalizer.equipment(exercise.equipment, language: language))")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(1)
-                if !exercise.secondaryMuscles.isEmpty {
-                    Text(exercise.secondaryMuscles.map { ExerciseTextLocalizer.muscle($0, language: language) }.joined(separator: " · "))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .lineLimit(1)
-                }
             }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(PulseTheme.tertiaryText)
         }
         .padding(.vertical, 8)
+        .contentShape(Rectangle())
     }
 
 }
