@@ -8,7 +8,6 @@ struct ProgressDashboardView: View {
   @State private var selectedSection: ProgressSection = .muscles
   @State private var activeDestination: ProgressDestination?
   @State private var showNotifications = false
-  @State private var showSocialHub = false
   @State private var showProfile = false
 
   var onSelectTab: ((AppTab) -> Void)? = nil
@@ -16,8 +15,8 @@ struct ProgressDashboardView: View {
   var body: some View {
     NavigationStack {
       StickyHeaderScaffold(
-        title: "progress_2",
-        subtitle: "performance",
+        title: "summary",
+        subtitle: currentDateSubtitle,
         topContentPadding: 128,
         accessory: {
             HStack(spacing: 6) {
@@ -30,8 +29,7 @@ struct ProgressDashboardView: View {
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
+                            .navigationGlassCircle(.secondary, tint: .clear)
                         if store.hasUnreadBell {
                             Circle()
                                 .fill(.red)
@@ -43,30 +41,6 @@ struct ProgressDashboardView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("notifications")
 
-                if store.userProfile.socialEnabled {
-                    Button {
-                        HapticService.selection()
-                        showSocialHub = true
-                    } label: {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "bubble.left.and.bubble.right.fill")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(PulseTheme.primary)
-                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Circle())
-                            if store.unreadFeedCount > 0 {
-                                Circle()
-                                    .fill(.red)
-                                    .frame(width: 9, height: 9)
-                                    .offset(x: -1, y: 1)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("social_hub")
-                }
-
                 HeaderAvatarButton(
                     imageData: store.userProfile.avatarImageData,
                     accessibilityLabel: "profile"
@@ -77,23 +51,27 @@ struct ProgressDashboardView: View {
         }
       ) {
 
-          ProgressHeroCard(
-            metrics: heroMetrics,
+          // MARK: Activity Rings Hero
+          SummaryActivityRingsCard(
+            moveProgress: heroMetrics.adherence,
+            exerciseProgress: min(Double(heroMetrics.sessionsThisWeek) / max(Double(store.activePlan.daysPerWeek), 1.0), 2.0),
+            standProgress: min(Double(store.streakDays) / 30.0, 1.5),
+            moveValue: "\(Int(heroMetrics.volumeThisWeek)) kg",
+            exerciseValue: "\(heroMetrics.sessionsThisWeek)/\(store.activePlan.daysPerWeek)",
+            standValue: "\(store.streakDays)",
             onTapStreak: { onSelectTab?(.calendar) },
-            onTapVolume: { withAnimation(.snappy(duration: 0.2)) { selectedSection = .muscles } },
-            onTapSessions: { withAnimation(.snappy(duration: 0.2)) { selectedSection = .general } }
+            onTapSessions: { withAnimation(.snappy(duration: 0.2)) { selectedSection = .general } },
+            onTapVolume: { withAnimation(.snappy(duration: 0.2)) { selectedSection = .muscles } }
           )
-            .stickyHeaderTitle(localizedString("this_week"))
+          .stickyHeaderTitle(localizedString("this_week"))
 
-          if !store.workoutSessions.isEmpty {
-            ProgressWeekContextCard(
-              sessionsThisWeek: heroMetrics.sessionsThisWeek,
-              volumeThisWeek: heroMetrics.volumeThisWeek,
-              sessionsLastWeek: heroMetrics.sessionsLastWeek,
-              volumeLastWeek: heroMetrics.volumeLastWeek,
-              streak: heroMetrics.streak
-            )
-          }
+          // MARK: Mini metric grid
+          SummaryMetricGridRow(
+            sessions: heroMetrics.sessionsThisWeek,
+            volumeKg: Int(heroMetrics.volumeThisWeek),
+            streak: heroMetrics.streak,
+            stepsToday: store.health.latestDailyMetrics.last.map { Int($0.steps) } ?? 0
+          )
 
           ProgressCoachStrip(
             step: nextBestSteps.first(where: { !$0.isCompleted }) ?? nextBestSteps.first,
@@ -184,7 +162,7 @@ struct ProgressDashboardView: View {
                   title: "plate_calculator",
                   subtitle: "knows_which_discs_to_load_on_each_side_of_the_bar",
                   systemImage: "circle.grid.3x3.fill",
-                  color: PulseTheme.primaryBright
+                  color: PulseTheme.ringStand
                 )
               }
               .buttonStyle(.plain)
@@ -196,11 +174,11 @@ struct ProgressDashboardView: View {
               HStack(spacing: 14) {
                 ZStack {
                   RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(PulseTheme.primary.opacity(0.12))
+                    .fill(PulseTheme.accent.opacity(0.12))
                     .frame(width: 38, height: 38)
                   Image(systemName: "chart.bar.xaxis.ascending")
                     .font(.headline.weight(.black))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                   Text(localizedKey("compare_strength"))
@@ -259,7 +237,7 @@ struct ProgressDashboardView: View {
                       x: .value(localizedString("date_label"), log.date, unit: selectedRange.chartUnit),
                       y: .value(localizedString("minutes_label"), log.durationMinutes)
                     )
-                    .foregroundStyle(PulseTheme.primaryBright)
+                    .foregroundStyle(PulseTheme.ringStand)
                   }
                   .frame(height: 140)
                   .allowsHitTesting(false)
@@ -268,9 +246,9 @@ struct ProgressDashboardView: View {
                     ForEach(walkingAndRunningLogs.prefix(6)) { log in
                       HStack(spacing: 12) {
                         Image(systemName: log.activityType == .walking ? "figure.walk" : "figure.run")
-                          .foregroundStyle(PulseTheme.primary)
+                          .foregroundStyle(PulseTheme.accent)
                           .frame(width: 34, height: 34)
-                          .background(PulseTheme.primary.opacity(0.12))
+                          .background(PulseTheme.accent.opacity(0.12))
                           .clipShape(Circle())
                         VStack(alignment: .leading, spacing: 3) {
                           Text(log.activityType.displayName)
@@ -316,11 +294,11 @@ struct ProgressDashboardView: View {
             HStack(spacing: 14) {
               MetricCard(
                 title: "load_metric", value: "\(Int(workload.acuteLoad))", subtitle: "7_days",
-                systemImage: "waveform.path.ecg", badgeColor: PulseTheme.primary)
+                systemImage: "waveform.path.ecg", badgeColor: PulseTheme.accent)
               MetricCard(
                 title: "effective_sets", value: "\(effectiveSetCount)",
                 subtitle: "\(Int(effectiveVolume)) kg", systemImage: "checkmark.seal",
-                badgeColor: PulseTheme.primaryBright)
+                badgeColor: PulseTheme.ringStand)
             }
 
             HStack(spacing: 14) {
@@ -350,7 +328,7 @@ struct ProgressDashboardView: View {
                       x: .value(localizedString("range_label"), bucket.label),
                       y: .value(localizedString("sets_label"), bucket.count)
                     )
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                   }
                   .frame(height: 150)
                   .allowsHitTesting(false)
@@ -435,7 +413,7 @@ struct ProgressDashboardView: View {
             HStack(spacing: 14) {
               MetricCard(
                 title: "steps_metric", value: "\(Int(latestHealth.steps))", subtitle: "last_day",
-                systemImage: "figure.walk", badgeColor: PulseTheme.primary)
+                systemImage: "figure.walk", badgeColor: PulseTheme.accent)
               MetricCard(
                 title: "active_kcal", value: "\(Int(latestHealth.activeEnergyKcal))",
                 subtitle: "last_day", systemImage: "flame", badgeColor: PulseTheme.accent)
@@ -446,7 +424,7 @@ struct ProgressDashboardView: View {
                 CardTitle("health_trends")
                 Chart(store.health.latestDailyMetrics) { metric in
                   LineMark(x: .value("Date", metric.date), y: .value("Steps", metric.steps))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                   LineMark(
                     x: .value("Date", metric.date),
                     y: .value("Active kcal", metric.activeEnergyKcal)
@@ -547,7 +525,7 @@ struct ProgressDashboardView: View {
                     x: .value("Date", point.date, unit: selectedRange.chartUnit),
                     y: .value("Workouts", point.count)
                   )
-                  .foregroundStyle(PulseTheme.primary)
+                  .foregroundStyle(PulseTheme.accent)
                   if point.count > 0 {
                     PointMark(
                       x: .value("Date", point.date, unit: selectedRange.chartUnit),
@@ -639,9 +617,6 @@ struct ProgressDashboardView: View {
       .navigationDestination(isPresented: $showNotifications) {
         NotificationsView()
       }
-      .navigationDestination(isPresented: $showSocialHub) {
-        SocialHubView()
-      }
       .navigationDestination(isPresented: $showProfile) {
         ProfileView()
       }
@@ -678,6 +653,12 @@ struct ProgressDashboardView: View {
       weekStart: thisWeekStart,
       weekActivityDays: weekActivityDays
     )
+  }
+
+  private var currentDateSubtitle: String {
+    let f = DateFormatter()
+    f.dateFormat = "EEEE, d MMM"
+    return f.string(from: Date())
   }
 
   private var filteredCardioLogs: [CardioLog] {
@@ -840,9 +821,9 @@ struct ProgressDashboardView: View {
         } else {
           Chart(store.bodyMetrics) { metric in
             LineMark(x: .value("Date", metric.date), y: .value("Weight", metric.weightKg))
-              .foregroundStyle(PulseTheme.primary)
+              .foregroundStyle(PulseTheme.accent)
             PointMark(x: .value("Date", metric.date), y: .value("Weight", metric.weightKg))
-              .foregroundStyle(PulseTheme.primary)
+              .foregroundStyle(PulseTheme.accent)
           }
           .frame(height: 150)
           .allowsHitTesting(false)
@@ -907,15 +888,15 @@ struct ProgressDashboardView: View {
   private func perform(_ action: RetentionEngine.ActivationAction?) {
     HapticService.selection()
     guard let action else {
-      onSelectTab?(.today)
+      onSelectTab?(.workout)
       return
     }
 
     switch action {
     case .startWorkout:
-      onSelectTab?(.today)
+      onSelectTab?(.workout)
     case .createPlan:
-      onSelectTab?(.plans)
+      onSelectTab?(.workout)
     case .scheduleWorkout:
       onSelectTab?(.calendar)
     case .competitive(let competitiveAction):
@@ -926,6 +907,132 @@ struct ProgressDashboardView: View {
       }
     }
   }
+}
+
+// MARK: - Summary Hero Components
+
+private struct SummaryActivityRingsCard: View {
+    let moveProgress: Double
+    let exerciseProgress: Double
+    let standProgress: Double
+    let moveValue: String
+    let exerciseValue: String
+    let standValue: String
+    let onTapStreak: () -> Void
+    let onTapSessions: () -> Void
+    let onTapVolume: () -> Void
+
+    var body: some View {
+        PulseCard(contentPadding: 20) {
+            HStack(alignment: .center, spacing: 24) {
+                // Rings
+                RepsActivityRings(
+                    rings: RepsActivityRings.Ring.default(
+                        moveProgress: moveProgress,
+                        exerciseProgress: exerciseProgress,
+                        standProgress: standProgress
+                    ),
+                    lineWidth: 16,
+                    gap: 6
+                )
+                .frame(width: 140, height: 140)
+
+                // Legend
+                VStack(alignment: .leading, spacing: 14) {
+                    SummaryRingLegendRow(
+                        label: "MOVE",
+                        value: moveValue,
+                        color: PulseTheme.ringMove,
+                        action: onTapVolume
+                    )
+                    SummaryRingLegendRow(
+                        label: "EXERCISE",
+                        value: exerciseValue,
+                        color: PulseTheme.ringExercise,
+                        action: onTapSessions
+                    )
+                    SummaryRingLegendRow(
+                        label: "STREAK",
+                        value: standValue,
+                        color: PulseTheme.ringStand,
+                        action: onTapStreak
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
+private struct SummaryRingLegendRow: View {
+    let label: String
+    let value: String
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(color)
+                    .frame(width: 4, height: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(value)
+                        .font(.system(size: 18, weight: .heavy, design: .rounded))
+                        .foregroundStyle(color)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text(label)
+                        .font(.system(size: 10, weight: .bold))
+                        .textCase(.uppercase)
+                        .tracking(0.8)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SummaryMetricGridRow: View {
+    let sessions: Int
+    let volumeKg: Int
+    let streak: Int
+    let stepsToday: Int
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+            MetricCard(
+                title: "sessions",
+                value: "\(sessions)",
+                subtitle: "this_week",
+                systemImage: "dumbbell.fill",
+                badgeColor: PulseTheme.ringExercise
+            )
+            MetricCard(
+                title: "volume",
+                value: "\(volumeKg) kg",
+                subtitle: "this_week",
+                systemImage: "scalemass.fill",
+                badgeColor: PulseTheme.ringMove
+            )
+            MetricCard(
+                title: "streak",
+                value: "\(streak)",
+                subtitle: "days",
+                systemImage: "flame.fill",
+                badgeColor: PulseTheme.accent
+            )
+            MetricCard(
+                title: "steps_metric",
+                value: stepsToday > 0 ? "\(stepsToday)" : "—",
+                subtitle: "today_label",
+                systemImage: "figure.walk",
+                badgeColor: PulseTheme.ringStand
+            )
+        }
+    }
 }
 
 private extension CardioLog.ActivityType {
@@ -955,9 +1062,9 @@ private struct ExerciseProgressRow: View {
     HStack(spacing: 14) {
       Image(systemName: "chart.line.uptrend.xyaxis")
         .font(.headline)
-        .foregroundStyle(PulseTheme.primary)
+        .foregroundStyle(PulseTheme.accent)
         .frame(width: 42, height: 42)
-        .background(PulseTheme.primary.opacity(0.10))
+        .background(PulseTheme.accent.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
       VStack(alignment: .leading, spacing: 3) {
         Text(exercise.name)
@@ -1006,9 +1113,9 @@ private struct AnalyticsShortcutCard: View {
     VStack(alignment: .leading, spacing: 12) {
       Image(systemName: systemImage)
         .font(.headline)
-        .foregroundStyle(PulseTheme.primary)
+        .foregroundStyle(PulseTheme.accent)
         .frame(width: 42, height: 42)
-        .background(PulseTheme.primary.opacity(0.10))
+        .background(PulseTheme.accent.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
       Text(localizedKey(title))
         .font(.headline)
@@ -1071,7 +1178,7 @@ private struct ProgressExecutiveCard: View {
             Text(localizedKey(rangeTitle))
               .font(.caption.weight(.black))
               .textCase(.uppercase)
-              .foregroundStyle(PulseTheme.primary)
+              .foregroundStyle(PulseTheme.accent)
             Text(headline)
               .font(.title3.weight(.black))
               .lineLimit(2)
@@ -1084,8 +1191,8 @@ private struct ProgressExecutiveCard: View {
         }
 
         HStack(spacing: 8) {
-          ProgressExecutiveMetric(value: "\(sessions)", label: "sessions", systemImage: "dumbbell.fill", color: PulseTheme.primary)
-          ProgressExecutiveMetric(value: "\(volumeKg)", label: "kg_total", systemImage: "scalemass.fill", color: PulseTheme.primaryBright)
+          ProgressExecutiveMetric(value: "\(sessions)", label: "sessions", systemImage: "dumbbell.fill", color: PulseTheme.accent)
+          ProgressExecutiveMetric(value: "\(volumeKg)", label: "kg_total", systemImage: "scalemass.fill", color: PulseTheme.ringStand)
           ProgressExecutiveMetric(value: "\(bestEstimatedOneRepMaxKg)kg", label: "estimated_maximum", systemImage: "trophy.fill", color: PulseTheme.accent)
         }
 
@@ -1096,7 +1203,7 @@ private struct ProgressExecutiveCard: View {
 	              .frame(maxWidth: .infinity)
 	              .frame(height: 40)
 	              .foregroundStyle(.black)
-	              .background(PulseTheme.primaryBright, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+	              .background(PulseTheme.ringStand, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 	          }
           .buttonStyle(.plain)
 
@@ -1199,7 +1306,7 @@ private struct ProgressCoachStrip: View {
   private var color: Color {
     if weeklyCompletion < 0.75 { return PulseTheme.warning }
     switch battery.state {
-    case .charged, .steady: return PulseTheme.primary
+    case .charged, .steady: return PulseTheme.accent
     case .low: return PulseTheme.warning
     case .critical: return PulseTheme.destructive
     }
@@ -1347,7 +1454,7 @@ private struct ProgressSectionTile: View {
     case .charged:
       return PulseTheme.recovery
     case .steady:
-      return PulseTheme.primary
+      return PulseTheme.accent
     case .low:
       return PulseTheme.warning
     case .critical:
@@ -1370,7 +1477,7 @@ private struct ProgressSectionTile: View {
             Label(localizedString("progress_direction"), systemImage: "sparkles")
               .font(.caption.weight(.black))
               .textCase(.uppercase)
-              .foregroundStyle(PulseTheme.primary)
+              .foregroundStyle(PulseTheme.accent)
 
             Text(pendingStep?.title ?? (localizedString("keep_the_week_stable")))
               .font(.title3.weight(.bold))
@@ -1401,7 +1508,7 @@ private struct ProgressSectionTile: View {
           ProgressSignalPill(
             title: "steps_3",
             value: "\(completedSteps)/\(max(steps.count, 1))",
-            color: PulseTheme.primary
+            color: PulseTheme.accent
           )
         }
 
@@ -1492,7 +1599,7 @@ private struct ProgressActionStepRow: View {
   let onAction: () -> Void
 
   private var iconColor: Color {
-    step.isCompleted ? PulseTheme.recovery : PulseTheme.primary
+    step.isCompleted ? PulseTheme.recovery : PulseTheme.accent
   }
 
   var body: some View {
@@ -1533,7 +1640,7 @@ private struct ProgressActionStepRow: View {
           Button(action: onAction) {
             Text(step.actionTitle)
               .font(.caption.weight(.bold))
-              .foregroundStyle(PulseTheme.primary)
+              .foregroundStyle(PulseTheme.accent)
           }
           .buttonStyle(.plain)
           .padding(.top, 2)
@@ -1660,9 +1767,9 @@ private struct CompetitiveRecommendationRow: View {
     HStack(alignment: .top, spacing: 12) {
       Image(systemName: recommendation.systemImage)
         .font(.headline)
-        .foregroundStyle(PulseTheme.primary)
+        .foregroundStyle(PulseTheme.accent)
         .frame(width: 38, height: 38)
-        .background(PulseTheme.primary.opacity(0.10))
+        .background(PulseTheme.accent.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
       VStack(alignment: .leading, spacing: 4) {
@@ -1679,7 +1786,7 @@ private struct CompetitiveRecommendationRow: View {
               .foregroundStyle(.white)
               .padding(.horizontal, 12)
               .frame(height: 32)
-              .background(PulseTheme.primary)
+              .background(PulseTheme.accent)
               .clipShape(Capsule())
           }
           .buttonStyle(.plain)
@@ -1780,7 +1887,7 @@ struct ProgressHeroCard: View {
           Label(localizedString("this_week"), systemImage: "calendar")
             .font(.caption.weight(.black))
             .textCase(.uppercase)
-            .foregroundStyle(PulseTheme.primary)
+            .foregroundStyle(PulseTheme.accent)
           Spacer()
           if let dir = weekDirection {
             HStack(spacing: 3) {
@@ -1812,7 +1919,7 @@ struct ProgressHeroCard: View {
           )
           HeroTile(
             systemImage: "scalemass.fill",
-            tint: PulseTheme.primaryBright,
+            tint: PulseTheme.ringStand,
             value: volumeText,
             title: localizedString("volume_label"),
             subtitle: nil,
@@ -1821,7 +1928,7 @@ struct ProgressHeroCard: View {
           )
           HeroTile(
             systemImage: "dumbbell.fill",
-            tint: PulseTheme.primary,
+            tint: PulseTheme.accent,
             value: "\(metrics.sessionsThisWeek)",
             title: localizedString("sessions"),
             subtitle: nil,
@@ -1868,7 +1975,7 @@ struct ProgressHeroCard: View {
     let sessionDelta = metrics.sessionsDelta
     let volDelta = metrics.volumeDelta ?? 0
     if sessionDelta > 0 || volDelta > 5 {
-      return ("arrow.up.right", "+\(sessionDelta) sessions", PulseTheme.primaryBright)
+      return ("arrow.up.right", "+\(sessionDelta) sessions", PulseTheme.ringStand)
     } else if sessionDelta < 0 || volDelta < -5 {
       return ("arrow.down.right", "\(sessionDelta) sessions", PulseTheme.destructive)
     }
@@ -1990,7 +2097,7 @@ private struct ProgressWeekContextCard: View {
       VStack(alignment: .leading, spacing: 12) {
         Label(localizedString("progress_direction"), systemImage: "chart.line.uptrend.xyaxis")
           .font(.caption.weight(.black))
-          .foregroundStyle(PulseTheme.primary)
+          .foregroundStyle(PulseTheme.accent)
           .textCase(.uppercase)
 
         HStack(spacing: 16) {
@@ -2021,13 +2128,13 @@ private struct ProgressWeekContextCard: View {
     HStack(spacing: 8) {
       Image(systemName: icon)
         .font(.subheadline.weight(.bold))
-        .foregroundStyle(isPositive ? PulseTheme.primaryBright : PulseTheme.destructive)
+        .foregroundStyle(isPositive ? PulseTheme.ringStand : PulseTheme.destructive)
         .frame(width: 32, height: 32)
-        .background((isPositive ? PulseTheme.primaryBright : PulseTheme.destructive).opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .background((isPositive ? PulseTheme.ringStand : PulseTheme.destructive).opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
       VStack(alignment: .leading, spacing: 2) {
         Text(value)
           .font(.system(size: 14, weight: .black, design: .rounded).monospacedDigit())
-          .foregroundStyle(isPositive ? PulseTheme.primaryBright : PulseTheme.destructive)
+          .foregroundStyle(isPositive ? PulseTheme.ringStand : PulseTheme.destructive)
         Text(label)
           .font(.caption2.weight(.semibold))
           .foregroundStyle(PulseTheme.secondaryText)
@@ -2115,11 +2222,11 @@ private struct HeroTile: View {
           Text(trend.label)
             .font(.system(size: 10, weight: .black, design: .rounded).monospacedDigit())
         }
-        .foregroundStyle(trend.isUp ? PulseTheme.primaryBright : PulseTheme.destructive)
+        .foregroundStyle(trend.isUp ? PulseTheme.ringStand : PulseTheme.destructive)
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
         .background(
-          (trend.isUp ? PulseTheme.primaryBright : PulseTheme.destructive).opacity(0.15),
+          (trend.isUp ? PulseTheme.ringStand : PulseTheme.destructive).opacity(0.15),
           in: Capsule()
         )
       }
@@ -2179,8 +2286,8 @@ private enum ProgressSection: String, CaseIterable, Identifiable {
 
   var tint: Color {
     switch self {
-    case .general: PulseTheme.primary
-    case .exercises: PulseTheme.primaryBright
+    case .general: PulseTheme.accent
+    case .exercises: PulseTheme.ringStand
     case .muscles: PulseTheme.accent
     case .cardio: PulseTheme.recovery
     case .body: PulseTheme.warning
@@ -2265,7 +2372,7 @@ private struct MuscleRow: View {
         Text(growthText)
           .font(.headline)
           .foregroundStyle(
-            point.completedSets >= 4 ? PulseTheme.primaryBright : PulseTheme.secondaryText)
+            point.completedSets >= 4 ? PulseTheme.ringStand : PulseTheme.secondaryText)
       }
 
       HStack(spacing: 14) {
@@ -2302,9 +2409,9 @@ private struct InsightRow: View {
     HStack(alignment: .top, spacing: 12) {
       Image(systemName: insight.systemImage)
         .font(.headline)
-        .foregroundStyle(PulseTheme.primary)
+        .foregroundStyle(PulseTheme.accent)
         .frame(width: 38, height: 38)
-        .background(PulseTheme.primary.opacity(0.10))
+        .background(PulseTheme.accent.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
       VStack(alignment: .leading, spacing: 4) {
@@ -2494,11 +2601,11 @@ private struct CardioAnalyticsCard: View {
   private func zoneColor(_ hr: Double?) -> Color {
     guard let hr else { return PulseTheme.secondaryText }
     switch hr / estimatedMaxHR {
-    case ..<0.6: return Color(red: 0.0, green: 0.48, blue: 1.0)
-    case ..<0.7: return Color(red: 0.20, green: 0.80, blue: 0.35)
-    case ..<0.8: return Color.yellow
-    case ..<0.9: return Color.orange
-    default: return Color.red
+    case ..<0.6: return PulseTheme.hrZones[0]
+    case ..<0.7: return PulseTheme.hrZones[1]
+    case ..<0.8: return PulseTheme.hrZones[2]
+    case ..<0.9: return PulseTheme.hrZones[3]
+    default: return PulseTheme.hrZones[4]
     }
   }
 
@@ -2531,7 +2638,7 @@ private struct CardioAnalyticsCard: View {
                   .foregroundStyle(selected ? .white : PulseTheme.secondaryText)
                   .padding(.horizontal, 12)
                   .padding(.vertical, 6)
-                  .background(selected ? PulseTheme.primary : PulseTheme.grouped)
+                  .background(selected ? PulseTheme.accent : PulseTheme.grouped)
                   .clipShape(Capsule())
               }
               .buttonStyle(.plain)
@@ -2595,7 +2702,7 @@ private struct CardioAnalyticsCard: View {
           x: .value(localizedString("date_label"), point.date),
           y: .value("EF", point.ef ?? 0)
         )
-        .foregroundStyle(PulseTheme.primaryBright)
+        .foregroundStyle(PulseTheme.ringStand)
         PointMark(
           x: .value(localizedString("date_label"), point.date),
           y: .value("EF", point.ef ?? 0)
@@ -2631,13 +2738,7 @@ private struct HRZoneDurationCard: View {
   }
 
   private var zones: [Zone] {
-    [
-      Zone(id: 0, name: localizedString("zone_1_label"), color: Color(red: 0.0, green: 0.48, blue: 1.0)),
-      Zone(id: 1, name: localizedString("zone_2_label"), color: Color(red: 0.20, green: 0.80, blue: 0.35)),
-      Zone(id: 2, name: localizedString("zone_3_label"), color: .yellow),
-      Zone(id: 3, name: localizedString("zone_4_label"), color: .orange),
-      Zone(id: 4, name: localizedString("zone_5_label"), color: .red)
-    ]
+    (0..<5).map { Zone(id: $0, name: localizedString("zone_\($0 + 1)_label"), color: PulseTheme.hrZones[$0]) }
   }
 
   private var estimatedMaxHR: Double {

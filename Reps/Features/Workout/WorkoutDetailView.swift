@@ -104,7 +104,7 @@ struct WorkoutDetailView: View {
             if let plan = parentPlan {
                 Text(plan.name.uppercased())
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(PulseTheme.primaryBright)
+                    .foregroundStyle(PulseTheme.ringStand)
                     .tracking(1.5)
             }
             dayStrip
@@ -161,15 +161,15 @@ struct WorkoutDetailView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(PulseTheme.primaryBright)
+                        .foregroundStyle(PulseTheme.ringStand)
                     Text(localizedString("active"))
                         .font(.system(size: 9, weight: .black))
                         .tracking(0.5)
-                        .foregroundStyle(PulseTheme.primaryBright)
+                        .foregroundStyle(PulseTheme.ringStand)
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(PulseTheme.primaryBright.opacity(0.12), in: Capsule())
+                .background(PulseTheme.ringStand.opacity(0.12), in: Capsule())
                 
                 Text(todayWord)
                     .font(.system(size: 21, weight: .black, design: .rounded))
@@ -180,7 +180,7 @@ struct WorkoutDetailView: View {
                     HStack(spacing: 5) {
                         Image(systemName: "figure.strengthtraining.traditional")
                             .font(.system(size: 11))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                         Text("\(selectedWorkout.exercises.count) \(exercisesWord)")
                             .font(.system(size: 11, weight: .bold))
                     }
@@ -208,7 +208,7 @@ struct WorkoutDetailView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: RepsText.equipmentIcon(equipment))
                                     .font(.system(size: 9))
-                                    .foregroundStyle(PulseTheme.primaryBright)
+                                    .foregroundStyle(PulseTheme.ringStand)
                                 Text(equipment)
                                     .font(.system(size: 10, weight: .bold))
                                     .lineLimit(1)
@@ -229,14 +229,14 @@ struct WorkoutDetailView: View {
             WorkoutMusclePreview(exercises: selectedWorkout.exercises.map(\.exercise), gender: store.userProfile.muscleMapGender)
                 .frame(maxWidth: .infinity)
                 .frame(height: 380)
-                .shadow(color: PulseTheme.primaryBright.opacity(0.12), radius: 12, x: 0, y: 6)
+                .shadow(color: PulseTheme.ringStand.opacity(0.12), radius: 12, x: 0, y: 6)
         }
         .padding(18)
         .background(
             LinearGradient(
                 colors: [
                     PulseTheme.card,
-                    Color(red: 0.10, green: 0.12, blue: 0.10)
+                    PulseTheme.card
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -249,7 +249,7 @@ struct WorkoutDetailView: View {
                     LinearGradient(
                         colors: [
                             Color.white.opacity(0.08),
-                            PulseTheme.primaryBright.opacity(0.12),
+                            PulseTheme.ringStand.opacity(0.12),
                             Color.white.opacity(0.03)
                         ],
                         startPoint: .topLeading,
@@ -407,7 +407,7 @@ private struct WorkoutMusclePreview: View {
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                .stroke(PulseTheme.primaryBright.opacity(0.08), lineWidth: 1)
+                .stroke(PulseTheme.ringStand.opacity(0.08), lineWidth: 1)
         )
         .accessibilityLabel("muscle_training_summary")
     }
@@ -469,9 +469,9 @@ private struct WorkoutMusclePreview: View {
             return PulseTheme.accent
         }
         if maxLoad > 0.64 {
-            return PulseTheme.primaryBright
+            return PulseTheme.ringStand
         }
-        return PulseTheme.primary
+        return PulseTheme.accent
     }
 
     private func sideLabel(_ side: BodySide) -> String {
@@ -488,7 +488,7 @@ private struct WorkoutStatTile: View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: icon)
                 .font(.headline)
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
             Text(value)
                 .font(.title2.bold())
                 .monospacedDigit()

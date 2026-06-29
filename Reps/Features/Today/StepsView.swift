@@ -211,7 +211,7 @@ struct StepsView: View {
                 if let best = bestDay {
                     let calendar = Calendar.current
                     HealthInsightRow(
-                        icon: "arrow.up.circle.fill", color: PulseTheme.primary,
+                        icon: "arrow.up.circle.fill", color: PulseTheme.accent,
                         title: localizedString("steps_insight_personal_best_title"),
                         message: String(format: localizedString("steps_insight_personal_best_body"),
                                         calendar.shortWeekdaySymbol(for: best.date), best.steps)

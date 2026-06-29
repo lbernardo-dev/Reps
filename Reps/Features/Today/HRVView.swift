@@ -25,8 +25,8 @@ enum HRVZone: String {
 
     var color: Color {
         switch self {
-        case .excellent: PulseTheme.primaryBright
-        case .good:      PulseTheme.primary
+        case .excellent: PulseTheme.ringStand
+        case .good:      PulseTheme.accent
         case .fair:      PulseTheme.warning
         case .low:       PulseTheme.destructive
         }
@@ -272,11 +272,11 @@ struct HRVView: View {
 
                 switch zone {
                 case .excellent:
-                    HealthInsightRow(icon: "bolt.fill", color: PulseTheme.primaryBright,
+                    HealthInsightRow(icon: "bolt.fill", color: PulseTheme.ringStand,
                                title: localizedString("hrv_insight_excellent_title"),
                                message: localizedString("hrv_insight_excellent_body"))
                 case .good:
-                    HealthInsightRow(icon: "heart.fill", color: PulseTheme.primary,
+                    HealthInsightRow(icon: "heart.fill", color: PulseTheme.accent,
                                title: localizedString("hrv_insight_good_title"),
                                message: localizedString("hrv_insight_good_body"))
                 case .fair:
@@ -290,7 +290,7 @@ struct HRVView: View {
                 }
 
                 if let resting = latestResting, resting < 60 {
-                    HealthInsightRow(icon: "arrow.down.heart.fill", color: PulseTheme.primaryBright,
+                    HealthInsightRow(icon: "arrow.down.heart.fill", color: PulseTheme.ringStand,
                                title: localizedString("hrv_resting_hr_good"),
                                message: String(format: localizedString("hrv_resting_hr_good_body_fmt"), Int(resting)))
                 }

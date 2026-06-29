@@ -116,7 +116,7 @@ struct PaywallView: View {
                             Text(isRestoring ? localizedString("paywall_restoring") : localizedString("paywall_restore_licenses"))
                                 .font(.footnote.weight(.semibold))
                                 .frame(maxWidth: .infinity)
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                         }
                         .buttonStyle(.plain)
                         .disabled(isRestoring)
@@ -127,7 +127,7 @@ struct PaywallView: View {
                             Text("apply_promotional_code")
                                 .font(.footnote.weight(.semibold))
                                 .frame(maxWidth: .infinity)
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                         }
                         .buttonStyle(.plain)
                     }
@@ -310,14 +310,14 @@ struct PaywallView: View {
 
     private var primaryButtonTitle: String {
         guard selectedProduct != nil else {
-            return "Cargando App Store"
+            return localizedString("loading_app_store")
         }
 
         if selectedPlan.hasIntroTrial {
-            return "Canjear mi semana gratis"
+            return localizedString("redeem_free_week")
         }
 
-        return "Comprar Lifetime"
+        return localizedString("buy_lifetime")
     }
 
     private func planSubtitle(for cycle: SubscriptionBillingCycle, product: Product?) -> String {
@@ -331,8 +331,8 @@ struct PaywallView: View {
 
     private func renewalText(for cycle: SubscriptionBillingCycle) -> String {
         switch cycle {
-        case .weekly: return localizedString("por semana")
-        case .monthly: return localizedString("al mes")
+        case .weekly: return localizedString("per_week")
+        case .monthly: return localizedString("per_month")
         case .annual: return localizedString("per_year")
         case .lifetime: return ""
         }
@@ -412,7 +412,7 @@ struct SubscriptionCenterView: View {
 
                             if let cycle = store.monetization.billingCycle, store.monetization.hasProAccess {
                                 Label(localizedFormat("plan_cycle_format", cycle.title.lowercased()), systemImage: "checkmark.seal.fill")
-                                    .foregroundStyle(PulseTheme.primary)
+                                    .foregroundStyle(PulseTheme.accent)
                             }
                         }
                     }
@@ -560,7 +560,7 @@ private struct LockedFeatureSummary: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "sparkles.rectangle.stack.fill")
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
             VStack(alignment: .leading, spacing: 4) {
                 Text(feature.title)
                     .font(.headline)
@@ -633,7 +633,7 @@ private struct PlanComparisonCard: View {
                     FeatureTierColumn(
                         title: "Free",
                         subtitle: localizedString("basic_habit"),
-                        color: PulseTheme.primaryBright,
+                        color: PulseTheme.ringStand,
                         features: ProductAccess.freeFeatures
                     )
                     FeatureTierColumn(

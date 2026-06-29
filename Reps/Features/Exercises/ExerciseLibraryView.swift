@@ -76,8 +76,8 @@ struct ExerciseLibraryView: View {
                                         .lineLimit(1)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 9)
-                                        .foregroundStyle(selectedCategory == category ? .white : PulseTheme.primary)
-                                        .background(selectedCategory == category ? PulseTheme.primary : PulseTheme.primary.opacity(0.10))
+                                        .foregroundStyle(selectedCategory == category ? .white : PulseTheme.accent)
+                                        .background(selectedCategory == category ? PulseTheme.accent : PulseTheme.accent.opacity(0.10))
                                         .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
@@ -490,10 +490,10 @@ private struct FilterMenuRow<Content: View>: View {
                 Text(value)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
             }
             .contentShape(Rectangle())
         }
@@ -525,8 +525,8 @@ private struct MetadataChip: View {
             .lineLimit(1)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
-            .foregroundStyle(PulseTheme.primary)
-            .background(PulseTheme.primary.opacity(0.10))
+            .foregroundStyle(PulseTheme.accent)
+            .background(PulseTheme.accent.opacity(0.10))
             .clipShape(Capsule())
     }
 }
@@ -543,7 +543,7 @@ private struct ExerciseActionButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: 52)
             .foregroundStyle(.white)
-            .background(PulseTheme.primary)
+            .background(PulseTheme.accent)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
@@ -558,7 +558,7 @@ private struct InstructionStepRow: View {
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.white)
                 .frame(width: 26, height: 26)
-                .background(PulseTheme.primary)
+                .background(PulseTheme.accent)
                 .clipShape(Circle())
             Text(text)
                 .font(.body)
@@ -707,11 +707,11 @@ struct ExerciseDetailView: View {
                             VStack(spacing: 12) {
                                 Text(tab.localizedTitle)
                                     .font(.system(size: 15, weight: .bold))
-                                    .foregroundStyle(selectedTab == tab ? PulseTheme.primaryBright : PulseTheme.secondaryText)
+                                    .foregroundStyle(selectedTab == tab ? PulseTheme.ringStand : PulseTheme.secondaryText)
                                     .frame(maxWidth: .infinity)
                                 
                                 Rectangle()
-                                    .fill(selectedTab == tab ? PulseTheme.primaryBright : Color.clear)
+                                    .fill(selectedTab == tab ? PulseTheme.ringStand : Color.clear)
                                     .frame(height: 3.5)
                                     .cornerRadius(2)
                             }
@@ -849,7 +849,7 @@ struct ExerciseDetailView: View {
                     if let feedbackMessage {
                         Text(feedbackMessage)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -908,8 +908,8 @@ struct ExerciseDetailView: View {
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
-                                .foregroundStyle(PulseTheme.primary)
-                                .background(PulseTheme.primary.opacity(0.12))
+                                .foregroundStyle(PulseTheme.accent)
+                                .background(PulseTheme.accent.opacity(0.12))
                                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                         }
 
@@ -920,8 +920,8 @@ struct ExerciseDetailView: View {
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
-                                .foregroundStyle(PulseTheme.primary)
-                                .background(PulseTheme.primary.opacity(0.12))
+                                .foregroundStyle(PulseTheme.accent)
+                                .background(PulseTheme.accent.opacity(0.12))
                                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                         }
                     }
@@ -929,7 +929,7 @@ struct ExerciseDetailView: View {
                     if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
                         Label("imagen_propia_guardada_offline", systemImage: "checkmark.seal.fill")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -974,7 +974,7 @@ struct ExerciseDetailView: View {
                         Divider()
                         Label(localizedString("Execution reference image"), systemImage: "photo")
                             .font(.subheadline)
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                         Text(mediaURL)
@@ -992,7 +992,7 @@ struct ExerciseDetailView: View {
                             Link(destination: URL(string: bookmark.urlString) ?? URL(string: "https://www.youtube.com")!) {
                                 HStack {
                                     Image(systemName: bookmark.source == .instagram ? "camera.fill" : "play.rectangle.fill")
-                                        .foregroundStyle(PulseTheme.primary)
+                                        .foregroundStyle(PulseTheme.accent)
                                     VStack(alignment: .leading) {
                                         Text(bookmark.title)
                                             .font(.subheadline.weight(.bold))
@@ -1067,7 +1067,7 @@ struct ExerciseDetailView: View {
                         systemImage: "slider.horizontal.3"
                     )
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(PulseTheme.primaryBright)
+                    .foregroundStyle(PulseTheme.ringStand)
                 }
             }
             
@@ -1128,8 +1128,8 @@ struct ExerciseDetailView: View {
     private func strengthLevelColor(_ level: StrengthLevel) -> Color {
         switch level {
         case .beginner: return PulseTheme.secondaryText
-        case .novice: return Color(red: 0.0, green: 0.48, blue: 1.0)
-        case .intermediate: return Color(red: 0.20, green: 0.80, blue: 0.35)
+        case .novice: return PulseTheme.hrZones[0]
+        case .intermediate: return PulseTheme.hrZones[1]
         case .advanced: return .orange
         case .elite: return .red
         }
@@ -1147,13 +1147,13 @@ struct ExerciseDetailView: View {
                 }
             } else {
                 HStack(spacing: 14) {
-                    MetricCard(title: "best_weight", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primary)
+                    MetricCard(title: "best_weight", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.accent)
                     MetricCard(title: "estimated_1rm", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt", badgeColor: PulseTheme.accent)
                 }
 
                 HStack(spacing: 14) {
                     MetricCard(title: "overload", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: "value_1rm_delta", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
-                    MetricCard(title: "avg_volume", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg_per_session", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
+                    MetricCard(title: "avg_volume", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg_per_session", systemImage: "chart.bar", badgeColor: PulseTheme.ringStand)
                 }
 
                 strengthLevelCard
@@ -1342,7 +1342,7 @@ private struct ExerciseHeroFallback: View {
                     .frame(width: coverSize, height: coverSize)
                     .clipped()
 
-                PulseTheme.primary.opacity(0.08)
+                PulseTheme.accent.opacity(0.08)
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
             .clipped()
@@ -1579,7 +1579,7 @@ private struct ExerciseBookmarkEditor: View {
                                 if let timestamp = bookmark.timestampSeconds {
                                     Text(localizedFormat("bookmark_time_format", timestamp / 60, timestamp % 60))
                                         .font(.caption.weight(.semibold))
-                                        .foregroundStyle(PulseTheme.primary)
+                                        .foregroundStyle(PulseTheme.accent)
                                 }
                                 if let duration = bookmark.playbackDurationSeconds {
                                     Text(localizedFormat("duration_minutes_seconds_format", duration / 60, duration % 60))
@@ -1798,7 +1798,7 @@ private struct SecondaryMuscleEditorView: View {
                                     Spacer()
                                     Text("\(Int(((weights[muscle] ?? Exercise.defaultSecondaryInvolvement) * 100).rounded()))%")
                                         .font(.headline.monospacedDigit())
-                                        .foregroundStyle(PulseTheme.primaryBright)
+                                        .foregroundStyle(PulseTheme.ringStand)
                                 }
                                 Slider(
                                     value: Binding(
@@ -1808,7 +1808,7 @@ private struct SecondaryMuscleEditorView: View {
                                     in: 0...1,
                                     step: 0.05
                                 )
-                                .tint(PulseTheme.primaryBright)
+                                .tint(PulseTheme.ringStand)
                             }
                         }
                     }

@@ -2,108 +2,142 @@ import CryptoKit
 import MuscleMap
 import SwiftUI
 
+// MARK: - Design Tokens
+
 enum PulseTheme {
-    static let primary = Color(red: 0.14, green: 0.35, blue: 0.88)
-    static let primaryBright = Color(red: 0.00, green: 0.68, blue: 0.82)
-    static let accent = Color(red: 1.00, green: 0.39, blue: 0.18)
-    static let fitOrange = Color(red: 0.99, green: 0.52, blue: 0.30)
-    static let recovery = Color(red: 0.18, green: 0.72, blue: 0.38)
-    static let accentMuted = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light
-            ? UIColor(red: 1.00, green: 0.90, blue: 0.84, alpha: 1.0)
-            : UIColor(red: 0.26, green: 0.10, blue: 0.05, alpha: 1.0)
-    })
-    static let destructive = Color(red: 0.93, green: 0.24, blue: 0.22)
-    static let warning = Color(red: 1.0, green: 0.60, blue: 0.14)
 
-    // Unified weekly-volume zone semantics: blue (maintaining) -> green (growing) -> yellow (focus).
-    static let growth = Color(red: 0.20, green: 0.78, blue: 0.45)
+    // MARK: Brand accent — single tunable token
+    static let accent = Color(red: 0.69, green: 0.99, blue: 0.16)      // neon green  #B0FC29
 
+    // MARK: Activity ring semantics (mirrors Apple Fitness)
+    static let ringMove     = Color(red: 0.98, green: 0.07, blue: 0.31) // red-pink    #FA1250
+    static let ringExercise = Color(red: 0.57, green: 0.91, blue: 0.16) // green       #92E82A
+    static let ringStand    = Color(red: 0.12, green: 0.92, blue: 0.94) // cyan        #1EEAEF
+
+    // MARK: Semantic / functional
+    static let destructive  = Color(red: 0.93, green: 0.24, blue: 0.22)
+    static let warning      = Color(red: 1.00, green: 0.60, blue: 0.14)
+    static let growth       = Color(red: 0.20, green: 0.78, blue: 0.45)
+    static let appleMusic   = Color(red: 0.98, green: 0.24, blue: 0.34)
+    static let fitOrange    = Color(red: 0.99, green: 0.52, blue: 0.30)
+
+    // MARK: HR zone colors (5-stop, shared with Watch)
+    static let hrZones: [Color] = [
+        Color(red: 0.00, green: 0.48, blue: 1.00),  // Z1 recovery – blue
+        Color(red: 0.20, green: 0.80, blue: 0.35),  // Z2 easy – green
+        Color.yellow,                                 // Z3 moderate
+        Color.orange,                                 // Z4 hard
+        Color.red                                     // Z5 max
+    ]
+    static func hrZoneColor(_ zone: Int?) -> Color {
+        guard let zone, (1...5).contains(zone) else { return Color.white.opacity(0.4) }
+        return hrZones[zone - 1]
+    }
+
+    // MARK: Surface colors — true black canvas (Apple Fitness style)
     static let background = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? UIColor(red: 0.95, green: 0.96, blue: 0.98, alpha: 1.0) : UIColor(red: 0.08, green: 0.08, blue: 0.09, alpha: 1.0)
+        traits.userInterfaceStyle == .dark
+            ? .black
+            : UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1.0)
     })
-    
+
     static let card = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? .white : UIColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 1.0)
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0)  // #1C1C1E
+            : .white
     })
-    
+
     static let grouped = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? UIColor(red: 0.91, green: 0.91, blue: 0.94, alpha: 1.0) : UIColor(red: 0.16, green: 0.16, blue: 0.18, alpha: 1.0)
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1.0)
+            : UIColor(red: 0.91, green: 0.91, blue: 0.94, alpha: 1.0)
     })
-    
+
     static let elevated = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? UIColor(red: 0.86, green: 0.86, blue: 0.89, alpha: 1.0) : UIColor(red: 0.20, green: 0.20, blue: 0.22, alpha: 1.0)
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.23, green: 0.23, blue: 0.25, alpha: 1.0)
+            : UIColor(red: 0.86, green: 0.86, blue: 0.89, alpha: 1.0)
     })
-    
+
     static let secondaryText = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? UIColor(red: 0.40, green: 0.40, blue: 0.45, alpha: 1.0) : UIColor(red: 0.60, green: 0.60, blue: 0.65, alpha: 1.0)
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.56, green: 0.56, blue: 0.58, alpha: 1.0)
+            : UIColor(red: 0.40, green: 0.40, blue: 0.45, alpha: 1.0)
     })
-    
+
     static let tertiaryText = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? UIColor(red: 0.60, green: 0.60, blue: 0.65, alpha: 1.0) : UIColor(red: 0.38, green: 0.38, blue: 0.42, alpha: 1.0)
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.36, green: 0.36, blue: 0.38, alpha: 1.0)
+            : UIColor(red: 0.60, green: 0.60, blue: 0.65, alpha: 1.0)
     })
-    
+
     static let separator = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .light ? UIColor.black.withAlphaComponent(0.06) : UIColor.white.withAlphaComponent(0.04)
+        traits.userInterfaceStyle == .dark
+            ? UIColor.white.withAlphaComponent(0.07)
+            : UIColor.black.withAlphaComponent(0.08)
     })
 
-    static let controlRadius: CGFloat = 10
-    static let compactRadius: CGFloat = 14
-    static let cardRadius: CGFloat = 26
-    static let screenHorizontalPadding: CGFloat = 12
-
+    // MARK: Geometry
+    static let controlRadius: CGFloat = 12
+    static let compactRadius: CGFloat = 16
+    static let cardRadius: CGFloat = 22
+    static let screenHorizontalPadding: CGFloat = 16
     static let minTapTarget: CGFloat = 44
 
-    static let appleMusic = Color(red: 0.98, green: 0.24, blue: 0.34)
+    // MARK: Typography
+    static func heroNumeric(size: CGFloat = 52) -> Font {
+        .system(size: size, weight: .heavy, design: .rounded)
+    }
+    static func metricNumeric(size: CGFloat = 34) -> Font {
+        .system(size: size, weight: .bold, design: .rounded)
+    }
 
-    static let heroGradientColors: [Color] = [primary, primaryBright]
+    // MARK: Gradients
+    static var heroGradientColors: [Color] { [ringMove, ringExercise] }
     static var fitActionGradient: LinearGradient {
         LinearGradient(
-            colors: [fitOrange, primary],
+            colors: [accent, ringExercise],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
+
+    // MARK: Backward-compat aliases (56 files reference these; keep names stable)
+    static var primary: Color         { accent }
+    static var primaryBright: Color   { ringStand }
+    static var recovery: Color        { growth }
+    static var accentMuted: Color     { accent.opacity(0.15) }
 }
 
+// MARK: - Glass Button Prominence
+
 enum NavigationGlassProminence {
-    case primary
-    case secondary
-    case disabled
+    case primary, secondary, disabled
 
     var tintOpacity: Double {
         switch self {
-        case .primary:
-            return 0.30
-        case .secondary:
-            return 0.18
-        case .disabled:
-            return 0.10
+        case .primary:   0.28
+        case .secondary: 0.16
+        case .disabled:  0.08
         }
     }
-
     var strokeOpacity: Double {
         switch self {
-        case .primary:
-            return 0.58
-        case .secondary:
-            return 0.38
-        case .disabled:
-            return 0.22
+        case .primary:   0.50
+        case .secondary: 0.30
+        case .disabled:  0.16
         }
     }
-
     var shadowOpacity: Double {
         switch self {
-        case .primary:
-            return 0.20
-        case .secondary:
-            return 0.10
-        case .disabled:
-            return 0.04
+        case .primary:   0.18
+        case .secondary: 0.08
+        case .disabled:  0.03
         }
     }
 }
+
+// MARK: - Glass Button Modifiers (iOS 26 Liquid Glass — no fallbacks)
 
 extension View {
     func navigationGlassCapsule(
@@ -136,37 +170,25 @@ private struct NavigationGlassCapsuleModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background {
-                if #available(iOS 26.0, *) {
-                    Capsule(style: .continuous)
-                        .fill(.clear)
-                        .glassEffect(
-                            .regular.tint(tint.opacity(prominence.tintOpacity)).interactive(),
-                            in: Capsule(style: .continuous)
-                        )
-                } else {
-                    ZStack {
-                        Capsule(style: .continuous)
-                            .fill(.ultraThinMaterial)
-                        Capsule(style: .continuous)
-                            .fill(tint.opacity(prominence.tintOpacity * 0.65))
-                    }
-                }
+                Capsule(style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(
+                        .regular.tint(tint.opacity(prominence.tintOpacity)).interactive(),
+                        in: Capsule(style: .continuous)
+                    )
             }
             .overlay {
                 Capsule(style: .continuous)
                     .stroke(
                         LinearGradient(
-                            colors: [
-                                .white.opacity(0.36),
-                                tint.opacity(prominence.strokeOpacity)
-                            ],
+                            colors: [.white.opacity(0.22), tint.opacity(prominence.strokeOpacity * 0.5)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1
+                        lineWidth: 0.5
                     )
             }
-            .shadow(color: tint.opacity(prominence.shadowOpacity), radius: 18, y: 8)
+            .shadow(color: tint.opacity(prominence.shadowOpacity), radius: 16, y: 6)
     }
 }
 
@@ -177,39 +199,108 @@ private struct NavigationGlassCircleModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background {
-                if #available(iOS 26.0, *) {
-                    Circle()
-                        .fill(.clear)
-                        .glassEffect(
-                            .regular.tint(tint.opacity(prominence.tintOpacity)).interactive(),
-                            in: Circle()
-                        )
-                } else {
-                    ZStack {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                        Circle()
-                            .fill(tint.opacity(prominence.tintOpacity * 0.65))
-                    }
-                }
+                Circle()
+                    .fill(.clear)
+                    .glassEffect(
+                        .regular.tint(tint.opacity(prominence.tintOpacity)).interactive(),
+                        in: Circle()
+                    )
             }
             .overlay {
                 Circle()
                     .stroke(
                         LinearGradient(
-                            colors: [
-                                .white.opacity(0.34),
-                                tint.opacity(prominence.strokeOpacity)
-                            ],
+                            colors: [.white.opacity(0.22), tint.opacity(prominence.strokeOpacity * 0.5)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1
+                        lineWidth: 0.5
                     )
             }
-            .shadow(color: tint.opacity(prominence.shadowOpacity), radius: 12, y: 5)
+            .shadow(color: tint.opacity(prominence.shadowOpacity), radius: 10, y: 4)
     }
 }
+
+// MARK: - Activity Rings
+
+/// Concentric activity rings in the Apple Fitness style.
+/// `rings[0]` = outermost (Move), `rings[1]` = middle (Exercise), `rings[2]` = innermost (Stand).
+/// Progress > 1.0 renders a translucent lap overlay.
+struct RepsActivityRings: View {
+
+    struct Ring: Identifiable {
+        let id: Int
+        let progress: Double    // 0…1+
+        let color: Color
+
+        static func `default`(
+            moveProgress: Double,
+            exerciseProgress: Double,
+            standProgress: Double
+        ) -> [Ring] {
+            [
+                Ring(id: 0, progress: moveProgress,     color: PulseTheme.ringMove),
+                Ring(id: 1, progress: exerciseProgress, color: PulseTheme.ringExercise),
+                Ring(id: 2, progress: standProgress,    color: PulseTheme.ringStand),
+            ]
+        }
+    }
+
+    let rings: [Ring]
+    var lineWidth: CGFloat = 14
+    var gap: CGFloat = 5
+
+    @State private var displayed: [Double] = []
+
+    var body: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
+            ZStack {
+                ForEach(Array(rings.enumerated()), id: \.offset) { idx, ring in
+                    let r = (side / 2) - (lineWidth / 2) - CGFloat(idx) * (lineWidth + gap)
+                    let prog = displayed.indices.contains(idx) ? displayed[idx] : 0
+
+                    // Track
+                    Circle()
+                        .stroke(ring.color.opacity(0.18), lineWidth: lineWidth)
+                        .frame(width: r * 2, height: r * 2)
+
+                    // Fill arc
+                    Circle()
+                        .trim(from: 0, to: min(prog, 1.0))
+                        .stroke(ring.color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                        .frame(width: r * 2, height: r * 2)
+                        .rotationEffect(.degrees(-90))
+
+                    // Lap (> 100%)
+                    if prog > 1.0 {
+                        Circle()
+                            .trim(from: 0, to: prog - 1.0)
+                            .stroke(ring.color.opacity(0.55),
+                                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                            .frame(width: r * 2, height: r * 2)
+                            .rotationEffect(.degrees(-90))
+                    }
+                }
+            }
+            .frame(width: side, height: side)
+            .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+        }
+        .onAppear {
+            displayed = rings.map { _ in 0 }
+            withAnimation(.spring(response: 1.4, dampingFraction: 0.80).delay(0.15)) {
+                displayed = rings.map(\.progress)
+            }
+        }
+        .onChange(of: rings.map(\.progress)) { _, newVals in
+            withAnimation(.spring(response: 0.9, dampingFraction: 0.86)) {
+                displayed = newVals
+            }
+        }
+    }
+}
+
+// MARK: - Text Utilities
 
 enum RepsText {
     static func exerciseName(_ value: String, language: String) -> String {
@@ -383,6 +474,8 @@ enum RepsText {
     }
 }
 
+// MARK: - Cards
+
 struct PulseCard<Content: View>: View {
     let content: Content
     var minHeight: CGFloat?
@@ -408,12 +501,10 @@ struct PulseCard<Content: View>: View {
             .frame(minHeight: minHeight, alignment: .leading)
             .background(backgroundColor)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                    .stroke(PulseTheme.separator, lineWidth: 1)
-            )
     }
 }
+
+// MARK: - Buttons
 
 struct PrimaryButton: View {
     let title: LocalizedStringKey
@@ -434,13 +525,15 @@ struct PrimaryButton: View {
                 }
                 Text(localizedKey(title))
             }
-            .font(.headline)
+            .font(.system(size: 17, weight: .bold, design: .rounded))
             .frame(maxWidth: .infinity)
-            .frame(height: 58)
+            .frame(height: 56)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.white)
-        .navigationGlassCapsule(.primary)
+        .foregroundStyle(.black)
+        .background(PulseTheme.accent)
+        .clipShape(Capsule(style: .continuous))
+        .shadow(color: PulseTheme.accent.opacity(0.30), radius: 14, y: 6)
     }
 }
 
@@ -464,7 +557,7 @@ struct SecondaryButton: View {
                     Image(systemName: systemImage)
                 }
             }
-            .font(.headline)
+            .font(.system(size: 16, weight: .semibold, design: .rounded))
             .frame(maxWidth: .infinity)
             .frame(height: 52)
         }
@@ -474,6 +567,8 @@ struct SecondaryButton: View {
         .accessibilityAddTraits(.isButton)
     }
 }
+
+// MARK: - Typography Components
 
 struct SectionHeader: View {
     let title: String
@@ -487,8 +582,6 @@ struct SectionHeader: View {
     }
 }
 
-/// Standard card-section title: resolves the localization key, enforces sentence-case, and
-/// renders with `.headline` weight. Use instead of `Text("key").font(.headline)` inside cards.
 struct CardTitle: View {
     private let key: String?
     private let verbatimText: String?
@@ -522,6 +615,8 @@ extension String {
     }
 }
 
+// MARK: - Sticky Header Scaffold
+
 struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
     let title: String
     let subtitle: String?
@@ -554,13 +649,6 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
         String(localized: String.LocalizationValue(key), locale: locale)
     }
 
-    private var bottomContentPadding: CGFloat {
-        if #available(iOS 26.0, *) {
-            return 24
-        }
-        return 120
-    }
-
     var body: some View {
         ZStack(alignment: .top) {
             ScrollView(.vertical, showsIndicators: false) {
@@ -570,7 +658,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .safeAreaPadding(.top, topContentPadding)
-                .padding(.bottom, bottomContentPadding)
+                .padding(.bottom, 24)
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .coordinateSpace(.named(StickyHeaderTitleReader.coordinateSpaceName))
@@ -616,10 +704,9 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                         Text(localizedKey(subtitle))
                             .font(.caption.weight(.bold))
                             .textCase(.uppercase)
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .lineLimit(1)
                     }
-
                     Text(verbatim: activeTitle.capitalizingFirstLetter())
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .lineLimit(1)
@@ -627,7 +714,6 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                 }
 
                 Spacer(minLength: 12)
-
                 accessory
             }
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
@@ -649,7 +735,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
             }
 
             LinearGradient(
-                colors: [PulseTheme.background.opacity(0.72), PulseTheme.background.opacity(0)],
+                colors: [PulseTheme.background.opacity(0.72), .clear],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -689,7 +775,6 @@ struct StickyHeaderBottomBorder: Shape {
 
 struct StickyHeaderTitleReader: View {
     static let coordinateSpaceName = "reps-sticky-header-scroll"
-
     let title: String
 
     var body: some View {
@@ -720,6 +805,8 @@ struct StickyHeaderTitlePreferenceKey: PreferenceKey {
     }
 }
 
+// MARK: - Reusable Components
+
 struct HeaderAvatarButton: View {
     let imageData: Data?
     let accessibilityLabel: LocalizedStringKey
@@ -737,10 +824,10 @@ struct HeaderAvatarButton: View {
                         .scaledToFill()
                 } else {
                     Circle()
-                        .fill(PulseTheme.primary.opacity(0.12))
+                        .fill(PulseTheme.accent.opacity(0.14))
                     Image(systemName: "person.crop.circle.fill")
                         .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                 }
             }
             .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
@@ -774,10 +861,10 @@ struct PulseListRow<Trailing: View>: View {
         HStack(spacing: 14) {
             Image(systemName: systemImage)
                 .font(.headline)
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
                 .frame(width: 42, height: 42)
-            .background(PulseTheme.grouped)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(PulseTheme.accent.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
                 Text(localizedKey(title)).font(.headline)
                 Text(localizedKey(subtitle))
@@ -801,9 +888,9 @@ struct PulseChip: View {
             .font(.subheadline.weight(.semibold))
             .lineLimit(1)
             .minimumScaleFactor(0.85)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .foregroundStyle(isSelected ? .black : PulseTheme.secondaryText)
+            .foregroundStyle(isSelected ? .black : .white)
             .background(isSelected ? PulseTheme.accent : PulseTheme.grouped)
             .clipShape(Capsule())
     }
@@ -818,7 +905,7 @@ struct PulseEmptyState: View {
         VStack(alignment: .leading, spacing: 14) {
             Image(systemName: systemImage)
                 .font(.largeTitle)
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
                 .accessibilityHidden(true)
             Text(localizedKey(title))
                 .font(.title2.bold())
@@ -881,36 +968,31 @@ struct MetricCard: View {
     let value: String
     let subtitle: LocalizedStringKey
     let systemImage: String
-    var badgeColor: Color = PulseTheme.primary
+    var badgeColor: Color = PulseTheme.accent
 
     var body: some View {
-        PulseCard(minHeight: 136) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 8) {
-                    ZStack {
-                        Circle()
-                            .fill(badgeColor.opacity(0.12))
-                            .frame(width: 28, height: 28)
-                        
-                        Image(systemName: systemImage)
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(badgeColor)
-                    }
+        PulseCard(minHeight: 120) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 5) {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(badgeColor)
                     Text(localizedKey(title))
-                        .font(.caption.weight(.semibold))
+                        .font(.system(size: 11, weight: .semibold))
+                        .textCase(.uppercase)
+                        .tracking(0.4)
                         .foregroundStyle(PulseTheme.secondaryText)
-                        .lineLimit(2)
+                        .lineLimit(1)
                         .minimumScaleFactor(0.82)
                 }
                 Text(value)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(PulseTheme.metricNumeric())
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                    .foregroundStyle(badgeColor)
+                    .foregroundStyle(.white)
                 Text(localizedKey(subtitle))
-                    .font(.subheadline)
+                    .font(.caption)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.82)
                     .foregroundStyle(PulseTheme.secondaryText)
             }
         }
@@ -944,21 +1026,14 @@ struct VolumeSegmentBar: View {
     }
 
     private func color(for index: Int) -> Color {
-        let zoneColor: Color
-        if index < 4 {
-            zoneColor = PulseTheme.primary
-        } else if index < 10 {
-            zoneColor = PulseTheme.primaryBright
-        } else {
-            zoneColor = PulseTheme.accent
-        }
-
-        if index < completed {
-            return zoneColor
-        }
-        return zoneColor.opacity(0.16)
+        let zone: Color = index < 4 ? PulseTheme.ringStand
+                        : index < 10 ? PulseTheme.ringExercise
+                        : PulseTheme.accent
+        return index < completed ? zone : zone.opacity(0.15)
     }
 }
+
+// MARK: - Exercise Media
 
 struct ExerciseMediaThumbnail: View, Equatable {
     let exercise: Exercise
@@ -1104,7 +1179,7 @@ struct RemoteExerciseImage<Fallback: View>: View {
                         if !didFail {
                             ProgressView()
                                 .controlSize(.small)
-                                .tint(PulseTheme.primary)
+                                .tint(PulseTheme.accent)
                         }
                     }
             }
@@ -1227,6 +1302,8 @@ private final class ExerciseThumbnailImageCache {
     }
 }
 
+// MARK: - View Helpers
+
 extension View {
     func screenBackground() -> some View {
         background(PulseTheme.background.ignoresSafeArea())
@@ -1241,38 +1318,44 @@ extension View {
     }
 }
 
-#Preview("Design System - English") {
-    VStack(spacing: 16) {
-        SectionHeader(title: "Today")
-        MetricCard(title: "Streak", value: "5", subtitle: "Days in a row", systemImage: "flame")
-        PrimaryButton("start_workout", systemImage: "play.fill") {}
-        SecondaryButton("schedule_workout", systemImage: "calendar.badge.plus") {}
-        PulseListRow(title: "Exercise Library", subtitle: "Browse and add movements", systemImage: "magnifyingglass")
-        HStack {
-            PulseChip(title: "Gym", isSelected: true)
-            PulseChip(title: "Home")
-        }
-        PulseEmptyState(title: "No workout scheduled", message: "Create a plan or schedule a workout to keep momentum.", systemImage: "calendar.badge.plus")
-    }
-    .padding()
-    .screenBackground()
-    .environment(\.locale, Locale(identifier: "en"))
-}
+// MARK: - Previews
 
-#Preview("Design System - Spanish") {
-    VStack(spacing: 16) {
-        SectionHeader(title: "Today")
-        MetricCard(title: "Streak", value: "5", subtitle: "Days in a row", systemImage: "flame")
-        PrimaryButton("start_workout", systemImage: "play.fill") {}
-        SecondaryButton("schedule_workout", systemImage: "calendar.badge.plus") {}
-        PulseListRow(title: "Exercise Library", subtitle: "Browse and add movements", systemImage: "magnifyingglass")
-        HStack {
-            PulseChip(title: "Gym", isSelected: true)
-            PulseChip(title: "Home")
+#Preview("Design System") {
+    ScrollView {
+        VStack(spacing: 20) {
+            RepsActivityRings(
+                rings: RepsActivityRings.Ring.default(
+                    moveProgress: 0.75,
+                    exerciseProgress: 0.40,
+                    standProgress: 1.10
+                )
+            )
+            .frame(width: 180, height: 180)
+            .padding()
+
+            HStack(spacing: 12) {
+                MetricCard(title: "Streak", value: "5", subtitle: "Days in a row", systemImage: "flame", badgeColor: PulseTheme.ringMove)
+                MetricCard(title: "Volume", value: "12.4k", subtitle: "kg this week", systemImage: "dumbbell.fill", badgeColor: PulseTheme.accent)
+            }
+
+            PrimaryButton("start_workout", systemImage: "play.fill") {}
+            SecondaryButton("schedule_workout", systemImage: "calendar.badge.plus") {}
+            PulseListRow(title: "Exercise Library", subtitle: "Browse and add movements", systemImage: "magnifyingglass")
+
+            HStack {
+                PulseChip(title: "Gym", isSelected: true)
+                PulseChip(title: "Home")
+                PulseChip(title: "Strength")
+            }
+
+            PulseEmptyState(
+                title: "No workout scheduled",
+                message: "Create a plan or schedule a workout to keep momentum.",
+                systemImage: "calendar.badge.plus"
+            )
         }
-        PulseEmptyState(title: "No workout scheduled", message: "Create a plan or schedule a workout to keep momentum.", systemImage: "calendar.badge.plus")
+        .padding()
     }
-    .padding()
     .screenBackground()
-    .environment(\.locale, Locale(identifier: "es"))
+    .preferredColorScheme(.dark)
 }

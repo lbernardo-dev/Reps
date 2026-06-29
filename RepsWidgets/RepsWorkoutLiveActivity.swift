@@ -8,7 +8,7 @@ struct RepsWorkoutLiveActivity: Widget {
             let _ = RepsLocalization.use(context.state.snapshot.preferredLanguage)
             let theme = WidgetColor.from(name: context.state.snapshot.widgetAccentColorName).theme
             liveActivityBody(context.state.snapshot, theme: theme, isStale: context.isStale)
-                .activityBackgroundTint(theme.isDarkBackground ? Color.black : Color.white)
+                .activityBackgroundTint(Color.black)
                 .activitySystemActionForegroundColor(theme.tint)
         } dynamicIsland: { context in
             let snapshot = context.state.snapshot
@@ -507,7 +507,7 @@ struct RepsWorkoutLiveActivity: Widget {
 }
 
 struct RepsProgressStyle: ProgressViewStyle {
-    var tintColor: Color = Color(red: 0.28, green: 0.86, blue: 0.38)
+    var tintColor: Color = Color(red: 0.69, green: 0.99, blue: 0.16)  // neon green #B0FC29
     var isDarkBackground: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {

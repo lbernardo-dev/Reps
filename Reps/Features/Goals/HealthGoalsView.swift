@@ -21,7 +21,7 @@ struct HealthGoalsView: View {
 
                 goalRow(
                     icon: "dumbbell.fill",
-                    tint: PulseTheme.primary,
+                    tint: PulseTheme.accent,
                     title: localizedTitle("workouts_per_week"),
                     value: "\(store.userProfile.weeklyTrainingDays) \(localizedString("days"))"
                 ) { activeSheet = .workoutsPerWeek }
@@ -206,9 +206,9 @@ private struct GoalPickerShell<Content: View>: View {
                     Image(systemName: "checkmark")
                         .font(.system(size: 16, weight: .bold))
                         .frame(width: 36, height: 36)
-                        .background(PulseTheme.primary.opacity(0.25))
+                        .background(PulseTheme.accent.opacity(0.25))
                         .clipShape(Circle())
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                 }
                 .buttonStyle(.plain)
             }
@@ -369,7 +369,7 @@ struct SleepTargetPicker: View {
             // Recovery battery note
             HStack(spacing: 6) {
                 Image(systemName: "battery.75")
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                     .font(.caption)
                 Text(localizedString("sleep_target_affects_recovery_battery"))
                     .font(.caption)
@@ -503,7 +503,7 @@ struct CalorieGoalPicker: View {
                 get: { Double(kcal) },
                 set: { kcal = Int($0); HapticService.selection() }
             ), in: range, step: 50)
-            .tint(PulseTheme.primary)
+            .tint(PulseTheme.accent)
 
             HStack {
                 Text("1.200").font(.caption).foregroundStyle(PulseTheme.secondaryText)

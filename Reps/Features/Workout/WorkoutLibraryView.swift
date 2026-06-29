@@ -21,9 +21,9 @@ struct WorkoutLibraryView: View {
                         .font(.title3.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 40, height: 40)
-                        .background(PulseTheme.primary)
+                        .background(PulseTheme.accent)
                         .clipShape(Circle())
-                        .shadow(color: PulseTheme.primary.opacity(0.24), radius: 8, x: 0, y: 4)
+                        .shadow(color: PulseTheme.accent.opacity(0.24), radius: 8, x: 0, y: 4)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("create_routine")
@@ -120,8 +120,8 @@ private struct WorkoutPillButtonStyle: ButtonStyle {
             .minimumScaleFactor(0.8)
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
-            .foregroundStyle(PulseTheme.primary)
-            .background(PulseTheme.primary.opacity(configuration.isPressed ? 0.18 : 0.10))
+            .foregroundStyle(PulseTheme.accent)
+            .background(PulseTheme.accent.opacity(configuration.isPressed ? 0.18 : 0.10))
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }

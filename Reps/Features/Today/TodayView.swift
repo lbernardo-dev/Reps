@@ -10,7 +10,6 @@ struct TodayView: View {
     @State private var planToEdit: WorkoutPlan?
     @State private var workoutToStart: WorkoutDay?
     @State private var showNotifications = false
-    @State private var showSocialHub = false
     @State private var recommendedWorkout: WorkoutDay? = nil
 
     var onSelectTab: ((AppTab) -> Void)? = nil
@@ -70,7 +69,7 @@ struct TodayView: View {
         case .charged:
             return PulseTheme.recovery
         case .steady:
-            return PulseTheme.primary
+            return PulseTheme.accent
         case .low:
             return PulseTheme.warning
         case .critical:
@@ -257,12 +256,11 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             StickyHeaderScaffold(
-                title: "summary_2",
+                title: "workout",
                 subtitle: currentDateTitle,
                 topContentPadding: 104,
                 accessory: {
                     HStack(spacing: 6) {
-                        // Notifications bell
                         Button {
                             HapticService.selection()
                             showNotifications = true
@@ -272,8 +270,7 @@ struct TodayView: View {
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(PulseTheme.secondaryText)
                                     .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
+                                    .navigationGlassCircle(.secondary, tint: .clear)
                                 if store.hasUnreadBell {
                                     Circle()
                                         .fill(.red)
@@ -285,32 +282,6 @@ struct TodayView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("notifications")
 
-                        // Social messages (only when social is active)
-                        if store.userProfile.socialEnabled {
-                            Button {
-                                HapticService.selection()
-                                showSocialHub = true
-                            } label: {
-                                ZStack(alignment: .topTrailing) {
-                                    Image(systemName: "bubble.left.and.bubble.right.fill")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(PulseTheme.primary)
-                                        .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                        .background(.ultraThinMaterial)
-                                        .clipShape(Circle())
-                                    if store.unreadFeedCount > 0 {
-                                        Circle()
-                                            .fill(.red)
-                                            .frame(width: 9, height: 9)
-                                            .offset(x: -1, y: 1)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("social_hub")
-                        }
-
-                        // Avatar → profile
                         HeaderAvatarButton(
                             imageData: store.userProfile.avatarImageData,
                             accessibilityLabel: "profile"
@@ -372,14 +343,11 @@ struct TodayView: View {
             }
             .navigationDestination(isPresented: $showProfile) {
                 ProfileView {
-                    onSelectTab?(.plans)
+                    onSelectTab?(.workout)
                 }
             }
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()
-            }
-            .navigationDestination(isPresented: $showSocialHub) {
-                SocialHubView()
             }
             .navigationDestination(item: $workoutToStart) { workout in
                 ActiveWorkoutView(workout: workout, origin: workout.id == freeWorkout.id ? .free : .routine)
@@ -422,8 +390,8 @@ struct TodayView: View {
                     subtitle: "value_30_days",
                     systemImage: "figure.strengthtraining.traditional",
                     trendText: workoutTrendText,
-                    color: PulseTheme.primary,
-                    onTap: { onSelectTab?(.progress) }
+                    color: PulseTheme.accent,
+                    onTap: { onSelectTab?(.summary) }
                 )
                 SummaryMetricTile(
                     title: "sets_4",
@@ -432,7 +400,7 @@ struct TodayView: View {
                     systemImage: "square.stack.3d.up.fill",
                     trendText: nil,
                     color: PulseTheme.accent,
-                    onTap: { onSelectTab?(.progress) }
+                    onTap: { onSelectTab?(.summary) }
                 )
                 SummaryMetricTile(
                     title: "volume_3",
@@ -440,8 +408,8 @@ struct TodayView: View {
                     subtitle: displayedVolumeUnit,
                     systemImage: "scalemass.fill",
                     trendText: volumeTrendText,
-                    color: PulseTheme.primaryBright,
-                    onTap: { onSelectTab?(.progress) }
+                    color: PulseTheme.ringStand,
+                    onTap: { onSelectTab?(.summary) }
                 )
             }
 
@@ -449,7 +417,7 @@ struct TodayView: View {
                 title: "last_30_days",
                 progressText: localizedFormat("sessions_count_format", recentSessions.count),
                 points: recentActivityPoints,
-                color: PulseTheme.primary,
+                color: PulseTheme.accent,
                 onTapDay: { date in
                     store.calendarFocusedDate = date
                     onSelectTab?(.calendar)
@@ -476,9 +444,9 @@ struct TodayView: View {
                     unit: "reps",
                     systemImage: "arrow.up.right",
                     trendText: weekRepsTrendText,
-                    color: PulseTheme.primary
+                    color: PulseTheme.accent
                 ) {
-                    MiniBarChart(points: weeklyRepsPoints, color: PulseTheme.primary)
+                    MiniBarChart(points: weeklyRepsPoints, color: PulseTheme.accent)
                 }
             }
 
@@ -615,7 +583,7 @@ struct TodayView: View {
                 if let heavy = heaviestSet {
                     HStack(spacing: 10) {
                         Image(systemName: "dumbbell.fill")
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .frame(width: 20)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(localizedString("heaviest_set").uppercased())
@@ -661,17 +629,17 @@ struct TodayView: View {
                         .font(.system(size: 11, weight: .black, design: .rounded))
                         .tracking(1.4)
                         .textCase(.uppercase)
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(.black)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .background(PulseTheme.primary.opacity(0.12))
+                        .background(PulseTheme.accent)
                         .clipShape(Capsule())
 
                     if !focusWorkout.exercises.isEmpty {
                         WorkoutExerciseAvatarStrip(
                             exercises: focusMediaExercises,
                             gender: store.userProfile.muscleMapGender,
-                            tint: PulseTheme.primary,
+                            tint: PulseTheme.accent,
                             catalog: store.exercises
                         )
                     }
@@ -715,10 +683,10 @@ struct TodayView: View {
             }
 
             HStack(spacing: 8) {
-                SummaryChip(title: "~\(focusWorkout.durationMinutes) min", systemImage: "clock", color: PulseTheme.primary)
+                SummaryChip(title: "~\(focusWorkout.durationMinutes) min", systemImage: "clock", color: PulseTheme.accent)
                 let exercisesWord = localizedString("exercises_2")
                 SummaryChip(title: "\(focusWorkout.exercises.count) \(exercisesWord)", systemImage: "dumbbell.fill", color: PulseTheme.accent)
-                SummaryChip(title: locationLabel, systemImage: "mappin.and.ellipse", color: PulseTheme.primaryBright)
+                SummaryChip(title: locationLabel, systemImage: "mappin.and.ellipse", color: PulseTheme.ringStand)
             }
 
             Button {
@@ -756,7 +724,7 @@ struct TodayView: View {
                     Image(systemName: "play.fill")
                         .font(.headline.weight(.black))
                         .frame(width: 54, height: 54)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.black)
                         .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -765,18 +733,25 @@ struct TodayView: View {
         }
         .padding(18)
         .background(
-            LinearGradient(
-                colors: [PulseTheme.card, PulseTheme.primary.opacity(0.12), PulseTheme.accentMuted.opacity(0.55)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            ZStack {
+                PulseTheme.card
+                LinearGradient(
+                    colors: [
+                        PulseTheme.accent.opacity(0.22),
+                        PulseTheme.ringExercise.opacity(0.08),
+                        Color.clear
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
         )
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                .stroke(PulseTheme.accent.opacity(0.25), lineWidth: 1)
+                .stroke(PulseTheme.accent.opacity(0.35), lineWidth: 1)
         )
-        .shadow(color: PulseTheme.accent.opacity(0.12), radius: 18, x: 0, y: 10)
+        .shadow(color: PulseTheme.accent.opacity(0.18), radius: 22, x: 0, y: 12)
     }
 
     private var focusWorkoutMenu: some View {
@@ -851,14 +826,14 @@ struct TodayView: View {
                             Label(localizedString("plan_3"), systemImage: "flag.checkered")
                                 .font(.caption.weight(.black))
                                 .textCase(.uppercase)
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                             Spacer(minLength: 0)
                             Text(weekTargetText)
                                 .font(.caption.weight(.black))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 5)
-                                .background(PulseTheme.primary.opacity(0.12))
-                                .foregroundStyle(PulseTheme.primary)
+                                .background(PulseTheme.accent.opacity(0.12))
+                                .foregroundStyle(PulseTheme.accent)
                                 .clipShape(Capsule())
                         }
 
@@ -879,9 +854,9 @@ struct TodayView: View {
                         HStack(spacing: 12) {
                             Image(systemName: step.isCompleted ? "checkmark.seal.fill" : step.systemImage)
                                 .font(.subheadline.weight(.black))
-                                .foregroundStyle(step.isCompleted ? PulseTheme.recovery : PulseTheme.primary)
+                                .foregroundStyle(step.isCompleted ? PulseTheme.recovery : PulseTheme.accent)
                                 .frame(width: 38, height: 38)
-                                .background((step.isCompleted ? PulseTheme.recovery : PulseTheme.primary).opacity(0.12))
+                                .background((step.isCompleted ? PulseTheme.recovery : PulseTheme.accent).opacity(0.12))
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                             VStack(alignment: .leading, spacing: 3) {
@@ -901,7 +876,7 @@ struct TodayView: View {
                                 .foregroundStyle(step.isCompleted ? PulseTheme.recovery : .white)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 7)
-                                .background(step.isCompleted ? PulseTheme.recovery.opacity(0.12) : PulseTheme.primary)
+                                .background(step.isCompleted ? PulseTheme.recovery.opacity(0.12) : PulseTheme.accent)
                                 .clipShape(Capsule())
                         }
                         .padding(12)
@@ -1171,7 +1146,7 @@ struct TodayView: View {
                 onSelectTab?(destination)
             }
         case .openProgress:
-            onSelectTab?(.progress)
+            onSelectTab?(.summary)
         }
     }
 
@@ -1189,7 +1164,7 @@ struct TodayView: View {
         case .scheduleWorkout:
             showScheduleWorkout = true
         case .openProgress:
-            onSelectTab?(.progress)
+            onSelectTab?(.summary)
         case .competitive(let competitiveAction):
             if let destination = store.executeCompetitiveAction(competitiveAction) {
                 onSelectTab?(destination)
@@ -1200,7 +1175,7 @@ struct TodayView: View {
     private func color(for tone: FitnessMetrics.DailyCoachRecommendation.Tone) -> Color {
         switch tone {
         case .primary:
-            return PulseTheme.primary
+            return PulseTheme.accent
         case .recovery:
             return PulseTheme.recovery
         case .warning:
@@ -1212,8 +1187,8 @@ struct TodayView: View {
 
     private var weeklyCommandGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            HomeMetricTile(title: "Week", value: weekTargetText, subtitle: "sessions_2", systemImage: "calendar", color: PulseTheme.primary)
-            HomeMetricTile(title: "Volume", value: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg_this_week", systemImage: "scalemass", color: PulseTheme.primaryBright)
+            HomeMetricTile(title: "Week", value: weekTargetText, subtitle: "sessions_2", systemImage: "calendar", color: PulseTheme.accent)
+            HomeMetricTile(title: "Volume", value: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg_this_week", systemImage: "scalemass", color: PulseTheme.ringStand)
             HomeMetricTile(title: "Streak", value: "\(streakDays)", subtitle: "days_in_a_row", systemImage: "flame", color: PulseTheme.accent)
         }
     }
@@ -1243,7 +1218,7 @@ struct TodayView: View {
                         value: store.todayHealthMetric.map { "\(Int($0.exerciseMinutes ?? 0)) min" } ?? "--",
                         subtitle: "apple_watch_health",
                         systemImage: "applewatch",
-                        color: PulseTheme.primaryBright
+                        color: PulseTheme.ringStand
                     )
                 }
                 .buttonStyle(.plain)
@@ -1257,7 +1232,7 @@ struct TodayView: View {
                         subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en Reps", $0) } ?? (localizedString("no_local_log")),
                         localizesSubtitle: latestMetric?.waterLiters == nil,
                         systemImage: "drop.fill",
-                        color: PulseTheme.primaryBright
+                        color: PulseTheme.ringStand
                     )
                 }
                 .buttonStyle(.plain)
@@ -1285,7 +1260,7 @@ struct TodayView: View {
                         subtitle: "ml/kg/min",
                         localizesSubtitle: false,
                         systemImage: "lungs.fill",
-                        color: PulseTheme.primaryBright
+                        color: PulseTheme.ringStand
                     )
                 }
                 .buttonStyle(.plain)
@@ -1301,7 +1276,7 @@ struct TodayView: View {
                         value: todaySleep.map { String(format: "%.1fh", $0) } ?? "--",
                         subtitle: localizedString("last_recorded"),
                         systemImage: "moon.zzz.fill",
-                        color: Color(red: 0.55, green: 0.42, blue: 0.95)
+                        color: Color.indigo
                     )
                 }
                 .buttonStyle(.plain)
@@ -1331,12 +1306,12 @@ struct TodayView: View {
                         .font(.headline.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 42, height: 42)
-                        .background(batteryStatus.level < 55 ? batteryColor : PulseTheme.primary)
+                        .background(batteryStatus.level < 55 ? batteryColor : PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     VStack(alignment: .leading, spacing: 4) {
                         Text("today_s_insight")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(batteryStatus.level < 55 ? batteryColor : PulseTheme.primary)
+                            .foregroundStyle(batteryStatus.level < 55 ? batteryColor : PulseTheme.accent)
                             .textCase(.uppercase)
                         Text(batteryStatus.level < 55 ? batteryStatus.title : coachInsight.title)
                             .font(.headline)
@@ -1367,7 +1342,7 @@ struct TodayView: View {
                         .font(.headline.weight(.bold))
                         .frame(width: 42, height: 42)
                         .foregroundStyle(.white)
-                        .background(PulseTheme.primary)
+                        .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 3) {
@@ -1401,7 +1376,7 @@ struct TodayView: View {
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .background(PulseTheme.grouped)
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
@@ -1417,7 +1392,7 @@ struct TodayView: View {
                 HStack(alignment: .firstTextBaseline) {
                     Label(store.activePlan.name, systemImage: "bolt.fill")
                         .font(.headline)
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                     Spacer()
                     Text("\(Int(store.activePlan.completion * 100))%")
                         .font(.title2.bold().monospacedDigit())
@@ -1438,17 +1413,17 @@ struct TodayView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
                             Image(systemName: "calendar.badge.clock")
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                             Text(localizedFormat("target_event_format", eventName))
                                 .font(.subheadline.weight(.semibold))
                             Spacer()
                             if daysDiff > 0 {
                                 Text(localizedFormat("days_left_weeks_format", daysDiff, weeks))
                                     .font(.caption.bold())
-                                    .foregroundStyle(PulseTheme.primaryBright)
+                                    .foregroundStyle(PulseTheme.ringStand)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(PulseTheme.primaryBright.opacity(0.12))
+                                    .background(PulseTheme.ringStand.opacity(0.12))
                                     .clipShape(Capsule())
                             } else if daysDiff == 0 {
                                 Text(localizedString("today_is_the_day"))
@@ -1523,7 +1498,7 @@ struct TodayView: View {
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(width: 26, height: 26)
-                            .background(PulseTheme.primary.opacity(0.85))
+                            .background(PulseTheme.accent.opacity(0.85))
                             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                         Text(localizedString("last_workout"))
                             .font(.caption.weight(.bold))
@@ -1588,7 +1563,7 @@ struct TodayView: View {
                         title: "library",
                         subtitle: LocalizedStringKey(localizedFormat("exercises_count_format", store.exercises.count)),
                         systemImage: "photo.stack",
-                        color: PulseTheme.primary
+                        color: PulseTheme.accent
                     )
                 }
                 .buttonStyle(.plain)
@@ -1596,14 +1571,14 @@ struct TodayView: View {
                 Button {
                     HapticService.selection()
                     if let onSelectTab {
-                        onSelectTab(.progress)
+                        onSelectTab(.summary)
                     }
                 } label: {
                     ShortcutTile(
                         title: "progress_2",
                         subtitle: "charts_and_insights",
                         systemImage: "chart.line.uptrend.xyaxis",
-                        color: PulseTheme.primaryBright
+                        color: PulseTheme.ringStand
                     )
                 }
                 .buttonStyle(.plain)
@@ -1628,7 +1603,7 @@ struct TodayView: View {
                         title: "routines",
                         subtitle: LocalizedStringKey(localizedFormat("templates_count_format", store.workoutTemplates.count)),
                         systemImage: "list.clipboard",
-                        color: PulseTheme.primary
+                        color: PulseTheme.accent
                     )
                 }
                 .buttonStyle(.plain)
@@ -1944,7 +1919,7 @@ private struct TodayActivationStepRow: View {
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12)
                             .frame(height: 32)
-                            .background(PulseTheme.primary)
+                            .background(PulseTheme.accent)
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -1958,7 +1933,7 @@ private struct TodayActivationStepRow: View {
     }
 
     private var iconColor: Color {
-        step.isCompleted ? PulseTheme.recovery : PulseTheme.primary
+        step.isCompleted ? PulseTheme.recovery : PulseTheme.accent
     }
 }
 
@@ -2135,7 +2110,7 @@ private struct ActivityMatrixCard: View {
         return LinearGradient(
             colors: [
                 color.opacity(0.42 + (0.38 * intensity)),
-                PulseTheme.primaryBright.opacity(0.58 + (0.30 * intensity)),
+                PulseTheme.ringStand.opacity(0.58 + (0.30 * intensity)),
                 PulseTheme.accent.opacity(0.28 + (0.50 * intensity))
             ],
             startPoint: .leading,
@@ -2495,14 +2470,14 @@ private struct PlanMicroCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 } else {
                     RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                        .fill(PulseTheme.primary.opacity(0.10))
+                        .fill(PulseTheme.accent.opacity(0.10))
                         .frame(width: 108, height: 58)
                 }
                 Image(systemName: "play.fill")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(width: 24, height: 24)
-                    .background(PulseTheme.primary)
+                    .background(PulseTheme.accent)
                     .clipShape(Circle())
                     .offset(x: 5, y: 5)
             }
@@ -2516,7 +2491,7 @@ private struct PlanMicroCard: View {
             Spacer(minLength: 0)
             Label("\(day.durationMinutes) min", systemImage: "timer")
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
         }
         .padding(12)
         .frame(width: 132, height: 160, alignment: .leading)
@@ -2593,7 +2568,7 @@ private struct VisualExerciseCard: View {
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 22, height: 22)
-                    .background(PulseTheme.primary)
+                    .background(PulseTheme.accent)
                     .clipShape(Circle())
                     .padding(6)
             }
@@ -2670,7 +2645,7 @@ private struct VisualExerciseCard: View {
 
     private var difficultyColor: Color {
         switch exercise.difficulty {
-        case .low: return PulseTheme.primaryBright
+        case .low: return PulseTheme.ringStand
         case .medium: return PulseTheme.warning
         case .high: return PulseTheme.destructive
         }

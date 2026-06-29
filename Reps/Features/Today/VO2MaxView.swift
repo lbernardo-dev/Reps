@@ -26,7 +26,7 @@ enum VO2MaxZone: String {
 
     var color: Color {
         switch self {
-        case .excellent: PulseTheme.primaryBright
+        case .excellent: PulseTheme.ringStand
         case .good:      PulseTheme.recovery
         case .fair:      PulseTheme.warning
         case .low:       PulseTheme.destructive

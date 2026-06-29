@@ -149,9 +149,9 @@ struct MuscleMapProgressView: View {
         if let selectedSegment {
             HStack(spacing: 8) {
                 Circle()
-                    .fill(PulseTheme.primaryBright)
+                    .fill(PulseTheme.ringStand)
                     .frame(width: 6, height: 6)
-                    .shadow(color: PulseTheme.primaryBright, radius: 2)
+                    .shadow(color: PulseTheme.ringStand, radius: 2)
                 Text(selectedSegment.title)
                     .font(.system(size: 12, weight: .bold))
                 Button {
@@ -170,7 +170,7 @@ struct MuscleMapProgressView: View {
             .background(Color.white.opacity(0.08))
             .overlay(
                 Capsule()
-                    .stroke(PulseTheme.primaryBright.opacity(0.4), lineWidth: 1)
+                    .stroke(PulseTheme.ringStand.opacity(0.4), lineWidth: 1)
             )
             .clipShape(Capsule())
         }
@@ -239,7 +239,7 @@ private struct MuscleCoverageSummaryCard: View {
                         Text("muscle_map")
                             .font(.caption.weight(.black))
                             .textCase(.uppercase)
-                            .foregroundStyle(PulseTheme.primaryBright)
+                            .foregroundStyle(PulseTheme.ringStand)
                         Text(headline)
                             .font(.headline.weight(.black))
                             .lineLimit(2)
@@ -325,14 +325,14 @@ private struct QuietFilterChip: View {
             .frame(height: 32)
             .foregroundStyle(isSelected ? .black : Color.white.opacity(0.7))
             .background(
-                isSelected ? PulseTheme.primaryBright : Color.white.opacity(0.05)
+                isSelected ? PulseTheme.ringStand : Color.white.opacity(0.05)
             )
             .overlay(
                 Capsule()
-                    .stroke(isSelected ? PulseTheme.primaryBright : Color.white.opacity(0.08), lineWidth: 1)
+                    .stroke(isSelected ? PulseTheme.ringStand : Color.white.opacity(0.08), lineWidth: 1)
             )
             .clipShape(Capsule())
-            .shadow(color: isSelected ? PulseTheme.primaryBright.opacity(0.3) : Color.clear, radius: 4, x: 0, y: 1)
+            .shadow(color: isSelected ? PulseTheme.ringStand.opacity(0.3) : Color.clear, radius: 4, x: 0, y: 1)
     }
 }
 
@@ -412,7 +412,7 @@ private struct MuscleLoadCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(isSelected ? PulseTheme.primaryBright : Color.white.opacity(0.06), lineWidth: 1)
+                            .stroke(isSelected ? PulseTheme.ringStand : Color.white.opacity(0.06), lineWidth: 1)
                     )
 
                 VStack(alignment: .leading, spacing: 7) {
@@ -442,7 +442,7 @@ private struct MuscleLoadCard: View {
                         if load.predictedSets > 0 {
                             Label("+\(load.predictedSets)", systemImage: "sparkles")
                                 .font(.system(size: 10, weight: .black))
-                                .foregroundStyle(PulseTheme.primaryBright)
+                                .foregroundStyle(PulseTheme.ringStand)
                                 .padding(.leading, 2)
                         }
                     }
@@ -478,7 +478,7 @@ private struct MuscleLoadCard: View {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 10, weight: .black))
                 }
-                .foregroundStyle(PulseTheme.primaryBright)
+                .foregroundStyle(PulseTheme.ringStand)
             }
 	        }
 	        .padding(14)
@@ -501,9 +501,9 @@ private struct MuscleLoadCard: View {
 	        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 	        .overlay(
 	            RoundedRectangle(cornerRadius: 20, style: .continuous)
-	                .stroke(isSelected ? PulseTheme.primaryBright.opacity(0.82) : Color.white.opacity(0.075), lineWidth: isSelected ? 1.6 : 1)
+	                .stroke(isSelected ? PulseTheme.ringStand.opacity(0.82) : Color.white.opacity(0.075), lineWidth: isSelected ? 1.6 : 1)
 	        )
-	        .shadow(color: isSelected ? PulseTheme.primaryBright.opacity(0.10) : Color.black.opacity(0.14), radius: isSelected ? 12 : 8, x: 0, y: 5)
+	        .shadow(color: isSelected ? PulseTheme.ringStand.opacity(0.10) : Color.black.opacity(0.14), radius: isSelected ? 12 : 8, x: 0, y: 5)
 	    }
 	}
 
@@ -579,7 +579,7 @@ private struct MuscleSegmentDetailSheet: View {
                                     x: .value("Día", point.label),
                                     y: .value("Series", point.sets)
                                 )
-                                .foregroundStyle(point.sets > 0 ? PulseTheme.primary : PulseTheme.separator)
+                                .foregroundStyle(point.sets > 0 ? PulseTheme.accent : PulseTheme.separator)
 
                                 if point.sets > 0 {
                                     PointMark(
@@ -591,7 +591,7 @@ private struct MuscleSegmentDetailSheet: View {
                                             .font(.caption2.weight(.bold))
                                             .foregroundStyle(.black)
                                             .padding(6)
-                                            .background(PulseTheme.primary, in: Circle())
+                                            .background(PulseTheme.accent, in: Circle())
                                     }
                                 }
                             }
@@ -993,7 +993,7 @@ struct RepsProgressiveSegmentBar: View {
         // Mirrors MuscleZone semantics cell-by-cell: blue (maintaining) -> green (growing) -> yellow (focus).
         switch index {
         case 0..<4:
-            return PulseTheme.primary
+            return PulseTheme.accent
         case 4..<10:
             return PulseTheme.growth
         default:
@@ -1038,7 +1038,7 @@ struct MuscleLoad: Identifiable {
     var zoneColor: Color {
         switch totalSets {
         case 0..<4:
-            PulseTheme.primary
+            PulseTheme.accent
         case 4..<10:
             PulseTheme.growth
         default:
@@ -1384,7 +1384,7 @@ extension BodyViewStyle {
         defaultFillColor: Color.white.opacity(0.06),
         strokeColor: Color.white.opacity(0.20),
         strokeWidth: 0.6,
-        selectionColor: PulseTheme.primary,
+        selectionColor: PulseTheme.accent,
         selectionStrokeColor: .white,
         selectionStrokeWidth: 1.5,
         headColor: Color.white.opacity(0.08),
@@ -1395,8 +1395,8 @@ extension BodyViewStyle {
         defaultFillColor: Color.white.opacity(0.08),
         strokeColor: Color.white.opacity(0.20),
         strokeWidth: 0.6,
-        selectionColor: PulseTheme.primary,
-        selectionStrokeColor: PulseTheme.primary,
+        selectionColor: PulseTheme.accent,
+        selectionStrokeColor: PulseTheme.accent,
         selectionStrokeWidth: 1,
         headColor: Color.white.opacity(0.10),
         hairColor: Color.white.opacity(0.05)
@@ -1416,8 +1416,8 @@ extension HeatmapConfiguration {
 
 extension HeatmapColorScale {
     static let repsProgressVolume = HeatmapColorScale(colors: [
-        PulseTheme.primary,
-        PulseTheme.primaryBright,
+        PulseTheme.accent,
+        PulseTheme.ringStand,
         PulseTheme.accent
     ])
 }

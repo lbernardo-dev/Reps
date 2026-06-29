@@ -98,9 +98,9 @@ struct ProgressPhotoEditorView: View {
                             HStack(spacing: 14) {
                                 Image(systemName: "photo.on.rectangle")
                                     .font(.title3.weight(.semibold))
-                                    .foregroundStyle(PulseTheme.primary)
+                                    .foregroundStyle(PulseTheme.accent)
                                     .frame(width: 42, height: 42)
-                                    .background(PulseTheme.primary.opacity(0.14))
+                                    .background(PulseTheme.accent.opacity(0.14))
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -217,9 +217,9 @@ private struct ProgressPhotoSourceActionLabel: View {
         HStack(spacing: 14) {
             Image(systemName: systemImage)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
                 .frame(width: 42, height: 42)
-                .background(PulseTheme.primary.opacity(0.14))
+                .background(PulseTheme.accent.opacity(0.14))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             VStack(alignment: .leading, spacing: 2) {
@@ -250,7 +250,7 @@ private struct ProgressPhotoEmptyPreview: View {
         VStack(spacing: 10) {
             Image(systemName: "photo.badge.plus")
                 .font(.system(size: 34, weight: .semibold))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
             Text("no_photo_selected")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)

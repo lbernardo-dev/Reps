@@ -39,7 +39,7 @@ struct ExerciseView: View {
         store.health.latestDailyMetrics.sorted { $0.date < $1.date }.suffix(7).map { $0 }
     }
 
-    private var exerciseColor: Color { fraction >= 1.0 ? PulseTheme.primaryBright : PulseTheme.primary }
+    private var exerciseColor: Color { fraction >= 1.0 ? PulseTheme.ringStand : PulseTheme.accent }
 
     var body: some View {
         ScrollView {
@@ -212,7 +212,7 @@ struct ExerciseView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Label(localizedString("insights_and_flags"), systemImage: "lightbulb.fill").font(.headline)
                 if fraction >= 1.0 {
-                    HealthInsightRow(icon: "checkmark.circle.fill", color: PulseTheme.primaryBright,
+                    HealthInsightRow(icon: "checkmark.circle.fill", color: PulseTheme.ringStand,
                                title: localizedString("exercise_goal_reached"),
                                message: localizedString("exercise_great_body"))
                 } else if fraction >= 0.5 {

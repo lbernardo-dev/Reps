@@ -215,7 +215,7 @@ struct ProfileSetupView: View {
                     title: "onboarding_setup_create",
                     subtitle: "onboarding_setup_create_sub",
                     icon: "sparkles",
-                    tint: PulseTheme.primary,
+                    tint: PulseTheme.accent,
                     isSelected: !draft.buildsOwnPlan
                 ) {
                     draft.buildsOwnPlan = false
@@ -270,7 +270,7 @@ struct ProfileSetupView: View {
                         title: experience.title,
                         subtitle: experience.subtitle,
                         icon: experience.icon,
-                        tint: PulseTheme.primaryBright,
+                        tint: PulseTheme.ringStand,
                         isSelected: draft.experience == experience
                     ) {
                         draft.experience = experience
@@ -501,7 +501,7 @@ struct ProfileSetupView: View {
                             .fill(.white.opacity(0.10))
                         Capsule()
                             .fill(LinearGradient(
-                                colors: [PulseTheme.primaryBright, PulseTheme.accent],
+                                colors: [PulseTheme.ringStand, PulseTheme.accent],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             ))
@@ -1269,7 +1269,7 @@ private struct OnboardingBenefit: View {
             VStack(alignment: .leading, spacing: 8) {
                 Image(systemName: icon)
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                 Text(title)
                     .font(.headline)
                 Text(subtitle)
@@ -1334,10 +1334,10 @@ private struct GenerationStepRow: View {
                     if isCompleted {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(PulseTheme.primaryBright)
+                            .foregroundStyle(PulseTheme.ringStand)
                     } else if isActive {
                         Circle()
-                            .stroke(PulseTheme.primaryBright, lineWidth: 2.5)
+                            .stroke(PulseTheme.ringStand, lineWidth: 2.5)
                             .frame(width: 22, height: 22)
                             .scaleEffect(pulse ? 1.15 : 0.88)
                             .opacity(pulse ? 1 : 0.55)
@@ -1363,7 +1363,7 @@ private struct GenerationStepRow: View {
             if !isLast {
                 HStack(spacing: 14) {
                     Rectangle()
-                        .fill(isCompleted ? PulseTheme.primaryBright.opacity(0.5) : .white.opacity(0.14))
+                        .fill(isCompleted ? PulseTheme.ringStand.opacity(0.5) : .white.opacity(0.14))
                         .frame(width: 1.5, height: 14)
                         .frame(width: 26)
                     Spacer()
@@ -1471,9 +1471,9 @@ private struct PlanProjectionCard: View {
                     )
                     .foregroundStyle(
                         point.isDeload
-                            ? AnyShapeStyle(PulseTheme.primaryBright.opacity(0.28))
+                            ? AnyShapeStyle(PulseTheme.ringStand.opacity(0.28))
                             : AnyShapeStyle(LinearGradient(
-                                colors: [PulseTheme.primaryBright, PulseTheme.accent],
+                                colors: [PulseTheme.ringStand, PulseTheme.accent],
                                 startPoint: .bottom,
                                 endPoint: .top
                             ))
@@ -1634,7 +1634,7 @@ private struct PlanLockedDaysCard: View {
                     HStack(spacing: 10) {
                         if isPro {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(PulseTheme.primaryBright)
+                                .foregroundStyle(PulseTheme.ringStand)
                         } else {
                             Image(systemName: "lock.fill")
                                 .foregroundStyle(PulseTheme.accent.opacity(0.7))
@@ -2041,11 +2041,11 @@ private extension UserProfile.MainGoal {
 
     var tint: Color {
         switch self {
-        case .buildMuscle: PulseTheme.primary
+        case .buildMuscle: PulseTheme.accent
         case .bodyRecomposition: .white
         case .loseFat: PulseTheme.warning
         case .getStronger: PulseTheme.accent
-        case .stayActive: PulseTheme.primaryBright
+        case .stayActive: PulseTheme.ringStand
         }
     }
 }
@@ -2089,7 +2089,7 @@ private extension BodyViewStyle {
         defaultFillColor: Color.white.opacity(0.16),
         strokeColor: Color.black.opacity(0.55),
         strokeWidth: 0.65,
-        selectionColor: PulseTheme.primary,
+        selectionColor: PulseTheme.accent,
         selectionStrokeColor: .white,
         selectionStrokeWidth: 1.6,
         headColor: Color.white.opacity(0.22),
@@ -2130,8 +2130,8 @@ private extension HeatmapConfiguration {
 
 private extension HeatmapColorScale {
     static let repsVolume = HeatmapColorScale(colors: [
-        PulseTheme.primary,
-        PulseTheme.primaryBright,
+        PulseTheme.accent,
+        PulseTheme.ringStand,
         PulseTheme.accent
     ])
 

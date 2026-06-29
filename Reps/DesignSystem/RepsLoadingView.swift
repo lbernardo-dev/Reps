@@ -84,8 +84,8 @@ struct RepsLoadingView: View {
 
             RadialGradient(
                 colors: [
-                    PulseTheme.primary.opacity(0.34),
-                    PulseTheme.primary.opacity(0.12),
+                    PulseTheme.accent.opacity(0.34),
+                    PulseTheme.accent.opacity(0.12),
                     .clear
                 ],
                 center: .center,
@@ -140,8 +140,8 @@ struct RepsLoadingView: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                PulseTheme.primaryBright,
-                                PulseTheme.primary,
+                                PulseTheme.ringStand,
+                                PulseTheme.accent,
                                 PulseTheme.accent
                             ],
                             startPoint: .leading,
@@ -149,7 +149,7 @@ struct RepsLoadingView: View {
                         )
                     )
                     .frame(width: max(10, width * progressValue))
-                    .shadow(color: PulseTheme.primary.opacity(0.32), radius: 10, y: 2)
+                    .shadow(color: PulseTheme.accent.opacity(0.32), radius: 10, y: 2)
             }
         }
         .frame(height: layout == .compact ? 5 : 7)
@@ -303,18 +303,18 @@ private struct RepsBarbellMark: View {
     var body: some View {
         HStack(spacing: 9 * scale) {
             RoundedRectangle(cornerRadius: 5 * scale, style: .continuous)
-                .fill(PulseTheme.primaryBright)
+                .fill(PulseTheme.ringStand)
                 .frame(width: 10 * scale, height: 52 * scale)
 
             RoundedRectangle(cornerRadius: 5 * scale, style: .continuous)
-                .fill(PulseTheme.primary)
+                .fill(PulseTheme.accent)
                 .frame(width: 18 * scale, height: 70 * scale)
 
             Capsule()
                 .fill(
                     LinearGradient(
                         colors: [
-                            PulseTheme.primary,
+                            PulseTheme.accent,
                             .white.opacity(0.70),
                             PulseTheme.accent
                         ],
@@ -325,14 +325,14 @@ private struct RepsBarbellMark: View {
                 .frame(width: 118 * scale, height: 8 * scale)
 
             RoundedRectangle(cornerRadius: 5 * scale, style: .continuous)
-                .fill(PulseTheme.primary)
+                .fill(PulseTheme.accent)
                 .frame(width: 18 * scale, height: 70 * scale)
 
             RoundedRectangle(cornerRadius: 5 * scale, style: .continuous)
-                .fill(PulseTheme.primaryBright)
+                .fill(PulseTheme.ringStand)
                 .frame(width: 10 * scale, height: 52 * scale)
         }
-        .shadow(color: PulseTheme.primary.opacity(0.52), radius: 22 * scale)
+        .shadow(color: PulseTheme.accent.opacity(0.52), radius: 22 * scale)
     }
 }
 

@@ -92,7 +92,7 @@ struct WorkoutShareImageRenderer {
             }
             // End dot (lime)
             if let l = mapped.last {
-                cg.setFillColor(UIColor(red: 0.73, green: 1.0, blue: 0.0, alpha: 1).cgColor)
+                cg.setFillColor(UIColor(red: 0.69, green: 0.99, blue: 0.16, alpha: 1).cgColor)
                 cg.addEllipse(in: CGRect(x: l.x - 5.5, y: l.y - 5.5, width: 11, height: 11)); cg.fillPath()
             }
         }
@@ -138,7 +138,7 @@ struct WorkoutShareImageRenderer {
 
             // Route polyline
             let mapped = coords.map { snap.point(for: $0) }
-            cg.setStrokeColor(UIColor(red: 0.35, green: 0.75, blue: 1.0, alpha: 1).cgColor)
+            cg.setStrokeColor(UIColor(red: 0.12, green: 0.92, blue: 0.94, alpha: 1).cgColor)
             cg.setLineWidth(5); cg.setLineCap(.round); cg.setLineJoin(.round)
             cg.move(to: mapped[0])
             mapped.dropFirst().forEach { cg.addLine(to: $0) }
@@ -151,7 +151,7 @@ struct WorkoutShareImageRenderer {
             }
             // End dot (green)
             if let l = mapped.last {
-                cg.setFillColor(UIColor(red: 0.0, green: 0.88, blue: 0.44, alpha: 1).cgColor)
+                cg.setFillColor(UIColor(red: 0.57, green: 0.91, blue: 0.16, alpha: 1).cgColor)
                 cg.addEllipse(in: CGRect(x: l.x - 8, y: l.y - 8, width: 16, height: 16)); cg.fillPath()
             }
 
@@ -207,7 +207,7 @@ struct WorkoutShareImageRenderer {
         format.opaque = true
 
         return UIGraphicsImageRenderer(size: size, format: format).image { context in
-            UIColor(red: 0.95, green: 0.94, blue: 0.92, alpha: 1).setFill()
+            UIColor.white.setFill()
             context.fill(CGRect(origin: .zero, size: size))
 
             let titleAttributes: [NSAttributedString.Key: Any] = [
@@ -260,7 +260,7 @@ private struct PRShareCardView: View {
 
             VStack(spacing: 0) {
                 // Top accent bar
-                Color(red: 0.73, green: 1.0, blue: 0.0)
+                PulseTheme.accent
                     .frame(height: 6)
 
                 VStack(spacing: 24) {
@@ -268,17 +268,17 @@ private struct PRShareCardView: View {
                     VStack(spacing: 10) {
                         ZStack {
                             Circle()
-                                .fill(Color(red: 0.73, green: 1.0, blue: 0.0).opacity(0.14))
+                                .fill(PulseTheme.accent.opacity(0.14))
                                 .frame(width: 80, height: 80)
                             Image(systemName: "trophy.fill")
                                 .font(.system(size: 36, weight: .bold))
-                                .foregroundStyle(Color(red: 0.73, green: 1.0, blue: 0.0))
+                                .foregroundStyle(PulseTheme.accent)
                         }
 
                         Text("NUEVO RÉCORD PERSONAL")
                             .font(.system(size: 11, weight: .black, design: .rounded))
                             .kerning(2)
-                            .foregroundStyle(Color(red: 0.73, green: 1.0, blue: 0.0))
+                            .foregroundStyle(PulseTheme.accent)
                     }
                     .padding(.top, 32)
 
@@ -295,7 +295,7 @@ private struct PRShareCardView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(weightText)
                             .font(.system(size: 48, weight: .black, design: .rounded))
-                            .foregroundStyle(Color(red: 0.73, green: 1.0, blue: 0.0))
+                            .foregroundStyle(PulseTheme.accent)
                         Text("×")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundStyle(Color.white.opacity(0.4))
@@ -319,7 +319,7 @@ private struct PRShareCardView: View {
                         Spacer()
                         Text("StreakRep")
                             .font(.system(size: 13, weight: .black, design: .rounded))
-                            .foregroundStyle(Color(red: 0.73, green: 1.0, blue: 0.0).opacity(0.7))
+                            .foregroundStyle(PulseTheme.accent.opacity(0.7))
                     }
                     .padding(.horizontal, 28)
                     .padding(.bottom, 28)

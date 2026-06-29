@@ -40,7 +40,7 @@ struct CreatePostView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("@\(store.userProfile.socialUsername ?? "")")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                             TextField(localizedString("post_caption_placeholder"), text: $caption, axis: .vertical)
                                 .font(.body)
                                 .lineLimit(4...10)
@@ -62,9 +62,9 @@ struct CreatePostView: View {
                         ) {
                             Label(localizedString("post_add_photo"), systemImage: "photo.badge.plus")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                                 .padding(.horizontal, 14).padding(.vertical, 10)
-                                .background(PulseTheme.primary.opacity(0.08))
+                                .background(PulseTheme.accent.opacity(0.08))
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                         .onChange(of: selectedItems) { _, newItems in
@@ -98,13 +98,13 @@ struct CreatePostView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if isPosting {
-                        ProgressView().tint(PulseTheme.primary)
+                        ProgressView().tint(PulseTheme.accent)
                     } else {
                         Button(localizedString("post_share")) {
                             publish()
                         }
                         .font(.headline)
-                        .foregroundStyle(canPost ? PulseTheme.primary : PulseTheme.secondaryText)
+                        .foregroundStyle(canPost ? PulseTheme.accent : PulseTheme.secondaryText)
                         .disabled(!canPost)
                     }
                 }
@@ -117,7 +117,7 @@ struct CreatePostView: View {
     private var authorAvatar: some View {
         ZStack {
             Circle()
-                .fill(PulseTheme.primary.opacity(0.12))
+                .fill(PulseTheme.accent.opacity(0.12))
                 .frame(width: 44, height: 44)
             if let data = store.userProfile.avatarImageData,
                let img = UIImage(data: data) {
@@ -129,7 +129,7 @@ struct CreatePostView: View {
                 let uname = store.userProfile.socialUsername ?? "?"
                 Text(String(uname.prefix(1)).uppercased())
                     .font(.system(size: 18, weight: .black, design: .rounded))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
             }
         }
     }

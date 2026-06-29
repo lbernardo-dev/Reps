@@ -14,8 +14,8 @@ struct StrengthWorkoutHero: View {
         ZStack(alignment: .bottomLeading) {
             LinearGradient(
                 colors: [
-                    Color(red: 0.09, green: 0.11, blue: 0.13),
-                    Color(red: 0.02, green: 0.02, blue: 0.03)
+                    PulseTheme.card,
+                    Color.black
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -61,7 +61,7 @@ struct StrengthWorkoutHero: View {
 
                 Text("\(volumeKg) KG")
                     .font(.system(size: 30, weight: .regular, design: .rounded))
-                    .foregroundStyle(Color(red: 0.62, green: 1.0, blue: 0.03))
+                    .foregroundStyle(PulseTheme.ringExercise)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
 
@@ -78,20 +78,20 @@ struct StrengthWorkoutHero: View {
                 HStack(spacing: 16) {
                     RouteHeroSensor(
                         icon: "checkmark.circle.fill",
-                        iconColor: Color(red: 0.33, green: 1.0, blue: 0.36),
+                        iconColor: PulseTheme.ringExercise,
                         value: "\(setCount)",
                         label: "Sets"
                     )
                     RouteHeroSensor(
                         icon: "list.bullet",
-                        iconColor: Color(red: 0.22, green: 0.78, blue: 1.0),
+                        iconColor: PulseTheme.ringStand,
                         value: "\(exerciseCount)",
                         label: "Exercises"
                     )
                     if let averageHeartRate = session.averageHeartRate {
                         RouteHeroSensor(
                             icon: "heart.fill",
-                            iconColor: Color(red: 1.0, green: 0.15, blue: 0.36),
+                            iconColor: PulseTheme.ringMove,
                             value: "\(Int(averageHeartRate))",
                             label: "Avg. Heart Rate"
                         )
@@ -125,17 +125,17 @@ struct StrengthWorkoutDetailsCard: View {
 
     var body: some View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 24) {
-            RouteWorkoutMetric(title: "Workout Time", value: session.workoutTimeText, color: Color(red: 1.0, green: 0.90, blue: 0.03))
-            RouteWorkoutMetric(title: "Total Volume", value: "\(volumeKg)KG", color: Color(red: 0.62, green: 1.0, blue: 0.03))
-            RouteWorkoutMetric(title: "Sets", value: "\(setCount)", color: Color(red: 0.0, green: 0.72, blue: 1.0))
-            RouteWorkoutMetric(title: "Exercises", value: "\(exerciseCount)", color: Color(red: 0.0, green: 0.72, blue: 1.0))
-            RouteWorkoutMetric(title: "Avg RPE", value: (session.sessionRPE ?? AnalyticsEngine.averageRPE(for: session)).map { String(format: "%.1f", $0) } ?? "-", color: Color(red: 1.0, green: 0.55, blue: 0.0))
-            RouteWorkoutMetric(title: "Active Kilocalories", value: session.activeKilocaloriesText, color: Color(red: 1.0, green: 0.08, blue: 0.34))
-            RouteWorkoutMetric(title: "Avg. Heart Rate", value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: Color(red: 1.0, green: 0.20, blue: 0.30))
-            RouteWorkoutMetric(title: "Max Heart Rate", value: session.maxHeartRate.map { "\(Int($0))BPM" } ?? "--", color: Color(red: 1.0, green: 0.20, blue: 0.30))
+            RouteWorkoutMetric(title: "Workout Time", value: session.workoutTimeText, color: PulseTheme.hrZones[2])
+            RouteWorkoutMetric(title: "Total Volume", value: "\(volumeKg)KG", color: PulseTheme.ringExercise)
+            RouteWorkoutMetric(title: "Sets", value: "\(setCount)", color: PulseTheme.ringStand)
+            RouteWorkoutMetric(title: "Exercises", value: "\(exerciseCount)", color: PulseTheme.ringStand)
+            RouteWorkoutMetric(title: "Avg RPE", value: (session.sessionRPE ?? AnalyticsEngine.averageRPE(for: session)).map { String(format: "%.1f", $0) } ?? "-", color: PulseTheme.hrZones[3])
+            RouteWorkoutMetric(title: "Active Kilocalories", value: session.activeKilocaloriesText, color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: "Avg. Heart Rate", value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: "Max Heart Rate", value: session.maxHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
         }
         .padding(24)
-        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
@@ -166,7 +166,7 @@ struct StrengthExerciseBreakdownCard: View {
                         } label: {
                             Image(systemName: "chart.line.uptrend.xyaxis")
                                 .font(.subheadline)
-                                .foregroundStyle(Color(red: 0.62, green: 1.0, blue: 0.03))
+                                .foregroundStyle(PulseTheme.ringExercise)
                                 .padding(8)
                                 .background(Color.white.opacity(0.06))
                                 .clipShape(Circle())
@@ -194,7 +194,7 @@ struct StrengthExerciseBreakdownCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }

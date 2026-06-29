@@ -232,7 +232,7 @@ private struct ProgramHeroMetric: View {
         HStack(spacing: 8) {
             Image(systemName: systemImage)
                 .font(.caption.weight(.black))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
                     .font(.headline.weight(.black))
@@ -307,7 +307,7 @@ private struct ProgramCardMetric: View {
         HStack(spacing: 6) {
             Image(systemName: systemImage)
                 .font(.caption2.weight(.black))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
                     .font(.caption.weight(.black))
@@ -351,7 +351,7 @@ private struct ProgramDayCard: View {
                         ForEach(day.exercises.prefix(3)) { ex in
                             HStack(spacing: 8) {
                                 Circle()
-                                    .fill(PulseTheme.primary.opacity(0.25))
+                                    .fill(PulseTheme.accent.opacity(0.25))
                                     .frame(width: 5, height: 5)
                                 Text(ex.exercise.name)
                                     .font(.caption)
@@ -391,7 +391,7 @@ struct ProgramCategoryChip: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .foregroundStyle(isSelected ? .white : .primary)
-            .background(isSelected ? PulseTheme.primary : PulseTheme.card)
+            .background(isSelected ? PulseTheme.accent : PulseTheme.card)
             .clipShape(Capsule())
             .overlay(Capsule().stroke(isSelected ? Color.clear : PulseTheme.separator, lineWidth: 1))
         }
@@ -435,8 +435,8 @@ struct ProgramCategoryBadge: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .foregroundStyle(PulseTheme.primary)
-        .background(PulseTheme.primary.opacity(0.12))
+        .foregroundStyle(PulseTheme.accent)
+        .background(PulseTheme.accent.opacity(0.12))
         .clipShape(Capsule())
     }
 }

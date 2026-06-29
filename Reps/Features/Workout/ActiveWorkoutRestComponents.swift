@@ -63,13 +63,14 @@ struct ActiveRestPanel: View {
                         restAdjustmentButton(title: "+15s", action: onIncrease)
                             .accessibilityLabel("extend_rest_15_seconds")
 
-                        Button(currentRestSeconds == 0 ? "Reiniciar" : "Saltar", action: onSkipOrRestart)
+                        Button(currentRestSeconds == 0 ? localizedString("restart") : localizedString("skip_rest"), action: onSkipOrRestart)
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .frame(height: PulseTheme.minTapTarget)
-                            .background(PulseTheme.grouped)
+                            .foregroundStyle(PulseTheme.accent)
+                            .background(PulseTheme.accent.opacity(0.10))
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
-                            .accessibilityLabel(localizedString(currentRestSeconds == 0 ? "Reiniciar descanso" : "Saltar descanso"))
+                            .accessibilityLabel(localizedString(currentRestSeconds == 0 ? "restart_rest" : "skip_rest"))
                     }
                     .buttonStyle(.plain)
                 }
@@ -99,8 +100,8 @@ struct ActiveRestPanel: View {
                 .font(.subheadline.weight(.bold))
                 .frame(maxWidth: .infinity)
                 .frame(height: PulseTheme.minTapTarget)
-                .foregroundStyle(PulseTheme.primary)
-                .background(PulseTheme.primary.opacity(0.10))
+                .foregroundStyle(PulseTheme.accent)
+                .background(PulseTheme.accent.opacity(0.10))
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
         }
     }
@@ -115,7 +116,7 @@ private struct RestCountdownRing: View, Equatable {
         TimelineView(.periodic(from: .now, by: 1)) { timeline in
             let seconds = remainingSeconds(at: timeline.date)
             let progress = restDuration > 0 ? Double(seconds) / Double(restDuration) : 0
-            let ringColor: Color = seconds > 30 ? PulseTheme.primaryBright : (seconds > 0 ? PulseTheme.warning : PulseTheme.recovery)
+            let ringColor: Color = seconds > 30 ? PulseTheme.ringStand : (seconds > 0 ? PulseTheme.warning : PulseTheme.recovery)
 
             ZStack {
                 Circle()

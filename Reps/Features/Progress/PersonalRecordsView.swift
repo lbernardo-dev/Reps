@@ -143,7 +143,7 @@ struct PRCardView: View {
                         
                         Text("1RM Est: \(Int(item.oneRepMax)) kg")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(PulseTheme.primaryBright)
+                            .foregroundStyle(PulseTheme.ringStand)
                     }
                     .padding(.top, 2)
                 }
@@ -153,7 +153,7 @@ struct PRCardView: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("\(item.maxWeight, specifier: "%.1f") kg")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                     
                     Text("x \(item.maxReps) rep\(item.maxReps == 1 ? "" : "s")")
                         .font(.subheadline.weight(.semibold))

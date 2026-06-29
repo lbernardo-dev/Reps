@@ -27,7 +27,7 @@ private enum ComparisonVerdict {
 
     var color: Color {
         switch self {
-        case .stronger: return PulseTheme.primaryBright
+        case .stronger: return PulseTheme.ringStand
         case .declining: return PulseTheme.destructive
         case .same: return PulseTheme.accent
         case .noData: return PulseTheme.secondaryText
@@ -118,7 +118,7 @@ struct StrengthComparisonView: View {
     private func deltaColor(current: Double, previous: Double) -> Color {
         guard previous > 0, current > 0 else { return PulseTheme.secondaryText }
         let pct = (current - previous) / previous * 100
-        if pct > 1 { return PulseTheme.primaryBright }
+        if pct > 1 { return PulseTheme.ringStand }
         if pct < -1 { return PulseTheme.destructive }
         return PulseTheme.secondaryText
     }
@@ -218,11 +218,11 @@ struct StrengthComparisonView: View {
         HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(PulseTheme.primary.opacity(0.12))
+                    .fill(PulseTheme.accent.opacity(0.12))
                     .frame(width: 52, height: 52)
                 Image(systemName: "chart.bar.xaxis.ascending")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(localizedString("comparison_intro_title"))
@@ -293,7 +293,7 @@ struct StrengthComparisonView: View {
                     Spacer()
                     Text(localizedString("comparison_col_now"))
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                         .frame(width: 72, alignment: .center)
                     Text(localizedString("comparison_col_before"))
                         .font(.caption.weight(.semibold))
@@ -312,14 +312,14 @@ struct StrengthComparisonView: View {
                 comparisonRow(
                     title: localizedString("comparison_row_max_weight"),
                     systemImage: "scalemass.fill",
-                    color: PulseTheme.primary,
+                    color: PulseTheme.accent,
                     currentVal: current.maxWeightKg,
                     previousVal: previous.maxWeightKg
                 )
                 comparisonRow(
                     title: localizedString("comparison_row_volume_session"),
                     systemImage: "chart.bar.fill",
-                    color: PulseTheme.primaryBright,
+                    color: PulseTheme.ringStand,
                     currentVal: current.bestSessionVolumeKg,
                     previousVal: previous.bestSessionVolumeKg
                 )
@@ -392,7 +392,7 @@ struct StrengthComparisonView: View {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                 Text(localizedString("comparison_exercises_with_history"))
                     .font(.headline)
             }
@@ -452,7 +452,7 @@ struct StrengthComparisonView: View {
                                     Spacer()
                                     Image(systemName: selectedExercise?.id == exercise.id ? "checkmark.circle.fill" : "chevron.right")
                                         .font(.system(size: 14, weight: .semibold))
-                                        .foregroundStyle(selectedExercise?.id == exercise.id ? PulseTheme.primary : PulseTheme.secondaryText.opacity(0.5))
+                                        .foregroundStyle(selectedExercise?.id == exercise.id ? PulseTheme.accent : PulseTheme.secondaryText.opacity(0.5))
                                 }
                                 .padding(.vertical, 10)
                                 .padding(.horizontal, 4)

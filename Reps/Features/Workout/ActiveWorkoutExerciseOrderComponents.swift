@@ -33,7 +33,7 @@ struct ActiveExerciseOrderCard: View {
                             .font(.subheadline.weight(.bold))
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                 }
 
                 if drafts.isEmpty {
@@ -98,9 +98,9 @@ private struct ActiveExerciseOrderRow: View {
 
             Text("\(index + 1)")
                 .font(.caption.weight(.black).monospacedDigit())
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
                 .frame(width: 26, height: 26)
-                .background(PulseTheme.primary.opacity(0.12))
+                .background(PulseTheme.accent.opacity(0.12))
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {

@@ -230,9 +230,9 @@ struct WorkoutReceiptView: View {
         secondary.subtract(primary)
 
         return primary.map {
-            MuscleIntensity(muscle: $0, intensity: 0.92, color: PulseTheme.primaryBright)
+            MuscleIntensity(muscle: $0, intensity: 0.92, color: PulseTheme.ringStand)
         } + secondary.map {
-            MuscleIntensity(muscle: $0, intensity: 0.34, color: PulseTheme.primary.opacity(0.38))
+            MuscleIntensity(muscle: $0, intensity: 0.34, color: PulseTheme.accent.opacity(0.38))
         }
     }
 
@@ -420,7 +420,7 @@ struct WorkoutReceiptView: View {
         }
         .padding(18)
         .padding(.bottom, 6)
-        .background(Color(red: 0.95, green: 0.94, blue: 0.92))
+        .background(Color.white.opacity(0.92))
         .clipShape(SerratedCardShape(cornerRadius: 16, toothWidth: 8, toothHeight: 6))
         .overlay(
             SerratedCardShape(cornerRadius: 16, toothWidth: 8, toothHeight: 6)
@@ -553,7 +553,7 @@ private struct ReceiptRouteTrace: View {
 
                 if let last = points.last {
                     Circle()
-                        .fill(hasMapBackground ? Color(red: 0.73, green: 1.0, blue: 0.0) : Color(red: 0.05, green: 0.42, blue: 0.94))
+                        .fill(hasMapBackground ? PulseTheme.accent : PulseTheme.hrZones[0])
                         .frame(width: 11, height: 11)
                         .position(last)
                 }
@@ -698,10 +698,10 @@ private struct ReceiptRoutePanel: View {
 extension BodyViewStyle {
     static let repsReceipt = BodyViewStyle(
         defaultFillColor: Color.black.opacity(0.10),
-        strokeColor: Color(red: 0.95, green: 0.94, blue: 0.92),
+        strokeColor: Color.white.opacity(0.92),
         strokeWidth: 0.55,
-        selectionColor: Color(red: 0.05, green: 0.42, blue: 0.94),
-        selectionStrokeColor: Color(red: 0.95, green: 0.94, blue: 0.92),
+        selectionColor: PulseTheme.hrZones[0],
+        selectionStrokeColor: Color.white.opacity(0.92),
         selectionStrokeWidth: 0.8,
         headColor: Color.black.opacity(0.15),
         hairColor: Color.black.opacity(0.08)
@@ -721,9 +721,9 @@ extension HeatmapConfiguration {
 
 extension HeatmapColorScale {
     static let repsReceiptVolume = HeatmapColorScale(colors: [
-        Color(red: 0.05, green: 0.42, blue: 0.94),
-        Color(red: 0.05, green: 0.42, blue: 0.94),
-        Color(red: 0.05, green: 0.42, blue: 0.94)
+        PulseTheme.hrZones[0],
+        PulseTheme.hrZones[0],
+        PulseTheme.hrZones[0]
     ])
 }
 

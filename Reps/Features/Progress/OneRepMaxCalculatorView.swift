@@ -54,7 +54,7 @@ struct OneRepMaxCalculatorView: View {
           VStack(spacing: 20) {
             Text("value_1rm_calculator_epley_formula")
               .font(.headline)
-              .foregroundStyle(PulseTheme.primary)
+              .foregroundStyle(PulseTheme.accent)
               .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 16) {
@@ -112,7 +112,7 @@ struct OneRepMaxCalculatorView: View {
 
                 Text("\(estimated1RM, specifier: "%.1f") \(unit)")
                   .font(.system(size: 42, weight: .bold, design: .rounded))
-                  .foregroundStyle(PulseTheme.primaryBright)
+                  .foregroundStyle(PulseTheme.ringStand)
               }
               .frame(maxWidth: .infinity)
               .padding(.vertical, 8)
@@ -159,7 +159,7 @@ struct OneRepMaxCalculatorView: View {
 
                     Text("\(item.weight, specifier: "%.1f") \(unit)")
                       .font(.subheadline.monospacedDigit().weight(.bold))
-                      .foregroundStyle(PulseTheme.primary)
+                      .foregroundStyle(PulseTheme.accent)
                   }
                   .padding(.vertical, 10)
                 }

@@ -25,8 +25,8 @@ struct ExerciseMediaNotesPanel: View {
                         .font(.subheadline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 46)
-                        .foregroundStyle(isRecording ? .white : PulseTheme.primary)
-                        .background(isRecording ? Color.red : PulseTheme.primary.opacity(0.12))
+                        .foregroundStyle(isRecording ? .white : PulseTheme.accent)
+                        .background(isRecording ? Color.red : PulseTheme.accent.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
 
@@ -47,8 +47,8 @@ struct ExerciseMediaNotesPanel: View {
                     Image(systemName: "camera.fill")
                         .font(.headline)
                         .frame(width: 46, height: 46)
-                        .foregroundStyle(PulseTheme.primary)
-                        .background(PulseTheme.primary.opacity(0.12))
+                        .foregroundStyle(PulseTheme.accent)
+                        .background(PulseTheme.accent.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
             }
@@ -83,7 +83,7 @@ struct MusicTransportControls: View {
             Button(action: onBack) {
                 Image(systemName: "backward.fill")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                     .frame(width: 32, height: PulseTheme.minTapTarget)
                     .contentShape(Rectangle())
             }
@@ -105,7 +105,7 @@ struct MusicTransportControls: View {
             Button(action: onForward) {
                 Image(systemName: "forward.fill")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                     .frame(width: 32, height: PulseTheme.minTapTarget)
                     .contentShape(Rectangle())
             }
@@ -213,8 +213,8 @@ private struct AttachmentPreview: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .foregroundStyle(PulseTheme.primary)
-        .background(PulseTheme.primary.opacity(0.10))
+        .foregroundStyle(PulseTheme.accent)
+        .background(PulseTheme.accent.opacity(0.10))
     }
 
     private var accessibilityLabel: String {

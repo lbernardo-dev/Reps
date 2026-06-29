@@ -130,7 +130,7 @@ struct ChallengeDetailView: View {
                         Spacer()
                         Text(formatValue(p.currentValue))
                             .font(.subheadline.weight(.semibold).monospacedDigit())
-                            .foregroundStyle(isMe ? PulseTheme.primary : PulseTheme.secondaryText)
+                            .foregroundStyle(isMe ? PulseTheme.accent : PulseTheme.secondaryText)
                     }
                     if idx < min(participants.count, 10) - 1 {
                         Divider().padding(.leading, 32)

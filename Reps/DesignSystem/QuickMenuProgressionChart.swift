@@ -32,11 +32,11 @@ enum LineType: String, CaseIterable, Identifiable {
     var color: Color {
         switch self {
         case .expected:
-            return PulseTheme.primaryBright
+            return PulseTheme.ringStand
         case .planned:
             return PulseTheme.accent
         case .real:
-            return Color(red: 0.62, green: 1.0, blue: 0.42)
+            return PulseTheme.ringExercise
         }
     }
 }
@@ -204,11 +204,11 @@ struct QuickMenuProgressionChart: View {
                     } else {
                         ZStack {
                             Circle()
-                                .fill(PulseTheme.primary.opacity(0.12))
+                                .fill(PulseTheme.accent.opacity(0.12))
                                 .frame(width: 38, height: 38)
                             Image(systemName: "person.crop.circle.fill")
                                 .font(.system(size: 22))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                         }
                         .overlay(Circle().stroke(.white, lineWidth: 2))
                         .shadow(color: .black.opacity(0.20), radius: 4)

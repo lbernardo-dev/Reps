@@ -84,7 +84,7 @@ struct GoalsView: View {
                 summaryCell(
                     value: store.goals.filter { !$0.isAchieved }.count,
                     labelKey: "goal_summary_active",
-                    color: PulseTheme.primary
+                    color: PulseTheme.accent
                 )
                 Divider().frame(height: 40)
                 summaryCell(
@@ -146,7 +146,7 @@ struct GoalsView: View {
             } label: {
                 Label("goal_add_first", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
             }
             .buttonStyle(.plain)
             .padding(.top, 4)
@@ -205,7 +205,7 @@ struct GoalCard: View {
                             HStack(spacing: 4) {
                                 Text(goal.current.formatted(.number.precision(.fractionLength(0...1))))
                                     .font(.subheadline.bold())
-                                    .foregroundStyle(PulseTheme.primary)
+                                    .foregroundStyle(PulseTheme.accent)
                                 Text("/ \(goal.target.formatted(.number.precision(.fractionLength(0...1)))) \(goal.unit)")
                                     .font(.subheadline)
                                     .foregroundStyle(PulseTheme.secondaryText)
@@ -247,8 +247,8 @@ struct GoalCard: View {
                     .background(PulseTheme.destructive.opacity(0.12))
             case .active:
                 Text("goal_badge_active")
-                    .foregroundStyle(PulseTheme.primary)
-                    .background(PulseTheme.primary.opacity(0.10))
+                    .foregroundStyle(PulseTheme.accent)
+                    .background(PulseTheme.accent.opacity(0.10))
             }
         }
         .font(.caption2.weight(.semibold))
@@ -276,7 +276,7 @@ struct GoalCard: View {
         switch goal.status {
         case .achieved: PulseTheme.recovery
         case .overdue:  PulseTheme.destructive
-        case .active:   PulseTheme.primary
+        case .active:   PulseTheme.accent
         }
     }
 }
@@ -367,7 +367,7 @@ struct GoalEditorView: View {
                         Spacer()
                         if kind == k {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                         }
                     }
                     .contentShape(Rectangle())
@@ -562,10 +562,10 @@ extension Goal.Kind {
 
     var tint: Color {
         switch self {
-        case .strength:    PulseTheme.primary
+        case .strength:    PulseTheme.accent
         case .consistency: PulseTheme.recovery
         case .bodyWeight:  PulseTheme.accent
-        case .custom:      PulseTheme.primaryBright
+        case .custom:      PulseTheme.ringStand
         }
     }
 

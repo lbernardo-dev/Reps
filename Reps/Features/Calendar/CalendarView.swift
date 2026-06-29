@@ -8,7 +8,6 @@ struct CalendarView: View {
     @State private var selectedDate = Date()
     @State private var showProfile = false
     @State private var showNotifications = false
-    @State private var showSocialHub = false
     @State private var notificationWorkout: WorkoutDay?
 
     var body: some View {
@@ -27,8 +26,7 @@ struct CalendarView: View {
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(PulseTheme.secondaryText)
                                     .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
+                                    .navigationGlassCircle(.secondary, tint: .clear)
                                 if store.hasUnreadBell {
                                     Circle()
                                         .fill(.red)
@@ -39,30 +37,6 @@ struct CalendarView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("notifications")
-
-                        if store.userProfile.socialEnabled {
-                            Button {
-                                HapticService.selection()
-                                showSocialHub = true
-                            } label: {
-                                ZStack(alignment: .topTrailing) {
-                                    Image(systemName: "bubble.left.and.bubble.right.fill")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(PulseTheme.primary)
-                                        .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                        .background(.ultraThinMaterial)
-                                        .clipShape(Circle())
-                                    if store.unreadFeedCount > 0 {
-                                        Circle()
-                                            .fill(.red)
-                                            .frame(width: 9, height: 9)
-                                            .offset(x: -1, y: 1)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("social_hub")
-                        }
 
                         HeaderAvatarButton(
                             imageData: store.userProfile.avatarImageData,
@@ -96,7 +70,7 @@ struct CalendarView: View {
                                 .navigationGlassCircle(.secondary)
                         }
                     }
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(.white)
 
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 14) {
                         ForEach(localizedWeekdaySymbols.indices, id: \.self) { index in
@@ -110,6 +84,7 @@ struct CalendarView: View {
                                 let hasWorkout = !loggedWorkouts(on: day).isEmpty
                                 let hasScheduled = !scheduledWorkouts(on: day).isEmpty
                                 let isSelected = Calendar.current.isDate(day, inSameDayAs: selectedDate)
+                                let isToday = Calendar.current.isDateInToday(day)
                                 let volume = sessionVolumeKg(on: day)
                                 let maxVol = maxDayVolume
                                 let intensity: Double = volume > 0 ? min(volume / max(maxVol, 1), 1.0) : 0
@@ -121,15 +96,15 @@ struct CalendarView: View {
                                         Text("\(Calendar.current.component(.day, from: day))")
                                             .font(.system(size: 15, weight: .bold, design: .rounded))
                                             .frame(width: 32, height: 32)
-                                            .background(isSelected ? Color.white : .clear)
+                                            .background(isSelected ? PulseTheme.accent : (isToday ? PulseTheme.accent.opacity(0.18) : .clear))
                                             .foregroundStyle(isSelected ? .black : .white)
                                             .clipShape(Circle())
                                         HStack(spacing: 3) {
                                             Circle()
-                                                .fill(hasScheduled ? PulseTheme.accent : .clear)
+                                                .fill(hasScheduled ? PulseTheme.accent.opacity(0.7) : .clear)
                                                 .frame(width: 5, height: 5)
                                             Circle()
-                                                .fill(hasWorkout ? PulseTheme.primaryBright : .clear)
+                                                .fill(hasWorkout ? PulseTheme.ringExercise : .clear)
                                                 .frame(width: dotSize, height: dotSize)
                                         }
                                     }
@@ -193,9 +168,9 @@ struct CalendarView: View {
                                     HStack {
                                         Image(systemName: session.isRouteSession ? session.routeSystemImage : "dumbbell.fill")
                                             .font(.headline)
-                                            .foregroundStyle(session.isRouteSession ? PulseTheme.accent : PulseTheme.primary)
+                                            .foregroundStyle(session.isRouteSession ? PulseTheme.ringStand : PulseTheme.ringExercise)
                                             .frame(width: 36, height: 36)
-                                            .background((session.isRouteSession ? PulseTheme.accent : PulseTheme.primary).opacity(0.12))
+                                            .background((session.isRouteSession ? PulseTheme.ringStand : PulseTheme.ringExercise).opacity(0.12))
                                             .clipShape(Circle())
                                         VStack(alignment: .leading) {
                                             Text(session.isRouteSession ? session.routeKindTitle : session.workoutTitle).font(.title3.weight(.bold))
@@ -219,7 +194,7 @@ struct CalendarView: View {
                                                 let setsWord = localizedString("sets_3")
                                                 Text("\(log.sets.count) \(setsWord)")
                                                     .font(.subheadline.weight(.semibold))
-                                                    .foregroundStyle(PulseTheme.primary)
+                                                    .foregroundStyle(PulseTheme.accent)
                                             }
                                             Text(localizedFormat("volume_kg_format", Int(log.sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) })))
                                                 .font(.subheadline)
@@ -256,9 +231,6 @@ struct CalendarView: View {
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()
             }
-            .navigationDestination(isPresented: $showSocialHub) {
-                SocialHubView()
-            }
             .navigationDestination(item: $notificationWorkout) { workout in
                 ActiveWorkoutView(workout: workout)
             }
@@ -291,16 +263,16 @@ struct CalendarView: View {
             if dayVolume > 0 {
                 HStack {
                     Image(systemName: "scalemass.fill")
-                        .foregroundStyle(PulseTheme.primaryBright)
+                        .foregroundStyle(PulseTheme.ringMove)
                         .font(.caption.weight(.bold))
                     Text(localizedFormat("volume_kg_format", Int(dayVolume)))
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.primaryBright)
+                        .foregroundStyle(PulseTheme.ringMove)
                     Spacer()
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(PulseTheme.primaryBright.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(PulseTheme.ringMove.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
     }
@@ -319,7 +291,7 @@ struct CalendarView: View {
                     Spacer()
                     Text(store.activePlan.daysPerWeek > 0 ? "\(weekSessions.count)/\(store.activePlan.daysPerWeek)" : "\(weekSessions.count)")
                         .font(.title2.bold())
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                 }
                 if store.streakDays > 0 {
                     HStack(spacing: 6) {
@@ -353,11 +325,11 @@ struct CalendarView: View {
                     showSchedule = true
                 } label: {
                     Label("schedule_session", systemImage: "calendar.badge.plus")
-                        .font(.headline)
+                        .font(.headline.weight(.black))
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .foregroundStyle(.white)
-                        .background(PulseTheme.primary)
+                        .foregroundStyle(.black)
+                        .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
             }
@@ -506,7 +478,7 @@ private struct CalendarSummaryPill: View {
         VStack(alignment: .leading, spacing: 5) {
             Label(localizedKey(title), systemImage: systemImage)
                 .font(.headline)
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
             Text(localizedKey(subtitle))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)

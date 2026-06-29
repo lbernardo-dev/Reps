@@ -102,53 +102,16 @@ struct SocialHubView: View {
     // MARK: - Navigation Bar
 
     private var navBar: some View {
-        HStack {
-            Button {
-                HapticService.selection()
-                dismiss()
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
-                        .navigationGlassCircle(.secondary)
-                    Text(localizedString("profile"))
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                }
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(localizedString("social_hub"))
+                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                Text(localizedString("friends_2"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
             }
-            .buttonStyle(.plain)
             Spacer()
-            Text(localizedString("friends_2"))
-                .font(.system(size: 19, weight: .bold, design: .rounded))
-            Spacer()
-            HStack(spacing: 10) {
-                // Notification bell
-                Button {
-                    HapticService.selection()
-                    store.pendingSocialSearch = nil
-                    dismiss()
-                    // Navigate to notifications via root — bell is on Today
-                } label: {
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(store.hasUnreadBell ? PulseTheme.accent : PulseTheme.secondaryText)
-                            .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                        if store.hasUnreadBell {
-                            Circle()
-                                .fill(.red)
-                                .frame(width: 9, height: 9)
-                                .offset(x: -1, y: 1)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-
-                // Compose post (only when social is active)
+            HStack(spacing: 8) {
                 if store.userProfile.socialUsername != nil {
                     Button {
                         HapticService.selection()
@@ -156,10 +119,9 @@ struct SocialHubView: View {
                     } label: {
                         Image(systemName: "square.and.pencil")
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
+                            .navigationGlassCircle(.secondary, tint: .clear)
                     }
                     .buttonStyle(.plain)
                 }
@@ -169,16 +131,16 @@ struct SocialHubView: View {
                     ShareLink(item: inviteText) {
                         Image(systemName: "person.badge.plus")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
+                            .navigationGlassCircle(.secondary, tint: .clear)
                     }
                     .buttonStyle(.plain)
                 }
             }
         }
-        .padding(.vertical, 14)
+        .padding(.top, 60)
+        .padding(.bottom, 8)
     }
 
     // MARK: - My Profile Card
@@ -195,7 +157,7 @@ struct SocialHubView: View {
                 HStack(spacing: 14) {
                     ZStack {
                         Circle()
-                            .fill(PulseTheme.primary.opacity(0.12))
+                            .fill(PulseTheme.accent.opacity(0.12))
                             .frame(width: 56, height: 56)
                         if let data = store.userProfile.avatarImageData,
                            let uiImg = UIImage(data: data) {
@@ -206,7 +168,7 @@ struct SocialHubView: View {
                         } else {
                             Text(String(uname.prefix(1)).uppercased())
                                 .font(.system(size: 22, weight: .black, design: .rounded))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                         }
                     }
 
@@ -216,9 +178,9 @@ struct SocialHubView: View {
                         HStack(spacing: 6) {
                             Text(localizedFormat("player_level_abbr_title_format", "\(lvl.level)", lvl.title))
                                 .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                                 .padding(.horizontal, 7).padding(.vertical, 3)
-                                .background(PulseTheme.primary.opacity(0.10))
+                                .background(PulseTheme.accent.opacity(0.10))
                                 .clipShape(Capsule())
                             Text("\(xp) XP")
                                 .font(.caption.weight(.semibold))
@@ -260,9 +222,9 @@ struct SocialHubView: View {
                 if !plan.isEmpty {
                     Label(plan, systemImage: "calendar.badge.checkmark")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                         .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(PulseTheme.primary.opacity(0.08))
+                        .background(PulseTheme.accent.opacity(0.08))
                         .clipShape(Capsule())
                 }
 
@@ -401,10 +363,10 @@ struct SocialHubView: View {
                 // ── Header ──────────────────────────────────────
                 HStack(spacing: 10) {
                     ZStack {
-                        Circle().fill(PulseTheme.primary.opacity(0.10)).frame(width: 42, height: 42)
+                        Circle().fill(PulseTheme.accent.opacity(0.10)).frame(width: 42, height: 42)
                         Text(String(post.ownerUsername.prefix(1)).uppercased())
                             .font(.system(size: 18, weight: .black, design: .rounded))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                     }
                     VStack(alignment: .leading, spacing: 1) {
                         Text("@\(post.ownerUsername)")
@@ -437,10 +399,10 @@ struct SocialHubView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         if post.durationSeconds > 0 {
-                            feedStatChip(icon: "clock.fill", value: durationLabel(post.durationSeconds), color: PulseTheme.primary)
+                            feedStatChip(icon: "clock.fill", value: durationLabel(post.durationSeconds), color: PulseTheme.accent)
                         }
                         if post.volumeKg > 0 {
-                            feedStatChip(icon: "scalemass.fill", value: volumeLabel(post.volumeKg), color: PulseTheme.primaryBright)
+                            feedStatChip(icon: "scalemass.fill", value: volumeLabel(post.volumeKg), color: PulseTheme.ringStand)
                         }
                         if !post.exerciseNames.isEmpty {
                             feedStatChip(icon: "dumbbell.fill", value: "\(post.exerciseNames.count) ex", color: PulseTheme.accent)
@@ -466,9 +428,9 @@ struct SocialHubView: View {
                             ForEach(post.exerciseNames.prefix(5), id: \.self) { name in
                                 Text(name)
                                     .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(PulseTheme.primary)
+                                    .foregroundStyle(PulseTheme.accent)
                                     .padding(.horizontal, 8).padding(.vertical, 4)
-                                    .background(PulseTheme.primary.opacity(0.08))
+                                    .background(PulseTheme.accent.opacity(0.08))
                                     .clipShape(Capsule())
                             }
                             if post.exerciseNames.count > 5 {
@@ -667,11 +629,11 @@ struct SocialHubView: View {
                     .clipShape(Circle())
             } else {
                 Circle()
-                    .fill(isMe ? PulseTheme.accent.opacity(0.15) : PulseTheme.primary.opacity(0.08))
+                    .fill(isMe ? PulseTheme.accent.opacity(0.15) : PulseTheme.accent.opacity(0.08))
                     .frame(width: size, height: size)
                 Text(String(username.prefix(1)).uppercased())
                     .font(.system(size: size * 0.4, weight: .black, design: .rounded))
-                    .foregroundStyle(isMe ? PulseTheme.accent : PulseTheme.primary)
+                    .foregroundStyle(isMe ? PulseTheme.accent : PulseTheme.accent)
             }
         }
     }
@@ -691,7 +653,7 @@ struct SocialHubView: View {
                 } label: {
                     Label("challenge_create", systemImage: "plus")
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                 }
                 .buttonStyle(.plain)
             }
@@ -699,7 +661,7 @@ struct SocialHubView: View {
 
         if store.isChallengesLoading {
             PulseCard {
-                HStack { Spacer(); ProgressView().tint(PulseTheme.primary); Spacer() }
+                HStack { Spacer(); ProgressView().tint(PulseTheme.accent); Spacer() }
                     .padding(.vertical, 20)
             }
         } else if store.activeChallenges.isEmpty {
@@ -722,7 +684,7 @@ struct SocialHubView: View {
         let daysLeft = Int(ch.endDate.timeIntervalSinceNow / 86400)
         let iconName = ch.metric == .volumeKg ? "scalemass.fill" : ch.metric == .streak ? "flame.fill" : "medal.fill"
         let iconGradient = ch.isActive
-            ? LinearGradient(colors: [PulseTheme.accent, PulseTheme.primaryBright], startPoint: .topLeading, endPoint: .bottomTrailing)
+            ? LinearGradient(colors: [PulseTheme.accent, PulseTheme.ringStand], startPoint: .topLeading, endPoint: .bottomTrailing)
             : LinearGradient(colors: [PulseTheme.secondaryText.opacity(0.4), PulseTheme.secondaryText.opacity(0.25)], startPoint: .topLeading, endPoint: .bottomTrailing)
         return Button {
             HapticService.selection()
@@ -782,7 +744,7 @@ struct SocialHubView: View {
     private var friendsSection: some View {
         if isLoadingFollowing {
             PulseCard {
-                HStack { Spacer(); ProgressView().tint(PulseTheme.primary); Spacer() }
+                HStack { Spacer(); ProgressView().tint(PulseTheme.accent); Spacer() }
                     .padding(.vertical, 20)
             }
         } else if following.isEmpty {
@@ -905,7 +867,7 @@ struct SocialHubView: View {
             }
             Text("\(entry.xp) XP")
                 .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
-                .foregroundStyle(entry.isMe ? PulseTheme.accent : PulseTheme.primary)
+                .foregroundStyle(entry.isMe ? PulseTheme.accent : PulseTheme.accent)
         }
         .padding(.vertical, 8)
     }
@@ -966,9 +928,9 @@ struct SocialHubView: View {
                     HStack(spacing: 4) {
                         Text(localizedFormat("player_level_abbr_format", "\(friend.level)"))
                             .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .padding(.horizontal, 5).padding(.vertical, 2)
-                            .background(PulseTheme.primary.opacity(0.1))
+                            .background(PulseTheme.accent.opacity(0.1))
                             .clipShape(Capsule())
                         Text(friend.levelTitle)
                             .font(.caption)
@@ -1032,7 +994,7 @@ struct SocialHubView: View {
                     }.buttonStyle(.plain)
                 }
                 if isSearching {
-                    ProgressView().scaleEffect(0.8).tint(PulseTheme.primary)
+                    ProgressView().scaleEffect(0.8).tint(PulseTheme.accent)
                 }
             }
             .padding(10)
@@ -1098,7 +1060,7 @@ struct SocialHubView: View {
                     UserDefaults.standard.removeObject(forKey: Self.recentSearchesKey)
                 }
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 4)
@@ -1192,10 +1154,10 @@ struct SocialHubView: View {
                 } else if alreadyFollowing {
                     Text(localizedString("social_following_button"))
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                         .frame(width: 80)
                         .padding(.vertical, 6)
-                        .background(PulseTheme.primary.opacity(0.1))
+                        .background(PulseTheme.accent.opacity(0.1))
                         .clipShape(Capsule())
                 } else {
                     Text(localizedString("social_follow"))
@@ -1203,7 +1165,7 @@ struct SocialHubView: View {
                         .foregroundStyle(.black)
                         .frame(width: 80)
                         .padding(.vertical, 6)
-                        .background(PulseTheme.primary)
+                        .background(PulseTheme.accent)
                         .clipShape(Capsule())
                 }
             }
@@ -1244,7 +1206,7 @@ struct SocialHubView: View {
                     ShareLink(item: shareText(me: (name: myName, xp: xp, lvl: lvl.level, sessions: store.workoutSessions.count), friend: friend)) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                     }
                     .buttonStyle(.plain)
                 }
@@ -1256,7 +1218,7 @@ struct SocialHubView: View {
                     Spacer()
                     Text("@\(myName)")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("@\(friend.username)")
                         .font(.caption.weight(.semibold))
@@ -1269,11 +1231,11 @@ struct SocialHubView: View {
                         title: "XP",
                         myVal: "\(xp)", theirVal: "\(friend.totalXP)",
                         myWins: xp >= friend.totalXP)
-                compRow(icon: "chart.bar.fill", color: PulseTheme.primary,
+                compRow(icon: "chart.bar.fill", color: PulseTheme.accent,
                         title: localizedString("social_level"),
                         myVal: localizedFormat("player_level_abbr_format", "\(lvl.level)"), theirVal: localizedFormat("player_level_abbr_format", "\(friend.level)"),
                         myWins: lvl.level >= friend.level)
-                compRow(icon: "dumbbell.fill", color: PulseTheme.primaryBright,
+                compRow(icon: "dumbbell.fill", color: PulseTheme.ringStand,
                         title: localizedString("social_sessions"),
                         myVal: "\(store.workoutSessions.count)", theirVal: "\(friend.totalSessions)",
                         myWins: store.workoutSessions.count >= friend.totalSessions)
@@ -1300,11 +1262,11 @@ struct SocialHubView: View {
             Spacer()
             Text(myVal)
                 .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
-                .foregroundStyle(myWins ? PulseTheme.primary : .primary)
+                .foregroundStyle(myWins ? PulseTheme.accent : .primary)
                 .frame(maxWidth: .infinity, alignment: .center)
             Text(theirVal)
                 .font(.system(size: 14, weight: .semibold, design: .rounded).monospacedDigit())
-                .foregroundStyle(!myWins ? PulseTheme.primary : PulseTheme.secondaryText)
+                .foregroundStyle(!myWins ? PulseTheme.accent : PulseTheme.secondaryText)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(.vertical, 3)

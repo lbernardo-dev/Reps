@@ -8,11 +8,11 @@ private enum HRZone: Int, CaseIterable {
 
     var color: Color {
         switch self {
-        case .one:   return Color(red: 0.25, green: 0.72, blue: 1.00)
-        case .two:   return Color(red: 0.18, green: 0.85, blue: 0.40)
-        case .three: return Color(red: 1.00, green: 0.84, blue: 0.00)
-        case .four:  return Color(red: 1.00, green: 0.50, blue: 0.10)
-        case .five:  return Color(red: 1.00, green: 0.15, blue: 0.22)
+        case .one:   return PulseTheme.hrZones[0]
+        case .two:   return PulseTheme.hrZones[1]
+        case .three: return PulseTheme.hrZones[2]
+        case .four:  return PulseTheme.hrZones[3]
+        case .five:  return PulseTheme.hrZones[4]
         }
     }
 
@@ -128,7 +128,7 @@ struct WorkoutHeartRateCard: View {
             if !samples.isEmpty {
                 Chart(samples) { s in
                     BarMark(x: .value("T", s.date), y: .value("BPM", s.bpm))
-                        .foregroundStyle(Color(red: 1.0, green: 0.45, blue: 0.50).opacity(0.85))
+                        .foregroundStyle(PulseTheme.ringMove.opacity(0.85))
                 }
                 .chartXAxis(.hidden)
                 .chartYAxis {
@@ -157,7 +157,7 @@ struct WorkoutHeartRateCard: View {
             }
         }
         .padding(18)
-        .background(Color(red: 0.44, green: 0.05, blue: 0.10))
+        .background(PulseTheme.ringMove.opacity(0.15))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
@@ -236,7 +236,7 @@ struct WorkoutHeartRateZonesCard: View {
             }
         }
         .padding(18)
-        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
@@ -264,13 +264,13 @@ struct WorkoutEnduranceFocusCard: View {
                 .font(.system(size: 17, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
             VStack(spacing: 14) {
-                enduranceRow(name: "Low Aerobic",  duration: focus.low,       color: Color(red: 0.20, green: 0.90, blue: 0.65))
-                enduranceRow(name: "High Aerobic", duration: focus.high,      color: Color(red: 1.00, green: 0.60, blue: 0.00))
-                enduranceRow(name: "Anaerobic",    duration: focus.anaerobic, color: Color(red: 1.00, green: 0.25, blue: 0.32))
+                enduranceRow(name: "Low Aerobic",  duration: focus.low,       color: PulseTheme.hrZones[1])
+                enduranceRow(name: "High Aerobic", duration: focus.high,      color: PulseTheme.hrZones[3])
+                enduranceRow(name: "Anaerobic",    duration: focus.anaerobic, color: PulseTheme.hrZones[4])
             }
         }
         .padding(18)
-        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
@@ -391,7 +391,7 @@ struct WorkoutElevationCard: View {
             }
         }
         .padding(18)
-        .background(Color(red: 0.05, green: 0.26, blue: 0.10))
+        .background(PulseTheme.ringExercise.opacity(0.15))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 

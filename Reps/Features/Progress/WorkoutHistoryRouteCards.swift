@@ -12,8 +12,8 @@ struct RouteWorkoutMapBackdrop: View {
             ZStack {
                 LinearGradient(
                     colors: [
-                        Color(red: 0.09, green: 0.11, blue: 0.13),
-                        Color(red: 0.02, green: 0.02, blue: 0.03)
+                        PulseTheme.card,
+                        Color.black
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -47,19 +47,19 @@ struct RouteWorkoutDetailsCard: View {
 
     var body: some View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 24) {
-            RouteWorkoutMetric(title: "Workout Time", value: session.workoutTimeText, color: Color(red: 1.0, green: 0.90, blue: 0.03))
-            RouteWorkoutMetric(title: "Distance", value: session.distanceKm.map { WorkoutHistoryFormat.distanceUppercase($0) } ?? "--", color: Color(red: 0.0, green: 0.72, blue: 1.0))
-            RouteWorkoutMetric(title: "Active Kilocalories", value: session.activeKilocaloriesText, color: Color(red: 1.0, green: 0.08, blue: 0.34))
-            RouteWorkoutMetric(title: "Total Kilocalories", value: session.totalKilocaloriesText, color: Color(red: 1.0, green: 0.08, blue: 0.34))
-            RouteWorkoutMetric(title: "Elevation Gain", value: session.elevationGainText, color: Color(red: 0.33, green: 1.0, blue: 0.36))
-            RouteWorkoutMetric(title: "HR Recovery", value: session.heartRateRecoveryText, color: Color(red: 1.0, green: 0.55, blue: 0.0))
-            RouteWorkoutMetric(title: "Avg. Cadence", value: session.averageCadenceText, color: Color(red: 0.0, green: 0.86, blue: 0.90))
-            RouteWorkoutMetric(title: "Avg. Pace", value: session.averagePaceSecondsPerKm.map { WorkoutHistoryFormat.paceAppleStyle($0, includesUnit: true) } ?? "--", color: Color(red: 0.0, green: 0.86, blue: 0.90))
-            RouteWorkoutMetric(title: "Avg. Heart Rate", value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: Color(red: 1.0, green: 0.20, blue: 0.30))
-            RouteWorkoutMetric(title: "Max Heart Rate", value: session.maxHeartRate.map { "\(Int($0))BPM" } ?? "--", color: Color(red: 1.0, green: 0.20, blue: 0.30))
+            RouteWorkoutMetric(title: "Workout Time", value: session.workoutTimeText, color: PulseTheme.hrZones[2])
+            RouteWorkoutMetric(title: "Distance", value: session.distanceKm.map { WorkoutHistoryFormat.distanceUppercase($0) } ?? "--", color: PulseTheme.ringStand)
+            RouteWorkoutMetric(title: "Active Kilocalories", value: session.activeKilocaloriesText, color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: "Total Kilocalories", value: session.totalKilocaloriesText, color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: "Elevation Gain", value: session.elevationGainText, color: PulseTheme.ringExercise)
+            RouteWorkoutMetric(title: "HR Recovery", value: session.heartRateRecoveryText, color: PulseTheme.hrZones[3])
+            RouteWorkoutMetric(title: "Avg. Cadence", value: session.averageCadenceText, color: PulseTheme.ringStand)
+            RouteWorkoutMetric(title: "Avg. Pace", value: session.averagePaceSecondsPerKm.map { WorkoutHistoryFormat.paceAppleStyle($0, includesUnit: true) } ?? "--", color: PulseTheme.ringStand)
+            RouteWorkoutMetric(title: "Avg. Heart Rate", value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: "Max Heart Rate", value: session.maxHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
         }
         .padding(24)
-        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
@@ -114,20 +114,20 @@ struct RouteWorkoutSplitsCard: View {
                             .frame(width: 26, alignment: .leading)
                         if !showsSensors {
                             Text(WorkoutHistoryFormat.timeText(split.elapsedSeconds))
-                                .foregroundStyle(Color(red: 1.0, green: 0.90, blue: 0.03))
+                                .foregroundStyle(PulseTheme.hrZones[2])
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         Text(WorkoutHistoryFormat.paceAppleStyle(split.paceSecondsPerKm, includesUnit: false))
-                            .foregroundStyle(Color(red: 0.0, green: 0.86, blue: 0.90))
+                            .foregroundStyle(PulseTheme.ringStand)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         if showsHeartRate {
                             Text(split.averageHeartRate.map { "\(Int($0.rounded()))" } ?? "--")
-                                .foregroundStyle(Color(red: 1.0, green: 0.20, blue: 0.30))
+                                .foregroundStyle(PulseTheme.ringMove)
                                 .frame(width: 52, alignment: .trailing)
                         }
                         if showsCadence {
                             Text(split.cadenceSpm.map { "\(Int($0.rounded()))" } ?? "--")
-                                .foregroundStyle(Color(red: 0.62, green: 1.0, blue: 0.30))
+                                .foregroundStyle(PulseTheme.ringExercise)
                                 .frame(width: 52, alignment: .trailing)
                         }
                         Text(split.distanceText)
@@ -143,7 +143,7 @@ struct RouteWorkoutSplitsCard: View {
                 }
             }
             .padding(18)
-            .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+            .background(Color.black)
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         }
     }
@@ -177,8 +177,8 @@ struct RouteWorkoutMapCard: View {
                     .font(.caption.weight(.black))
                     .foregroundStyle(.white)
                     .frame(width: 38, height: 38)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
+                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                    .navigationGlassCircle(.secondary, tint: .clear)
                     .padding(12)
             }
             .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -269,7 +269,7 @@ struct RouteWorkoutNotesCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
@@ -293,7 +293,7 @@ private struct HistoryRouteMap: View {
         Map(position: $position) {
             if coordinates.count >= 2 {
                 MapPolyline(coordinates: coordinates)
-                    .stroke(style == .card ? PulseTheme.primary : Color(red: 1.0, green: 0.88, blue: 0.0), lineWidth: style == .card ? 5 : 7)
+                    .stroke(style == .card ? PulseTheme.accent : PulseTheme.hrZones[2], lineWidth: style == .card ? 5 : 7)
             }
             if let first = coordinates.first {
                 Annotation(localizedString("route_start"), coordinate: first) {

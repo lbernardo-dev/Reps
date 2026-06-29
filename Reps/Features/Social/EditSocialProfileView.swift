@@ -30,11 +30,11 @@ struct EditSocialProfileView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if isSaving {
-                        ProgressView().tint(PulseTheme.primary)
+                        ProgressView().tint(PulseTheme.accent)
                     } else {
                         Button(localizedString("save")) { save() }
                             .font(.headline)
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                     }
                 }
             }
@@ -59,7 +59,7 @@ struct EditSocialProfileView: View {
             Spacer()
             ZStack {
                 Circle()
-                    .fill(PulseTheme.primary.opacity(0.12))
+                    .fill(PulseTheme.accent.opacity(0.12))
                     .frame(width: 80, height: 80)
                 if let data = store.userProfile.avatarImageData,
                    let uiImg = UIImage(data: data) {
@@ -70,7 +70,7 @@ struct EditSocialProfileView: View {
                 } else {
                     Text(String(uname.prefix(1)).uppercased())
                         .font(.system(size: 32, weight: .black, design: .rounded))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                 }
             }
             Spacer()

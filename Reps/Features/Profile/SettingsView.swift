@@ -234,7 +234,7 @@ struct ProPreferencesView: View {
                                 }
                             ))
                             .font(.headline)
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
 
                             Toggle("show_rpe", isOn: $store.userProfile.showRPE)
                             Toggle("show_rir", isOn: $store.userProfile.showRIR)
@@ -262,7 +262,7 @@ struct ProPreferencesView: View {
                                 }
                             ))
                             .font(.headline)
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
 
                             ForEach(equipmentOptions, id: \.self) { item in
                                 Toggle(RepsText.equipment(item, language: store.userProfile.preferredLanguage), isOn: Binding(

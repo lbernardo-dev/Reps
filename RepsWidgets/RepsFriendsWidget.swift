@@ -118,7 +118,7 @@ private struct RepsFriendsWidgetView: View {
             HStack(spacing: 6) {
                 Image(systemName: "trophy.fill")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(theme.isDarkBackground ? Color(red: 1.0, green: 0.8, blue: 0.2) : .orange)
+                    .foregroundStyle(Color(red: 1.0, green: 0.80, blue: 0.14))
                 Text(localizedKey("widget_friends_leaderboard"))
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(theme.foreground)

@@ -17,7 +17,7 @@ struct CommentsView: View {
 
             ZStack {
                 if isLoading {
-                    ProgressView().tint(PulseTheme.primary)
+                    ProgressView().tint(PulseTheme.accent)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if comments.isEmpty {
                     PulseEmptyState(
@@ -120,12 +120,12 @@ struct CommentsView: View {
                 Task { await sendComment(text) }
             } label: {
                 if isSending {
-                    ProgressView().tint(PulseTheme.primary).scaleEffect(0.8)
+                    ProgressView().tint(PulseTheme.accent).scaleEffect(0.8)
                         .frame(width: 30)
                 } else {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30))
-                        .foregroundStyle(canSend ? PulseTheme.primary : PulseTheme.secondaryText)
+                        .foregroundStyle(canSend ? PulseTheme.accent : PulseTheme.secondaryText)
                 }
             }
             .buttonStyle(.plain)
@@ -151,11 +151,11 @@ struct CommentsView: View {
                     .clipShape(Circle())
             } else {
                 Circle()
-                    .fill(PulseTheme.primary.opacity(0.10))
+                    .fill(PulseTheme.accent.opacity(0.10))
                     .frame(width: size, height: size)
                 Text(String(username.prefix(1)).uppercased())
                     .font(.system(size: size * 0.4, weight: .black, design: .rounded))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
             }
         }
     }

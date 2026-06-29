@@ -122,7 +122,7 @@ struct PlateCalculatorView: View {
                     VStack(spacing: 20) {
                         Text("plate_calculator")
                             .font(.headline)
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
                         // Target Weight input
@@ -165,7 +165,7 @@ struct PlateCalculatorView: View {
                                                 .foregroundStyle(selected ? .white : PulseTheme.secondaryText)
                                                 .padding(.horizontal, 14)
                                                 .padding(.vertical, 8)
-                                                .background(selected ? PulseTheme.primaryBright : PulseTheme.grouped)
+                                                .background(selected ? PulseTheme.ringStand : PulseTheme.grouped)
                                                 .clipShape(Capsule())
                                         }
                                         .buttonStyle(.plain)
@@ -193,7 +193,7 @@ struct PlateCalculatorView: View {
                                                 .foregroundStyle(enabled ? .white : PulseTheme.secondaryText)
                                                 .frame(minWidth: 40)
                                                 .padding(.vertical, 8)
-                                                .background(enabled ? PulseTheme.primary.opacity(0.85) : PulseTheme.grouped)
+                                                .background(enabled ? PulseTheme.accent.opacity(0.85) : PulseTheme.grouped)
                                                 .clipShape(Capsule())
                                                 .overlay(
                                                     Capsule()
@@ -297,7 +297,7 @@ struct PlateCalculatorView: View {
                                         .foregroundStyle(PulseTheme.secondaryText)
                                     Text("\(totalCalculatedWeight, specifier: "%.1f") \(unit)")
                                         .font(.title2.weight(.bold))
-                                        .foregroundStyle(PulseTheme.primaryBright)
+                                        .foregroundStyle(PulseTheme.ringStand)
                                 }
                                 
                                 Spacer()

@@ -7,7 +7,7 @@ struct RecommendedWorkoutCard: View {
     let onStart: () -> Void
 
     private var batteryColor: Color {
-        batteryLevel >= 80 ? PulseTheme.recovery : batteryLevel >= 55 ? PulseTheme.primary : PulseTheme.warning
+        batteryLevel >= 80 ? PulseTheme.recovery : batteryLevel >= 55 ? PulseTheme.accent : PulseTheme.warning
     }
 
     private var batteryLabel: LocalizedStringKey {
@@ -57,7 +57,7 @@ struct RecommendedWorkoutCard: View {
                         ForEach(workout.exercises.prefix(4)) { we in
                             HStack(spacing: 10) {
                                 Circle()
-                                    .fill(PulseTheme.primary.opacity(0.15))
+                                    .fill(PulseTheme.accent.opacity(0.15))
                                     .frame(width: 8, height: 8)
                                 Text(RepsText.exerciseName(we.exercise.name, language: language))
                                     .font(.subheadline)

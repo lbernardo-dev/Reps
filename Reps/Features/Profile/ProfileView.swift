@@ -58,10 +58,9 @@ struct ProfileView: View {
                         } label: {
                             Image(systemName: "gearshape.fill")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                                 .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                .background(PulseTheme.primary.opacity(0.10))
-                                .clipShape(Circle())
+                                .navigationGlassCircle(.secondary, tint: PulseTheme.accent)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(localizedString("settings"))
@@ -152,7 +151,7 @@ struct ProfileView: View {
                         } else {
                             Text(localizedString("profile_setup_hint"))
                                 .font(.subheadline)
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                         }
                     }
 
@@ -179,7 +178,7 @@ struct ProfileView: View {
                             title: "weight",
                             value: store.hasBodyMetrics ? String(format: "%.1f", store.displayedWeight.value) : "--",
                             unit: store.hasBodyMetrics ? store.displayedWeight.unit : localizedKey("add"),
-                            color: PulseTheme.primary
+                            color: PulseTheme.accent
                         )
                     }
                     .buttonStyle(.plain)
@@ -189,7 +188,7 @@ struct ProfileView: View {
                             title: "height",
                             value: store.hasBodyMetrics ? String(format: "%.0f", store.displayedHeight.value) : "--",
                             unit: store.hasBodyMetrics ? store.displayedHeight.unit : localizedKey("add"),
-                            color: PulseTheme.primaryBright
+                            color: PulseTheme.ringStand
                         )
                     }
                     .buttonStyle(.plain)
@@ -220,7 +219,7 @@ struct ProfileView: View {
                 if store.hasBodyMetrics {
                     HStack(spacing: 12) {
                         ProfileMetric(title: "IMC", value: String(format: "%.1f", store.bodyMassIndex), unit: bmiLabel, color: PulseTheme.accent)
-                        ProfileMetric(title: "basal", value: "\(Int(store.basalMetabolicRate))", unit: localizedKey("kcal_per_day"), color: PulseTheme.primary)
+                        ProfileMetric(title: "basal", value: "\(Int(store.basalMetabolicRate))", unit: localizedKey("kcal_per_day"), color: PulseTheme.accent)
                     }
 
                     VStack(spacing: 10) {
@@ -243,7 +242,7 @@ struct ProfileView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
                     }
-                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.primary))
+                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.accent))
                 }
             }
         }
@@ -263,7 +262,7 @@ struct ProfileView: View {
                             .font(.headline)
                             .frame(width: 36, height: 36)
                             .foregroundStyle(.white)
-                            .background(PulseTheme.primary)
+                            .background(PulseTheme.accent)
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -301,10 +300,10 @@ struct ProfileView: View {
 
                     Text(localizedFormat("player_level_abbr_title_format", "\(lvl.level)", lvl.title))
                         .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(PulseTheme.primary.opacity(0.10))
+                        .background(PulseTheme.accent.opacity(0.10))
                         .clipShape(Capsule())
 
                     NavigationLink {
@@ -316,7 +315,7 @@ struct ProfileView: View {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 10, weight: .bold))
                         }
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                     }
                     .buttonStyle(.plain)
                 }
@@ -402,7 +401,7 @@ struct ProfileView: View {
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 10, weight: .bold))
                             }
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                         }
                         .buttonStyle(.plain)
                     }
@@ -413,18 +412,18 @@ struct ProfileView: View {
                     HStack(spacing: 12) {
                         ZStack {
                             Circle()
-                                .fill(PulseTheme.primary.opacity(0.10))
+                                .fill(PulseTheme.accent.opacity(0.10))
                                 .frame(width: 40, height: 40)
                             Image(systemName: "person.2.fill")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                         }
                         VStack(alignment: .leading, spacing: 2) {
                             Text("@\(uname)")
                                 .font(.subheadline.weight(.semibold))
                             Text(localizedString("community_active"))
                                 .font(.caption)
-                                .foregroundStyle(PulseTheme.primaryBright)
+                                .foregroundStyle(PulseTheme.ringStand)
                         }
                         Spacer()
                         NavigationLink {
@@ -435,7 +434,7 @@ struct ProfileView: View {
                                 .foregroundStyle(.black)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(PulseTheme.primary)
+                                .background(PulseTheme.accent)
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
@@ -455,7 +454,7 @@ struct ProfileView: View {
                             set: { store.userProfile.autoShareWorkouts = $0 }
                         ))
                         .labelsHidden()
-                        .tint(PulseTheme.primary)
+                        .tint(PulseTheme.accent)
                     }
                     .padding(.vertical, 2)
 
@@ -507,7 +506,7 @@ struct ProfileView: View {
                             .font(.headline)
                             .frame(width: 36, height: 36)
                             .foregroundStyle(.white)
-                            .background(PulseTheme.primary)
+                            .background(PulseTheme.accent)
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -605,20 +604,20 @@ struct ProfileView: View {
                     Spacer()
                     Text(healthStatus)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(store.health.isAuthorized ? PulseTheme.primary : PulseTheme.secondaryText)
+                        .foregroundStyle(store.health.isAuthorized ? PulseTheme.accent : PulseTheme.secondaryText)
                 }
 
                 HStack(spacing: 10) {
                     Button(localizedString(store.health.isAuthorized ? "Actualizar" : "Conectar")) {
                         Task { await connectHealth() }
                     }
-                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.primary))
+                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.accent))
                     .disabled(!store.health.isAvailable)
 
                     Button("sincronizar") {
                         Task { await saveToHealth() }
                     }
-                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.primaryBright))
+                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.ringStand))
                     .disabled(!store.health.isAvailable || !store.health.isAuthorized)
                 }
 
@@ -646,13 +645,13 @@ struct ProfileView: View {
                     Button("importar_cardio") {
                         Task { await importCardioFromHealth() }
                     }
-                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.primary))
+                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.accent))
                     .disabled(!store.health.isAvailable || !store.health.isAuthorized)
 
                     Button("save_training") {
                         Task { await saveLatestWorkoutToHealth() }
                     }
-                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.primaryBright))
+                    .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.ringStand))
                     .disabled(!store.health.isAvailable || !store.health.isAuthorized || store.workoutSessions.isEmpty)
                 }
 
@@ -708,7 +707,7 @@ struct ProfileView: View {
                         title: "library",
                         subtitle: localizedFormat("exercise_count_format", store.exercises.count),
                         systemImage: "magnifyingglass",
-                        color: PulseTheme.primary
+                        color: PulseTheme.accent
                     ) {
                         activeDestination = .exerciseLibrary
                     }
@@ -735,7 +734,7 @@ struct ProfileView: View {
                         title: "equipment_routine",
                         subtitle: "compatible_with_you",
                         systemImage: "wand.and.sparkles",
-                        color: PulseTheme.primaryBright
+                        color: PulseTheme.ringStand
                     ) {
                         activeSheet = .equipmentRoutineWizard
                     }
@@ -854,7 +853,7 @@ struct ProfileView: View {
                             .font(.headline.weight(.bold))
                             .foregroundStyle(.white)
                             .frame(width: 40, height: 40)
-                            .background(PulseTheme.primary)
+                            .background(PulseTheme.accent)
                             .clipShape(Circle())
                     }
                 }
@@ -865,7 +864,7 @@ struct ProfileView: View {
                             title: "CSV",
                             subtitle: localizedString(csvExportURL == nil ? "Generar archivo" : "Listo para compartir"),
                             systemImage: "tablecells",
-                            color: PulseTheme.primary
+                            color: PulseTheme.accent
                         ) {
                             prepareCSVExport()
                         }
@@ -876,7 +875,7 @@ struct ProfileView: View {
                                     title: localizedString("share_csv"),
                                     subtitle: localizedString("send_file"),
                                     systemImage: "square.and.arrow.up",
-                                    color: PulseTheme.primary,
+                                    color: PulseTheme.accent,
                                     badge: localizedString("listo")
                                 )
                             }
@@ -916,7 +915,7 @@ struct ProfileView: View {
                             title: "import_csv",
                             subtitle: "cardio_and_body",
                             systemImage: "square.and.arrow.down",
-                            color: PulseTheme.primaryBright
+                            color: PulseTheme.ringStand
                         ) {
                             showImportCSV = true
                         }
@@ -958,7 +957,7 @@ struct ProfileView: View {
                             title: "restore",
                             subtitle: "import_json",
                             systemImage: "arrow.down.doc",
-                            color: PulseTheme.primary
+                            color: PulseTheme.accent
                         ) {
                             if profileFeatureIsAvailable(.automaticBackups, source: .backupCenter) {
                                 showImportBackup = true
@@ -1020,7 +1019,7 @@ struct ProfileView: View {
                             .font(.headline.weight(.bold))
                             .foregroundStyle(.white)
                             .frame(width: 40, height: 40)
-                            .background(PulseTheme.primaryBright)
+                            .background(PulseTheme.ringStand)
                             .clipShape(Circle())
                     }
                 }
@@ -1041,7 +1040,7 @@ struct ProfileView: View {
                             title: "Feedback",
                             subtitle: "send_feedback",
                             systemImage: "bubble.left.and.text.bubble.right",
-                            color: PulseTheme.primary
+                            color: PulseTheme.accent
                         ) {
                             TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "feedback"])
                             activeSheet = .feedback
@@ -1055,7 +1054,7 @@ struct ProfileView: View {
                                 title: localizedString("share_app"),
                                 subtitle: localizedString("share_app_subtitle"),
                                 systemImage: "square.and.arrow.up",
-                                color: PulseTheme.primaryBright
+                                color: PulseTheme.ringStand
                             )
                         }
                         .buttonStyle(.plain)
@@ -1069,7 +1068,7 @@ struct ProfileView: View {
                             title: "help",
                             subtitle: "quick_questions",
                             systemImage: "questionmark.circle",
-                            color: PulseTheme.primaryBright
+                            color: PulseTheme.ringStand
                         ) {
                             TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "help"])
                             activeDestination = .help
@@ -1719,7 +1718,7 @@ private struct SupportInfoScreen: View {
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(width: 40, height: 40)
-                    .background(PulseTheme.primary)
+                    .background(PulseTheme.accent)
                     .clipShape(Circle())
             }
         ) {
@@ -1734,7 +1733,7 @@ private struct SupportInfoScreen: View {
                                 HStack(alignment: .top, spacing: 10) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.subheadline.weight(.bold))
-                                        .foregroundStyle(PulseTheme.primary)
+                                        .foregroundStyle(PulseTheme.accent)
                                         .padding(.top, 1)
                                     Text(row)
                                         .font(.subheadline)
@@ -1767,7 +1766,7 @@ private struct FeedbackSheet: View {
                             .font(.title2.weight(.bold))
                             .frame(width: 44, height: 44)
                             .foregroundStyle(.white)
-                            .background(PulseTheme.primary)
+                            .background(PulseTheme.accent)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                         VStack(alignment: .leading, spacing: 2) {
@@ -1847,7 +1846,7 @@ private struct VersionInfoScreen: View {
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(width: 40, height: 40)
-                    .background(PulseTheme.primary)
+                    .background(PulseTheme.accent)
                     .clipShape(Circle())
             }
         ) {
@@ -1871,7 +1870,7 @@ private struct VersionInfoScreen: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
                 .padding(.top, 1)
             Text(localizedKey(text))
                 .font(.subheadline)
@@ -1923,8 +1922,8 @@ private struct HealthMiniMetric: View {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.bold))
                 .frame(width: 30, height: 30)
-                .foregroundStyle(PulseTheme.primary)
-                .background(PulseTheme.primary.opacity(0.12))
+                .foregroundStyle(PulseTheme.accent)
+                .background(PulseTheme.accent.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             VStack(alignment: .leading, spacing: 2) {
@@ -1971,11 +1970,11 @@ private struct AvatarPickerLabel: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             } else {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(PulseTheme.primary.opacity(0.12))
+                    .fill(PulseTheme.accent.opacity(0.12))
                     .frame(width: 76, height: 76)
                 Image(systemName: "person.crop.square.fill")
                     .font(.system(size: 34, weight: .bold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
             }
 
             Image(systemName: "camera.fill")
@@ -2006,7 +2005,7 @@ private struct CalorieRow: View {
             Spacer()
             Text("\(Int(value)) kcal")
                 .font(.headline.monospacedDigit())
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
         }
         .padding(10)
         .background(PulseTheme.grouped)
@@ -2089,7 +2088,7 @@ private struct GymPassPreview: View {
         if pass.isActive {
             Text("membership_active")
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
         } else {
             let ended = pass.endDate.map { $0.formatted(date: .abbreviated, time: .omitted) }
             Text(ended.map { localizedFormat("membership_ended_format", $0) } ?? localizedString("membership_ended"))
@@ -2120,7 +2119,7 @@ private struct GymVisitRow: View {
                 if let workoutTitle = visit.workoutTitle, !workoutTitle.isEmpty {
                     Label(workoutTitle, systemImage: "dumbbell.fill")
                         .font(.caption)
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                 }
             }
         }
@@ -2168,10 +2167,10 @@ private struct AvatarMiniView: View {
             } else {
                 ZStack {
                     Circle()
-                        .fill(PulseTheme.primary.opacity(0.12))
+                        .fill(PulseTheme.accent.opacity(0.12))
                     Image(systemName: "person.crop.circle.fill")
                         .font(.system(size: size * 0.58))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                 }
             }
         }

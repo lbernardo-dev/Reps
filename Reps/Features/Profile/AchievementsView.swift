@@ -113,7 +113,7 @@ struct AchievementsView: View {
                 titleKey: "achievement_getting_started_title",
                 descKey: "achievement_getting_started_desc",
                 systemImage: "dumbbell",
-                color: PulseTheme.primary,
+                color: PulseTheme.accent,
                 isCompleted: sessionCount >= 5,
                 progressValue: Double(min(sessionCount, 5)),
                 progressTarget: 5.0
@@ -122,7 +122,7 @@ struct AchievementsView: View {
                 titleKey: "achievement_dedicated_title",
                 descKey: "achievement_dedicated_desc",
                 systemImage: "dumbbell.fill",
-                color: PulseTheme.primaryBright,
+                color: PulseTheme.ringStand,
                 isCompleted: sessionCount >= 25,
                 progressValue: Double(min(sessionCount, 25)),
                 progressTarget: 25.0
@@ -141,7 +141,7 @@ struct AchievementsView: View {
                 titleKey: "achievement_titan_lifter_title",
                 descKey: "achievement_titan_lifter_desc",
                 systemImage: "figure.strengthtraining.traditional",
-                color: PulseTheme.primaryBright,
+                color: PulseTheme.ringStand,
                 isCompleted: titanLifter,
                 progressValue: min(totalVol, 5000.0),
                 progressTarget: 5000.0
@@ -179,7 +179,7 @@ struct AchievementsView: View {
                 titleKey: "achievement_endurance_hero_title",
                 descKey: "achievement_endurance_hero_desc",
                 systemImage: "figure.run",
-                color: PulseTheme.primaryBright,
+                color: PulseTheme.ringStand,
                 isCompleted: enduranceHero,
                 progressValue: Double(min(cardioCount, 3)),
                 progressTarget: 3.0
@@ -198,7 +198,7 @@ struct AchievementsView: View {
                 titleKey: "achievement_apple_watch_link_title",
                 descKey: "achievement_apple_watch_link_desc",
                 systemImage: "applewatch",
-                color: PulseTheme.primary,
+                color: PulseTheme.accent,
                 isCompleted: watchConnected,
                 progressValue: watchConnected ? 1.0 : 0.0,
                 progressTarget: 1.0
@@ -217,7 +217,7 @@ struct AchievementsView: View {
                 titleKey: "achievement_full_body_title",
                 descKey: "achievement_full_body_desc",
                 systemImage: "figure.mixed.cardio",
-                color: PulseTheme.primaryBright,
+                color: PulseTheme.ringStand,
                 isCompleted: fullBody,
                 progressValue: Double(min(muscleGroups.count, 5)),
                 progressTarget: 5.0
@@ -257,7 +257,7 @@ struct AchievementsView: View {
                 titleKey: "achievement_hydration_hero_title",
                 descKey: "achievement_hydration_hero_desc",
                 systemImage: "drop.circle.fill",
-                color: PulseTheme.primaryBright,
+                color: PulseTheme.ringStand,
                 isCompleted: hydrationGoalDays >= 3,
                 progressValue: Double(min(hydrationGoalDays, 3)),
                 progressTarget: 3.0,
@@ -300,11 +300,11 @@ struct AchievementsView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(PulseTheme.primary.opacity(0.12))
+                        .fill(PulseTheme.accent.opacity(0.12))
                         .frame(width: 56, height: 56)
                     Text("\(lvl.level)")
                         .font(.system(size: 22, weight: .black, design: .rounded))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -313,10 +313,10 @@ struct AchievementsView: View {
                             .font(.system(size: 18, weight: .bold, design: .rounded))
                         Text(localizedFormat("player_level_abbr_format", "\(lvl.level)"))
                             .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(PulseTheme.primary.opacity(0.12))
+                            .background(PulseTheme.accent.opacity(0.12))
                             .clipShape(Capsule())
                     }
                     if lvl.isMaxLevel {
@@ -340,7 +340,7 @@ struct AchievementsView: View {
                     Capsule()
                         .fill(
                             LinearGradient(
-                                colors: [PulseTheme.primary, PulseTheme.primaryBright],
+                                colors: [PulseTheme.accent, PulseTheme.ringStand],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -355,7 +355,7 @@ struct AchievementsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(PulseTheme.primary.opacity(0.15), lineWidth: 1)
+                .stroke(PulseTheme.accent.opacity(0.15), lineWidth: 1)
         )
     }
 
@@ -426,7 +426,7 @@ struct AchievementsView: View {
             HStack(spacing: 6) {
                 Image(systemName: "doc.text.image.fill")
                     .font(.headline)
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                 Text(localizedString("virtual_ticket_gallery"))
                     .font(.headline)
             }
@@ -663,7 +663,7 @@ struct ReceiptPreviewSheet: View {
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(PulseTheme.primaryBright)
+                        .background(PulseTheme.ringStand)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .padding(.horizontal, 24)
                     }

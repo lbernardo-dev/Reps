@@ -64,7 +64,7 @@ struct WatchStartView: View {
                             title: localizedString("Walk"),
                             subtitle: localizedString("Outdoor · GPS"),
                             icon: "figure.walk",
-                            color: WatchTheme.success
+                            color: WatchTheme.ringExercise
                         ) {
                             model.startStandaloneRouteWorkout(activity: .walking)
                         }
@@ -72,7 +72,7 @@ struct WatchStartView: View {
                             title: localizedString("Run"),
                             subtitle: localizedString("Pace · distance"),
                             icon: "figure.run",
-                            color: .green
+                            color: WatchTheme.ringExercise
                         ) {
                             model.startStandaloneRouteWorkout(activity: .running)
                         }
@@ -83,7 +83,7 @@ struct WatchStartView: View {
                                 title: localizedString("Intervals"),
                                 subtitle: localizedString("HIIT by phases"),
                                 icon: "bolt.heart.fill",
-                                color: .red
+                                color: WatchTheme.ringMove
                             )
                         }
                         .buttonStyle(.plain)
@@ -127,7 +127,7 @@ private struct WatchProgressDashboard: View {
     var body: some View {
         VStack(spacing: 9) {
             HStack(spacing: 12) {
-                WatchRing(progress: weekly, lineWidth: 7, color: WatchTheme.success) {
+                WatchRing(progress: weekly, lineWidth: 7, color: WatchTheme.ringExercise) {
                     VStack(spacing: 0) {
                         Text("\(Int(weekly * 100))%")
                             .font(.system(size: 15, weight: .black, design: .rounded))
@@ -223,10 +223,10 @@ private struct WatchGymPassCard: View {
         } label: {
             HStack(spacing: 10) {
                 ZStack {
-                    Circle().fill(Color.blue.opacity(0.16)).frame(width: 34, height: 34)
+                    Circle().fill(WatchTheme.ringStand.opacity(0.16)).frame(width: 34, height: 34)
                     Image(systemName: "creditcard.fill")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(WatchTheme.ringStand)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(localizedString("Gym Pass"))
@@ -245,10 +245,10 @@ private struct WatchGymPassCard: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
+            .background(WatchTheme.ringStand.opacity(0.08), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous)
-                    .stroke(Color.blue.opacity(0.16), lineWidth: 1)
+                    .stroke(WatchTheme.ringStand.opacity(0.16), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -265,7 +265,7 @@ private struct WatchGymPassDetailView: View {
             VStack(spacing: 14) {
                 Image(systemName: "creditcard.fill")
                     .font(.system(size: 40, weight: .bold))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(WatchTheme.ringStand)
                     .padding(.top, 6)
 
                 Text(gymName)
@@ -411,12 +411,12 @@ private struct WatchIntervalPickerView: View {
                             Spacer()
                             Image(systemName: "play.fill")
                                 .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(.red)
+                                .foregroundStyle(WatchTheme.ringMove)
                         }
                         .padding(.vertical, 10)
                         .padding(.horizontal, 10)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.red.opacity(0.10), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
+                        .background(WatchTheme.ringMove.opacity(0.10), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(preset.name), \(preset.rounds) rondas")
@@ -580,8 +580,8 @@ struct WatchRouteSummaryView: View {
         ScrollView {
             VStack(spacing: 8) {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    WatchBigMetric(value: stepsText, label: localizedString("Steps"), icon: "shoeprints.fill", color: .green)
-                    WatchBigMetric(value: speedText, label: "km/h", icon: "gauge.with.needle", color: .blue)
+                    WatchBigMetric(value: stepsText, label: localizedString("Steps"), icon: "shoeprints.fill", color: WatchTheme.ringExercise)
+                    WatchBigMetric(value: speedText, label: "km/h", icon: "gauge.with.needle", color: WatchTheme.ringStand)
                     WatchBigMetric(value: kcalText, label: "kcal", icon: "flame.fill", color: .orange)
                     WatchBigMetric(value: hrText, label: "lpm", icon: "heart.fill", color: WatchTheme.zoneColor(model.heartRateZone))
                 }
@@ -731,8 +731,8 @@ struct WatchStrengthNowView: View {
                     .frame(height: WatchTheme.primaryActionHeight)
             }
             .buttonStyle(.plain)
-            .background(WatchTheme.success, in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
-            .foregroundStyle(.white)
+            .background(accent, in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
+            .foregroundStyle(.black)
             .accessibilityLabel(localizedString("Complete set"))
 
             HStack(spacing: 6) {
@@ -1068,7 +1068,7 @@ struct WatchMetricsPage: View {
                             icon: "location.fill",
                             color: accent
                         )
-                        WatchBigMetric(value: stepsText, label: localizedString("steps"), icon: "shoeprints.fill", color: .green)
+                        WatchBigMetric(value: stepsText, label: localizedString("steps"), icon: "shoeprints.fill", color: WatchTheme.ringExercise)
                     }
                 }
 

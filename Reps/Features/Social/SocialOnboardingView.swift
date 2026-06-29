@@ -62,11 +62,11 @@ struct SocialOnboardingView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if isSaving {
-                        ProgressView().tint(PulseTheme.primary)
+                        ProgressView().tint(PulseTheme.accent)
                     } else {
                         Button(localizedString("activate")) { saveProfile() }
                             .font(.headline)
-                            .foregroundStyle(canContinue ? PulseTheme.primary : PulseTheme.secondaryText)
+                            .foregroundStyle(canContinue ? PulseTheme.accent : PulseTheme.secondaryText)
                             .disabled(!canContinue)
                     }
                 }
@@ -84,11 +84,11 @@ struct SocialOnboardingView: View {
         VStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(PulseTheme.primary.opacity(0.12))
+                    .fill(PulseTheme.accent.opacity(0.12))
                     .frame(width: 72, height: 72)
                 Image(systemName: "person.2.fill")
                     .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
             }
 
             VStack(spacing: 6) {
@@ -110,16 +110,16 @@ struct SocialOnboardingView: View {
             HStack(alignment: .top, spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(PulseTheme.primary.opacity(0.12))
+                        .fill(PulseTheme.accent.opacity(0.12))
                         .frame(width: 34, height: 34)
                     if isCheckingICloud {
                         ProgressView()
-                            .tint(PulseTheme.primary)
+                            .tint(PulseTheme.accent)
                             .scaleEffect(0.75)
                     } else {
                         Image(systemName: "icloud.slash")
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                     }
                 }
 
@@ -139,7 +139,7 @@ struct SocialOnboardingView: View {
                                 .font(.caption.weight(.bold))
                         }
                         .buttonStyle(.plain)
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                     }
                 }
                 Spacer(minLength: 0)
@@ -149,7 +149,7 @@ struct SocialOnboardingView: View {
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(PulseTheme.primary.opacity(0.22), lineWidth: 1)
+                    .stroke(PulseTheme.accent.opacity(0.22), lineWidth: 1)
             )
         }
     }
@@ -164,7 +164,7 @@ struct SocialOnboardingView: View {
             HStack(spacing: 10) {
                 Text("@")
                     .font(.title3.weight(.bold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
 
                 TextField(localizedString("social_username_placeholder"), text: $username)
                     .font(.title3.weight(.semibold))
@@ -196,10 +196,10 @@ struct SocialOnboardingView: View {
     private var statusIcon: some View {
         switch availabilityStatus {
         case .checking:
-            ProgressView().tint(PulseTheme.primary).scaleEffect(0.8)
+            ProgressView().tint(PulseTheme.accent).scaleEffect(0.8)
         case .available:
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(PulseTheme.primaryBright)
+                .foregroundStyle(PulseTheme.ringStand)
         case .taken:
             Image(systemName: "xmark.circle.fill")
                 .foregroundStyle(PulseTheme.destructive)
@@ -217,7 +217,7 @@ struct SocialOnboardingView: View {
         case .available:
             Label(localizedString("social_username_available"), systemImage: "checkmark")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(PulseTheme.primaryBright)
+                .foregroundStyle(PulseTheme.ringStand)
                 .padding(.horizontal, 4)
         case .taken:
             Label(localizedString("social_username_taken"), systemImage: "xmark")
@@ -249,7 +249,7 @@ struct SocialOnboardingView: View {
 
     private var borderColor: Color {
         switch availabilityStatus {
-        case .available: return PulseTheme.primaryBright.opacity(0.6)
+        case .available: return PulseTheme.ringStand.opacity(0.6)
         case .taken: return PulseTheme.destructive.opacity(0.5)
         case .checkFailed, .iCloudUnavailable: return PulseTheme.warning.opacity(0.55)
         default: return PulseTheme.separator
@@ -314,7 +314,7 @@ struct SocialOnboardingView: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "lock.shield")
                 .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
                 .padding(.top, 1)
             Text(localizedString("social_privacy_note"))
                 .font(.caption)

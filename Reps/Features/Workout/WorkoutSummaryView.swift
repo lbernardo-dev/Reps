@@ -114,7 +114,7 @@ struct WorkoutSummaryView: View {
                                                     : String(format: "%.1f kg", pr.weightKg)
                                                 Text("\(w) × \(pr.reps) reps")
                                                     .font(.caption.weight(.bold))
-                                                    .foregroundStyle(PulseTheme.primary)
+                                                    .foregroundStyle(PulseTheme.accent)
                                             }
                                             Spacer()
                                             Button {
@@ -195,13 +195,13 @@ struct WorkoutSummaryView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: isImageSaved ? "checkmark" : "square.and.arrow.down")
-                                    Text(isImageSaved ? "Guardado" : "Guardar Foto")
+                                    Text(isImageSaved ? localizedString("saved") : localizedString("save_photo"))
                                 }
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(Color.white.opacity(0.12))
+                                .background(Color.white.opacity(0.10))
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             }
                             .buttonStyle(.plain)
@@ -226,13 +226,13 @@ struct WorkoutSummaryView: View {
                                 .padding(.vertical, 14)
                                 .background(
                                     feedShared
-                                        ? Color.green.opacity(0.25)
-                                        : PulseTheme.primary.opacity(0.18)
+                                        ? PulseTheme.ringExercise.opacity(0.20)
+                                        : PulseTheme.accent.opacity(0.18)
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(PulseTheme.primary.opacity(0.35), lineWidth: 1)
+                                        .stroke(PulseTheme.accent.opacity(0.35), lineWidth: 1)
                                 )
                             }
                             .buttonStyle(.plain)

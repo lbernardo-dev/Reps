@@ -203,8 +203,8 @@ struct ExerciseProgressView: View {
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
-                            .foregroundStyle(PulseTheme.primary)
-                            .background(PulseTheme.primary.opacity(0.12))
+                            .foregroundStyle(PulseTheme.accent)
+                            .background(PulseTheme.accent.opacity(0.12))
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                 }
@@ -212,7 +212,7 @@ struct ExerciseProgressView: View {
                 if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
                     Label("imagen_propia_guardada_offline", systemImage: "checkmark.seal.fill")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -261,7 +261,7 @@ struct ExerciseProgressView: View {
                         Spacer()
                         Label("preferente", systemImage: "circle.fill")
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(PulseTheme.primaryBright)
+                            .foregroundStyle(PulseTheme.ringStand)
                             .padding(.horizontal, 12)
                             .frame(height: 36)
                             .background(PulseTheme.grouped, in: Capsule())
@@ -296,13 +296,13 @@ struct ExerciseProgressView: View {
                 }
             } else {
                 HStack(spacing: 14) {
-                    MetricCard(title: "best_weight", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.primary)
+                    MetricCard(title: "best_weight", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.accent)
                     MetricCard(title: "estimated_1rm", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt", badgeColor: PulseTheme.accent)
                 }
 
                 HStack(spacing: 14) {
                     MetricCard(title: "overload_metric", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: "one_rm_change", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
-                    MetricCard(title: "avg_volume_metric", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg_per_session", systemImage: "chart.bar", badgeColor: PulseTheme.primaryBright)
+                    MetricCard(title: "avg_volume_metric", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg_per_session", systemImage: "chart.bar", badgeColor: PulseTheme.ringStand)
                 }
 
                 Picker("metrics", selection: $metric) {
@@ -378,7 +378,7 @@ struct ExerciseProgressView: View {
                         Link(destination: url) {
                             Image(systemName: "play.circle.fill")
                                 .font(.title3)
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                         }
                         .accessibilityLabel("open_exercise_video")
                     }
@@ -417,7 +417,7 @@ struct ExerciseProgressView: View {
                     Link(destination: url) {
                         Label(sourceFooter, systemImage: "link")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                     }
                     .accessibilityLabel("open_exercise_source")
                 } else if let sourceName = currentExercise.sourceName {
@@ -585,7 +585,7 @@ struct ExercisePerformanceChart: View {
                 VStack(alignment: .trailing, spacing: 3) {
                     Text(latestPoint.map { formatted($0.value) } ?? "-")
                         .font(.title3.weight(.black).monospacedDigit())
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                     Text(unitLabel)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
@@ -606,7 +606,7 @@ struct ExercisePerformanceChart: View {
                     )
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [PulseTheme.primary.opacity(0.28), PulseTheme.primary.opacity(0.02)],
+                            colors: [PulseTheme.accent.opacity(0.28), PulseTheme.accent.opacity(0.02)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -616,7 +616,7 @@ struct ExercisePerformanceChart: View {
                         x: .value("Fecha", point.date),
                         y: .value(metric.localizedTitle, point.value)
                     )
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                     .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
                     .interpolationMethod(.catmullRom)
 
@@ -624,7 +624,7 @@ struct ExercisePerformanceChart: View {
                         x: .value("Fecha", point.date),
                         y: .value(metric.localizedTitle, point.value)
                     )
-                    .foregroundStyle(point.id == latestPoint?.id ? PulseTheme.accent : PulseTheme.primaryBright)
+                    .foregroundStyle(point.id == latestPoint?.id ? PulseTheme.accent : PulseTheme.ringStand)
                     .symbolSize(point.id == latestPoint?.id ? 88 : 42)
                 }
 
@@ -867,9 +867,9 @@ struct ResistanceCurveProfile {
     static func pressureColor(for intensity: Double) -> Color {
         switch intensity {
         case 0..<0.35:
-            return PulseTheme.primary
+            return PulseTheme.accent
         case 0.35..<0.65:
-            return PulseTheme.primaryBright
+            return PulseTheme.ringStand
         case 0.65..<0.88:
             return PulseTheme.warning
         default:
@@ -960,7 +960,7 @@ private struct ResistancePressureGraph: View {
                     ),
                     style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
                 )
-                .shadow(color: PulseTheme.primaryBright.opacity(0.22), radius: 8)
+                .shadow(color: PulseTheme.ringStand.opacity(0.22), radius: 8)
 
                 ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
                     let x = xPositions[index]
@@ -1058,7 +1058,7 @@ struct FatigueRatingCard: View {
                     Spacer()
                     Text("\(score)/4")
                         .font(.headline.monospacedDigit())
-                        .foregroundStyle(score >= 4 ? PulseTheme.destructive : score >= 3 ? PulseTheme.warning : PulseTheme.primaryBright)
+                        .foregroundStyle(score >= 4 ? PulseTheme.destructive : score >= 3 ? PulseTheme.warning : PulseTheme.ringStand)
                 }
                 Text(description)
                     .foregroundStyle(PulseTheme.secondaryText)
@@ -1077,7 +1077,7 @@ struct FatigueRatingCard: View {
     private func fatigueColor(for index: Int) -> Color {
         switch index {
         case 1, 2:
-            return PulseTheme.primaryBright
+            return PulseTheme.ringStand
         case 3:
             return PulseTheme.warning
         default:

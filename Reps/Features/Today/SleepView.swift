@@ -35,7 +35,7 @@ struct SleepView: View {
 
     private let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-    private var barColor: Color { PulseTheme.primary }
+    private var barColor: Color { PulseTheme.accent }
 
     var body: some View {
         ScrollView {
@@ -85,7 +85,7 @@ struct SleepView: View {
                     let calendar = Calendar.current
                     Chart {
                         RuleMark(y: .value("goal", sleepGoalHours))
-                            .foregroundStyle(PulseTheme.primary.opacity(0.4))
+                            .foregroundStyle(PulseTheme.accent.opacity(0.4))
                             .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
 
                         ForEach(weekMetrics) { m in
@@ -137,7 +137,7 @@ struct SleepView: View {
                 Label(localizedString("last_night_sleep").uppercased(), systemImage: "moon.fill")
                     .font(.system(size: 10, weight: .black, design: .rounded))
                     .tracking(1.2)
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
 
                 if let hours = lastNightHours, hours > 0 {
                     HStack(spacing: 0) {
@@ -162,7 +162,7 @@ struct SleepView: View {
         VStack(spacing: 4) {
             Text(value)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
             Text(label)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
@@ -189,7 +189,7 @@ struct SleepView: View {
                 }
 
                 if totalNightsWithData > 0 {
-                    HealthInsightRow(icon: "moon.stars.fill", color: PulseTheme.primary,
+                    HealthInsightRow(icon: "moon.stars.fill", color: PulseTheme.accent,
                                      title: localizedString("sleep_insight_goal_progress_title"),
                                      message: String(format: localizedString("sleep_insight_goal_progress_body"), goodNights, totalNightsWithData, Int(sleepGoalHours)))
                 }

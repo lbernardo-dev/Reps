@@ -270,10 +270,10 @@ struct WorkoutLogRow: View {
         HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(session.isRouteSession ? PulseTheme.accent.opacity(0.14) : (session.location == .home ? PulseTheme.accent.opacity(0.12) : PulseTheme.primary.opacity(0.12)))
+                    .fill(session.isRouteSession ? PulseTheme.accent.opacity(0.14) : (session.location == .home ? PulseTheme.accent.opacity(0.12) : PulseTheme.accent.opacity(0.12)))
                 Image(systemName: rowIcon)
                     .font(.subheadline)
-                    .foregroundStyle(session.isRouteSession || session.location == .home ? PulseTheme.accent : PulseTheme.primary)
+                    .foregroundStyle(session.isRouteSession || session.location == .home ? PulseTheme.accent : PulseTheme.accent)
             }
             .frame(width: 42, height: 42)
             
@@ -670,8 +670,8 @@ private struct WorkoutHeroToolbarButtonBackground: ViewModifier {
             content.navigationGlassCircle(.secondary)
         case .action:
             content
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
+                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                .navigationGlassCircle(.secondary, tint: .clear)
                 .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
         }
     }
@@ -724,7 +724,7 @@ private struct RouteWorkoutHero: View {
 
                 Text(session.distanceKm.map { WorkoutHistoryFormat.distanceUppercase($0) } ?? "--")
                     .font(.system(size: 30, weight: .regular, design: .rounded))
-                    .foregroundStyle(Color(red: 0.62, green: 1.0, blue: 0.03))
+                    .foregroundStyle(PulseTheme.ringExercise)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
 
@@ -743,7 +743,7 @@ private struct RouteWorkoutHero: View {
                         if let averageHeartRate = session.averageHeartRate {
                             RouteHeroSensor(
                                 icon: "heart.fill",
-                                iconColor: Color(red: 1.0, green: 0.15, blue: 0.36),
+                                iconColor: PulseTheme.ringMove,
                                 value: "\(Int(averageHeartRate))",
                                 label: "Avg. Heart Rate"
                             )
@@ -752,7 +752,7 @@ private struct RouteWorkoutHero: View {
                         if let steps = session.steps {
                             RouteHeroSensor(
                                 icon: "shoeprints.fill",
-                                iconColor: Color(red: 0.22, green: 0.78, blue: 1.0),
+                                iconColor: PulseTheme.ringStand,
                                 value: WorkoutHistoryFormat.compactNumber(steps),
                                 label: "Steps"
                             )

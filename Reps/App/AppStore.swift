@@ -273,22 +273,22 @@ final class AppStore {
             )
         case .personalRecord, .achievementUnlocked:
             notificationDestination = NotificationDestination(
-                tab: .progress,
+                tab: .summary,
                 focusDate: nil,
                 scheduledWorkoutID: nil,
                 action: target.action
             )
         case .dailySummary, .batteryRecoverySuggestion, .retentionNudge, .streakAtRisk:
             notificationDestination = NotificationDestination(
-                tab: .today,
+                tab: .workout,
                 focusDate: nil,
                 scheduledWorkoutID: nil,
                 action: target.action
             )
         default:
-            // gymRenewal and notifications without a navigable root land on Today.
+            // gymRenewal and notifications without a navigable root land on Workout.
             notificationDestination = NotificationDestination(
-                tab: .today,
+                tab: .workout,
                 focusDate: nil,
                 scheduledWorkoutID: nil,
                 action: target.action
@@ -2337,13 +2337,13 @@ final class AppStore {
             return .calendar
         case .scheduleDeloadExercise(let exerciseID):
             guard let exercise = exercises.first(where: { $0.id == exerciseID }) else {
-                return .progress
+                return .summary
             }
             scheduleDeloadSession(for: exercise)
             return .calendar
         case .reviewPlan:
             health.message = localizedString("review_plan_distribution_and_schedule_the_next_session_to_recover_adherence")
-            return .plans
+            return .workout
         case .scheduleRecovery:
             scheduleRecoverySession()
             return .calendar

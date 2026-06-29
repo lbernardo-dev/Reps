@@ -39,8 +39,8 @@ struct NotificationEvent: Identifiable, Codable, Sendable {
         switch colorName {
         case "orange": return .orange
         case "yellow": return .yellow
-        case "primaryBright": return PulseTheme.primaryBright
-        default: return PulseTheme.primary
+        case "primaryBright": return PulseTheme.ringStand
+        default: return PulseTheme.accent
         }
     }
 }

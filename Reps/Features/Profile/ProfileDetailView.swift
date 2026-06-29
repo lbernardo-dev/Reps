@@ -36,11 +36,11 @@ struct ProfileDetailView: View {
                             } else {
                                 ZStack {
                                     Circle()
-                                        .fill(PulseTheme.primary.opacity(0.12))
+                                        .fill(PulseTheme.accent.opacity(0.12))
                                         .frame(width: 100, height: 100)
                                     Image(systemName: "person.crop.circle.fill")
                                         .font(.system(size: 80))
-                                        .foregroundStyle(PulseTheme.primary)
+                                        .foregroundStyle(PulseTheme.accent)
                                 }
                             }
                             
@@ -144,7 +144,7 @@ struct ProfileDetailView: View {
                     dismiss()
                 }
                 .font(.headline.weight(.semibold))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
             }
         }
     }

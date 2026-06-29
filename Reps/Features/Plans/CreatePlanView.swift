@@ -145,7 +145,7 @@ struct CreatePlanView: View {
             HStack {
                 ForEach(PlanWizardStep.allCases) { wizardStep in
                     Capsule()
-                        .fill(wizardStep.rawValue <= step.rawValue ? PulseTheme.primary : PulseTheme.secondaryText.opacity(0.18))
+                        .fill(wizardStep.rawValue <= step.rawValue ? PulseTheme.accent : PulseTheme.secondaryText.opacity(0.18))
                         .frame(height: 6)
                 }
             }
@@ -181,7 +181,7 @@ struct CreatePlanView: View {
                     Toggle(isOn: $hasTargetEvent) {
                         HStack(spacing: 8) {
                             Image(systemName: "calendar.badge.clock")
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("do_you_have_a_target_event")
                                     .font(.headline)
@@ -275,8 +275,8 @@ struct CreatePlanView: View {
                                         .font(.caption.bold())
                                         .frame(maxWidth: .infinity)
                                         .frame(height: 38)
-                                        .foregroundStyle(selectedWeekdays.contains(day) ? .white : PulseTheme.primary)
-                                        .background(selectedWeekdays.contains(day) ? PulseTheme.primary : PulseTheme.primary.opacity(0.12))
+                                        .foregroundStyle(selectedWeekdays.contains(day) ? .white : PulseTheme.accent)
+                                        .background(selectedWeekdays.contains(day) ? PulseTheme.accent : PulseTheme.accent.opacity(0.12))
                                         .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
@@ -311,10 +311,10 @@ struct CreatePlanView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                     .overlay(
                         RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                            .stroke(PulseTheme.primary.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                            .stroke(PulseTheme.accent.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
                     )
             }
         }
@@ -473,13 +473,13 @@ struct CreatePlanView: View {
         } else if weeks <= 12 {
             return EventAdvice(
                 text: localizedFormat("optimal_duration_format", weeks, weeks),
-                color: PulseTheme.primaryBright,
+                color: PulseTheme.ringStand,
                 weeks: weeks
             )
         } else {
             return EventAdvice(
                 text: localizedFormat("long_duration_warning_format", weeks, weeks - 8),
-                color: PulseTheme.primary,
+                color: PulseTheme.accent,
                 weeks: weeks
             )
         }
@@ -508,7 +508,7 @@ private struct WizardMetricStepper: View {
                 HStack {
                     Text("\(value)")
                         .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                     Spacer()
                     Stepper(title, value: $value, in: range)
                         .labelsHidden()
@@ -555,7 +555,7 @@ private struct SessionBuilderCard: View {
                 if day.sessionType == .cardioRun || day.sessionType == .cardioWalk || day.sessionType == .mixedRoute {
                     Label("this_session_will_show_gps_route_and_map_during_training", systemImage: "map.fill")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -570,8 +570,8 @@ private struct SessionBuilderCard: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .foregroundStyle(PulseTheme.primary)
-                        .background(PulseTheme.primary.opacity(0.12))
+                        .foregroundStyle(PulseTheme.accent)
+                        .background(PulseTheme.accent.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
             }
@@ -671,8 +671,8 @@ private struct ExerciseMetricTile: View {
                     Image(systemName: "minus")
                         .font(.subheadline.weight(.bold))
                         .frame(width: 32, height: 44)
-                        .foregroundStyle(PulseTheme.primary)
-                        .background(PulseTheme.primary.opacity(0.10))
+                        .foregroundStyle(PulseTheme.accent)
+                        .background(PulseTheme.accent.opacity(0.10))
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -691,8 +691,8 @@ private struct ExerciseMetricTile: View {
                     Image(systemName: "plus")
                         .font(.subheadline.weight(.bold))
                         .frame(width: 32, height: 44)
-                        .foregroundStyle(PulseTheme.primary)
-                        .background(PulseTheme.primary.opacity(0.10))
+                        .foregroundStyle(PulseTheme.accent)
+                        .background(PulseTheme.accent.opacity(0.10))
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.plain)

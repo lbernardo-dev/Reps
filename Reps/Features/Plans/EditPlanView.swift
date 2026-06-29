@@ -48,7 +48,7 @@ private struct PlanExerciseBookmarkEditor: View {
                                 if let timestamp = bookmark.timestampSeconds {
                                     Text(localizedFormat("bookmark_time_format", timestamp / 60, timestamp % 60))
                                         .font(.caption.weight(.semibold))
-                                        .foregroundStyle(PulseTheme.primary)
+                                        .foregroundStyle(PulseTheme.accent)
                                 }
                                 if let duration = bookmark.playbackDurationSeconds {
                                     Text(localizedFormat("duration_minutes_seconds_format", duration / 60, duration % 60))
@@ -240,7 +240,7 @@ struct EditPlanView: View {
                                     }
                                 }
                             } label: {
-                                PlanEditorActionRow(title: "add_exercise_action", systemImage: "plus", color: PulseTheme.primary)
+                                PlanEditorActionRow(title: "add_exercise_action", systemImage: "plus", color: PulseTheme.accent)
                             }
                             .buttonStyle(.plain)
 
@@ -356,8 +356,8 @@ struct EditPlanView: View {
                         .font(.caption.weight(.bold))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(PulseTheme.primary.opacity(0.12))
-                        .foregroundStyle(PulseTheme.primary)
+                        .background(PulseTheme.accent.opacity(0.12))
+                        .foregroundStyle(PulseTheme.accent)
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -516,7 +516,7 @@ struct LegacyCreatePlanView: View {
                                 }
                                 Spacer()
                                 Image(systemName: selectedExerciseIDs.contains(exercise.id) ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(selectedExerciseIDs.contains(exercise.id) ? PulseTheme.primary : .secondary)
+                                    .foregroundStyle(selectedExerciseIDs.contains(exercise.id) ? PulseTheme.accent : .secondary)
                             }
                         }
                         .buttonStyle(.plain)

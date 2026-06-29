@@ -17,10 +17,15 @@ enum WatchTheme {
     static let minScale: CGFloat = 0.8
 
     // Semantic colors (kept in sync with PulseTheme)
-    static let success = Color(red: 0.18, green: 0.72, blue: 0.38)
+    static let success = Color(red: 0.57, green: 0.91, blue: 0.16)   // ringExercise green
     static let warning = Color(red: 1.0, green: 0.60, blue: 0.14)
     static let destructive = Color(red: 0.93, green: 0.24, blue: 0.22)
-    static let fallbackAccent = Color(red: 0.23, green: 0.52, blue: 0.96)
+    static let fallbackAccent = Color(red: 0.69, green: 0.99, blue: 0.16) // neon green #B0FC29
+
+    // Activity ring colors — mirror PulseTheme
+    static let ringMove     = Color(red: 0.98, green: 0.07, blue: 0.31)  // red-pink
+    static let ringExercise = Color(red: 0.57, green: 0.91, blue: 0.16)  // green
+    static let ringStand    = Color(red: 0.12, green: 0.92, blue: 0.94)  // cyan
 
     /// Resolves the snapshot accent name through the shared `WidgetColor`
     /// mapping so accent colors never drift between targets.
@@ -35,13 +40,13 @@ enum WatchTheme {
         return destructive
     }
 
-    // HR zones — same thresholds/colors as the iPhone `ProgressView.zoneColor`.
+    // HR zones — same thresholds/colors as PulseTheme.hrZones.
     static let zoneColors: [Color] = [
-        Color(red: 0.0, green: 0.48, blue: 1.0),   // Z1 recovery
-        Color(red: 0.20, green: 0.80, blue: 0.35), // Z2 easy
-        Color.yellow,                              // Z3 moderate
-        Color.orange,                              // Z4 hard
-        Color.red                                  // Z5 max
+        ringStand,              // Z1 recovery — cyan
+        ringExercise,           // Z2 easy — green
+        Color.yellow,           // Z3 moderate
+        Color.orange,           // Z4 hard
+        ringMove                // Z5 max — red-pink
     ]
 
     /// Color for an HR zone index (1…5). Returns secondary gray when unknown.

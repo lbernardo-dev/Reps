@@ -189,7 +189,7 @@ private struct RepsWorkoutWidgetView: View {
         if entry.snapshot.isPaused {
             Text([prefix, entry.snapshot.elapsedText].compactMap(\.self).joined(separator: " "))
         } else if let prefix {
-            Text(prefix) + Text(" ") + Text(entry.snapshot.elapsedStartDate, style: .timer)
+            Text("\(prefix) \(entry.snapshot.elapsedStartDate, style: .timer)")
         } else {
             Text(entry.snapshot.elapsedStartDate, style: .timer)
         }

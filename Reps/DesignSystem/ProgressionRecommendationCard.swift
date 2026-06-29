@@ -58,7 +58,7 @@ private struct ProgressionRecommendationRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: recommendation.suggestion.shouldDeload ? "arrow.down.forward.circle.fill" : "arrow.up.forward.circle.fill")
                 .font(.title3.weight(.bold))
-                .foregroundStyle(recommendation.suggestion.shouldDeload ? PulseTheme.warning : PulseTheme.primary)
+                .foregroundStyle(recommendation.suggestion.shouldDeload ? PulseTheme.warning : PulseTheme.accent)
                 .frame(width: 30, height: 30)
 
             VStack(alignment: .leading, spacing: 6) {

@@ -34,15 +34,8 @@ struct ActiveWorkoutPinnedHeader: View {
                         Image(systemName: isPaused ? "play.fill" : "pause.fill")
                             .font(.body.weight(.bold))
                             .frame(width: 44, height: 44)
-                            .foregroundStyle(isPaused ? PulseTheme.primary : PulseTheme.warning)
-                            .background(isPaused ? PulseTheme.primary.opacity(0.12) : PulseTheme.warning.opacity(0.15))
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle().stroke(
-                                    isPaused ? PulseTheme.primary.opacity(0.3) : PulseTheme.warning.opacity(0.4),
-                                    lineWidth: 1.5
-                                )
-                            )
+                            .foregroundStyle(isPaused ? PulseTheme.accent : PulseTheme.warning)
+                            .navigationGlassCircle(.secondary, tint: isPaused ? PulseTheme.accent : PulseTheme.warning)
                     }
                     .accessibilityLabel(localizedString(isPaused ? "resume_workout" : "pause_workout"))
                 }
@@ -63,7 +56,7 @@ struct ActiveWorkoutPinnedHeader: View {
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(.white)
                             .frame(width: 110, height: 44)
-                            .background(PulseTheme.primary)
+                            .background(PulseTheme.accent)
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .disabled(!canStartWorkout)
@@ -113,7 +106,7 @@ struct ActiveWorkoutProgressSummary: View {
     }
 
     private var stateColor: Color {
-        isSessionStarted ? (isPaused ? PulseTheme.warning : PulseTheme.primary) : PulseTheme.secondaryText
+        isSessionStarted ? (isPaused ? PulseTheme.warning : PulseTheme.accent) : PulseTheme.secondaryText
     }
 
     var body: some View {
@@ -240,7 +233,7 @@ struct ActiveWorkoutCommandCard: View {
 
     private var commandColor: Color {
         if isPaused { return PulseTheme.warning }
-        if isResting { return PulseTheme.primaryBright }
+        if isResting { return PulseTheme.ringStand }
         return PulseTheme.accent
     }
 
@@ -301,11 +294,11 @@ struct ActiveWorkoutCommandCard: View {
                     )
                 } else {
                     HStack(spacing: 8) {
-                        CommandSignal(title: localizedString("target"), value: setTarget, systemImage: "scope", color: PulseTheme.primary)
+                        CommandSignal(title: localizedString("target"), value: setTarget, systemImage: "scope", color: PulseTheme.accent)
                         if let suggestion {
                             CommandSignal(title: localizedString("suggestion"), value: suggestion, systemImage: "sparkles", color: PulseTheme.accent)
                         } else if let history {
-                            CommandSignal(title: localizedString("history_label"), value: history, systemImage: "clock.arrow.circlepath", color: PulseTheme.primaryBright)
+                            CommandSignal(title: localizedString("history_label"), value: history, systemImage: "clock.arrow.circlepath", color: PulseTheme.ringStand)
                         }
                     }
                 }
@@ -316,7 +309,7 @@ struct ActiveWorkoutCommandCard: View {
                             .font(.headline.weight(.black))
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .foregroundStyle(isResting ? .black : .white)
+                            .foregroundStyle(isPaused ? .white : .black)
                             .background(
                                 LinearGradient(
                                     colors: [commandColor, commandColor.opacity(0.82)],
@@ -339,11 +332,11 @@ struct ActiveWorkoutCommandCard: View {
                         Image(systemName: "plus")
                             .font(.headline.weight(.black))
                             .frame(width: 50, height: 52)
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                    .stroke(PulseTheme.primary.opacity(0.20), lineWidth: 1)
+                                    .stroke(PulseTheme.accent.opacity(0.20), lineWidth: 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -484,7 +477,7 @@ private struct RestCommandStrip: View {
             HStack(spacing: 10) {
                 if let onUndo {
                     Button(action: onUndo) {
-                        Label("Undo set", systemImage: "arrow.uturn.backward")
+                        Label(localizedString("undo_set"), systemImage: "arrow.uturn.backward")
                             .font(.caption.weight(.black))
                             .frame(maxWidth: .infinity)
                             .frame(height: 40)
@@ -492,19 +485,19 @@ private struct RestCommandStrip: View {
                             .background(PulseTheme.elevated, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Undo last set")
+                    .accessibilityLabel(localizedString("undo_the_last_completed_set"))
                 }
 
                 Button(action: onSkip) {
-                    Label("End rest", systemImage: "forward.fill")
+                    Label(localizedString("end_rest"), systemImage: "forward.fill")
                         .font(.caption.weight(.black))
                         .frame(maxWidth: .infinity)
                         .frame(height: 40)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.black)
                         .background(color, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("End rest")
+                .accessibilityLabel(localizedString("end_rest"))
             }
         }
         .padding(10)

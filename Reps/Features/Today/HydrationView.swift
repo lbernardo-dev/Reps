@@ -70,7 +70,7 @@ struct HydrationView: View {
 
                 Text(statusTitle)
                     .font(.title3.bold())
-                    .foregroundStyle(PulseTheme.primaryBright)
+                    .foregroundStyle(PulseTheme.ringStand)
                     .multilineTextAlignment(.center)
 
                 gaugeView
@@ -82,7 +82,7 @@ struct HydrationView: View {
                     VStack(spacing: 2) {
                         Text(String(format: "%.2f L", todayLiters))
                             .font(.system(size: 20, weight: .bold, design: .rounded).monospacedDigit())
-                            .foregroundStyle(PulseTheme.primaryBright)
+                            .foregroundStyle(PulseTheme.ringStand)
                         Text(localizedString("hydration_today"))
                             .font(.caption2)
                             .foregroundStyle(PulseTheme.secondaryText)
@@ -119,9 +119,9 @@ struct HydrationView: View {
     @ViewBuilder
     private var gaugeView: some View {
         switch selectedStyle {
-        case .bottle: WaterBottleGauge(fraction: fraction, color: PulseTheme.primaryBright)
-        case .ring:   WaterDropRing(fraction: fraction, color: PulseTheme.primaryBright, todayLiters: todayLiters, goalLiters: goalLiters)
-        case .cells:  WaterFlowGrid(fraction: fraction, color: PulseTheme.primaryBright)
+        case .bottle: WaterBottleGauge(fraction: fraction, color: PulseTheme.ringStand)
+        case .ring:   WaterDropRing(fraction: fraction, color: PulseTheme.ringStand, todayLiters: todayLiters, goalLiters: goalLiters)
+        case .cells:  WaterFlowGrid(fraction: fraction, color: PulseTheme.ringStand)
         }
     }
 
@@ -141,18 +141,18 @@ struct HydrationView: View {
                         VStack(spacing: 6) {
                             Image(systemName: style.systemImage())
                                 .font(.title3)
-                                .foregroundStyle(sel ? .white : PulseTheme.primaryBright)
+                                .foregroundStyle(sel ? .white : PulseTheme.ringStand)
                             Text(style.displayName)
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(sel ? .white : .primary)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(sel ? PulseTheme.primaryBright : PulseTheme.card)
+                        .background(sel ? PulseTheme.ringStand : PulseTheme.card)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(sel ? PulseTheme.primaryBright : PulseTheme.separator, lineWidth: 1.5))
-                        .shadow(color: sel ? PulseTheme.primaryBright.opacity(0.2) : .clear, radius: 8, y: 4)
+                            .stroke(sel ? PulseTheme.ringStand : PulseTheme.separator, lineWidth: 1.5))
+                        .shadow(color: sel ? PulseTheme.ringStand.opacity(0.2) : .clear, radius: 8, y: 4)
                     }
                     .buttonStyle(.plain)
                 }
@@ -165,7 +165,7 @@ struct HydrationView: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Image(systemName: "drop.fill").font(.headline).foregroundStyle(PulseTheme.primaryBright)
+                    Image(systemName: "drop.fill").font(.headline).foregroundStyle(PulseTheme.ringStand)
                     Text(localizedString("add_water_action")).font(.headline)
                 }
 
@@ -178,20 +178,20 @@ struct HydrationView: View {
                             .frame(width: 32, height: 80)
 
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(PulseTheme.primaryBright)
+                            .fill(PulseTheme.ringStand)
                             .frame(width: 32, height: 80 * min(CGFloat(amountMl / 1000), 1.0))
                             .animation(.spring(response: 0.3), value: amountMl)
                     }
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(PulseTheme.primaryBright.opacity(0.5), lineWidth: 1.5)
+                            .stroke(PulseTheme.ringStand.opacity(0.5), lineWidth: 1.5)
                     )
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text("\(Int(amountMl))")
                                 .font(.system(size: 48, weight: .bold, design: .rounded).monospacedDigit())
-                                .foregroundStyle(PulseTheme.primaryBright)
+                                .foregroundStyle(PulseTheme.ringStand)
                             Text("ml")
                                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -199,7 +199,7 @@ struct HydrationView: View {
                         }
 
                         Slider(value: $amountMl, in: 50...1000, step: 25)
-                            .tint(PulseTheme.primaryBright)
+                            .tint(PulseTheme.ringStand)
 
                         HStack {
                             Text("50 ml").font(.caption2).foregroundStyle(PulseTheme.secondaryText)
@@ -224,7 +224,7 @@ struct HydrationView: View {
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
-                                .background(amountMl == Double(ml) ? PulseTheme.primaryBright : PulseTheme.grouped)
+                                .background(amountMl == Double(ml) ? PulseTheme.ringStand : PulseTheme.grouped)
                                 .foregroundStyle(amountMl == Double(ml) ? .white : .primary)
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
@@ -238,7 +238,7 @@ struct HydrationView: View {
                         .font(.headline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(PulseTheme.primaryBright)
+                        .background(PulseTheme.ringStand)
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
@@ -267,18 +267,18 @@ struct HydrationView: View {
                                 y: .value("L", m.waterLiters)
                             )
                             .foregroundStyle(
-                                LinearGradient(colors: [PulseTheme.primaryBright, PulseTheme.primaryBright.opacity(0.55)],
+                                LinearGradient(colors: [PulseTheme.ringStand, PulseTheme.ringStand.opacity(0.55)],
                                                startPoint: .top, endPoint: .bottom)
                             )
                             .cornerRadius(5)
                         }
                         RuleMark(y: .value("goal", goalLiters))
-                            .foregroundStyle(PulseTheme.primaryBright.opacity(0.45))
+                            .foregroundStyle(PulseTheme.ringStand.opacity(0.45))
                             .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
                             .annotation(position: .leading) {
                                 Text(localizedString("goal_label"))
                                     .font(.system(size: 9, weight: .bold))
-                                    .foregroundStyle(PulseTheme.primaryBright.opacity(0.8))
+                                    .foregroundStyle(PulseTheme.ringStand.opacity(0.8))
                             }
                     }
                     .chartYAxis {
@@ -305,7 +305,7 @@ struct HydrationView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Label(localizedString("insights_and_flags"), systemImage: "lightbulb.fill").font(.headline)
                 if fraction >= 1.0 {
-                    HealthInsightRow(icon: "checkmark.circle.fill", color: PulseTheme.primaryBright,
+                    HealthInsightRow(icon: "checkmark.circle.fill", color: PulseTheme.ringStand,
                                title: localizedString("hydration_goal_reached"),
                                message: localizedString("hydration_great_job"))
                 } else if fraction >= 0.5 {
@@ -317,7 +317,7 @@ struct HydrationView: View {
                                title: localizedString("hydration_low_title"),
                                message: localizedString("hydration_drink_more"))
                 }
-                HealthInsightRow(icon: "target", color: PulseTheme.primary,
+                HealthInsightRow(icon: "target", color: PulseTheme.accent,
                            title: localizedString("hydration_goal_based"),
                            message: localizedFormat("hydration_goal_target_fmt", Int(goalLiters * 1000)))
             }

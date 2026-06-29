@@ -179,7 +179,7 @@ struct ActiveWorkoutView: View {
         case .charged:
             return PulseTheme.recovery
         case .steady:
-            return PulseTheme.primary
+            return PulseTheme.accent
         case .low:
             return PulseTheme.warning
         case .critical:
@@ -986,7 +986,7 @@ struct ActiveWorkoutView: View {
                                             .frame(width: 18, height: 18)
                                         Circle()
                                             .trim(from: 0, to: ratio)
-                                            .stroke(isActive ? PulseTheme.accent : PulseTheme.primaryBright, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                                            .stroke(isActive ? PulseTheme.accent : PulseTheme.ringStand, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                                             .rotationEffect(.degrees(-90))
                                             .frame(width: 14, height: 14)
                                     }
@@ -1074,7 +1074,7 @@ struct ActiveWorkoutView: View {
                     HStack(spacing: 10) {
                         Label("more_session_tools", systemImage: "slider.horizontal.3")
                             .font(.headline)
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                         Spacer(minLength: 8)
                         Image(systemName: "chevron.down")
                             .font(.caption.weight(.semibold))
@@ -1228,7 +1228,7 @@ struct ActiveWorkoutView: View {
         case .inactive:
             return PulseTheme.secondaryText
         case .active:
-            return PulseTheme.primary
+            return PulseTheme.accent
         case .paused:
             return PulseTheme.warning
         }
@@ -1341,7 +1341,7 @@ struct ActiveWorkoutView: View {
                         if let suggestionText = selectedExerciseContext.suggestionText {
                             Label(suggestionText, systemImage: "sparkles")
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -1398,8 +1398,8 @@ struct ActiveWorkoutView: View {
                             .font(.subheadline.weight(.black))
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
-                            .foregroundStyle(PulseTheme.primary)
-                            .background(PulseTheme.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                            .foregroundStyle(PulseTheme.accent)
+                            .background(PulseTheme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
 
@@ -1455,7 +1455,7 @@ struct ActiveWorkoutView: View {
                 } label: {
                     Label("campos_pro", systemImage: "slider.horizontal.3")
                         .font(.headline)
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                 }
             } else {
                 Button {
@@ -1470,7 +1470,7 @@ struct ActiveWorkoutView: View {
                         Spacer()
                         Text("activar")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.secondaryText)
@@ -1490,12 +1490,12 @@ struct ActiveWorkoutView: View {
             HStack(spacing: 16) {
                 Image(systemName: "dumbbell.fill")
                     .font(.title2)
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                     .frame(width: 58, height: 58)
                     .background(PulseTheme.grouped)
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 VStack(alignment: .leading) {
-                    Text("next_uppercase").font(.caption.weight(.bold)).foregroundStyle(PulseTheme.primary)
+                    Text("next_uppercase").font(.caption.weight(.bold)).foregroundStyle(PulseTheme.accent)
                     Text(nextExerciseTitle)
                         .font(.headline)
                     Text(nextExerciseSubtitle).foregroundStyle(PulseTheme.secondaryText)
@@ -1524,7 +1524,7 @@ struct ActiveWorkoutView: View {
                     systemImage: "applewatch.radiowaves.left.and.right",
                     statusTitle: "Sync Watch",
                     statusImage: "arrow.triangle.2.circlepath",
-                    statusColor: PulseTheme.primary
+                    statusColor: PulseTheme.accent
                 )
 
                 SessionMetricStrip(metrics: [
@@ -1543,7 +1543,7 @@ struct ActiveWorkoutView: View {
                         title: "+250 ml",
                         systemImage: "waterbottle.fill",
                         foregroundStyle: .white,
-                        backgroundStyle: PulseTheme.primary
+                        backgroundStyle: PulseTheme.accent
                     ) {
                         addWater()
                     }
@@ -1575,7 +1575,7 @@ struct ActiveWorkoutView: View {
                     systemImage: isTreadmillCandidate ? "figure.run.treadmill" : "figure.walk",
                     statusTitle: cardioControlStatus,
                     statusImage: routeTracker.isTracking ? "location.fill" : (isTreadmillCandidate ? "figure.run.treadmill" : "pause.circle"),
-                    statusColor: routeTracker.isTracking || isTreadmillCandidate ? PulseTheme.primary : PulseTheme.warning
+                    statusColor: routeTracker.isTracking || isTreadmillCandidate ? PulseTheme.accent : PulseTheme.warning
                 )
 
                 if showResumeSuggestion {
@@ -1605,8 +1605,8 @@ struct ActiveWorkoutView: View {
                     SessionControlButton(
                         title: "+250 ml",
                         systemImage: "waterbottle.fill",
-                        foregroundStyle: PulseTheme.primary,
-                        backgroundStyle: PulseTheme.primary.opacity(0.12),
+                        foregroundStyle: PulseTheme.accent,
+                        backgroundStyle: PulseTheme.accent.opacity(0.12),
                         height: 50
                     ) {
                         addWater()
@@ -1670,7 +1670,7 @@ struct ActiveWorkoutView: View {
             HStack(alignment: .top) {
                 Label("set_tools", systemImage: "wrench.and.screwdriver.fill")
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                 Spacer()
                 if let plateLoadSummary = selectedExerciseContext.plateLoadSummary {
                     Text(localizedFormat("side_value_format", plateLoadSummary))
@@ -1714,8 +1714,8 @@ struct ActiveWorkoutView: View {
                 .font(.caption.weight(.bold))
                 .frame(maxWidth: .infinity)
                 .frame(height: 38)
-                .foregroundStyle(PulseTheme.primary)
-                .background(PulseTheme.primary.opacity(0.12))
+                .foregroundStyle(PulseTheme.accent)
+                .background(PulseTheme.accent.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -1749,7 +1749,7 @@ struct ActiveWorkoutView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Image(systemName: "plus.circle.fill")
                     .font(.largeTitle)
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                 Text("add_your_first_exercise")
                     .font(.title2.bold())
                 Text("free_training_starts_empty_so_you_record_only_what_you_do_today")
@@ -1762,7 +1762,7 @@ struct ActiveWorkoutView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .foregroundStyle(.white)
-                        .background(PulseTheme.primary)
+                        .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
             }
@@ -2573,7 +2573,7 @@ private struct ReplacementExerciseRow: View {
                 if !exercise.requiredEquipment.isEmpty {
                     Text(exercise.requiredEquipment.prefix(3).joined(separator: " · "))
                         .font(.caption)
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                         .lineLimit(1)
                 }
                 if let reasonText {
@@ -2598,7 +2598,7 @@ private struct ReplacementExerciseRow: View {
 
             Image(systemName: currentExercise == nil ? "plus.circle.fill" : "circle")
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(currentExercise == nil ? PulseTheme.primary : PulseTheme.secondaryText)
+                .foregroundStyle(currentExercise == nil ? PulseTheme.accent : PulseTheme.secondaryText)
         }
         .padding(14)
         .background(PulseTheme.card)
@@ -2621,13 +2621,13 @@ private struct ReplacementExerciseRow: View {
     }
 
     private var badgeColor: Color {
-        guard let currentExercise else { return PulseTheme.primaryBright }
+        guard let currentExercise else { return PulseTheme.ringStand }
         // "Essential" (same tracking model) reads as the strongest match → growth green.
         if normalized(exercise.equipment) != normalized(currentExercise.equipment),
            exercise.trackingType == currentExercise.trackingType {
             return PulseTheme.growth
         }
-        return PulseTheme.primaryBright
+        return PulseTheme.ringStand
     }
 
     private var reasonText: String? {
@@ -2744,8 +2744,8 @@ private struct PlannedDurationEditor: View {
                 Image(systemName: "minus")
                     .font(.caption.weight(.black))
                     .frame(width: 30, height: 30)
-                    .foregroundStyle(PulseTheme.primary)
-                    .background(PulseTheme.primary.opacity(0.12))
+                    .foregroundStyle(PulseTheme.accent)
+                    .background(PulseTheme.accent.opacity(0.12))
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
@@ -2762,7 +2762,7 @@ private struct PlannedDurationEditor: View {
                     .font(.caption.weight(.black))
                     .frame(width: 30, height: 30)
                     .foregroundStyle(.white)
-                    .background(PulseTheme.primary)
+                    .background(PulseTheme.accent)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
@@ -2782,7 +2782,7 @@ private struct RouteTrackingPanel: View {
     let secondaryMetrics: [SessionMetricStrip.Metric]
 
     private var statusColor: Color {
-        isTracking ? PulseTheme.primary : PulseTheme.secondaryText
+        isTracking ? PulseTheme.accent : PulseTheme.secondaryText
     }
 
     var body: some View {
@@ -2842,7 +2842,7 @@ private struct LiveRouteMapPanel: View {
                     VStack(spacing: 10) {
                         Image(systemName: "location.magnifyingglass")
                             .font(.title2.weight(.bold))
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                         Text(localizedString(isSessionStarted ? "route_drawing_started" : "route_drawing_pending"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
@@ -2927,8 +2927,8 @@ private struct SessionIconButton: View {
             Image(systemName: systemImage)
                 .font(.headline.weight(.bold))
                 .frame(width: 48, height: 48)
-                .foregroundStyle(PulseTheme.primary)
-                .background(PulseTheme.primary.opacity(0.12))
+                .foregroundStyle(PulseTheme.accent)
+                .background(PulseTheme.accent.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         }
     }
@@ -2996,7 +2996,7 @@ private struct MiniSessionPill: View {
     var body: some View {
         HStack(spacing: 7) {
             Image(systemName: icon)
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
                     .font(.subheadline.weight(.bold))
@@ -3027,7 +3027,7 @@ private struct ActiveGymPassCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Label("tarjeta_gym", systemImage: pass.codeType == .qr ? "qrcode" : "barcode")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(PulseTheme.primary)
+                    .foregroundStyle(PulseTheme.accent)
                 Text(pass.gymName)
                     .font(.headline)
                     .lineLimit(1)
@@ -3106,8 +3106,8 @@ private struct SessionFeedbackPanel: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
-                            .foregroundStyle(isRecordingAudio ? .white : PulseTheme.primary)
-                            .background(isRecordingAudio ? PulseTheme.destructive : PulseTheme.primary.opacity(0.12))
+                            .foregroundStyle(isRecordingAudio ? .white : PulseTheme.accent)
+                            .background(isRecordingAudio ? PulseTheme.destructive : PulseTheme.accent.opacity(0.12))
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
 
@@ -3121,8 +3121,8 @@ private struct SessionFeedbackPanel: View {
                         Label("\(mediaCount)", systemImage: "photo.badge.plus")
                             .font(.headline)
                             .frame(width: 72, height: 48)
-                            .foregroundStyle(PulseTheme.primary)
-                            .background(PulseTheme.primary.opacity(0.12))
+                            .foregroundStyle(PulseTheme.accent)
+                            .background(PulseTheme.accent.opacity(0.12))
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                 }
@@ -3211,7 +3211,7 @@ private struct ExerciseBookmarkStrip: View {
         VStack(alignment: .leading, spacing: 8) {
             Label("quick_bookmarks", systemImage: "bookmark.fill")
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(PulseTheme.primary)
+                .foregroundStyle(PulseTheme.accent)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(bookmarks) { bookmark in
@@ -3230,10 +3230,10 @@ private struct ExerciseBookmarkStrip: View {
                                     }
                                 }
                             }
-                            .foregroundStyle(PulseTheme.primary)
+                            .foregroundStyle(PulseTheme.accent)
                             .padding(.horizontal, 10)
                             .frame(height: 46)
-                            .background(PulseTheme.primary.opacity(0.12))
+                            .background(PulseTheme.accent.opacity(0.12))
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                     }
@@ -3419,7 +3419,7 @@ private struct RouteMapPreview: View {
         Map(position: $position) {
             if coordinates.count >= 2 {
                 MapPolyline(coordinates: coordinates)
-                    .stroke(PulseTheme.primary, lineWidth: 5)
+                    .stroke(PulseTheme.accent, lineWidth: 5)
             }
             if let first = coordinates.first {
                 Marker("Inicio", systemImage: "play.fill", coordinate: first)
@@ -3989,8 +3989,8 @@ private struct InlineStepper: View {
                 Image(systemName: "minus")
                     .font(.subheadline.weight(.bold))
                     .frame(width: 36, height: 36)
-                    .foregroundStyle(PulseTheme.primary)
-                    .background(PulseTheme.primary.opacity(0.12))
+                    .foregroundStyle(PulseTheme.accent)
+                    .background(PulseTheme.accent.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             .accessibilityLabel("bajar_valor")
@@ -4010,8 +4010,8 @@ private struct InlineStepper: View {
                 Image(systemName: "plus")
                     .font(.subheadline.weight(.bold))
                     .frame(width: 36, height: 36)
-                    .foregroundStyle(PulseTheme.primary)
-                    .background(PulseTheme.primary.opacity(0.12))
+                    .foregroundStyle(PulseTheme.accent)
+                    .background(PulseTheme.accent.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             .accessibilityLabel("subir_valor")

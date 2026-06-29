@@ -62,9 +62,9 @@ struct ExerciseAnatomyThumbnail: View {
     private var cardioFallback: some View {
         Image(systemName: "heart.fill")
             .font(.system(size: size * 0.38, weight: .bold))
-            .foregroundStyle(PulseTheme.primary)
+            .foregroundStyle(PulseTheme.accent)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(PulseTheme.primary.opacity(0.12))
+            .background(PulseTheme.accent.opacity(0.12))
     }
 }
 
@@ -223,9 +223,9 @@ struct ExerciseAnatomyDescriptor {
     func thumbnailHeatmap(primaryIntensity: Double) -> [MuscleIntensity] {
         let secondaryIntensity = min(primaryIntensity * 0.42, 0.36)
         return primaryMuscles.map {
-            MuscleIntensity(muscle: $0, intensity: primaryIntensity, color: PulseTheme.primaryBright)
+            MuscleIntensity(muscle: $0, intensity: primaryIntensity, color: PulseTheme.ringStand)
         } + secondaryMuscles.map {
-            MuscleIntensity(muscle: $0, intensity: secondaryIntensity, color: PulseTheme.primary.opacity(0.40))
+            MuscleIntensity(muscle: $0, intensity: secondaryIntensity, color: PulseTheme.accent.opacity(0.40))
         }
     }
 
@@ -644,8 +644,8 @@ private extension BodyViewStyle {
         defaultFillColor: Color.white.opacity(0.22),
         strokeColor: Color.white.opacity(0.24),
         strokeWidth: 0.7,
-        selectionColor: PulseTheme.primaryBright,
-        selectionStrokeColor: PulseTheme.primaryBright,
+        selectionColor: PulseTheme.ringStand,
+        selectionStrokeColor: PulseTheme.ringStand,
         selectionStrokeWidth: 1.1,
         headColor: Color.white.opacity(0.26),
         hairColor: Color.white.opacity(0.16)
@@ -665,17 +665,17 @@ private extension HeatmapConfiguration {
 
 private extension HeatmapColorScale {
     static let repsThumbnail = HeatmapColorScale(colors: [
-        PulseTheme.primary,
-        PulseTheme.primary.opacity(0.92),
-        PulseTheme.primaryBright
+        PulseTheme.accent,
+        PulseTheme.accent.opacity(0.92),
+        PulseTheme.ringStand
     ])
 }
 
 private var anatomyThumbnailBackground: some ShapeStyle {
     LinearGradient(
         colors: [
-            Color(red: 0.11, green: 0.12, blue: 0.14),
-            Color(red: 0.04, green: 0.05, blue: 0.07)
+            PulseTheme.card,
+            Color.black
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing

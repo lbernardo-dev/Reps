@@ -141,7 +141,7 @@ struct NotificationsView: View {
                             }
                         ))
                         .labelsHidden()
-                        .tint(PulseTheme.primary)
+                        .tint(PulseTheme.accent)
                     }
                     .padding(14)
 
@@ -158,7 +158,7 @@ struct NotificationsView: View {
                                 set: { store.userProfile.socialNotificationsEnabled = $0 }
                             ))
                             .labelsHidden()
-                            .tint(PulseTheme.primary)
+                            .tint(PulseTheme.accent)
                         }
                         .padding(14)
                     }

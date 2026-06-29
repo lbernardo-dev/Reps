@@ -44,9 +44,9 @@ struct RepsBatteryWidget: Widget {
 // MARK: - Helpers
 
 private func batteryColor(for level: Int) -> Color {
-    if level >= 75 { return Color(red: 0.28, green: 0.86, blue: 0.38) }
-    if level >= 40 { return Color(red: 1.0,  green: 0.80, blue: 0.14) }
-    if level >= 20 { return Color(red: 1.0,  green: 0.60, blue: 0.14) }
+    if level >= 75 { return Color(red: 0.57, green: 0.91, blue: 0.16) }  // ringExercise green
+    if level >= 40 { return Color(red: 1.0,  green: 0.80, blue: 0.14) }  // yellow
+    if level >= 20 { return Color(red: 1.0,  green: 0.60, blue: 0.14) }  // orange
     return Color(red: 0.93, green: 0.24, blue: 0.22)
 }
 

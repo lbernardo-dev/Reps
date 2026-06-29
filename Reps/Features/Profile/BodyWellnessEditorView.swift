@@ -54,7 +54,7 @@ struct BodyWellnessEditorView: View {
                                     .foregroundStyle(.tertiary)
                             }
                             Button(localizedString("health_confirm_today")) { save() }
-                                .foregroundStyle(PulseTheme.primary)
+                                .foregroundStyle(PulseTheme.accent)
                         } else {
                             Text(localizedString("health_suggested_values"))
                                 .font(.footnote)

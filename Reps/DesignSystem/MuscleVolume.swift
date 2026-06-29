@@ -22,7 +22,7 @@ enum MuscleZone: CaseIterable, Identifiable {
 
     var color: Color {
         switch self {
-        case .maintaining: PulseTheme.primary
+        case .maintaining: PulseTheme.accent
         case .growing: PulseTheme.growth
         case .focus: PulseTheme.warning
         }
@@ -112,20 +112,16 @@ struct InWorkoutVolumeStrip: View {
                     .font(.headline.weight(.bold))
                 Spacer()
                 if volume.sessionDelta > 0 {
-                    Text("+\(volume.sessionDelta) ")
-                        .foregroundStyle(PulseTheme.primaryBright)
-                        + Text("sets_suffix")
-                        .foregroundStyle(PulseTheme.primaryBright)
+                    Text("+\(volume.sessionDelta) \(localizedString("sets_suffix"))")
+                        .foregroundStyle(PulseTheme.ringStand)
                 }
             }
             .font(.subheadline.weight(.bold))
 
             HStack(alignment: .firstTextBaseline) {
-                (Text("\(load.displaySets)")
-                    .foregroundStyle(.primary)
-                 + Text("of_12_weekly_sets")
-                    .foregroundStyle(PulseTheme.secondaryText))
+                Text("\(load.displaySets) \(localizedString("of_12_weekly_sets"))")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
                 Spacer()
                 Text(load.setsToGrowthZoneText)
                     .font(.caption.weight(.bold))
@@ -145,7 +141,7 @@ struct InWorkoutVolumeStrip: View {
                 } icon: {
                     Image(systemName: "arrow.up.right")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.primaryBright)
+                        .foregroundStyle(PulseTheme.ringStand)
                 }
             }
             .tint(PulseTheme.growth)
@@ -197,9 +193,9 @@ struct SessionMuscleSummaryCard: View {
 
             HStack {
                 Label {
-                    (Text("\(workedMuscleCount) ").foregroundStyle(.primary)
-                     + Text("muscles_trained_count").foregroundStyle(PulseTheme.secondaryText))
+                    Text("\(workedMuscleCount) \(localizedString("muscles_trained_count"))")
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
                 } icon: {
                     Image(systemName: "figure.strengthtraining.traditional")
                         .foregroundStyle(PulseTheme.growth)

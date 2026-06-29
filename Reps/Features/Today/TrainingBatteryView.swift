@@ -47,7 +47,7 @@ struct TrainingBatteryView: View {
         case .charged:
             return PulseTheme.recovery
         case .steady:
-            return PulseTheme.primary
+            return PulseTheme.accent
         case .low:
             return PulseTheme.warning
         case .critical:
@@ -224,7 +224,7 @@ struct TrainingBatteryView: View {
                         VStack(spacing: 8) {
                             Image(systemName: style.systemImage())
                                 .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(isSelected ? .black : PulseTheme.primary)
+                                .foregroundStyle(isSelected ? .black : PulseTheme.accent)
 
                             Text(style.displayName)
                                 .font(.caption.weight(.semibold))
@@ -264,7 +264,7 @@ struct TrainingBatteryView: View {
                     HStack {
                         Label(localizedString("recovery_3"), systemImage: "sparkles")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(PulseTheme.primaryBright)
+                            .foregroundStyle(PulseTheme.ringStand)
                         Spacer()
                         Label(localizedString("fatigue_2"), systemImage: "bolt.fill")
                             .font(.caption.weight(.bold))
@@ -279,7 +279,7 @@ struct TrainingBatteryView: View {
                             Capsule()
                                 .fill(PulseTheme.destructive.opacity(0.85))
                             Capsule()
-                                .fill(PulseTheme.primaryBright)
+                                .fill(PulseTheme.ringStand)
                                 .frame(width: geo.size.width * recoveryPct)
                         }
                     }
@@ -289,7 +289,7 @@ struct TrainingBatteryView: View {
                     HStack {
                         Text(String(format: "+%.0f pts", totalRecovery))
                             .font(.subheadline.bold())
-                            .foregroundStyle(PulseTheme.primaryBright)
+                            .foregroundStyle(PulseTheme.ringStand)
                         Spacer()
                         Text(String(format: "-%.0f pts", totalFatigue))
                             .font(.subheadline.bold())
@@ -307,13 +307,13 @@ struct TrainingBatteryView: View {
                         Text(localizedString("recovery_credits"))
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.5)
-                            .foregroundStyle(PulseTheme.primaryBright)
+                            .foregroundStyle(PulseTheme.ringStand)
                             .padding(.bottom, 2)
 
-                        BalanceRow(label: localizedString("rest_days"), value: String(format: "+%.0f", restDaysCredit), icon: "calendar.badge.clock", color: PulseTheme.primaryBright)
-                        BalanceRow(label: localizedString("hours_of_sleep"), value: String(format: "+%.0f", max(0, batteryStatus.sleepCredit)), icon: "bed.double.fill", color: PulseTheme.primaryBright, active: batteryStatus.sleepCredit > 0)
-                        BalanceRow(label: localizedString("hrv_recovery"), value: String(format: "+%.0f", max(0, batteryStatus.hrvCredit)), icon: "waveform.path.ecg", color: PulseTheme.primaryBright, active: batteryStatus.hrvCredit > 0)
-                        BalanceRow(label: localizedString("perceived_energy_stress"), value: String(format: "+%.0f", max(0, batteryStatus.fatigueCredit)), icon: "face.smiling", color: PulseTheme.primaryBright, active: batteryStatus.fatigueCredit > 0)
+                        BalanceRow(label: localizedString("rest_days"), value: String(format: "+%.0f", restDaysCredit), icon: "calendar.badge.clock", color: PulseTheme.ringStand)
+                        BalanceRow(label: localizedString("hours_of_sleep"), value: String(format: "+%.0f", max(0, batteryStatus.sleepCredit)), icon: "bed.double.fill", color: PulseTheme.ringStand, active: batteryStatus.sleepCredit > 0)
+                        BalanceRow(label: localizedString("hrv_recovery"), value: String(format: "+%.0f", max(0, batteryStatus.hrvCredit)), icon: "waveform.path.ecg", color: PulseTheme.ringStand, active: batteryStatus.hrvCredit > 0)
+                        BalanceRow(label: localizedString("perceived_energy_stress"), value: String(format: "+%.0f", max(0, batteryStatus.fatigueCredit)), icon: "face.smiling", color: PulseTheme.ringStand, active: batteryStatus.fatigueCredit > 0)
                     }
 
                     Divider()
@@ -359,7 +359,7 @@ struct TrainingBatteryView: View {
                     value: String(format: "%.1f", batteryStatus.todayLoad),
                     subtitle: "points_computed",
                     systemImage: "calendar.badge.clock",
-                    color: PulseTheme.primary
+                    color: PulseTheme.accent
                 )
 
                 // Weekly aggregate load
@@ -368,7 +368,7 @@ struct TrainingBatteryView: View {
                     value: String(format: "%.1f", batteryStatus.weeklyLoad),
                     subtitle: "volume_intensity",
                     systemImage: "waveform.path.ecg",
-                    color: PulseTheme.primaryBright
+                    color: PulseTheme.ringStand
                 )
 
                 // Rest days since last workout
@@ -387,7 +387,7 @@ struct TrainingBatteryView: View {
                     value: latestHRV != nil ? "\(Int(latestHRV!)) ms" : "--",
                     subtitle: "autonomic_system_state",
                     systemImage: "waveform.path.ecg.rectangle.fill",
-                    color: PulseTheme.primaryBright
+                    color: PulseTheme.ringStand
                 )
             }
         }
@@ -400,7 +400,7 @@ struct TrainingBatteryView: View {
                 HStack {
                     Image(systemName: "chart.line.trend.down")
                         .font(.headline)
-                        .foregroundStyle(PulseTheme.primary)
+                        .foregroundStyle(PulseTheme.accent)
                     Text(localizedString("session_impact_simulator"))
                         .font(.headline)
                 }
@@ -498,7 +498,7 @@ struct TrainingBatteryView: View {
         case 30..<55:
             return PulseTheme.warning
         case 55..<80:
-            return PulseTheme.primary
+            return PulseTheme.accent
         default:
             return PulseTheme.recovery
         }

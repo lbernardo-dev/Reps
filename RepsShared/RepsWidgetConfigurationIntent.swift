@@ -18,7 +18,7 @@ public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
     public static func from(name: String) -> WidgetColor {
         switch name.lowercased() {
         case "blue": return .blue
-        case "green": return .green
+        case "green", "accent", "primary", "primarybright": return .green
         case "orange": return .orange
         case "purple": return .purple
         case "red": return .red
@@ -51,19 +51,19 @@ public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
     public var color: Color {
         switch self {
         case .blue: return Color(red: 0.23, green: 0.52, blue: 0.96)
-        case .green: return Color(red: 0.28, green: 0.86, blue: 0.38)
+        case .green: return Color(red: 0.69, green: 0.99, blue: 0.16)   // neon green #B0FC29
         case .orange: return Color(red: 1.0, green: 0.60, blue: 0.14)
         case .purple: return Color(red: 0.52, green: 0.14, blue: 0.86)
         case .red: return Color(red: 0.93, green: 0.24, blue: 0.22)
         case .yellow: return Color(red: 1.0, green: 0.80, blue: 0.14)
-        case .system: return Color(red: 0.28, green: 0.86, blue: 0.38)
+        case .system: return Color(red: 0.69, green: 0.99, blue: 0.16)  // neon green default
         }
     }
 
     public var widgetBackgroundFill: Color {
         switch self {
         case .blue: return Color(red: 0.06, green: 0.16, blue: 0.36)
-        case .green: return Color(red: 0.04, green: 0.16, blue: 0.09)
+        case .green: return Color(red: 0.04, green: 0.12, blue: 0.02)   // near-black with neon tint
         case .orange: return Color(red: 0.34, green: 0.13, blue: 0.03)
         case .purple: return Color(red: 0.18, green: 0.06, blue: 0.34)
         case .red: return Color(red: 0.34, green: 0.05, blue: 0.05)
@@ -135,15 +135,15 @@ public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
         case .green:
             return WidgetTheme(
                 background: Self.darkBackground(
-                    top: Color(red: 0.05, green: 0.18, blue: 0.10),
-                    bottom: Color(red: 0.01, green: 0.05, blue: 0.03),
-                    accent: Color(red: 0.28, green: 0.86, blue: 0.38)
+                    top: Color(red: 0.04, green: 0.12, blue: 0.02),
+                    bottom: Color.black,
+                    accent: Color(red: 0.69, green: 0.99, blue: 0.16)
                 ),
                 foreground: .white,
-                secondaryForeground: .white.opacity(0.7),
-                badgeBackground: .white.opacity(0.15),
-                badgeText: .white,
-                tint: Color(red: 0.28, green: 0.86, blue: 0.38),
+                secondaryForeground: .white.opacity(0.65),
+                badgeBackground: Color(red: 0.69, green: 0.99, blue: 0.16).opacity(0.18),
+                badgeText: Color(red: 0.69, green: 0.99, blue: 0.16),
+                tint: Color(red: 0.69, green: 0.99, blue: 0.16),
                 isDarkBackground: true
             )
         case .orange:
@@ -214,7 +214,7 @@ public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
                         Color.primary.opacity(0.06)
                         #endif
                         LinearGradient(
-                            colors: [Color(red: 0.28, green: 0.86, blue: 0.38).opacity(0.12), Color.clear],
+                            colors: [Color(red: 0.69, green: 0.99, blue: 0.16).opacity(0.10), Color.clear],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -222,9 +222,9 @@ public enum WidgetColor: String, AppEnum, CaseIterable, Identifiable {
                 ),
                 foreground: .primary,
                 secondaryForeground: .secondary,
-                badgeBackground: Color.primary.opacity(0.08),
-                badgeText: Color(red: 0.48, green: 0.88, blue: 0.58),
-                tint: Color(red: 0.28, green: 0.86, blue: 0.38),
+                badgeBackground: Color(red: 0.69, green: 0.99, blue: 0.16).opacity(0.12),
+                badgeText: Color(red: 0.69, green: 0.99, blue: 0.16),
+                tint: Color(red: 0.69, green: 0.99, blue: 0.16),
                 isDarkBackground: false
             )
         }
