@@ -103,6 +103,18 @@
         }
       }
     },
+    "NSLocationAlwaysAndWhenInUseUsageDescription" : {
+      "comment" : "Privacy - Location Always and When In Use Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre incluso cuando la pantalla está bloqueada."
+          }
+        }
+      }
+    },
     "NSLocationWhenInUseUsageDescription" : {
       "comment" : "Privacy - Location When In Use Usage Description",
       "localizations" : {

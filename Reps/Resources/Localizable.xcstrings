@@ -1,737 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "entitlement" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entitlement"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entitlement"
-          }
-        }
-      }
-    },
-    "estado" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Status"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estado"
-          }
-        }
-      }
-    },
-    "onboarding" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Onboarding"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Onboarding"
-          }
-        }
-      }
-    },
-    "suscripcion" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Subscription"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suscripción"
-          }
-        }
-      }
-    },
-    "dev_activate_pro_plan_format" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Activate Pro (%@)"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Activar Pro (%@)"
-          }
-        }
-      }
-    },
-    "dev_deactivate_pro" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deactivate Pro"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desactivar Pro"
-          }
-        }
-      }
-    },
-    "dev_preview_paywall" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preview paywall"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Previsualizar paywall"
-          }
-        }
-      }
-    },
-    "dev_pro_access" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro Access"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Acceso Pro"
-          }
-        }
-      }
-    },
-    "dev_restart_onboarding" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restart onboarding"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reiniciar onboarding"
-          }
-        }
-      }
-    },
-    "dev_restart_onboarding_footer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Resets the onboarding flag so the welcome flow shows again on next launch."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restablece el indicador de onboarding para que el flujo de bienvenida se muestre de nuevo."
-          }
-        }
-      }
-    },
-    "dev_simulate_storage_error" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Simulate storage error"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Simular error de almacenamiento"
-          }
-        }
-      }
-    },
-    "dev_app_version" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App version"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Versión de la app"
-          }
-        }
-      }
-    },
-    "dev_bundle_id" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bundle ID"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bundle ID"
-          }
-        }
-      }
-    },
-    "dev_menu_debug_only_footer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This menu is only available in Debug builds and never ships to the App Store."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Este menú solo está disponible en builds de Debug y nunca se incluye en la App Store."
-          }
-        }
-      }
-    },
-    "dev_menu_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Developer Menu"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Menú de desarrollador"
-          }
-        }
-      }
-    },
-    "unlock_with_pro_button" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unlock with Pro"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desbloquear con Pro"
-          }
-        }
-      }
-    },
-    "redeem_free_week" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redeem free week"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canjear semana gratis"
-          }
-        }
-      }
-    },
-    "buy_lifetime" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buy lifetime"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comprar de por vida"
-          }
-        }
-      }
-    },
-    "loading_app_store" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading App Store…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cargando App Store…"
-          }
-        }
-      }
-    },
-    "per_month" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "per month"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "al mes"
-          }
-        }
-      }
-    },
-    "per_week" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "per week"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "a la semana"
-          }
-        }
-      }
-    },
-    "end_rest" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "End rest"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminar descanso"
-          }
-        }
-      }
-    },
-    "skip_rest" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skip rest"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saltar descanso"
-          }
-        }
-      }
-    },
-    "restart_rest" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restart rest"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reiniciar descanso"
-          }
-        }
-      }
-    },
-    "outdoor" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Outdoor"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exterior"
-          }
-        }
-      }
-    },
-    "indoor" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indoor"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interior"
-          }
-        }
-      }
-    },
-    "outdoor_workout" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Outdoor workout"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entreno exterior"
-          }
-        }
-      }
-    },
-    "indoor_workout" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indoor workout"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entreno interior"
-          }
-        }
-      }
-    },
-    "play_guide_video" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Play guide video"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reproducir vídeo guía"
-          }
-        }
-      }
-    },
-    "save_photo" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save photo"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guardar foto"
-          }
-        }
-      }
-    },
-    "saved" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saved"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guardado"
-          }
-        }
-      }
-    },
-    "add_custom_exercise" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add custom exercise"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir ejercicio personalizado"
-          }
-        }
-      }
-    },
-    "workout_time" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Workout Time"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tiempo de entrenamiento"
-          }
-        }
-      }
-    },
-    "active_kilocalories" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Active Calories"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Calorías activas"
-          }
-        }
-      }
-    },
-    "total_kilocalories" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total Calories"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Calorías totales"
-          }
-        }
-      }
-    },
-    "elevation_gain" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elevation Gain"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desnivel positivo"
-          }
-        }
-      }
-    },
-    "hr_recovery" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HR Recovery"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recuperación de FC"
-          }
-        }
-      }
-    },
-    "avg_cadence" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avg Cadence"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cadencia media"
-          }
-        }
-      }
-    },
-    "avg_pace" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avg Pace"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ritmo medio"
-          }
-        }
-      }
-    },
-    "avg_heart_rate" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avg Heart Rate"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FC media"
-          }
-        }
-      }
-    },
-    "max_heart_rate" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Max Heart Rate"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FC máxima"
-          }
-        }
-      }
-    },
-    "treadmill_workout" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Treadmill Workout"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entrenamiento en cinta"
-          }
-        }
-      }
-    },
-    "no_gps_route" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No GPS Route"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sin ruta GPS"
-          }
-        }
-      }
-    },
     "" : {
 
     },
@@ -1858,16 +1127,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "@%1$@ %2$@"
-          }
-        }
-      }
-    },
-    "@%@ vs @%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "@%1$@ vs @%2$@"
           }
         }
       }
@@ -13693,6 +12952,23 @@
         }
       }
     },
+    "active_kilocalories" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active Calories"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calorías activas"
+          }
+        }
+      }
+    },
     "active_now" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14847,6 +14123,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Añadir marcador"
+          }
+        }
+      }
+    },
+    "add_custom_exercise" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add custom exercise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir ejercicio personalizado"
           }
         }
       }
@@ -18968,6 +18261,23 @@
         }
       }
     },
+    "attach_photo_or_video" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attach photo or video"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjuntar foto o video"
+          }
+        }
+      }
+    },
     "attachment" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -19499,6 +18809,40 @@
         }
       }
     },
+    "avg_cadence" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avg Cadence"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cadencia media"
+          }
+        }
+      }
+    },
+    "avg_heart_rate" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avg Heart Rate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FC media"
+          }
+        }
+      }
+    },
     "avg_hr" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -19546,6 +18890,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "FC media"
+          }
+        }
+      }
+    },
+    "avg_pace" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avg Pace"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ritmo medio"
           }
         }
       }
@@ -25164,6 +24525,23 @@
         }
       }
     },
+    "buy_lifetime" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buy lifetime"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprar de por vida"
+          }
+        }
+      }
+    },
     "bw" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -26590,6 +25968,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cambiar imagen"
+          }
+        }
+      }
+    },
+    "cambiar_imagen_o_video" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change image or video"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar imagen o video"
           }
         }
       }
@@ -29245,6 +28640,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escoge el escenario más realista. Luego afinamos equipo y duración."
+          }
+        }
+      }
+    },
+    "choose_video_from_gallery" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose video from gallery"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir video de la galería"
           }
         }
       }
@@ -36211,6 +35623,23 @@
         }
       }
     },
+    "delete_custom_video" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete custom video"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar video propio"
+          }
+        }
+      }
+    },
     "delete_data" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -37112,6 +36541,193 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Detener y descartar"
+          }
+        }
+      }
+    },
+    "dev_activate_pro_plan_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activate Pro (%@)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activar Pro (%@)"
+          }
+        }
+      }
+    },
+    "dev_app_version" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App version"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versión de la app"
+          }
+        }
+      }
+    },
+    "dev_bundle_id" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle ID"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle ID"
+          }
+        }
+      }
+    },
+    "dev_deactivate_pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deactivate Pro"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactivar Pro"
+          }
+        }
+      }
+    },
+    "dev_menu_debug_only_footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This menu is only available in Debug builds and never ships to the App Store."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este menú solo está disponible en builds de Debug y nunca se incluye en la App Store."
+          }
+        }
+      }
+    },
+    "dev_menu_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Developer Menu"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menú de desarrollador"
+          }
+        }
+      }
+    },
+    "dev_preview_paywall" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview paywall"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsualizar paywall"
+          }
+        }
+      }
+    },
+    "dev_pro_access" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Access"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acceso Pro"
+          }
+        }
+      }
+    },
+    "dev_restart_onboarding" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart onboarding"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiniciar onboarding"
+          }
+        }
+      }
+    },
+    "dev_restart_onboarding_footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resets the onboarding flag so the welcome flow shows again on next launch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablece el indicador de onboarding para que el flujo de bienvenida se muestre de nuevo."
+          }
+        }
+      }
+    },
+    "dev_simulate_storage_error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulate storage error"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simular error de almacenamiento"
           }
         }
       }
@@ -40925,6 +40541,23 @@
         }
       }
     },
+    "elevation_gain" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elevation Gain"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desnivel positivo"
+          }
+        }
+      }
+    },
     "Elige el cuerpo que usará la app" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -41641,6 +41274,23 @@
         }
       }
     },
+    "end_rest" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End rest"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminar descanso"
+          }
+        }
+      }
+    },
     "end_training" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -41962,6 +41612,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Introduce valores válidos de peso y altura."
+          }
+        }
+      }
+    },
+    "entitlement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entitlement"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entitlement"
           }
         }
       }
@@ -43691,6 +43358,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Establecido el \\(item.date.formatted(date: .abbreviated, time: .omitted))"
+          }
+        }
+      }
+    },
+    "estado" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estado"
           }
         }
       }
@@ -47674,6 +47358,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "figure.walk.motion"
+          }
+        }
+      }
+    },
+    "filter_by_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Body"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelo"
+          }
+        }
+      }
+    },
+    "filter_by_list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "List"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista"
           }
         }
       }
@@ -55005,6 +54723,23 @@
         }
       }
     },
+    "hr_recovery" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HR Recovery"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperación de FC"
+          }
+        }
+      }
+    },
     "HRV" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -57868,6 +57603,23 @@
         }
       }
     },
+    "indoor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indoor"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interior"
+          }
+        }
+      }
+    },
     "Indoor" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -57898,6 +57650,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Indoor Workout"
+          }
+        }
+      }
+    },
+    "indoor_workout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indoor workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entreno interior"
           }
         }
       }
@@ -62261,6 +62030,23 @@
         }
       }
     },
+    "loading_app_store" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading App Store…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando App Store…"
+          }
+        }
+      }
+    },
     "loading_library" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -65186,6 +64972,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Max Heart Rate"
+          }
+        }
+      }
+    },
+    "max_heart_rate" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Heart Rate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FC máxima"
           }
         }
       }
@@ -70504,6 +70307,23 @@
         }
       }
     },
+    "no_gps_route" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No GPS Route"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin ruta GPS"
+          }
+        }
+      }
+    },
     "no_gps_time_pace_heart_rate_and_kcal_from_sensors" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -72751,6 +72571,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Barra olímpica"
+          }
+        }
+      }
+    },
+    "onboarding" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onboarding"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onboarding"
           }
         }
       }
@@ -76754,6 +76591,23 @@
         }
       }
     },
+    "outdoor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outdoor"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exterior"
+          }
+        }
+      }
+    },
     "Outdoor" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -76920,6 +76774,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Caminata exterior"
+          }
+        }
+      }
+    },
+    "outdoor_workout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outdoor workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entreno exterior"
           }
         }
       }
@@ -77158,6 +77029,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ejercicio propio"
+          }
+        }
+      }
+    },
+    "own_photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your photo"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto propia"
+          }
+        }
+      }
+    },
+    "own_video" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your video"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video propio"
           }
         }
       }
@@ -79490,6 +79395,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pendlay Row"
+          }
+        }
+      }
+    },
+    "per_month" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "per month"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "al mes"
+          }
+        }
+      }
+    },
+    "per_week" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "per week"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a la semana"
           }
         }
       }
@@ -81927,6 +81866,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Discos por lado (Cargar en cada extremo)"
+          }
+        }
+      }
+    },
+    "play_guide_video" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play guide video"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproducir vídeo guía"
           }
         }
       }
@@ -89891,6 +89847,23 @@
         }
       }
     },
+    "redeem_free_week" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redeem free week"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canjear semana gratis"
+          }
+        }
+      }
+    },
     "Reduce carga y recupera progresión" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -92584,6 +92557,23 @@
         }
       }
     },
+    "restart_rest" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart rest"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiniciar descanso"
+          }
+        }
+      }
+    },
     "Restaurando..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -95273,6 +95263,23 @@
         }
       }
     },
+    "save_photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save photo"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar foto"
+          }
+        }
+      }
+    },
     "save_technique_references_with_exact_minutes_for_this_exercise_within_the_plan" : {
       "localizations" : {
         "en" : {
@@ -95319,6 +95326,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Guarda peso y altura para calcular IMC, metabolismo basal y objetivos calóricos."
+          }
+        }
+      }
+    },
+    "saved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardado"
           }
         }
       }
@@ -100851,6 +100875,23 @@
         }
       }
     },
+    "skip_rest" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip rest"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saltar descanso"
+          }
+        }
+      }
+    },
     "skipped" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -101854,23 +101895,6 @@
         }
       }
     },
-    "social_profile_no_posts_message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Workouts shared from this profile will show up here."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Los entrenamientos que comparta este perfil aparecerán aquí."
-          }
-        }
-      }
-    },
     "social_feed_empty_title" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -102343,6 +102367,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solo se comparten: nivel, XP, sesiones totales, volumen total y racha. Tus entrenamientos siguen siendo privados."
+          }
+        }
+      }
+    },
+    "social_profile_no_posts_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workouts shared from this profile will show up here."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los entrenamientos que comparta este perfil aparecerán aquí."
           }
         }
       }
@@ -106274,6 +106315,23 @@
         }
       }
     },
+    "suscripcion" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscription"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suscripción"
+          }
+        }
+      }
+    },
     "Suscripción" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -106934,6 +106992,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tomar foto"
+          }
+        }
+      }
+    },
+    "tap_a_muscle_to_filter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a muscle to filter exercises"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toca un músculo para filtrar ejercicios"
           }
         }
       }
@@ -109429,6 +109504,23 @@
         }
       }
     },
+    "total_kilocalories" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Calories"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calorías totales"
+          }
+        }
+      }
+    },
     "total_loaded_weight" : {
       "localizations" : {
         "en" : {
@@ -110439,6 +110531,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Caminata en cinta"
+          }
+        }
+      }
+    },
+    "treadmill_workout" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Treadmill Workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrenamiento en cinta"
           }
         }
       }
@@ -111717,6 +111826,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desbloquea la galería de recibos, tarjetas compartibles e imágenes resumen desde Reps Pro."
+          }
+        }
+      }
+    },
+    "unlock_with_pro_button" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock with Pro"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloquear con Pro"
           }
         }
       }
@@ -113064,6 +113190,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL del video o post"
+          }
+        }
+      }
+    },
+    "video_propio_guardado_offline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom video saved offline"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video propio guardado sin conexión"
           }
         }
       }
@@ -116939,6 +117082,23 @@
         }
       }
     },
+    "workout_time" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workout Time"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiempo de entrenamiento"
+          }
+        }
+      }
+    },
     "workout-reminder-" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -118325,193 +118485,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zottman Curl"
-          }
-        }
-      }
-    },
-    "choose_video_from_gallery" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose video from gallery"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elegir video de la galería"
-          }
-        }
-      }
-    },
-    "delete_custom_video" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete custom video"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminar video propio"
-          }
-        }
-      }
-    },
-    "attach_photo_or_video" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Attach photo or video"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Adjuntar foto o video"
-          }
-        }
-      }
-    },
-    "own_photo" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your photo"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Foto propia"
-          }
-        }
-      }
-    },
-    "own_video" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your video"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video propio"
-          }
-        }
-      }
-    },
-    "cambiar_imagen_o_video" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change image or video"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cambiar imagen o video"
-          }
-        }
-      }
-    },
-    "video_propio_guardado_offline" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Custom video saved offline"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video propio guardado sin conexión"
-          }
-        }
-      }
-    },
-    "play_guide_video" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Play guide video"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reproducir video guía"
-          }
-        }
-      }
-    },
-    "filter_by_list" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "List"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lista"
-          }
-        }
-      }
-    },
-    "filter_by_body" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Body"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modelo"
-          }
-        }
-      }
-    },
-    "tap_a_muscle_to_filter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a muscle to filter exercises"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toca un músculo para filtrar ejercicios"
           }
         }
       }
