@@ -56,6 +56,7 @@ struct MainTabView: View {
     @State private var isTabBarHidden = false
     @State private var isQuickMenuExpanded = false
     @State private var presentedQuickAction: QuickAction?
+    @State private var pendingWorkoutSummarySession: WorkoutSession?
     @State private var showCalendarSheet = false
     @State private var todayResetID     = UUID()
     @State private var trainResetID     = UUID()
@@ -78,7 +79,12 @@ struct MainTabView: View {
                 }
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
-            .sheet(item: $presentedQuickAction) { action in
+            .sheet(item: $presentedQuickAction, onDismiss: {
+                if let pending = pendingWorkoutSummarySession {
+                    pendingWorkoutSummarySession = nil
+                    store.finishedSessionForSummary = pending
+                }
+            }) { action in
                 quickActionDestination(action)
             }
             .sheet(isPresented: $showCalendarSheet) {
@@ -93,6 +99,19 @@ struct MainTabView: View {
                         store.presentPaywall(source: .onboarding, feature: nil, trigger: .featureGate)
                     }
                 }
+            }
+            .onChange(of: store.finishedSessionForSummary?.id) { _, newID in
+                // The Free Workout picker ("Empezar") is itself presented as
+                // presentedQuickAction's sheet, so ActiveWorkoutView's finish
+                // flow lands back on it instead of dismissing it. Two sibling
+                // .sheet(item:) modifiers on this view can't stack, so the
+                // summary sheet above would silently fail to present while
+                // that sheet is still up. Dismiss it first and re-trigger the
+                // summary from its onDismiss once it's fully gone.
+                guard newID != nil, presentedQuickAction != nil else { return }
+                pendingWorkoutSummarySession = store.finishedSessionForSummary
+                store.finishedSessionForSummary = nil
+                presentedQuickAction = nil
             }
             .onAppear {
                 TelemetryService.shared.log(.mainTabSelected, parameters: [

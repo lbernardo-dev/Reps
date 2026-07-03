@@ -231,10 +231,10 @@ private struct AchievementUnlockCard: View {
                 .buttonStyle(.plain)
                 .padding(.top, 14)
             }
-
-            Spacer(minLength: 24)
         }
+        .padding(.bottom, 24)
         .frame(maxWidth: 360)
+        .fixedSize(horizontal: false, vertical: true)
         .background(cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: .black.opacity(0.5), radius: 40, x: 0, y: 20)

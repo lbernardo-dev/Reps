@@ -688,6 +688,7 @@ private struct RouteWorkoutHero: View {
             RouteWorkoutMapBackdrop(session: session)
                 .frame(height: 500)
                 .contentShape(Rectangle())
+                .allowsHitTesting(session.isOutdoorRouteSession)
                 .onTapGesture(perform: mapAction)
 
             LinearGradient(

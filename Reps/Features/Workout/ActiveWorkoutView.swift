@@ -417,18 +417,23 @@ struct ActiveWorkoutView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(spacing: 18) {
                         if isCardioOnlySession {
+                            // Priority order while a cardio session is running:
+                            // pause/finish controls (pinned header) → metrics →
+                            // live map → hydration control → secondary info.
                             routeProgressCard
                                 .frame(width: contentWidth)
-                            batteryCard
-                                .frame(width: contentWidth)
+                            if isRouteCandidate {
+                                liveRouteMapCard
+                                    .frame(width: contentWidth)
+                            }
                             if isSessionStarted {
                                 routeSessionControlCard
                                     .frame(width: contentWidth)
-                                routeSessionFeedbackCard
-                                    .frame(width: contentWidth)
                             }
-                            if isRouteCandidate {
-                                liveRouteMapCard
+                            batteryCard
+                                .frame(width: contentWidth)
+                            if isSessionStarted {
+                                routeSessionFeedbackCard
                                     .frame(width: contentWidth)
                             }
                         } else if exerciseDrafts.isEmpty {
@@ -1592,34 +1597,23 @@ struct ActiveWorkoutView: View {
                     .init(title: "Ritmo", value: displayedRouteMetrics.paceText, icon: "speedometer")
                 ])
 
-                HStack(spacing: 10) {
-                    SessionControlButton(
-                        title: isPaused ? "Reanudar" : "Pausar",
-                        systemImage: isPaused ? "play.fill" : "pause.fill",
-                        foregroundStyle: isPaused ? .black : .white,
-                        backgroundStyle: isPaused ? PulseTheme.accent : PulseTheme.warning,
-                        height: 50
-                    ) {
-                        setWorkoutPaused(!isPaused)
-                    }
-                    .disabled(!isSessionStarted)
-
-                    SessionControlButton(
-                        title: "+250 ml",
-                        systemImage: "waterbottle.fill",
-                        foregroundStyle: PulseTheme.accent,
-                        backgroundStyle: PulseTheme.accent.opacity(0.12),
-                        height: 50
-                    ) {
-                        addWater()
-                    }
-                }
-
                 SessionMetricStrip(metrics: [
                     .init(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill"),
                     .init(title: "Kcal", value: displayedRouteMetrics.energyText, icon: "flame.fill"),
                     .init(title: "Pulso", value: displayedRouteMetrics.heartRateText, icon: "heart.fill")
                 ])
+
+                // Pause/resume already lives in the pinned header; this card
+                // only exposes hydration logging to avoid a duplicate control.
+                SessionControlButton(
+                    title: "+250 ml",
+                    systemImage: "waterbottle.fill",
+                    foregroundStyle: PulseTheme.onColor(PulseTheme.accent),
+                    backgroundStyle: PulseTheme.accent,
+                    height: 50
+                ) {
+                    addWater()
+                }
             }
         }
     }
