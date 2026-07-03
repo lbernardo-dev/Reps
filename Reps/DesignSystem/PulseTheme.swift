@@ -1202,6 +1202,10 @@ enum ExerciseVisualResolver {
         if !hasValidCustomImage(resolved.customImageData) {
             resolved.customImageData = nil
         }
+        if !hasValidCustomVideo(resolved.customVideoData) {
+            resolved.customVideoData = nil
+            resolved.customVideoThumbnailData = nil
+        }
 
         // The catalog-wide substitute search below only exists to backfill a
         // missing image/mediaURL. When this exercise already has both, skip
@@ -1219,6 +1223,11 @@ enum ExerciseVisualResolver {
 
         if resolved.customImageData == nil, hasValidCustomImage(catalogExercise.customImageData) {
             resolved.customImageData = catalogExercise.customImageData
+        }
+
+        if resolved.customVideoData == nil, hasValidCustomVideo(catalogExercise.customVideoData) {
+            resolved.customVideoData = catalogExercise.customVideoData
+            resolved.customVideoThumbnailData = catalogExercise.customVideoThumbnailData
         }
 
         if resolved.mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
@@ -1262,6 +1271,11 @@ enum ExerciseVisualResolver {
     static func hasValidCustomImage(_ data: Data?) -> Bool {
         guard let data else { return false }
         return UIImage(data: data) != nil
+    }
+
+    static func hasValidCustomVideo(_ data: Data?) -> Bool {
+        guard let data else { return false }
+        return !data.isEmpty
     }
 
     private static func normalized(_ value: String) -> String {

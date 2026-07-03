@@ -1,4 +1,5 @@
 import AVFoundation
+import AVKit
 import SwiftUI
 import PhotosUI
 import UIKit
@@ -211,6 +212,195 @@ enum VideoThumbnail {
         return await withCheckedContinuation { continuation in
             generator.generateCGImageAsynchronously(for: time) { cgImage, _, _ in
                 continuation.resume(returning: cgImage.map(UIImage.init(cgImage:)))
+            }
+        }
+    }
+}
+
+/// Menu offering to attach a locally-sourced photo or video (camera capture or gallery
+/// import) as an exercise's own visual guide. Reused by the custom exercise creation
+/// form and the exercise detail "personalization" cards so both flows behave the same way.
+struct ExerciseMediaPickerMenu<LabelContent: View>: View {
+    var hasCustomImage: Bool
+    var hasCustomVideo: Bool
+    let onImageCaptured: (Data) -> Void
+    let onVideoCaptured: (Data, Data?) -> Void
+    let onDeleteImage: () -> Void
+    let onDeleteVideo: () -> Void
+    @ViewBuilder let label: () -> LabelContent
+
+    @State private var showCamera = false
+    @State private var showVideoCamera = false
+    @State private var showPermissionDenied = false
+    @State private var galleryImageItem: PhotosPickerItem?
+    @State private var galleryVideoItem: PhotosPickerItem?
+
+    var body: some View {
+        Menu {
+            if CameraPicker.isAvailable {
+                Button {
+                    Task {
+                        let granted = await PermissionService.shared.requestCamera()
+                        if granted {
+                            showCamera = true
+                        } else {
+                            showPermissionDenied = true
+                        }
+                    }
+                } label: {
+                    Label("take_photo", systemImage: "camera.fill")
+                }
+
+                if VideoCameraPicker.isAvailable {
+                    Button {
+                        Task {
+                            let granted = await PermissionService.shared.requestCamera()
+                            if granted {
+                                showVideoCamera = true
+                            } else {
+                                showPermissionDenied = true
+                            }
+                        }
+                    } label: {
+                        Label("record_video", systemImage: "video.fill")
+                    }
+                }
+            } else {
+                #if targetEnvironment(simulator)
+                Button {
+                    if let image = UIImage(systemName: "figure.strengthtraining.traditional"),
+                       let data = image.jpegData(compressionQuality: 0.8) {
+                        onImageCaptured(data)
+                        HapticService.notification(.success)
+                    }
+                } label: {
+                    Label("simulate_photo", systemImage: "camera.badge.ellipsis")
+                }
+                Button {
+                    onVideoCaptured(Data([0]), nil)
+                    HapticService.notification(.success)
+                } label: {
+                    Label("simulate_video", systemImage: "video.badge.ellipsis")
+                }
+                #endif
+            }
+
+            PhotosPicker(selection: $galleryImageItem, matching: .images) {
+                Label("choose_from_gallery", systemImage: "photo.on.rectangle")
+            }
+
+            PhotosPicker(selection: $galleryVideoItem, matching: .videos) {
+                Label("choose_video_from_gallery", systemImage: "video.badge.plus")
+            }
+
+            if hasCustomImage {
+                Button(role: .destructive, action: onDeleteImage) {
+                    Label("delete_custom_photo", systemImage: "trash")
+                }
+            }
+
+            if hasCustomVideo {
+                Button(role: .destructive, action: onDeleteVideo) {
+                    Label("delete_custom_video", systemImage: "trash")
+                }
+            }
+        } label: {
+            label()
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker(isPresented: $showCamera) { image in
+                if let data = image.jpegData(compressionQuality: 0.8) {
+                    onImageCaptured(data)
+                }
+            }
+            .ignoresSafeArea()
+        }
+        .fullScreenCover(isPresented: $showVideoCamera) {
+            VideoCameraPicker(isPresented: $showVideoCamera) { data, thumbnail in
+                onVideoCaptured(data, thumbnail?.jpegData(compressionQuality: 0.7))
+            }
+            .ignoresSafeArea()
+        }
+        .onChange(of: galleryImageItem) { _, item in
+            Task {
+                defer { galleryImageItem = nil }
+                guard let data = try? await item?.loadTransferable(type: Data.self),
+                      UIImage(data: data) != nil else { return }
+                onImageCaptured(data)
+            }
+        }
+        .onChange(of: galleryVideoItem) { _, item in
+            Task {
+                defer { galleryVideoItem = nil }
+                guard let data = try? await item?.loadTransferable(type: Data.self), !data.isEmpty else { return }
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("reps-gallery-video-\(UUID().uuidString).mov")
+                do {
+                    try data.write(to: tempURL)
+                } catch {
+                    return
+                }
+                let thumbnail = await VideoThumbnail.generate(from: tempURL)
+                try? FileManager.default.removeItem(at: tempURL)
+                onVideoCaptured(data, thumbnail?.jpegData(compressionQuality: 0.7))
+            }
+        }
+        .alert("permission_denied", isPresented: $showPermissionDenied) {
+            Button("abrir_ajustes") {
+                PermissionService.shared.openSettings()
+            }
+            Button("cancel", role: .cancel) {}
+        } message: {
+            Text(PermissionService.shared.deniedMessage ?? localizedString("camera_access_blocked_message"))
+        }
+    }
+}
+
+/// Full-screen playback for a locally-stored exercise guide video (`Exercise.customVideoData`).
+/// Writes the in-memory data to a temp file since `AVPlayer` needs a URL, and cleans it up on dismiss.
+struct ExerciseGuideVideoPlayerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let videoData: Data
+    let title: String
+
+    @State private var player: AVPlayer?
+    @State private var tempURL: URL?
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let player {
+                    VideoPlayer(player: player)
+                        .onAppear { player.play() }
+                } else {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .background(Color.black)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("close") { dismiss() }
+                }
+            }
+        }
+        .task {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("reps-guide-video-\(UUID().uuidString).mov")
+            do {
+                try videoData.write(to: url)
+                tempURL = url
+                player = AVPlayer(url: url)
+            } catch {
+                tempURL = nil
+            }
+        }
+        .onDisappear {
+            player?.pause()
+            if let tempURL {
+                try? FileManager.default.removeItem(at: tempURL)
             }
         }
     }

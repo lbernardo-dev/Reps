@@ -10,10 +10,7 @@ struct ExerciseProgressView: View {
     @State private var metric = ExerciseProgressMetric.weight
     @State private var selectedTab: ExerciseDetailTab = .instructions
     @State private var selectedHistoryRange: ExerciseHistoryRange = .sixMonths
-    
-    @State private var customImageItem: PhotosPickerItem?
-    @State private var showCamera = false
-    @State private var showPermissionDenied = false
+    @State private var showLocalVideoPlayer = false
 
     private enum ExerciseDetailTab: String, CaseIterable, Identifiable {
         case instructions = "Instrucciones"
@@ -75,34 +72,6 @@ struct ExerciseProgressView: View {
         .navigationTitle("exercise_2")
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
-        .onChange(of: customImageItem) { _, item in
-            Task {
-                guard let data = try? await item?.loadTransferable(type: Data.self),
-                      ExerciseVisualResolver.hasValidCustomImage(data) else { return }
-                var updated = currentExercise
-                updated.customImageData = data
-                store.updateExercise(updated)
-                customImageItem = nil
-            }
-        }
-        .fullScreenCover(isPresented: $showCamera) {
-            CameraPicker(isPresented: $showCamera) { image in
-                if let data = image.jpegData(compressionQuality: 0.8) {
-                    var updated = currentExercise
-                    updated.customImageData = data
-                    store.updateExercise(updated)
-                }
-            }
-            .ignoresSafeArea()
-        }
-        .alert("permission_denied", isPresented: $showPermissionDenied) {
-            Button("abrir_ajustes") {
-                PermissionService.shared.openSettings()
-            }
-            Button("cancel", role: .cancel) {}
-        } message: {
-            Text(PermissionService.shared.deniedMessage ?? localizedString("camera_access_blocked_settings"))
-        }
     }
 
     private var instructionsContent: some View {
@@ -154,52 +123,33 @@ struct ExerciseProgressView: View {
             VStack(alignment: .leading, spacing: 12) {
                 CardTitle("personalization")
                 HStack(spacing: 10) {
-                    Menu {
-                        if CameraPicker.isAvailable {
-                            Button {
-                                Task {
-                                    let granted = await PermissionService.shared.requestCamera()
-                                    if granted {
-                                        showCamera = true
-                                    } else {
-                                        showPermissionDenied = true
-                                    }
-                                }
-                            } label: {
-                                Label("take_photo", systemImage: "camera.fill")
-                            }
-                        } else {
-                            #if targetEnvironment(simulator)
-                            Button {
-                                if let image = UIImage(systemName: "figure.strengthtraining.traditional") {
-                                    if let data = image.jpegData(compressionQuality: 0.8) {
-                                        var updated = currentExercise
-                                        updated.customImageData = data
-                                        store.updateExercise(updated)
-                                    }
-                                    HapticService.notification(.success)
-                                }
-                            } label: {
-                                Label("simulate_photo", systemImage: "camera.badge.ellipsis")
-                            }
-                            #endif
+                    ExerciseMediaPickerMenu(
+                        hasCustomImage: ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData),
+                        hasCustomVideo: ExerciseVisualResolver.hasValidCustomVideo(currentExercise.customVideoData),
+                        onImageCaptured: { data in
+                            var updated = currentExercise
+                            updated.customImageData = data
+                            store.updateExercise(updated)
+                        },
+                        onVideoCaptured: { data, thumbnail in
+                            var updated = currentExercise
+                            updated.customVideoData = data
+                            updated.customVideoThumbnailData = thumbnail
+                            store.updateExercise(updated)
+                        },
+                        onDeleteImage: {
+                            var updated = currentExercise
+                            updated.customImageData = nil
+                            store.updateExercise(updated)
+                        },
+                        onDeleteVideo: {
+                            var updated = currentExercise
+                            updated.customVideoData = nil
+                            updated.customVideoThumbnailData = nil
+                            store.updateExercise(updated)
                         }
-
-                        PhotosPicker(selection: $customImageItem, matching: .images) {
-                            Label("choose_from_gallery", systemImage: "photo.on.rectangle")
-                        }
-                        
-                        if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
-                            Button(role: .destructive) {
-                                var updated = currentExercise
-                                updated.customImageData = nil
-                                store.updateExercise(updated)
-                            } label: {
-                                Label("delete_custom_photo", systemImage: "trash")
-                            }
-                        }
-                    } label: {
-                        Label("cambiar_imagen", systemImage: "photo.badge.plus")
+                    ) {
+                        Label("cambiar_imagen_o_video", systemImage: "photo.badge.plus")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -211,6 +161,11 @@ struct ExerciseProgressView: View {
 
                 if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
                     Label("imagen_propia_guardada_offline", systemImage: "checkmark.seal.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.accent)
+                }
+                if ExerciseVisualResolver.hasValidCustomVideo(currentExercise.customVideoData) {
+                    Label("video_propio_guardado_offline", systemImage: "checkmark.seal.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.accent)
                 }
@@ -381,6 +336,15 @@ struct ExerciseProgressView: View {
                                 .foregroundStyle(PulseTheme.accent)
                         }
                         .accessibilityLabel("open_exercise_video")
+                    } else if ExerciseVisualResolver.hasValidCustomVideo(currentExercise.customVideoData) {
+                        Button {
+                            showLocalVideoPlayer = true
+                        } label: {
+                            Image(systemName: "play.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(PulseTheme.accent)
+                        }
+                        .accessibilityLabel(localizedString("play_guide_video"))
                     }
                 }
 
@@ -425,6 +389,11 @@ struct ExerciseProgressView: View {
                         .font(.caption)
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
+            }
+        }
+        .sheet(isPresented: $showLocalVideoPlayer) {
+            if let videoData = currentExercise.customVideoData {
+                ExerciseGuideVideoPlayerSheet(videoData: videoData, title: currentExercise.name)
             }
         }
     }

@@ -677,6 +677,34 @@ actor SocialService {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    // Fetches every post belonging to a single user, newest first — used by
+    // the profile grid. Same index/fallback strategy as fetchFeed.
+    func fetchPosts(username: String, limit: Int = 60) async -> [WorkoutPost] {
+        let uname = username.lowercased()
+        let pred = NSPredicate(format: "ownerUsername == %@", uname)
+        let query = CKQuery(recordType: "WorkoutPost", predicate: pred)
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        do {
+            let result = try await publicDB.records(matching: query, resultsLimit: limit)
+            let posts = result.matchResults
+                .compactMap { _, res in (try? res.get()).flatMap(WorkoutPost.init) }
+            if !posts.isEmpty {
+                posts.forEach { savePostID($0.id) }
+                return posts.sorted { $0.createdAt > $1.createdAt }
+            }
+        } catch { /* index not provisioned — fall through */ }
+
+        // Fallback: filter locally cached post IDs by owner (covers own
+        // profile and anyone already surfaced in the feed).
+        let cachedIDs = loadCachedPostIDs().map { CKRecord.ID(recordName: $0) }
+        guard !cachedIDs.isEmpty,
+              let fetched = try? await publicDB.records(for: cachedIDs) else { return [] }
+        return fetched.values
+            .compactMap { res in (try? res.get()).flatMap(WorkoutPost.init) }
+            .filter { $0.ownerUsername.lowercased() == uname }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
     // MARK: - Likes
     //
     // WorkoutLike recordName: "WorkoutLike_<likerOwner>_<postRecordName>"

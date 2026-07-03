@@ -1,3 +1,4 @@
+import MuscleMap
 import SwiftUI
 
 struct ProgramLibraryView: View {
@@ -97,13 +98,32 @@ struct ProgramDetailView: View {
     let plan: WorkoutPlan
     let onActivated: () -> Void
 
+    private var planExercises: [Exercise] {
+        plan.days.flatMap { $0.exercises.map(\.exercise) }
+    }
+
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
                 headerCard
+
+                if !planExercises.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        SectionHeader(title: "muscles_worked")
+                        WorkoutMusclePreview(exercises: planExercises, gender: store.userProfile.muscleMapGender)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 300)
+                    }
+                }
+
                 SectionHeader(title: "training_days_section")
                 ForEach(plan.days) { day in
-                    ProgramDayCard(day: day)
+                    NavigationLink {
+                        WorkoutDetailView(workout: day)
+                    } label: {
+                        ProgramDayCard(day: day, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
+                    }
+                    .buttonStyle(.plain)
                 }
                 activateButton
             }
@@ -163,21 +183,31 @@ struct ProgramDetailView: View {
 
     private var activateButton: some View {
         Button {
+            guard store.monetization.hasProAccess else {
+                HapticService.selection()
+                store.presentPaywall(source: .planActivation, feature: nil, trigger: .featureGate)
+                return
+            }
             HapticService.impact(.medium)
             var fresh = plan
             fresh.id = UUID()
             fresh.currentWeek = 1
             fresh.completion = 0
-            store.addPlan(fresh, activate: true)
+            store.addPlan(fresh, activate: true, fromCatalog: true)
             onActivated()
         } label: {
-            Text(localizedString("activate_program_button"))
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .foregroundStyle(.black)
-                .background(PulseTheme.fitActionGradient)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            HStack(spacing: 8) {
+                if !store.monetization.hasProAccess {
+                    Image(systemName: "lock.fill")
+                }
+                Text(localizedString(store.monetization.hasProAccess ? "activate_program_button" : "unlock_with_pro_button"))
+            }
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .foregroundStyle(.black)
+            .background(PulseTheme.fitActionGradient)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
         .padding(.top, 4)
@@ -249,19 +279,50 @@ private struct ProgramHeroMetric: View {
 }
 
 private struct ProgramCard: View {
+    @Environment(AppStore.self) private var store
     let plan: WorkoutPlan
     private var meta: SeedData.ProgramMetadata? { SeedData.programMetadata[plan.name] }
+
+    private var heroExercise: Exercise? {
+        plan.days.first?.exercises.first?.exercise
+    }
 
     var body: some View {
         PulseCard(contentPadding: 16) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 14) {
-                Image(systemName: meta?.category.systemImage ?? "dumbbell.fill")
-                    .font(.system(size: 20, weight: .black))
-                    .foregroundStyle(.black)
+                ZStack(alignment: .bottomTrailing) {
+                    Group {
+                        if let heroExercise {
+                            ExerciseMediaThumbnail(exercise: heroExercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
+                        } else {
+                            Image(systemName: meta?.category.systemImage ?? "dumbbell.fill")
+                                .font(.system(size: 20, weight: .black))
+                                .foregroundStyle(.black)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(PulseTheme.fitActionGradient)
+                        }
+                    }
                     .frame(width: 52, height: 52)
-                    .background(PulseTheme.fitActionGradient)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(alignment: .topLeading) {
+                        Image(systemName: meta?.category.systemImage ?? "dumbbell.fill")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.black)
+                            .frame(width: 16, height: 16)
+                            .background(PulseTheme.fitActionGradient, in: Circle())
+                            .offset(x: -4, y: -4)
+                    }
+
+                    if !store.monetization.hasProAccess {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                            .frame(width: 17, height: 17)
+                            .background(PulseTheme.accent, in: Circle())
+                            .offset(x: 4, y: 4)
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
@@ -327,6 +388,8 @@ private struct ProgramCardMetric: View {
 
 private struct ProgramDayCard: View {
     let day: WorkoutDay
+    let gender: BodyGender
+    let catalog: [Exercise]
 
     var body: some View {
         PulseCard {
@@ -347,12 +410,12 @@ private struct ProgramDayCard: View {
 
                 if !day.exercises.isEmpty {
                     Divider()
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         ForEach(day.exercises.prefix(3)) { ex in
                             HStack(spacing: 8) {
-                                Circle()
-                                    .fill(PulseTheme.accent.opacity(0.25))
-                                    .frame(width: 5, height: 5)
+                                ExerciseMediaThumbnail(exercise: ex.exercise, gender: gender, catalog: catalog)
+                                    .frame(width: 30, height: 30)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                                 Text(ex.exercise.name)
                                     .font(.caption)
                                 Spacer()
@@ -365,7 +428,7 @@ private struct ProgramDayCard: View {
                             Text("+ \(day.exercises.count - 3) " + localizedString("more_exercises_suffix"))
                                 .font(.caption)
                                 .foregroundStyle(PulseTheme.secondaryText)
-                                .padding(.leading, 13)
+                                .padding(.leading, 38)
                         }
                     }
                 }

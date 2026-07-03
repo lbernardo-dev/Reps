@@ -250,6 +250,10 @@ struct Exercise: Codable, Identifiable, Hashable {
     var tags: [String] = []
     var mediaURL: String?
     var customImageData: Data?
+    /// Locally-recorded or gallery-picked guide video, stored inline (mirrors `customImageData`).
+    var customVideoData: Data?
+    /// Poster frame for `customVideoData`, used as a static preview before playback.
+    var customVideoThumbnailData: Data?
     var videoURL: String?
     var mediaBookmarks: [ExerciseMediaBookmark] = []
     var instructions: String?

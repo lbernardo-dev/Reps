@@ -371,7 +371,7 @@ private struct WorkoutExercisePreviewRow: View {
     }
 }
 
-private struct WorkoutMusclePreview: View {
+struct WorkoutMusclePreview: View {
     let exercises: [Exercise]
     let gender: BodyGender
 
@@ -503,7 +503,7 @@ private struct WorkoutStatTile: View {
     }
 }
 
-private struct ExerciseImageStack: View {
+struct ExerciseImageStack: View {
     let exercises: [Exercise]
     var gender: BodyGender = .male
     var catalog: [Exercise] = []

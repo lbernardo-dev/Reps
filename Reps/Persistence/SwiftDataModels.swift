@@ -182,6 +182,8 @@ final class ExerciseRecord {
     var tagsData: Data?
     var mediaURL: String?
     @Attribute(.externalStorage) var customImageData: Data?
+    @Attribute(.externalStorage) var customVideoData: Data?
+    @Attribute(.externalStorage) var customVideoThumbnailData: Data?
     var videoURL: String?
     var mediaBookmarksData: Data?
     var instructions: String?
@@ -209,6 +211,8 @@ final class ExerciseRecord {
         tagsData = encodeStrings(exercise.tags)
         mediaURL = exercise.mediaURL
         customImageData = exercise.customImageData
+        customVideoData = exercise.customVideoData
+        customVideoThumbnailData = exercise.customVideoThumbnailData
         videoURL = exercise.videoURL
         mediaBookmarksData = encodeExerciseMediaBookmarks(exercise.mediaBookmarks)
         instructions = exercise.instructions
@@ -238,6 +242,8 @@ final class ExerciseRecord {
             tags: decodeStrings(tagsData),
             mediaURL: mediaURL,
             customImageData: customImageData,
+            customVideoData: customVideoData,
+            customVideoThumbnailData: customVideoThumbnailData,
             videoURL: videoURL,
             mediaBookmarks: decodeExerciseMediaBookmarks(mediaBookmarksData),
             instructions: instructions,

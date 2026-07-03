@@ -13,6 +13,8 @@ struct ExerciseLibraryView: View {
 
     @State private var searchText = ""
     @State private var selectedMuscle = "All"
+    @State private var muscleFilterMode: MuscleFilterMode = .list
+    @State private var selectedMuscleSegments: Set<MuscleSegment> = []
     @State private var selectedEquipment = "All"
     @State private var selectedType: Exercise.ExerciseType?
     @State private var selectedDifficulty: Exercise.Difficulty?
@@ -36,7 +38,11 @@ struct ExerciseLibraryView: View {
             // below only runs for exercises that already passed every other
             // filter — with 800+ exercises, building that string for every
             // item on every render (e.g. each keystroke) was the slow part.
-            guard selectedMuscle == "All" || exercise.muscleGroup == selectedMuscle else { return false }
+            if !selectedMuscleSegments.isEmpty {
+                guard !Set(MuscleLoadCalculator.segments(for: exercise)).isDisjoint(with: selectedMuscleSegments) else { return false }
+            } else {
+                guard selectedMuscle == "All" || exercise.muscleGroup == selectedMuscle else { return false }
+            }
             guard selectedEquipment == "All" || exercise.equipment == selectedEquipment else { return false }
             guard selectedType == nil || exercise.exerciseType == selectedType else { return false }
             guard selectedDifficulty == nil || exercise.difficulty == selectedDifficulty else { return false }
@@ -113,12 +119,27 @@ struct ExerciseLibraryView: View {
                     }
                     .pickerStyle(.segmented)
 
-                    FilterMenuRow(title: localizedString("Muscle group"), value: displayName(forMuscle: selectedMuscle)) {
-                        ForEach(muscles, id: \.self) { muscle in
-                            Button(displayName(forMuscle: muscle)) {
-                                selectedMuscle = muscle
+                    Picker(localizedString("Muscle group"), selection: $muscleFilterMode) {
+                        ForEach(MuscleFilterMode.allCases) { mode in
+                            Label(mode.title, systemImage: mode.systemImage).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    switch muscleFilterMode {
+                    case .list:
+                        FilterMenuRow(title: localizedString("Muscle group"), value: displayName(forMuscle: selectedMuscle)) {
+                            ForEach(muscles, id: \.self) { muscle in
+                                Button(displayName(forMuscle: muscle)) {
+                                    selectedMuscle = muscle
+                                }
                             }
                         }
+                    case .body:
+                        ExerciseBodyMuscleSelector(
+                            gender: store.userProfile.muscleMapGender,
+                            selectedSegments: $selectedMuscleSegments
+                        )
                     }
 
                     FilterMenuRow(title: localizedString("Equipment"), value: displayName(forEquipment: selectedEquipment)) {
@@ -182,6 +203,18 @@ struct ExerciseLibraryView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .onChange(of: selectedMuscle) { _, newValue in
+                if newValue != "All" { selectedMuscleSegments.removeAll() }
+            }
+            .onChange(of: selectedMuscleSegments) { _, newValue in
+                if !newValue.isEmpty { selectedMuscle = "All" }
+            }
+            .onChange(of: muscleFilterMode) { _, newValue in
+                switch newValue {
+                case .list: selectedMuscleSegments.removeAll()
+                case .body: selectedMuscle = "All"
+                }
+            }
             .safeAreaInset(edge: .top) {
                 PulseHeaderBar(
                     title: localizedString("Exercise Library"),
@@ -200,7 +233,7 @@ struct ExerciseLibraryView: View {
                                 .navigationGlassCircle(.secondary, tint: .clear)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel(localizedString("Add custom exercise"))
+                        .accessibilityLabel(localizedString("add_custom_exercise"))
 
                         Button {
                             HapticService.selection()
@@ -675,9 +708,6 @@ struct ExerciseDetailView: View {
     @State private var showAddToPlan = false
     @State private var showSchedule = false
     @State private var feedbackMessage: String?
-    @State private var customImageItem: PhotosPickerItem?
-    @State private var showCamera = false
-    @State private var showPermissionDenied = false
     @State private var showBookmarkEditor = false
     @State private var showSecondaryEditor = false
 
@@ -812,34 +842,6 @@ struct ExerciseDetailView: View {
             }
             .environment(store)
         }
-        .onChange(of: customImageItem) { _, item in
-            Task {
-                guard let data = try? await item?.loadTransferable(type: Data.self),
-                      ExerciseVisualResolver.hasValidCustomImage(data) else { return }
-                var updated = currentExercise
-                updated.customImageData = data
-                store.updateExercise(updated)
-                customImageItem = nil
-            }
-        }
-        .fullScreenCover(isPresented: $showCamera) {
-            CameraPicker(isPresented: $showCamera) { image in
-                if let data = image.jpegData(compressionQuality: 0.8) {
-                    var updated = currentExercise
-                    updated.customImageData = data
-                    store.updateExercise(updated)
-                }
-            }
-            .ignoresSafeArea()
-        }
-        .alert("permission_denied", isPresented: $showPermissionDenied) {
-            Button("abrir_ajustes") {
-                PermissionService.shared.openSettings()
-            }
-            Button("cancel", role: .cancel) {}
-        } message: {
-            Text(PermissionService.shared.deniedMessage ?? localizedString("camera_access_blocked_settings"))
-        }
     }
 
     // --- TAB CONTENTS ---
@@ -900,52 +902,33 @@ struct ExerciseDetailView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     CardTitle("personalization")
                     HStack(spacing: 10) {
-                        Menu {
-                            if CameraPicker.isAvailable {
-                                Button {
-                                    Task {
-                                        let granted = await PermissionService.shared.requestCamera()
-                                        if granted {
-                                            showCamera = true
-                                        } else {
-                                            showPermissionDenied = true
-                                        }
-                                    }
-                                } label: {
-                                    Label("take_photo", systemImage: "camera.fill")
-                                }
-                            } else {
-                                #if targetEnvironment(simulator)
-                                Button {
-                                    if let image = UIImage(systemName: "figure.strengthtraining.traditional") {
-                                        if let data = image.jpegData(compressionQuality: 0.8) {
-                                            var updated = currentExercise
-                                            updated.customImageData = data
-                                            store.updateExercise(updated)
-                                        }
-                                        HapticService.notification(.success)
-                                    }
-                                } label: {
-                                    Label("simulate_photo", systemImage: "camera.badge.ellipsis")
-                                }
-                                #endif
+                        ExerciseMediaPickerMenu(
+                            hasCustomImage: ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData),
+                            hasCustomVideo: ExerciseVisualResolver.hasValidCustomVideo(currentExercise.customVideoData),
+                            onImageCaptured: { data in
+                                var updated = currentExercise
+                                updated.customImageData = data
+                                store.updateExercise(updated)
+                            },
+                            onVideoCaptured: { data, thumbnail in
+                                var updated = currentExercise
+                                updated.customVideoData = data
+                                updated.customVideoThumbnailData = thumbnail
+                                store.updateExercise(updated)
+                            },
+                            onDeleteImage: {
+                                var updated = currentExercise
+                                updated.customImageData = nil
+                                store.updateExercise(updated)
+                            },
+                            onDeleteVideo: {
+                                var updated = currentExercise
+                                updated.customVideoData = nil
+                                updated.customVideoThumbnailData = nil
+                                store.updateExercise(updated)
                             }
-
-                            PhotosPicker(selection: $customImageItem, matching: .images) {
-                                Label("choose_from_gallery", systemImage: "photo.on.rectangle")
-                            }
-
-                            if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
-                                Button(role: .destructive) {
-                                    var updated = currentExercise
-                                    updated.customImageData = nil
-                                    store.updateExercise(updated)
-                                } label: {
-                                    Label("delete_custom_photo", systemImage: "trash")
-                                }
-                            }
-                        } label: {
-                            Label("cambiar_imagen", systemImage: "photo.badge.plus")
+                        ) {
+                            Label("cambiar_imagen_o_video", systemImage: "photo.badge.plus")
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
@@ -969,6 +952,11 @@ struct ExerciseDetailView: View {
 
                     if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
                         Label("imagen_propia_guardada_offline", systemImage: "checkmark.seal.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.accent)
+                    }
+                    if ExerciseVisualResolver.hasValidCustomVideo(currentExercise.customVideoData) {
+                        Label("video_propio_guardado_offline", systemImage: "checkmark.seal.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.accent)
                     }
@@ -1278,52 +1266,83 @@ struct ExerciseHeroMedia: View {
     var gender: BodyGender = .male
     var height: CGFloat = 320
 
+    @State private var showVideoPlayer = false
+
+    private var hasGuideVideo: Bool {
+        ExerciseVisualResolver.hasValidCustomVideo(exercise.customVideoData)
+    }
+
     var body: some View {
-        GeometryReader { proxy in
-            let size = proxy.size
-            ZStack(alignment: .bottomLeading) {
-                if let data = exercise.customImageData,
-                   let image = UIImage(data: data) {
-                    ExerciseHeroFillImage(image: image, size: size)
-                } else if let url = exercise.mediaAssetURL {
-                    ExerciseReferenceImage(exercise: exercise, url: url, size: size, gender: gender)
-                } else {
-                    ExerciseHeroFallback(exercise: exercise, gender: gender)
-                        .frame(width: size.width, height: size.height)
-                }
+        ZStack {
+            GeometryReader { proxy in
+                let size = proxy.size
+                ZStack(alignment: .bottomLeading) {
+                    if let data = exercise.customImageData,
+                       let image = UIImage(data: data) {
+                        ExerciseHeroFillImage(image: image, size: size)
+                    } else if let thumbnailData = exercise.customVideoThumbnailData,
+                              let image = UIImage(data: thumbnailData) {
+                        ExerciseHeroFillImage(image: image, size: size)
+                    } else if let url = exercise.mediaAssetURL {
+                        ExerciseReferenceImage(exercise: exercise, url: url, size: size, gender: gender)
+                    } else {
+                        ExerciseHeroFallback(exercise: exercise, gender: gender)
+                            .frame(width: size.width, height: size.height)
+                    }
 
-                LinearGradient(
-                    colors: [.black.opacity(0.0), .black.opacity(0.62)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                    LinearGradient(
+                        colors: [.black.opacity(0.0), .black.opacity(0.62)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(width: size.width, height: size.height)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("referencia_visual")
+                            .font(.caption.weight(.bold))
+                            .textCase(.uppercase)
+                            .foregroundStyle(.white.opacity(0.78))
+                        Text(exercise.name)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.76)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: max(size.width - 32, 0), alignment: .leading)
+                    }
+                    .padding(16)
+                }
                 .frame(width: size.width, height: size.height)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("referencia_visual")
-                        .font(.caption.weight(.bold))
-                        .textCase(.uppercase)
-                        .foregroundStyle(.white.opacity(0.78))
-                    Text(exercise.name)
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.76)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: max(size.width - 32, 0), alignment: .leading)
-                }
-                .padding(16)
+                .background(PulseTheme.grouped)
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+                .contentShape(Rectangle())
+                .clipped()
+                .allowsHitTesting(false)
             }
-            .frame(width: size.width, height: size.height)
-            .background(PulseTheme.grouped)
-            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-            .contentShape(Rectangle())
-            .clipped()
-            .allowsHitTesting(false)
+
+            if hasGuideVideo {
+                Button {
+                    showVideoPlayer = true
+                } label: {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 56))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.35), radius: 10)
+                        .padding(24)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(localizedString("play_guide_video"))
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
         .accessibilityLabel("Imagen grande de referencia de \(exercise.name)")
+        .sheet(isPresented: $showVideoPlayer) {
+            if let videoData = exercise.customVideoData {
+                ExerciseGuideVideoPlayerSheet(videoData: videoData, title: exercise.name)
+            }
+        }
     }
 
 }
@@ -1747,6 +1766,9 @@ struct AddCustomExerciseView: View {
     @State private var mediaURL = ""
     @State private var instructions = ""
     @State private var notes = ""
+    @State private var customImageData: Data?
+    @State private var customVideoData: Data?
+    @State private var customVideoThumbnailData: Data?
 
     var body: some View {
         NavigationStack {
@@ -1766,6 +1788,39 @@ struct AddCustomExerciseView: View {
                 }
 
                 Section("imagen_y_guia") {
+                    if let customImageData, let image = UIImage(data: customImageData) {
+                        ExerciseMediaPreviewRow(image: Image(uiImage: image), label: "own_photo") {
+                            self.customImageData = nil
+                        }
+                    }
+                    if let customVideoData, ExerciseVisualResolver.hasValidCustomVideo(customVideoData) {
+                        ExerciseMediaPreviewRow(
+                            image: customVideoThumbnailData.flatMap(UIImage.init(data:)).map(Image.init(uiImage:)),
+                            systemImage: "video.fill",
+                            label: "own_video"
+                        ) {
+                            self.customVideoData = nil
+                            self.customVideoThumbnailData = nil
+                        }
+                    }
+
+                    ExerciseMediaPickerMenu(
+                        hasCustomImage: customImageData != nil,
+                        hasCustomVideo: ExerciseVisualResolver.hasValidCustomVideo(customVideoData),
+                        onImageCaptured: { customImageData = $0 },
+                        onVideoCaptured: { data, thumbnail in
+                            customVideoData = data
+                            customVideoThumbnailData = thumbnail
+                        },
+                        onDeleteImage: { customImageData = nil },
+                        onDeleteVideo: {
+                            customVideoData = nil
+                            customVideoThumbnailData = nil
+                        }
+                    ) {
+                        Label("attach_photo_or_video", systemImage: "photo.badge.plus")
+                    }
+
                     TextField("image_or_video_url", text: $mediaURL)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
@@ -1790,6 +1845,9 @@ struct AddCustomExerciseView: View {
                                 equipment: equipment,
                                 trackingType: trackingType,
                                 mediaURL: mediaURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : mediaURL,
+                                customImageData: customImageData,
+                                customVideoData: customVideoData,
+                                customVideoThumbnailData: customVideoThumbnailData,
                                 instructions: instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : instructions,
                                 notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
                             )
@@ -1798,6 +1856,41 @@ struct AddCustomExerciseView: View {
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+            }
+        }
+    }
+}
+
+private struct ExerciseMediaPreviewRow: View {
+    var image: Image?
+    var systemImage: String = "photo"
+    let label: String
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                if let image {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Image(systemName: systemImage)
+                        .foregroundStyle(PulseTheme.accent)
+                }
+            }
+            .frame(width: 44, height: 44)
+            .background(PulseTheme.grouped)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipped()
+
+            Text(localizedString(label))
+                .font(.subheadline.weight(.semibold))
+
+            Spacer()
+
+            Button(role: .destructive, action: onDelete) {
+                Image(systemName: "trash")
             }
         }
     }

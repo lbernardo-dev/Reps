@@ -2166,9 +2166,9 @@ final class AppStore {
         )
     }
 
-    func addPlan(_ plan: WorkoutPlan, activate: Bool) {
-        guard monetization.hasProAccess || plans.isEmpty else {
-            presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+    func addPlan(_ plan: WorkoutPlan, activate: Bool, fromCatalog: Bool = false) {
+        guard monetization.hasProAccess || (!fromCatalog && plans.isEmpty) else {
+            presentPaywall(source: fromCatalog ? .planActivation : .multiplePlans, feature: nil, trigger: .featureGate)
             return
         }
         plans.append(plan)

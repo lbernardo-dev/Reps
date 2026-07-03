@@ -1,3 +1,4 @@
+import MuscleMap
 import SwiftUI
 
 struct PlansView: View {
@@ -16,12 +17,10 @@ struct PlansView: View {
         }
     }
 
+    /// Browsing the catalog (search, filter, read details) is always free —
+    /// only activating a program is gated. See ProgramDetailView.activateButton.
     private func tryOpenProgramLibrary() {
-        if isProOrHasNoPlan {
-            showProgramLibrary = true
-        } else {
-            store.presentPaywall(source: .programLibrary, feature: nil, trigger: .featureGate)
-        }
+        showProgramLibrary = true
     }
     @State private var showExerciseLibrary = false
     @State private var planToEdit: WorkoutPlan?
@@ -135,7 +134,7 @@ struct PlansView: View {
                                         HapticService.selection()
                                         store.activatePlan(plan)
                                     } else {
-                                        store.presentPaywall(source: .onboarding, feature: nil, trigger: .featureGate)
+                                        store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
                                     }
                                 } onEdit: {
                                     planToEdit = plan
@@ -162,7 +161,7 @@ struct PlansView: View {
                         store.activatePlan(plan)
                         selectedPlanForDetail = nil
                     } else {
-                        store.presentPaywall(source: .onboarding, feature: nil, trigger: .featureGate)
+                        store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
                     }
                 } onEdit: {
                     selectedPlanForDetail = nil
@@ -317,7 +316,7 @@ struct PlansView: View {
                     NavigationLink {
                         WorkoutDetailView(workout: day)
                     } label: {
-                        PlanDayRow(day: day)
+                        PlanDayRow(day: day, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                     }
                     .buttonStyle(.plain)
                 }
@@ -929,6 +928,10 @@ private struct PlanDetailSheet: View {
         }
     }
 
+    private var planExercises: [Exercise] {
+        plan.days.flatMap { $0.exercises.map(\.exercise) }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -957,6 +960,16 @@ private struct PlanDetailSheet: View {
                         }
                     }
 
+                    if !planExercises.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(localizedString("muscles_worked"))
+                                .font(.headline)
+                            WorkoutMusclePreview(exercises: planExercises, gender: store.userProfile.muscleMapGender)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 300)
+                        }
+                    }
+
                     if !plan.days.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
                             Text(localizedString("training_days_section"))
@@ -966,7 +979,7 @@ private struct PlanDetailSheet: View {
                                     NavigationLink {
                                         WorkoutDetailView(workout: day)
                                     } label: {
-                                        PlanDayRow(day: day)
+                                        PlanDayRow(day: day, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -1031,20 +1044,13 @@ private struct PlanRow: View {
 
 private struct PlanDayRow: View {
     let day: WorkoutDay
+    let gender: BodyGender
+    let catalog: [Exercise]
 
     var body: some View {
         PulseCard(contentPadding: 14) {
             HStack(alignment: .top, spacing: 12) {
-                VStack(spacing: 2) {
-                    Text("\(day.exercises.count)")
-                        .font(.title3.weight(.black).monospacedDigit())
-                        .foregroundStyle(PulseTheme.accent)
-                    Text(localizedString("exercises_2"))
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                }
-                .frame(width: 56, height: 56)
-                .background(PulseTheme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                dayThumbnail
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline) {
@@ -1069,13 +1075,19 @@ private struct PlanDayRow: View {
                     if !day.exercises.isEmpty {
                         HStack(spacing: 6) {
                             ForEach(day.exercises.prefix(3)) { workoutExercise in
-                                Text(workoutExercise.exercise.name)
-                                    .font(.caption2.weight(.bold))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.72)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 5)
-                                    .background(PulseTheme.grouped, in: Capsule())
+                                HStack(spacing: 5) {
+                                    ExerciseMediaThumbnail(exercise: workoutExercise.exercise, gender: gender, catalog: catalog)
+                                        .frame(width: 20, height: 20)
+                                        .clipShape(Circle())
+                                    Text(workoutExercise.exercise.name)
+                                        .font(.caption2.weight(.bold))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.72)
+                                }
+                                .padding(.leading, 3)
+                                .padding(.trailing, 8)
+                                .padding(.vertical, 4)
+                                .background(PulseTheme.grouped, in: Capsule())
                             }
                             if day.exercises.count > 3 {
                                 Text("+\(day.exercises.count - 3)")
@@ -1094,6 +1106,29 @@ private struct PlanDayRow: View {
                     .foregroundStyle(PulseTheme.secondaryText)
                     .padding(.top, 4)
             }
+        }
+    }
+
+    private var dayThumbnail: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Group {
+                if let first = day.exercises.first?.exercise {
+                    ExerciseMediaThumbnail(exercise: first, gender: gender, catalog: catalog)
+                } else {
+                    Rectangle().fill(PulseTheme.accent.opacity(0.10))
+                }
+            }
+            .frame(width: 56, height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+            Text("\(day.exercises.count)")
+                .font(.caption2.weight(.black).monospacedDigit())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(PulseTheme.accent, in: Capsule())
+                .overlay(Capsule().stroke(PulseTheme.card, lineWidth: 1.5))
+                .offset(x: 6, y: 6)
         }
     }
 }
