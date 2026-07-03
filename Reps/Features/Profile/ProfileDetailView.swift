@@ -46,7 +46,7 @@ struct ProfileDetailView: View {
                             
                             Image(systemName: "camera.fill")
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                                 .frame(width: 28, height: 28)
                                 .background(PulseTheme.accent)
                                 .clipShape(Circle())

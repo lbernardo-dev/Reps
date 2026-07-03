@@ -185,61 +185,23 @@ struct QuickMenuProgressionChart: View {
         }
         
         VStack(spacing: 12) {
-            // Upper Row (Avatar)
-            HStack {
-                Spacer()
-                Button {
-                    HapticService.selection()
-                    selectedMetric = .weight
-                } label: {
-                    let avatarData = store.userProfile.avatarImageData
-                    if let avatarData, let image = UIImage(data: avatarData) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 38, height: 38)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(.white, lineWidth: 2))
-                            .shadow(color: .black.opacity(0.20), radius: 4)
-                    } else {
-                        ZStack {
-                            Circle()
-                                .fill(PulseTheme.accent.opacity(0.12))
-                                .frame(width: 38, height: 38)
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(.system(size: 22))
-                                .foregroundStyle(PulseTheme.accent)
-                        }
-                        .overlay(Circle().stroke(.white, lineWidth: 2))
-                        .shadow(color: .black.opacity(0.20), radius: 4)
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(localizedString("show_body_weight"))
-            }
-            .padding(.horizontal, 4)
-            
-            // Stacked Title Row
-            VStack(alignment: .leading, spacing: 3) {
-                Text(localizedString("temporal_evolution"))
-                    .font(.system(size: 9, weight: .black, design: .rounded))
-                    .tracking(2.5)
-                    .foregroundStyle(PulseTheme.secondaryText)
-                
+            // Same PulseHeaderBar chrome as the primary tabs (Today, Progress,
+            // Plans, Calendar, Exercises), with the profile avatar as accessory.
+            PulseHeaderBar(subtitleKey: "temporal_evolution") {
                 if let activeWeek {
                     // Show week details in title space
                     let (expVal, planVal, realVal) = getMetricValuesForWeek(activeWeek, allPoints: allPoints)
                     let realStr = realVal != nil ? String(format: "%.0f", realVal!) : "--"
-                    
+
                     HStack(spacing: 5) {
                         Text(localizedFormat("week_label_colon_format", activeWeek))
                             .font(.system(size: 15, weight: .bold, design: .rounded))
                             .foregroundStyle(.white)
-                        
+
                         Text("R \(realStr)")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundStyle(LineType.real.color)
-                        
+
                         if let planVal {
                             Text("•")
                                 .foregroundStyle(.white.opacity(0.2))
@@ -257,7 +219,7 @@ struct QuickMenuProgressionChart: View {
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
                                 .foregroundStyle(LineType.expected.color)
                         }
-                        
+
                         Text(unitLabel)
                             .font(.system(size: 10, weight: .bold, design: .rounded))
                             .foregroundStyle(.white.opacity(0.4))
@@ -267,12 +229,34 @@ struct QuickMenuProgressionChart: View {
                     Text(chartTitle)
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                        .frame(height: 26)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                }
+            } accessory: {
+                HeaderAvatarButton(
+                    imageData: store.userProfile.avatarImageData,
+                    accessibilityLabel: "show_body_weight"
+                ) {
+                    selectedMetric = .weight
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 4)
-            
+
+            chartBody(allPoints: allPoints, minVal: minVal, maxVal: maxVal, margin: margin, visibleTypes: visibleTypes)
+                .padding(.horizontal, 16)
+        }
+        .padding(.bottom, 12)
+        .background(Color.clear)
+    }
+
+    @ViewBuilder
+    private func chartBody(
+        allPoints: [ProgressionPoint],
+        minVal: Double,
+        maxVal: Double,
+        margin: Double,
+        visibleTypes: [LineType]
+    ) -> some View {
+        VStack(spacing: 12) {
             // Custom Premium Segmented Picker
             HStack(spacing: 0) {
                 ForEach(ProgressionMetricType.allCases) { type in
@@ -473,11 +457,8 @@ struct QuickMenuProgressionChart: View {
             }
             .padding(.horizontal, 4)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color.clear)
     }
-    
+
     // MARK: - Helpers
     private func getMetricValuesForWeek(_ week: Int, allPoints: [ProgressionPoint]) -> (expected: Double?, planned: Double?, real: Double?) {
         let expected = allPoints.first(where: { $0.weekIndex == week && $0.type == .expected })?.value

@@ -239,7 +239,7 @@ struct HydrationView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(PulseTheme.ringStand)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.ringStand))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(.plain)

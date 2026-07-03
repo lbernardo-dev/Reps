@@ -125,14 +125,8 @@ struct TodayView: View {
         )
     }
 
-    private var nextBestSteps: [RetentionEngine.ActivationStep] {
-        RetentionEngine.nextBestSteps(
-            sessions: store.workoutSessions,
-            activePlan: store.activePlan,
-            scheduledWorkouts: store.scheduledWorkouts,
-            remindersEnabled: store.userProfile.remindersEnabled,
-            competitiveSummary: competitiveSummary
-        )
+    private var workloadSummary: AnalyticsEngine.WorkloadSummary {
+        AnalyticsEngine.workloadSummary(sessions: store.workoutSessions, bodyMetrics: store.bodyMetrics)
     }
 
     private var dailyCoachRecommendation: FitnessMetrics.DailyCoachRecommendation {
@@ -260,43 +254,30 @@ struct TodayView: View {
                 subtitle: currentDateTitle,
                 topContentPadding: 104,
                 accessory: {
-                    HStack(spacing: 6) {
-                        Button {
-                            HapticService.selection()
-                            showNotifications = true
-                        } label: {
-                            ZStack(alignment: .topTrailing) {
-                                Image(systemName: "bell.fill")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(PulseTheme.secondaryText)
-                                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                    .navigationGlassCircle(.secondary, tint: .clear)
-                                if store.hasUnreadBell {
-                                    Circle()
-                                        .fill(.red)
-                                        .frame(width: 9, height: 9)
-                                        .offset(x: -1, y: 1)
-                                }
+                    Button {
+                        HapticService.selection()
+                        showNotifications = true
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                .navigationGlassCircle(.secondary, tint: .clear)
+                            if store.hasUnreadBell {
+                                Circle()
+                                    .fill(.red)
+                                    .frame(width: 9, height: 9)
+                                    .offset(x: -1, y: 1)
                             }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("notifications")
-
-                        HeaderAvatarButton(
-                            imageData: store.userProfile.avatarImageData,
-                            accessibilityLabel: "profile"
-                        ) {
-                            showProfile = true
-                        }
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("notifications")
                 }
             ) {
                 focusHeroSection
                     .stickyHeaderTitle(localizedString("today_3"))
-                if !hasActivePlan {
-                    activationChecklist
-                        .stickyHeaderTitle(localizedString("next_action"))
-                }
                 if store.activeWorkoutStatus == nil, let rec = recommendedWorkout {
                     RecommendedWorkoutCard(
                         workout: rec,
@@ -317,20 +298,18 @@ struct TodayView: View {
                     )
                     .stickyHeaderTitle(localizedString("progression"))
                 }
-                summaryMetrics
-                    .stickyHeaderTitle(localizedString("metrics_2"))
+                relationshipSignalBoard
+                    .stickyHeaderTitle("Señales")
                 wellnessWidgets
                     .stickyHeaderTitle(localizedString("recovery_2"))
-                planSection
-                    .stickyHeaderTitle(localizedString("plan_3"))
+                if hasActivePlan {
+                    planSection
+                        .stickyHeaderTitle(localizedString("plan_3"))
+                }
                 coachingCard
                     .stickyHeaderTitle(localizedString("coach"))
-                progressAndRecovery
-                    .stickyHeaderTitle(localizedString("progress_2"))
                 smartShortcuts
                     .stickyHeaderTitle(localizedString("shortcuts"))
-                visualLibraryStrip
-                    .stickyHeaderTitle(localizedString("visual_library"))
             }
             .sheet(isPresented: $showScheduleWorkout) {
                 ScheduleWorkoutView()
@@ -343,7 +322,7 @@ struct TodayView: View {
             }
             .navigationDestination(isPresented: $showProfile) {
                 ProfileView {
-                    onSelectTab?(.workout)
+                    onSelectTab?(.today)
                 }
             }
             .navigationDestination(isPresented: $showNotifications) {
@@ -381,230 +360,56 @@ struct TodayView: View {
         }
     }
 
-    private var summaryMetrics: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
-                SummaryMetricTile(
-                    title: "workouts_2",
-                    value: "\(recentSessions.count)",
-                    subtitle: "value_30_days",
-                    systemImage: "figure.strengthtraining.traditional",
-                    trendText: workoutTrendText,
-                    color: PulseTheme.accent,
-                    onTap: { onSelectTab?(.summary) }
-                )
-                SummaryMetricTile(
-                    title: "sets_4",
-                    value: "\(recentCompletedSets.count)",
-                    subtitle: "completed_2",
-                    systemImage: "square.stack.3d.up.fill",
-                    trendText: nil,
-                    color: PulseTheme.accent,
-                    onTap: { onSelectTab?(.summary) }
-                )
-                SummaryMetricTile(
-                    title: "volume_3",
-                    value: compactNumber(displayedRecentVolume),
-                    subtitle: displayedVolumeUnit,
-                    systemImage: "scalemass.fill",
-                    trendText: volumeTrendText,
-                    color: PulseTheme.ringStand,
-                    onTap: { onSelectTab?(.summary) }
-                )
-            }
+    private var relationshipSignalBoard: some View {
+        PulseCard(contentPadding: 18) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: dailyCoachRecommendation.systemImage)
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(.black)
+                        .frame(width: 42, height: 42)
+                        .background(color(for: dailyCoachRecommendation.tone), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            ActivityMatrixCard(
-                title: "last_30_days",
-                progressText: localizedFormat("sessions_count_format", recentSessions.count),
-                points: recentActivityPoints,
-                color: PulseTheme.accent,
-                onTapDay: { date in
-                    store.calendarFocusedDate = date
-                    onSelectTab?(.calendar)
-                }
-            )
-
-            HStack(spacing: 12) {
-                MiniTrendCard(
-                    title: "volume_3",
-                    subtitle: "weekly_trend",
-                    value: compactNumber(displayedWeight(fromKilograms: FitnessMetrics.totalVolumeKg(for: weekSessions))),
-                    unit: displayedVolumeUnit,
-                    systemImage: "scalemass.fill",
-                    trendText: volumeTrendText,
-                    color: PulseTheme.accent
-                ) {
-                    MiniAreaChart(values: weeklyVolumeValues, color: PulseTheme.accent)
-                }
-
-                MiniTrendCard(
-                    title: "this_week",
-                    subtitle: "daily_reps",
-                    value: "\(weekCompletedSets.reduce(0) { $0 + $1.reps })",
-                    unit: "reps",
-                    systemImage: "arrow.up.right",
-                    trendText: weekRepsTrendText,
-                    color: PulseTheme.accent
-                ) {
-                    MiniBarChart(points: weeklyRepsPoints, color: PulseTheme.accent)
-                }
-            }
-
-            if latestMetric != nil {
-                BodyWeightSummaryRow(
-                    title: "body_weight_3",
-                    value: String(format: "%.1f %@", store.displayedWeight.value, store.displayedWeight.unit),
-                    subtitle: "latest_log",
-                    goalText: weightGoalText
-                )
-            }
-
-            intensityCard
-        }
-    }
-
-    private var intensityCard: some View {
-        let sessions7d = store.workoutSessions.filter {
-            $0.date >= Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .now
-        }
-        let allSets = sessions7d.flatMap { FitnessMetrics.completedSets(in: $0) }
-        let rpeValues = allSets.compactMap(\.rpe)
-        let avgRPE = rpeValues.isEmpty ? nil : rpeValues.reduce(0, +) / Double(rpeValues.count)
-        let productiveSets = rpeValues.filter { $0 >= 6 && $0 <= 8 }.count
-        let totalRPESets = rpeValues.count
-        let distribution = AnalyticsEngine.intensityDistribution(for: sessions7d)
-
-        let topExercise = sessions7d
-            .flatMap { $0.exerciseLogs ?? [] }
-            .max(by: { ($0.sets.filter(\.completed).count) < ($1.sets.filter(\.completed).count) })
-        let heaviestSet = sessions7d
-            .flatMap { $0.exerciseLogs ?? [] }
-            .flatMap { $0.sets }
-            .filter { $0.completed && $0.weightKg > 0 }
-            .max(by: { $0.weightKg < $1.weightKg })
-
-        return PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 10) {
-                    Image(systemName: "bolt.fill")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 34, height: 34)
-                        .background(PulseTheme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(localizedString("intensity").uppercased())
-                            .font(.system(size: 10, weight: .black, design: .rounded))
-                            .tracking(1.2)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Sistema de entrenamiento")
+                            .font(.headline.weight(.black))
+                        Text(dailyCoachRecommendation.message)
+                            .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
-                        Text(avgRPE.map { String(format: "%.1f", $0) } ?? "--")
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
-                        Text(localizedString("avg_rpe"))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    Spacer()
-                    if totalRPESets > 0 {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(localizedString("seven_days"))
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Text("\(totalRPESets) sets")
-                                .font(.subheadline.weight(.bold))
-                            Text(totalRPESets > 0 ? "\(productiveSets)/\(totalRPESets) " + localizedString("in_6_8_zone") : "--")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.recovery)
-                        }
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
-                if totalRPESets > 0 {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(localizedString("rpe_distribution").uppercased())
-                            .font(.system(size: 9, weight: .black, design: .rounded))
-                            .tracking(1.2)
-                            .foregroundStyle(PulseTheme.secondaryText)
-
-                        GeometryReader { geo in
-                            let total = max(distribution.reduce(0) { $0 + $1.count }, 1)
-                            HStack(spacing: 2) {
-                                ForEach(distribution, id: \.label) { bucket in
-                                    let fraction = CGFloat(bucket.count) / CGFloat(total)
-                                    let color: Color = bucket.label.contains("6") || bucket.label.contains("7")
-                                        ? PulseTheme.recovery
-                                        : (bucket.label.contains("9") ? PulseTheme.destructive : PulseTheme.secondaryText.opacity(0.3))
-                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                        .fill(color)
-                                        .frame(width: max(geo.size.width * fraction - 2, 4))
-                                }
-                            }
-                            .frame(height: 10)
-                        }
-                        .frame(height: 10)
-
-                        HStack {
-                            Text("< 6 · \(distribution.first(where: { $0.label.contains("0") })?.count ?? 0)")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Spacer()
-                            Text("6–8 · \(productiveSets)")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(PulseTheme.recovery)
-                            Spacer()
-                            Text("9+ · \(distribution.last?.count ?? 0)")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(PulseTheme.destructive)
-                        }
-                    }
-                }
-
-                if let top = topExercise {
-                    Divider()
-                    HStack(spacing: 10) {
-                        Image(systemName: "trophy.fill")
-                            .foregroundStyle(PulseTheme.accent)
-                            .frame(width: 20)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(localizedString("top_exercise").uppercased())
-                                .font(.system(size: 8, weight: .black, design: .rounded))
-                                .tracking(1)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            Text(RepsText.exerciseName(top.exercise.name, language: store.userProfile.preferredLanguage))
-                                .font(.subheadline.weight(.semibold))
-                                .lineLimit(1)
-                            let completedSets = top.sets.filter(\.completed).count
-                            Text("\(completedSets) sets")
-                                .font(.caption)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                    }
-                }
-
-                if let heavy = heaviestSet {
-                    HStack(spacing: 10) {
-                        Image(systemName: "dumbbell.fill")
-                            .foregroundStyle(PulseTheme.accent)
-                            .frame(width: 20)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(localizedString("heaviest_set").uppercased())
-                                .font(.system(size: 8, weight: .black, design: .rounded))
-                                .tracking(1)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            let wStr = heavy.weightKg.truncatingRemainder(dividingBy: 1) == 0
-                                ? "\(Int(heavy.weightKg)) kg"
-                                : String(format: "%.1f kg", heavy.weightKg)
-                            let rpeStr = heavy.rpe.map { " @ RPE \(Int($0))" } ?? ""
-                            Text("\(wStr) × \(heavy.reps)\(rpeStr)")
-                                .font(.subheadline.weight(.semibold))
-                                .lineLimit(1)
-                        }
-                    }
-                }
-
-                if sessions7d.isEmpty {
-                    Text(localizedString("log_workouts_to_see_intensity"))
-                        .font(.subheadline)
-                        .foregroundStyle(PulseTheme.secondaryText)
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    TrainingSignalTile(
+                        title: localizedString("plan"),
+                        value: weekTargetText,
+                        subtitle: "objetivo semanal",
+                        systemImage: "target",
+                        color: PulseTheme.accent
+                    )
+                    TrainingSignalTile(
+                        title: localizedString("load"),
+                        value: "\(Int(workloadSummary.fatigueScore.rounded()))",
+                        subtitle: "fatiga",
+                        systemImage: "waveform.path.ecg",
+                        color: batteryColor
+                    )
+                    TrainingSignalTile(
+                        title: localizedString("health"),
+                        value: store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--",
+                        subtitle: localizedString("steps_today"),
+                        systemImage: "figure.walk",
+                        color: PulseTheme.ringStand
+                    )
+                    TrainingSignalTile(
+                        title: localizedString("progress_2"),
+                        value: "\(recentSessions.count)",
+                        subtitle: "30 días",
+                        systemImage: "chart.line.uptrend.xyaxis",
+                        color: PulseTheme.ringMove
+                    )
                 }
             }
         }
@@ -672,7 +477,7 @@ struct TodayView: View {
                     } label: {
                         Image(systemName: "pencil")
                             .font(.subheadline.weight(.black))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.black)
                             .frame(width: 38, height: 38)
                             .background(PulseTheme.fitActionGradient)
                             .clipShape(Circle())
@@ -709,7 +514,7 @@ struct TodayView: View {
                         .font(.headline.weight(.black))
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.onColor(color(for: dailyCoachRecommendation.tone)))
                         .background(color(for: dailyCoachRecommendation.tone), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -805,97 +610,6 @@ struct TodayView: View {
                 .foregroundStyle(PulseTheme.fitActionGradient)
         }
         .buttonStyle(.plain)
-    }
-
-    private var activationChecklist: some View {
-        let missionProgress = min(max(store.weeklyCompletion, 0), 1)
-        let nextStep = nextBestSteps.first(where: { !$0.isCompleted }) ?? nextBestSteps.first
-
-        return PulseCard(contentPadding: 18) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .center, spacing: 14) {
-                    ProgressMissionRing(
-                        progress: missionProgress,
-                        color: batteryColor,
-                        centerValue: "\(Int(missionProgress * 100))%"
-                    )
-                    .frame(width: 68, height: 68)
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 8) {
-                            Label(localizedString("plan_3"), systemImage: "flag.checkered")
-                                .font(.caption.weight(.black))
-                                .textCase(.uppercase)
-                                .foregroundStyle(PulseTheme.accent)
-                            Spacer(minLength: 0)
-                            Text(weekTargetText)
-                                .font(.caption.weight(.black))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 5)
-                                .background(PulseTheme.accent.opacity(0.12))
-                                .foregroundStyle(PulseTheme.accent)
-                                .clipShape(Capsule())
-                        }
-
-                        Text(planReadinessTitle)
-                            .font(.headline.weight(.black))
-
-                        Text(planReadinessMessage)
-                            .font(.caption)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                if let step = nextStep {
-                    Button {
-                        perform(step.action)
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: step.isCompleted ? "checkmark.seal.fill" : step.systemImage)
-                                .font(.subheadline.weight(.black))
-                                .foregroundStyle(step.isCompleted ? PulseTheme.recovery : PulseTheme.accent)
-                                .frame(width: 38, height: 38)
-                                .background((step.isCompleted ? PulseTheme.recovery : PulseTheme.accent).opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(step.title)
-                                    .font(.subheadline.weight(.black))
-                                    .foregroundStyle(.primary)
-                                Text(step.message)
-                                    .font(.caption)
-                                    .foregroundStyle(PulseTheme.secondaryText)
-                                    .lineLimit(2)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            Text(step.isCompleted ? localizedString("done") : step.actionTitle)
-                                .font(.caption.weight(.black))
-                                .foregroundStyle(step.isCompleted ? PulseTheme.recovery : .white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(step.isCompleted ? PulseTheme.recovery.opacity(0.12) : PulseTheme.accent)
-                                .clipShape(Capsule())
-                        }
-                        .padding(12)
-                        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private var planReadinessTitle: String {
-        hasActivePlan ? localizedString("plan_ready") : localizedString("no_active_plan")
-    }
-
-    private var planReadinessMessage: String {
-        hasActivePlan
-            ? localizedString("do_the_smallest_useful_thing_for_today_s_progress")
-            : localizedString("create_a_routine_or_schedule_a_session_when_you_are_ready")
     }
 
     // MARK: – Active session hero (replaces the old separate banner)
@@ -1146,7 +860,7 @@ struct TodayView: View {
                 onSelectTab?(destination)
             }
         case .openProgress:
-            onSelectTab?(.summary)
+            onSelectTab?(.progress)
         }
     }
 
@@ -1164,7 +878,7 @@ struct TodayView: View {
         case .scheduleWorkout:
             showScheduleWorkout = true
         case .openProgress:
-            onSelectTab?(.summary)
+            onSelectTab?(.progress)
         case .competitive(let competitiveAction):
             if let destination = store.executeCompetitiveAction(competitiveAction) {
                 onSelectTab?(destination)
@@ -1304,7 +1018,7 @@ struct TodayView: View {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: batteryStatus.level < 55 ? batteryStatus.systemImage : coachInsight.systemImage)
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.onColor(batteryStatus.level < 55 ? batteryColor : PulseTheme.accent))
                         .frame(width: 42, height: 42)
                         .background(batteryStatus.level < 55 ? batteryColor : PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
@@ -1325,65 +1039,8 @@ struct TodayView: View {
         }
     }
 
-    @ViewBuilder
     private var planSection: some View {
-        if hasActivePlan {
-            planPreview
-        } else {
-            noPlanCard
-        }
-    }
-
-    private var noPlanCard: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    Image(systemName: "calendar.badge.plus")
-                        .font(.headline.weight(.bold))
-                        .frame(width: 42, height: 42)
-                        .foregroundStyle(.white)
-                        .background(PulseTheme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(localizedString("no_active_plan"))
-                            .font(.headline)
-                        Text(localizedString("create_a_routine_or_schedule_a_session_when_you_are_ready"))
-                            .font(.subheadline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                HStack(spacing: 10) {
-                    Button {
-                        showCreatePlan = true
-                    } label: {
-                        Label(localizedString("create_plan"), systemImage: "plus")
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .foregroundStyle(.black)
-                            .background(PulseTheme.accent)
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        showScheduleWorkout = true
-                    } label: {
-                        Label(localizedString("schedule"), systemImage: "calendar")
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .foregroundStyle(PulseTheme.accent)
-                            .background(PulseTheme.grouped)
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
+        planPreview
     }
 
     private var planPreview: some View {
@@ -1488,69 +1145,6 @@ struct TodayView: View {
         }
     }
 
-    private var progressAndRecovery: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Last Workout
-            PulseCard(minHeight: 110, contentPadding: 14) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 7) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 26, height: 26)
-                            .background(PulseTheme.accent.opacity(0.85))
-                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        Text(localizedString("last_workout"))
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 4)
-                    Text(lastWorkout.map { RepsText.workoutTitle($0.workoutTitle, language: store.userProfile.preferredLanguage) } ?? localizedString("no_workouts"))
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.78)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(lastWorkoutSubtitle)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            // Health / Steps
-            PulseCard(minHeight: 110, contentPadding: 14) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 7) {
-                        Image(systemName: "figure.walk")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 26, height: 26)
-                            .background(Color.green.opacity(0.85))
-                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        Text(localizedString("health"))
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 4)
-                    Text(store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--")
-                        .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
-                        .foregroundStyle(store.todayHealthMetric != nil ? Color.green : PulseTheme.secondaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                    Text(localizedString("steps_today"))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .lineLimit(1)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-
     private var smartShortcuts: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(localizedString("smart_shortcuts"))
@@ -1571,7 +1165,7 @@ struct TodayView: View {
                 Button {
                     HapticService.selection()
                     if let onSelectTab {
-                        onSelectTab(.summary)
+                        onSelectTab(.progress)
                     }
                 } label: {
                     ShortcutTile(
@@ -1607,42 +1201,6 @@ struct TodayView: View {
                     )
                 }
                 .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private var visualLibraryStrip: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("visual_references")
-                    .font(.headline)
-                Spacer()
-                NavigationLink {
-                    ExerciseLibraryView()
-                } label: {
-                    Text("view_all")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.accent)
-                }
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(featuredExercises) { exercise in
-                        NavigationLink {
-                            ExerciseDetailView(exercise: exercise)
-                        } label: {
-                            VisualExerciseCard(
-                                exercise: exercise,
-                                language: store.userProfile.preferredLanguage,
-                                gender: store.userProfile.muscleMapGender,
-                                catalog: store.exercises
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.vertical, 2)
             }
         }
     }
@@ -1875,117 +1433,6 @@ private struct WorkoutExerciseAvatarStrip: View {
     }
 }
 
-private struct TodayActivationStepRow: View {
-    let step: RetentionEngine.ActivationStep
-    let onAction: () -> Void
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                    .fill(iconColor.opacity(step.isCompleted ? 0.18 : 0.12))
-                Image(systemName: step.isCompleted ? "checkmark.seal.fill" : step.systemImage)
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(iconColor)
-            }
-            .frame(width: 40, height: 40)
-
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(step.title)
-                        .font(.headline)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.86)
-                    if step.isCompleted {
-                        Text(localizedString("done"))
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(PulseTheme.recovery)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(PulseTheme.recovery.opacity(0.12))
-                            .clipShape(Capsule())
-                    }
-                }
-
-                Text(step.message)
-                    .font(.subheadline)
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if !step.isCompleted {
-                    Button(action: onAction) {
-                        Label(step.actionTitle, systemImage: "arrow.forward.circle.fill")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .frame(height: 32)
-                            .background(PulseTheme.accent)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 3)
-                }
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 4)
-    }
-
-    private var iconColor: Color {
-        step.isCompleted ? PulseTheme.recovery : PulseTheme.accent
-    }
-}
-
-private struct ProgressMissionRing: View {
-    let progress: Double
-    let color: Color
-    let centerValue: String
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(PulseTheme.grouped, lineWidth: 12)
-            Circle()
-                .trim(from: 0, to: min(max(progress, 0), 1))
-                .stroke(
-                    AngularGradient(colors: [color, PulseTheme.accent, color], center: .center),
-                    style: StrokeStyle(lineWidth: 12, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-            VStack(spacing: 0) {
-                Text(centerValue)
-                    .font(.system(size: 20, weight: .black, design: .rounded))
-                Text("go")
-                    .font(.system(size: 9, weight: .black, design: .rounded))
-                    .foregroundStyle(PulseTheme.secondaryText)
-            }
-        }
-        .accessibilityLabel(localizedFormat("mission_progress_accessibility_format", centerValue))
-    }
-}
-
-private struct MissionSignal: View {
-    let title: String
-    let value: String
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(localizedKey(title))
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(PulseTheme.secondaryText)
-            Text(value)
-                .font(.caption.weight(.black).monospacedDigit())
-                .foregroundStyle(color)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(color.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-    }
-}
 
 private struct DailyActivityPoint: Identifiable {
     let date: Date
@@ -2082,6 +1529,45 @@ private struct SummaryMetricTile: View {
                     .minimumScaleFactor(0.8)
             }
         }
+    }
+}
+
+private struct TrainingSignalTile: View {
+    let title: String
+    let value: String
+    let subtitle: String
+    let systemImage: String
+    let color: Color
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(color)
+                .frame(width: 34, height: 34)
+                .background(color.opacity(0.13), in: Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 21, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(title)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(PulseTheme.tertiaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(12)
+        .frame(minHeight: 78)
+        .background(PulseTheme.grouped.opacity(0.72), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
 
@@ -2375,7 +1861,7 @@ private struct HomeMetricTile: View {
                 HStack(spacing: 6) {
                     Image(systemName: systemImage)
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.onColor(color))
                         .frame(width: 22, height: 22)
                         .background(color)
                         .clipShape(Circle())
@@ -2417,11 +1903,14 @@ private struct WellnessWidget: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(color)
                     .frame(width: 32, height: 32)
-                    .background(color.opacity(0.12), in: Circle())
+                    .background(color.opacity(0.16), in: Circle())
                 Text(localizedKey(title))
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(PulseTheme.secondaryText)
+                    .font(.system(size: 11, weight: .black, design: .rounded))
+                    .textCase(.uppercase)
+                    .tracking(0.4)
+                    .foregroundStyle(color)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
             Spacer(minLength: 2)
@@ -2434,7 +1923,7 @@ private struct WellnessWidget: View {
 
             Text(localizesSubtitle ? localizedKey(subtitle) : subtitle)
                 .font(.caption2)
-                .foregroundStyle(PulseTheme.tertiaryText)
+                .foregroundStyle(PulseTheme.secondaryText)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -2442,11 +1931,20 @@ private struct WellnessWidget: View {
         }
         .frame(width: 166, height: 128, alignment: .topLeading)
         .padding(12)
-        .background(PulseTheme.card)
+        .background(
+            ZStack {
+                PulseTheme.card
+                LinearGradient(
+                    colors: [color.opacity(0.14), .clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        )
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                .stroke(PulseTheme.separator, lineWidth: 1)
+                .stroke(color.opacity(0.30), lineWidth: 1)
         )
     }
 }
@@ -2475,7 +1973,7 @@ private struct PlanMicroCard: View {
                 }
                 Image(systemName: "play.fill")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                     .frame(width: 24, height: 24)
                     .background(PulseTheme.accent)
                     .clipShape(Circle())
@@ -2510,7 +2008,7 @@ private struct ShortcutTile: View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(PulseTheme.onColor(color))
                 .frame(width: 38, height: 38)
                 .background(
                     LinearGradient(
@@ -2566,7 +2064,7 @@ private struct VisualExerciseCard: View {
                 
                 Image(systemName: trackingIcon)
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                     .frame(width: 22, height: 22)
                     .background(PulseTheme.accent)
                     .clipShape(Circle())

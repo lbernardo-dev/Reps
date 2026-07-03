@@ -7,8 +7,9 @@ struct ProgressDashboardView: View {
   @State private var selectedRange: ProgressRange = .week
   @State private var selectedSection: ProgressSection = .muscles
   @State private var activeDestination: ProgressDestination?
+  @State private var sectionDetail: ProgressSection?
+  @State private var metricDetail: SummaryMetric?
   @State private var showNotifications = false
-  @State private var showProfile = false
 
   var onSelectTab: ((AppTab) -> Void)? = nil
 
@@ -17,106 +18,204 @@ struct ProgressDashboardView: View {
       StickyHeaderScaffold(
         title: "summary",
         subtitle: currentDateSubtitle,
-        topContentPadding: 128,
+        topContentPadding: 108,
         accessory: {
-            HStack(spacing: 6) {
-                Button {
-                    HapticService.selection()
-                    showNotifications = true
-                } label: {
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                            .navigationGlassCircle(.secondary, tint: .clear)
-                        if store.hasUnreadBell {
-                            Circle()
-                                .fill(.red)
-                                .frame(width: 9, height: 9)
-                                .offset(x: -1, y: 1)
-                        }
+            Button {
+                HapticService.selection()
+                showNotifications = true
+            } label: {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "bell.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                        .navigationGlassCircle(.secondary, tint: .clear)
+                    if store.hasUnreadBell {
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 9, height: 9)
+                            .offset(x: -1, y: 1)
                     }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("notifications")
-
-                HeaderAvatarButton(
-                    imageData: store.userProfile.avatarImageData,
-                    accessibilityLabel: "profile"
-                ) {
-                    showProfile = true
-                }
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("notifications")
         }
       ) {
 
-          // MARK: Activity Rings Hero
-          SummaryActivityRingsCard(
-            moveProgress: heroMetrics.adherence,
-            exerciseProgress: min(Double(heroMetrics.sessionsThisWeek) / max(Double(store.activePlan.daysPerWeek), 1.0), 2.0),
-            standProgress: min(Double(store.streakDays) / 30.0, 1.5),
-            moveValue: "\(Int(heroMetrics.volumeThisWeek)) kg",
-            exerciseValue: "\(heroMetrics.sessionsThisWeek)/\(store.activePlan.daysPerWeek)",
-            standValue: "\(store.streakDays)",
-            onTapStreak: { onSelectTab?(.calendar) },
-            onTapSessions: { withAnimation(.snappy(duration: 0.2)) { selectedSection = .general } },
-            onTapVolume: { withAnimation(.snappy(duration: 0.2)) { selectedSection = .muscles } }
+          DailySummaryFocusCard(
+            summary: store.dailySummary,
+            readinessLevel: store.trainingBattery.level,
+            sessionsToday: todaySessionsCount,
+            activeEnergyToday: Int(activeEnergyToday),
+            stepsToday: stepsToday,
+            exerciseMinutesWeek: weekHealthExerciseMinutes,
+            hasHealthData: !weekHealthMetrics.isEmpty,
+            hasManualData: heroMetrics.sessionsThisWeek > 0,
+            onOpenWorkout: { onSelectTab?(.today) },
+            onOpenCalendar: { onSelectTab?(.calendar) }
           )
-          .stickyHeaderTitle(localizedString("this_week"))
+          .stickyHeaderTitle(localizedString("today"))
 
-          // MARK: Mini metric grid
-          SummaryMetricGridRow(
-            sessions: heroMetrics.sessionsThisWeek,
-            volumeKg: Int(heroMetrics.volumeThisWeek),
-            streak: heroMetrics.streak,
-            stepsToday: store.health.latestDailyMetrics.last.map { Int($0.steps) } ?? 0
+          // ── HOY: Anillos + métricas clave, inspirado en Fitness ───────────────
+          SummaryRingsHeroCard(
+            moveProgress: ringVolumeProgress,
+            exerciseProgress: ringSessionsProgress,
+            standProgress: ringConsistencyProgress,
+            moveLabel: localizedString("volume_label").uppercased(),
+            moveValue: "\(Int(heroMetrics.volumeThisWeek))",
+            moveGoal: "kg",
+            exerciseLabel: localizedString("sessions").uppercased(),
+            exerciseValue: sessionsGoalDisplay,
+            exerciseGoal: sessionsGoalSubtitle,
+            exerciseCaption: sessionsGoalCaption,
+            standLabel: localizedString("consistency").uppercased(),
+            standValue: "\(weekActiveDays)/7",
+            standGoal: localizedString("days").lowercased(),
+            weeklyDays: heroMetrics.weekActivityDays,
+            onTapMove: { handleMetricTap(.volume) },
+            onTapExercise: { handleMetricTap(.sessions) },
+            onTapStand: { onSelectTab?(.calendar) }
           )
 
-          ProgressCoachStrip(
-            step: nextBestSteps.first(where: { !$0.isCompleted }) ?? nextBestSteps.first,
-            weeklyCompletion: store.weeklyCompletion,
-            battery: store.trainingBattery,
-            onAction: perform
-          )
-          .stickyHeaderTitle(localizedString("progress_direction"))
+          LazyVGrid(columns: summaryGridColumns, spacing: 12) {
+            Button { handleMetricTap(.steps) } label: {
+              TodayBarChartCard(
+                icon: "figure.walk",
+                color: Color(red: 0.68, green: 0.50, blue: 1.00),
+                title: "steps_metric",
+                value: stepsToday > 0 ? "\(stepsToday)" : "—",
+                unit: "PASOS",
+                chartData: stepsWeekData,
+                showsChevron: true
+              )
+            }
+            .buttonStyle(.plain)
 
-          Picker("range", selection: $selectedRange) {
-            ForEach(ProgressRange.allCases) { range in
-              Text(range.title).tag(range)
+            Button { handleMetricTap(.distance) } label: {
+              TodayBarChartCard(
+                icon: "figure.run",
+                color: PulseTheme.ringStand,
+                title: "distance_label",
+                value: distanceTodayKm > 0 ? String(format: "%.2f", distanceTodayKm) : "—",
+                unit: "KM",
+                chartData: distanceWeekData,
+                showsChevron: true
+              )
+            }
+            .buttonStyle(.plain)
+
+            Button { handleMetricTap(.activeEnergy) } label: {
+              TodayBarChartCard(
+                icon: "flame.fill",
+                color: PulseTheme.ringMove,
+                title: "active_kcal",
+                value: activeEnergyToday > 0 ? "\(Int(activeEnergyToday))" : "—",
+                unit: "KCAL",
+                chartData: activeEnergyWeekData,
+                showsChevron: true
+              )
+            }
+            .buttonStyle(.plain)
+
+            TodayMetricCard(
+              icon: "timer",
+              color: PulseTheme.ringExercise,
+              title: "sessions",
+              value: "\(heroMetrics.sessionsThisWeek)",
+              detail: "\(weekTotalMinutes) min \(localizedString("week_label").lowercased())"
+            )
+          }
+
+          // ── TENDENCIAS (90 días vs 365, estilo Apple Fitness) ─
+          if !trendMetrics.isEmpty {
+            TrendHighlightsCard(
+              metrics: trendMetrics,
+              sessionsThisWeek: heroMetrics.sessionsThisWeek,
+              sessionsGoal: weeklySessionGoal,
+              volumeThisWeek: Int(heroMetrics.volumeThisWeek),
+              weekDays: heroMetrics.weekActivityDays
+            )
+            .stickyHeaderTitle(localizedString("trends"))
+
+            TrendsGridView(metrics: trendMetrics) { metric in
+              handleTrendTap(metric)
             }
           }
-          .pickerStyle(.segmented)
 
-          LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+          TrainingLoadOverviewCard(
+            battery: store.trainingBattery,
+            workload: workload,
+            onTap: { openSection(.load) }
+          )
+
+          // ── EXPLORAR: pantallas de análisis detallado ────────
+          VStack(spacing: 10) {
             ForEach(ProgressSection.allCases) { section in
-              Button {
-                if section == .load,
-                   !store.hasFeatureAccess(.advancedAnalytics) {
-                  HapticService.notification(.warning)
-                  store.presentPaywall(source: .progressLoad, feature: .advancedAnalytics)
-                } else {
-                  HapticService.selection()
-                  withAnimation(.snappy(duration: 0.2)) {
-                    selectedSection = section
-                  }
-                }
-              } label: {
+              Button { openSection(section) } label: {
                 ProgressSectionTile(
                   section: section,
-                  isSelected: selectedSection == section,
+                  isSelected: false,
                   value: sectionValue(for: section),
-                  isLocked: section == .load && !store.hasFeatureAccess(.advancedAnalytics)
+                  isLocked: section == .load && !store.hasFeatureAccess(.advancedAnalytics),
+                  showsChevron: true
                 )
               }
               .buttonStyle(.plain)
             }
           }
-          .stickyHeaderTitle(localizedString("metric_2"))
+          .stickyHeaderTitle(localizedString("explore"))
 
-          // The next-best-action plan lives on the Today tab; Progress stays a
-          // pure analytics surface to avoid duplicating it across both tabs.
+      }
+      .toolbar(.hidden, for: .navigationBar)
+      .navigationDestination(isPresented: $showNotifications) {
+        NotificationsView()
+      }
+      .navigationDestination(item: $activeDestination) { destination in
+        switch destination {
+        case .exerciseAnalytics:
+          ExerciseAnalyticsListView(exercises: exercisesWithHistory)
+        case .workoutHistory:
+          WorkoutHistoryView(sessions: filteredSessions.sorted { $0.date > $1.date })
+        case .personalRecords:
+          PersonalRecordsView()
+        }
+      }
+      .navigationDestination(item: $sectionDetail) { section in
+        sectionDetailScreen(for: section)
+      }
+      .navigationDestination(item: $metricDetail) { metric in
+        metricDetailScreen(for: metric)
+      }
+    }
+  }
 
+  // MARK: - Section detail (pushed analytics screens)
+
+  @ViewBuilder
+  private func sectionDetailScreen(for section: ProgressSection) -> some View {
+    StickyHeaderScaffold(
+      title: section.titleKey,
+      subtitle: "metric_2",
+      topContentPadding: 96,
+      backAction: { sectionDetail = nil },
+      accessory: { EmptyView() }
+    ) {
+      Picker("range", selection: $selectedRange) {
+        ForEach(ProgressRange.allCases) { range in
+          Text(range.title).tag(range)
+        }
+      }
+      .pickerStyle(.segmented)
+
+      sectionDetailBody(for: section)
+    }
+    .toolbar(.hidden, for: .navigationBar)
+    .onAppear { if selectedSection != section { selectedSection = section } }
+  }
+
+  private func sectionDetailBody(for selectedSection: ProgressSection) -> some View {
+    VStack(alignment: .leading, spacing: 18) {
           if selectedSection == .general {
             ProgressExecutiveCard(
               sessions: filteredSessions.count,
@@ -423,11 +522,11 @@ struct ProgressDashboardView: View {
               VStack(alignment: .leading, spacing: 14) {
                 CardTitle("health_trends")
                 Chart(store.health.latestDailyMetrics) { metric in
-                  LineMark(x: .value("Date", metric.date), y: .value("Steps", metric.steps))
+                  LineMark(x: .value(localizedString("date"), metric.date), y: .value(localizedString("steps"), metric.steps))
                     .foregroundStyle(PulseTheme.accent)
                   LineMark(
-                    x: .value("Date", metric.date),
-                    y: .value("Active kcal", metric.activeEnergyKcal)
+                    x: .value(localizedString("date"), metric.date),
+                    y: .value(localizedString("active_kcal"), metric.activeEnergyKcal)
                   )
                   .foregroundStyle(PulseTheme.accent)
                 }
@@ -522,14 +621,14 @@ struct ProgressDashboardView: View {
                 }
                 Chart(consistencyData) { point in
                   BarMark(
-                    x: .value("Date", point.date, unit: selectedRange.chartUnit),
-                    y: .value("Workouts", point.count)
+                    x: .value(localizedString("date"), point.date, unit: selectedRange.chartUnit),
+                    y: .value(localizedString("workouts"), point.count)
                   )
                   .foregroundStyle(PulseTheme.accent)
                   if point.count > 0 {
                     PointMark(
-                      x: .value("Date", point.date, unit: selectedRange.chartUnit),
-                      y: .value("Workouts", point.count)
+                      x: .value(localizedString("date"), point.date, unit: selectedRange.chartUnit),
+                      y: .value(localizedString("workouts"), point.count)
                     )
                     .foregroundStyle(PulseTheme.accent)
                   }
@@ -573,6 +672,21 @@ struct ProgressDashboardView: View {
                 )
               }
             } else {
+              if !muscleVolumePoints.isEmpty {
+                PulseCard {
+                  VStack(alignment: .leading, spacing: 14) {
+                    CardTitle("volume_by_muscle_group")
+                    MetricDonutChart(
+                      slices: muscleVolumeDonutSlices,
+                      centerValue: formattedTotalMuscleVolume,
+                      centerLabel: "total_2",
+                      legendValueFormatter: { String(format: "%.0f kg", $0) }
+                    )
+                  }
+                }
+                .stickyHeaderTitle(localizedString("volume_by_muscle_group"))
+              }
+
 	              MuscleMapProgressView(
 	                sessions: store.workoutSessions,
 	                plannedWorkout: store.todaysWorkout,
@@ -603,24 +717,162 @@ struct ProgressDashboardView: View {
               }
             }
 
-            PulseCard {
-              VStack(alignment: .leading, spacing: 10) {
-                Label("resumen_diario", systemImage: "doc.text.magnifyingglass")
-                  .font(.headline)
-                Text(store.dailySummary)
-                  .foregroundStyle(PulseTheme.secondaryText)
-              }
-            }
           }
-      }
-      .toolbar(.hidden, for: .navigationBar)
-      .navigationDestination(isPresented: $showNotifications) {
-        NotificationsView()
-      }
-      .navigationDestination(isPresented: $showProfile) {
-        ProfileView()
-      }
     }
+  }
+
+  // MARK: - Rings & metric navigation
+
+  private var weekActiveDays: Int {
+    heroMetrics.weekActivityDays.filter { $0 }.count
+  }
+
+  private var todaySessionsCount: Int {
+    let today = Calendar.current.startOfDay(for: .now)
+    return store.workoutSessions.filter { Calendar.current.startOfDay(for: $0.date) == today }.count
+  }
+
+  private var weeklySessionGoal: Int {
+    max(store.activePlan.daysPerWeek, 1)
+  }
+
+  private var sessionsGoalDisplay: String {
+    if store.activePlan.daysPerWeek > 0 {
+      return "\(heroMetrics.sessionsThisWeek)/\(store.activePlan.daysPerWeek)"
+    }
+    return "\(heroMetrics.sessionsThisWeek)"
+  }
+
+  private var sessionsGoalSubtitle: String {
+    if store.activePlan.daysPerWeek > 0 {
+      return localizedString("week_label").lowercased()
+    }
+    return "sesiones"
+  }
+
+  private var sessionsGoalCaption: String {
+    if store.activePlan.daysPerWeek > 0 {
+      return "objetivo semanal"
+    }
+    return "esta semana"
+  }
+
+  /// Weekly volume vs. last week (ring laps when you beat it).
+  private var ringVolumeProgress: Double {
+    guard heroMetrics.volumeLastWeek > 0 else {
+      return heroMetrics.volumeThisWeek > 0 ? 1 : 0
+    }
+    return min(heroMetrics.volumeThisWeek / heroMetrics.volumeLastWeek, 2.0)
+  }
+
+  private var ringSessionsProgress: Double {
+    min(Double(heroMetrics.sessionsThisWeek) / Double(weeklySessionGoal), 2.0)
+  }
+
+  private var ringConsistencyProgress: Double {
+    Double(weekActiveDays) / 7.0
+  }
+
+  private func handleMetricTap(_ metric: SummaryMetric) {
+    switch metric {
+    case .sessions:
+      openSection(.general)
+    case .streak:
+      onSelectTab?(.calendar)
+    case .oneRepMax:
+      if store.requireFeature(.advancedAnalytics, source: .progressAdvancedAnalytics) {
+        activeDestination = .personalRecords
+      }
+    case .volume, .steps, .distance, .activeEnergy:
+      HapticService.selection()
+      metricDetail = metric
+    }
+  }
+
+  private func handleTrendTap(_ trend: TrendMetric) {
+    guard let metric = trend.metric else { return }
+    handleMetricTap(metric)
+  }
+
+  private func openSection(_ section: ProgressSection) {
+    if section == .load, !store.hasFeatureAccess(.advancedAnalytics) {
+      HapticService.notification(.warning)
+      store.presentPaywall(source: .progressLoad, feature: .advancedAnalytics)
+      return
+    }
+    HapticService.selection()
+    selectedSection = section
+    sectionDetail = section
+  }
+
+  // MARK: - Metric detail screens (Apple-Fitness-style drill-down)
+
+  @ViewBuilder
+  private func metricDetailScreen(for metric: SummaryMetric) -> some View {
+    switch metric {
+    case .steps:
+      StepsView()
+    case .volume:
+      ProgressMetricDetailView(
+        title: localizedString("volume_label"),
+        accent: PulseTheme.ringMove,
+        unit: "KG",
+        points: dailyVolumeSeries,
+        explanation: localizedString("metric_volume_explanation")
+      )
+    case .distance:
+      ProgressMetricDetailView(
+        title: localizedString("distance_label"),
+        accent: PulseTheme.ringStand,
+        unit: "KM",
+        points: dailyDistanceSeries,
+        explanation: localizedString("metric_distance_explanation"),
+        format: { String(format: "%.1f", $0) }
+      )
+    case .activeEnergy:
+      ProgressMetricDetailView(
+        title: localizedString("active_kcal"),
+        accent: PulseTheme.ringMove,
+        unit: "KCAL",
+        points: dailyActiveEnergySeries,
+        explanation: localizedString("metric_active_energy_explanation")
+      )
+    case .sessions, .streak, .oneRepMax:
+      EmptyView()
+    }
+  }
+
+  private var last365Start: Date {
+    let cal = Calendar.current
+    return cal.date(byAdding: .day, value: -364, to: cal.startOfDay(for: .now)) ?? .now
+  }
+
+  private var dailyVolumeSeries: [MetricDetailPoint] {
+    let cal = Calendar.current
+    let grouped = Dictionary(grouping: store.workoutSessions.filter { $0.date >= last365Start }) {
+      cal.startOfDay(for: $0.date)
+    }
+    return grouped.map { day, sessions in
+      MetricDetailPoint(date: day, value: FitnessMetrics.totalVolumeKg(for: sessions))
+    }.sorted { $0.date < $1.date }
+  }
+
+  private var dailyDistanceSeries: [MetricDetailPoint] {
+    let cal = Calendar.current
+    let grouped = Dictionary(grouping: store.combinedCardioLogs.filter { $0.date >= last365Start }) {
+      cal.startOfDay(for: $0.date)
+    }
+    return grouped.compactMap { day, logs -> MetricDetailPoint? in
+      let km = logs.compactMap(\.distanceKm).reduce(0, +)
+      return km > 0 ? MetricDetailPoint(date: day, value: km) : nil
+    }.sorted { $0.date < $1.date }
+  }
+
+  private var dailyActiveEnergySeries: [MetricDetailPoint] {
+    store.health.latestDailyMetrics
+      .filter { $0.date >= last365Start && $0.activeEnergyKcal > 0 }
+      .map { MetricDetailPoint(date: $0.date, value: $0.activeEnergyKcal) }
+      .sorted { $0.date < $1.date }
   }
 
   private var filteredSessions: [WorkoutSession] {
@@ -657,8 +909,243 @@ struct ProgressDashboardView: View {
 
   private var currentDateSubtitle: String {
     let f = DateFormatter()
+    f.locale = Locale(identifier: store.userProfile.preferredLanguage)
     f.dateFormat = "EEEE, d MMM"
-    return f.string(from: Date())
+    return f.string(from: Date()).capitalized(with: f.locale)
+  }
+
+  private var weekTotalMinutes: Int {
+    store.workoutSessions.filter { $0.date >= heroMetrics.weekStart }.reduce(0) { $0 + $1.durationMinutes }
+  }
+
+  private var weekSessions: [WorkoutSession] {
+    store.workoutSessions.filter { $0.date >= heroMetrics.weekStart }
+  }
+
+  private var weekHealthMetrics: [DailyHealthMetric] {
+    store.health.latestDailyMetrics.filter { $0.date >= heroMetrics.weekStart }
+  }
+
+  private var weekHealthSteps: Int {
+    Int(weekHealthMetrics.map(\.steps).reduce(0, +))
+  }
+
+  private var weekHealthKcal: Int {
+    Int(weekHealthMetrics.map(\.activeEnergyKcal).reduce(0, +))
+  }
+
+  private var weekHealthExerciseMinutes: Int {
+    Int(weekHealthMetrics.compactMap(\.exerciseMinutes).reduce(0, +))
+  }
+
+  private var weekCardioDistanceKm: Double {
+    store.combinedCardioLogs
+      .filter { $0.date >= heroMetrics.weekStart }
+      .compactMap(\.distanceKm)
+      .reduce(0, +)
+  }
+
+  private var weekCompletedSets: Int {
+    weekSessions.reduce(0) { $0 + FitnessMetrics.completedSets(in: $1).count }
+  }
+
+  private var weekAverageHeartRate: Double? {
+    let values = store.combinedCardioLogs
+      .filter { $0.date >= heroMetrics.weekStart }
+      .compactMap(\.averageHeartRate)
+    guard !values.isEmpty else { return nil }
+    return values.reduce(0, +) / Double(values.count)
+  }
+
+  private var summaryGridColumns: [GridItem] {
+    [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+  }
+
+  private var stepsToday: Int {
+    store.health.latestDailyMetrics.last.map { Int($0.steps) } ?? 0
+  }
+
+  private var stepsWeekData: [TodayChartPoint] {
+    let cal = Calendar.current
+    let today = cal.startOfDay(for: .now)
+    let symbols = cal.veryShortWeekdaySymbols
+    return store.health.latestDailyMetrics.suffix(7).map { metric in
+      let weekday = cal.component(.weekday, from: metric.date)
+      return TodayChartPoint(
+        label: symbols[weekday - 1].uppercased(),
+        value: metric.steps,
+        isToday: cal.startOfDay(for: metric.date) == today
+      )
+    }
+  }
+
+  private var distanceTodayKm: Double {
+    let today = Calendar.current.startOfDay(for: .now)
+    return store.combinedCardioLogs
+      .filter { Calendar.current.startOfDay(for: $0.date) == today }
+      .compactMap(\.distanceKm)
+      .reduce(0, +)
+  }
+
+  private var activeEnergyToday: Double {
+    store.todayHealthMetric?.activeEnergyKcal ?? store.health.latestDailyMetrics.last?.activeEnergyKcal ?? 0
+  }
+
+  private var activeEnergyWeekData: [TodayChartPoint] {
+    let cal = Calendar.current
+    let today = cal.startOfDay(for: .now)
+    let symbols = cal.veryShortWeekdaySymbols
+    return store.health.latestDailyMetrics.suffix(7).map { metric in
+      let weekday = cal.component(.weekday, from: metric.date)
+      return TodayChartPoint(
+        label: symbols[weekday - 1].uppercased(),
+        value: metric.activeEnergyKcal,
+        isToday: cal.startOfDay(for: metric.date) == today
+      )
+    }
+  }
+
+  private var distanceWeekData: [TodayChartPoint] {
+    let cal = Calendar.current
+    let today = cal.startOfDay(for: .now)
+    let symbols = cal.veryShortWeekdaySymbols
+    return (0..<7).compactMap { offset -> TodayChartPoint? in
+      guard let date = cal.date(byAdding: .day, value: -(6 - offset), to: today) else { return nil }
+      let km = store.combinedCardioLogs
+        .filter { cal.startOfDay(for: $0.date) == date }
+        .compactMap(\.distanceKm)
+        .reduce(0, +)
+      let weekday = cal.component(.weekday, from: date)
+      return TodayChartPoint(label: symbols[weekday - 1].uppercased(), value: km, isToday: date == today)
+    }
+  }
+
+  private var monthSessions: Int {
+    let start = Calendar.current.date(byAdding: .day, value: -29, to: Calendar.current.startOfDay(for: .now)) ?? .now
+    return store.workoutSessions.filter { $0.date >= start }.count
+  }
+
+  private var monthVolumeKg: Int {
+    let start = Calendar.current.date(byAdding: .day, value: -29, to: Calendar.current.startOfDay(for: .now)) ?? .now
+    return Int(FitnessMetrics.totalVolumeKg(for: store.workoutSessions.filter { $0.date >= start }))
+  }
+
+  private var yearSessions: Int {
+    let start = Calendar.current.date(byAdding: .day, value: -364, to: Calendar.current.startOfDay(for: .now)) ?? .now
+    return store.workoutSessions.filter { $0.date >= start }.count
+  }
+
+  private var yearVolumeKg: Int {
+    let start = Calendar.current.date(byAdding: .day, value: -364, to: Calendar.current.startOfDay(for: .now)) ?? .now
+    return Int(FitnessMetrics.totalVolumeKg(for: store.workoutSessions.filter { $0.date >= start }))
+  }
+
+  private var weeklyConsistencyData: [ConsistencyPoint] {
+    let cal = Calendar.current
+    let weekStart = heroMetrics.weekStart
+    return (0..<7).compactMap { offset in
+      guard let date = cal.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
+      let dayStart = cal.startOfDay(for: date)
+      let count = store.workoutSessions.filter { cal.startOfDay(for: $0.date) == dayStart }.count
+      return ConsistencyPoint(date: date, count: count)
+    }
+  }
+
+  private var trendMetrics: [TrendMetric] {
+    let cal = Calendar.current
+    let today = cal.startOfDay(for: .now)
+    guard let recent30Start = cal.date(byAdding: .day, value: -29, to: today),
+          let prev30Start = cal.date(byAdding: .day, value: -59, to: today) else { return [] }
+
+    let recent = store.workoutSessions.filter { $0.date >= recent30Start }
+    let prev = store.workoutSessions.filter { $0.date >= prev30Start && $0.date < recent30Start }
+
+    let recentWeeklyVol = FitnessMetrics.totalVolumeKg(for: recent) / 4.0
+    let prevWeeklyVol = prev.isEmpty ? 0.0 : FitnessMetrics.totalVolumeKg(for: prev) / 4.0
+    let recentWeeklySess = Double(recent.count) / 4.0
+    let prevWeeklySess = prev.isEmpty ? 0.0 : Double(prev.count) / 4.0
+
+    var metrics: [TrendMetric] = []
+
+    let volDir: TrendMetric.Direction = recentWeeklyVol > prevWeeklyVol + 1 ? .up
+      : (recentWeeklyVol < prevWeeklyVol - 1 ? .down : .neutral)
+    metrics.append(TrendMetric(
+      title: localizedString("volume_label"),
+      value: recentWeeklyVol > 0 ? "\(Int(recentWeeklyVol))" : "—",
+      unit: "KG/SEM",
+      direction: volDir,
+      color: PulseTheme.ringMove,
+      metric: .volume
+    ))
+
+    let sessDir: TrendMetric.Direction = recentWeeklySess > prevWeeklySess + 0.1 ? .up
+      : (recentWeeklySess < prevWeeklySess - 0.1 ? .down : .neutral)
+    metrics.append(TrendMetric(
+      title: localizedString("sessions"),
+      value: recentWeeklySess > 0 ? String(format: "%.1f", recentWeeklySess) : "—",
+      unit: "SES/SEM",
+      direction: sessDir,
+      color: PulseTheme.ringExercise,
+      metric: .sessions
+    ))
+
+    let recentStepsSample = store.health.latestDailyMetrics.suffix(14).map(\.steps)
+    let prevStepsSample = store.health.latestDailyMetrics.dropLast(14).suffix(14).map(\.steps)
+    if !recentStepsSample.isEmpty {
+      let avgRecent = recentStepsSample.reduce(0, +) / Double(recentStepsSample.count)
+      let avgPrev = prevStepsSample.isEmpty ? 0.0 : prevStepsSample.reduce(0, +) / Double(prevStepsSample.count)
+      if avgRecent > 0 {
+        let stepsDir: TrendMetric.Direction = avgRecent > avgPrev + 100 ? .up : (avgRecent < avgPrev - 100 ? .down : .neutral)
+        metrics.append(TrendMetric(
+          title: localizedString("steps_metric"),
+          value: "\(Int(avgRecent))",
+          unit: "PASOS/DÍA",
+          direction: stepsDir,
+          color: PulseTheme.accent,
+          metric: .steps
+        ))
+      }
+    }
+
+    metrics.append(TrendMetric(
+      title: localizedString("streak"),
+      value: "\(store.streakDays)",
+      unit: localizedString("days").uppercased(),
+      direction: store.streakDays > 7 ? .up : (store.streakDays == 0 ? .down : .neutral),
+      color: .orange,
+      metric: .streak
+    ))
+
+    if store.bestEstimatedOneRepMaxKg > 0 {
+      metrics.append(TrendMetric(
+        title: "1RM Est.",
+        value: "\(Int(store.bestEstimatedOneRepMaxKg))",
+        unit: "KG",
+        direction: .up,
+        color: PulseTheme.accent,
+        metric: .oneRepMax
+      ))
+    }
+
+    let recentKcal = store.health.latestDailyMetrics.suffix(7).map(\.activeEnergyKcal)
+    let prevKcal = store.health.latestDailyMetrics.dropLast(7).suffix(7).map(\.activeEnergyKcal)
+    if !recentKcal.isEmpty {
+      let avgRecent = recentKcal.reduce(0, +) / Double(recentKcal.count)
+      let avgPrev = prevKcal.isEmpty ? 0.0 : prevKcal.reduce(0, +) / Double(prevKcal.count)
+      if avgRecent > 0 {
+        let kcalDir: TrendMetric.Direction = avgRecent > avgPrev + 10 ? .up : (avgRecent < avgPrev - 10 ? .down : .neutral)
+        metrics.append(TrendMetric(
+          title: localizedString("active_kcal"),
+          value: "\(Int(avgRecent))",
+          unit: "KCAL/DÍA",
+          direction: kcalDir,
+          color: PulseTheme.ringMove,
+          metric: .activeEnergy
+        ))
+      }
+    }
+
+    return metrics
   }
 
   private var filteredCardioLogs: [CardioLog] {
@@ -728,6 +1215,27 @@ struct ProgressDashboardView: View {
     FitnessMetrics.muscleVolumePoints(for: store.workoutSessions, since: selectedRange.startDate)
   }
 
+  private static let donutPalette: [Color] = [
+    PulseTheme.accent, PulseTheme.ringStand, PulseTheme.ringExercise, PulseTheme.ringMove,
+    PulseTheme.growth, PulseTheme.warning, .purple, PulseTheme.fitOrange,
+  ]
+
+  private var muscleVolumeDonutSlices: [DonutSlice] {
+    muscleVolumePoints.prefix(donutPalette.count).enumerated().map { index, point in
+      DonutSlice(label: point.muscleGroup, value: point.totalVolumeKg, color: donutPalette[index])
+    }
+  }
+
+  private var donutPalette: [Color] { Self.donutPalette }
+
+  private var formattedTotalMuscleVolume: String {
+    let total = muscleVolumePoints.reduce(0) { $0 + $1.totalVolumeKg }
+    if total >= 1000 {
+      return String(format: "%.1fk kg", total / 1000)
+    }
+    return String(format: "%.0f kg", total)
+  }
+
   @ViewBuilder
   private var goalsProgressSection: some View {
     if store.goals.isEmpty {
@@ -773,16 +1281,6 @@ struct ProgressDashboardView: View {
     }
   }
 
-  private var nextBestSteps: [RetentionEngine.ActivationStep] {
-    RetentionEngine.nextBestSteps(
-      sessions: store.workoutSessions,
-      activePlan: store.activePlan,
-      scheduledWorkouts: store.scheduledWorkouts,
-      remindersEnabled: store.userProfile.remindersEnabled,
-      competitiveSummary: competitiveSummary
-    )
-  }
-
   private func sectionValue(for section: ProgressSection) -> String {
     switch section {
     case .general:
@@ -820,9 +1318,9 @@ struct ProgressDashboardView: View {
           )
         } else {
           Chart(store.bodyMetrics) { metric in
-            LineMark(x: .value("Date", metric.date), y: .value("Weight", metric.weightKg))
+            LineMark(x: .value(localizedString("date"), metric.date), y: .value(localizedString("weight"), metric.weightKg))
               .foregroundStyle(PulseTheme.accent)
-            PointMark(x: .value("Date", metric.date), y: .value("Weight", metric.weightKg))
+            PointMark(x: .value(localizedString("date"), metric.date), y: .value(localizedString("weight"), metric.weightKg))
               .foregroundStyle(PulseTheme.accent)
           }
           .frame(height: 150)
@@ -847,17 +1345,38 @@ struct ProgressDashboardView: View {
             }
           }
         }
+
+        Divider().opacity(0.12)
+
+        BodyHealthFusionPanel(
+          steps: weekHealthSteps,
+          activeKcal: weekHealthKcal,
+          exerciseMinutes: weekHealthExerciseMinutes,
+          sessions: heroMetrics.sessionsThisWeek,
+          volumeKg: Int(heroMetrics.volumeThisWeek),
+          hrv: store.todayHealthMetric?.heartRateVariabilityMS,
+          restingHeartRate: store.todayHealthMetric?.restingHeartRate,
+          fatigueScore: workload.fatigueScore,
+          dataPoints: bodyFusionChartPoints
+        )
       }
-      .navigationDestination(item: $activeDestination) { destination in
-        switch destination {
-        case .exerciseAnalytics:
-          ExerciseAnalyticsListView(exercises: exercisesWithHistory)
-        case .workoutHistory:
-          WorkoutHistoryView(sessions: filteredSessions.sorted { $0.date > $1.date })
-        case .personalRecords:
-          PersonalRecordsView()
-        }
-      }
+    }
+  }
+
+  private var bodyFusionChartPoints: [BodyFusionPoint] {
+    let calendar = Calendar.current
+    let healthByDay = Dictionary(grouping: weekHealthMetrics) { calendar.startOfDay(for: $0.date) }
+    let sessionsByDay = Dictionary(grouping: weekSessions) { calendar.startOfDay(for: $0.date) }
+    return (0..<7).compactMap { offset in
+      guard let date = calendar.date(byAdding: .day, value: offset, to: heroMetrics.weekStart) else { return nil }
+      let day = calendar.startOfDay(for: date)
+      let health = healthByDay[day]?.first
+      let sessions = sessionsByDay[day] ?? []
+      return BodyFusionPoint(
+        date: day,
+        activity: health?.activeEnergyKcal ?? 0,
+        volume: FitnessMetrics.totalVolumeKg(for: sessions)
+      )
     }
   }
 
@@ -885,154 +1404,6 @@ struct ProgressDashboardView: View {
     onSelectTab?(destination)
   }
 
-  private func perform(_ action: RetentionEngine.ActivationAction?) {
-    HapticService.selection()
-    guard let action else {
-      onSelectTab?(.workout)
-      return
-    }
-
-    switch action {
-    case .startWorkout:
-      onSelectTab?(.workout)
-    case .createPlan:
-      onSelectTab?(.workout)
-    case .scheduleWorkout:
-      onSelectTab?(.calendar)
-    case .competitive(let competitiveAction):
-      perform(competitiveAction)
-    case .openProgress:
-      withAnimation(.snappy(duration: 0.2)) {
-        selectedSection = .general
-      }
-    }
-  }
-}
-
-// MARK: - Summary Hero Components
-
-private struct SummaryActivityRingsCard: View {
-    let moveProgress: Double
-    let exerciseProgress: Double
-    let standProgress: Double
-    let moveValue: String
-    let exerciseValue: String
-    let standValue: String
-    let onTapStreak: () -> Void
-    let onTapSessions: () -> Void
-    let onTapVolume: () -> Void
-
-    var body: some View {
-        PulseCard(contentPadding: 20) {
-            HStack(alignment: .center, spacing: 24) {
-                // Rings
-                RepsActivityRings(
-                    rings: RepsActivityRings.Ring.default(
-                        moveProgress: moveProgress,
-                        exerciseProgress: exerciseProgress,
-                        standProgress: standProgress
-                    ),
-                    lineWidth: 16,
-                    gap: 6
-                )
-                .frame(width: 140, height: 140)
-
-                // Legend
-                VStack(alignment: .leading, spacing: 14) {
-                    SummaryRingLegendRow(
-                        label: "MOVE",
-                        value: moveValue,
-                        color: PulseTheme.ringMove,
-                        action: onTapVolume
-                    )
-                    SummaryRingLegendRow(
-                        label: "EXERCISE",
-                        value: exerciseValue,
-                        color: PulseTheme.ringExercise,
-                        action: onTapSessions
-                    )
-                    SummaryRingLegendRow(
-                        label: "STREAK",
-                        value: standValue,
-                        color: PulseTheme.ringStand,
-                        action: onTapStreak
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-}
-
-private struct SummaryRingLegendRow: View {
-    let label: String
-    let value: String
-    let color: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(color)
-                    .frame(width: 4, height: 32)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(value)
-                        .font(.system(size: 18, weight: .heavy, design: .rounded))
-                        .foregroundStyle(color)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    Text(label)
-                        .font(.system(size: 10, weight: .bold))
-                        .textCase(.uppercase)
-                        .tracking(0.8)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                }
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct SummaryMetricGridRow: View {
-    let sessions: Int
-    let volumeKg: Int
-    let streak: Int
-    let stepsToday: Int
-
-    var body: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-            MetricCard(
-                title: "sessions",
-                value: "\(sessions)",
-                subtitle: "this_week",
-                systemImage: "dumbbell.fill",
-                badgeColor: PulseTheme.ringExercise
-            )
-            MetricCard(
-                title: "volume",
-                value: "\(volumeKg) kg",
-                subtitle: "this_week",
-                systemImage: "scalemass.fill",
-                badgeColor: PulseTheme.ringMove
-            )
-            MetricCard(
-                title: "streak",
-                value: "\(streak)",
-                subtitle: "days",
-                systemImage: "flame.fill",
-                badgeColor: PulseTheme.accent
-            )
-            MetricCard(
-                title: "steps_metric",
-                value: stepsToday > 0 ? "\(stepsToday)" : "—",
-                subtitle: "today_label",
-                systemImage: "figure.walk",
-                badgeColor: PulseTheme.ringStand
-            )
-        }
-    }
 }
 
 private extension CardioLog.ActivityType {
@@ -1046,1862 +1417,6 @@ private extension CardioLog.ActivityType {
     case .rowing: "rowing_label"
     case .hiit: "hiit_label"
     case .other: "other_label"
-    }
-  }
-}
-
-private struct ExerciseProgressRow: View {
-  let exercise: Exercise
-  @Environment(AppStore.self) private var store
-
-  private var points: [FitnessMetrics.ExerciseProgressPoint] {
-    FitnessMetrics.progressPoints(for: exercise, in: store.workoutSessions)
-  }
-
-  var body: some View {
-    HStack(spacing: 14) {
-      Image(systemName: "chart.line.uptrend.xyaxis")
-        .font(.headline)
-        .foregroundStyle(PulseTheme.accent)
-        .frame(width: 42, height: 42)
-        .background(PulseTheme.accent.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-      VStack(alignment: .leading, spacing: 3) {
-        Text(exercise.name)
-          .font(.headline)
-        Text(
-          "\(points.count) logged days · \(Int(points.map(\.totalVolumeKg).reduce(0, +))) kg volume"
-        )
-        .font(.subheadline)
-        .foregroundStyle(PulseTheme.secondaryText)
-      }
-      Spacer()
-      Image(systemName: "chevron.right")
-        .foregroundStyle(PulseTheme.secondaryText)
-    }
-    .padding(.vertical, 8)
-  }
-}
-
-private struct MetricInline: View {
-  let title: LocalizedStringKey
-  let value: String
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(localizedKey(title))
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(PulseTheme.secondaryText)
-      Text(value)
-        .font(.headline.monospacedDigit())
-        .lineLimit(1)
-        .minimumScaleFactor(0.78)
-    }
-    .padding(10)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .background(PulseTheme.grouped)
-    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-  }
-}
-
-private struct AnalyticsShortcutCard: View {
-  let title: LocalizedStringKey
-  let subtitle: String
-  let systemImage: String
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      Image(systemName: systemImage)
-        .font(.headline)
-        .foregroundStyle(PulseTheme.accent)
-        .frame(width: 42, height: 42)
-        .background(PulseTheme.accent.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-      Text(localizedKey(title))
-        .font(.headline)
-        .lineLimit(2)
-        .minimumScaleFactor(0.82)
-      Text(subtitle)
-        .font(.subheadline)
-        .foregroundStyle(PulseTheme.secondaryText)
-    }
-    .padding(16)
-    .frame(maxWidth: .infinity, minHeight: 138, alignment: .leading)
-    .background(PulseTheme.card)
-    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-    .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 8)
-  }
-}
-
-private struct ProgressExecutiveCard: View {
-  let sessions: Int
-  let volumeKg: Int
-  let bestEstimatedOneRepMaxKg: Int
-  let rangeTitle: LocalizedStringKey
-  let primaryInsight: FitnessMetrics.TrainingInsight?
-  let onOpenExercises: () -> Void
-  let onOpenHistory: () -> Void
-  let onOpenPRs: () -> Void
-
-  private var headline: String {
-    if sessions == 0 {
-      return localizedString("start_and_finish_workout_message")
-    }
-    if let primaryInsight {
-      return primaryInsight.title
-    }
-    return localizedString("performance")
-  }
-
-  private var message: String {
-    if let primaryInsight {
-      return primaryInsight.message
-    }
-    return localizedString("complete_a_session_with_sets_and_reps_to_unlock_practical_signals")
-  }
-
-  var body: some View {
-	    PulseCard(contentPadding: 15) {
-	      VStack(alignment: .leading, spacing: 14) {
-        HStack(alignment: .top, spacing: 12) {
-	          Image(systemName: primaryInsight?.systemImage ?? "chart.bar.fill")
-	            .font(.title3.weight(.black))
-	            .foregroundStyle(.white)
-	            .frame(width: 48, height: 48)
-	            .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-	            .overlay(
-	              RoundedRectangle(cornerRadius: 14, style: .continuous)
-	                .stroke(.white.opacity(0.18), lineWidth: 1)
-	            )
-
-          VStack(alignment: .leading, spacing: 5) {
-            Text(localizedKey(rangeTitle))
-              .font(.caption.weight(.black))
-              .textCase(.uppercase)
-              .foregroundStyle(PulseTheme.accent)
-            Text(headline)
-              .font(.title3.weight(.black))
-              .lineLimit(2)
-              .minimumScaleFactor(0.76)
-            Text(message)
-              .font(.subheadline.weight(.semibold))
-              .foregroundStyle(PulseTheme.secondaryText)
-              .fixedSize(horizontal: false, vertical: true)
-          }
-        }
-
-        HStack(spacing: 8) {
-          ProgressExecutiveMetric(value: "\(sessions)", label: "sessions", systemImage: "dumbbell.fill", color: PulseTheme.accent)
-          ProgressExecutiveMetric(value: "\(volumeKg)", label: "kg_total", systemImage: "scalemass.fill", color: PulseTheme.ringStand)
-          ProgressExecutiveMetric(value: "\(bestEstimatedOneRepMaxKg)kg", label: "estimated_maximum", systemImage: "trophy.fill", color: PulseTheme.accent)
-        }
-
-	        HStack(spacing: 8) {
-	          Button(action: onOpenExercises) {
-	            Label("exercises_3", systemImage: "chart.line.uptrend.xyaxis")
-	              .font(.caption.weight(.black))
-	              .frame(maxWidth: .infinity)
-	              .frame(height: 40)
-	              .foregroundStyle(.black)
-	              .background(PulseTheme.ringStand, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-	          }
-          .buttonStyle(.plain)
-
-	          Button(action: onOpenHistory) {
-	            Label("history_label", systemImage: "list.clipboard")
-	              .font(.caption.weight(.black))
-	              .frame(maxWidth: .infinity)
-	              .frame(height: 40)
-	              .foregroundStyle(.white.opacity(0.82))
-	              .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-	              .overlay(
-	                RoundedRectangle(cornerRadius: 12, style: .continuous)
-	                  .stroke(Color.white.opacity(0.07), lineWidth: 1)
-	              )
-	          }
-          .buttonStyle(.plain)
-
-	          Button(action: onOpenPRs) {
-	            Image(systemName: "trophy.fill")
-	              .font(.headline.weight(.black))
-	              .frame(width: 40, height: 40)
-	              .foregroundStyle(.white)
-	              .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-          }
-          .buttonStyle(.plain)
-          .accessibilityLabel(localizedString("personal_records"))
-        }
-      }
-    }
-  }
-}
-
-private struct ProgressExecutiveMetric: View {
-  let value: String
-  let label: LocalizedStringKey
-  let systemImage: String
-  let color: Color
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 5) {
-      Image(systemName: systemImage)
-        .font(.caption.weight(.black))
-        .foregroundStyle(color)
-      Text(value)
-        .font(.headline.weight(.black).monospacedDigit())
-        .lineLimit(1)
-        .minimumScaleFactor(0.72)
-      Text(localizedKey(label))
-        .font(.caption2.weight(.bold))
-        .foregroundStyle(PulseTheme.secondaryText)
-        .lineLimit(1)
-        .minimumScaleFactor(0.68)
-    }
-    .padding(10)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    .accessibilityElement(children: .combine)
-  }
-}
-
-private struct ProgressToolTile: View {
-  let title: LocalizedStringKey
-  let subtitle: LocalizedStringKey
-  let systemImage: String
-  let color: Color
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 9) {
-      Image(systemName: systemImage)
-        .font(.headline.weight(.black))
-        .foregroundStyle(color)
-        .frame(width: 38, height: 38)
-        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-      Text(localizedKey(title))
-        .font(.subheadline.weight(.black))
-        .lineLimit(1)
-        .minimumScaleFactor(0.72)
-      Text(localizedKey(subtitle))
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(PulseTheme.secondaryText)
-        .lineLimit(2)
-        .minimumScaleFactor(0.76)
-    }
-    .padding(14)
-    .frame(maxWidth: .infinity, minHeight: 132, alignment: .leading)
-    .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-    .overlay(
-      RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-        .stroke(PulseTheme.separator, lineWidth: 1)
-    )
-  }
-}
-
-private struct ProgressCoachStrip: View {
-  let step: RetentionEngine.ActivationStep?
-  let weeklyCompletion: Double
-  let battery: FitnessMetrics.TrainingBatteryStatus
-  let onAction: (RetentionEngine.ActivationAction?) -> Void
-
-  private var color: Color {
-    if weeklyCompletion < 0.75 { return PulseTheme.warning }
-    switch battery.state {
-    case .charged, .steady: return PulseTheme.accent
-    case .low: return PulseTheme.warning
-    case .critical: return PulseTheme.destructive
-    }
-  }
-
-  var body: some View {
-    PulseCard(contentPadding: 14) {
-      HStack(spacing: 12) {
-        Image(systemName: step?.systemImage ?? "sparkles")
-          .font(.headline.weight(.black))
-          .foregroundStyle(color)
-          .frame(width: 42, height: 42)
-          .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-        VStack(alignment: .leading, spacing: 3) {
-          Text(step?.title ?? localizedString("progress_direction"))
-            .font(.subheadline.weight(.black))
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
-          Text(step?.message ?? battery.suggestion)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(PulseTheme.secondaryText)
-            .lineLimit(2)
-            .minimumScaleFactor(0.78)
-        }
-
-        Spacer(minLength: 0)
-
-        Button {
-          onAction(step?.action)
-        } label: {
-          Text(step?.actionTitle ?? localizedString("open"))
-            .font(.caption.weight(.black))
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .frame(height: 36)
-            .background(color, in: Capsule())
-        }
-        .buttonStyle(.plain)
-      }
-    }
-  }
-}
-
-private struct ProgressSectionTile: View {
-  let section: ProgressSection
-  let isSelected: Bool
-	  let value: String
-	  let isLocked: Bool
-
-	  private var tileFill: Color {
-	    isSelected ? Color.white.opacity(0.06) : PulseTheme.card
-	  }
-
-	  private var tileStroke: Color {
-	    isSelected ? Color.white.opacity(0.18) : PulseTheme.separator
-	  }
-	
-	  var body: some View {
-	    HStack(spacing: 10) {
-      Image(systemName: isLocked ? "lock.fill" : section.systemImage)
-        .font(.headline.weight(.black))
-        .foregroundStyle(isSelected ? .white : section.tint)
-        .frame(width: 42, height: 42)
-        .background((isSelected ? Color.white.opacity(0.16) : section.tint.opacity(0.12)), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-      VStack(alignment: .leading, spacing: 3) {
-        Text(localizedKey(section.title))
-          .font(.subheadline.weight(.black))
-          .foregroundStyle(isSelected ? .white : .primary)
-          .lineLimit(1)
-          .minimumScaleFactor(0.72)
-        Text(value)
-          .font(.caption.weight(.black).monospacedDigit())
-          .foregroundStyle(isSelected ? .white.opacity(0.82) : PulseTheme.secondaryText)
-          .lineLimit(1)
-      }
-
-      Spacer(minLength: 0)
-	    }
-	    .padding(12)
-	    .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
-	    .background(tileBackground)
-	    .overlay(
-	      RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-	        .stroke(tileStroke, lineWidth: 1)
-	    )
-	    .shadow(color: isSelected ? section.tint.opacity(0.12) : Color.black.opacity(0.10), radius: isSelected ? 10 : 6, x: 0, y: 4)
-	    .accessibilityElement(children: .combine)
-	  }
-
-	  private var tileBackground: some View {
-	    RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-	      .fill(tileFill)
-	      .overlay(
-	        LinearGradient(
-	          colors: [
-	            Color.white.opacity(isSelected ? 0.16 : 0.045),
-	            section.tint.opacity(isSelected ? 0.10 : 0.018),
-	            Color.black.opacity(0.08)
-	          ],
-	          startPoint: .topLeading,
-	          endPoint: .bottomTrailing
-	        )
-	      )
-	  }
-	}
-
-	private struct ProgressActionPlanCard: View {
-  let steps: [RetentionEngine.ActivationStep]
-  let weeklyCompletion: Double
-  let battery: FitnessMetrics.TrainingBatteryStatus
-  let completionRate: Double
-  let onAction: (RetentionEngine.ActivationAction?) -> Void
-
-  private var pendingStep: RetentionEngine.ActivationStep? {
-    steps.first { !$0.isCompleted } ?? steps.first
-  }
-
-  private var completedSteps: Int {
-    steps.filter(\.isCompleted).count
-  }
-
-  private var planProgress: Double {
-    guard !steps.isEmpty else { return 0 }
-    return Double(completedSteps) / Double(steps.count)
-  }
-
-  private var visibleSteps: [RetentionEngine.ActivationStep] {
-    guard let pendingStep else {
-      return Array(steps.prefix(2))
-    }
-
-    var result = [pendingStep]
-    if let supportStep = steps.first(where: { $0.id != pendingStep.id && $0.isCompleted }) {
-      result.append(supportStep)
-    }
-    return result
-  }
-
-  private var batteryColor: Color {
-    switch battery.state {
-    case .charged:
-      return PulseTheme.recovery
-    case .steady:
-      return PulseTheme.accent
-    case .low:
-      return PulseTheme.warning
-    case .critical:
-      return PulseTheme.destructive
-    }
-  }
-
-  var body: some View {
-    PulseCard(contentPadding: 18) {
-      VStack(alignment: .leading, spacing: 16) {
-        HStack(alignment: .center, spacing: 16) {
-          ProgressPlanRing(
-            progress: max(planProgress, min(max(weeklyCompletion, 0), 1) * 0.85),
-            color: batteryColor,
-            centerValue: "\(Int(max(weeklyCompletion, 0) * 100))%"
-          )
-            .frame(width: 82, height: 82)
-
-          VStack(alignment: .leading, spacing: 9) {
-            Label(localizedString("progress_direction"), systemImage: "sparkles")
-              .font(.caption.weight(.black))
-              .textCase(.uppercase)
-              .foregroundStyle(PulseTheme.accent)
-
-            Text(pendingStep?.title ?? (localizedString("keep_the_week_stable")))
-              .font(.title3.weight(.bold))
-              .lineLimit(2)
-              .minimumScaleFactor(0.82)
-
-            Text(pendingStep?.message ?? battery.suggestion)
-              .font(.subheadline)
-              .foregroundStyle(PulseTheme.secondaryText)
-              .lineLimit(3)
-              .minimumScaleFactor(0.82)
-          }
-
-          Spacer(minLength: 0)
-        }
-
-        HStack(spacing: 8) {
-          ProgressSignalPill(
-            title: "adherence",
-            value: "\(Int(completionRate * 100))%",
-            color: completionRate >= 0.75 ? PulseTheme.recovery : PulseTheme.warning
-          )
-          ProgressSignalPill(
-            title: "battery",
-            value: "\(battery.level)%",
-            color: batteryColor
-          )
-          ProgressSignalPill(
-            title: "steps_3",
-            value: "\(completedSteps)/\(max(steps.count, 1))",
-            color: PulseTheme.accent
-          )
-        }
-
-        VStack(spacing: 0) {
-          ForEach(Array(visibleSteps.enumerated()), id: \.element.id) { index, step in
-            ProgressActionStepRow(step: step) {
-              onAction(step.action)
-            }
-
-            if index < visibleSteps.count - 1 {
-              Divider()
-                .padding(.leading, 52)
-            }
-          }
-        }
-
-        if let pendingStep, !pendingStep.isCompleted, pendingStep.action != nil {
-          Button {
-            onAction(pendingStep.action)
-          } label: {
-            Label(pendingStep.actionTitle, systemImage: "arrow.forward.circle.fill")
-              .font(.subheadline.weight(.bold))
-              .foregroundStyle(.white)
-              .frame(maxWidth: .infinity)
-              .frame(height: 46)
-              .background(PulseTheme.accent)
-              .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-          }
-          .buttonStyle(.plain)
-        }
-      }
-    }
-  }
-}
-
-private struct ProgressPlanRing: View {
-  let progress: Double
-  let color: Color
-  let centerValue: String
-
-  var body: some View {
-    ZStack {
-      Circle()
-        .stroke(PulseTheme.grouped, lineWidth: 12)
-      Circle()
-        .trim(from: 0, to: min(max(progress, 0), 1))
-        .stroke(
-          AngularGradient(colors: [color, PulseTheme.accent, color], center: .center),
-          style: StrokeStyle(lineWidth: 12, lineCap: .round)
-        )
-        .rotationEffect(.degrees(-90))
-      VStack(spacing: 0) {
-        Text(centerValue)
-          .font(.system(size: 20, weight: .black, design: .rounded))
-        Text("plan_2")
-          .font(.system(size: 9, weight: .black, design: .rounded))
-          .foregroundStyle(PulseTheme.secondaryText)
-      }
-    }
-    .accessibilityLabel(localizedFormat("weekly_progress_format", centerValue))
-  }
-}
-
-private struct ProgressSignalPill: View {
-  let title: String
-  let value: String
-  let color: Color
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(localizedKey(title))
-        .font(.caption2.weight(.bold))
-        .foregroundStyle(PulseTheme.secondaryText)
-      Text(value)
-        .font(.caption.weight(.black).monospacedDigit())
-        .foregroundStyle(color)
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(.horizontal, 10)
-    .padding(.vertical, 8)
-    .background(color.opacity(0.10))
-    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-  }
-}
-
-private struct ProgressActionStepRow: View {
-  let step: RetentionEngine.ActivationStep
-  let onAction: () -> Void
-
-  private var iconColor: Color {
-    step.isCompleted ? PulseTheme.recovery : PulseTheme.accent
-  }
-
-  var body: some View {
-    HStack(alignment: .top, spacing: 12) {
-      ZStack {
-        RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-          .fill(iconColor.opacity(step.isCompleted ? 0.18 : 0.12))
-        Image(systemName: step.isCompleted ? "checkmark.seal.fill" : step.systemImage)
-          .font(.subheadline.weight(.bold))
-          .foregroundStyle(iconColor)
-      }
-      .frame(width: 40, height: 40)
-
-      VStack(alignment: .leading, spacing: 5) {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-          Text(step.title)
-            .font(.subheadline.weight(.bold))
-            .lineLimit(2)
-            .minimumScaleFactor(0.86)
-
-          if step.isCompleted {
-            Text(localizedString("done"))
-              .font(.caption2.weight(.bold))
-              .foregroundStyle(PulseTheme.recovery)
-              .padding(.horizontal, 7)
-              .padding(.vertical, 3)
-              .background(PulseTheme.recovery.opacity(0.12))
-              .clipShape(Capsule())
-          }
-        }
-
-        Text(step.message)
-          .font(.caption)
-          .foregroundStyle(PulseTheme.secondaryText)
-          .fixedSize(horizontal: false, vertical: true)
-
-        if !step.isCompleted, step.action != nil {
-          Button(action: onAction) {
-            Text(step.actionTitle)
-              .font(.caption.weight(.bold))
-              .foregroundStyle(PulseTheme.accent)
-          }
-          .buttonStyle(.plain)
-          .padding(.top, 2)
-        }
-      }
-
-      Spacer(minLength: 0)
-    }
-    .padding(.vertical, 9)
-  }
-}
-
-private struct CompetitiveSummaryCard: View {
-  let summary: AnalyticsEngine.CompetitiveSummary
-
-  var body: some View {
-    PulseCard {
-      VStack(alignment: .leading, spacing: 14) {
-        HStack(alignment: .top) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("competitive_diagnostics")
-              .font(.headline)
-            Text("adherence_volume_and_stall_signals_against_the_active_plan")
-              .font(.subheadline)
-              .foregroundStyle(PulseTheme.secondaryText)
-              .fixedSize(horizontal: false, vertical: true)
-          }
-          Spacer()
-          Text("\(Int(summary.completionRate * 100))%")
-            .font(.title2.monospacedDigit().weight(.bold))
-            .foregroundStyle(summary.completionRate >= 0.75 ? PulseTheme.recovery : PulseTheme.warning)
-        }
-
-        ProgressView(value: summary.completionRate)
-          .tint(summary.completionRate >= 0.75 ? PulseTheme.recovery : PulseTheme.warning)
-
-        HStack(spacing: 10) {
-          MetricInline(
-            title: "plan",
-            value: "\(summary.completedWorkouts)/\(max(summary.plannedWorkouts, 1))")
-          MetricInline(
-            title: "volume_label",
-            value: "\(summary.actualWeeklySets)/\(summary.targetWeeklySets)")
-          MetricInline(
-            title: "alerts_label",
-            value: "\(summary.undertrainedMuscles.count + summary.overtrainedMuscles.count + summary.stalledExercises.count)")
-        }
-
-        if !summary.undertrainedMuscles.isEmpty || !summary.overtrainedMuscles.isEmpty {
-          VStack(alignment: .leading, spacing: 8) {
-            ForEach(summary.undertrainedMuscles.prefix(2)) { point in
-              CompetitiveMuscleGapRow(
-                point: point,
-                title: localizedFormat("muscle_gap_under_format", point.muscleGroup, point.sets),
-                color: PulseTheme.warning
-              )
-            }
-            ForEach(summary.overtrainedMuscles.prefix(2)) { point in
-              CompetitiveMuscleGapRow(
-                point: point,
-                title: localizedFormat("muscle_gap_over_format", point.muscleGroup, point.sets),
-                color: PulseTheme.destructive
-              )
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-private struct CompetitiveMuscleGapRow: View {
-  let point: AnalyticsEngine.MuscleTargetPoint
-  let title: String
-  let color: Color
-
-  var body: some View {
-    HStack(spacing: 10) {
-      Image(systemName: point.kind == localizedString("muscle_target_kind_missing") ? "arrow.down.circle.fill" : "exclamationmark.triangle.fill")
-        .font(.subheadline)
-        .foregroundStyle(color)
-        .frame(width: 28, height: 28)
-        .background(color.opacity(0.12))
-        .clipShape(Circle())
-      Text(title)
-        .font(.subheadline.weight(.semibold))
-      Spacer()
-    }
-  }
-}
-
-private struct StalledExerciseRow: View {
-  let stall: AnalyticsEngine.ExerciseStall
-
-  var body: some View {
-    HStack(alignment: .top, spacing: 12) {
-      Image(systemName: "pause.circle.fill")
-        .font(.headline)
-        .foregroundStyle(PulseTheme.warning)
-        .frame(width: 38, height: 38)
-        .background(PulseTheme.warning.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-      VStack(alignment: .leading, spacing: 4) {
-        Text(stall.exercise.name)
-          .font(.headline)
-        Text(localizedFormat("stall_summary_format", stall.loggedSessions, Int(stall.previousBestEstimatedOneRepMaxKg), Int(stall.latestEstimatedOneRepMaxKg)))
-          .font(.subheadline)
-          .foregroundStyle(PulseTheme.secondaryText)
-          .fixedSize(horizontal: false, vertical: true)
-      }
-
-      Spacer()
-    }
-    .padding(.vertical, 4)
-  }
-}
-
-private struct CompetitiveRecommendationRow: View {
-  let recommendation: AnalyticsEngine.CompetitiveRecommendation
-  let onExecute: () -> Void
-
-  var body: some View {
-    HStack(alignment: .top, spacing: 12) {
-      Image(systemName: recommendation.systemImage)
-        .font(.headline)
-        .foregroundStyle(PulseTheme.accent)
-        .frame(width: 38, height: 38)
-        .background(PulseTheme.accent.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-      VStack(alignment: .leading, spacing: 4) {
-        Text(recommendation.title)
-          .font(.headline)
-        Text(recommendation.message)
-          .font(.subheadline)
-          .foregroundStyle(PulseTheme.secondaryText)
-          .fixedSize(horizontal: false, vertical: true)
-        if recommendation.action != .none {
-          Button(action: onExecute) {
-            Label(actionTitle, systemImage: "arrow.forward.circle.fill")
-              .font(.caption.weight(.bold))
-              .foregroundStyle(.white)
-              .padding(.horizontal, 12)
-              .frame(height: 32)
-              .background(PulseTheme.accent)
-              .clipShape(Capsule())
-          }
-          .buttonStyle(.plain)
-          .padding(.top, 4)
-        }
-      }
-    }
-  }
-
-  private var actionTitle: String {
-    switch recommendation.action {
-    case .scheduleUndertrainedMuscle:
-      return localizedString("schedule_focus")
-    case .scheduleDeloadExercise:
-      return localizedString("schedule_deload")
-    case .reviewPlan:
-      return localizedString("review_plan")
-    case .scheduleRecovery:
-      return localizedString("schedule_recovery")
-    case .none:
-      return ""
-    }
-  }
-}
-
-struct ExerciseAnalyticsListView: View {
-  let exercises: [Exercise]
-
-  var body: some View {
-    ScrollView(.vertical, showsIndicators: false) {
-      VStack(spacing: 14) {
-        if exercises.isEmpty {
-          PulseCard {
-            PulseEmptyState(
-              title: "no_exercise_history",
-              message: "finish_workout_to_see_progress_message",
-              systemImage: "chart.line.uptrend.xyaxis"
-            )
-          }
-        } else {
-          ForEach(exercises) { exercise in
-            NavigationLink {
-              ExerciseProgressView(exercise: exercise)
-            } label: {
-              PulseCard {
-                ExerciseProgressRow(exercise: exercise)
-              }
-            }
-            .buttonStyle(.plain)
-          }
-        }
-      }
-      .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-      .padding(.vertical, 20)
-      .padding(.bottom, 112)
-    }
-    .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-    .screenBackground()
-    .navigationTitle("exercises_3")
-    .navigationBarTitleDisplayMode(.inline)
-    .mainTabBarHidden()
-  }
-}
-
-struct ProgressHeroMetrics {
-  let streak: Int
-  let adherence: Double
-  let sessionsThisWeek: Int
-  let sessionsLastWeek: Int
-  let volumeThisWeek: Double
-  let volumeLastWeek: Double
-  var totalSessions: Int = 0
-  var totalVolumeKg: Double = 0
-  var weekStart: Date = .now
-  var weekActivityDays: [Bool] = Array(repeating: false, count: 7)
-
-  var volumeDelta: Double? {
-    guard volumeLastWeek > 0 else { return nil }
-    return (volumeThisWeek - volumeLastWeek) / volumeLastWeek * 100
-  }
-
-  var sessionsDelta: Int { sessionsThisWeek - sessionsLastWeek }
-}
-
-/// Graphical, at-a-glance summary of the current week: an adherence ring plus
-/// streak, volume and session tiles with week-over-week trend, plus all-time totals row.
-struct ProgressHeroCard: View {
-  let metrics: ProgressHeroMetrics
-  var onTapStreak: (() -> Void)? = nil
-  var onTapVolume: (() -> Void)? = nil
-  var onTapSessions: (() -> Void)? = nil
-
-  var body: some View {
-    PulseCard(contentPadding: 0) {
-      VStack(spacing: 0) {
-        // ── Header ──────────────────────────────────────
-        HStack(alignment: .center, spacing: 8) {
-          Label(localizedString("this_week"), systemImage: "calendar")
-            .font(.caption.weight(.black))
-            .textCase(.uppercase)
-            .foregroundStyle(PulseTheme.accent)
-          Spacer()
-          if let dir = weekDirection {
-            HStack(spacing: 3) {
-              Image(systemName: dir.icon)
-                .font(.system(size: 9, weight: .black))
-              Text(dir.label)
-                .font(.caption2.weight(.black))
-            }
-            .foregroundStyle(dir.color)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 4)
-            .background(dir.color.opacity(0.14), in: Capsule())
-          }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
-        .padding(.bottom, 12)
-
-        // ── Three metric mini-cards ──────────────────────
-        HStack(spacing: 10) {
-          HeroTile(
-            systemImage: "flame.fill",
-            tint: PulseTheme.accent,
-            value: "\(metrics.streak)",
-            title: localizedString("streak"),
-            subtitle: localizedString("days"),
-            trend: nil,
-            onTap: onTapStreak
-          )
-          HeroTile(
-            systemImage: "scalemass.fill",
-            tint: PulseTheme.ringStand,
-            value: volumeText,
-            title: localizedString("volume_label"),
-            subtitle: nil,
-            trend: metrics.volumeDelta.map { HeroTrend(percent: $0) },
-            onTap: onTapVolume
-          )
-          HeroTile(
-            systemImage: "dumbbell.fill",
-            tint: PulseTheme.accent,
-            value: "\(metrics.sessionsThisWeek)",
-            title: localizedString("sessions"),
-            subtitle: nil,
-            trend: metrics.sessionsLastWeek > 0 ? HeroTrend(countDelta: metrics.sessionsDelta) : nil,
-            onTap: onTapSessions
-          )
-        }
-        .padding(.horizontal, 14)
-        .padding(.bottom, 4)
-
-        // ── 7-day activity strip ─────────────────────────
-        WeekActivityStrip(weekStart: metrics.weekStart, activeDays: metrics.weekActivityDays)
-
-        // ── Divider ─────────────────────────────────────
-        Divider().padding(.horizontal, 16)
-
-        // ── All-time totals ──────────────────────────────
-        HStack(spacing: 0) {
-          TotalStatPill(
-            label: localizedString("total_sessions"),
-            value: "\(metrics.totalSessions)"
-          )
-          Rectangle()
-            .fill(PulseTheme.separator)
-            .frame(width: 1, height: 24)
-          TotalStatPill(
-            label: localizedString("volume_label"),
-            value: totalVolumeAllTimeText
-          )
-          Rectangle()
-            .fill(PulseTheme.separator)
-            .frame(width: 1, height: 24)
-          TotalStatPill(
-            label: localizedString("adherence"),
-            value: "\(Int(metrics.adherence * 100))%"
-          )
-        }
-        .padding(.vertical, 12)
-      }
-    }
-  }
-
-  private var weekDirection: (icon: String, label: String, color: Color)? {
-    let sessionDelta = metrics.sessionsDelta
-    let volDelta = metrics.volumeDelta ?? 0
-    if sessionDelta > 0 || volDelta > 5 {
-      return ("arrow.up.right", "+\(sessionDelta) sessions", PulseTheme.ringStand)
-    } else if sessionDelta < 0 || volDelta < -5 {
-      return ("arrow.down.right", "\(sessionDelta) sessions", PulseTheme.destructive)
-    }
-    return nil
-  }
-
-  private var volumeText: String {
-    let v = metrics.volumeThisWeek
-    if v >= 1000 { return String(format: "%.1ft", v / 1000) }
-    return "\(Int(v.rounded())) kg"
-  }
-
-  private var totalVolumeAllTimeText: String {
-    let v = metrics.totalVolumeKg
-    if v >= 1000 { return String(format: "%.1ft", v / 1000) }
-    return "\(Int(v.rounded())) kg"
-  }
-}
-
-private struct TotalStatPill: View {
-  let label: String
-  let value: String
-
-  var body: some View {
-    VStack(spacing: 3) {
-      Text(value)
-        .font(.system(size: 17, weight: .black, design: .rounded).monospacedDigit())
-        .foregroundStyle(.primary)
-      Text(label)
-        .font(.system(size: 10, weight: .semibold))
-        .foregroundStyle(PulseTheme.secondaryText)
-        .lineLimit(1)
-        .minimumScaleFactor(0.78)
-    }
-    .frame(maxWidth: .infinity)
-  }
-}
-private struct WeekActivityStrip: View {
-  let weekStart: Date
-  let activeDays: [Bool]
-
-  private struct DayInfo: Identifiable {
-    let id: Int
-    let label: String
-    let active: Bool
-    let isToday: Bool
-  }
-
-  private var dayInfos: [DayInfo] {
-    let cal = Calendar.current
-    let todayStart = cal.startOfDay(for: .now)
-    return (0..<7).compactMap { offset -> DayInfo? in
-      guard let date = cal.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
-      let weekday = cal.component(.weekday, from: date)
-      return DayInfo(
-        id: offset,
-        label: cal.veryShortWeekdaySymbols[weekday - 1].uppercased(),
-        active: offset < activeDays.count && activeDays[offset],
-        isToday: cal.startOfDay(for: date) == todayStart
-      )
-    }
-  }
-
-  var body: some View {
-    HStack(spacing: 0) {
-      ForEach(dayInfos) { day in
-        VStack(spacing: 5) {
-          ZStack {
-            Circle()
-              .fill(day.active ? Color.white : Color.clear)
-              .frame(width: 24, height: 24)
-            Circle()
-              .strokeBorder(
-                day.active
-                  ? Color.clear
-                  : (day.isToday ? Color.white.opacity(0.85) : Color.white.opacity(0.12)),
-                lineWidth: 1.5
-              )
-              .frame(width: 24, height: 24)
-            if day.active {
-              Image(systemName: "checkmark")
-                .font(.system(size: 9, weight: .black))
-                .foregroundStyle(.black)
-            }
-          }
-          Text(day.label)
-            .font(.system(size: 9, weight: .bold, design: .rounded))
-            .foregroundStyle(
-              day.active
-                ? .white
-                : (day.isToday ? .white : PulseTheme.secondaryText)
-            )
-        }
-        .frame(maxWidth: .infinity)
-      }
-    }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 12)
-  }
-}
-
-
-private struct ProgressWeekContextCard: View {
-  let sessionsThisWeek: Int
-  let volumeThisWeek: Double
-  let sessionsLastWeek: Int
-  let volumeLastWeek: Double
-  let streak: Int
-
-  private var volumeDelta: Double {
-    guard volumeLastWeek > 0 else { return 0 }
-    return ((volumeThisWeek - volumeLastWeek) / volumeLastWeek) * 100
-  }
-
-  private var sessionsDelta: Int { sessionsThisWeek - sessionsLastWeek }
-
-  var body: some View {
-    PulseCard {
-      VStack(alignment: .leading, spacing: 12) {
-        Label(localizedString("progress_direction"), systemImage: "chart.line.uptrend.xyaxis")
-          .font(.caption.weight(.black))
-          .foregroundStyle(PulseTheme.accent)
-          .textCase(.uppercase)
-
-        HStack(spacing: 16) {
-          contextStat(
-            icon: "dumbbell.fill",
-            value: sessionsDelta >= 0 ? "+\(sessionsDelta)" : "\(sessionsDelta)",
-            label: localizedString("vs_last_week"),
-            isPositive: sessionsDelta >= 0
-          )
-          contextStat(
-            icon: "scalemass.fill",
-            value: String(format: "%+.0f%%", volumeDelta),
-            label: localizedString("volume_label"),
-            isPositive: volumeDelta >= 0
-          )
-          contextStat(
-            icon: "flame.fill",
-            value: "\(streak)d",
-            label: localizedString("streak"),
-            isPositive: streak > 0
-          )
-        }
-      }
-    }
-  }
-
-  private func contextStat(icon: String, value: String, label: String, isPositive: Bool) -> some View {
-    HStack(spacing: 8) {
-      Image(systemName: icon)
-        .font(.subheadline.weight(.bold))
-        .foregroundStyle(isPositive ? PulseTheme.ringStand : PulseTheme.destructive)
-        .frame(width: 32, height: 32)
-        .background((isPositive ? PulseTheme.ringStand : PulseTheme.destructive).opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-      VStack(alignment: .leading, spacing: 2) {
-        Text(value)
-          .font(.system(size: 14, weight: .black, design: .rounded).monospacedDigit())
-          .foregroundStyle(isPositive ? PulseTheme.ringStand : PulseTheme.destructive)
-        Text(label)
-          .font(.caption2.weight(.semibold))
-          .foregroundStyle(PulseTheme.secondaryText)
-      }
-      Spacer()
-    }
-    .frame(maxWidth: .infinity)
-  }
-}
-
-private struct HeroTileDivider: View {
-  var body: some View {
-    Rectangle()
-      .fill(PulseTheme.separator)
-      .frame(width: 1, height: 44)
-  }
-}
-
-struct HeroTrend {
-  let isUp: Bool
-  let label: String
-
-  init(percent: Double) {
-    isUp = percent >= 0
-    label = String(format: "%@%.0f%%", percent >= 0 ? "+" : "", percent)
-  }
-
-  init(countDelta: Int) {
-    isUp = countDelta >= 0
-    label = "\(countDelta >= 0 ? "+" : "")\(countDelta)"
-  }
-}
-
-private struct HeroTile: View {
-  let systemImage: String
-  let tint: Color
-  let value: String
-  let title: String
-  var subtitle: String? = nil
-  let trend: HeroTrend?
-  var onTap: (() -> Void)? = nil
-
-  var body: some View {
-    if let onTap {
-      Button {
-        HapticService.selection()
-        onTap()
-      } label: { content }
-      .buttonStyle(.plain)
-    } else {
-      content
-    }
-  }
-
-  private var content: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Image(systemName: systemImage)
-        .font(.system(size: 14, weight: .black))
-        .foregroundStyle(tint)
-        .frame(width: 36, height: 36)
-        .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-      Text(value)
-        .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
-        .foregroundStyle(.white)
-        .lineLimit(1)
-        .minimumScaleFactor(0.55)
-
-      if let subtitle {
-        Text("\(title) \(subtitle)")
-          .font(.system(size: 11, weight: .semibold))
-          .foregroundStyle(PulseTheme.secondaryText)
-          .lineLimit(1)
-      } else {
-        Text(title)
-          .font(.system(size: 11, weight: .semibold))
-          .foregroundStyle(PulseTheme.secondaryText)
-          .lineLimit(1)
-      }
-
-      if let trend {
-        HStack(spacing: 3) {
-          Image(systemName: trend.isUp ? "arrow.up.right" : "arrow.down.right")
-            .font(.system(size: 8, weight: .black))
-          Text(trend.label)
-            .font(.system(size: 10, weight: .black, design: .rounded).monospacedDigit())
-        }
-        .foregroundStyle(trend.isUp ? PulseTheme.ringStand : PulseTheme.destructive)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(
-          (trend.isUp ? PulseTheme.ringStand : PulseTheme.destructive).opacity(0.15),
-          in: Capsule()
-        )
-      }
-    }
-    .padding(12)
-    .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
-    .background(
-      RoundedRectangle(cornerRadius: 14, style: .continuous)
-        .fill(Color.white.opacity(0.045))
-        .overlay(
-          LinearGradient(
-            colors: [tint.opacity(0.10), Color.clear],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-          )
-        )
-    )
-    .overlay(
-      RoundedRectangle(cornerRadius: 14, style: .continuous)
-        .stroke(tint.opacity(0.20), lineWidth: 1)
-    )
-    .shadow(color: tint.opacity(0.10), radius: 8, x: 0, y: 4)
-  }
-}
-
-private enum ProgressSection: String, CaseIterable, Identifiable {
-  case general
-  case exercises
-  case muscles
-  case cardio
-  case body
-  case load
-
-  var id: String { rawValue }
-
-  var title: LocalizedStringKey {
-    switch self {
-    case .general: "general_label"
-    case .exercises: "exercises_3"
-    case .muscles: "muscles_label"
-    case .cardio: "cardio"
-    case .body: "body_2"
-    case .load: "load"
-    }
-  }
-
-  var systemImage: String {
-    switch self {
-    case .general: "chart.bar.fill"
-    case .exercises: "chart.line.uptrend.xyaxis"
-    case .muscles: "figure.strengthtraining.traditional"
-    case .cardio: "figure.run"
-    case .body: "scalemass"
-    case .load: "waveform.path.ecg"
-    }
-  }
-
-  var tint: Color {
-    switch self {
-    case .general: PulseTheme.accent
-    case .exercises: PulseTheme.ringStand
-    case .muscles: PulseTheme.accent
-    case .cardio: PulseTheme.recovery
-    case .body: PulseTheme.warning
-    case .load: PulseTheme.destructive
-    }
-  }
-}
-
-private enum ProgressRange: String, CaseIterable, Identifiable {
-  case week
-  case month
-  case year
-
-  var id: String { rawValue }
-
-  var title: LocalizedStringKey {
-    switch self {
-    case .week: "week_label"
-    case .month: "month_label"
-    case .year: "year_label"
-    }
-  }
-
-  var subtitle: LocalizedStringKey {
-    switch self {
-    case .week: "this_week"
-    case .month: "this_month"
-    case .year: "this_year"
-    }
-  }
-
-  var days: Int {
-    switch self {
-    case .week: 7
-    case .month: 30
-    case .year: 365
-    }
-  }
-
-  var chartUnit: Calendar.Component {
-    switch self {
-    case .week, .month: .day
-    case .year: .month
-    }
-  }
-
-  var startDate: Date {
-    let calendar = Calendar.current
-    let today = calendar.startOfDay(for: .now)
-    return calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
-  }
-}
-
-private enum ProgressDestination: String, Identifiable {
-  case exerciseAnalytics
-  case workoutHistory
-  case personalRecords
-
-  var id: String { rawValue }
-}
-
-private struct ConsistencyPoint: Identifiable {
-  let id = UUID()
-  let date: Date
-  let count: Int
-}
-
-private struct MuscleRow: View {
-  let point: FitnessMetrics.MuscleVolumePoint
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      HStack(alignment: .top) {
-        VStack(alignment: .leading, spacing: 6) {
-          Text(point.muscleGroup)
-            .font(.title3.weight(.bold))
-          Text(localizedFormat("weekly_sets_of_12_format", point.completedSets))
-            .font(.headline.monospacedDigit())
-            .foregroundStyle(PulseTheme.secondaryText)
-        }
-        Spacer()
-        Text(growthText)
-          .font(.headline)
-          .foregroundStyle(
-            point.completedSets >= 4 ? PulseTheme.ringStand : PulseTheme.secondaryText)
-      }
-
-      HStack(spacing: 14) {
-        MuscleGlyph(muscleGroup: point.muscleGroup, intensity: point.targetProgress)
-        VolumeSegmentBar(completed: min(point.completedSets, 12))
-      }
-
-      HStack {
-        Text(point.recommendedRangeText)
-        Spacer()
-        Text("\(Int(point.totalVolumeKg)) kg")
-      }
-      .font(.caption.weight(.semibold))
-      .foregroundStyle(PulseTheme.tertiaryText)
-    }
-    .padding(18)
-    .background(PulseTheme.card)
-    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-    .overlay(
-      RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-        .stroke(PulseTheme.separator, lineWidth: 1)
-    )
-  }
-
-  private var growthText: String {
-    point.completedSets >= 4 ? localizedString("growth_zone") : localizedFormat("sets_remaining_format", max(4 - point.completedSets, 0))
-  }
-}
-
-private struct InsightRow: View {
-  let insight: FitnessMetrics.TrainingInsight
-
-  var body: some View {
-    HStack(alignment: .top, spacing: 12) {
-      Image(systemName: insight.systemImage)
-        .font(.headline)
-        .foregroundStyle(PulseTheme.accent)
-        .frame(width: 38, height: 38)
-        .background(PulseTheme.accent.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-      VStack(alignment: .leading, spacing: 4) {
-        Text(insight.title)
-          .font(.headline)
-        Text(insight.message)
-          .font(.subheadline)
-          .foregroundStyle(PulseTheme.secondaryText)
-          .fixedSize(horizontal: false, vertical: true)
-      }
-    }
-  }
-}
-
-private struct StreakBadge: View {
-  let days: Int
-
-  var body: some View {
-    HStack(spacing: 8) {
-      ZStack {
-        Circle()
-          .fill(
-            days > 0
-              ? RadialGradient(
-                colors: [Color.orange.opacity(0.35), .clear], center: .center, startRadius: 0,
-                endRadius: 30)
-              : RadialGradient(
-                colors: [.clear, .clear], center: .center, startRadius: 0, endRadius: 30)
-          )
-          .frame(width: 56, height: 56)
-
-        Circle()
-          .strokeBorder(days > 0 ? Color.orange.opacity(0.4) : PulseTheme.separator, lineWidth: 2)
-          .frame(width: 44, height: 44)
-
-        if days > 0 {
-          Image(systemName: "flame.fill")
-            .font(.system(size: 29, weight: .bold))
-            .foregroundStyle(
-              LinearGradient(
-                colors: [.yellow, .orange, .red],
-                startPoint: .top,
-                endPoint: .bottom
-              )
-            )
-            .shadow(color: .orange.opacity(0.3), radius: 3, x: 0, y: 1)
-        } else {
-          Image(systemName: "flame.fill")
-            .font(.system(size: 29, weight: .bold))
-            .foregroundStyle(PulseTheme.secondaryText)
-        }
-      }
-
-      VStack(alignment: .leading, spacing: 2) {
-        Text(localizedString("streak"))
-          .font(.system(size: 10, weight: .black, design: .rounded))
-          .foregroundStyle(PulseTheme.secondaryText)
-          .tracking(1.4)
-
-        Text(
-          "\(formattedDays) \(days == 1 ? (localizedString("day")) : (localizedString("days")))"
-        )
-        .font(.system(size: 18, weight: .bold, design: .rounded))
-        .foregroundStyle(days > 0 ? .white : PulseTheme.secondaryText)
-      }
-    }
-    .padding(.horizontal, 6)
-    .padding(.vertical, 8)
-    .background(
-      days > 0
-        ? LinearGradient(
-          colors: [PulseTheme.warning.opacity(0.12), PulseTheme.warning.opacity(0.04)],
-          startPoint: .topLeading, endPoint: .bottomTrailing)
-        : LinearGradient(
-          colors: [PulseTheme.grouped.opacity(0.4), PulseTheme.grouped.opacity(0.2)],
-          startPoint: .top, endPoint: .bottom)
-    )
-    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    .overlay(
-      RoundedRectangle(cornerRadius: 16, style: .continuous)
-        .stroke(
-          days > 0
-            ? LinearGradient(
-              colors: [.yellow.opacity(0.3), .orange.opacity(0.4), .red.opacity(0.3)],
-              startPoint: .topLeading, endPoint: .bottomTrailing)
-            : LinearGradient(colors: [PulseTheme.separator], startPoint: .top, endPoint: .bottom),
-          lineWidth: 1.2
-        )
-    )
-    .shadow(color: days > 0 ? Color.orange.opacity(0.12) : Color.clear, radius: 8, x: 0, y: 3)
-  }
-
-  private var formattedDays: String {
-    if days >= 1000 {
-      let kValue = Double(days) / 1000.0
-      if kValue.truncatingRemainder(dividingBy: 1.0) == 0 {
-        return String(format: "%.0fK", kValue)
-      } else {
-        return String(format: "%.1fK", kValue)
-      }
-    }
-    return "\(days)"
-  }
-}
-
-// MARK: - Cardio analytics (pace/distance, pace·HR, efficiency factor)
-
-private struct CardioAnalyticsPoint: Identifiable {
-  let id: UUID
-  let date: Date
-  let distanceKm: Double
-  let paceSecPerKm: Double
-  let avgHR: Double?
-  let ef: Double?
-}
-
-private struct CardioAnalyticsCard: View {
-  let logs: [CardioLog]
-  let dateOfBirth: Date?
-
-  enum Metric: String, CaseIterable, Identifiable {
-    case paceDistance
-    case paceHR
-    case ef
-    var id: String { rawValue }
-    var title: String {
-      switch self {
-      case .paceDistance: return localizedString("pace_dist_label")
-      case .paceHR: return localizedString("pace_hr_label")
-      case .ef: return "EF"
-      }
-    }
-  }
-
-  enum DistanceBucket: String, CaseIterable, Identifiable {
-    case all, sub1, r1to5, r5to10, r10to20, r20to40, r40plus
-    var id: String { rawValue }
-    var title: String {
-      switch self {
-      case .all: return localizedString("all_label")
-      case .sub1: return "<1km"
-      case .r1to5: return "1-5km"
-      case .r5to10: return "5-10km"
-      case .r10to20: return "10-20km"
-      case .r20to40: return "20-40km"
-      case .r40plus: return "40+km"
-      }
-    }
-    func contains(_ km: Double) -> Bool {
-      switch self {
-      case .all: return true
-      case .sub1: return km < 1
-      case .r1to5: return km >= 1 && km < 5
-      case .r5to10: return km >= 5 && km < 10
-      case .r10to20: return km >= 10 && km < 20
-      case .r20to40: return km >= 20 && km < 40
-      case .r40plus: return km >= 40
-      }
-    }
-  }
-
-  @State private var metric: Metric = .paceDistance
-  @State private var bucket: DistanceBucket = .all
-
-  private var estimatedMaxHR: Double {
-    guard let dob = dateOfBirth,
-          let years = Calendar.current.dateComponents([.year], from: dob, to: .now).year,
-          years > 0 else { return 190 }
-    return Double(max(120, 220 - years))
-  }
-
-  private var points: [CardioAnalyticsPoint] {
-    logs.compactMap { log -> CardioAnalyticsPoint? in
-      guard let km = log.distanceKm, km > 0, log.durationMinutes > 0 else { return nil }
-      guard bucket.contains(km) else { return nil }
-      let minutes = Double(log.durationMinutes)
-      let pace = minutes * 60.0 / km
-      let ef = log.averageHeartRate.flatMap { hr -> Double? in
-        hr > 0 ? (km * 1000.0 / minutes) / hr : nil
-      }
-      return CardioAnalyticsPoint(
-        id: log.id, date: log.date, distanceKm: km,
-        paceSecPerKm: pace, avgHR: log.averageHeartRate, ef: ef)
-    }
-  }
-
-  private func zoneColor(_ hr: Double?) -> Color {
-    guard let hr else { return PulseTheme.secondaryText }
-    switch hr / estimatedMaxHR {
-    case ..<0.6: return PulseTheme.hrZones[0]
-    case ..<0.7: return PulseTheme.hrZones[1]
-    case ..<0.8: return PulseTheme.hrZones[2]
-    case ..<0.9: return PulseTheme.hrZones[3]
-    default: return PulseTheme.hrZones[4]
-    }
-  }
-
-  private static func paceLabel(_ seconds: Double) -> String {
-    guard seconds.isFinite, seconds > 0 else { return "--" }
-    let total = Int(seconds.rounded())
-    return String(format: "%d:%02d", total / 60, total % 60)
-  }
-
-  var body: some View {
-    PulseCard {
-      VStack(alignment: .leading, spacing: 14) {
-        Text("run_analysis")
-          .font(.headline)
-
-        Picker("metrics", selection: $metric) {
-          ForEach(Metric.allCases) { Text($0.title).tag($0) }
-        }
-        .pickerStyle(.segmented)
-
-        ScrollView(.horizontal, showsIndicators: false) {
-          HStack(spacing: 8) {
-            ForEach(DistanceBucket.allCases) { option in
-              let selected = bucket == option
-              Button {
-                bucket = option
-              } label: {
-                Text(option.title)
-                  .font(.caption.weight(.semibold))
-                  .foregroundStyle(selected ? .white : PulseTheme.secondaryText)
-                  .padding(.horizontal, 12)
-                  .padding(.vertical, 6)
-                  .background(selected ? PulseTheme.accent : PulseTheme.grouped)
-                  .clipShape(Capsule())
-              }
-              .buttonStyle(.plain)
-            }
-          }
-        }
-
-        if points.isEmpty {
-          PulseEmptyState(
-            title: "no_enough_data",
-            message: "record_runs_with_distance_message",
-            systemImage: "chart.dots.scatter"
-          )
-        } else {
-          chart
-            .frame(height: 200)
-            .allowsHitTesting(false)
-
-          if metric != .ef {
-            HStack(spacing: 12) {
-              ForEach(Array(zip(["Z1", "Z2", "Z3", "Z4", "Z5"],
-                                [0.55, 0.65, 0.75, 0.85, 0.95])), id: \.0) { name, frac in
-                HStack(spacing: 4) {
-                  Circle().fill(zoneColor(frac * estimatedMaxHR)).frame(width: 8, height: 8)
-                  Text(name).font(.caption2).foregroundStyle(PulseTheme.secondaryText)
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  @ViewBuilder
-  private var chart: some View {
-    switch metric {
-    case .paceDistance:
-      Chart(points) { point in
-        PointMark(
-          x: .value(localizedString("distance_label"), point.distanceKm),
-          y: .value(localizedString("pace_label"), point.paceSecPerKm)
-        )
-        .foregroundStyle(zoneColor(point.avgHR))
-      }
-      .chartYAxis { axisPaceMarks }
-      .chartXAxisLabel("km")
-    case .paceHR:
-      Chart(points.filter { $0.avgHR != nil }) { point in
-        PointMark(
-          x: .value(localizedString("avg_hr_label"), point.avgHR ?? 0),
-          y: .value(localizedString("pace_label"), point.paceSecPerKm)
-        )
-        .foregroundStyle(zoneColor(point.avgHR))
-      }
-      .chartYAxis { axisPaceMarks }
-      .chartXAxisLabel("ppm")
-    case .ef:
-      Chart(points.filter { $0.ef != nil }.sorted { $0.date < $1.date }) { point in
-        LineMark(
-          x: .value(localizedString("date_label"), point.date),
-          y: .value("EF", point.ef ?? 0)
-        )
-        .foregroundStyle(PulseTheme.ringStand)
-        PointMark(
-          x: .value(localizedString("date_label"), point.date),
-          y: .value("EF", point.ef ?? 0)
-        )
-        .foregroundStyle(PulseTheme.accent)
-      }
-      .chartYAxisLabel("m/min · ppm")
-    }
-  }
-
-  private var axisPaceMarks: some AxisContent {
-    AxisMarks { value in
-      AxisGridLine()
-      AxisValueLabel {
-        if let seconds = value.as(Double.self) {
-          Text(Self.paceLabel(seconds))
-        }
-      }
-    }
-  }
-}
-
-// MARK: - HR zone duration (time-in-zone aggregated by each session's average HR)
-
-private struct HRZoneDurationCard: View {
-  let logs: [CardioLog]
-  let dateOfBirth: Date?
-
-  private struct Zone: Identifiable {
-    let id: Int
-    let name: String
-    let color: Color
-  }
-
-  private var zones: [Zone] {
-    (0..<5).map { Zone(id: $0, name: localizedString("zone_\($0 + 1)_label"), color: PulseTheme.hrZones[$0]) }
-  }
-
-  private var estimatedMaxHR: Double {
-    guard let dob = dateOfBirth,
-          let years = Calendar.current.dateComponents([.year], from: dob, to: .now).year,
-          years > 0 else { return 190 }
-    return Double(max(120, 220 - years))
-  }
-
-  private func zoneIndex(_ hr: Double) -> Int {
-    switch hr / estimatedMaxHR {
-    case ..<0.6: return 0
-    case ..<0.7: return 1
-    case ..<0.8: return 2
-    case ..<0.9: return 3
-    default: return 4
-    }
-  }
-
-  private var minutesByZone: [Int] {
-    var mins = [0, 0, 0, 0, 0]
-    for log in logs {
-      guard let hr = log.averageHeartRate, hr > 0 else { continue }
-      mins[zoneIndex(hr)] += log.durationMinutes
-    }
-    return mins
-  }
-
-  var body: some View {
-    let mins = minutesByZone
-    let total = mins.reduce(0, +)
-    PulseCard {
-      VStack(alignment: .leading, spacing: 14) {
-        Text("time_in_hr_zones")
-          .font(.headline)
-
-        if total == 0 {
-          PulseEmptyState(
-            title: "no_hr_data",
-            message: "log_cardio_with_hr_message",
-            systemImage: "heart"
-          )
-        } else {
-          GeometryReader { geo in
-            HStack(spacing: 2) {
-              ForEach(zones) { zone in
-                let frac = Double(mins[zone.id]) / Double(total)
-                Rectangle()
-                  .fill(zone.color)
-                  .frame(width: max(geo.size.width * frac, frac > 0 ? 3 : 0))
-              }
-            }
-            .clipShape(Capsule())
-          }
-          .frame(height: 14)
-
-          ForEach(zones) { zone in
-            HStack(spacing: 10) {
-              Circle().fill(zone.color).frame(width: 10, height: 10)
-              Text(zone.name).font(.subheadline)
-              Spacer()
-              Text("\(mins[zone.id]) min")
-                .font(.subheadline.weight(.semibold).monospacedDigit())
-              Text("(\(Int((Double(mins[zone.id]) / Double(total) * 100).rounded()))%)")
-                .font(.caption)
-                .foregroundStyle(PulseTheme.secondaryText)
-                .frame(width: 46, alignment: .trailing)
-            }
-          }
-
-          Text("estimated_from_each_session_average_hr")
-            .font(.caption2)
-            .foregroundStyle(PulseTheme.secondaryText)
-        }
-      }
-    }
-  }
-}
-
-// MARK: - Pro insights teaser
-
-private struct ProInsightsTeaserCard: View {
-  let onUnlock: () -> Void
-
-  private struct LockedInsightRow: View {
-    let icon: String
-    let title: String
-    let detail: String
-
-    var body: some View {
-      HStack(spacing: 12) {
-        Image(systemName: icon)
-          .font(.system(size: 14, weight: .semibold))
-          .foregroundStyle(PulseTheme.accent)
-          .frame(width: 28, height: 28)
-          .background(PulseTheme.accent.opacity(0.14), in: Circle())
-        VStack(alignment: .leading, spacing: 2) {
-          Text(title)
-            .font(.subheadline.weight(.semibold))
-          Text(detail)
-            .font(.caption)
-            .foregroundStyle(PulseTheme.secondaryText)
-        }
-        Spacer()
-        Image(systemName: "lock.fill")
-          .font(.caption.weight(.semibold))
-          .foregroundStyle(PulseTheme.accent)
-      }
-      .blur(radius: 3.5)
-      .overlay(alignment: .trailing) {
-        Image(systemName: "lock.fill")
-          .font(.caption.weight(.bold))
-          .foregroundStyle(PulseTheme.accent)
-          .padding(.trailing, 2)
-      }
-    }
-  }
-
-  var body: some View {
-    PulseCard {
-      VStack(alignment: .leading, spacing: 14) {
-        HStack {
-          Label(localizedString("pro_insights_title"), systemImage: "sparkles")
-            .font(.headline)
-          Spacer()
-          Text(localizedString("pro_badge"))
-            .font(.caption2.weight(.black))
-            .foregroundStyle(.black)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(PulseTheme.accent, in: Capsule())
-        }
-
-        VStack(spacing: 10) {
-          LockedInsightRow(
-            icon: "chart.line.uptrend.xyaxis",
-            title: localizedString("pro_insight_volume_title"),
-            detail: localizedString("pro_insight_volume_detail")
-          )
-          Divider()
-          LockedInsightRow(
-            icon: "bolt.heart.fill",
-            title: localizedString("pro_insight_recovery_title"),
-            detail: localizedString("pro_insight_recovery_detail")
-          )
-          Divider()
-          LockedInsightRow(
-            icon: "trophy.fill",
-            title: localizedString("pro_insight_pr_velocity_title"),
-            detail: localizedString("pro_insight_pr_velocity_detail")
-          )
-        }
-
-        Button(action: onUnlock) {
-          Label(localizedString("unlock_pro_insights_cta"), systemImage: "crown.fill")
-            .font(.subheadline.weight(.bold))
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-            .foregroundStyle(.black)
-            .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-        }
-        .buttonStyle(.plain)
-      }
     }
   }
 }

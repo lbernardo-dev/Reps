@@ -107,6 +107,22 @@ enum PulseTheme {
     static var primaryBright: Color   { ringStand }
     static var recovery: Color        { growth }
     static var accentMuted: Color     { accent.opacity(0.15) }
+
+    // MARK: Contrast-safe foreground
+    /// Returns `.black` or `.white`, whichever gives better WCAG contrast
+    /// against `background`. Several brand colors (accent, ringStand,
+    /// ringExercise, warning…) are bright enough that white text on them
+    /// fails contrast — always route text/icon color on a colored fill
+    /// through this instead of hardcoding `.white`.
+    static func onColor(_ background: Color) -> Color {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(background).getRed(&r, green: &g, blue: &b, alpha: &a)
+        func channel(_ c: CGFloat) -> CGFloat {
+            c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        let luminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+        return luminance > 0.5 ? .black : .white
+    }
 }
 
 // MARK: - Glass Button Prominence
@@ -585,7 +601,6 @@ struct SectionHeader: View {
 struct CardTitle: View {
     private let key: String?
     private let verbatimText: String?
-    @Environment(\.locale) private var locale
 
     init(_ key: String) {
         self.key = key
@@ -599,7 +614,7 @@ struct CardTitle: View {
 
     var body: some View {
         let text: String = if let key {
-            String(localized: String.LocalizationValue(key), locale: locale).capitalizingFirstLetter()
+            localizedString(key).capitalizingFirstLetter()
         } else {
             (verbatimText ?? "").capitalizingFirstLetter()
         }
@@ -615,73 +630,33 @@ extension String {
     }
 }
 
-// MARK: - Sticky Header Scaffold
+// MARK: - Pulse Header Bar
 
-struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
-    let title: String
-    let subtitle: String?
-    let topContentPadding: CGFloat
+/// The blurred, rounded-bottom-corner title bar shared by every primary
+/// screen (Today, Progress, Plans, Calendar, Exercises). `title` is verbatim
+/// display text (already resolved/localized by the caller); `subtitleKey` is
+/// a localization key. Use the `titleContent` initializer when the title row
+/// needs richer, dynamic content than a single `Text` (e.g. the quick-menu
+/// chart header, which swaps in a live value readout while dragging).
+struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
+    let subtitleKey: String?
     let backAction: (() -> Void)?
+    let titleContent: TitleContent
     let accessory: Accessory
-    let content: Content
-
-    @State private var activeTitle: String
-    @Environment(\.locale) private var locale
 
     init(
-        title: String,
-        subtitle: String? = nil,
-        topContentPadding: CGFloat = 86,
+        subtitleKey: String? = nil,
         backAction: (() -> Void)? = nil,
-        @ViewBuilder accessory: () -> Accessory,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder titleContent: () -> TitleContent,
+        @ViewBuilder accessory: () -> Accessory
     ) {
-        self.title = title
-        self.subtitle = subtitle
-        self.topContentPadding = topContentPadding
+        self.subtitleKey = subtitleKey
         self.backAction = backAction
+        self.titleContent = titleContent()
         self.accessory = accessory()
-        self.content = content()
-        _activeTitle = State(initialValue: localizedString(title))
-    }
-
-    private func localizedTitle(for key: String) -> String {
-        String(localized: String.LocalizationValue(key), locale: locale)
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
-                    content
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                .safeAreaPadding(.top, topContentPadding)
-                .padding(.bottom, 24)
-            }
-            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-            .coordinateSpace(.named(StickyHeaderTitleReader.coordinateSpaceName))
-            .onPreferenceChange(StickyHeaderTitlePreferenceKey.self) { markers in
-                let nextTitle = titleForVisibleSection(markers)
-                guard activeTitle != nextTitle else { return }
-                DispatchQueue.main.async {
-                    guard activeTitle != nextTitle else { return }
-                    withAnimation(.snappy(duration: 0.18)) {
-                        activeTitle = nextTitle
-                    }
-                }
-            }
-
-            stickyHeader
-        }
-        .screenBackground()
-        .onChange(of: locale) { _, _ in
-            activeTitle = localizedTitle(for: title)
-        }
-    }
-
-    private var stickyHeader: some View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
                 if let backAction {
@@ -700,17 +675,14 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    if let subtitle {
-                        Text(localizedKey(subtitle))
+                    if let subtitleKey {
+                        Text(localizedKey(subtitleKey))
                             .font(.caption.weight(.bold))
                             .textCase(.uppercase)
                             .foregroundStyle(PulseTheme.accent)
                             .lineLimit(1)
                     }
-                    Text(verbatim: activeTitle.capitalizingFirstLetter())
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.76)
+                    titleContent
                 }
 
                 Spacer(minLength: 12)
@@ -743,13 +715,136 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
             .allowsHitTesting(false)
         }
     }
+}
+
+struct PulseHeaderTitleText: View {
+    let title: String
+
+    var body: some View {
+        Text(verbatim: title.capitalizingFirstLetter())
+            .font(.system(size: 28, weight: .bold, design: .rounded))
+            .lineLimit(1)
+            .minimumScaleFactor(0.76)
+    }
+}
+
+extension PulseHeaderBar where TitleContent == PulseHeaderTitleText {
+    /// Convenience initializer for the common case: a single verbatim,
+    /// already-resolved/localized title string.
+    init(
+        title: String,
+        subtitleKey: String? = nil,
+        backAction: (() -> Void)? = nil,
+        @ViewBuilder accessory: () -> Accessory
+    ) {
+        self.init(subtitleKey: subtitleKey, backAction: backAction) {
+            PulseHeaderTitleText(title: title)
+        } accessory: {
+            accessory()
+        }
+    }
+}
+
+// MARK: - Sticky Header Scaffold
+
+struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
+    let title: String
+    let subtitle: String?
+    let topContentPadding: CGFloat
+    let backAction: (() -> Void)?
+    let accessory: Accessory
+    let content: Content
+
+    @State private var activeTitle: String
+    /// Measured height of `stickyHeader`, used as the scroll threshold for
+    /// switching the active section title. A hardcoded threshold drifted out
+    /// of sync with the header's real height (subtitle presence, Dynamic
+    /// Type, accessory size all change it), so a section could be marked
+    /// "current" while its content was still visually under the blurred
+    /// header — reads as washed-out/low-contrast content near the top.
+    @State private var headerHeight: CGFloat = 116
+    @Environment(\.locale) private var locale
+
+    init(
+        title: String,
+        subtitle: String? = nil,
+        topContentPadding: CGFloat = 86,
+        backAction: (() -> Void)? = nil,
+        @ViewBuilder accessory: () -> Accessory,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.topContentPadding = topContentPadding
+        self.backAction = backAction
+        self.accessory = accessory()
+        self.content = content()
+        _activeTitle = State(initialValue: title)
+    }
+
+    private func localizedTitle(for key: String) -> String {
+        localizedString(key)
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    content
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .safeAreaPadding(.top, max(topContentPadding, headerHeight + 12))
+                .padding(.bottom, 104)
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            .coordinateSpace(.named(StickyHeaderTitleReader.coordinateSpaceName))
+            .onPreferenceChange(StickyHeaderTitlePreferenceKey.self) { markers in
+                let nextTitle = titleForVisibleSection(markers)
+                guard activeTitle != nextTitle else { return }
+                DispatchQueue.main.async {
+                    guard activeTitle != nextTitle else { return }
+                    withAnimation(.snappy(duration: 0.18)) {
+                        activeTitle = nextTitle
+                    }
+                }
+            }
+
+            stickyHeader
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: StickyHeaderHeightPreferenceKey.self, value: proxy.size.height)
+                    }
+                }
+        }
+        .screenBackground()
+        .onChange(of: locale) { _, _ in
+            activeTitle = title
+        }
+        .onPreferenceChange(StickyHeaderHeightPreferenceKey.self) { height in
+            guard height > 0 else { return }
+            headerHeight = height
+        }
+    }
+
+    private var displayTitle: String {
+        activeTitle == title ? localizedTitle(for: title) : activeTitle
+    }
+
+    private var stickyHeader: some View {
+        PulseHeaderBar(title: displayTitle, subtitleKey: subtitle, backAction: backAction) {
+            accessory
+        }
+    }
 
     private func titleForVisibleSection(_ markers: [StickyHeaderTitleMarker]) -> String {
-        let threshold: CGFloat = 116
+        // Small safety margin so content clears the header's blurred edge
+        // before it's treated as "current", instead of just touching it.
+        let threshold = headerHeight + 12
         return markers
             .filter { $0.minY <= threshold }
             .max { $0.minY < $1.minY }?
-            .title ?? localizedTitle(for: title)
+            .title ?? title
     }
 }
 
@@ -805,8 +900,19 @@ struct StickyHeaderTitlePreferenceKey: PreferenceKey {
     }
 }
 
+struct StickyHeaderHeightPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 // MARK: - Reusable Components
 
+/// A glass-styled circular avatar button, sized to match the other header
+/// accessory buttons (bell, back chevron). Falls back to a placeholder icon
+/// when no avatar image is set.
 struct HeaderAvatarButton: View {
     let imageData: Data?
     let accessibilityLabel: LocalizedStringKey

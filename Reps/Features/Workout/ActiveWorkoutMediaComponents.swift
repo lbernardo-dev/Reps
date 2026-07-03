@@ -93,7 +93,7 @@ struct MusicTransportControls: View {
             Button(action: onPlayPause) {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.onColor(tint))
                     .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
                     .background(tint)
                     .clipShape(Circle())

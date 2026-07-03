@@ -576,8 +576,8 @@ private struct MuscleSegmentDetailSheet: View {
 
                             Chart(activity.dailyPoints) { point in
                                 BarMark(
-                                    x: .value("Día", point.label),
-                                    y: .value("Series", point.sets)
+                                    x: .value(localizedString("day"), point.label),
+                                    y: .value(localizedString("sets"), point.sets)
                                 )
                                 .foregroundStyle(point.sets > 0 ? PulseTheme.accent : PulseTheme.separator)
 
@@ -655,11 +655,9 @@ private struct MuscleWeeklyVolumeCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
-                (Text("\(load.displaySets)")
-                    .foregroundStyle(.white)
-                 + Text("of_12_weekly_sets")
-                    .foregroundStyle(PulseTheme.secondaryText))
+                Text("\(load.displaySets) \(localizedString("of_12_weekly_sets"))")
                     .font(.system(size: 20, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
 
                 Spacer()
                 Text(load.setsToGrowthZoneText)

@@ -175,7 +175,7 @@ struct ProgramDetailView: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .foregroundStyle(.white)
+                .foregroundStyle(.black)
                 .background(PulseTheme.fitActionGradient)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
@@ -197,7 +197,7 @@ private struct ProgramLibraryHero: View {
                 HStack(alignment: .top, spacing: 14) {
                     Image(systemName: selectedCategory?.systemImage ?? "sparkles")
                         .font(.title2.weight(.black))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.black)
                         .frame(width: 56, height: 56)
                         .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
@@ -258,7 +258,7 @@ private struct ProgramCard: View {
                 HStack(alignment: .top, spacing: 14) {
                 Image(systemName: meta?.category.systemImage ?? "dumbbell.fill")
                     .font(.system(size: 20, weight: .black))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.black)
                     .frame(width: 52, height: 52)
                     .background(PulseTheme.fitActionGradient)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))

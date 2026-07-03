@@ -19,6 +19,9 @@ struct ProfileView: View {
     @Environment(\.requestReview) private var requestReview
     @Environment(AppStore.self) private var store
     var onOpenPlans: (() -> Void)?
+    /// True when this view is the root of the Perfil tab (no back chevron,
+    /// tab bar stays visible). False when pushed from another tab's stack.
+    var isTabRoot: Bool = false
     @StateObject private var healthKit = HealthKitService.shared
     @State private var weightText = ""
     @State private var heightText = ""
@@ -41,17 +44,31 @@ struct ProfileView: View {
                 subtitle: "body_data_and_account",
                 accessory: {
                     HStack(spacing: 10) {
-                        Button {
-                            HapticService.selection()
-                            dismiss()
+                        if !isTabRoot {
+                            Button {
+                                HapticService.selection()
+                                dismiss()
+                            } label: {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                    .navigationGlassCircle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        NavigationLink {
+                            SocialHubView()
                         } label: {
-                            Image(systemName: "chevron.left")
+                            Image(systemName: "person.2.fill")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(PulseTheme.ringStand)
                                 .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                .navigationGlassCircle(.secondary)
+                                .navigationGlassCircle(.secondary, tint: PulseTheme.ringStand)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(localizedString("social_hub"))
 
                         NavigationLink {
                             SettingsView()
@@ -64,19 +81,13 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(localizedString("settings"))
-
-                        NavigationLink {
-                            ProfileDetailView()
-                        } label: {
-                            let avatarData = store.userProfile.avatarImageData
-                            AvatarMiniView(imageData: avatarData, size: 40)
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
             ) {
                 accountCard
                     .stickyHeaderTitle(localizedString("account"))
+                socialCard
+                    .stickyHeaderTitle(localizedString("community"))
                 bodyMetricsCard
                     .stickyHeaderTitle(localizedString("metrics_2"))
                 // Only surface body indices once there are metrics to derive
@@ -90,8 +101,6 @@ struct ProfileView: View {
                     .stickyHeaderTitle(localizedString("photos"))
                 achievementsCard
                     .stickyHeaderTitle(localizedString("achievements"))
-                socialCard
-                    .stickyHeaderTitle(localizedString("community"))
                 gymPassesCard
                     .stickyHeaderTitle(localizedString("gyms"))
                 healthCard
@@ -120,7 +129,7 @@ struct ProfileView: View {
         .navigationDestination(item: $activeDestination) { destination in
             profileDestination(destination)
         }
-        .mainTabBarHidden()
+        .mainTabBarHidden(!isTabRoot)
     }
 
 
@@ -261,7 +270,7 @@ struct ProfileView: View {
                         Image(systemName: "plus")
                             .font(.headline)
                             .frame(width: 36, height: 36)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .background(PulseTheme.accent)
                             .clipShape(Circle())
                     }
@@ -505,7 +514,7 @@ struct ProfileView: View {
                         Image(systemName: "qrcode")
                             .font(.headline)
                             .frame(width: 36, height: 36)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .background(PulseTheme.accent)
                             .clipShape(Circle())
                     }
@@ -514,7 +523,7 @@ struct ProfileView: View {
                         Image(systemName: "mappin.and.ellipse")
                             .font(.headline)
                             .frame(width: 36, height: 36)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .background(PulseTheme.accent)
                             .clipShape(Circle())
                     }
@@ -851,7 +860,7 @@ struct ProfileView: View {
 
                         Image(systemName: "externaldrive.badge.icloud")
                             .font(.headline.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .frame(width: 40, height: 40)
                             .background(PulseTheme.accent)
                             .clipShape(Circle())
@@ -1017,7 +1026,7 @@ struct ProfileView: View {
 
                         Image(systemName: "questionmark.bubble.fill")
                             .font(.headline.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.ringStand))
                             .frame(width: 40, height: 40)
                             .background(PulseTheme.ringStand)
                             .clipShape(Circle())
@@ -1607,7 +1616,7 @@ private struct ProfileToolCard: View {
                 Image(systemName: systemImage)
                     .font(.system(size: 22, weight: .bold))
                     .frame(width: 48, height: 48)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.onColor(color))
                     .background(color)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
@@ -1716,7 +1725,7 @@ private struct SupportInfoScreen: View {
             accessory: {
                 Image(systemName: systemImage)
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                     .frame(width: 40, height: 40)
                     .background(PulseTheme.accent)
                     .clipShape(Circle())
@@ -1765,7 +1774,7 @@ private struct FeedbackSheet: View {
                         Image(systemName: "bubble.left.and.text.bubble.right")
                             .font(.title2.weight(.bold))
                             .frame(width: 44, height: 44)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .background(PulseTheme.accent)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
@@ -1844,7 +1853,7 @@ private struct VersionInfoScreen: View {
             accessory: {
                 Image(systemName: "info.circle")
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                     .frame(width: 40, height: 40)
                     .background(PulseTheme.accent)
                     .clipShape(Circle())
@@ -1951,7 +1960,7 @@ private struct ProfileActionButtonStyle: ButtonStyle {
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity)
             .frame(height: 44)
-            .foregroundStyle(.white)
+            .foregroundStyle(PulseTheme.onColor(color))
             .background(color.opacity(configuration.isPressed ? 0.75 : 1))
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
@@ -1979,7 +1988,7 @@ private struct AvatarPickerLabel: View {
 
             Image(systemName: "camera.fill")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                 .frame(width: 24, height: 24)
                 .background(PulseTheme.accent)
                 .clipShape(Circle())

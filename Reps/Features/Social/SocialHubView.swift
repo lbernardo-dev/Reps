@@ -54,7 +54,7 @@ struct SocialHubView: View {
                 Spacer(minLength: 40)
             }
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-            .padding(.bottom, 60)
+            .padding(.bottom, 124)
         }
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
@@ -148,10 +148,13 @@ struct SocialHubView: View {
     private var myProfileCard: some View {
         let xp = store.playerXP
         let lvl = GamificationEngine.playerLevel(for: xp)
-        let uname = store.userProfile.socialUsername ?? "—"
+        let uname = store.userProfile.socialUsername
         let bio = store.userProfile.socialBio
         let loc = store.userProfile.socialLocation
         let plan = store.activePlan.name
+        let weekStart = Calendar.current.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now.addingTimeInterval(-604_800)
+        let weekSessions = store.workoutSessions.filter { $0.date >= weekStart }
+        let weekVolume = Int(FitnessMetrics.totalVolumeKg(for: weekSessions))
         return PulseCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 14) {
@@ -165,15 +168,19 @@ struct SocialHubView: View {
                                 .resizable().scaledToFill()
                                 .frame(width: 56, height: 56)
                                 .clipShape(Circle())
-                        } else {
+                        } else if let uname {
                             Text(String(uname.prefix(1)).uppercased())
                                 .font(.system(size: 22, weight: .black, design: .rounded))
+                                .foregroundStyle(PulseTheme.accent)
+                        } else {
+                            Image(systemName: "person.crop.circle")
+                                .font(.system(size: 26, weight: .semibold))
                                 .foregroundStyle(PulseTheme.accent)
                         }
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("@\(uname)")
+                        Text(verbatim: uname.map { "@\($0)" } ?? localizedString("social_username_label"))
                             .font(.headline)
                         HStack(spacing: 6) {
                             Text(localizedFormat("player_level_abbr_title_format", "\(lvl.level)", lvl.title))
@@ -228,6 +235,27 @@ struct SocialHubView: View {
                         .clipShape(Capsule())
                 }
 
+                HStack(spacing: 8) {
+                    socialTrainingMetric(
+                        value: "\(weekSessions.count)",
+                        label: localizedString("this_week"),
+                        systemImage: "figure.strengthtraining.traditional",
+                        color: PulseTheme.accent
+                    )
+                    socialTrainingMetric(
+                        value: "\(weekVolume)",
+                        label: localizedString("volume_2"),
+                        systemImage: "scalemass.fill",
+                        color: PulseTheme.ringStand
+                    )
+                    socialTrainingMetric(
+                        value: "\(store.streakDays)",
+                        label: localizedString("streak"),
+                        systemImage: "flame.fill",
+                        color: PulseTheme.ringMove
+                    )
+                }
+
                 Divider()
 
                 HStack {
@@ -242,6 +270,29 @@ struct SocialHubView: View {
         .sheet(isPresented: $showEditProfile) {
             EditSocialProfileView()
         }
+    }
+
+    private func socialTrainingMetric(value: String, label: String, systemImage: String, color: Color) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: systemImage)
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(color)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(value)
+                    .font(.system(size: 15, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text(label)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(color.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func statPill(value: String, label: String) -> some View {
@@ -519,8 +570,8 @@ struct SocialHubView: View {
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
                 if let last = summary.lastComment {
-                    (Text("@\(last.ownerUsername) ").font(.subheadline.weight(.semibold))
-                        + Text(last.text).font(.subheadline))
+                    Text("@\(last.ownerUsername) \(last.text)")
+                        .font(.subheadline)
                         .foregroundStyle(.primary)
                         .lineLimit(2)
                 }
@@ -694,7 +745,7 @@ struct SocialHubView: View {
                 HStack(spacing: 12) {
                     Image(systemName: iconName)
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(ch.isActive ? .black : .white)
                         .frame(width: 36, height: 36)
                         .background(iconGradient)
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))

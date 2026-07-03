@@ -52,18 +52,20 @@ struct MainTabView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.requestReview) private var requestReview
 
-    @State private var selectedTab: AppTab = .workout
+    @State private var selectedTab: AppTab = .today
     @State private var isTabBarHidden = false
     @State private var isQuickMenuExpanded = false
     @State private var presentedQuickAction: QuickAction?
-    @State private var summaryResetID  = UUID()
-    @State private var calendarResetID = UUID()
-    @State private var workoutResetID  = UUID()
-    @State private var sharingResetID  = UUID()
+    @State private var showCalendarSheet = false
+    @State private var todayResetID     = UUID()
+    @State private var trainResetID     = UUID()
+    @State private var progressResetID  = UUID()
+    @State private var exercisesResetID = UUID()
+    @State private var profileResetID   = UUID()
 
     var body: some View {
         @Bindable var store = store
-        return tabShell
+        return activeTabSurface
             .overlay(alignment: .bottom) {
                 if isQuickMenuExpanded {
                     quickMenuOverlay
@@ -79,10 +81,13 @@ struct MainTabView: View {
             .sheet(item: $presentedQuickAction) { action in
                 quickActionDestination(action)
             }
+            .sheet(isPresented: $showCalendarSheet) {
+                CalendarView()
+            }
             .sheet(item: $store.finishedSessionForSummary) { session in
                 WorkoutSummaryView(session: session) {
                     store.finishedSessionForSummary = nil
-                    store.pendingMainTabSelection = .summary
+                    store.pendingMainTabSelection = .progress
                     if store.pendingMilestonePaywall {
                         store.pendingMilestonePaywall = false
                         store.presentPaywall(source: .onboarding, feature: nil, trigger: .featureGate)
@@ -115,7 +120,7 @@ struct MainTabView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .repsStartFreeWorkoutIntent)) { _ in
-                select(.workout)
+                select(.today)
                 presentedQuickAction = .freeWorkout
             }
             .onChange(of: store.notificationDestination) { _, destination in
@@ -130,35 +135,66 @@ struct MainTabView: View {
 
     // MARK: Tab shell
 
+    @ViewBuilder
+    private var activeTabSurface: some View {
+        if isQuickMenuExpanded || presentedQuickAction != nil || store.finishedSessionForSummary != nil {
+            Color.black
+                .ignoresSafeArea()
+                .accessibilityHidden(true)
+        } else {
+            tabShell
+        }
+    }
+
     private var tabShell: some View {
         TabView(selection: tabSelection) {
-            // — Summary (Progress analytics)
-            ProgressDashboardView(onSelectTab: { select($0) })
-                .id(summaryResetID)
-                .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
-                .tabItem { Label(AppTab.summary.title, systemImage: AppTab.summary.systemImage) }
-                .tag(AppTab.summary)
+            // — Hoy: readiness + today's plan + streak. No deep analytics.
+            Tab(value: AppTab.today) {
+                TodayView(onSelectTab: { select($0) })
+                    .id(todayResetID)
+                    .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+            } label: {
+                AppTab.today.label
+            }
 
-            // — Calendar
-            CalendarView()
-                .id(calendarResetID)
-                .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
-                .tabItem { Label(AppTab.calendar.title, systemImage: AppTab.calendar.systemImage) }
-                .tag(AppTab.calendar)
+            // — Entrenar: quick start, plans/routines, library, tools, schedule.
+            Tab(value: AppTab.train) {
+                PlansView()
+                    .id(trainResetID)
+                    .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+            } label: {
+                AppTab.train.label
+            }
 
-            // — Workout (Today + Plans merged)
-            TodayView(onSelectTab: { select($0) })
-                .id(workoutResetID)
-                .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
-                .tabItem { Label(AppTab.workout.title, systemImage: AppTab.workout.systemImage) }
-                .tag(AppTab.workout)
+            // — Progreso: analytics, trends, records, history.
+            Tab(value: AppTab.progress) {
+                ProgressDashboardView(onSelectTab: { select($0) })
+                    .id(progressResetID)
+                    .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+            } label: {
+                AppTab.progress.label
+            }
 
-            // — Sharing (Social)
-            SocialHubView()
-                .id(sharingResetID)
+            // — Ejercicios: browse and manage the exercise library.
+            Tab(value: AppTab.exercises) {
+                ExerciseLibraryView(isTabRoot: true)
+                    .id(exercisesResetID)
+                    .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+            } label: {
+                AppTab.exercises.label
+            }
+
+            // — Perfil: body, achievements, social, gym, settings. Rendered as a
+            // detached avatar bubble (role: .search) à la Apple Music's search tab.
+            Tab(value: AppTab.profile, role: .search) {
+                NavigationStack {
+                    ProfileView(isTabRoot: true)
+                }
+                .id(profileResetID)
                 .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
-                .tabItem { Label(AppTab.sharing.title, systemImage: AppTab.sharing.systemImage) }
-                .tag(AppTab.sharing)
+            } label: {
+                profileTabLabel
+            }
         }
         .tint(PulseTheme.accent)
         .tabViewBottomAccessory {
@@ -173,17 +209,13 @@ struct MainTabView: View {
 
     private var quickMenuOverlay: some View {
         GeometryReader { proxy in
-            let topInset = max(proxy.safeAreaInsets.top, windowTopSafeAreaInset)
-            quickMenuContent(topInset: topInset, bottomInset: proxy.safeAreaInsets.bottom)
+            quickMenuContent(bottomInset: proxy.safeAreaInsets.bottom)
         }
-        .ignoresSafeArea(.container, edges: .top)
     }
 
-    private func quickMenuContent(topInset: CGFloat, bottomInset: CGFloat) -> some View {
+    private func quickMenuContent(bottomInset: CGFloat) -> some View {
         VStack(spacing: 0) {
             QuickMenuProgressionChart()
-                .padding(.top, max(topInset + 32, 96))
-                .padding(.horizontal, 16)
                 .transition(.move(edge: .top).combined(with: .opacity))
 
             Spacer(minLength: 16)
@@ -247,19 +279,45 @@ struct MainTabView: View {
         .background(.ultraThinMaterial)
     }
 
-    private var windowTopSafeAreaInset: CGFloat {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .filter { $0.activationState == .foregroundActive }
-            .flatMap(\.windows)
-            .map { $0.safeAreaInsets.top }
-            .max() ?? 0
+    // MARK: Profile tab avatar
+
+    @ViewBuilder
+    private var profileTabLabel: some View {
+        if let data = store.userProfile.avatarImageData, let avatar = circularTabAvatar(from: data) {
+            Image(uiImage: avatar)
+                .renderingMode(.original)
+                .accessibilityLabel(Text(verbatim: AppTab.profile.title))
+        } else {
+            AppTab.profile.label
+        }
+    }
+
+    private func circularTabAvatar(from data: Data, diameter: CGFloat = 44) -> UIImage? {
+        guard let source = UIImage(data: data) else { return nil }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = UIScreen.main.scale
+        format.opaque = false
+        let size = CGSize(width: diameter, height: diameter)
+        let rendered = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            UIBezierPath(ovalIn: CGRect(origin: .zero, size: size)).addClip()
+            let fillScale = max(size.width / source.size.width, size.height / source.size.height)
+            let scaledSize = CGSize(width: source.size.width * fillScale, height: source.size.height * fillScale)
+            let origin = CGPoint(x: (size.width - scaledSize.width) / 2, y: (size.height - scaledSize.height) / 2)
+            source.draw(in: CGRect(origin: origin, size: scaledSize))
+        }
+        // Tab bar icons render as template (monochrome) images by default; this
+        // forces the actual photo colors to survive the tab bar's snapshotting.
+        return rendered.withRenderingMode(.alwaysOriginal)
     }
 
     // MARK: Helpers
 
     private func select(_ tab: AppTab) {
         withAnimation(.snappy(duration: 0.18)) { isQuickMenuExpanded = false }
+        guard tab != .calendar else {
+            showCalendarSheet = true
+            return
+        }
         if tab == selectedTab { reset(tab) }
         selectedTab = tab
     }
@@ -291,10 +349,12 @@ struct MainTabView: View {
 
     private func reset(_ tab: AppTab) {
         switch tab {
-        case .summary:  summaryResetID  = UUID()
-        case .calendar: calendarResetID = UUID()
-        case .workout:  workoutResetID  = UUID()
-        case .sharing:  sharingResetID  = UUID()
+        case .today:     todayResetID     = UUID()
+        case .train:     trainResetID     = UUID()
+        case .progress:  progressResetID  = UUID()
+        case .exercises: exercisesResetID = UUID()
+        case .profile:   profileResetID   = UUID()
+        case .calendar:  break
         }
     }
 
@@ -309,6 +369,8 @@ struct MainTabView: View {
             CreatePlanView()
         case .customExercise:
             AddCustomExerciseView()
+        case .timers:
+            NavigationStack { TimersView() }
         }
     }
 
@@ -340,7 +402,7 @@ private struct QuickLogTabAccessory: View {
                 Image(systemName: "plus")
                     .font(.system(size: 19, weight: .bold))
                     .frame(width: 34, height: 34)
-                Text("Quick Log")
+                Text(verbatim: localizedString("quick_log"))
                     .font(.system(size: isInline ? 19 : 18, weight: .bold, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
@@ -369,7 +431,7 @@ private struct QuickMenuCloseButton: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 18, weight: .bold))
                     .frame(width: 34, height: 34)
-                Text("Close")
+                Text(verbatim: localizedString("close"))
                     .font(.system(size: 19, weight: .bold, design: .rounded))
                     .lineLimit(1)
                 Spacer(minLength: 8)
@@ -392,36 +454,59 @@ private struct QuickMenuCloseButton: View {
 
 // MARK: - Tab Definition
 
+/// The app's navigation destinations. `.calendar` is not shown as a tab —
+/// it is opened as a sheet from wherever it is selected (see `select(_:)` in
+/// `MainTabView`) since scheduling lives inside Entrenar/Progreso, not as a
+/// persistent tab. See PLAN_REFORMA_INTEGRAL.md §3.1 for the IA rationale.
 enum AppTab: CaseIterable {
-    case summary
+    case today
+    case train
+    case progress
+    case exercises
+    case profile
     case calendar
-    case workout
-    case sharing
 
-    var title: LocalizedStringKey {
+    /// The 5 tabs actually rendered in the tab bar, in display order.
+    static let tabBarCases: [AppTab] = [.today, .train, .progress, .exercises, .profile]
+
+    var title: String {
         switch self {
-        case .summary:  "Summary"
-        case .calendar: "Calendar"
-        case .workout:  "Workout"
-        case .sharing:  "Sharing"
+        case .today:     localizedString("today_3")
+        case .train:     localizedString("train")
+        case .progress:  localizedString("progress_2")
+        case .exercises: localizedString("exercises_3")
+        case .profile:   localizedString("profile")
+        case .calendar:  localizedString("schedule")
+        }
+    }
+
+    var label: some View {
+        Label {
+            Text(verbatim: title)
+        } icon: {
+            Image(systemName: systemImage)
         }
     }
 
     var systemImage: String {
         switch self {
-        case .summary:  "figure.run.circle.fill"
-        case .calendar: "calendar"
-        case .workout:  "dumbbell.fill"
-        case .sharing:  "person.2.fill"
+        case .today:     "sun.max.fill"
+        case .train:     "dumbbell.fill"
+        case .progress:  "chart.line.uptrend.xyaxis"
+        case .exercises: "figure.strengthtraining.traditional"
+        case .profile:   "person.crop.circle.fill"
+        case .calendar:  "calendar"
         }
     }
 
     var telemetryName: String {
         switch self {
-        case .summary:  "summary"
-        case .calendar: "calendar"
-        case .workout:  "workout"
-        case .sharing:  "sharing"
+        case .today:     "today"
+        case .train:     "train"
+        case .progress:  "progress"
+        case .exercises: "exercises"
+        case .profile:   "profile"
+        case .calendar:  "calendar"
         }
     }
 }
@@ -433,25 +518,28 @@ private enum QuickAction: String, CaseIterable, Identifiable {
     case scheduleWorkout
     case createPlan
     case customExercise
+    case timers
 
     var id: String { rawValue }
     var telemetryName: String { rawValue }
 
-    var title: LocalizedStringKey {
+    var title: String {
         switch self {
-        case .freeWorkout:    "Train"
-        case .scheduleWorkout: "Schedule"
-        case .createPlan:     "Create Plan"
-        case .customExercise: "Exercise"
+        case .freeWorkout:    localizedString("train")
+        case .scheduleWorkout: localizedString("schedule")
+        case .createPlan:     localizedString("create_plan")
+        case .customExercise: localizedString("exercise_2")
+        case .timers:         localizedString("timers")
         }
     }
 
-    var subtitle: LocalizedStringKey {
+    var subtitle: String {
         switch self {
-        case .freeWorkout:    "Free"
-        case .scheduleWorkout: "Date"
-        case .createPlan:     "Routine"
-        case .customExercise: "Custom"
+        case .freeWorkout:    localizedString("free_2")
+        case .scheduleWorkout: localizedString("date_2")
+        case .createPlan:     localizedString("routine")
+        case .customExercise: localizedString("custom")
+        case .timers:         localizedString("timers_subtitle")
         }
     }
 
@@ -461,6 +549,7 @@ private enum QuickAction: String, CaseIterable, Identifiable {
         case .scheduleWorkout: "calendar.badge.plus"
         case .createPlan:     "square.stack.3d.up.fill"
         case .customExercise: "sparkles"
+        case .timers:         "stopwatch.fill"
         }
     }
 }
@@ -471,10 +560,10 @@ private struct QuickActionRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .trailing, spacing: 1) {
-                Text(action.title)
+                Text(verbatim: action.title)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                Text(action.subtitle)
+                Text(verbatim: action.subtitle)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .foregroundStyle(PulseTheme.secondaryText)
             }

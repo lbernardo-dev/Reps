@@ -3,10 +3,10 @@ import SwiftUI
 
 struct CalendarView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
     @State private var showSchedule = false
     @State private var visibleMonth = Date()
     @State private var selectedDate = Date()
-    @State private var showProfile = false
     @State private var showNotifications = false
     @State private var notificationWorkout: WorkoutDay?
 
@@ -15,36 +15,28 @@ struct CalendarView: View {
             StickyHeaderScaffold(
                 title: "calendar_2",
                 subtitle: "plan_and_review_load",
+                backAction: { dismiss() },
                 accessory: {
-                    HStack(spacing: 6) {
-                        Button {
-                            HapticService.selection()
-                            showNotifications = true
-                        } label: {
-                            ZStack(alignment: .topTrailing) {
-                                Image(systemName: "bell.fill")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(PulseTheme.secondaryText)
-                                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                    .navigationGlassCircle(.secondary, tint: .clear)
-                                if store.hasUnreadBell {
-                                    Circle()
-                                        .fill(.red)
-                                        .frame(width: 9, height: 9)
-                                        .offset(x: -1, y: 1)
-                                }
+                    Button {
+                        HapticService.selection()
+                        showNotifications = true
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                .navigationGlassCircle(.secondary, tint: .clear)
+                            if store.hasUnreadBell {
+                                Circle()
+                                    .fill(.red)
+                                    .frame(width: 9, height: 9)
+                                    .offset(x: -1, y: 1)
                             }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("notifications")
-
-                        HeaderAvatarButton(
-                            imageData: store.userProfile.avatarImageData,
-                            accessibilityLabel: "profile"
-                        ) {
-                            showProfile = true
-                        }
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("notifications")
                 }
             ) {
                     calendarCommandCard
@@ -224,9 +216,6 @@ struct CalendarView: View {
             }
             .sheet(isPresented: $showSchedule) {
                 ScheduleWorkoutView()
-            }
-            .navigationDestination(isPresented: $showProfile) {
-                ProfileView()
             }
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()
@@ -510,7 +499,7 @@ private struct CalendarPlannedWorkoutRow: View {
             }
             Spacer()
             Image(systemName: "play.fill")
-                .foregroundStyle(.white)
+                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                 .frame(width: 42, height: 42)
                 .background(PulseTheme.accent)
                 .clipShape(Circle())

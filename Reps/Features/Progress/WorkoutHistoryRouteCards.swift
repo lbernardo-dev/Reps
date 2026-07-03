@@ -26,7 +26,7 @@ struct RouteWorkoutMapBackdrop: View {
                         .font(.system(size: 72, weight: .semibold))
                         .foregroundStyle(Color.white.opacity(0.14))
 
-                    Text(session.location == .outdoor ? "No GPS Route" : "Treadmill Workout")
+                    Text(session.location == .outdoor ? localizedString("no_gps_route") : localizedString("treadmill_workout"))
                         .font(.system(size: 17, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.white.opacity(0.22))
                 }
@@ -47,16 +47,16 @@ struct RouteWorkoutDetailsCard: View {
 
     var body: some View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 24) {
-            RouteWorkoutMetric(title: "Workout Time", value: session.workoutTimeText, color: PulseTheme.hrZones[2])
-            RouteWorkoutMetric(title: "Distance", value: session.distanceKm.map { WorkoutHistoryFormat.distanceUppercase($0) } ?? "--", color: PulseTheme.ringStand)
-            RouteWorkoutMetric(title: "Active Kilocalories", value: session.activeKilocaloriesText, color: PulseTheme.ringMove)
-            RouteWorkoutMetric(title: "Total Kilocalories", value: session.totalKilocaloriesText, color: PulseTheme.ringMove)
-            RouteWorkoutMetric(title: "Elevation Gain", value: session.elevationGainText, color: PulseTheme.ringExercise)
-            RouteWorkoutMetric(title: "HR Recovery", value: session.heartRateRecoveryText, color: PulseTheme.hrZones[3])
-            RouteWorkoutMetric(title: "Avg. Cadence", value: session.averageCadenceText, color: PulseTheme.ringStand)
-            RouteWorkoutMetric(title: "Avg. Pace", value: session.averagePaceSecondsPerKm.map { WorkoutHistoryFormat.paceAppleStyle($0, includesUnit: true) } ?? "--", color: PulseTheme.ringStand)
-            RouteWorkoutMetric(title: "Avg. Heart Rate", value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
-            RouteWorkoutMetric(title: "Max Heart Rate", value: session.maxHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: localizedString("workout_time"), value: session.workoutTimeText, color: PulseTheme.hrZones[2])
+            RouteWorkoutMetric(title: localizedString("distance"), value: session.distanceKm.map { WorkoutHistoryFormat.distanceUppercase($0) } ?? "--", color: PulseTheme.ringStand)
+            RouteWorkoutMetric(title: localizedString("active_kilocalories"), value: session.activeKilocaloriesText, color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: localizedString("total_kilocalories"), value: session.totalKilocaloriesText, color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: localizedString("elevation_gain"), value: session.elevationGainText, color: PulseTheme.ringExercise)
+            RouteWorkoutMetric(title: localizedString("hr_recovery"), value: session.heartRateRecoveryText, color: PulseTheme.hrZones[3])
+            RouteWorkoutMetric(title: localizedString("avg_cadence"), value: session.averageCadenceText, color: PulseTheme.ringStand)
+            RouteWorkoutMetric(title: localizedString("avg_pace"), value: session.averagePaceSecondsPerKm.map { WorkoutHistoryFormat.paceAppleStyle($0, includesUnit: true) } ?? "--", color: PulseTheme.ringStand)
+            RouteWorkoutMetric(title: localizedString("avg_heart_rate"), value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: localizedString("max_heart_rate"), value: session.maxHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
         }
         .padding(24)
         .background(Color.black)
@@ -387,16 +387,16 @@ extension WorkoutSession {
             normalizedTitle.localizedCaseInsensitiveContains("walk")
 
         if isRun {
-            return location == .outdoor ? "Outdoor Run" : "Treadmill Run"
+            return location == .outdoor ? localizedString("outdoor_run") : localizedString("treadmill_run")
         }
         if isWalk {
-            return location == .outdoor ? "Outdoor Walk" : "Treadmill Walk"
+            return location == .outdoor ? localizedString("outdoor_walk") : localizedString("treadmill_walk")
         }
-        return location == .outdoor ? "Outdoor Workout" : "Indoor Workout"
+        return location == .outdoor ? localizedString("outdoor_workout") : localizedString("indoor_workout")
     }
 
     var routeLocationText: String {
-        location == .outdoor ? "Outdoor" : "Indoor"
+        location == .outdoor ? localizedString("outdoor") : localizedString("indoor")
     }
 
     var routeSourceText: String {
@@ -493,7 +493,7 @@ extension WorkoutSession {
         guard let after = heartRateAfter else { return "--" }
         let peak = maxHeartRate ?? averageHeartRate
         guard let peak, peak > after else { return "--" }
-        return "\(Int((peak - after).rounded()))BPM"
+        return localizedFormat("heart_rate_bpm_format", Int((peak - after).rounded()))
     }
 
     var hasRouteSensorSummary: Bool {

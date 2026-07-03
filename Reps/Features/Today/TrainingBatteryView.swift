@@ -87,6 +87,17 @@ struct TrainingBatteryView: View {
         return 15.0
     }
 
+    // MARK: - Readiness factor gauges (linear remap of the same credit/load values used for `level`)
+    private var recoveryGaugeValue: Double {
+        let clamped = min(max(batteryStatus.recoveryCredit, -12), 36)
+        return (clamped + 12) / 48 * 100
+    }
+
+    private var freshnessGaugeValue: Double {
+        let clamped = min(max(batteryStatus.fatigueLoad, 0), 80)
+        return 100 - (clamped / 80 * 100)
+    }
+
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 24) {
@@ -135,12 +146,26 @@ struct TrainingBatteryView: View {
                     .padding(.vertical, 24)
                 }
                 .frame(height: 380)
+                .overlay(alignment: .topTrailing) {
+                    InfoButton(
+                        "battery_level_explainer_title",
+                        sections: [
+                            InfoExplainerSection(heading: "how_it_s_calculated", body: "battery_level_formula_explanation"),
+                            InfoExplainerSection(heading: "recovery_credits", body: "recovery_factor_explanation"),
+                            InfoExplainerSection(heading: "stress_loads", body: "freshness_factor_explanation"),
+                        ]
+                    )
+                    .padding(16)
+                }
 
                 // Style Selector Carousel
                 styleSelector
 
                 // Biological Balance Panel (Fatigue vs Recovery)
                 physiologicalBalanceSheet
+
+                // Readiness factor gauges (Recovery / Freshness) with tap-to-explain popovers
+                readinessFactorsCard
 
                 // Detailed Health factors grid
                 detailedFactorsGrid
@@ -341,6 +366,52 @@ struct TrainingBatteryView: View {
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - Readiness Factor Gauges
+    private var readinessFactorsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(localizedString("readiness_factors"))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .padding(.horizontal, 4)
+
+            PulseCard {
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    readinessFactorGauge(
+                        value: recoveryGaugeValue,
+                        label: "recovery_3",
+                        infoTitle: "recovery_factor_title",
+                        infoSections: [
+                            InfoExplainerSection(heading: "how_it_s_calculated", body: "recovery_factor_explanation"),
+                        ]
+                    )
+                    Spacer(minLength: 0)
+                    readinessFactorGauge(
+                        value: freshnessGaugeValue,
+                        label: "freshness",
+                        infoTitle: "freshness_factor_title",
+                        infoSections: [
+                            InfoExplainerSection(heading: "how_it_s_calculated", body: "freshness_factor_explanation"),
+                        ]
+                    )
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+    }
+
+    private func readinessFactorGauge(
+        value: Double,
+        label: LocalizedStringKey,
+        infoTitle: LocalizedStringKey,
+        infoSections: [InfoExplainerSection]
+    ) -> some View {
+        VStack(spacing: 8) {
+            ReadinessGauge(value: value, label: label)
+            InfoButton(infoTitle, sections: infoSections)
         }
     }
 

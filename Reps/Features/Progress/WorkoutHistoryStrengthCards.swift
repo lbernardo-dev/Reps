@@ -131,8 +131,8 @@ struct StrengthWorkoutDetailsCard: View {
             RouteWorkoutMetric(title: "Exercises", value: "\(exerciseCount)", color: PulseTheme.ringStand)
             RouteWorkoutMetric(title: "Avg RPE", value: (session.sessionRPE ?? AnalyticsEngine.averageRPE(for: session)).map { String(format: "%.1f", $0) } ?? "-", color: PulseTheme.hrZones[3])
             RouteWorkoutMetric(title: "Active Kilocalories", value: session.activeKilocaloriesText, color: PulseTheme.ringMove)
-            RouteWorkoutMetric(title: "Avg. Heart Rate", value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
-            RouteWorkoutMetric(title: "Max Heart Rate", value: session.maxHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: localizedString("avg_heart_rate"), value: session.averageHeartRate.map { localizedFormat("heart_rate_bpm_format", Int($0)) } ?? "--", color: PulseTheme.ringMove)
+            RouteWorkoutMetric(title: localizedString("max_heart_rate"), value: session.maxHeartRate.map { localizedFormat("heart_rate_bpm_format", Int($0)) } ?? "--", color: PulseTheme.ringMove)
         }
         .padding(24)
         .background(Color.black)

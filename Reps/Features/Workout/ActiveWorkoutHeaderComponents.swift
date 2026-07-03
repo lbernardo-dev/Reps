@@ -54,7 +54,7 @@ struct ActiveWorkoutPinnedHeader: View {
                     Button(action: onPrimaryAction) {
                         Label(localizedString("start"), systemImage: "play.fill")
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .frame(width: 110, height: 44)
                             .background(PulseTheme.accent)
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))

@@ -3,7 +3,7 @@ options:
   bundleIdPrefix: com.romerodev
   developmentLanguage: es
   deploymentTarget:
-    iOS: "17.0"
+    iOS: "26.0"
     watchOS: "10.0"
   createIntermediateGroups: true
   xcodeVersion: "17.0"
@@ -30,7 +30,7 @@ targets:
   Reps:
     type: application
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "26.0"
     sources:
       - path: Reps
       - path: RepsShared
@@ -60,8 +60,8 @@ targets:
         UIApplicationSupportsIndirectInputEvents: true
         UIBackgroundModes:
           - audio
+          - remote-notification
         UILaunchScreen: {}
-        UIRequiresFullScreen: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
@@ -127,7 +127,7 @@ targets:
   RepsWidgets:
     type: app-extension
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "26.0"
     sources:
       - path: RepsWidgets
       - path: RepsShared
@@ -196,7 +196,7 @@ targets:
   RepsTests:
     type: bundle.unit-test
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "26.0"
     sources:
       - path: RepsTests
     dependencies:

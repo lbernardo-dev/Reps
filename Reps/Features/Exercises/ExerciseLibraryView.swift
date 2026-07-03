@@ -7,6 +7,10 @@ struct ExerciseLibraryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppStore.self) private var store
 
+    /// True when this view is the root of the Ejercicios tab (no close
+    /// button, tab bar stays visible). False when presented as a sheet/push.
+    var isTabRoot: Bool = false
+
     @State private var searchText = ""
     @State private var selectedMuscle = "All"
     @State private var selectedEquipment = "All"
@@ -16,6 +20,7 @@ struct ExerciseLibraryView: View {
     @State private var selectedCategory = ExerciseLibraryCategory.all
     @State private var onlyAvailableEquipment = false
     @State private var showAddCustom = false
+    @State private var showNotifications = false
 
     private var muscles: [String] {
         ["All"] + Array(Set(store.exercises.map(\.muscleGroup))).sorted()
@@ -65,6 +70,22 @@ struct ExerciseLibraryView: View {
         NavigationStack {
             List {
                 Section {
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        TextField(localizedString("Search exercises"), text: $searchText)
+                            .textFieldStyle(.plain)
+                        if !searchText.isEmpty {
+                            Button {
+                                searchText = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(PulseTheme.tertiaryText)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(ExerciseLibraryCategory.allCases) { category in
@@ -162,9 +183,50 @@ struct ExerciseLibraryView: View {
                     }
                 }
             }
-            .searchable(text: $searchText, prompt: Text(localizedString("Search exercises")))
-            .navigationTitle(localizedString("Exercise Library"))
             .listStyle(.insetGrouped)
+            .safeAreaInset(edge: .top) {
+                PulseHeaderBar(
+                    title: localizedString("Exercise Library"),
+                    subtitleKey: "Browse and add movements",
+                    backAction: isTabRoot ? nil : { dismiss() }
+                ) {
+                    HStack(spacing: 6) {
+                        Button {
+                            HapticService.selection()
+                            showAddCustom = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                .navigationGlassCircle(.secondary, tint: .clear)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(localizedString("Add custom exercise"))
+
+                        Button {
+                            HapticService.selection()
+                            showNotifications = true
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "bell.fill")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                    .navigationGlassCircle(.secondary, tint: .clear)
+                                if store.hasUnreadBell {
+                                    Circle()
+                                        .fill(.red)
+                                        .frame(width: 9, height: 9)
+                                        .offset(x: -1, y: 1)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("notifications")
+                    }
+                }
+            }
             .safeAreaInset(edge: .bottom) {
                 if store.isSyncingExerciseLibrary {
                     RepsLoadingView(
@@ -190,31 +252,15 @@ struct ExerciseLibraryView: View {
                         .background(.ultraThinMaterial)
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 34, height: 34)
-                            .destructiveGlassCircle(.secondary)
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showAddCustom = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                }
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $showNotifications) {
+                NotificationsView()
             }
             .sheet(isPresented: $showAddCustom) {
                 AddCustomExerciseView()
             }
         }
-        .mainTabBarHidden()
+        .mainTabBarHidden(!isTabRoot)
     }
 
     private func availableEquipmentMatches(_ exercise: Exercise) -> Bool {
@@ -542,7 +588,7 @@ private struct ExerciseActionButton: View {
             .minimumScaleFactor(0.82)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .foregroundStyle(.white)
+            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
             .background(PulseTheme.accent)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
@@ -556,7 +602,7 @@ private struct InstructionStepRow: View {
         HStack(alignment: .top, spacing: 12) {
             Text("\(index)")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                 .frame(width: 26, height: 26)
                 .background(PulseTheme.accent)
                 .clipShape(Circle())
@@ -1094,7 +1140,7 @@ struct ExerciseDetailView: View {
                         Spacer()
                         Text(result.level.title)
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(strengthLevelColor(result.level)))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
                             .background(strengthLevelColor(result.level))

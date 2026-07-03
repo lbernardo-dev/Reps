@@ -26,9 +26,9 @@ struct PlansView: View {
     @State private var showExerciseLibrary = false
     @State private var planToEdit: WorkoutPlan?
     @State private var selectedPlanForDetail: WorkoutPlan? = nil
-    @State private var showProfile = false
     @State private var showProgramLibrary = false
     @State private var showNotifications = false
+    @State private var showCalendar = false
 
     /// A few exercises spanning distinct muscle groups, for the library collage.
     private var collageExercises: [Exercise] {
@@ -52,6 +52,19 @@ struct PlansView: View {
                     HStack(spacing: 6) {
                         Button {
                             HapticService.selection()
+                            showCalendar = true
+                        } label: {
+                            Image(systemName: "calendar")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                                .navigationGlassCircle(.secondary, tint: .clear)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("schedule")
+
+                        Button {
+                            HapticService.selection()
                             showNotifications = true
                         } label: {
                             ZStack(alignment: .topTrailing) {
@@ -70,26 +83,18 @@ struct PlansView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("notifications")
-
-                        HeaderAvatarButton(
-                            imageData: store.userProfile.avatarImageData,
-                            accessibilityLabel: "profile"
-                        ) {
-                            showProfile = true
-                        }
                     }
                 }
             ) {
                     if hasActivePlan {
                         activePlanSection
                             .stickyHeaderTitle(localizedString("active_plan"))
+
+                        discoveryBanner
                     } else {
-                        emptyPlanSection
+                        startTrainingSection
                             .stickyHeaderTitle(localizedString("create_plan_2"))
                     }
-
-                    programDiscoverySection
-                        .stickyHeaderTitle(localizedString("browse_programs_button"))
 
                     librarySection
                         .stickyHeaderTitle(localizedString("libraries"))
@@ -170,11 +175,11 @@ struct PlansView: View {
             .navigationDestination(isPresented: $showExerciseLibrary) {
                 ExerciseLibraryView()
             }
-            .navigationDestination(isPresented: $showProfile) {
-                ProfileView()
-            }
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()
+            }
+            .fullScreenCover(isPresented: $showCalendar) {
+                CalendarView()
             }
             .toolbar(.hidden, for: .navigationBar)
         }
@@ -259,61 +264,37 @@ struct PlansView: View {
         }
     }
 
-    private var programDiscoverySection: some View {
-        PulseCard(contentPadding: 16) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.title3.weight(.black))
-                        .foregroundStyle(.white)
-                        .frame(width: 50, height: 50)
-                        .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+    /// Compact promo shown below the active plan — discovery is secondary
+    /// once training is already underway, so it doesn't need hero real estate.
+    private var discoveryBanner: some View {
+        Button {
+            tryOpenProgramLibrary()
+        } label: {
+            PulseCard(contentPadding: 14) {
+                HStack(spacing: 12) {
+                    Image(systemName: "sparkles")
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(.black)
+                        .frame(width: 40, height: 40)
+                        .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(localizedString("browse_programs_button"))
-                            .font(.title3.weight(.black))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                        Text(localizedString("program_discovery_subtitle"))
-                            .font(.subheadline.weight(.semibold))
+                            .font(.subheadline.weight(.bold))
+                        Text(localizedFormat("programs_available_format", SeedData.defaultPlans.count))
+                            .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
-                }
 
-                HStack(spacing: 8) {
-                    PlanValuePill(value: "\(SeedData.defaultPlans.count)", label: localizedString("program_library_title"), systemImage: "square.grid.2x2")
-                    PlanValuePill(value: "\(SeedData.ProgramMetadata.Category.allCases.count)", label: localizedString("goals"), systemImage: "scope")
-                    PlanValuePill(value: "\(store.exercises.count)", label: localizedString("exercises_2"), systemImage: "figure.strengthtraining.traditional")
-                }
+                    Spacer()
 
-                HStack(spacing: 10) {
-                    Button {
-                        tryOpenProgramLibrary()
-                    } label: {
-                        Label(localizedString("browse_programs_button"), systemImage: "sparkles")
-                            .font(.headline.weight(.black))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .foregroundStyle(.white)
-                            .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        tryOpenCreatePlan()
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.headline.weight(.black))
-                            .frame(width: 50, height: 50)
-                            .foregroundStyle(PulseTheme.accent)
-                            .background(PulseTheme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(localizedString("create_plan"))
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
                 }
             }
         }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -344,67 +325,139 @@ struct PlansView: View {
         }
     }
 
-    private var emptyPlanSection: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    Image(systemName: "calendar.badge.plus")
-                        .font(.headline.weight(.bold))
-                        .frame(width: 42, height: 42)
-                        .foregroundStyle(.white)
-                        .background(PulseTheme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("no_active_plan")
-                            .font(.headline)
-                        Text("create_your_first_routine_use_a_template_or_open_the_library_to_choose_exercises")
-                            .font(.subheadline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                HStack(spacing: 10) {
-                    Button {
-                        tryOpenCreatePlan()
-                    } label: {
-                        Label("create_plan", systemImage: "plus")
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .foregroundStyle(.black)
+    /// Adaptive "get started" section shown while no plan is active.
+    /// Collapses what used to be two separate cards (empty state + program
+    /// discovery hero) into one, and tailors its content to whether this is
+    /// a true cold start or a returning user who just needs to activate a
+    /// plan they already saved.
+    @ViewBuilder
+    private var startTrainingSection: some View {
+        if store.plans.isEmpty {
+            PulseCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "calendar.badge.plus")
+                            .font(.headline.weight(.bold))
+                            .frame(width: 42, height: 42)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .background(PulseTheme.accent)
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
 
-                    NavigationLink {
-                        WorkoutLibraryView()
-                    } label: {
-                        Label("ver_rutinas", systemImage: "list.clipboard")
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .foregroundStyle(PulseTheme.accent)
-                            .background(PulseTheme.grouped)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("no_active_plan")
+                                .font(.headline)
+                            Text("create_your_first_routine_use_a_template_or_open_the_library_to_choose_exercises")
+                                .font(.subheadline)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    HStack(spacing: 10) {
+                        Button {
+                            tryOpenCreatePlan()
+                        } label: {
+                            Label("create_plan", systemImage: "plus")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 46)
+                                .foregroundStyle(.black)
+                                .background(PulseTheme.accent)
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink {
+                            WorkoutLibraryView()
+                        } label: {
+                            Label("ver_rutinas", systemImage: "list.clipboard")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 46)
+                                .foregroundStyle(PulseTheme.accent)
+                                .background(PulseTheme.grouped)
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Divider()
+                        .overlay(PulseTheme.grouped)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(localizedString("program_discovery_subtitle"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        HStack(spacing: 8) {
+                            PlanValuePill(value: "\(SeedData.defaultPlans.count)", label: localizedString("program_library_title"), systemImage: "square.grid.2x2")
+                            PlanValuePill(value: "\(SeedData.ProgramMetadata.Category.allCases.count)", label: localizedString("goals"), systemImage: "scope")
+                            PlanValuePill(value: "\(store.exercises.count)", label: localizedString("exercises_2"), systemImage: "figure.strengthtraining.traditional")
+                        }
+
+                        Button {
+                            tryOpenProgramLibrary()
+                        } label: {
+                            Label(localizedString("browse_programs_button"), systemImage: "sparkles")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                                .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        } else {
+            PulseCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bolt.badge.clock.fill")
+                            .font(.headline.weight(.bold))
+                            .frame(width: 42, height: 42)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                            .background(PulseTheme.accent)
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                }
 
-                Button {
-                    tryOpenProgramLibrary()
-                } label: {
-                    Label(localizedString("browse_programs_button"), systemImage: "magnifyingglass")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .foregroundStyle(PulseTheme.accent)
-                        .background(PulseTheme.accent.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(localizedFormat("saved_plans_ready_format", store.plans.count))
+                                .font(.headline)
+                            Text(localizedString("activate_one_below_or_discover_a_new_program"))
+                                .font(.subheadline)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    HStack(spacing: 10) {
+                        Button {
+                            tryOpenCreatePlan()
+                        } label: {
+                            Label("create_plan", systemImage: "plus")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 46)
+                                .foregroundStyle(PulseTheme.accent)
+                                .background(PulseTheme.grouped)
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            tryOpenProgramLibrary()
+                        } label: {
+                            Label(localizedString("social_discover"), systemImage: "sparkles")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 46)
+                                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                                .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
             }
         }
     }
@@ -745,14 +798,14 @@ private struct PlanCard: View {
                 ZStack(alignment: .bottomTrailing) {
                     Image(systemName: locationIcon)
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.onColor(locationColor))
                         .frame(width: 52, height: 52)
                         .background(locationColor, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                     if isLocked {
                         Image(systemName: "lock.fill")
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .frame(width: 18, height: 18)
                             .background(PulseTheme.accent, in: Circle())
                             .offset(x: 4, y: 4)
@@ -884,7 +937,7 @@ private struct PlanDetailSheet: View {
                         HStack(spacing: 14) {
                             Image(systemName: plan.location == .gym ? "dumbbell.fill" : plan.location == .home ? "house.fill" : "bolt.fill")
                                 .font(.title2.weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(PulseTheme.onColor(locationColor))
                                 .frame(width: 56, height: 56)
                                 .background(locationColor, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
@@ -943,7 +996,7 @@ private struct PlanDetailSheet: View {
                         .font(.headline.weight(.black))
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.onColor(locationColor))
                         .background(locationColor, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -1087,7 +1140,7 @@ private struct PlanMusicCard: View {
                             playPlaylist(primaryPlaylist)
                         } label: {
                             Image(systemName: playButtonIcon(for: primaryPlaylist))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(PulseTheme.onColor(primaryPlaylist.provider == .appleMusic ? PulseTheme.appleMusic : PulseTheme.accent))
                                 .frame(width: 44, height: 44)
                                 .background(primaryPlaylist.provider == .appleMusic ? PulseTheme.appleMusic : PulseTheme.accent)
                                 .clipShape(Circle())

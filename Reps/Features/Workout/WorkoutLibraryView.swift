@@ -19,7 +19,7 @@ struct WorkoutLibraryView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .frame(width: 40, height: 40)
                         .background(PulseTheme.accent)
                         .clipShape(Circle())
