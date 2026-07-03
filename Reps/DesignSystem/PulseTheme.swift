@@ -822,8 +822,10 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
             activeTitle = title
         }
         .onPreferenceChange(StickyHeaderHeightPreferenceKey.self) { height in
-            guard height > 0 else { return }
-            headerHeight = height
+            guard height > 0, headerHeight != height else { return }
+            DispatchQueue.main.async {
+                headerHeight = height
+            }
         }
     }
 
@@ -1199,6 +1201,16 @@ enum ExerciseVisualResolver {
         var resolved = catalog.first(where: { $0.id == exercise.id }) ?? exercise
         if !hasValidCustomImage(resolved.customImageData) {
             resolved.customImageData = nil
+        }
+
+        // The catalog-wide substitute search below only exists to backfill a
+        // missing image/mediaURL. When this exercise already has both, skip
+        // it entirely — with hundreds of exercises in the library, this scan
+        // (string normalization + image decoding across every candidate) was
+        // running for every row on every render for no benefit.
+        let hasOwnMediaURL = !(resolved.mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        if resolved.customImageData != nil && hasOwnMediaURL {
+            return resolved
         }
 
         guard let catalogExercise = catalogExerciseMatch(for: resolved, in: catalog) else {

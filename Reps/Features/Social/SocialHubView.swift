@@ -25,6 +25,7 @@ struct SocialHubView: View {
     @State private var commentsPost: WorkoutPost? = nil
     @State private var showCreatePost = false
     @State private var showCreateChallenge = false
+    @State private var showSocialOnboarding = false
     @State private var selectedChallenge: SocialChallenge? = nil
 
     private enum Tab { case feed, friends, challenges, discover }
@@ -36,7 +37,6 @@ struct SocialHubView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 20) {
-                navBar
                 myProfileCard
                 tabPicker
 
@@ -59,6 +59,14 @@ struct SocialHubView: View {
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .top) {
+            PulseHeaderBar(
+                title: localizedString("social_hub"),
+                subtitleKey: "friends_2"
+            ) {
+                socialHeaderActions
+            }
+        }
         .task { await loadFollowing(); await loadSuggested() }
         .task { if store.feedPosts.isEmpty { await store.loadFeed() } }
         .task { if store.activeChallenges.isEmpty { await store.loadChallenges() } }
@@ -97,50 +105,59 @@ struct SocialHubView: View {
             CreatePostView()
                 .environment(store)
         }
+        .sheet(isPresented: $showSocialOnboarding) {
+            SocialOnboardingView()
+                .environment(store)
+        }
     }
 
-    // MARK: - Navigation Bar
+    // MARK: - Header
 
-    private var navBar: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(localizedString("social_hub"))
-                    .font(.system(size: 28, weight: .heavy, design: .rounded))
-                Text(localizedString("friends_2"))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(PulseTheme.secondaryText)
+    private var socialHeaderActions: some View {
+        HStack(spacing: 6) {
+            Button {
+                HapticService.selection()
+                if store.userProfile.socialUsername == nil {
+                    showSocialOnboarding = true
+                } else {
+                    showCreatePost = true
+                }
+            } label: {
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(PulseTheme.accent)
+                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                    .navigationGlassCircle(.secondary, tint: .clear)
             }
-            Spacer()
-            HStack(spacing: 8) {
-                if store.userProfile.socialUsername != nil {
-                    Button {
-                        HapticService.selection()
-                        showCreatePost = true
-                    } label: {
-                        Image(systemName: "square.and.pencil")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(PulseTheme.accent)
-                            .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                            .navigationGlassCircle(.secondary, tint: .clear)
-                    }
-                    .buttonStyle(.plain)
-                }
+            .buttonStyle(.plain)
+            .accessibilityLabel(localizedString("post_new"))
 
-                if let uname = store.userProfile.socialUsername {
-                    let inviteText = localizedFormat("social_invite_text", uname, uname)
-                    ShareLink(item: inviteText) {
-                        Image(systemName: "person.badge.plus")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(PulseTheme.accent)
-                            .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                            .navigationGlassCircle(.secondary, tint: .clear)
-                    }
-                    .buttonStyle(.plain)
+            if let uname = store.userProfile.socialUsername {
+                let inviteText = localizedFormat("social_invite_text", uname, uname)
+                ShareLink(item: inviteText) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(PulseTheme.accent)
+                        .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                        .navigationGlassCircle(.secondary, tint: .clear)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(localizedString("share"))
+            } else {
+                Button {
+                    HapticService.selection()
+                    showSocialOnboarding = true
+                } label: {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(PulseTheme.accent)
+                        .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                        .navigationGlassCircle(.secondary, tint: .clear)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(localizedString("connect_with_friends"))
             }
         }
-        .padding(.top, 60)
-        .padding(.bottom, 8)
     }
 
     // MARK: - My Profile Card

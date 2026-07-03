@@ -295,7 +295,7 @@ struct MainTabView: View {
     private func circularTabAvatar(from data: Data, diameter: CGFloat = 44) -> UIImage? {
         guard let source = UIImage(data: data) else { return nil }
         let format = UIGraphicsImageRendererFormat()
-        format.scale = UIScreen.main.scale
+        format.scale = UITraitCollection.current.displayScale
         format.opaque = false
         let size = CGSize(width: diameter, height: diameter)
         let rendered = UIGraphicsImageRenderer(size: size, format: format).image { _ in

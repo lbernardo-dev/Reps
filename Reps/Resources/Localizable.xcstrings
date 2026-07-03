@@ -7621,6 +7621,16 @@
         }
       }
     },
+    "%@%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@%3$@"
+          }
+        }
+      }
+    },
     "%@%%" : {
 
     },
@@ -15514,6 +15524,40 @@
         }
       }
     },
+    "all_time" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All time"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siempre"
+          }
+        }
+      }
+    },
+    "all_time_label" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo"
+          }
+        }
+      }
+    },
     "already_saved" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -21457,6 +21501,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Batería de entreno crítica"
+          }
+        }
+      }
+    },
+    "battery_level_explainer_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How your battery level works"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo funciona tu nivel de batería"
+          }
+        }
+      }
+    },
+    "battery_level_formula_explanation" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Level = 100 minus Fatigue load plus Recovery credit, clamped between 5 and 100. Fatigue load adds up decayed recent training, your plan's upcoming pressure and any wellness penalties. Recovery credit adds up rest days, sleep, HRV and how you say you feel."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nivel = 100 menos Carga de fatiga más Crédito de recuperación, limitado entre 5 y 100. La carga de fatiga suma el entrenamiento reciente (con decaimiento), la presión de tu plan activo y las alertas de bienestar. El crédito de recuperación suma días de descanso, sueño, VFC y cómo dices sentirte."
           }
         }
       }
@@ -37498,7 +37576,6 @@
       }
     },
     "done" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -48185,6 +48262,57 @@
         }
       }
     },
+    "freshness" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freshness"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frescura"
+          }
+        }
+      }
+    },
+    "freshness_factor_explanation" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built from your decayed fatigue (recent sessions, weighted more heavily the more recent they are), the pressure of your active plan's upcoming intensity, and any wellness flags. Heavy recent training pulls this down."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se calcula con tu fatiga acumulada (las sesiones recientes pesan más cuanto más recientes son), la presión de la intensidad prevista en tu plan activo y cualquier alerta de bienestar. Entrenar fuerte recientemente lo baja."
+          }
+        }
+      }
+    },
+    "freshness_factor_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freshness"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frescura"
+          }
+        }
+      }
+    },
     "friends_2" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -54040,6 +54168,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "house.fill"
+          }
+        }
+      }
+    },
+    "how_it_s_calculated" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How it's calculated"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo se calcula"
           }
         }
       }
@@ -76936,6 +77081,23 @@
         }
       }
     },
+    "pause" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausar"
+          }
+        }
+      }
+    },
     "Pause workout" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -84535,23 +84697,6 @@
         }
       }
     },
-    "programs_available_format" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d programs available"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d programas disponibles"
-          }
-        }
-      }
-    },
     "Programar" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -84701,6 +84846,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Programar sesión"
+          }
+        }
+      }
+    },
+    "programs_available_format" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d programs available"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d programas disponibles"
           }
         }
       }
@@ -87378,6 +87540,23 @@
         }
       }
     },
+    "readiness_factors" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Factors"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Factores"
+          }
+        }
+      }
+    },
     "ready" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -88722,6 +88901,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CRÉDITO DE RECUPERACIÓN (+)"
+          }
+        }
+      }
+    },
+    "recovery_factor_explanation" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built from rest days since your last session, sleep hours vs. your target, HRV vs. your baseline, and how fatigued you told us you feel. More rest, sleep and a calm HRV push this up."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se calcula con los días de descanso desde tu última sesión, las horas de sueño frente a tu objetivo, la VFC frente a tu referencia y el cansancio que reportaste. Más descanso, sueño y una VFC estable lo suben."
+          }
+        }
+      }
+    },
+    "recovery_factor_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recovery"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperación"
           }
         }
       }
@@ -91235,6 +91448,23 @@
         }
       }
     },
+    "reset" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiniciar"
+          }
+        }
+      }
+    },
     "reset_app" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -91606,6 +91836,23 @@
         }
       }
     },
+    "restart" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiniciar"
+          }
+        }
+      }
+    },
     "Restaurando..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -91839,6 +92086,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Resultados en Apple Music"
+          }
+        }
+      }
+    },
+    "resume" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reanudar"
           }
         }
       }
@@ -92676,6 +92940,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ronda %d/%d"
+          }
+        }
+      }
+    },
+    "round_x_of_y_format" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Round %d of %d"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ronda %d de %d"
+          }
+        }
+      }
+    },
+    "rounds" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rounds"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rondas"
           }
         }
       }
@@ -103697,6 +103995,23 @@
         }
       }
     },
+    "stop" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener"
+          }
+        }
+      }
+    },
     "Stop workout" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -107346,6 +107661,158 @@
         }
       }
     },
+    "timer_complete" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Complete!"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¡Completado!"
+          }
+        }
+      }
+    },
+    "timer_kind_amrap" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AMRAP"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AMRAP"
+          }
+        }
+      }
+    },
+    "timer_kind_boxing" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boxing / MMA"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boxeo / MMA"
+          }
+        }
+      }
+    },
+    "timer_kind_countdown" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timer"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporizador"
+          }
+        }
+      }
+    },
+    "timer_kind_emom" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EMOM"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EMOM"
+          }
+        }
+      }
+    },
+    "timer_kind_metronome" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metronome"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metrónomo"
+          }
+        }
+      }
+    },
+    "timer_kind_stopwatch" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopwatch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cronómetro"
+          }
+        }
+      }
+    },
+    "timer_kind_tabata" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tabata"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tabata"
+          }
+        }
+      }
+    },
+    "timer_kind_yoga" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yoga"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yoga"
+          }
+        }
+      }
+    },
     "timers" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -107376,6 +107843,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Timers"
+          }
+        }
+      }
+    },
+    "timers_subtitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopwatch, Tabata, EMOM & more"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cronómetro, Tabata, EMOM y más"
           }
         }
       }
@@ -112720,6 +113204,23 @@
         }
       }
     },
+    "volume_by_muscle_group" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume by muscle group"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volumen por grupo muscular"
+          }
+        }
+      }
+    },
     "volume_intensity" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -115283,6 +115784,23 @@
         }
       }
     },
+    "work" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Work"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trabajo"
+          }
+        }
+      }
+    },
     "WORK" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -117059,486 +117577,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zottman Curl"
-          }
-        }
-      }
-    },
-    "readiness_factors" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Factors"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Factores"
-          }
-        }
-      }
-    },
-    "recovery_factor_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recovery"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recuperaci\u00f3n"
-          }
-        }
-      }
-    },
-    "freshness_factor_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Freshness"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frescura"
-          }
-        }
-      }
-    },
-    "recovery_factor_explanation" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Built from rest days since your last session, sleep hours vs. your target, HRV vs. your baseline, and how fatigued you told us you feel. More rest, sleep and a calm HRV push this up."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se calcula con los d\u00edas de descanso desde tu \u00faltima sesi\u00f3n, las horas de sue\u00f1o frente a tu objetivo, la VFC frente a tu referencia y el cansancio que reportaste. M\u00e1s descanso, sue\u00f1o y una VFC estable lo suben."
-          }
-        }
-      }
-    },
-    "freshness_factor_explanation" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Built from your decayed fatigue (recent sessions, weighted more heavily the more recent they are), the pressure of your active plan's upcoming intensity, and any wellness flags. Heavy recent training pulls this down."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se calcula con tu fatiga acumulada (las sesiones recientes pesan m\u00e1s cuanto m\u00e1s recientes son), la presi\u00f3n de la intensidad prevista en tu plan activo y cualquier alerta de bienestar. Entrenar fuerte recientemente lo baja."
-          }
-        }
-      }
-    },
-    "freshness" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Freshness"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frescura"
-          }
-        }
-      }
-    },
-    "battery_level_explainer_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "How your battery level works"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "C\u00f3mo funciona tu nivel de bater\u00eda"
-          }
-        }
-      }
-    },
-    "battery_level_formula_explanation" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Level = 100 minus Fatigue load plus Recovery credit, clamped between 5 and 100. Fatigue load adds up decayed recent training, your plan's upcoming pressure and any wellness penalties. Recovery credit adds up rest days, sleep, HRV and how you say you feel."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nivel = 100 menos Carga de fatiga m\u00e1s Cr\u00e9dito de recuperaci\u00f3n, limitado entre 5 y 100. La carga de fatiga suma el entrenamiento reciente (con decaimiento), la presi\u00f3n de tu plan activo y las alertas de bienestar. El cr\u00e9dito de recuperaci\u00f3n suma d\u00edas de descanso, sue\u00f1o, VFC y c\u00f3mo dices sentirte."
-          }
-        }
-      }
-    },
-    "how_it_s_calculated" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "How it's calculated"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "C\u00f3mo se calcula"
-          }
-        }
-      }
-    },
-    "volume_by_muscle_group" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Volume by muscle group"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Volumen por grupo muscular"
-          }
-        }
-      }
-    },
-    "all_time_label" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todo"
-          }
-        }
-      }
-    },
-    "all_time" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All time"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Siempre"
-          }
-        }
-      }
-    },
-    "timers_subtitle" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stopwatch, Tabata, EMOM & more"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cron\u00f3metro, Tabata, EMOM y m\u00e1s"
-          }
-        }
-      }
-    },
-    "timer_kind_stopwatch" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stopwatch"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cron\u00f3metro"
-          }
-        }
-      }
-    },
-    "timer_kind_countdown" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timer"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporizador"
-          }
-        }
-      }
-    },
-    "timer_kind_tabata" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tabata"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tabata"
-          }
-        }
-      }
-    },
-    "timer_kind_emom" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "EMOM"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "EMOM"
-          }
-        }
-      }
-    },
-    "timer_kind_amrap" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AMRAP"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AMRAP"
-          }
-        }
-      }
-    },
-    "timer_kind_boxing" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Boxing / MMA"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Boxeo / MMA"
-          }
-        }
-      }
-    },
-    "timer_kind_metronome" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Metronome"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Metr\u00f3nomo"
-          }
-        }
-      }
-    },
-    "timer_kind_yoga" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yoga"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yoga"
-          }
-        }
-      }
-    },
-    "work" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Work"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trabajo"
-          }
-        }
-      }
-    },
-    "rounds" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rounds"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rondas"
-          }
-        }
-      }
-    },
-    "round_x_of_y_format" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Round %d of %d"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ronda %d de %d"
-          }
-        }
-      }
-    },
-    "timer_complete" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Complete!"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u00a1Completado!"
-          }
-        }
-      }
-    },
-    "restart" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restart"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reiniciar"
-          }
-        }
-      }
-    },
-    "resume" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Resume"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reanudar"
-          }
-        }
-      }
-    },
-    "pause" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pause"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pausar"
-          }
-        }
-      }
-    },
-    "reset" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reiniciar"
-          }
-        }
-      }
-    },
-    "stop" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stop"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detener"
           }
         }
       }

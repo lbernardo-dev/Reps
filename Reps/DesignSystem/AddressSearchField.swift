@@ -22,8 +22,8 @@ struct PickedPlace {
     /// the public API exposes (name, full address, coordinate, phone, website).
     init(from item: MKMapItem, fallbackName: String? = nil) {
         self.name = item.name ?? fallbackName ?? ""
-        self.address = GymLocationPickerView.formatAddress(item.placemark)
-        self.coordinate = item.placemark.coordinate
+        self.address = GymLocationPickerView.formatAddress(item)
+        self.coordinate = item.location.coordinate
         self.phone = item.phoneNumber
         self.website = item.url?.absoluteString
     }
@@ -44,7 +44,6 @@ struct GymLocationPickerView: View {
     @State private var pinPhone: String?
     @State private var pinWebsite: String?
     @State private var isResolving = false
-    private let geocoder = CLGeocoder()
 
     var body: some View {
         NavigationStack {
@@ -168,9 +167,9 @@ struct GymLocationPickerView: View {
             Task { @MainActor in
                 isResolving = false
                 guard let item = response?.mapItems.first else { return }
-                let coordinate = item.placemark.coordinate
+                let coordinate = item.location.coordinate
                 pinName = item.name ?? completion.title
-                pinAddress = Self.formatAddress(item.placemark)
+                pinAddress = Self.formatAddress(item)
                 pinPhone = item.phoneNumber
                 pinWebsite = item.url?.absoluteString
                 select(coordinate: coordinate, name: pinName, address: pinAddress, recenter: true)
@@ -181,32 +180,23 @@ struct GymLocationPickerView: View {
     private func reverseGeocode(_ coordinate: CLLocationCoordinate2D) {
         isResolving = true
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        geocoder.reverseGeocodeLocation(location) { placemarks, _ in
-            Task { @MainActor in
-                isResolving = false
-                guard let placemark = placemarks?.first else { return }
-                pinName = placemark.name ?? placemark.thoroughfare ?? localizedString("selected_location")
-                pinAddress = Self.formatAddress(placemark)
-                // A raw map tap has no business listing — clear POI-only details.
-                pinPhone = nil
-                pinWebsite = nil
-            }
+        guard let request = MKReverseGeocodingRequest(location: location) else {
+            isResolving = false
+            return
+        }
+        Task { @MainActor in
+            defer { isResolving = false }
+            guard let item = try? await request.mapItems.first else { return }
+            pinName = item.name ?? localizedString("selected_location")
+            pinAddress = Self.formatAddress(item)
+            // A raw map tap has no business listing — clear POI-only details.
+            pinPhone = nil
+            pinWebsite = nil
         }
     }
 
-    nonisolated static func formatAddress(_ placemark: CLPlacemark) -> String? {
-        let parts = [
-            [placemark.thoroughfare, placemark.subThoroughfare].compactMap { $0 }.joined(separator: " "),
-            placemark.locality,
-            placemark.administrativeArea,
-            placemark.postalCode
-        ].compactMap { $0?.isEmpty == false ? $0 : nil }
-        let joined = parts.joined(separator: ", ")
-        return joined.isEmpty ? nil : joined
-    }
-
-    nonisolated static func formatAddress(_ placemark: MKPlacemark) -> String? {
-        formatAddress(placemark as CLPlacemark)
+    nonisolated static func formatAddress(_ item: MKMapItem) -> String? {
+        item.addressRepresentations?.fullAddress(includingRegion: false, singleLine: true)
     }
 }
 

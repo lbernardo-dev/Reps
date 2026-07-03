@@ -604,10 +604,6 @@ final class AppStore {
         }
     }
 
-    func presentStoreKitCodeRedemption() {
-        SKPaymentQueue.default().presentCodeRedemptionSheet()
-    }
-
     // On fresh install (no local sessions/plans), silently restore from iCloud if a
     // PRO backup exists. This prevents data loss when the user reinstalls the app.
     private func restoreFromICloudIfNeeded() async {
@@ -3304,7 +3300,8 @@ final class AppStore {
 
         // 1b. Ignore spurious near-empty workouts (duplicate mirror sessions that
         // never collected data) so they don't create junk entries or receipts.
-        if Self.isNegligibleWorkout(workout) {
+        let energyBurned = await workoutQuantitySum(for: workout, type: HKQuantityType(.activeEnergyBurned), unit: .kilocalorie()) ?? 0
+        if Self.isNegligibleWorkout(workout, calories: energyBurned) {
             return
         }
 
@@ -3342,7 +3339,7 @@ final class AppStore {
         }
         let uniqueActivities = Array(Set(activities)).sorted()
         
-        let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie())
+        let calories: Double? = energyBurned > 0 ? energyBurned : nil
         let sessionLocation = Self.location(for: workout)
 
         // Clasificación gruesa del workout entrante (locomoción/cardio vs fuerza u
@@ -3565,10 +3562,9 @@ final class AppStore {
 
     /// A workout with no meaningful duration, distance, or energy — typically a
     /// spurious mirror session that was started and ended without collecting data.
-    static func isNegligibleWorkout(_ workout: HKWorkout) -> Bool {
+    static func isNegligibleWorkout(_ workout: HKWorkout, calories: Double) -> Bool {
         let minutes = workout.duration / 60
         let distanceKm = workout.totalDistance?.doubleValue(for: .meterUnit(with: .kilo)) ?? 0
-        let calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0
         return minutes < 2 && distanceKm <= 0.01 && calories <= 1
     }
 

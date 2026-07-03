@@ -161,14 +161,13 @@ struct ProfileSetupView: View {
             }
 
             VStack(spacing: 14) {
-                (Text("onboarding_hero_meet")
-                    + Text("StreakRep")
-                        .foregroundStyle(LinearGradient(
-                            colors: [PulseTheme.accent, PulseTheme.warning],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ))
-                    + Text("onboarding_hero_partner"))
+                let brandText = Text("StreakRep")
+                    .foregroundStyle(LinearGradient(
+                        colors: [PulseTheme.accent, PulseTheme.warning],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ))
+                Text("\(Text("onboarding_hero_meet"))\(brandText)\(Text("onboarding_hero_partner"))")
                     .font(.system(size: 38, weight: .heavy))
                     .multilineTextAlignment(.center)
                     .lineLimit(4)

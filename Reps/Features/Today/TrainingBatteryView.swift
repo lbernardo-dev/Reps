@@ -469,7 +469,7 @@ struct TrainingBatteryView: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Image(systemName: "chart.line.trend.down")
+                    Image(systemName: "chart.line.downtrend.xyaxis")
                         .font(.headline)
                         .foregroundStyle(PulseTheme.accent)
                     Text(localizedString("session_impact_simulator"))

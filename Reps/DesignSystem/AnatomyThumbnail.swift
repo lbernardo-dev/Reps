@@ -169,7 +169,7 @@ private final class AnatomyThumbnailImageCache {
         .background(anatomyThumbnailBackground)
 
         let renderer = ImageRenderer(content: content)
-        renderer.scale = UIScreen.main.scale
+        renderer.scale = UITraitCollection.current.displayScale
         guard let image = renderer.uiImage else {
             return nil
         }

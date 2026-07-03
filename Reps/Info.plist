@@ -39,6 +39,8 @@
 	<string>StreakRep lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>StreakRep puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre incluso cuando la pantalla está bloqueada.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.</string>
 	<key>NSMicrophoneUsageDescription</key>
@@ -67,11 +69,14 @@
 	<array>
 		<string>69c0dc20d15124f24860efa6345787972b5cc2ebe6f3646fe44cdfe1a5e37ca9</string>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<string>location</string>
 		<string>remote-notification</string>
 	</array>
 	<key>UILaunchScreen</key>
@@ -80,6 +85,13 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 </dict>
 </plist>

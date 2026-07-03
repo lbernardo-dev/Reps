@@ -307,7 +307,7 @@ final class HealthKitService: ObservableObject {
                 averagePaceSecondsPerKm: nil,
                 averageHeartRate: heartRate?.average ?? sensors?.averageHeartRate,
                 maxHeartRate: heartRate?.max ?? sensors?.maxHeartRate,
-                estimatedCalories: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()),
+                estimatedCalories: sensors?.activeEnergyKcal,
                 steps: sensors?.steps,
                 activeEnergyKcal: sensors?.activeEnergyKcal,
                 heartRateBefore: sensors?.heartRateBefore,

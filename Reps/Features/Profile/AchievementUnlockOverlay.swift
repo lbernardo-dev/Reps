@@ -16,8 +16,8 @@ private struct ConfettiEmitterView: UIViewRepresentable {
         host.layer.addSublayer(emitter)
 
         // Reposition emitter at full width once layout is known
-        DispatchQueue.main.async {
-            let w = UIScreen.main.bounds.width
+        DispatchQueue.main.async { [weak host] in
+            let w = host?.window?.bounds.width ?? host?.bounds.width ?? 0
             emitter.emitterPosition = CGPoint(x: w / 2, y: -10)
             emitter.emitterSize     = CGSize(width: w, height: 1)
         }

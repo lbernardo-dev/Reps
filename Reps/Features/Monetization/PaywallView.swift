@@ -14,6 +14,7 @@ struct PaywallView: View {
     @State private var isRestoring = false
     @State private var showStoreKitInfo = false
     @State private var storeKitInfoMessage = ""
+    @State private var showingOfferCodeRedemption = false
 
     private let includedFeatures: [ProductFeature] = [
         .configurableProgression,
@@ -122,7 +123,7 @@ struct PaywallView: View {
                         .disabled(isRestoring)
 
                         Button {
-                            store.presentStoreKitCodeRedemption()
+                            showingOfferCodeRedemption = true
                         } label: {
                             Text("apply_promotional_code")
                                 .font(.footnote.weight(.semibold))
@@ -229,6 +230,7 @@ struct PaywallView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .screenBackground()
+        .offerCodeRedemption(isPresented: $showingOfferCodeRedemption)
     }
 
     private var paywallHero: some View {

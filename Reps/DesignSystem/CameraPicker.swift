@@ -187,7 +187,11 @@ struct VideoCameraPicker: UIViewControllerRepresentable {
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             if let url = info[.mediaURL] as? URL, let data = try? Data(contentsOf: url) {
-                onCapture(data, VideoThumbnail.generate(from: url))
+                let onCapture = onCapture
+                Task {
+                    let thumbnail = await VideoThumbnail.generate(from: url)
+                    onCapture(data, thumbnail)
+                }
             }
             isPresented.wrappedValue = false
         }
@@ -199,12 +203,15 @@ struct VideoCameraPicker: UIViewControllerRepresentable {
 }
 
 enum VideoThumbnail {
-    static func generate(from url: URL) -> UIImage? {
+    static func generate(from url: URL) async -> UIImage? {
         let asset = AVURLAsset(url: url)
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
         let time = CMTime(seconds: 0.1, preferredTimescale: 600)
-        guard let cgImage = try? generator.copyCGImage(at: time, actualTime: nil) else { return nil }
-        return UIImage(cgImage: cgImage)
+        return await withCheckedContinuation { continuation in
+            generator.generateCGImageAsynchronously(for: time) { cgImage, _, _ in
+                continuation.resume(returning: cgImage.map(UIImage.init(cgImage:)))
+            }
+        }
     }
 }

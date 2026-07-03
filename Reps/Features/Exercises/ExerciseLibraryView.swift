@@ -32,6 +32,19 @@ struct ExerciseLibraryView: View {
 
     private var filteredExercises: [Exercise] {
         store.exercises.filter { exercise in
+            // Cheap field comparisons first so the expensive text-search join
+            // below only runs for exercises that already passed every other
+            // filter — with 800+ exercises, building that string for every
+            // item on every render (e.g. each keystroke) was the slow part.
+            guard selectedMuscle == "All" || exercise.muscleGroup == selectedMuscle else { return false }
+            guard selectedEquipment == "All" || exercise.equipment == selectedEquipment else { return false }
+            guard selectedType == nil || exercise.exerciseType == selectedType else { return false }
+            guard selectedDifficulty == nil || exercise.difficulty == selectedDifficulty else { return false }
+            guard selectedEnvironment == nil || exercise.environment == selectedEnvironment || exercise.environment == .both else { return false }
+            guard selectedCategory.matches(exercise) else { return false }
+            guard !onlyAvailableEquipment || availableEquipmentMatches(exercise) else { return false }
+            guard !searchText.isEmpty else { return true }
+
             let searchableText = [
                 exercise.name,
                 exercise.aliases.joined(separator: " "),
@@ -42,22 +55,7 @@ struct ExerciseLibraryView: View {
                 exercise.instructions ?? "",
                 exercise.notes ?? ""
             ].joined(separator: " ")
-            let matchesSearch = searchText.isEmpty || searchableText.localizedStandardContains(searchText)
-            let matchesMuscle = selectedMuscle == "All" || exercise.muscleGroup == selectedMuscle
-            let matchesEquipment = selectedEquipment == "All" || exercise.equipment == selectedEquipment
-            let matchesType = selectedType == nil || exercise.exerciseType == selectedType
-            let matchesDifficulty = selectedDifficulty == nil || exercise.difficulty == selectedDifficulty
-            let matchesEnvironment = selectedEnvironment == nil || exercise.environment == selectedEnvironment || exercise.environment == .both
-            let matchesCategory = selectedCategory.matches(exercise)
-            let matchesAvailableEquipment = !onlyAvailableEquipment || availableEquipmentMatches(exercise)
-            return matchesSearch
-                && matchesMuscle
-                && matchesEquipment
-                && matchesType
-                && matchesDifficulty
-                && matchesEnvironment
-                && matchesCategory
-                && matchesAvailableEquipment
+            return searchableText.localizedStandardContains(searchText)
         }
     }
 
@@ -504,9 +502,6 @@ private struct ExerciseLibraryRow: View {
                     .lineLimit(1)
             }
             Spacer()
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(PulseTheme.tertiaryText)
         }
         .padding(.vertical, 8)
         .contentShape(Rectangle())
