@@ -48,6 +48,7 @@ struct WorkoutDetailView: View {
                 }
                 heroCard
                 exerciseListCard
+                projectionCard
                 ProgressionRecommendationCard(
                     recommendations: progressionRecommendations,
                     language: store.userProfile.preferredLanguage,
@@ -314,6 +315,44 @@ struct WorkoutDetailView: View {
                 .foregroundStyle(PulseTheme.secondaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
+            }
+        }
+    }
+
+    private var projectionPoints: [FitnessMetrics.PlanProjectionPoint] {
+        FitnessMetrics.planProgressionProjection(
+            for: selectedWorkout,
+            experience: store.userProfile.experience,
+            mainGoal: store.userProfile.mainGoal,
+            weeklyTrainingDays: store.userProfile.weeklyTrainingDays
+        )
+    }
+
+    private var projectionCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label {
+                    Text("recommended_projection_title")
+                } icon: {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                }
+                .font(.headline)
+
+                PlanProjectionChart(points: projectionPoints, tint: PulseTheme.accent, height: 180)
+
+                Label(localizedString("drag_to_explore_values"), systemImage: "hand.tap.fill")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(PulseTheme.tertiaryText)
+
+                Divider()
+
+                Label {
+                    Text("recommended_projection_disclaimer_full")
+                } icon: {
+                    Image(systemName: "info.circle")
+                }
+                .font(.caption)
+                .foregroundStyle(PulseTheme.secondaryText)
             }
         }
     }

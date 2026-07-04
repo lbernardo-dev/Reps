@@ -455,7 +455,7 @@ struct ProgramCategoryChip: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
-            .foregroundStyle(isSelected ? .white : .primary)
+            .foregroundStyle(isSelected ? PulseTheme.onColor(PulseTheme.accent) : .primary)
             .background(isSelected ? PulseTheme.accent : PulseTheme.card)
             .clipShape(Capsule())
             .overlay(Capsule().stroke(isSelected ? Color.clear : PulseTheme.separator, lineWidth: 1))

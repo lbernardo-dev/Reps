@@ -25,21 +25,21 @@ struct TrainingLoadOverviewCard: View {
       PulseCard(contentPadding: 18) {
         HStack(alignment: .center, spacing: 16) {
           VStack(alignment: .leading, spacing: 8) {
-            Text(localizedString("load"))
-              .font(.title2.weight(.bold))
-              .foregroundStyle(.primary)
-
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-              Text(battery.title)
-                .font(.system(size: 26, weight: .heavy, design: .rounded))
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+              Text(localizedString("load"))
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.primary)
+              Image(systemName: battery.systemImage)
+                .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(statusColor)
-                .lineLimit(2)
-                .minimumScaleFactor(0.78)
-                .fixedSize(horizontal: false, vertical: true)
-              Text("\(battery.level)%")
-                .font(.system(size: 14, weight: .bold).monospacedDigit())
-                .foregroundStyle(PulseTheme.secondaryText)
             }
+
+            Text(battery.title)
+              .font(.system(size: 22, weight: .heavy, design: .rounded))
+              .foregroundStyle(statusColor)
+              .lineLimit(2)
+              .minimumScaleFactor(0.78)
+              .fixedSize(horizontal: false, vertical: true)
 
             Text("\(Int(workload.fatigueScore.rounded())) fatiga · 7 días")
               .font(.system(size: 13, weight: .bold))
@@ -64,41 +64,20 @@ struct TrainingLoadOverviewCard: View {
           .layoutPriority(1)
 
           ZStack {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-              .fill(statusColor.opacity(0.16))
-            VStack(spacing: 7) {
-              Image(systemName: battery.systemImage)
-                .font(.system(size: 24, weight: .bold))
-              TrainingLoadMiniGauge(level: Double(battery.level) / 100, color: statusColor)
-            }
-            .foregroundStyle(statusColor)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+              .fill(statusColor.opacity(0.12))
+            LiquidCapsuleGauge(
+              level: battery.level,
+              color: statusColor,
+              size: CGSize(width: 52, height: 96),
+              showsLabel: true
+            )
           }
-          .frame(width: 96, height: 118)
+          .frame(width: 92, height: 118)
         }
       }
     }
     .buttonStyle(.plain)
-  }
-}
-
-
-struct TrainingLoadMiniGauge: View {
-  let level: Double
-  let color: Color
-
-  var body: some View {
-    VStack(spacing: 5) {
-      ForEach(0..<4, id: \.self) { index in
-        Capsule()
-          .fill(index < filledSegments ? color : PulseTheme.separator.opacity(0.45))
-          .frame(height: 8)
-      }
-    }
-    .frame(width: 58)
-  }
-
-  private var filledSegments: Int {
-    max(1, min(4, Int((level * 4).rounded(.up))))
   }
 }
 

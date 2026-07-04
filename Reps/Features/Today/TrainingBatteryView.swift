@@ -643,11 +643,17 @@ private struct MiniMetricTile: View {
 struct LiquidCapsuleGauge: View {
     let level: Int
     let color: Color
+    var size: CGSize = CGSize(width: 100, height: 180)
+    var showsLabel: Bool = true
 
-    private let capsuleWidth: CGFloat = 100
-    private let capsuleHeight: CGFloat = 180
-    private let innerCapsuleWidth: CGFloat = 88
-    private let innerCapsuleHeight: CGFloat = 168
+    /// Uniform shrink factor for stroke widths, fonts and decorative details, derived from the
+    /// reference 100x180 design so the gauge can be reused at compact card sizes.
+    private var scale: CGFloat { size.height / 180 }
+
+    private var capsuleWidth: CGFloat { size.width }
+    private var capsuleHeight: CGFloat { size.height }
+    private var innerCapsuleWidth: CGFloat { size.width - 12 }
+    private var innerCapsuleHeight: CGFloat { size.height - 12 }
 
     var body: some View {
         TimelineView(.animation) { timeline in
@@ -657,16 +663,16 @@ struct LiquidCapsuleGauge: View {
             ZStack {
                 // Battery Frame Outline
                 Capsule()
-                    .stroke(PulseTheme.separator, lineWidth: 6)
+                    .stroke(PulseTheme.separator, lineWidth: max(2, 6 * scale))
                     .background(Capsule().fill(.black.opacity(0.35)))
                     .frame(width: capsuleWidth, height: capsuleHeight)
-                    .shadow(color: color.opacity(0.18), radius: 10)
+                    .shadow(color: color.opacity(0.18), radius: 10 * scale)
 
                 // Metallic Pin on top
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: 3 * scale)
                     .fill(PulseTheme.grouped)
-                    .frame(width: 32, height: 10)
-                    .offset(y: -95)
+                    .frame(width: 32 * scale, height: 10 * scale)
+                    .offset(y: -(capsuleHeight / 2 + 5 * scale))
 
                 // Internal sloshing liquid and bubbles share the same clipped capsule bounds.
                 innerLiquidCapsule(time: time)
@@ -680,7 +686,7 @@ struct LiquidCapsuleGauge: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 88, height: 168)
+                    .frame(width: innerCapsuleWidth, height: innerCapsuleHeight)
                     .clipShape(Capsule())
                     .overlay(alignment: .topLeading) {
                         // Gloss specular shine line
@@ -691,22 +697,26 @@ struct LiquidCapsuleGauge: View {
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                lineWidth: 1.5
+                                lineWidth: 1.5 * scale
                             )
-                            .padding(2)
+                            .padding(2 * scale)
                     }
 
                 // Central bold level readout
-                VStack(spacing: -2) {
-                    Text("\(level)")
-                        .font(.system(size: 32, weight: .black, design: .rounded))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.55), radius: 6)
+                if showsLabel {
+                    VStack(spacing: -2) {
+                        Text("\(level)")
+                            .font(.system(size: 32 * scale, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.55), radius: 6)
 
-                    Text("%")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .shadow(color: .black.opacity(0.55), radius: 4)
+                        if scale >= 0.7 {
+                            Text("%")
+                                .font(.system(size: 14 * scale, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .shadow(color: .black.opacity(0.55), radius: 4)
+                        }
+                    }
                 }
             }
         }
@@ -717,7 +727,7 @@ struct LiquidCapsuleGauge: View {
         let fillHeight = innerCapsuleHeight * normalizedLevel
 
         return ZStack(alignment: .bottom) {
-            LiquidWaveShape(phase: time * 3.5, level: normalizedLevel)
+            LiquidWaveShape(phase: time * 3.5, level: normalizedLevel, amplitude: 6.0 * scale)
                 .fill(
                     LinearGradient(
                         colors: [color, color.opacity(0.72), color.opacity(0.92)],
@@ -726,19 +736,19 @@ struct LiquidCapsuleGauge: View {
                     )
                 )
                 .frame(width: innerCapsuleWidth, height: max(16, fillHeight + 10))
-                .shadow(color: color.opacity(0.45), radius: 12)
+                .shadow(color: color.opacity(0.45), radius: 12 * scale)
 
             GeometryReader { proxy in
                 ZStack {
                     ForEach(0..<5) { index in
-                        let xOffset = sin(time + Double(index) * 1.5) * 22
-                        let yCycle = CGFloat((Int(time * 30.0) + index * 35) % 150)
+                        let xOffset = sin(time + Double(index) * 1.5) * 22 * scale
+                        let yCycle = CGFloat((Int(time * 30.0) + index * 35) % 150) * scale
                         let isInsideLiquid = yCycle < fillHeight
 
                         if isInsideLiquid {
                             Circle()
                                 .fill(Color.white.opacity(0.38))
-                                .frame(width: CGFloat(4 + (index % 3)), height: CGFloat(4 + (index % 3)))
+                                .frame(width: CGFloat(4 + (index % 3)) * scale, height: CGFloat(4 + (index % 3)) * scale)
                                 .position(
                                     x: proxy.size.width / 2 + CGFloat(xOffset),
                                     y: proxy.size.height - yCycle
@@ -757,6 +767,7 @@ struct LiquidCapsuleGauge: View {
 struct LiquidWaveShape: Shape {
     var phase: Double
     var level: CGFloat
+    var amplitude: CGFloat = 6.0
 
     var animatableData: Double {
         get { phase }
@@ -769,7 +780,7 @@ struct LiquidWaveShape: Shape {
         let height = rect.size.height
 
         let baseline = height * (1.0 - level)
-        let waveHeight: CGFloat = level > 0.95 || level < 0.05 ? 0.0 : 6.0
+        let waveHeight: CGFloat = level > 0.95 || level < 0.05 ? 0.0 : amplitude
 
         path.move(to: CGPoint(x: 0, y: height))
         path.addLine(to: CGPoint(x: 0, y: baseline))

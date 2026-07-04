@@ -275,7 +275,7 @@ struct CreatePlanView: View {
                                         .font(.caption.bold())
                                         .frame(maxWidth: .infinity)
                                         .frame(height: 38)
-                                        .foregroundStyle(selectedWeekdays.contains(day) ? .white : PulseTheme.accent)
+                                        .foregroundStyle(selectedWeekdays.contains(day) ? PulseTheme.onColor(PulseTheme.accent) : PulseTheme.accent)
                                         .background(selectedWeekdays.contains(day) ? PulseTheme.accent : PulseTheme.accent.opacity(0.12))
                                         .clipShape(Capsule())
                                 }

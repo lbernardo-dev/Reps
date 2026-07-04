@@ -280,6 +280,9 @@ struct TodayView: View {
                             workout: rec,
                             batteryLevel: batteryStatus.level,
                             language: store.userProfile.preferredLanguage,
+                            experience: store.userProfile.experience,
+                            mainGoal: store.userProfile.mainGoal,
+                            weeklyTrainingDays: store.userProfile.weeklyTrainingDays,
                             onStart: {
                                 HapticService.impact(.medium)
                                 activateRecommendedPlanIfNeeded()
@@ -375,15 +378,12 @@ struct TodayView: View {
 
     private var relationshipSignalBoard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 7) {
-                Image(systemName: "gauge.with.dots.needle.67percent")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(MetricDomain.strength.tint)
-                Text("Señales de hoy")
-                    .font(.headline.weight(.black))
-                    .foregroundStyle(PulseTheme.textPrimary)
-            }
-            .padding(.horizontal, 2)
+            TodaySectionHeader(
+                systemImage: "gauge.with.dots.needle.67percent",
+                tint: MetricDomain.strength.tint,
+                titleKey: "today_signals",
+                subtitleKey: "today_signals_subtitle"
+            )
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                 TrainingSignalTile(
@@ -1065,10 +1065,13 @@ struct TodayView: View {
 
     private var wellnessWidgets: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(localizedString("wellness"))
-                .font(.headline)
-                .padding(.horizontal, 2)
-                .padding(.top, 8)
+            TodaySectionHeader(
+                systemImage: "heart.text.square.fill",
+                tint: MetricDomain.recovery.tint,
+                titleKey: "wellness",
+                subtitleKey: "wellness_subtitle"
+            )
+            .padding(.top, 8)
 
             ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 12) {
@@ -1324,8 +1327,12 @@ struct TodayView: View {
 
     private var smartShortcuts: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(localizedString("smart_shortcuts"))
-                .font(.headline)
+            TodaySectionHeader(
+                systemImage: "square.grid.2x2.fill",
+                tint: PulseTheme.accent,
+                titleKey: "smart_shortcuts",
+                subtitleKey: "smart_shortcuts_subtitle"
+            )
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 NavigationLink {
                     ExerciseLibraryView()
@@ -1423,6 +1430,33 @@ struct TodayView: View {
         }
         
         return formatter.localizedString(for: date, relativeTo: .now)
+    }
+}
+
+/// Consistent icon + title/subtitle header used above the Today tab's top-level sections.
+private struct TodaySectionHeader: View {
+    let systemImage: String
+    let tint: Color
+    let titleKey: String
+    let subtitleKey: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 7) {
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(tint)
+                .frame(height: 20)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(localizedString(titleKey))
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(PulseTheme.textPrimary)
+                Text(localizedString(subtitleKey))
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+        }
+        .padding(.horizontal, 2)
     }
 }
 

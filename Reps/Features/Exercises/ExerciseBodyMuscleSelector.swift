@@ -128,7 +128,7 @@ private struct SelectedSegmentChip: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
-            .foregroundStyle(.white)
+            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
             .background(PulseTheme.accent)
             .clipShape(Capsule())
         }

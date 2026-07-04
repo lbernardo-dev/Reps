@@ -119129,6 +119129,142 @@
           }
         }
       }
+    },
+    "today_signals" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's signals"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Señales de hoy"
+          }
+        }
+      }
+    },
+    "today_signals_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A quick look at your day"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un vistazo rápido a tu día"
+          }
+        }
+      }
+    },
+    "wellness_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sleep, hydration and recovery"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sueño, hidratación y recuperación"
+          }
+        }
+      }
+    },
+    "smart_shortcuts_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick access to what you use most"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accede rápido a lo que más usas"
+          }
+        }
+      }
+    },
+    "recommended_projection_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimated progress"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progresión estimada"
+          }
+        }
+      }
+    },
+    "recommended_projection_caption_fmt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Projected %@ in %d weeks if you stick to this plan"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso estimado de %@ en %d semanas si sigues este plan"
+          }
+        }
+      }
+    },
+    "recommended_projection_disclaimer_short" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Educational estimate, not a guarantee"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimación educativa, no una garantía"
+          }
+        }
+      }
+    },
+    "recommended_projection_disclaimer_full" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This projection is an educational estimate based on your experience level, goal and training frequency — it isn't a promise of results. Your real progress depends on adherence to the plan, nutrition, sleep, recovery and individual factors."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta proyección es una estimación educativa basada en tu nivel de experiencia, objetivo y frecuencia de entrenamiento — no es una promesa de resultados. Tu progreso real depende de la adherencia al plan, la alimentación, el sueño, la recuperación y factores individuales."
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

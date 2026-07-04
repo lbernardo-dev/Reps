@@ -119,7 +119,7 @@ struct CardioAnalyticsCard: View {
               } label: {
                 Text(option.title)
                   .font(.caption.weight(.semibold))
-                  .foregroundStyle(selected ? .white : PulseTheme.secondaryText)
+                  .foregroundStyle(selected ? PulseTheme.onColor(PulseTheme.accent) : PulseTheme.secondaryText)
                   .padding(.horizontal, 12)
                   .padding(.vertical, 6)
                   .background(selected ? PulseTheme.accent : PulseTheme.grouped)

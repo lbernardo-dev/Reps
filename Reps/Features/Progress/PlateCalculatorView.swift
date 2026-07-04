@@ -162,7 +162,7 @@ struct PlateCalculatorView: View {
                                         } label: {
                                             Text("\(localizedString(bar.name)) \(bar.weight.formatted()) \(unit)")
                                                 .font(.subheadline.weight(.semibold))
-                                                .foregroundStyle(selected ? .white : PulseTheme.secondaryText)
+                                                .foregroundStyle(selected ? PulseTheme.onColor(PulseTheme.ringStand) : PulseTheme.secondaryText)
                                                 .padding(.horizontal, 14)
                                                 .padding(.vertical, 8)
                                                 .background(selected ? PulseTheme.ringStand : PulseTheme.grouped)
@@ -190,7 +190,7 @@ struct PlateCalculatorView: View {
                                         } label: {
                                             Text(plate.formatted())
                                                 .font(.subheadline.weight(.bold).monospacedDigit())
-                                                .foregroundStyle(enabled ? .white : PulseTheme.secondaryText)
+                                                .foregroundStyle(enabled ? PulseTheme.onColor(PulseTheme.accent) : PulseTheme.secondaryText)
                                                 .frame(minWidth: 40)
                                                 .padding(.vertical, 8)
                                                 .background(enabled ? PulseTheme.accent.opacity(0.85) : PulseTheme.grouped)

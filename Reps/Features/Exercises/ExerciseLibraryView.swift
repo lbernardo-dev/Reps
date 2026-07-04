@@ -101,7 +101,7 @@ struct ExerciseLibraryView: View {
                                         .lineLimit(1)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 9)
-                                        .foregroundStyle(selectedCategory == category ? .white : PulseTheme.accent)
+                                        .foregroundStyle(selectedCategory == category ? PulseTheme.onColor(PulseTheme.accent) : PulseTheme.accent)
                                         .background(selectedCategory == category ? PulseTheme.accent : PulseTheme.accent.opacity(0.10))
                                         .clipShape(Capsule())
                                 }

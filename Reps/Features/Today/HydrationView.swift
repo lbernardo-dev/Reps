@@ -144,10 +144,10 @@ struct HydrationView: View {
                         VStack(spacing: 6) {
                             Image(systemName: style.systemImage())
                                 .font(.title3)
-                                .foregroundStyle(sel ? .white : PulseTheme.ringStand)
+                                .foregroundStyle(sel ? PulseTheme.onColor(PulseTheme.ringStand) : PulseTheme.ringStand)
                             Text(style.displayName)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(sel ? .white : .primary)
+                                .foregroundStyle(sel ? PulseTheme.onColor(PulseTheme.ringStand) : .primary)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)

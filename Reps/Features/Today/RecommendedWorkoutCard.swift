@@ -4,7 +4,12 @@ struct RecommendedWorkoutCard: View {
     let workout: WorkoutDay
     let batteryLevel: Int
     let language: String
+    let experience: UserProfile.Experience
+    let mainGoal: UserProfile.MainGoal
+    let weeklyTrainingDays: Int
     let onStart: () -> Void
+
+    private static let projectionWeeks = 8
 
     private var batteryColor: Color {
         batteryLevel >= 80 ? PulseTheme.recovery : batteryLevel >= 55 ? PulseTheme.accent : PulseTheme.warning
@@ -12,6 +17,21 @@ struct RecommendedWorkoutCard: View {
 
     private var batteryLabel: LocalizedStringKey {
         batteryLevel >= 80 ? "recommended_battery_charged" : batteryLevel >= 55 ? "recommended_battery_steady" : "recommended_battery_low"
+    }
+
+    private var projectionPoints: [FitnessMetrics.PlanProjectionPoint] {
+        FitnessMetrics.planProgressionProjection(
+            for: workout,
+            experience: experience,
+            mainGoal: mainGoal,
+            weeklyTrainingDays: weeklyTrainingDays,
+            weeks: Self.projectionWeeks
+        )
+    }
+
+    private var projectionCaption: String {
+        let gain = projectionPoints.last?.percentGain ?? 0
+        return String(format: localizedString("recommended_projection_caption_fmt"), String(format: "%+.0f%%", gain), Self.projectionWeeks)
     }
 
     var body: some View {
@@ -88,6 +108,34 @@ struct RecommendedWorkoutCard: View {
                         }
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("recommended_projection_title")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .textCase(.uppercase)
+
+                    PlanProjectionChart(
+                        points: projectionPoints,
+                        tint: PulseTheme.accent,
+                        height: 130
+                    )
+
+                    Text(projectionCaption)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+
+                    Label {
+                        Text("recommended_projection_disclaimer_short")
+                    } icon: {
+                        Image(systemName: "info.circle")
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(PulseTheme.tertiaryText)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(PulseTheme.grouped.opacity(0.72), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
 
                 NavigationLink {
                     WorkoutDetailView(workout: workout)

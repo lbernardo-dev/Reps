@@ -377,6 +377,98 @@ enum FitnessMetrics {
         return Int(clamp(Double(currentLevel) - plannedCost, lower: 5, upper: 100).rounded())
     }
 
+    struct PlanProjectionPoint: Identifiable {
+        let id = UUID()
+        let week: Int
+        /// Cumulative expected gain vs. today, as a percentage (0 at week 0).
+        let percentGain: Double
+    }
+
+    /// Xorshift64 generator seeded from stable content (not `hashValue`, which is
+    /// randomized per process) so the same plan + profile always renders the same
+    /// projection curve, across app relaunches.
+    private struct SeededGenerator {
+        private var state: UInt64
+
+        init(seed: UInt64) {
+            state = seed == 0 ? 0x9E3779B97F4A7C15 : seed
+        }
+
+        mutating func nextUnit() -> Double {
+            state ^= state << 13
+            state ^= state >> 7
+            state ^= state << 17
+            return Double(state % 1_000_000) / 1_000_000
+        }
+    }
+
+    private static func fnv1aHash(_ string: String) -> UInt64 {
+        var hash: UInt64 = 14_695_981_039_346_656_037
+        for byte in string.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 1_099_511_628_211
+        }
+        return hash
+    }
+
+    /// Rough, non-clinical estimate of expected progress if the user sticks to
+    /// the recommended plan, derived from experience level (novice/intermediate/
+    /// advanced strength-gain curves), the stated main goal, and how many days a
+    /// week the plan is trained — not from a specific exercise's actual 1RM.
+    ///
+    /// Real training progress is never a smooth curve: it fluctuates week to week
+    /// with sleep, stress and session quality, and dips on planned deload weeks.
+    /// A deterministic seed (derived from the plan + profile, not from `hashValue`)
+    /// adds that texture so the same inputs always render the same "real-looking"
+    /// curve instead of a straight line — while the underlying upward trend stays
+    /// governed by the same experience/goal/consistency model.
+    static func planProgressionProjection(
+        for workout: WorkoutDay,
+        experience: UserProfile.Experience,
+        mainGoal: UserProfile.MainGoal,
+        weeklyTrainingDays: Int,
+        weeks: Int = 8
+    ) -> [PlanProjectionPoint] {
+        let baseWeeklyRate: Double
+        switch experience {
+        case .beginner: baseWeeklyRate = 0.020
+        case .intermediate: baseWeeklyRate = 0.010
+        case .advanced: baseWeeklyRate = 0.005
+        }
+
+        let goalMultiplier: Double
+        switch mainGoal {
+        case .getStronger: goalMultiplier = 1.15
+        case .buildMuscle: goalMultiplier = 1.0
+        case .bodyRecomposition: goalMultiplier = 0.75
+        case .loseFat: goalMultiplier = 0.55
+        case .stayActive: goalMultiplier = 0.4
+        }
+
+        let consistency = clamp(Double(weeklyTrainingDays) / 4.0, lower: 0.5, upper: 1.25)
+        let weeklyRate = baseWeeklyRate * goalMultiplier * consistency
+
+        let seedKey = "\(workout.id.uuidString)|\(experience.rawValue)|\(mainGoal.rawValue)|\(weeklyTrainingDays)"
+        var rng = SeededGenerator(seed: fnv1aHash(seedKey))
+
+        var points: [PlanProjectionPoint] = [PlanProjectionPoint(week: 0, percentGain: 0)]
+        var cumulative = 0.0
+        for week in 1...weeks {
+            let trendStep = (pow(1 + weeklyRate, Double(week)) - pow(1 + weeklyRate, Double(week - 1))) * 100
+            // Two averaged draws bias the noise toward its center, reading as
+            // organic variance rather than uniform static.
+            let noise = ((rng.nextUnit() + rng.nextUnit()) / 2 - 0.5) * 2
+            var step = trendStep + noise * max(trendStep, 0.3) * 0.7
+            if week % 4 == 0 {
+                // Planned deload/lighter week — a normal part of real periodization.
+                step *= 0.4
+            }
+            cumulative += step
+            points.append(PlanProjectionPoint(week: week, percentGain: cumulative))
+        }
+        return points
+    }
+
     static func dailyCoachRecommendation(
         battery: TrainingBatteryStatus,
         competitiveSummary: AnalyticsEngine.CompetitiveSummary,

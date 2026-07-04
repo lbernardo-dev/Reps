@@ -89,7 +89,12 @@ struct PersonalRecordsView: View {
                 } else {
                     LazyVStack(spacing: 14) {
                         ForEach(personalRecords) { item in
-                            PRCardView(item: item)
+                            NavigationLink {
+                                ExerciseDetailView(exercise: item.exercise)
+                            } label: {
+                                PRCardView(item: item)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, PulseTheme.screenHorizontalPadding)
@@ -113,73 +118,80 @@ struct PRCardView: View {
     
     var body: some View {
         PulseCard {
-            HStack(spacing: 16) {
-                ExerciseMediaThumbnail(exercise: item.exercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
-                    .frame(width: 58, height: 58)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.exercise.name)
-                        .font(.headline)
-                        .lineLimit(1)
-                    
-                    Text(localizedFormat("set_on_date_format", item.date.formatted(date: .abbreviated, time: .omitted)))
-                        .font(.caption)
-                        .foregroundStyle(PulseTheme.tertiaryText)
-                    
-                    HStack(spacing: 8) {
-                        // PR Badge
-                        HStack(spacing: 3) {
-                            Image(systemName: "trophy.fill")
-                                .font(.system(size: 10))
-                            Text("pr_2")
-                                .font(.system(size: 10, weight: .black))
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(PulseTheme.accent.opacity(0.16))
-                        .foregroundStyle(PulseTheme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        
-                        Text("1RM Est: \(Int(item.oneRepMax)) kg")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(PulseTheme.ringStand)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 16) {
+                    ExerciseMediaThumbnail(exercise: item.exercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
+                        .frame(width: 52, height: 52)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.exercise.name)
+                            .font(.headline)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(localizedFormat("set_on_date_format", item.date.formatted(date: .abbreviated, time: .omitted)))
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.tertiaryText)
                     }
-                    .padding(.top, 2)
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        guard store.requireFeature(.shareCards, source: .shareCards) else {
+                            return
+                        }
+                        shareImage = WorkoutShareImageRenderer.renderPR(
+                            exerciseName: item.exercise.name,
+                            weightKg: item.maxWeight,
+                            reps: item.maxReps,
+                            date: item.date
+                        )
+                        isShowingShareSheet = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.body)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .padding(8)
+                            .background(PulseTheme.grouped)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(PulseTheme.tertiaryText)
                 }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 4) {
+
+                HStack(alignment: .center, spacing: 8) {
+                    // PR Badge
+                    HStack(spacing: 3) {
+                        Image(systemName: "trophy.fill")
+                            .font(.system(size: 10))
+                        Text("pr_2")
+                            .font(.system(size: 10, weight: .black))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(PulseTheme.accent.opacity(0.16))
+                    .foregroundStyle(PulseTheme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                    Text("1RM Est: \(Int(item.oneRepMax)) kg")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(PulseTheme.ringStand)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 8)
+
                     Text("\(item.maxWeight, specifier: "%.1f") kg")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundStyle(PulseTheme.accent)
-                    
+
                     Text("x \(item.maxReps) rep\(item.maxReps == 1 ? "" : "s")")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
-                
-                Button {
-                    guard store.requireFeature(.shareCards, source: .shareCards) else {
-                        return
-                    }
-                    shareImage = WorkoutShareImageRenderer.renderPR(
-                        exerciseName: item.exercise.name,
-                        weightKg: item.maxWeight,
-                        reps: item.maxReps,
-                        date: item.date
-                    )
-                    isShowingShareSheet = true
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.body)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .padding(8)
-                        .background(PulseTheme.grouped)
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
             }
         }
         .sheet(isPresented: $isShowingShareSheet) {

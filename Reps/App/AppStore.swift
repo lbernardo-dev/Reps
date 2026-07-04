@@ -123,6 +123,12 @@ final class AppStore {
     @ObservationIgnored private var nativeWorkoutSessionService: NativeWorkoutSessionService?
     @ObservationIgnored private var isRestoring = false
     @ObservationIgnored private var hasAttemptedExerciseLibrarySync = false
+    /// Cache metadata for the remote exercise dataset. Persisted so the app only
+    /// re-checks the network a few times a week and, even then, only pays the
+    /// cost of a full re-merge when the server's ETag proves the content changed.
+    @ObservationIgnored private static let exerciseLibraryETagKey = "reps_exerciseLibraryETag_v1"
+    @ObservationIgnored private static let exerciseLibraryLastCheckedKey = "reps_exerciseLibraryLastCheckedAt_v1"
+    @ObservationIgnored private static let exerciseLibraryRecheckInterval: TimeInterval = 60 * 60 * 24 * 3
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     @ObservationIgnored private var pendingSaveScopes: Set<PersistenceScope> = []
     @ObservationIgnored private var pendingWidgetTimelineReload = false
@@ -2538,8 +2544,18 @@ final class AppStore {
         guard !hasAttemptedExerciseLibrarySync else {
             return
         }
-
         hasAttemptedExerciseLibrarySync = true
+
+        // Persisted throttle: only spend a network round-trip checking the
+        // dataset's ETag a few times a week, regardless of how often the app
+        // is launched. The ETag check itself (below) is what actually detects
+        // whether new documentation exists online.
+        let defaults = UserDefaults.standard
+        if let lastChecked = defaults.object(forKey: Self.exerciseLibraryLastCheckedKey) as? Date,
+           Date.now.timeIntervalSince(lastChecked) < Self.exerciseLibraryRecheckInterval {
+            return
+        }
+
         await syncOpenExerciseLibrary()
     }
 
@@ -2551,60 +2567,101 @@ final class AppStore {
         isSyncingExerciseLibrary = true
         defer { isSyncingExerciseLibrary = false }
 
+        let defaults = UserDefaults.standard
+        let previousETag = defaults.string(forKey: Self.exerciseLibraryETagKey)
+
         do {
-            let remoteExercises = try await OpenExerciseLibraryClient().fetchExercises()
-            let mappedExercises = remoteExercises.compactMap(\.domainExercise)
-            
-            // Build key map for faster search and updates
-            var existingExercisesByKey: [String: Int] = [:]
-            for (index, exercise) in exercises.enumerated() {
-                for key in exercise.libraryLookupKeys {
-                    existingExercisesByKey[key] = index
+            let result = try await OpenExerciseLibraryClient().fetchExercises(ifNoneMatch: previousETag)
+            defaults.set(Date.now, forKey: Self.exerciseLibraryLastCheckedKey)
+
+            switch result {
+            case .notModified:
+                // The server confirmed the dataset hasn't changed since our last
+                // sync: skip decoding/merging entirely, and leave the observable
+                // `exercises` array untouched so no dependent view re-renders.
+                break
+
+            case .updated(let remoteRecords, let newETag):
+                let mappedExercises = remoteRecords.compactMap(\.domainExercise)
+                let (mergedExercises, addedCount, mergedCount) = Self.mergingOpenLibraryExercises(mappedExercises, into: exercises)
+
+                // Single assignment for the whole batch, instead of mutating the
+                // array once per matched/added exercise. With 800+ remote records
+                // that used to mean 800+ separate Observable notifications firing
+                // synchronously on the main thread while the library screen was
+                // visible — the actual source of the stutter during sync.
+                if addedCount > 0 || mergedCount > 0 {
+                    exercises = mergedExercises
                 }
-            }
 
-            var mergedCount = 0
-            var addedCount = 0
+                if let newETag {
+                    defaults.set(newETag, forKey: Self.exerciseLibraryETagKey)
+                }
 
-            for remoteExercise in mappedExercises {
-                let key = remoteExercise.name.normalizedExerciseKey
-                if let index = existingExercisesByKey[key] {
-                    var modified = false
-                    // If instructions or mediaURL are empty on existing (such as Seed exercises), complete them.
-                    if exercises[index].mediaURL == nil || exercises[index].mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
-                        exercises[index].mediaURL = remoteExercise.mediaURL
-                        modified = true
-                    }
-                    if exercises[index].instructions == nil || exercises[index].instructions?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
-                        exercises[index].instructions = remoteExercise.instructions
-                        modified = true
-                    }
-                    if exercises[index].videoURL == nil || exercises[index].videoURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
-                        exercises[index].videoURL = remoteExercise.videoURL
-                        modified = true
-                    }
-                    if modified {
-                        mergedCount += 1
-                    }
+                if addedCount == 0 && mergedCount == 0 {
+                    exerciseLibrarySyncMessage = localizedString("the_exercise_library_is_updated")
                 } else {
-                    exercises.append(remoteExercise)
-                    addedCount += 1
-                    for lookupKey in remoteExercise.libraryLookupKeys {
-                        existingExercisesByKey[lookupKey] = exercises.count - 1
-                    }
+                    exerciseLibrarySyncMessage = localizedFormat("library_updated_counts_message", addedCount, mergedCount)
                 }
-            }
-
-            if addedCount == 0 && mergedCount == 0 {
-                exerciseLibrarySyncMessage = localizedString("the_exercise_library_is_updated")
-            } else {
-                exerciseLibrarySyncMessage = localizedFormat("library_updated_counts_message", addedCount, mergedCount)
             }
         } catch {
             exerciseLibrarySyncMessage = localizedString("the_library_could_not_be_updated_the_offline_catalog_is_still_available")
             TelemetryService.shared.record(error, context: "exercise_library_sync")
             TelemetryService.shared.log(.nonFatalError, parameters: ["context": "exercise_library_sync"])
         }
+    }
+
+    /// Merges remote exercise records into a snapshot of the existing library,
+    /// only filling gaps (empty media/instructions) or appending truly new
+    /// exercises — never touching entries that already have complete data.
+    /// Pure function over a local copy so the caller can commit the result with
+    /// a single array assignment.
+    private static func mergingOpenLibraryExercises(
+        _ remoteExercises: [Exercise],
+        into existing: [Exercise]
+    ) -> (merged: [Exercise], addedCount: Int, mergedCount: Int) {
+        var merged = existing
+
+        var existingExercisesByKey: [String: Int] = [:]
+        for (index, exercise) in merged.enumerated() {
+            for key in exercise.libraryLookupKeys {
+                existingExercisesByKey[key] = index
+            }
+        }
+
+        var mergedCount = 0
+        var addedCount = 0
+
+        for remoteExercise in remoteExercises {
+            let key = remoteExercise.name.normalizedExerciseKey
+            if let index = existingExercisesByKey[key] {
+                var modified = false
+                // If instructions or mediaURL are empty on existing (such as Seed exercises), complete them.
+                if merged[index].mediaURL == nil || merged[index].mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+                    merged[index].mediaURL = remoteExercise.mediaURL
+                    modified = true
+                }
+                if merged[index].instructions == nil || merged[index].instructions?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+                    merged[index].instructions = remoteExercise.instructions
+                    modified = true
+                }
+                if merged[index].videoURL == nil || merged[index].videoURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+                    merged[index].videoURL = remoteExercise.videoURL
+                    modified = true
+                }
+                if modified {
+                    mergedCount += 1
+                }
+            } else {
+                merged.append(remoteExercise)
+                addedCount += 1
+                for lookupKey in remoteExercise.libraryLookupKeys {
+                    existingExercisesByKey[lookupKey] = merged.count - 1
+                }
+            }
+        }
+
+        return (merged, addedCount, mergedCount)
     }
 
     func addScheduledWorkout(_ workoutDay: WorkoutDay, date: Date) {
@@ -4051,19 +4108,43 @@ private extension CardioLog {
 private struct OpenExerciseLibraryClient {
     private let datasetURL = URL(string: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json")!
 
-    func fetchExercises() async throws -> [OpenExerciseRecord] {
+    enum FetchResult {
+        /// The server confirmed (via ETag) that the dataset is unchanged since
+        /// `ifNoneMatch`. Callers should skip decoding/merging entirely.
+        case notModified
+        case updated(records: [OpenExerciseRecord], etag: String?)
+    }
+
+    /// Performs a conditional GET so the app only downloads and decodes the
+    /// (multi-MB) dataset when new documentation has actually been published
+    /// online. When the server doesn't return a 304 (e.g. the CDN in front of
+    /// GitHub raw ignores `If-None-Match`), the caller's merge is still cheap
+    /// because it only touches entries that are new or genuinely incomplete.
+    func fetchExercises(ifNoneMatch previousETag: String?) async throws -> FetchResult {
         var request = URLRequest(url: datasetURL)
         request.timeoutInterval = 25
-        request.cachePolicy = .returnCacheDataElseLoad
+        request.cachePolicy = .useProtocolCachePolicy
+        if let previousETag {
+            request.setValue(previousETag, forHTTPHeaderField: "If-None-Match")
+        }
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode) else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
 
-        return try JSONDecoder().decode([OpenExerciseRecord].self, from: data)
+        if httpResponse.statusCode == 304 {
+            return .notModified
+        }
+
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+
+        let records = try JSONDecoder().decode([OpenExerciseRecord].self, from: data)
+        let etag = httpResponse.value(forHTTPHeaderField: "ETag")
+        return .updated(records: records, etag: etag)
     }
 }
 
