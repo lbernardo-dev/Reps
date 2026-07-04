@@ -565,6 +565,7 @@ struct DomainHeroCard<Content: View>: View {
             .frame(minHeight: minHeight, alignment: .topLeading)
             .background {
                 ZStack {
+                    shape.fill(PulseTheme.card)
                     shape.fill(domain.heroGradient)
                     shape.fill(
                         LinearGradient(

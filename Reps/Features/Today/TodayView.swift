@@ -282,6 +282,7 @@ struct TodayView: View {
                             language: store.userProfile.preferredLanguage,
                             onStart: {
                                 HapticService.impact(.medium)
+                                activateRecommendedPlanIfNeeded()
                                 workoutToStart = rec
                             }
                         )
@@ -347,6 +348,22 @@ struct TodayView: View {
         )
     }
 
+    private func activateRecommendedPlanIfNeeded() {
+        guard !hasActivePlan else { return }
+        if let firstPlan = store.plans.first(where: { !$0.days.isEmpty }) {
+            store.activatePlan(firstPlan)
+        } else {
+            let bodyMetric = store.bodyMetrics.sorted { $0.date > $1.date }.first ?? BodyMetric(date: .now, weightKg: 70, heightCm: 170, source: .manual)
+            let newPlan = OnboardingPlanBuilder.makePlan(
+                profile: store.userProfile,
+                bodyMetric: bodyMetric,
+                sessionLengthMinutes: 45,
+                focusMuscles: ["Chest", "Back", "Legs", "Shoulders", "Core"]
+            )
+            store.addPlan(newPlan, activate: true)
+        }
+    }
+
     @ViewBuilder
     private var focusHeroSection: some View {
         if let activeStatus = store.activeWorkoutStatus {
@@ -357,52 +374,58 @@ struct TodayView: View {
     }
 
     private var relationshipSignalBoard: some View {
-        DomainHeroCard(domain: .strength, minHeight: 0) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 7) {
-                    Image(systemName: "gauge.with.dots.needle.67percent")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(MetricDomain.strength.tint)
-                    Text("Señales de hoy")
-                        .font(.headline.weight(.black))
-                }
-
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                    TrainingSignalTile(
-                        title: localizedString("plan"),
-                        value: weekTargetText,
-                        subtitle: "objetivo semanal",
-                        systemImage: "target",
-                        color: PulseTheme.accent,
-                        domain: .strength
-                    )
-                    TrainingSignalTile(
-                        title: localizedString("load"),
-                        value: "\(Int(workloadSummary.fatigueScore.rounded()))",
-                        subtitle: "fatiga",
-                        systemImage: "waveform.path.ecg",
-                        color: batteryColor,
-                        domain: .recovery
-                    )
-                    TrainingSignalTile(
-                        title: localizedString("health"),
-                        value: store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--",
-                        subtitle: localizedString("steps_today"),
-                        systemImage: "figure.walk",
-                        color: PulseTheme.ringStand,
-                        domain: .activity
-                    )
-                    TrainingSignalTile(
-                        title: localizedString("progress_2"),
-                        value: "\(recentSessions.count)",
-                        subtitle: "30 días",
-                        systemImage: "chart.line.uptrend.xyaxis",
-                        color: PulseTheme.ringMove,
-                        domain: .cardio
-                    )
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 7) {
+                Image(systemName: "gauge.with.dots.needle.67percent")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(MetricDomain.strength.tint)
+                Text("Señales de hoy")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(PulseTheme.textPrimary)
             }
-            .padding(18)
+            .padding(.horizontal, 2)
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                TrainingSignalTile(
+                    title: localizedString("plan"),
+                    value: weekTargetText,
+                    subtitle: "objetivo semanal",
+                    systemImage: "target",
+                    color: PulseTheme.accent,
+                    domain: .strength
+                )
+                TrainingSignalTile(
+                    title: localizedString("load"),
+                    value: "\(Int(workloadSummary.fatigueScore.rounded()))",
+                    subtitle: "fatiga",
+                    systemImage: "waveform.path.ecg",
+                    color: batteryColor,
+                    domain: .recovery
+                )
+                TrainingSignalTile(
+                    title: localizedString("health"),
+                    value: store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--",
+                    subtitle: localizedString("steps_today"),
+                    systemImage: "figure.walk",
+                    color: PulseTheme.ringStand,
+                    domain: .activity
+                )
+                TrainingSignalTile(
+                    title: localizedString("progress_2"),
+                    value: "\(recentSessions.count)",
+                    subtitle: "30 días",
+                    systemImage: "chart.line.uptrend.xyaxis",
+                    color: PulseTheme.ringMove,
+                    domain: .cardio
+                )
+            }
+            .padding(14)
+            .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                    .stroke(PulseTheme.cardStroke, lineWidth: 0.8)
+            )
+            .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
         }
     }
 
@@ -1045,6 +1068,7 @@ struct TodayView: View {
             Text(localizedString("wellness"))
                 .font(.headline)
                 .padding(.horizontal, 2)
+                .padding(.top, 8)
 
             ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 12) {
@@ -1058,7 +1082,8 @@ struct TodayView: View {
                         subtitle: batteryStatus.suggestion,
                         localizesSubtitle: false,
                         systemImage: batteryStatus.systemImage,
-                        domain: .recovery
+                        domain: .sleep,
+                        customTint: batteryColor
                     )
                     .matchedTransitionSource(id: "wellness-battery", in: wellnessZoom)
                     .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
@@ -2062,6 +2087,7 @@ private struct WellnessWidget: View {
     var localizesSubtitle = true
     let systemImage: String
     let domain: MetricDomain
+    var customTint: Color? = nil
 
     /// Without a real reading, the card would otherwise render at full
     /// saturation with a bare "--" — indistinguishable from a loading glitch.
@@ -2079,7 +2105,7 @@ private struct WellnessWidget: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
-                        PulseIconBadge(systemImage: systemImage, tint: hasData ? domain.tint : PulseTheme.semanticNeutral, size: 30, radius: PulseTheme.smallRadius)
+                        PulseIconBadge(systemImage: systemImage, tint: hasData ? (customTint ?? domain.tint) : PulseTheme.semanticNeutral, size: 30, radius: PulseTheme.smallRadius)
                         Text(localizedKey(title))
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .textCase(.uppercase)
@@ -2323,27 +2349,27 @@ private struct WidgetVisualDecoration: View {
 
     var body: some View {
         Group {
-            switch domain {
-            case .recovery:
-                if valueString.contains("%") {
-                    BatteryLevelVisual(level: Int(valueString.filter("0123456789".contains)) ?? 80)
-                } else {
+            if valueString.contains("%") {
+                BatteryLevelVisual(level: Int(valueString.filter("0123456789".contains)) ?? 80)
+            } else {
+                switch domain {
+                case .recovery:
                     HeartbeatWaveVisual(color: domain.tint)
+                case .strength:
+                    ConcentricRingVisual(progress: 0.70, color: domain.tint)
+                case .nutrition:
+                    WaterDropsVisual(color: domain.tint)
+                case .heartRate:
+                    HeartbeatWaveVisual(color: domain.tint)
+                case .sleep:
+                    SleepStagesVisual(color: domain.tint)
+                case .activity:
+                    MiniStepBarsVisual(color: domain.tint)
+                case .cardio:
+                    UpwardTrendVisual(color: domain.tint)
+                default:
+                    EmptyView()
                 }
-            case .strength:
-                ConcentricRingVisual(progress: 0.70, color: domain.tint)
-            case .nutrition:
-                WaterDropsVisual(color: domain.tint)
-            case .heartRate:
-                HeartbeatWaveVisual(color: domain.tint)
-            case .sleep:
-                SleepStagesVisual(color: domain.tint)
-            case .activity:
-                MiniStepBarsVisual(color: domain.tint)
-            case .cardio:
-                UpwardTrendVisual(color: domain.tint)
-            default:
-                EmptyView()
             }
         }
         .frame(width: 64, height: 48)
