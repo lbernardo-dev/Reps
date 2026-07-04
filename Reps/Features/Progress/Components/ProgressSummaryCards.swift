@@ -313,6 +313,7 @@ struct SummaryRingsHeroCard: View {
         unit: moveGoal,
         progress: moveProgress,
         goalCaption: "vs semana previa",
+        icon: "scalemass.fill",
         action: onTapMove
       )
       Divider().opacity(0.10)
@@ -323,6 +324,7 @@ struct SummaryRingsHeroCard: View {
         unit: exerciseGoal,
         progress: exerciseProgress,
         goalCaption: exerciseCaption,
+        icon: "dumbbell.fill",
         action: onTapExercise
       )
       Divider().opacity(0.10)
@@ -332,7 +334,8 @@ struct SummaryRingsHeroCard: View {
         value: standValue,
         unit: standGoal,
         progress: standProgress,
-        goalCaption: "dias activos",
+        goalCaption: "días activos",
+        icon: "calendar.badge.clock",
         action: onTapStand
       )
     }
@@ -360,60 +363,58 @@ struct RingsMetricRow: View {
   let unit: String
   let progress: Double
   let goalCaption: String
+  let icon: String
   let action: () -> Void
 
   var body: some View {
     Button(action: action) {
-      VStack(alignment: .leading, spacing: 7) {
-        HStack(spacing: 10) {
-          Circle()
-            .fill(color)
-            .frame(width: 10, height: 10)
+      HStack(spacing: 12) {
+        // Icon on the left (glass circular background)
+        Image(systemName: icon)
+          .font(.system(size: 13, weight: .bold))
+          .foregroundStyle(color)
+          .frame(width: 32, height: 32)
+          .background(color.opacity(0.12), in: Circle())
+
+        // Label and caption under it
+        VStack(alignment: .leading, spacing: 2) {
           Text(label)
-            .font(.system(size: 10, weight: .bold))
+            .font(.system(size: 11, weight: .bold, design: .rounded))
+            .textCase(.uppercase)
+            .tracking(0.5)
             .foregroundStyle(PulseTheme.secondaryText)
             .lineLimit(1)
-            .minimumScaleFactor(0.58)
-          Spacer()
-          HStack(alignment: .firstTextBaseline, spacing: 2) {
-            Text(value)
-              .font(.system(size: 23, weight: .heavy, design: .rounded).monospacedDigit())
-              .foregroundStyle(color)
-              .lineLimit(1)
-              .minimumScaleFactor(0.62)
-            if !unit.isEmpty {
-              Text(unit)
-                .font(.system(size: 10, weight: .black))
-                .foregroundStyle(PulseTheme.secondaryText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
-            }
-          }
-          Image(systemName: "chevron.right")
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(PulseTheme.secondaryText.opacity(0.4))
-        }
-
-        HStack(spacing: 8) {
-          GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-              Capsule()
-                .fill(PulseTheme.grouped)
-              Capsule()
-                .fill(color)
-                .frame(width: proxy.size.width * min(max(progress, 0), 1))
-            }
-          }
-          .frame(height: 5)
-          .opacity(progress > 0 ? 1 : 0.55)
-
+            .minimumScaleFactor(0.7)
+          
           Text(goalCaption)
-            .font(.system(size: 9, weight: .bold))
+            .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(PulseTheme.tertiaryText)
             .lineLimit(1)
         }
+
+        Spacer()
+
+        // Value
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+          Text(value)
+            .font(.system(size: 19, weight: .black, design: .rounded).monospacedDigit())
+            .foregroundStyle(color)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+          
+          if !unit.isEmpty {
+            Text(unit)
+              .font(.system(size: 11, weight: .heavy))
+              .foregroundStyle(PulseTheme.secondaryText)
+              .lineLimit(1)
+          }
+        }
+
+        Image(systemName: "chevron.right")
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundStyle(PulseTheme.secondaryText.opacity(0.4))
       }
-      .padding(.vertical, 13)
+      .padding(.vertical, 8)
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)

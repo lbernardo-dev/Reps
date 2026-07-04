@@ -106,7 +106,20 @@ struct ActiveWorkoutProgressSummary: View {
     }
 
     private var stateColor: Color {
-        isSessionStarted ? (isPaused ? PulseTheme.warning : PulseTheme.accent) : PulseTheme.secondaryText
+        isSessionStarted ? (isPaused ? PulseTheme.warning : progressColor) : PulseTheme.secondaryText
+    }
+
+    private var progressColor: Color {
+        let percent = setCompletion * 100
+        if percent >= 70 {
+            return PulseTheme.growth
+        } else if percent >= 50 {
+            return PulseTheme.semanticAction
+        } else if percent >= 30 {
+            return PulseTheme.warning
+        } else {
+            return PulseTheme.destructive
+        }
     }
 
     var body: some View {
@@ -117,13 +130,13 @@ struct ActiveWorkoutProgressSummary: View {
                         .stroke(PulseTheme.grouped, lineWidth: 6)
                     Circle()
                         .trim(from: 0, to: setCompletion)
-                        .stroke(PulseTheme.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .stroke(progressColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .animation(.snappy(duration: 0.35), value: setCompletion)
                     VStack(spacing: 0) {
                         Text("\(completedSets)")
                             .font(.system(size: 20, weight: .black, design: .rounded).monospacedDigit())
-                            .foregroundStyle(PulseTheme.accent)
+                            .foregroundStyle(progressColor)
                         Text("/\(totalSets)")
                             .font(.caption2.weight(.bold).monospacedDigit())
                             .foregroundStyle(PulseTheme.secondaryText)
@@ -161,7 +174,7 @@ struct ActiveWorkoutProgressSummary: View {
                         .fill(PulseTheme.grouped)
                         .frame(height: 8)
                     Capsule()
-                        .fill(PulseTheme.accent)
+                        .fill(progressColor)
                         .frame(width: max(geo.size.width * setCompletion, setCompletion > 0 ? 16 : 0), height: 8)
                         .animation(.snappy(duration: 0.35), value: setCompletion)
                 }

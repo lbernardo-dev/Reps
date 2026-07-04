@@ -1761,6 +1761,17 @@ enum WorkoutDraftController {
     }
 
     @discardableResult
+    static func removeSet(from drafts: inout [ExerciseSessionDraft], exerciseIndex: Int, setIndex: Int) -> Bool {
+        guard drafts.indices.contains(exerciseIndex),
+              drafts[exerciseIndex].sets.indices.contains(setIndex) else {
+            return false
+        }
+        drafts[exerciseIndex].sets.remove(at: setIndex)
+        drafts[exerciseIndex].sets = WorkoutSetBuilder.renumbered(drafts[exerciseIndex].sets)
+        return true
+    }
+
+    @discardableResult
     static func addSet(to drafts: inout [ExerciseSessionDraft], selectedIndex: Int) -> Bool {
         guard drafts.indices.contains(selectedIndex) else { return false }
 

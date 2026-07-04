@@ -30,63 +30,82 @@ struct SessionFeedbackPanel: View {
     let onVideoCapture: (Data, UIImage?) -> Void
 
     var body: some View {
-        DisclosureGroup(isExpanded: $isExpanded) {
-            VStack(alignment: .leading, spacing: 14) {
-                effortFields
-
-                TextField(notesPrompt, text: $notes, axis: .vertical)
-                    .lineLimit(2...4)
-                    .padding(12)
-                    .background(PulseTheme.grouped)
-                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-
+        VStack(spacing: 0) {
+            Button {
+                HapticService.selection()
+                withAnimation(.snappy(duration: 0.25)) {
+                    isExpanded.toggle()
+                }
+            } label: {
                 HStack(spacing: 10) {
-                    Button(action: onToggleAudio) {
-                        Label(isRecordingAudio ? audioRecordingTitle : audioIdleTitle, systemImage: isRecordingAudio ? "stop.fill" : "mic.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .foregroundStyle(isRecordingAudio ? .white : PulseTheme.accent)
-                            .background(isRecordingAudio ? PulseTheme.destructive : PulseTheme.accent.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    Label(localizedKey(title), systemImage: systemImage)
+                        .font(.headline)
+                        .foregroundStyle(PulseTheme.accent)
+                    
+                    Spacer(minLength: 8)
+                    
+                    if !isExpanded {
+                        HStack(spacing: 9) {
+                            Image(systemName: "text.alignleft")
+                            Image(systemName: "mic.fill")
+                            Image(systemName: "camera.fill")
+                            Image(systemName: "video.fill")
+                        }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
                     }
-
-                    MediaSourceMenu(
-                        maxSelectionCount: 8,
-                        photoPickerItems: $photoItems,
-                        onCameraCapture: onCameraCapture,
-                        onVideoCapture: onVideoCapture
-                    ) {
-                        let mediaCount = attachments.filter { $0.kind == .image || $0.kind == .video }.count
-                        Label("\(mediaCount)", systemImage: "photo.badge.plus")
-                            .font(.headline)
-                            .frame(width: 72, height: 48)
-                            .foregroundStyle(PulseTheme.accent)
-                            .background(PulseTheme.accent.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
+                    
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 }
-
-                if !attachments.isEmpty {
-                    AttachmentPreviewStrip(attachments: attachments)
-                }
+                .contentShape(Rectangle())
             }
-            .padding(.top, 12)
-        } label: {
-            HStack(spacing: 10) {
-                Label(localizedKey(title), systemImage: systemImage)
-                    .font(.headline)
-                Spacer(minLength: 8)
-                // Media-type hint so the panel reads as the documentation menu
-                // even while collapsed.
-                HStack(spacing: 9) {
-                    Image(systemName: "text.alignleft")
-                    Image(systemName: "mic.fill")
-                    Image(systemName: "camera.fill")
-                    Image(systemName: "video.fill")
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 14) {
+                    effortFields
+
+                    TextField(notesPrompt, text: $notes, axis: .vertical)
+                        .lineLimit(2...4)
+                        .padding(12)
+                        .background(PulseTheme.grouped)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                    HStack(spacing: 10) {
+                        Button(action: onToggleAudio) {
+                            Label(isRecordingAudio ? audioRecordingTitle : audioIdleTitle, systemImage: isRecordingAudio ? "stop.fill" : "mic.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .foregroundStyle(isRecordingAudio ? .white : PulseTheme.accent)
+                                .background(isRecordingAudio ? PulseTheme.destructive : PulseTheme.accent.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+
+                        MediaSourceMenu(
+                            maxSelectionCount: 8,
+                            photoPickerItems: $photoItems,
+                            onCameraCapture: onCameraCapture,
+                            onVideoCapture: onVideoCapture
+                        ) {
+                            let mediaCount = attachments.filter { $0.kind == .image || $0.kind == .video }.count
+                            Label("\(mediaCount)", systemImage: "photo.badge.plus")
+                                .font(.headline)
+                                .frame(width: 72, height: 48)
+                                .foregroundStyle(PulseTheme.accent)
+                                .background(PulseTheme.accent.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                    }
+
+                    if !attachments.isEmpty {
+                        AttachmentPreviewStrip(attachments: attachments)
+                    }
                 }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(PulseTheme.secondaryText)
+                .padding(.top, 14)
             }
         }
     }

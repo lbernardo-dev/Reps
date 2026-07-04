@@ -4,6 +4,54 @@
     "" : {
 
     },
+    "current_exercise_label" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Exercise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejercicio en curso"
+          }
+        }
+      }
+    },
+    "next_exercise_label" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Exercise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siguiente ejercicio"
+          }
+        }
+      }
+    },
+    "water_label" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Water"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agua"
+          }
+        }
+      }
+    },
     "\n        # gym_passes\n        id,gym,membership_id,code_type,notes\n        legacy-id,Downtown Gym,member-123,barcode,Legacy access\n        " : {
       "extractionState" : "stale",
       "localizations" : {

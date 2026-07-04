@@ -698,7 +698,7 @@ struct RepsActivityRings: View {
 
                     // Track
                     Circle()
-                        .stroke(ring.color.opacity(0.18), lineWidth: lineWidth)
+                        .stroke(ring.color.opacity(0.12), lineWidth: lineWidth)
                         .frame(width: r * 2, height: r * 2)
 
                     // Fill arc
@@ -716,6 +716,21 @@ struct RepsActivityRings: View {
                                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                             .frame(width: r * 2, height: r * 2)
                             .rotationEffect(.degrees(-90))
+                    }
+
+                    // 3D End Cap Shadow for Apple Health look
+                    if prog > 0 {
+                        let capProgress = prog > 1.0 ? (prog - 1.0) : prog
+                        let angle = (min(capProgress, 1.0) * 360) - 90
+                        let radian = angle * .pi / 180
+                        let capX = cos(radian) * r
+                        let capY = sin(radian) * r
+                        
+                        Circle()
+                            .fill(ring.color)
+                            .frame(width: lineWidth, height: lineWidth)
+                            .offset(x: capX, y: capY)
+                            .shadow(color: Color.black.opacity(0.45), radius: 3, x: 0, y: 1.5)
                     }
                 }
             }
@@ -1287,7 +1302,7 @@ struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 36)
+            .frame(height: 10)
             .allowsHitTesting(false)
         }
     }
@@ -1370,7 +1385,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                .safeAreaPadding(.top, max(topContentPadding, headerHeight + 12))
+                .safeAreaPadding(.top, max(topContentPadding, headerHeight + 4))
                 .padding(.bottom, PulseTheme.screenBottomContentPadding)
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)

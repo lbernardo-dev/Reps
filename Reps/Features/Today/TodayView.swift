@@ -269,19 +269,24 @@ struct TodayView: View {
                     .accessibilityLabel("notifications")
                 }
             ) {
-                focusHeroSection
-                    .stickyHeaderTitle(localizedString("today_3"))
-                if store.activeWorkoutStatus == nil, let rec = recommendedWorkout {
-                    RecommendedWorkoutCard(
-                        workout: rec,
-                        batteryLevel: batteryStatus.level,
-                        language: store.userProfile.preferredLanguage,
-                        onStart: {
-                            HapticService.impact(.medium)
-                            workoutToStart = rec
-                        }
-                    )
-                    .stickyHeaderTitle(localizedString("recommended_workout_title"))
+                if let activeStatus = store.activeWorkoutStatus {
+                    activeSessionHero(activeStatus)
+                        .stickyHeaderTitle(localizedString("in_progress_label"))
+                } else {
+                    focusHeroSection
+                        .stickyHeaderTitle(localizedString("today_3"))
+                    if let rec = recommendedWorkout {
+                        RecommendedWorkoutCard(
+                            workout: rec,
+                            batteryLevel: batteryStatus.level,
+                            language: store.userProfile.preferredLanguage,
+                            onStart: {
+                                HapticService.impact(.medium)
+                                workoutToStart = rec
+                            }
+                        )
+                        .stickyHeaderTitle(localizedString("recommended_workout_title"))
+                    }
                 }
                 if !focusProgressionRecommendations.isEmpty {
                     ProgressionRecommendationCard(
@@ -586,11 +591,21 @@ struct TodayView: View {
         let isPaused = status.isPaused
         let setsWord = localizedString("sets_3")
         let progress: Double = status.totalSets > 0 ? Double(status.completedSets) / Double(status.totalSets) : 0
-        let activeGradient: [Color] = isPaused
-            ? [PulseTheme.card, PulseTheme.warning.opacity(0.22)]
-            : [PulseTheme.card, PulseTheme.accentMuted]
+        
+        let progressColor: Color = {
+            let percent = progress * 100
+            if percent >= 70 {
+                return PulseTheme.growth
+            } else if percent >= 50 {
+                return PulseTheme.semanticAction
+            } else if percent >= 30 {
+                return PulseTheme.warning
+            } else {
+                return PulseTheme.destructive
+            }
+        }()
 
-        return VStack(alignment: .leading, spacing: 18) {
+        return VStack(alignment: .leading, spacing: 16) {
 
             // ── Header row ────────────────────────────────────────────
             HStack(alignment: .top, spacing: 14) {
@@ -601,12 +616,12 @@ struct TodayView: View {
                         .stroke(PulseTheme.separator, lineWidth: 5)
                     Circle()
                         .trim(from: 0, to: progress)
-                        .stroke(isPaused ? PulseTheme.warning : PulseTheme.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .stroke(progressColor, style: StrokeStyle(lineWidth: 5, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .animation(.easeOut(duration: 0.4), value: progress)
                     Image(systemName: isPaused ? "pause.fill" : "figure.strengthtraining.traditional")
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.accent)
+                        .foregroundStyle(progressColor)
                 }
                 .frame(width: 54, height: 54)
 
@@ -614,7 +629,7 @@ struct TodayView: View {
                     Text(localizedString(isPaused ? "PAUSED" : "IN PROGRESS"))
                         .font(.system(size: 10, weight: .black, design: .rounded))
                         .tracking(1.8)
-                        .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.accent)
+                        .foregroundStyle(Color.orange)
                     Text(RepsText.workoutTitle(status.workoutTitle, language: store.userProfile.preferredLanguage))
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .lineLimit(1)
@@ -624,29 +639,157 @@ struct TodayView: View {
                 Spacer()
             }
 
-            // ── Stats row ─────────────────────────────────────────────
+            // ── Plan & Session info ───────────────────────────────────
+            if let planTitle = status.planTitle {
+                HStack(spacing: 6) {
+                    Image(systemName: "square.grid.3x3.topleft.filled")
+                        .font(.caption2)
+                        .foregroundStyle(Color.orange)
+                    Text("\(planTitle)\(status.sessionTitle.map { " · \($0)" } ?? "")")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                .padding(.top, -4)
+            } else if let sessionTitle = status.sessionTitle {
+                HStack(spacing: 6) {
+                    Image(systemName: "list.clipboard.fill")
+                        .font(.caption2)
+                        .foregroundStyle(Color.orange)
+                    Text(sessionTitle)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                .padding(.top, -4)
+            }
+
+            // ── Current Exercise & Target Info ────────────────────────
+            if let exerciseName = status.exerciseName {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "figure.strengthtraining.traditional")
+                            .font(.caption)
+                            .foregroundStyle(Color.orange)
+                        Text(localizedString("current_exercise_label"))
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .tracking(1.0)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .textCase(.uppercase)
+                    }
+                    
+                    Text(exerciseName)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(PulseTheme.textPrimary)
+                    
+                    HStack(spacing: 12) {
+                        if let completed = status.currentExerciseCompletedSets,
+                           let total = status.currentExerciseTotalSets {
+                            Label("\(completed)/\(total) series", systemImage: "checklist")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        
+                        if let weight = status.currentSetWeightKg,
+                           let reps = status.currentSetReps {
+                            Label("\(weight.formatted()) kg x \(reps) reps", systemImage: "target")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+            }
+
+            // ── Next Exercise & Water Info ────────────────────────────
+            HStack(spacing: 16) {
+                if let next = status.nextExerciseName, !next.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(localizedString("next_exercise_label"))
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .textCase(.uppercase)
+                        Text(next)
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                            .foregroundStyle(PulseTheme.textPrimary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                
+                if let water = status.waterLiters {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(localizedString("water_label"))
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .textCase(.uppercase)
+                        Label(String(format: "%.2f L", water), systemImage: "drop.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(Color.blue)
+                    }
+                }
+            }
+            .padding(.top, 4)
+
+            // ── Timers row ─────────────────────────────────────────────
             HStack(spacing: 0) {
                 TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                    StatPill(
-                        value: timeString(status.effectiveElapsedSeconds(at: timeline.date)),
-                        label: localizedString("time_3"),
-                        systemImage: "timer"
-                    )
+                    HStack(spacing: 0) {
+                        StatPill(
+                            value: timeString(status.effectiveElapsedSeconds(at: timeline.date)),
+                            label: "Total",
+                            systemImage: "timer"
+                        )
+                        Spacer()
+                        Divider().frame(height: 24).opacity(0.3)
+                        Spacer()
+                        
+                        let restVal = (status.restSeconds ?? 0) > 0 ? timeString(status.restSeconds ?? 0) : "--:--"
+                        StatPill(
+                            value: restVal,
+                            label: "Descanso",
+                            systemImage: "hourglass"
+                        )
+                        Spacer()
+                        Divider().frame(height: 24).opacity(0.3)
+                        Spacer()
+                        
+                        StatPill(
+                            value: timeString(status.effectivePausedSeconds(at: timeline.date)),
+                            label: "Pausa",
+                            systemImage: "pause.circle"
+                        )
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                Divider().frame(height: 32).opacity(0.3).padding(.horizontal, 8)
-                StatPill(value: "\(status.completedSets)/\(status.totalSets)", label: setsWord,
-                         systemImage: "checkmark.circle")
-                Divider().frame(height: 32).opacity(0.3).padding(.horizontal, 8)
-                StatPill(value: "\(status.volumeKg) kg", label: localizedString("volume_2"),
-                         systemImage: "scalemass")
             }
             .foregroundStyle(.primary)
+
+            // ── Metrics row ───────────────────────────────────────────
+            HStack(spacing: 0) {
+                StatPill(
+                    value: "\(status.completedSets)/\(status.totalSets)",
+                    label: setsWord,
+                    systemImage: "checkmark.circle"
+                )
+                Spacer()
+                Divider().frame(height: 24).opacity(0.3)
+                Spacer()
+                StatPill(
+                    value: "\(status.volumeKg) kg",
+                    label: localizedString("volume_2"),
+                    systemImage: "scalemass"
+                )
+            }
+            .foregroundStyle(.primary)
+            .padding(.top, 4)
 
             // ── Compact progress bar ──────────────────────────────────
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(PulseTheme.grouped).frame(height: 6)
-                    Capsule().fill(isPaused ? PulseTheme.warning : PulseTheme.accent)
+                    Capsule().fill(progressColor)
                         .frame(width: geo.size.width * progress, height: 6)
                         .animation(.easeOut(duration: 0.4), value: progress)
                 }
@@ -663,8 +806,8 @@ struct TodayView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .foregroundStyle(PulseTheme.onColor(isPaused ? PulseTheme.warning : PulseTheme.accent))
-                        .background(isPaused ? PulseTheme.warning : PulseTheme.accent)
+                        .foregroundStyle(.white)
+                        .background(Color.orange)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -676,7 +819,7 @@ struct TodayView: View {
                     Image(systemName: isPaused ? "play.fill" : "pause.fill")
                         .font(.headline.weight(.bold))
                         .frame(width: 48, height: 48)
-                        .foregroundStyle(isPaused ? PulseTheme.warning : PulseTheme.accent)
+                        .foregroundStyle(isPaused ? PulseTheme.warning : Color.orange)
                         .background(PulseTheme.grouped)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                         .overlay(
@@ -703,16 +846,23 @@ struct TodayView: View {
         .padding(18)
         .foregroundStyle(.primary)
         .background(
-            LinearGradient(
-                colors: activeGradient,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            ZStack {
+                Color.orange.opacity(0.08)
+                LinearGradient(
+                    colors: [
+                        Color.orange.opacity(0.18),
+                        Color.orange.opacity(0.04)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+            .background(.ultraThinMaterial)
         )
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                .stroke((isPaused ? PulseTheme.warning : PulseTheme.accent).opacity(0.28), lineWidth: 1)
+                .stroke(Color.orange.opacity(0.25), lineWidth: 1)
         )
         .shadow(color: PulseTheme.surfaceShadow, radius: 8, x: 0, y: 3)
     }

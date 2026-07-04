@@ -29,6 +29,7 @@ struct ActiveWorkoutView: View {
     @State private var basePausedSeconds = 0
     @State private var hasShownDurationAlert = false
     @State private var showDurationExhaustedAlert = false
+    @State private var dateDurationAlertShown: Date? = nil
     @State private var activeBookmark: ExerciseMediaBookmark?
     @State private var isPaused = false
     @State private var restSeconds = 0
@@ -546,7 +547,11 @@ struct ActiveWorkoutView: View {
 
     private func requestWorkoutClose() {
         HapticService.selection()
-        stopWorkout()
+        if isSessionStarted {
+            dismiss()
+        } else {
+            stopWorkout()
+        }
     }
 
 
@@ -747,6 +752,21 @@ struct ActiveWorkoutView: View {
             elapsedSeconds = currentElapsed
             hasShownDurationAlert = true
             showDurationExhaustedAlert = true
+        }
+
+        if showDurationExhaustedAlert {
+            if let shownAt = dateDurationAlertShown {
+                let timeSinceShown = Date().timeIntervalSince(shownAt)
+                if timeSinceShown >= 300 { // 5 minutes (300 seconds)
+                    showDurationExhaustedAlert = false
+                    dateDurationAlertShown = nil
+                    finishWorkout()
+                }
+            } else {
+                dateDurationAlertShown = Date()
+            }
+        } else {
+            dateDurationAlertShown = nil
         }
 
         elapsedSeconds = currentElapsed
@@ -952,6 +972,18 @@ struct ActiveWorkoutView: View {
                     let completedCount = draft.sets.filter(\.completed).count
                     let totalCount = draft.sets.count
                     let ratio: Double = totalCount > 0 ? Double(completedCount) / Double(totalCount) : 0
+                    let isCompleted = completedCount == totalCount && totalCount > 0
+                    let cardBgColor = isCompleted
+                        ? PulseTheme.growth.opacity(0.15)
+                        : (isActive ? PulseTheme.fitOrange.opacity(0.15) : PulseTheme.card)
+                    
+                    let cardStrokeColor = isCompleted
+                        ? PulseTheme.growth.opacity(0.55)
+                        : (isActive ? PulseTheme.fitOrange.opacity(0.55) : Color.white.opacity(0.04))
+                    
+                    let cardShadowColor = isCompleted
+                        ? PulseTheme.growth.opacity(0.14)
+                        : (isActive ? PulseTheme.fitOrange.opacity(0.14) : .clear)
 
                     Button {
                         withAnimation(.snappy(duration: 0.22)) {
@@ -974,13 +1006,24 @@ struct ActiveWorkoutView: View {
                                 .overlay(alignment: .topTrailing) {
                                     ZStack {
                                         Circle()
-                                            .fill(isActive ? PulseTheme.accentMuted : PulseTheme.card)
+                                            .fill(cardBgColor)
                                             .frame(width: 18, height: 18)
+                                        
                                         Circle()
-                                            .trim(from: 0, to: ratio)
-                                            .stroke(isActive ? PulseTheme.accent : PulseTheme.ringStand, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                                            .rotationEffect(.degrees(-90))
+                                            .stroke(PulseTheme.separator, lineWidth: 2.0)
                                             .frame(width: 14, height: 14)
+                                        
+                                        if ratio == 0 {
+                                            Circle()
+                                                .stroke(PulseTheme.destructive, lineWidth: 2.0)
+                                                .frame(width: 14, height: 14)
+                                        } else {
+                                            Circle()
+                                                .trim(from: 0, to: ratio)
+                                                .stroke(exerciseRingColor(ratio: ratio), style: StrokeStyle(lineWidth: 2.0, lineCap: .round))
+                                                .rotationEffect(.degrees(-90))
+                                                .frame(width: 14, height: 14)
+                                        }
                                     }
                                     .offset(x: 6, y: -6)
                                 }
@@ -992,18 +1035,20 @@ struct ActiveWorkoutView: View {
                                     .font(.subheadline.weight(.bold))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.68)
+                                .foregroundStyle(isActive ? PulseTheme.textPrimary : PulseTheme.secondaryText)
                                 HStack(spacing: 6) {
                                     Text(localizedFormat("sets_fraction_format", completedCount, totalCount))
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(PulseTheme.secondaryText)
                                     if draft.workoutExercise.supersetGroup != nil {
+                                        let pillColor = isCompleted ? PulseTheme.growth : (isActive ? PulseTheme.fitOrange : PulseTheme.accent)
                                         Text("superset_label")
                                             .font(.caption2.weight(.heavy))
                                             .textCase(.uppercase)
                                             .padding(.horizontal, 6)
                                             .padding(.vertical, 1)
-                                            .background(PulseTheme.accent.opacity(0.16), in: Capsule())
-                                            .foregroundStyle(PulseTheme.accent)
+                                            .background(pillColor.opacity(0.16), in: Capsule())
+                                            .foregroundStyle(pillColor)
                                     }
                                 }
                             }
@@ -1012,13 +1057,13 @@ struct ActiveWorkoutView: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 10)
                         .frame(width: 180, alignment: .leading)
-                        .background(isActive ? PulseTheme.accentMuted : PulseTheme.card)
+                        .background(cardBgColor)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                .stroke(isActive ? PulseTheme.accent.opacity(0.55) : Color.white.opacity(0.04), lineWidth: 1.5)
+                                .stroke(cardStrokeColor, lineWidth: 1.5)
                         )
-                        .shadow(color: isActive ? PulseTheme.accent.opacity(0.14) : .clear, radius: 8, x: 0, y: 4)
+                        .shadow(color: cardShadowColor, radius: 8, x: 0, y: 4)
                     }
                     .buttonStyle(.plain)
                 }
@@ -1415,7 +1460,8 @@ struct ActiveWorkoutView: View {
                         trackingType: selectedDraft?.workoutExercise.exercise.trackingType ?? .weightReps,
                         isSessionStarted: isSessionStarted,
                         setBinding: selectedSetBinding,
-                        onCompletionChanged: completeSelectedSetIfNeeded
+                        onCompletionChanged: completeSelectedSetIfNeeded,
+                        onDeleteSet: deleteSetFromSelectedExercise
                     )
                 }
 
@@ -1515,32 +1561,73 @@ struct ActiveWorkoutView: View {
     }
 
     private var nextExerciseCard: some View {
-        PulseCard {
-            HStack(spacing: 16) {
-                Image(systemName: "dumbbell.fill")
-                    .font(.title2)
-                    .foregroundStyle(PulseTheme.accent)
-                    .frame(width: 58, height: 58)
-                    .background(PulseTheme.grouped)
-                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                VStack(alignment: .leading) {
-                    Text("next_uppercase").font(.caption.weight(.bold)).foregroundStyle(PulseTheme.accent)
-                    Text(nextExerciseTitle)
-                        .font(.headline)
-                    Text(nextExerciseSubtitle).foregroundStyle(PulseTheme.secondaryText)
-                }
-                Spacer()
-                Button {
-                    if exerciseDrafts.isEmpty {
-                        showAddExercise = true
-                    } else {
-                        selectedExerciseIndex = min(selectedExerciseIndex + 1, max(exerciseDrafts.count - 1, 0))
+        let hasNext = !exerciseDrafts.isEmpty && selectedExerciseIndex < exerciseDrafts.count - 1
+        return Group {
+            if hasNext || exerciseDrafts.isEmpty {
+                PulseCard {
+                    HStack(spacing: 12) {
+                        if selectedExerciseIndex > 0 {
+                            Button {
+                                HapticService.selection()
+                                withAnimation(.snappy(duration: 0.22)) {
+                                    selectedExerciseIndex = max(0, selectedExerciseIndex - 1)
+                                }
+                            } label: {
+                                Image(systemName: "chevron.left")
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                    .frame(width: 42, height: 42)
+                                    .background(PulseTheme.grouped)
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Divider().frame(height: 32).opacity(0.3)
+                        }
+                        
+                        Button {
+                            HapticService.selection()
+                            if exerciseDrafts.isEmpty {
+                                showAddExercise = true
+                            } else {
+                                withAnimation(.snappy(duration: 0.22)) {
+                                    selectedExerciseIndex = min(selectedExerciseIndex + 1, max(exerciseDrafts.count - 1, 0))
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "dumbbell.fill")
+                                    .font(.title3)
+                                    .foregroundStyle(PulseTheme.accent)
+                                    .frame(width: 44, height: 44)
+                                    .background(PulseTheme.grouped)
+                                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("next_uppercase")
+                                        .font(.system(size: 9, weight: .black, design: .rounded))
+                                        .tracking(1.0)
+                                        .foregroundStyle(PulseTheme.accent)
+                                    Text(nextExerciseTitle)
+                                        .font(.subheadline.weight(.bold))
+                                        .lineLimit(1)
+                                    Text(nextExerciseSubtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                        .lineLimit(1)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: exerciseDrafts.isEmpty ? "plus" : "chevron.right")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
-                } label: {
-                    Image(systemName: exerciseDrafts.isEmpty ? "plus" : "chevron.right")
-                        .foregroundStyle(PulseTheme.secondaryText)
                 }
-                .disabled(!exerciseDrafts.isEmpty && selectedExerciseIndex >= exerciseDrafts.count - 1)
             }
         }
     }
@@ -1788,6 +1875,22 @@ struct ActiveWorkoutView: View {
         )
     }
 
+    private func exerciseRingColor(ratio: Double) -> Color {
+        if ratio >= 1.0 {
+            return PulseTheme.growth
+        } else if ratio <= 0.0 {
+            return PulseTheme.destructive
+        } else {
+            if ratio < 0.35 {
+                return PulseTheme.destructive
+            } else if ratio < 0.7 {
+                return PulseTheme.warning
+            } else {
+                return PulseTheme.semanticAction
+            }
+        }
+    }
+
     private var nextExerciseSubtitle: String {
         guard exerciseDrafts.indices.contains(selectedExerciseIndex + 1) else {
             return exerciseDrafts.isEmpty ? localizedString("free_training_label") : localizedFormat("sets_logged_count_format", completedSets)
@@ -1968,9 +2071,10 @@ struct ActiveWorkoutView: View {
         }
         let remaining = currentRestRemainingSeconds()
         if remaining > 0 {
+            let isNextExerciseDifferent = nextIncompleteSet?.exerciseIndex != selectedExerciseIndex
             NotificationService.scheduleRestEndNotification(
                 after: remaining,
-                nextExerciseName: store.activeWorkoutStatus?.nextExerciseName
+                nextExerciseName: isNextExerciseDifferent ? store.activeWorkoutStatus?.nextExerciseName : nil
             )
         } else {
             NotificationService.cancelRestEndNotification()
@@ -1987,9 +2091,8 @@ struct ActiveWorkoutView: View {
     }
 
     private func addWater() {
-        guard isSessionStarted else {
+        if !isSessionStarted {
             startPreparedSession()
-            return
         }
         withAnimation(.snappy(duration: 0.18)) {
             waterLiters = min(waterLiters + 0.25, 8)
@@ -2156,6 +2259,14 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    private func deleteSetFromSelectedExercise(at setIndex: Int) {
+        withAnimation(.snappy(duration: 0.25)) {
+            _ = WorkoutDraftController.removeSet(from: &store.activeWorkoutDrafts, exerciseIndex: selectedExerciseIndex, setIndex: setIndex)
+            syncActiveWorkoutExercises()
+            publishActiveWorkoutStatus()
+        }
+    }
+
     private func insertWarmUpSetsForSelectedExercise() {
         withAnimation(.snappy(duration: 0.25)) {
             guard WorkoutDraftController.insertWarmUpSets(
@@ -2285,9 +2396,10 @@ struct ActiveWorkoutView: View {
         restDuration  = duration
         restStartedAt = Date()
         restSeconds   = duration
+        let isNextExerciseDifferent = nextIncompleteSet?.exerciseIndex != selectedExerciseIndex
         NotificationService.scheduleRestEndNotification(
             after: duration,
-            nextExerciseName: store.activeWorkoutStatus?.nextExerciseName
+            nextExerciseName: isNextExerciseDifferent ? store.activeWorkoutStatus?.nextExerciseName : nil
         )
     }
 
