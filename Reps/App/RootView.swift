@@ -437,15 +437,7 @@ private struct QuickLogTabAccessory: View {
             .frame(height: isInline ? 58 : 56)
             .padding(.horizontal, 16)
             .contentShape(Capsule(style: .continuous))
-            .glassEffect(
-                .regular.tint(PulseTheme.surfaceRaised.opacity(0.18)).interactive(),
-                in: Capsule(style: .continuous)
-            )
-            .overlay {
-                Capsule(style: .continuous)
-                    .stroke(PulseTheme.cardStroke.opacity(0.9), lineWidth: 0.8)
-            }
-            .shadow(color: PulseTheme.surfaceShadow, radius: 12, y: 5)
+            .navigationGlassCapsule(.secondary, tint: .clear)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(localizedString("quick_menu_open"))
@@ -475,7 +467,7 @@ private struct QuickMenuCloseButton: View {
             .frame(height: 58)
             .padding(.horizontal, 18)
             .contentShape(Capsule(style: .continuous))
-            .glassEffect(.regular.tint(PulseTheme.surfaceRaised.opacity(0.16)).interactive(), in: Capsule(style: .continuous))
+            .navigationGlassCapsule(.secondary, tint: .clear)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(localizedString("quick_menu_close"))

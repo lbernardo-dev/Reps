@@ -275,7 +275,7 @@ struct TodayView: View {
                 } else {
                     focusHeroSection
                         .stickyHeaderTitle(localizedString("today_3"))
-                    if let rec = recommendedWorkout {
+                    if let rec = recommendedWorkout, !hasActivePlan {
                         RecommendedWorkoutCard(
                             workout: rec,
                             batteryLevel: batteryStatus.level,
