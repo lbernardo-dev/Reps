@@ -184,9 +184,9 @@ private struct GoalPickerShell<Content: View>: View {
                     Image(systemName: "xmark")
                         .font(.system(size: 16, weight: .bold))
                         .frame(width: 36, height: 36)
-                        .background(.white.opacity(0.08))
+                        .background(PulseTheme.grouped.opacity(0.72))
                         .clipShape(Circle())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.textPrimary)
                 }
                 .buttonStyle(.plain)
 
@@ -194,7 +194,7 @@ private struct GoalPickerShell<Content: View>: View {
 
                 Text(localizedTitleText(title))
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.textPrimary)
 
                 Spacer()
 
@@ -239,7 +239,7 @@ private struct BigValueDisplay: View {
         VStack(spacing: 6) {
             Text(value)
                 .font(.system(size: 68, weight: .heavy, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(PulseTheme.textPrimary)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
                 .contentTransition(.numericText())
@@ -253,10 +253,10 @@ private struct BigValueDisplay: View {
             if let description {
                 Text(localizedTitleText(description))
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(PulseTheme.textSecondary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 7)
-                    .background(.white.opacity(0.1))
+                    .background(PulseTheme.grouped.opacity(0.72))
                     .clipShape(Capsule())
             }
         }
@@ -310,9 +310,9 @@ private struct StepperRow: View {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .bold))
                 .frame(width: 54, height: 54)
-                .background(.white.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .foregroundStyle(.white)
+                .background(PulseTheme.grouped.opacity(0.72))
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                .foregroundStyle(PulseTheme.textPrimary)
         }
         .buttonStyle(SpringButtonStyle())
     }
@@ -463,8 +463,8 @@ struct CalorieGoalPicker: View {
                         .padding(.top, 4)
                 }
                 .padding(14)
-                .background(.white.opacity(0.07))
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(PulseTheme.grouped.opacity(0.72))
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 .padding(.bottom, 4)
             }
 
@@ -530,9 +530,9 @@ struct CalorieGoalPicker: View {
 
     private func metricRow(_ label: String, value: String) -> some View {
         HStack {
-            Text(label).font(.subheadline).foregroundStyle(.white)
+            Text(label).font(.subheadline).foregroundStyle(PulseTheme.textPrimary)
             Spacer()
-            Text(value).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+            Text(value).font(.subheadline.weight(.semibold)).foregroundStyle(PulseTheme.textPrimary)
         }
     }
 

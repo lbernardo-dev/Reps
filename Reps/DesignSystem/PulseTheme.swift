@@ -6,83 +6,130 @@ import SwiftUI
 
 enum PulseTheme {
 
-    // MARK: Brand accent — single tunable token
-    static let accent = Color(red: 0.69, green: 0.99, blue: 0.16)      // neon green  #B0FC29
+    // MARK: Semantic Palette
+    static let semanticAction = Color(red: 0.64, green: 0.93, blue: 0.20)   // controlled energy green
+    static let semanticHealth = Color(red: 0.22, green: 0.72, blue: 0.42)   // readiness / positive health
+    static let semanticProgress = Color(red: 0.18, green: 0.82, blue: 0.88) // data / progress / cardio
+    static let semanticWarning = Color(red: 0.95, green: 0.55, blue: 0.18)  // streaks / attention / load
+    static let semanticEffort = Color(red: 0.94, green: 0.22, blue: 0.32)   // effort / fatigue / high output
+    static let semanticCritical = Color(red: 0.90, green: 0.20, blue: 0.18) // destructive / alert
+    static let semanticNeutral = Color(red: 0.55, green: 0.57, blue: 0.60)  // empty / inactive / neutral
 
-    // MARK: Activity ring semantics (mirrors Apple Fitness)
-    static let ringMove     = Color(red: 0.98, green: 0.07, blue: 0.31) // red-pink    #FA1250
-    static let ringExercise = Color(red: 0.57, green: 0.91, blue: 0.16) // green       #92E82A
-    static let ringStand    = Color(red: 0.12, green: 0.92, blue: 0.94) // cyan        #1EEAEF
+    // MARK: Brand accent — single tunable token
+    static let accent = semanticAction
+
+    // MARK: Activity ring semantics
+    static let ringMove     = semanticEffort
+    static let ringExercise = semanticAction
+    static let ringStand    = semanticProgress
 
     // MARK: Semantic / functional
-    static let destructive  = Color(red: 0.93, green: 0.24, blue: 0.22)
-    static let warning      = Color(red: 1.00, green: 0.60, blue: 0.14)
-    static let growth       = Color(red: 0.20, green: 0.78, blue: 0.45)
-    static let appleMusic   = Color(red: 0.98, green: 0.24, blue: 0.34)
-    static let fitOrange    = Color(red: 0.99, green: 0.52, blue: 0.30)
+    static let destructive  = semanticCritical
+    static let warning      = semanticWarning
+    static let growth       = semanticHealth
+    static let appleMusic   = semanticEffort
+    static let fitOrange    = semanticWarning
 
     // MARK: HR zone colors (5-stop, shared with Watch)
     static let hrZones: [Color] = [
-        Color(red: 0.00, green: 0.48, blue: 1.00),  // Z1 recovery – blue
-        Color(red: 0.20, green: 0.80, blue: 0.35),  // Z2 easy – green
-        Color.yellow,                                 // Z3 moderate
-        Color.orange,                                 // Z4 hard
-        Color.red                                     // Z5 max
+        semanticProgress.opacity(0.90), // Z1 recovery
+        semanticHealth,                 // Z2 easy
+        semanticAction,                 // Z3 moderate
+        semanticWarning,                // Z4 hard
+        semanticEffort                  // Z5 max
     ]
     static func hrZoneColor(_ zone: Int?) -> Color {
-        guard let zone, (1...5).contains(zone) else { return Color.white.opacity(0.4) }
+        guard let zone, (1...5).contains(zone) else { return tertiaryText }
         return hrZones[zone - 1]
     }
 
-    // MARK: Surface colors — true black canvas (Apple Fitness style)
+    // MARK: Surface colors
     static let background = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? .black
+            ? UIColor(red: 0.035, green: 0.038, blue: 0.043, alpha: 1.0)
             : UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1.0)
     })
 
     static let card = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0)  // #1C1C1E
+            ? UIColor(red: 0.105, green: 0.110, blue: 0.122, alpha: 1.0)
             : .white
     })
 
     static let grouped = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1.0)
+            ? UIColor(red: 0.145, green: 0.152, blue: 0.166, alpha: 1.0)
             : UIColor(red: 0.91, green: 0.91, blue: 0.94, alpha: 1.0)
     })
 
     static let elevated = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.23, green: 0.23, blue: 0.25, alpha: 1.0)
+            ? UIColor(red: 0.185, green: 0.195, blue: 0.212, alpha: 1.0)
             : UIColor(red: 0.86, green: 0.86, blue: 0.89, alpha: 1.0)
     })
 
     static let secondaryText = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.56, green: 0.56, blue: 0.58, alpha: 1.0)
+            ? UIColor(red: 0.68, green: 0.70, blue: 0.73, alpha: 1.0)
             : UIColor(red: 0.40, green: 0.40, blue: 0.45, alpha: 1.0)
     })
 
     static let tertiaryText = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.36, green: 0.36, blue: 0.38, alpha: 1.0)
+            ? UIColor(red: 0.48, green: 0.50, blue: 0.54, alpha: 1.0)
             : UIColor(red: 0.60, green: 0.60, blue: 0.65, alpha: 1.0)
     })
 
     static let separator = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor.white.withAlphaComponent(0.07)
+            ? UIColor.white.withAlphaComponent(0.075)
             : UIColor.black.withAlphaComponent(0.08)
     })
 
+    static let cardStroke = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor.white.withAlphaComponent(0.095)
+            : UIColor.black.withAlphaComponent(0.07)
+    })
+
+    static let surfaceShadow = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor.black.withAlphaComponent(0.16)
+            : UIColor.black.withAlphaComponent(0.05)
+    })
+
+    static var textPrimary: Color { .primary }
+    static var textSecondary: Color { secondaryText }
+    static var textTertiary: Color { tertiaryText }
+    static var surfaceCanvas: Color { background }
+    static var surfaceCard: Color { card }
+    static var surfaceMuted: Color { grouped }
+    static var surfaceRaised: Color { elevated }
+    static var borderSubtle: Color { separator }
+    static var borderDefault: Color { cardStroke }
+    static var mediaText: Color { .white }
+    static var mediaSubtext: Color { .white.opacity(0.82) }
+    static var mediaScrimStrong: Color { .black.opacity(0.62) }
+    static var mediaScrimClear: Color { .black.opacity(0.0) }
+    static var codeBackground: Color { .white }
+
     // MARK: Geometry
+    static let smallRadius: CGFloat = 8
     static let controlRadius: CGFloat = 12
-    static let compactRadius: CGFloat = 16
-    static let cardRadius: CGFloat = 22
+    static let mediumRadius: CGFloat = 12
+    static let compactRadius: CGFloat = 14
+    static let cardRadius: CGFloat = 18
+    static let largeRadius: CGFloat = 18
+    static let xlRadius: CGFloat = 22
+    static let pillRadius: CGFloat = 999
     static let screenHorizontalPadding: CGFloat = 16
+    static let screenBottomContentPadding: CGFloat = 24
     static let minTapTarget: CGFloat = 44
+    static let spacingXS: CGFloat = 6
+    static let spacingS: CGFloat = 10
+    static let spacingM: CGFloat = 14
+    static let spacingL: CGFloat = 18
+    static let spacingXL: CGFloat = 24
 
     // MARK: Typography
     static func heroNumeric(size: CGFloat = 52) -> Font {
@@ -96,7 +143,7 @@ enum PulseTheme {
     static var heroGradientColors: [Color] { [ringMove, ringExercise] }
     static var fitActionGradient: LinearGradient {
         LinearGradient(
-            colors: [accent, ringExercise],
+            colors: [semanticAction, semanticHealth],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -301,38 +348,38 @@ enum MetricDomain: String, CaseIterable, Identifiable {
 
     var tint: Color {
         switch self {
-        case .strength: Color(red: 0.22, green: 0.58, blue: 0.30)
-        case .recovery: Color(red: 0.24, green: 0.70, blue: 0.40)
-        case .cardio: Color(red: 0.29, green: 0.86, blue: 0.95)
-        case .heartRate: Color(red: 1.00, green: 0.25, blue: 0.28)
-        case .sleep: Color(red: 0.55, green: 0.45, blue: 1.00)
-        case .activity: Color(red: 0.92, green: 0.56, blue: 0.16)
-        case .body: Color(red: 0.65, green: 0.48, blue: 1.00)
-        case .nutrition: Color(red: 1.00, green: 0.43, blue: 0.20)
-        case .weather: Color(red: 0.27, green: 0.58, blue: 1.00)
+        case .strength: PulseTheme.semanticAction
+        case .recovery: PulseTheme.semanticHealth
+        case .cardio: PulseTheme.semanticProgress
+        case .heartRate: PulseTheme.semanticEffort
+        case .sleep: PulseTheme.semanticNeutral
+        case .activity: PulseTheme.semanticWarning
+        case .body: PulseTheme.semanticHealth
+        case .nutrition: PulseTheme.semanticWarning
+        case .weather: PulseTheme.semanticProgress
         }
     }
 
     var secondaryTint: Color {
         switch self {
-        case .strength: Color(red: 0.10, green: 0.24, blue: 0.14)
-        case .recovery: Color(red: 0.12, green: 0.36, blue: 0.22)
-        case .cardio: Color(red: 0.03, green: 0.42, blue: 0.55)
-        case .heartRate: Color(red: 0.58, green: 0.08, blue: 0.16)
-        case .sleep: Color(red: 0.25, green: 0.20, blue: 0.72)
-        case .activity: Color(red: 0.36, green: 0.22, blue: 0.06)
-        case .body: Color(red: 0.31, green: 0.21, blue: 0.63)
-        case .nutrition: Color(red: 0.50, green: 0.12, blue: 0.04)
-        case .weather: Color(red: 0.05, green: 0.20, blue: 0.50)
+        case .strength: PulseTheme.semanticHealth.opacity(0.70)
+        case .recovery: PulseTheme.semanticHealth.opacity(0.58)
+        case .cardio: PulseTheme.semanticProgress.opacity(0.62)
+        case .heartRate: PulseTheme.semanticEffort.opacity(0.64)
+        case .sleep: PulseTheme.semanticNeutral.opacity(0.54)
+        case .activity: PulseTheme.semanticWarning.opacity(0.62)
+        case .body: PulseTheme.semanticHealth.opacity(0.46)
+        case .nutrition: PulseTheme.semanticWarning.opacity(0.58)
+        case .weather: PulseTheme.semanticProgress.opacity(0.50)
         }
     }
 
     var backgroundGradient: LinearGradient {
         LinearGradient(
             colors: [
-                tint.opacity(0.12),
+                tint.opacity(0.11),
                 secondaryTint.opacity(0.08),
-                PulseTheme.card.opacity(0.84)
+                PulseTheme.card
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -342,9 +389,9 @@ enum MetricDomain: String, CaseIterable, Identifiable {
     var headerGradient: LinearGradient {
         LinearGradient(
             colors: [
-                tint.opacity(0.18),
-                secondaryTint.opacity(0.12),
-                Color.black.opacity(0.02)
+                tint.opacity(0.12),
+                secondaryTint.opacity(0.08),
+                PulseTheme.background.opacity(0.05)
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -373,13 +420,13 @@ enum MetricDomain: String, CaseIterable, Identifiable {
     /// apps stitched together.
     var heroGradient: LinearGradient {
         LinearGradient(
-            colors: [tint.opacity(0.58), secondaryTint.opacity(0.80), PulseTheme.card],
+            colors: [tint.opacity(0.18), secondaryTint.opacity(0.10), PulseTheme.card],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
 
-    var glowColor: Color { tint.opacity(0.35) }
+    var glowColor: Color { tint.opacity(0.16) }
 }
 
 struct DomainTintedBackground: View {
@@ -393,7 +440,7 @@ struct DomainTintedBackground: View {
                 .frame(height: height)
                 .overlay(alignment: .topTrailing) {
                     Circle()
-                        .fill(domain.tint.opacity(0.18))
+                        .fill(domain.tint.opacity(0.10))
                         .blur(radius: 54)
                         .frame(width: 220, height: 220)
                         .offset(x: 70, y: -70)
@@ -436,14 +483,8 @@ struct GlassMetricCard<Content: View>: View {
             .frame(minHeight: minHeight, alignment: .leading)
             .background {
                 ZStack {
-                    shape
-                        .fill(.clear)
-                        .glassEffect(
-                            .regular.tint(domain.tint.opacity(isSelected ? 0.14 : 0.07)),
-                            in: shape
-                        )
-                    shape
-                        .fill(domain.backgroundGradient.opacity(isSelected ? 0.44 : 0.28))
+                    shape.fill(PulseTheme.card)
+                    shape.fill(domain.backgroundGradient.opacity(isSelected ? 0.48 : 0.32))
                 }
             }
             .overlay {
@@ -451,9 +492,8 @@ struct GlassMetricCard<Content: View>: View {
                     .stroke(
                         LinearGradient(
                             colors: [
-                                .white.opacity(isSelected ? 0.20 : 0.11),
-                                domain.tint.opacity(isSelected ? 0.30 : 0.14),
-                                .black.opacity(0.10)
+                                PulseTheme.cardStroke,
+                                domain.tint.opacity(isSelected ? 0.26 : 0.16)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -462,7 +502,7 @@ struct GlassMetricCard<Content: View>: View {
                     )
             }
             .clipShape(shape)
-            .shadow(color: domain.tint.opacity(isSelected ? 0.10 : 0.04), radius: isSelected ? 14 : 8, y: 6)
+            .shadow(color: PulseTheme.surfaceShadow, radius: isSelected ? 9 : 6, y: isSelected ? 4 : 2)
     }
 }
 
@@ -523,7 +563,7 @@ struct DomainHeroCard<Content: View>: View {
                     shape.fill(domain.heroGradient)
                     shape.fill(
                         LinearGradient(
-                            colors: [.white.opacity(0.16), .clear],
+                            colors: [domain.tint.opacity(0.08), .clear],
                             startPoint: .topLeading,
                             endPoint: .center
                         )
@@ -531,10 +571,10 @@ struct DomainHeroCard<Content: View>: View {
                 }
             }
             .overlay {
-                shape.stroke(.white.opacity(0.18), lineWidth: 0.8)
+                shape.stroke(PulseTheme.cardStroke, lineWidth: 0.8)
             }
             .clipShape(shape)
-            .shadow(color: domain.glowColor, radius: 16, y: 8)
+            .shadow(color: PulseTheme.surfaceShadow, radius: 7, y: 3)
     }
 }
 
@@ -891,12 +931,66 @@ struct PulseCard<Content: View>: View {
     }
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+
         content
             .frame(maxWidth: .infinity, maxHeight: minHeight != nil ? .infinity : nil, alignment: .leading)
             .padding(contentPadding)
             .frame(minHeight: minHeight, alignment: .leading)
-            .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .background(backgroundColor, in: shape)
+            .overlay {
+                shape.stroke(PulseTheme.cardStroke, lineWidth: 0.8)
+            }
+            .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
+    }
+}
+
+struct PulseIconBadge: View {
+    let systemImage: String
+    var tint: Color = PulseTheme.accent
+    var size: CGFloat = 40
+    var radius: CGFloat = PulseTheme.mediumRadius
+    var isFilled = false
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: max(12, size * 0.40), weight: .bold))
+            .foregroundStyle(isFilled ? PulseTheme.onColor(tint) : tint)
+            .frame(width: size, height: size)
+            .background(isFilled ? tint : tint.opacity(0.13), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .stroke(isFilled ? Color.clear : tint.opacity(0.10), lineWidth: 0.8)
+            }
+            .accessibilityHidden(true)
+    }
+}
+
+struct PulseStatusPill: View {
+    let title: LocalizedStringKey
+    var systemImage: String?
+    var tint: Color = PulseTheme.accent
+    var isFilled = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 11, weight: .bold))
+            }
+            Text(localizedKey(title))
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+        }
+        .foregroundStyle(isFilled ? PulseTheme.onColor(tint) : tint)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(isFilled ? tint : tint.opacity(0.13), in: Capsule(style: .continuous))
+        .overlay {
+            Capsule(style: .continuous)
+                .stroke(isFilled ? Color.clear : tint.opacity(0.12), lineWidth: 0.8)
+        }
     }
 }
 
@@ -926,10 +1020,10 @@ struct PrimaryButton: View {
             .frame(height: 56)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.black)
+        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
         .background(PulseTheme.accent)
-        .clipShape(Capsule(style: .continuous))
-        .shadow(color: PulseTheme.accent.opacity(0.30), radius: 14, y: 6)
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .shadow(color: PulseTheme.accent.opacity(0.16), radius: 8, y: 3)
     }
 }
 
@@ -958,8 +1052,12 @@ struct SecondaryButton: View {
             .frame(height: 52)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.white)
-        .navigationGlassCapsule(.secondary)
+        .foregroundStyle(PulseTheme.textPrimary)
+        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke(PulseTheme.separator, lineWidth: 0.8)
+        }
         .accessibilityAddTraits(.isButton)
     }
 }
@@ -972,8 +1070,8 @@ struct SectionHeader: View {
 
     var body: some View {
         Text(verbatim: String(localized: String.LocalizationValue(title), locale: locale).capitalizingFirstLetter())
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(PulseTheme.secondaryText)
+            .font(.subheadline.weight(.bold))
+            .foregroundStyle(PulseTheme.textSecondary)
             .accessibilityAddTraits(.isHeader)
     }
 }
@@ -1012,6 +1110,95 @@ extension String {
 
 // MARK: - Pulse Header Bar
 
+struct DetailNavigationHeaderBar: View {
+    static let contentTopPadding: CGFloat = 104
+
+    let title: String
+    var backTitle: String?
+    var tint: Color = PulseTheme.accent
+    var backAction: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            DetailNavigationHeaderSurface()
+                .frame(height: 148)
+                .ignoresSafeArea(edges: .top)
+                .allowsHitTesting(false)
+
+            Text(title)
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 104)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 37)
+
+            HStack {
+                Button {
+                    HapticService.selection()
+                    backAction()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 27, weight: .medium))
+                        .foregroundStyle(PulseTheme.textPrimary)
+                        .frame(width: 56, height: 56)
+                        .background {
+                            Circle()
+                                .fill(.clear)
+                                .glassEffect(
+                                    .regular.tint(tint.opacity(0.12)).interactive(),
+                                    in: Circle()
+                                )
+                        }
+                        .overlay {
+                            Circle()
+                                .stroke(tint.opacity(0.24), lineWidth: 1.15)
+                        }
+                        .shadow(color: tint.opacity(0.14), radius: 15, y: 6)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("back_2")
+
+                Spacer()
+            }
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+            .padding(.top, 20)
+        }
+        .frame(height: 96, alignment: .top)
+        .zIndex(20)
+    }
+}
+
+private struct DetailNavigationHeaderSurface: View {
+    var body: some View {
+        LinearGradient(
+            stops: [
+                .init(color: PulseTheme.background.opacity(0.92), location: 0),
+                .init(color: PulseTheme.background.opacity(0.58), location: 0.46),
+                .init(color: PulseTheme.background.opacity(0.18), location: 0.74),
+                .init(color: .clear, location: 1)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .background(.ultraThinMaterial)
+        .glassEffect(.regular.tint(PulseTheme.background.opacity(0.10)), in: .rect)
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .black, location: 0),
+                    .init(color: .black.opacity(0.92), location: 0.68),
+                    .init(color: .clear, location: 1)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+    }
+}
+
 /// The blurred, rounded-bottom-corner title bar shared by every primary
 /// screen (Today, Progress, Plans, Calendar, Exercises). `title` is verbatim
 /// display text (already resolved/localized by the caller); `subtitleKey` is
@@ -1046,7 +1233,7 @@ struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.textPrimary)
                             .frame(width: 42, height: 42)
                             .navigationGlassCircle(.secondary)
                     }
@@ -1072,26 +1259,35 @@ struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
             .padding(.top, 10)
             .padding(.bottom, 14)
             .background {
-                UnevenRoundedRectangle(
-                    cornerRadii: .init(bottomLeading: 28, bottomTrailing: 28),
+                let shape = UnevenRoundedRectangle(
+                    cornerRadii: .init(bottomLeading: PulseTheme.xlRadius, bottomTrailing: PulseTheme.xlRadius),
                     style: .continuous
                 )
-                .fill(.ultraThinMaterial)
+                ZStack {
+                    shape
+                        .fill(.ultraThinMaterial)
+                    shape
+                        .fill(PulseTheme.card.opacity(0.86))
+                }
                 .ignoresSafeArea(edges: .top)
             }
             .overlay(alignment: .bottom) {
-                StickyHeaderBottomBorder(cornerRadius: 28)
+                StickyHeaderBottomBorder(cornerRadius: PulseTheme.xlRadius)
                     .stroke(PulseTheme.separator, lineWidth: 1)
-                    .frame(height: 28)
+                    .frame(height: PulseTheme.xlRadius)
                     .allowsHitTesting(false)
             }
 
             LinearGradient(
-                colors: [PulseTheme.background.opacity(0.72), .clear],
+                stops: [
+                    .init(color: PulseTheme.background, location: 0),
+                    .init(color: PulseTheme.background.opacity(0.96), location: 0.62),
+                    .init(color: .clear, location: 1)
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 16)
+            .frame(height: 36)
             .allowsHitTesting(false)
         }
     }
@@ -1175,7 +1371,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .safeAreaPadding(.top, max(topContentPadding, headerHeight + 12))
-                .padding(.bottom, 168)
+                .padding(.bottom, PulseTheme.screenBottomContentPadding)
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .coordinateSpace(.named(StickyHeaderTitleReader.coordinateSpaceName))
@@ -1354,12 +1550,18 @@ struct PulseListRow<Trailing: View>: View {
                 .background(PulseTheme.accent.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
-                Text(localizedKey(title)).font(.headline)
+                Text(localizedKey(title))
+                    .font(.headline)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
                 Text(localizedKey(subtitle))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
             }
-            Spacer()
+            .layoutPriority(1)
+            Spacer(minLength: 8)
             trailing
         }
         .frame(minHeight: 58)
@@ -1390,17 +1592,26 @@ struct PulseEmptyState: View {
     let systemImage: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Image(systemName: systemImage)
-                .font(.largeTitle)
-                .foregroundStyle(PulseTheme.accent)
-                .accessibilityHidden(true)
-            Text(localizedKey(title))
-                .font(.title2.bold())
-            Text(localizedKey(message))
-                .foregroundStyle(PulseTheme.secondaryText)
+        HStack(alignment: .top, spacing: 14) {
+            PulseIconBadge(systemImage: systemImage, tint: PulseTheme.semanticNeutral, size: 44)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(localizedKey(title))
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(PulseTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(localizedKey(message))
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(PulseTheme.grouped.opacity(0.62), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke(PulseTheme.separator, lineWidth: 0.8)
+        }
     }
 }
 
@@ -1490,7 +1701,7 @@ struct MetricCard: View {
                 .font(PulseTheme.metricNumeric())
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .foregroundStyle(.white)
+                .foregroundStyle(PulseTheme.textPrimary)
             Text(localizedKey(subtitle))
                 .font(.caption)
                 .lineLimit(2)

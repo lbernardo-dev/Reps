@@ -32,7 +32,7 @@ struct ProgressDashboardView: View {
                         .navigationGlassCircle(.secondary, tint: .clear)
                     if store.hasUnreadBell {
                         Circle()
-                            .fill(.red)
+                            .fill(PulseTheme.destructive)
                             .frame(width: 9, height: 9)
                             .offset(x: -1, y: 1)
                     }
@@ -82,7 +82,7 @@ struct ProgressDashboardView: View {
             Button { handleMetricTap(.steps) } label: {
               TodayBarChartCard(
                 icon: "figure.walk",
-                color: Color(red: 0.68, green: 0.50, blue: 1.00),
+                color: PulseTheme.semanticProgress,
                 title: "steps_metric",
                 value: stepsToday > 0 ? "\(stepsToday)" : "—",
                 unit: "PASOS",

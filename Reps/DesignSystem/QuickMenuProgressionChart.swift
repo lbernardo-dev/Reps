@@ -194,17 +194,17 @@ struct QuickMenuProgressionChart: View {
                     let realStr = realVal != nil ? String(format: "%.0f", realVal!) : "--"
 
                     HStack(spacing: 5) {
-                        Text(localizedFormat("week_label_colon_format", activeWeek))
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
+	                        Text(localizedFormat("week_label_colon_format", activeWeek))
+	                            .font(.system(size: 15, weight: .bold, design: .rounded))
+	                            .foregroundStyle(PulseTheme.mediaText)
 
                         Text("R \(realStr)")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundStyle(LineType.real.color)
 
                         if let planVal {
-                            Text("•")
-                                .foregroundStyle(.white.opacity(0.2))
+	                            Text("•")
+	                                .foregroundStyle(PulseTheme.mediaText.opacity(0.2))
 
                             Text("P \(Int(planVal))")
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
@@ -212,23 +212,23 @@ struct QuickMenuProgressionChart: View {
                         }
 
                         if let expVal {
-                            Text("•")
-                                .foregroundStyle(.white.opacity(0.2))
+	                            Text("•")
+	                                .foregroundStyle(PulseTheme.mediaText.opacity(0.2))
 
                             Text("E \(Int(expVal))")
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
                                 .foregroundStyle(LineType.expected.color)
                         }
 
-                        Text(unitLabel)
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.4))
+	                        Text(unitLabel)
+	                            .font(.system(size: 10, weight: .bold, design: .rounded))
+	                            .foregroundStyle(PulseTheme.mediaText.opacity(0.4))
                     }
                     .frame(height: 26)
                 } else {
-                    Text(chartTitle)
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+	                    Text(chartTitle)
+	                        .font(.system(size: 22, weight: .bold, design: .rounded))
+	                        .foregroundStyle(PulseTheme.mediaText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.76)
                 }
@@ -263,14 +263,14 @@ struct QuickMenuProgressionChart: View {
                     let isSelected = selectedMetric == type
                     Text(type.displayName)
                         .font(.system(size: 11, weight: isSelected ? .bold : .medium, design: .rounded))
-                        .foregroundStyle(isSelected ? .white : .white.opacity(0.45))
+	                        .foregroundStyle(isSelected ? PulseTheme.mediaText : PulseTheme.mediaText.opacity(0.45))
                         .padding(.vertical, 7)
                         .frame(maxWidth: .infinity)
                         .background(
                             ZStack {
                                 if isSelected {
-                                    Capsule()
-                                        .fill(Color.white.opacity(0.12))
+	                                    Capsule()
+	                                        .fill(PulseTheme.mediaText.opacity(0.12))
                                         .matchedGeometryEffect(id: "activeTab", in: tabNamespace)
                                 }
                             }
@@ -284,11 +284,11 @@ struct QuickMenuProgressionChart: View {
                 }
             }
             .padding(3)
-            .background(Color.white.opacity(0.04))
+	            .background(PulseTheme.mediaText.opacity(0.04))
             .clipShape(Capsule())
             .overlay(
-                Capsule()
-                    .stroke(Color.white.opacity(0.05), lineWidth: 1)
+	                Capsule()
+	                    .stroke(PulseTheme.mediaText.opacity(0.05), lineWidth: 1)
             )
             .padding(.horizontal, 4)
             
@@ -362,22 +362,22 @@ struct QuickMenuProgressionChart: View {
                     
                     // 6. Interactive Selected Week Indicator
                     if let activeWeek {
-                        RuleMark(x: .value("Selected", activeWeek))
-                            .foregroundStyle(Color.white.opacity(0.24))
+	                        RuleMark(x: .value("Selected", activeWeek))
+	                            .foregroundStyle(PulseTheme.mediaText.opacity(0.24))
                             .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [4, 4]))
                     }
                     
                     // 7. Current Week Indicator with Floating Annotation
-                    RuleMark(x: .value("Hoy", 12))
-                        .foregroundStyle(Color.white.opacity(0.12))
+	                    RuleMark(x: .value("Hoy", 12))
+	                        .foregroundStyle(PulseTheme.mediaText.opacity(0.12))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 4]))
                         .annotation(position: .top, alignment: .center) {
                             Text(localizedString("today_2"))
-                                .font(.system(size: 8, weight: .black, design: .rounded))
-                                .foregroundStyle(.white)
+	                                .font(.system(size: 8, weight: .black, design: .rounded))
+	                                .foregroundStyle(PulseTheme.mediaText)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 3)
-                                .background(Color.white.opacity(0.12))
+	                                .background(PulseTheme.mediaText.opacity(0.12))
                                 .clipShape(Capsule())
                         }
                 }
@@ -385,21 +385,21 @@ struct QuickMenuProgressionChart: View {
                 .chartYScale(domain: (minVal - margin)...(maxVal + margin))
                 .chartXAxis {
                     AxisMarks(values: .automatic(desiredCount: 6)) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 4])).foregroundStyle(Color.white.opacity(0.04))
+	                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 4])).foregroundStyle(PulseTheme.mediaText.opacity(0.04))
                         if let week = value.as(Int.self) {
                             AxisValueLabel(localizedFormat("week_label_format", week))
                                 .font(.system(size: 8, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.4))
+	                                .foregroundStyle(PulseTheme.mediaText.opacity(0.4))
                         }
                     }
                 }
                 .chartYAxis {
                     AxisMarks(position: .leading, values: .automatic(desiredCount: 5)) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 4])).foregroundStyle(Color.white.opacity(0.04))
+	                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 4])).foregroundStyle(PulseTheme.mediaText.opacity(0.04))
                         if let val = value.as(Double.self) {
                             AxisValueLabel("\(Int(val)) \(unitLabel)")
                                 .font(.system(size: 8, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.4))
+	                                .foregroundStyle(PulseTheme.mediaText.opacity(0.4))
                         }
                     }
                 }
@@ -427,13 +427,13 @@ struct QuickMenuProgressionChart: View {
                 }
                 if allPoints.isEmpty {
                     VStack(spacing: 6) {
-                        Image(systemName: selectedMetric == .exercises ? "chart.bar.doc.horizontal" : "scalemass")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.35))
+	                        Image(systemName: selectedMetric == .exercises ? "chart.bar.doc.horizontal" : "scalemass")
+	                            .font(.system(size: 18, weight: .semibold))
+	                            .foregroundStyle(PulseTheme.mediaText.opacity(0.35))
                         Text(emptyStateText)
                             .font(.system(size: 10, weight: .bold, design: .rounded))
                             .multilineTextAlignment(.center)
-                            .foregroundStyle(.white.opacity(0.45))
+	                            .foregroundStyle(PulseTheme.mediaText.opacity(0.45))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 24)
@@ -443,9 +443,9 @@ struct QuickMenuProgressionChart: View {
             
             // Interactive Drag instructions & Static Legend (ALWAYS visible)
             HStack {
-                Label(allPoints.isEmpty ? dataSourceText : (localizedString("drag_to_explore_values")), systemImage: allPoints.isEmpty ? "lock.shield" : "hand.tap.fill")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(activeWeek != nil ? 0.2 : 0.4))
+	                Label(allPoints.isEmpty ? dataSourceText : (localizedString("drag_to_explore_values")), systemImage: allPoints.isEmpty ? "lock.shield" : "hand.tap.fill")
+	                    .font(.system(size: 9, weight: .bold, design: .rounded))
+	                    .foregroundStyle(PulseTheme.mediaText.opacity(activeWeek != nil ? 0.2 : 0.4))
                 
                 Spacer()
                 
@@ -504,9 +504,9 @@ private struct LegendItem: View {
                 .frame(width: 6, height: 6)
                 .shadow(color: color.opacity(0.8), radius: 3)
             
-            Text(localizedKey(label))
-                .font(.system(size: 9, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.5))
+	            Text(localizedKey(label))
+	                .font(.system(size: 9, weight: .bold, design: .rounded))
+	                .foregroundStyle(PulseTheme.mediaText.opacity(0.5))
         }
     }
 }
@@ -524,13 +524,13 @@ private struct TooltipBadge: View {
                 .shadow(color: color.opacity(0.8), radius: 4)
             
             VStack(alignment: .leading, spacing: 1) {
-                Text(localizedKey(label))
-                    .font(.system(size: 8, weight: .black, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.4))
+	                Text(localizedKey(label))
+	                    .font(.system(size: 8, weight: .black, design: .rounded))
+	                    .foregroundStyle(PulseTheme.mediaText.opacity(0.4))
                 
-                Text(value)
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+	                Text(value)
+	                    .font(.system(size: 12, weight: .bold, design: .rounded))
+	                    .foregroundStyle(PulseTheme.mediaText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

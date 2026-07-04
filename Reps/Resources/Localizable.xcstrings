@@ -19063,6 +19063,23 @@
         }
       }
     },
+    "awake_time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Awake"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Despierto"
+          }
+        }
+      }
+    },
     "ayer" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -22374,6 +22391,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mejor: %@"
+          }
+        }
+      }
+    },
+    "best_streak" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best streak"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mejor racha"
           }
         }
       }
@@ -35449,6 +35483,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deep Squat Hold"
+          }
+        }
+      }
+    },
+    "deep_sleep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deep sleep"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sueno profundo"
           }
         }
       }
@@ -50228,6 +50279,23 @@
         }
       }
     },
+    "goal_days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goal days"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dias objetivo"
+          }
+        }
+      }
+    },
     "goal_deadline_fmt" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -53041,6 +53109,40 @@
         }
       }
     },
+    "heart_rate_short" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heart"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Corazon"
+          }
+        }
+      }
+    },
+    "heart_rate_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heart Rate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frecuencia cardiaca"
+          }
+        }
+      }
+    },
     "heart_rate_variability" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -54736,6 +54838,108 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "hr_before"
+          }
+        }
+      }
+    },
+    "hr_insight_recovery_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good post-workout recovery"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buena recuperacion post-entreno"
+          }
+        }
+      }
+    },
+    "hr_insight_resting_elevated_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your resting heart rate is above your 7-day average. Could be stress, illness or poor sleep."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu FC en reposo esta por encima de tu media de 7 dias. Puede deberse a estres, enfermedad o mal descanso."
+          }
+        }
+      }
+    },
+    "hr_insight_resting_elevated_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resting HR higher than usual"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FC en reposo mas alta de lo habitual"
+          }
+        }
+      }
+    },
+    "hr_insight_resting_normal_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your resting heart rate is in line with your recent average — a good recovery signal."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu FC en reposo esta en linea con tu media reciente, una buena senal de recuperacion."
+          }
+        }
+      }
+    },
+    "hr_insight_resting_normal_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Healthy resting heart rate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FC en reposo saludable"
+          }
+        }
+      }
+    },
+    "hr_no_data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect Apple Health to see your heart rate trends."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecta Apple Salud para ver tus tendencias de frecuencia cardiaca."
           }
         }
       }
@@ -58846,6 +59050,23 @@
         }
       }
     },
+    "interruptions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interruptions"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrupciones"
+          }
+        }
+      }
+    },
     "Intervals" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -61581,6 +61802,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "light"
+          }
+        }
+      }
+    },
+    "light_sleep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light sleep"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sueno ligero"
           }
         }
       }
@@ -64955,6 +65193,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Material portátil, soporte y calistenia."
+          }
+        }
+      }
+    },
+    "max" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max"
           }
         }
       }
@@ -71839,6 +72094,40 @@
         }
       }
     },
+    "notif_new_comment_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Someone commented on your workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alguien comentó tu entreno"
+          }
+        }
+      }
+    },
+    "notif_new_comment_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New comment"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuevo comentario"
+          }
+        }
+      }
+    },
     "notif_new_follower_body" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -71903,40 +72192,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Le gustó tu entreno"
-          }
-        }
-      }
-    },
-    "notif_new_comment_body" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Someone commented on your workout"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alguien comentó tu entreno"
-          }
-        }
-      }
-    },
-    "notif_new_comment_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New comment"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nuevo comentario"
           }
         }
       }
@@ -76315,6 +76570,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Optimal timeline! You have the perfect amount of time to complete a full training block and arrive in peak shape."
+          }
+        }
+      }
+    },
+    "optimal_colon_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimal: %d-%d%%"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimo: %d-%d%%"
           }
         }
       }
@@ -83011,6 +83283,23 @@
         }
       }
     },
+    "post_workout_recovery" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post-Workout Recovery"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuperacion post-entreno"
+          }
+        }
+      }
+    },
     "posterior_chain" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -88791,6 +89080,23 @@
         }
       }
     },
+    "recent_workouts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent Workouts"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrenos recientes"
+          }
+        }
+      }
+    },
     "recharge_label" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -89196,6 +89502,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Empezar entreno recomendado"
+          }
+        }
+      }
+    },
+    "recommended_workout_detail_cta" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review workout details"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisar detalle del entreno"
           }
         }
       }
@@ -89639,6 +89962,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CRÉDITO DE RECUPERACIÓN (+)"
+          }
+        }
+      }
+    },
+    "recovery_drop_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your heart rate drops %d bpm on average after training."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu frecuencia cardiaca baja %d lpm de media tras entrenar."
           }
         }
       }
@@ -90611,6 +90951,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reintentar"
+          }
+        }
+      }
+    },
+    "rem_sleep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "REM"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "REM"
           }
         }
       }
@@ -92757,6 +93114,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "FC Reposo"
+          }
+        }
+      }
+    },
+    "restorative_sleep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restorative sleep"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sueno restaurador"
           }
         }
       }
@@ -96913,6 +97287,9 @@
         }
       }
     },
+    "Señales de hoy" : {
+
+    },
     "send_feedback" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -100838,9 +101215,6 @@
         }
       }
     },
-    "Sistema de entrenamiento" : {
-
-    },
     "sit-up" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -101415,6 +101789,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Calidad sueño: %d/5"
+          }
+        }
+      }
+    },
+    "sleep_score" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sleep score"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puntuacion de sueno"
+          }
+        }
+      }
+    },
+    "sleep_stage_data_unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sleep stage breakdown needs a compatible Apple Watch (Series 6 or later)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El desglose de fases de sueno necesita un Apple Watch compatible (Series 6 o posterior)."
+          }
+        }
+      }
+    },
+    "sleep_stages" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sleep stages"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fases de sueno"
           }
         }
       }
@@ -109081,6 +109506,7 @@
       }
     },
     "today_s_insight" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -115455,9 +115881,6 @@
         }
       }
     },
-    "WEEK" : {
-
-    },
     "week_1" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -117082,6 +117505,23 @@
         }
       }
     },
+    "workout_heart_rate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workout Heart Rate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FC de entreno"
+          }
+        }
+      }
+    },
     "workout_number_format" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -118638,431 +119078,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zottman Curl"
-          }
-        }
-      }
-    },
-    "best_streak" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Best streak"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mejor racha"
-          }
-        }
-      }
-    },
-    "goal_days" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Goal days"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dias objetivo"
-          }
-        }
-      }
-    },
-    "restorative_sleep" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restorative sleep"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sueno restaurador"
-          }
-        }
-      }
-    },
-    "rem_sleep" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "REM"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "REM"
-          }
-        }
-      }
-    },
-    "light_sleep" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Light sleep"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sueno ligero"
-          }
-        }
-      }
-    },
-    "deep_sleep" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deep sleep"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sueno profundo"
-          }
-        }
-      }
-    },
-    "awake_time" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Awake"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Despierto"
-          }
-        }
-      }
-    },
-    "optimal_colon_format" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Optimal: %d-%d%%"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Optimo: %d-%d%%"
-          }
-        }
-      }
-    },
-    "sleep_stages" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sleep stages"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fases de sueno"
-          }
-        }
-      }
-    },
-    "sleep_score" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sleep score"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Puntuacion de sueno"
-          }
-        }
-      }
-    },
-    "sleep_stage_data_unavailable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sleep stage breakdown needs a compatible Apple Watch (Series 6 or later)."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El desglose de fases de sueno necesita un Apple Watch compatible (Series 6 o posterior)."
-          }
-        }
-      }
-    },
-    "interruptions" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interruptions"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interrupciones"
-          }
-        }
-      }
-    },
-    "heart_rate_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heart Rate"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frecuencia cardiaca"
-          }
-        }
-      }
-    },
-    "max" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Max"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Max"
-          }
-        }
-      }
-    },
-    "workout_heart_rate" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Workout Heart Rate"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FC de entreno"
-          }
-        }
-      }
-    },
-    "post_workout_recovery" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Post-Workout Recovery"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recuperacion post-entreno"
-          }
-        }
-      }
-    },
-    "recovery_drop_format" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your heart rate drops %d bpm on average after training."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tu frecuencia cardiaca baja %d lpm de media tras entrenar."
-          }
-        }
-      }
-    },
-    "recent_workouts" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recent Workouts"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entrenos recientes"
-          }
-        }
-      }
-    },
-    "hr_insight_resting_elevated_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Resting HR higher than usual"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FC en reposo mas alta de lo habitual"
-          }
-        }
-      }
-    },
-    "hr_insight_resting_elevated_body" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your resting heart rate is above your 7-day average. Could be stress, illness or poor sleep."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tu FC en reposo esta por encima de tu media de 7 dias. Puede deberse a estres, enfermedad o mal descanso."
-          }
-        }
-      }
-    },
-    "hr_insight_resting_normal_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Healthy resting heart rate"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FC en reposo saludable"
-          }
-        }
-      }
-    },
-    "hr_insight_resting_normal_body" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your resting heart rate is in line with your recent average — a good recovery signal."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tu FC en reposo esta en linea con tu media reciente, una buena senal de recuperacion."
-          }
-        }
-      }
-    },
-    "hr_insight_recovery_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Good post-workout recovery"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buena recuperacion post-entreno"
-          }
-        }
-      }
-    },
-    "hr_no_data" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connect Apple Health to see your heart rate trends."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conecta Apple Salud para ver tus tendencias de frecuencia cardiaca."
-          }
-        }
-      }
-    },
-    "heart_rate_short" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heart"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Corazon"
           }
         }
       }

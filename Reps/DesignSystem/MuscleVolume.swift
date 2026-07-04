@@ -147,7 +147,7 @@ struct InWorkoutVolumeStrip: View {
             .tint(PulseTheme.growth)
         }
         .padding(14)
-        .background(Color.white.opacity(0.05))
+        .background(PulseTheme.grouped.opacity(0.72))
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)

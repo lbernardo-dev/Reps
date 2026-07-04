@@ -74,7 +74,7 @@ struct PlansView: View {
                                     .navigationGlassCircle(.secondary, tint: .clear)
                                 if store.hasUnreadBell {
                                     Circle()
-                                        .fill(.red)
+                                        .fill(PulseTheme.destructive)
                                         .frame(width: 9, height: 9)
                                         .offset(x: -1, y: 1)
                                 }
@@ -273,9 +273,9 @@ struct PlansView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "sparkles")
                         .font(.subheadline.weight(.black))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .frame(width: 40, height: 40)
-                        .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(localizedString("browse_programs_button"))
@@ -360,7 +360,7 @@ struct PlansView: View {
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
-                                .foregroundStyle(.black)
+                                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                                 .background(PulseTheme.accent)
                                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                         }
@@ -669,14 +669,10 @@ private struct LibraryShortcut: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: systemImage)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(PulseTheme.ringStand)
-                .frame(width: 36, height: 36)
-                .background(PulseTheme.ringStand.opacity(0.12), in: Circle())
+            PulseIconBadge(systemImage: systemImage, tint: PulseTheme.ringStand, size: 36, radius: PulseTheme.smallRadius)
             Text(localizedKey(title))
                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(PulseTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
             Text(localizedKey(subtitle))
@@ -687,11 +683,10 @@ private struct LibraryShortcut: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
-        .background(PulseTheme.card)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(PulseTheme.grouped.opacity(0.72), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(PulseTheme.separator, lineWidth: 1)
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke(PulseTheme.cardStroke, lineWidth: 0.8)
         )
     }
 }
@@ -775,7 +770,7 @@ private struct PlanCard: View {
         switch plan.location {
         case .gym: return PulseTheme.accent
         case .home: return PulseTheme.recovery
-        case .both: return PulseTheme.accent
+        case .both: return PulseTheme.ringStand
         }
     }
 
@@ -795,11 +790,7 @@ private struct PlanCard: View {
         Button(action: onTap) {
             HStack(spacing: 14) {
                 ZStack(alignment: .bottomTrailing) {
-                    Image(systemName: locationIcon)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(PulseTheme.onColor(locationColor))
-                        .frame(width: 52, height: 52)
-                        .background(locationColor, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    PulseIconBadge(systemImage: locationIcon, tint: locationColor, size: 52, radius: PulseTheme.compactRadius, isFilled: true)
 
                     if isLocked {
                         Image(systemName: "lock.fill")
@@ -815,6 +806,7 @@ private struct PlanCard: View {
                     Text(plan.name)
                         .font(.headline)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                         .foregroundStyle(.primary)
 
                     HStack(spacing: 10) {
@@ -832,24 +824,29 @@ private struct PlanCard: View {
 
                     if !topExerciseNames.isEmpty {
                         HStack(spacing: 4) {
-                            ForEach(topExerciseNames.prefix(3), id: \.self) { name in
+                            ForEach(topExerciseNames.prefix(2), id: \.self) { name in
                                 Text(name)
                                     .font(.caption2.weight(.semibold))
                                     .lineLimit(1)
+                                    .minimumScaleFactor(0.74)
                                     .padding(.horizontal, 7)
                                     .padding(.vertical, 3)
                                     .background(PulseTheme.grouped)
                                     .clipShape(Capsule())
                                     .foregroundStyle(PulseTheme.secondaryText)
+                                    .frame(maxWidth: 104, alignment: .leading)
                             }
-                            if topExerciseNames.count > 3 {
-                                Text("+\(plan.days.flatMap { $0.exercises }.count - 3)")
+                            if topExerciseNames.count > 2 {
+                                Text("+\(plan.days.flatMap { $0.exercises }.count - 2)")
                                     .font(.caption2.weight(.black))
                                     .foregroundStyle(locationColor)
+                                    .lineLimit(1)
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
+                .layoutPriority(1)
 
                 Spacer(minLength: 0)
 
@@ -889,7 +886,7 @@ private struct PlanCard: View {
             .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                    .stroke(PulseTheme.separator, lineWidth: 1)
+                    .stroke(PulseTheme.separator, lineWidth: 0.8)
             )
         }
         .buttonStyle(.plain)
@@ -924,7 +921,7 @@ private struct PlanDetailSheet: View {
         switch plan.location {
         case .gym: return PulseTheme.accent
         case .home: return PulseTheme.recovery
-        case .both: return PulseTheme.accent
+        case .both: return PulseTheme.ringStand
         }
     }
 
@@ -1016,6 +1013,11 @@ private struct PlanDetailSheet: View {
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.vertical, 12)
                 .background(.ultraThinMaterial)
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(PulseTheme.separator)
+                        .frame(height: 0.8)
+                }
             }
         }
     }
@@ -1123,7 +1125,7 @@ private struct PlanDayRow: View {
 
             Text("\(day.exercises.count)")
                 .font(.caption2.weight(.black).monospacedDigit())
-                .foregroundStyle(.white)
+                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                 .padding(.horizontal, 5)
                 .padding(.vertical, 2)
                 .background(PulseTheme.accent, in: Capsule())
@@ -1235,7 +1237,7 @@ private struct PlaylistProviderBadge: View {
     var body: some View {
         Image(systemName: "music.note")
             .font(.title3.weight(.bold))
-            .foregroundStyle(.white)
+            .foregroundStyle(PulseTheme.onColor(PulseTheme.appleMusic))
             .frame(width: 52, height: 52)
             .background(PulseTheme.appleMusic)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
@@ -1286,10 +1288,10 @@ struct PlanPlaylistEditor: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 46)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.appleMusic))
                     .background(PulseTheme.appleMusic)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .shadow(color: Color.black.opacity(0.12), radius: 4, y: 2)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
+                    .shadow(color: PulseTheme.surfaceShadow, radius: 4, y: 2)
             }
             .buttonStyle(.plain)
             .padding(.vertical, 6)
@@ -1313,9 +1315,9 @@ struct PlanPlaylistEditor: View {
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 38)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .background(canAdd ? PulseTheme.accent : PulseTheme.secondaryText.opacity(0.3))
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.smallRadius, style: .continuous))
                     }
                     .disabled(!canAdd)
                     .buttonStyle(.plain)

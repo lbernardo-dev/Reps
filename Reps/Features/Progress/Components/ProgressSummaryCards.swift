@@ -90,22 +90,22 @@ struct DailySummaryFocusCard: View {
 
         HStack(spacing: 10) {
           Button(action: onOpenWorkout) {
-            Label("Entrenar", systemImage: "play.fill")
-              .font(.subheadline.weight(.black))
-              .foregroundStyle(.black)
-              .frame(maxWidth: .infinity)
-              .frame(height: 42)
-              .background(PulseTheme.ringExercise, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+	            Label("Entrenar", systemImage: "play.fill")
+	              .font(.subheadline.weight(.black))
+	              .foregroundStyle(PulseTheme.onColor(PulseTheme.ringExercise))
+	              .frame(maxWidth: .infinity)
+	              .frame(height: 42)
+	              .background(PulseTheme.ringExercise, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
           }
           .buttonStyle(.plain)
 
           Button(action: onOpenCalendar) {
-            Label("Plan", systemImage: "calendar")
-              .font(.subheadline.weight(.black))
-              .foregroundStyle(.white.opacity(0.86))
-              .frame(maxWidth: .infinity)
-              .frame(height: 42)
-              .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+	            Label("Plan", systemImage: "calendar")
+	              .font(.subheadline.weight(.black))
+	              .foregroundStyle(PulseTheme.textSecondary)
+	              .frame(maxWidth: .infinity)
+	              .frame(height: 42)
+	              .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
           }
           .buttonStyle(.plain)
         }
@@ -510,6 +510,9 @@ struct TodayBarChartCard: View {
           Text(localizedKey(title))
             .font(.system(size: 12, weight: .bold))
             .foregroundStyle(PulseTheme.secondaryText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.74)
+            .layoutPriority(1)
           if showsChevron {
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")
@@ -522,10 +525,15 @@ struct TodayBarChartCard: View {
           Text(value)
             .font(.system(size: 34, weight: .black, design: .rounded).monospacedDigit())
             .foregroundStyle(.primary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.60)
           Text(unit)
             .font(.system(size: 13, weight: .bold))
             .foregroundStyle(PulseTheme.secondaryText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.70)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
 
         Group {
           if hasVisibleData {
@@ -533,9 +541,9 @@ struct TodayBarChartCard: View {
               BarMark(
                 x: .value("day", point.label),
                 y: .value("val", point.value)
-              )
-              .foregroundStyle(point.isToday ? color : color.opacity(0.28))
-              .cornerRadius(3)
+	              )
+	              .foregroundStyle(point.isToday ? color : color.opacity(0.28))
+	              .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
             }
             .allowsHitTesting(false)
             .chartYScale(domain: 0...(maxValue * 1.18))

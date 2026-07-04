@@ -18,7 +18,7 @@ struct ReadinessGauge: View {
         switch clamped {
         case ..<30:  PulseTheme.destructive
         case ..<50:  PulseTheme.warning
-        case ..<70:  Color.yellow
+        case ..<70:  PulseTheme.semanticAction
         default:     PulseTheme.growth
         }
     }
@@ -35,7 +35,7 @@ struct ReadinessGauge: View {
                 if showsValue {
                     Text(Int(clamped.rounded()).formatted())
                         .font(.system(size: size * 0.32, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.textPrimary)
                         .contentTransition(.numericText())
                         .minimumScaleFactor(0.6)
                 }
@@ -79,7 +79,7 @@ struct ReadinessHeroGauge: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(Int(value.rounded()).formatted())
                     .font(.system(size: 40, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.textPrimary)
                 Text(statusLabel)
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(PulseTheme.secondaryText)

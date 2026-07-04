@@ -33,8 +33,9 @@ struct TrainingLoadOverviewCard: View {
               Text(battery.title)
                 .font(.system(size: 26, weight: .heavy, design: .rounded))
                 .foregroundStyle(statusColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .lineLimit(2)
+                .minimumScaleFactor(0.78)
+                .fixedSize(horizontal: false, vertical: true)
               Text("\(battery.level)%")
                 .font(.system(size: 14, weight: .bold).monospacedDigit())
                 .foregroundStyle(PulseTheme.secondaryText)
@@ -50,14 +51,17 @@ struct TrainingLoadOverviewCard: View {
               Text(battery.suggestion)
                 .font(.subheadline)
                 .foregroundStyle(PulseTheme.secondaryText)
-                .lineLimit(1)
+                .lineLimit(2)
                 .minimumScaleFactor(0.78)
+                .fixedSize(horizontal: false, vertical: true)
               Spacer()
               Text(localizedString("abrir"))
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(PulseTheme.ringStand)
+                .lineLimit(1)
             }
           }
+          .layoutPriority(1)
 
           ZStack {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -69,7 +73,7 @@ struct TrainingLoadOverviewCard: View {
             }
             .foregroundStyle(statusColor)
           }
-          .frame(width: 92, height: 118)
+          .frame(width: 96, height: 118)
         }
       }
     }
@@ -161,6 +165,7 @@ struct AnalyticsShortcutCard: View {
   let systemImage: String
 
   var body: some View {
+    PulseCard(minHeight: 138, contentPadding: 16) {
     VStack(alignment: .leading, spacing: 12) {
       Image(systemName: systemImage)
         .font(.headline)
@@ -176,11 +181,7 @@ struct AnalyticsShortcutCard: View {
         .font(.subheadline)
         .foregroundStyle(PulseTheme.secondaryText)
     }
-    .padding(16)
-    .frame(maxWidth: .infinity, minHeight: 138, alignment: .leading)
-    .background(PulseTheme.card)
-    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-    .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 8)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    }
   }
 }
-

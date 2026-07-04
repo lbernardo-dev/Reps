@@ -269,14 +269,22 @@ struct AchievementsView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 24) {
-                customNavBar
                 levelBannerSection
                 achievementsGridSection
                 receiptTicketsSection
                 Spacer(minLength: 40)
             }
+            .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.bottom, 60)
+        }
+        .overlay(alignment: .top) {
+            DetailNavigationHeaderBar(
+                title: localizedString("achievements_and_tickets"),
+                backTitle: localizedString("profile")
+            ) {
+                dismiss()
+            }
         }
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
@@ -359,41 +367,6 @@ struct AchievementsView: View {
         )
     }
 
-    // MARK: - Navigation Bar
-    private var customNavBar: some View {
-        HStack {
-            Button {
-                HapticService.selection()
-                dismiss()
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
-                        .navigationGlassCircle(.secondary)
-                    Text(localizedString("profile"))
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                }
-            }
-            .buttonStyle(.plain)
-            
-            Spacer()
-            
-            Text(localizedString("achievements_and_tickets"))
-                .font(.system(size: 19, weight: .bold, design: .rounded))
-            
-            Spacer()
-            
-            // Empty placeholder for symmetry
-            Image(systemName: "chevron.left")
-                .font(.system(size: 18, weight: .bold))
-                .opacity(0)
-        }
-        .padding(.vertical, 14)
-    }
-    
     // MARK: - Achievements Grid Section
     private var achievementsGridSection: some View {
         VStack(alignment: .leading, spacing: 14) {

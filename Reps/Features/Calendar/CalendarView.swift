@@ -29,7 +29,7 @@ struct CalendarView: View {
                                 .navigationGlassCircle(.secondary, tint: .clear)
                             if store.hasUnreadBell {
                                 Circle()
-                                    .fill(.red)
+                                    .fill(PulseTheme.destructive)
                                     .frame(width: 9, height: 9)
                                     .offset(x: -1, y: 1)
                             }
@@ -42,78 +42,78 @@ struct CalendarView: View {
                     calendarCommandCard
                         .stickyHeaderTitle(localizedString("this_week"))
 
-                    HStack {
-                        Button { changeMonth(by: -1) } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 36, height: 36)
-                                .navigationGlassCircle(.secondary)
-                        }
-                        Spacer()
-                        Text(formattedMonth(visibleMonth))
-                            .font(.title.bold())
-                        Spacer()
-                        Button { changeMonth(by: 1) } label: {
-                            Image(systemName: "chevron.right")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 36, height: 36)
-                                .navigationGlassCircle(.secondary)
-                        }
-                    }
-                    .foregroundStyle(.white)
+                    PulseCard {
+                        VStack(spacing: 16) {
+                            HStack {
+                                Button { changeMonth(by: -1) } label: {
+                                    Image(systemName: "chevron.left")
+                                        .font(.subheadline.weight(.bold))
+                                        .foregroundStyle(PulseTheme.textPrimary)
+                                        .frame(width: 36, height: 36)
+                                        .navigationGlassCircle(.secondary)
+                                }
+                                Spacer()
+                                Text(formattedMonth(visibleMonth))
+                                    .font(.title3.weight(.bold))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.78)
+                                Spacer()
+                                Button { changeMonth(by: 1) } label: {
+                                    Image(systemName: "chevron.right")
+                                        .font(.subheadline.weight(.bold))
+                                        .foregroundStyle(PulseTheme.textPrimary)
+                                        .frame(width: 36, height: 36)
+                                        .navigationGlassCircle(.secondary)
+                                }
+                            }
+                            .foregroundStyle(.primary)
 
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 14) {
-                        ForEach(localizedWeekdaySymbols.indices, id: \.self) { index in
-                            Text(localizedWeekdaySymbols[index])
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 14) {
+                                ForEach(localizedWeekdaySymbols.indices, id: \.self) { index in
+                                    Text(localizedWeekdaySymbols[index])
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
 
-                        ForEach(Array(monthCells.enumerated()), id: \.offset) { _, day in
-                            if let day {
-                                let hasWorkout = !loggedWorkouts(on: day).isEmpty
-                                let hasScheduled = !scheduledWorkouts(on: day).isEmpty
-                                let isSelected = Calendar.current.isDate(day, inSameDayAs: selectedDate)
-                                let isToday = Calendar.current.isDateInToday(day)
-                                let volume = sessionVolumeKg(on: day)
-                                let maxVol = maxDayVolume
-                                let intensity: Double = volume > 0 ? min(volume / max(maxVol, 1), 1.0) : 0
-                                let dotSize: CGFloat = volume > 0 ? 5 + intensity * 4 : 5
-                                Button {
-                                    selectedDate = day
-                                } label: {
-                                    VStack(spacing: 4) {
-                                        Text("\(Calendar.current.component(.day, from: day))")
-                                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                                            .frame(width: 32, height: 32)
-                                            .background(isSelected ? PulseTheme.accent : (isToday ? PulseTheme.accent.opacity(0.18) : .clear))
-                                            .foregroundStyle(isSelected ? .black : .white)
-                                            .clipShape(Circle())
-                                        HStack(spacing: 3) {
-                                            Circle()
-                                                .fill(hasScheduled ? PulseTheme.accent.opacity(0.7) : .clear)
-                                                .frame(width: 5, height: 5)
-                                            Circle()
-                                                .fill(hasWorkout ? PulseTheme.ringExercise : .clear)
-                                                .frame(width: dotSize, height: dotSize)
+                                ForEach(Array(monthCells.enumerated()), id: \.offset) { _, day in
+                                    if let day {
+                                        let hasWorkout = !loggedWorkouts(on: day).isEmpty
+                                        let hasScheduled = !scheduledWorkouts(on: day).isEmpty
+                                        let isSelected = Calendar.current.isDate(day, inSameDayAs: selectedDate)
+                                        let isToday = Calendar.current.isDateInToday(day)
+                                        let volume = sessionVolumeKg(on: day)
+                                        let maxVol = maxDayVolume
+                                        let intensity: Double = volume > 0 ? min(volume / max(maxVol, 1), 1.0) : 0
+                                        let dotSize: CGFloat = volume > 0 ? 5 + intensity * 4 : 5
+                                        Button {
+                                            selectedDate = day
+                                        } label: {
+                                            VStack(spacing: 4) {
+                                                Text("\(Calendar.current.component(.day, from: day))")
+                                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                                    .frame(width: 32, height: 32)
+                                                    .background(isSelected ? PulseTheme.accent : (isToday ? PulseTheme.accent.opacity(0.18) : .clear))
+                                                    .foregroundStyle(isSelected ? .black : .primary)
+                                                    .clipShape(Circle())
+                                                HStack(spacing: 3) {
+                                                    Circle()
+                                                        .fill(hasScheduled ? PulseTheme.accent.opacity(0.7) : .clear)
+                                                        .frame(width: 5, height: 5)
+                                                    Circle()
+                                                        .fill(hasWorkout ? PulseTheme.ringExercise : .clear)
+                                                        .frame(width: dotSize, height: dotSize)
+                                                }
+                                            }
+                                            .frame(minHeight: 49)
                                         }
+                                        .buttonStyle(.plain)
+                                    } else {
+                                        Color.clear.frame(height: 49)
                                     }
                                 }
-                                .buttonStyle(.plain)
-                            } else {
-                                Color.clear.frame(height: 49)
                             }
                         }
                     }
-                    .padding()
-                    .background(PulseTheme.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(PulseTheme.separator, lineWidth: 1)
-                    )
                     .stickyHeaderTitle(formattedMonth(visibleMonth))
 
                     PulseCard {
@@ -317,7 +317,7 @@ struct CalendarView: View {
                         .font(.headline.weight(.black))
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }

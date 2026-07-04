@@ -199,28 +199,28 @@ struct WeekActivityStrip: View {
         VStack(spacing: 5) {
           ZStack {
             Circle()
-              .fill(day.active ? Color.white : Color.clear)
+              .fill(day.active ? PulseTheme.accent : Color.clear)
               .frame(width: 24, height: 24)
             Circle()
               .strokeBorder(
                 day.active
                   ? Color.clear
-                  : (day.isToday ? Color.white.opacity(0.85) : Color.white.opacity(0.12)),
+                  : (day.isToday ? PulseTheme.accent.opacity(0.85) : PulseTheme.separator),
                 lineWidth: 1.5
               )
               .frame(width: 24, height: 24)
             if day.active {
               Image(systemName: "checkmark")
                 .font(.system(size: 9, weight: .black))
-                .foregroundStyle(.black)
+                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
             }
           }
           Text(day.label)
             .font(.system(size: 9, weight: .bold, design: .rounded))
             .foregroundStyle(
               day.active
-                ? .white
-                : (day.isToday ? .white : PulseTheme.secondaryText)
+                ? PulseTheme.textPrimary
+                : (day.isToday ? PulseTheme.textPrimary : PulseTheme.secondaryText)
             )
         }
         .frame(maxWidth: .infinity)
@@ -356,7 +356,7 @@ struct HeroTile: View {
 
       Text(value)
         .font(.system(size: 24, weight: .black, design: .rounded).monospacedDigit())
-        .foregroundStyle(.white)
+        .foregroundStyle(PulseTheme.textPrimary)
         .lineLimit(1)
         .minimumScaleFactor(0.55)
 
@@ -392,7 +392,7 @@ struct HeroTile: View {
     .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
     .background(
       RoundedRectangle(cornerRadius: 14, style: .continuous)
-        .fill(Color.white.opacity(0.045))
+        .fill(PulseTheme.grouped.opacity(0.62))
         .overlay(
           LinearGradient(
             colors: [tint.opacity(0.10), Color.clear],
@@ -408,4 +408,3 @@ struct HeroTile: View {
     .shadow(color: tint.opacity(0.10), radius: 8, x: 0, y: 4)
   }
 }
-

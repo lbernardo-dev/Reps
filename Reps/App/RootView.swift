@@ -157,7 +157,7 @@ struct MainTabView: View {
     @ViewBuilder
     private var activeTabSurface: some View {
         if isQuickMenuExpanded || presentedQuickAction != nil || store.finishedSessionForSummary != nil {
-            Color.black
+            PulseTheme.background
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
         } else {
@@ -244,7 +244,7 @@ struct MainTabView: View {
                     .font(.system(size: 10, weight: .black, design: .rounded))
                     .tracking(2)
                     .textCase(.uppercase)
-                    .foregroundStyle(.white.opacity(0.45))
+                    .foregroundStyle(PulseTheme.tertiaryText)
                     .padding(.trailing, 8)
                     .padding(.bottom, 2)
 
@@ -283,19 +283,19 @@ struct MainTabView: View {
 
     private var quickMenuBackdrop: some View {
         ZStack {
-            Color.black
+            PulseTheme.background
             Circle()
-                .fill(PulseTheme.accent.opacity(0.06))
+                .fill(PulseTheme.accent.opacity(0.05))
                 .frame(width: 320, height: 320)
                 .blur(radius: 80)
                 .offset(x: -160, y: -260)
             Circle()
-                .fill(PulseTheme.ringStand.opacity(0.04))
+                .fill(PulseTheme.ringStand.opacity(0.035))
                 .frame(width: 320, height: 320)
                 .blur(radius: 80)
                 .offset(x: 160, y: -220)
         }
-        .background(.ultraThinMaterial)
+        .background(.thinMaterial)
     }
 
     // MARK: Profile tab avatar
@@ -420,34 +420,32 @@ private struct QuickLogTabAccessory: View {
             HStack(spacing: 12) {
                 Image(systemName: "plus")
                     .font(.system(size: 19, weight: .bold))
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 34)
                 Text(verbatim: localizedString("quick_log"))
-                    .font(.system(size: isInline ? 19 : 18, weight: .bold, design: .rounded))
+                    .font(.system(size: isInline ? 18 : 17, weight: .bold, design: .rounded))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-                Spacer(minLength: 8)
+                    .minimumScaleFactor(0.70)
+                    .layoutPriority(1)
+                Spacer(minLength: 4)
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 20, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 34)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(PulseTheme.textPrimary)
             .frame(maxWidth: .infinity)
             .frame(height: isInline ? 58 : 56)
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 16)
             .contentShape(Capsule(style: .continuous))
-            .background {
-                Capsule(style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(
-                        .regular.tint(Color.white.opacity(0.045)).interactive(),
-                        in: Capsule(style: .continuous)
-                    )
-            }
+            .glassEffect(
+                .regular.tint(PulseTheme.surfaceRaised.opacity(0.18)).interactive(),
+                in: Capsule(style: .continuous)
+            )
             .overlay {
                 Capsule(style: .continuous)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
+                    .stroke(PulseTheme.cardStroke.opacity(0.9), lineWidth: 0.8)
             }
+            .shadow(color: PulseTheme.surfaceShadow, radius: 12, y: 5)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(localizedString("quick_menu_open"))
@@ -472,12 +470,12 @@ private struct QuickMenuCloseButton: View {
                     .symbolRenderingMode(.hierarchical)
                     .frame(width: 34, height: 34)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(PulseTheme.textPrimary)
             .frame(maxWidth: .infinity)
             .frame(height: 58)
             .padding(.horizontal, 18)
             .contentShape(Capsule(style: .continuous))
-            .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+            .glassEffect(.regular.tint(PulseTheme.surfaceRaised.opacity(0.16)).interactive(), in: Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(localizedString("quick_menu_close"))
@@ -594,7 +592,7 @@ private struct QuickActionRow: View {
             VStack(alignment: .trailing, spacing: 1) {
                 Text(verbatim: action.title)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.textPrimary)
                 Text(verbatim: action.subtitle)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .foregroundStyle(PulseTheme.secondaryText)
@@ -604,18 +602,18 @@ private struct QuickActionRow: View {
 
             Image(systemName: action.systemImage)
                 .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                 .frame(width: 44, height: 44)
                 .background(PulseTheme.accent)
                 .clipShape(Circle())
-                .shadow(color: PulseTheme.accent.opacity(0.35), radius: 8, x: 0, y: 4)
+                .shadow(color: PulseTheme.accent.opacity(0.14), radius: 6, x: 0, y: 3)
         }
         .padding(.leading, 18)
         .padding(.trailing, 6)
         .padding(.vertical, 6)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().stroke(.white.opacity(0.08), lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.28), radius: 14, x: 0, y: 6)
+        .background(PulseTheme.card.opacity(0.82), in: Capsule(style: .continuous))
+        .overlay(Capsule(style: .continuous).stroke(PulseTheme.cardStroke, lineWidth: 0.6))
+        .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
         .contentShape(Capsule())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(action.title)

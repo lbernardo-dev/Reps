@@ -78,15 +78,18 @@ struct ProgressMetricDetailView: View {
   var body: some View {
     ScrollView {
       VStack(spacing: 20) {
-        HealthWidgetDetailNavBar(title: title)
         headerValue.padding(.top, 4)
         rangePicker
         chartCard
         weekdayCard
         explanationCard
       }
+      .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
       .padding(.horizontal, 16)
       .padding(.bottom, 32)
+    }
+    .overlay(alignment: .top) {
+      HealthWidgetDetailNavBar(title: title)
     }
     .background(PulseTheme.background.ignoresSafeArea())
     .toolbar(.hidden, for: .navigationBar)
@@ -206,7 +209,7 @@ struct ProgressMetricDetailView: View {
                 y: .value("value", bar.value)
               )
               .foregroundStyle(accent.gradient)
-              .cornerRadius(4)
+              .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
             }
           }
           .chartYAxis {
@@ -291,7 +294,7 @@ struct ProgressMetricDetailView: View {
               y: .value("avg", day.value)
             )
             .foregroundStyle(accent.opacity(0.85).gradient)
-            .cornerRadius(4)
+            .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
           }
           .chartYAxis {
             AxisMarks(values: .automatic(desiredCount: 3)) { v in

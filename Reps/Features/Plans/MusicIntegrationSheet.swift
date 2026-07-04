@@ -56,26 +56,26 @@ struct MusicIntegrationSheet: View {
                 VStack(spacing: 16) {
                     // Apple Music branding card
                     LinearGradient(
-                        colors: [PulseTheme.appleMusic, Color.purple, Color.orange],
+                        colors: [PulseTheme.appleMusic, PulseTheme.semanticEffort, PulseTheme.semanticWarning],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                     .frame(height: 160)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
                     .overlay(
                         VStack(spacing: 12) {
                             Image(systemName: "music.note.house.fill")
                                 .font(.system(size: 48))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(PulseTheme.mediaText)
                             Text("apple_music_integrado")
                                 .font(.title3.bold())
-                                .foregroundStyle(.white)
+                                .foregroundStyle(PulseTheme.mediaText)
                             Text("sync_and_search_your_system_playlists")
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.85))
+                                .foregroundStyle(PulseTheme.mediaSubtext)
                         }
                     )
-                    .shadow(color: PulseTheme.appleMusic.opacity(0.3), radius: 12, y: 6)
+                    .shadow(color: PulseTheme.surfaceShadow, radius: 8, y: 3)
                     
                     Text("if_you_have_an_active_apple_music_subscription_on_this_device_reps_can_connect_t")
                         .font(.subheadline)
@@ -93,9 +93,9 @@ struct MusicIntegrationSheet: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.appleMusic))
                         .background(PulseTheme.appleMusic)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     
@@ -477,15 +477,15 @@ struct PlaylistArtMock: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [PulseTheme.appleMusic, Color.purple],
+                colors: [PulseTheme.appleMusic, PulseTheme.semanticEffort],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
             Image(systemName: "music.note")
                 .font(.title3.weight(.black))
-                .foregroundStyle(.white)
+                .foregroundStyle(PulseTheme.mediaText)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
     }
 }

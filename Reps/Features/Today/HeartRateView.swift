@@ -73,8 +73,6 @@ struct HeartRateView: View {
 
             ScrollView {
                 VStack(spacing: 20) {
-                    HealthWidgetDetailNavBar(title: localizedString("heart_rate_title"), domain: domain)
-
                     if let verdict, let verdictMessage {
                         DomainVerdictHeader(verdict: verdict, message: verdictMessage)
                             .padding(.top, 4)
@@ -92,8 +90,12 @@ struct HeartRateView: View {
 
                     insightsCard
                 }
+                .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 32)
+            }
+            .overlay(alignment: .top) {
+                HealthWidgetDetailNavBar(title: localizedString("heart_rate_title"), domain: domain)
             }
         }
         .toolbar(.hidden, for: .navigationBar)

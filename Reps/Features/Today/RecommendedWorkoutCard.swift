@@ -18,11 +18,7 @@ struct RecommendedWorkoutCard: View {
         GlassMetricCard(domain: .strength, contentPadding: 16) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "bolt.fill")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(PulseTheme.onColor(batteryColor))
-                        .frame(width: 48, height: 48)
-                        .background(batteryColor, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    PulseIconBadge(systemImage: "bolt.fill", tint: batteryColor, size: 48, radius: PulseTheme.mediumRadius, isFilled: true)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("recommended_workout_title")
@@ -43,15 +39,15 @@ struct RecommendedWorkoutCard: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(PulseTheme.grouped.opacity(0.78), in: Capsule())
+                            .background(PulseTheme.grouped, in: Capsule())
                             .fixedSize()
 
                         Button(action: onStart) {
                             Image(systemName: "play.fill")
                                 .font(.subheadline.weight(.black))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                                 .frame(width: 42, height: 42)
-                                .background(PulseTheme.fitActionGradient, in: Circle())
+                                .background(PulseTheme.accent, in: Circle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("recommended_workout_cta")
@@ -65,7 +61,7 @@ struct RecommendedWorkoutCard: View {
                 }
 
                 if !workout.exercises.isEmpty {
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                    VStack(spacing: 8) {
                         ForEach(workout.exercises.prefix(4)) { we in
                             HStack(spacing: 8) {
                                 Image(systemName: "checkmark")
@@ -74,28 +70,35 @@ struct RecommendedWorkoutCard: View {
                                     .frame(width: 20, height: 20)
                                     .background(PulseTheme.accent.opacity(0.12), in: Circle())
                                 Text(RepsText.exerciseName(we.exercise.name, language: language))
-                                    .font(.caption.weight(.bold))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.74)
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(.white)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 Spacer()
                                 Text("\(we.targetSets)×\(we.repRange)")
-                                    .font(.caption2.weight(.black))
+                                    .font(.subheadline.weight(.black))
                                     .foregroundStyle(PulseTheme.secondaryText)
                                     .lineLimit(1)
+                                    .fixedSize()
                             }
-                            .padding(9)
-                            .background(PulseTheme.card.opacity(0.72), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(PulseTheme.grouped.opacity(0.72), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
                         }
                     }
                 }
 
-                Button(action: onStart) {
+                NavigationLink {
+                    WorkoutDetailView(workout: workout)
+                } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "play.fill")
+                        Image(systemName: "list.bullet.clipboard.fill")
                             .font(.caption.weight(.black))
-                        Text("recommended_workout_cta")
+                        Text("recommended_workout_detail_cta")
                             .font(.caption.weight(.black))
-                            .lineLimit(1)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.86)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.black))
@@ -103,9 +106,14 @@ struct RecommendedWorkoutCard: View {
                     .foregroundStyle(PulseTheme.accent)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 9)
-                    .background(PulseTheme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(PulseTheme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous)
+                            .stroke(PulseTheme.accent.opacity(0.12), lineWidth: 0.8)
+                    }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("recommended_workout_detail_cta")
             }
         }
     }

@@ -62,7 +62,7 @@ struct InfoExplainerSheet: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.textPrimary)
                             .frame(width: 30, height: 30)
                             .background(PulseTheme.grouped)
                             .clipShape(Circle())

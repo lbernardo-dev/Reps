@@ -88,14 +88,17 @@ struct HRVView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                HealthWidgetDetailNavBar(title: localizedString("hrv_heart_rate"), domain: .recovery)
                 gaugeCard.padding(.top, 8)
                 stylePicker
                 trendCard
                 insightsCard
             }
+            .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
+        }
+        .overlay(alignment: .top) {
+            HealthWidgetDetailNavBar(title: localizedString("hrv_heart_rate"), domain: .recovery)
         }
         .background {
             ZStack {

@@ -44,15 +44,18 @@ struct HydrationView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                HealthWidgetDetailNavBar(title: localizedString("hydration"))
                 gaugeCard.padding(.top, 8)
                 stylePicker
                 addWaterCard
                 weeklyTrendCard
                 insightsCard
             }
+            .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
+        }
+        .overlay(alignment: .top) {
+            HealthWidgetDetailNavBar(title: localizedString("hydration"))
         }
         .background(PulseTheme.background.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)

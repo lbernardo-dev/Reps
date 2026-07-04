@@ -259,7 +259,7 @@ struct TodayView: View {
                                 .navigationGlassCircle(.secondary, tint: .clear)
                             if store.hasUnreadBell {
                                 Circle()
-                                    .fill(.red)
+                                    .fill(PulseTheme.destructive)
                                     .frame(width: 9, height: 9)
                                     .offset(x: -1, y: 1)
                             }
@@ -415,15 +415,7 @@ struct TodayView: View {
         return VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(localizedString("today_2"))
-                        .font(.system(size: 11, weight: .black, design: .rounded))
-                        .tracking(1.4)
-                        .textCase(.uppercase)
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(PulseTheme.accent)
-                        .clipShape(Capsule())
+                    PulseStatusPill(title: "today_2", systemImage: "bolt.fill", tint: PulseTheme.accent, isFilled: true)
 
                     if !focusWorkout.exercises.isEmpty {
                         WorkoutExerciseAvatarStrip(
@@ -462,7 +454,7 @@ struct TodayView: View {
                     } label: {
                         Image(systemName: "pencil")
                             .font(.subheadline.weight(.black))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .frame(width: 38, height: 38)
                             .background(PulseTheme.fitActionGradient)
                             .clipShape(Circle())
@@ -514,7 +506,7 @@ struct TodayView: View {
                     Image(systemName: "play.fill")
                         .font(.headline.weight(.black))
                         .frame(width: 54, height: 54)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.onColor(MetricDomain.strength.tint))
                         .background(MetricDomain.strength.tint, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -526,15 +518,9 @@ struct TodayView: View {
             let shape = RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
             ZStack {
                 shape
-                    .fill(.clear)
-                    .glassEffect(
-                        .regular.tint(MetricDomain.strength.tint.opacity(0.07)),
-                        in: shape
-                    )
+                    .fill(PulseTheme.card)
                 shape
-                    .fill(PulseTheme.card.opacity(0.88))
-                shape
-                    .fill(MetricDomain.strength.backgroundGradient.opacity(0.22))
+                    .fill(MetricDomain.strength.backgroundGradient.opacity(0.34))
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
@@ -542,7 +528,7 @@ struct TodayView: View {
             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
                 .stroke(MetricDomain.strength.tint.opacity(0.22), lineWidth: 0.8)
         )
-        .shadow(color: MetricDomain.strength.tint.opacity(0.08), radius: 16, x: 0, y: 8)
+        .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
     }
 
     private var focusWorkoutMenu: some View {
@@ -577,10 +563,7 @@ struct TodayView: View {
                 }
             }
 
-            let count = store.activePlan.days.count
-            if count > 0 {
-                let index = ((store.activePlan.activeDayIndex % count) + count) % count
-                let suggestedDay = store.activePlan.days[index]
+            if let suggestedDay = store.activePlan.normalizedActiveDay {
                 if focusWorkout.id != suggestedDay.id {
                     Divider()
                     Button(role: .destructive) {
@@ -636,7 +619,7 @@ struct TodayView: View {
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.textPrimary)
                 }
                 Spacer()
             }
@@ -680,7 +663,7 @@ struct TodayView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(isPaused ? PulseTheme.warning : PulseTheme.accent))
                         .background(isPaused ? PulseTheme.warning : PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
@@ -710,8 +693,8 @@ struct TodayView: View {
                     Image(systemName: "stop.fill")
                         .font(.headline.weight(.bold))
                         .frame(width: 48, height: 48)
-                        .foregroundStyle(.white)
-                        .background(Color.red.opacity(0.85))
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.destructive))
+                        .background(PulseTheme.destructive)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .accessibilityLabel("stop_workout")
@@ -731,10 +714,7 @@ struct TodayView: View {
             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
                 .stroke((isPaused ? PulseTheme.warning : PulseTheme.accent).opacity(0.28), lineWidth: 1)
         )
-        .shadow(
-            color: (isPaused ? PulseTheme.warning : PulseTheme.accent).opacity(0.14),
-            radius: 20, x: 0, y: 10
-        )
+        .shadow(color: PulseTheme.surfaceShadow, radius: 8, x: 0, y: 3)
     }
 
     private func timeString(_ seconds: Int) -> String {
@@ -842,6 +822,10 @@ struct TodayView: View {
         case .scheduleWorkout:
             showScheduleWorkout = true
         case .competitive(let competitiveAction):
+            if competitiveAction == .reviewPlan {
+                reviewActivePlan()
+                return
+            }
             if let destination = store.executeCompetitiveAction(competitiveAction) {
                 onSelectTab?(destination)
             }
@@ -866,9 +850,21 @@ struct TodayView: View {
         case .openProgress:
             onSelectTab?(.progress)
         case .competitive(let competitiveAction):
+            if competitiveAction == .reviewPlan {
+                reviewActivePlan()
+                return
+            }
             if let destination = store.executeCompetitiveAction(competitiveAction) {
                 onSelectTab?(destination)
             }
+        }
+    }
+
+    private func reviewActivePlan() {
+        if hasActivePlan {
+            planToEdit = store.activePlan
+        } else {
+            showCreatePlan = true
         }
     }
 
@@ -900,7 +896,7 @@ struct TodayView: View {
                 .padding(.horizontal, 2)
 
             ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
+            LazyHStack(spacing: 12) {
                 NavigationLink {
                     TrainingBatteryView()
                         .navigationTransition(.zoom(sourceID: "wellness-battery", in: wellnessZoom))
@@ -914,6 +910,7 @@ struct TodayView: View {
                         domain: .recovery
                     )
                     .matchedTransitionSource(id: "wellness-battery", in: wellnessZoom)
+                    .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
                 }
                 .buttonStyle(PressableCardStyle())
 
@@ -929,6 +926,7 @@ struct TodayView: View {
                         domain: .strength
                     )
                     .matchedTransitionSource(id: "wellness-exercise", in: wellnessZoom)
+                    .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
                 }
                 .buttonStyle(PressableCardStyle())
 
@@ -945,6 +943,7 @@ struct TodayView: View {
                         domain: .nutrition
                     )
                     .matchedTransitionSource(id: "wellness-hydration", in: wellnessZoom)
+                    .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
                 }
                 .buttonStyle(PressableCardStyle())
 
@@ -961,6 +960,7 @@ struct TodayView: View {
                         domain: .heartRate
                     )
                     .matchedTransitionSource(id: "wellness-heart-rate", in: wellnessZoom)
+                    .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
                 }
                 .buttonStyle(PressableCardStyle())
 
@@ -977,6 +977,7 @@ struct TodayView: View {
                         domain: .recovery
                     )
                     .matchedTransitionSource(id: "wellness-hrv", in: wellnessZoom)
+                    .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
                 }
                 .buttonStyle(PressableCardStyle())
 
@@ -993,6 +994,7 @@ struct TodayView: View {
                         domain: .cardio
                     )
                     .matchedTransitionSource(id: "wellness-vo2", in: wellnessZoom)
+                    .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
                 }
                 .buttonStyle(PressableCardStyle())
 
@@ -1011,6 +1013,7 @@ struct TodayView: View {
                         domain: .sleep
                     )
                     .matchedTransitionSource(id: "wellness-sleep", in: wellnessZoom)
+                    .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
                 }
                 .buttonStyle(PressableCardStyle())
 
@@ -1026,6 +1029,7 @@ struct TodayView: View {
                         domain: .activity
                     )
                     .matchedTransitionSource(id: "wellness-steps", in: wellnessZoom)
+                    .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
                 }
                 .buttonStyle(PressableCardStyle())
             }
@@ -1033,17 +1037,6 @@ struct TodayView: View {
             .padding(.vertical, 2)
             }
             .scrollTargetBehavior(.viewAligned)
-            .mask(
-                LinearGradient(
-                    stops: [
-                        .init(color: .black, location: 0),
-                        .init(color: .black, location: 0.92),
-                        .init(color: .black.opacity(0), location: 1)
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
         }
     }
 
@@ -1353,7 +1346,7 @@ private struct ReadinessBadge: View {
         .padding(6)
         .background(PulseTheme.card)
         .clipShape(Circle())
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+        .shadow(color: PulseTheme.surfaceShadow, radius: 6, x: 0, y: 3)
         .accessibilityLabel("\(title) \(level)%")
     }
 }
@@ -1369,17 +1362,17 @@ private struct WorkoutImageStack: View {
             if exercises.isEmpty {
                 Image(systemName: fallbackSystemImage)
                     .font(.system(size: 42, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.88))
+                    .foregroundStyle(PulseTheme.textSecondary)
                     .frame(width: 74, height: 74)
-                    .background(.white.opacity(0.14))
+                    .background(PulseTheme.grouped)
                     .clipShape(Circle())
             } else {
                 ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
                     ExerciseMediaThumbnail(exercise: exercise, gender: gender, catalog: catalog)
                         .frame(width: 52, height: 52)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(.white.opacity(0.95), lineWidth: 1.8))
-                        .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 4)
+                        .overlay(Circle().stroke(PulseTheme.cardStroke, lineWidth: 1.8))
+                        .shadow(color: PulseTheme.surfaceShadow, radius: 5, x: 0, y: 3)
                         .offset(x: CGFloat(index) * -16, y: CGFloat(index) * 8)
                 }
             }
@@ -1418,8 +1411,8 @@ private struct WorkoutExerciseAvatarStrip: View {
                     ExerciseMediaThumbnail(exercise: exercise, gender: gender, catalog: catalog)
                         .frame(width: diameter, height: diameter)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(.white.opacity(0.92), lineWidth: 2))
-                        .shadow(color: tint.opacity(0.28), radius: 9, x: 0, y: 5)
+                        .overlay(Circle().stroke(PulseTheme.cardStroke, lineWidth: 2))
+                        .shadow(color: PulseTheme.surfaceShadow, radius: 6, x: 0, y: 3)
                         .offset(x: CGFloat(index) * compactStep)
                 }
 
@@ -1471,8 +1464,11 @@ private struct SummaryChip: View {
             .padding(.horizontal, 11)
             .padding(.vertical, 7)
             .foregroundStyle(color)
-            .background(color.opacity(0.15))
+            .background(color.opacity(0.12))
             .clipShape(Capsule())
+            .overlay {
+                Capsule().stroke(color.opacity(0.10), lineWidth: 0.8)
+            }
     }
 }
 
@@ -1521,7 +1517,7 @@ private struct SummaryMetricTile: View {
 
                 Text(value)
                     .font(.system(size: 28, weight: .black, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
 
@@ -1550,11 +1546,7 @@ private struct TrainingSignalTile: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .black))
-                .foregroundStyle(domain?.tint ?? color)
-                .frame(width: 34, height: 34)
-                .background((domain?.tint ?? color).opacity(0.13), in: Circle())
+                PulseIconBadge(systemImage: systemImage, tint: domain?.tint ?? color, size: 34, radius: PulseTheme.smallRadius)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
@@ -1579,7 +1571,9 @@ private struct TrainingSignalTile: View {
         .background {
             if let domain {
                 RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                    .fill(domain.backgroundGradient.opacity(0.30))
+                    .fill(PulseTheme.grouped.opacity(0.70))
+                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                    .fill(domain.backgroundGradient.opacity(0.22))
             } else {
                 RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
                     .fill(PulseTheme.grouped.opacity(0.72))
@@ -1639,7 +1633,7 @@ private struct ActivityMatrixCard: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text(localizedKey(title))
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.textPrimary)
                     Spacer()
                     Text(progressText)
                         .font(.caption.weight(.black).monospacedDigit())
@@ -1717,7 +1711,7 @@ private struct MiniTrendCard<Chart: View>: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(localizedKey(title))
                             .font(.caption.weight(.black))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.textPrimary)
                         Text(localizedKey(subtitle))
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(PulseTheme.tertiaryText)
@@ -1927,43 +1921,40 @@ private struct WellnessWidget: View {
     private var hasData: Bool { value != "--" }
 
     var body: some View {
-        DomainHeroCard(domain: domain, minHeight: 128) {
+        GlassMetricCard(domain: domain, minHeight: 156, contentPadding: 14) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 32, height: 32)
-                        .background(.white.opacity(0.18), in: Circle())
+                    PulseIconBadge(systemImage: systemImage, tint: hasData ? domain.tint : PulseTheme.semanticNeutral, size: 30, radius: PulseTheme.smallRadius)
                     Text(localizedKey(title))
-                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .font(.system(size: 10, weight: .black, design: .rounded))
                         .textCase(.uppercase)
-                        .tracking(0.4)
-                        .foregroundStyle(.white.opacity(0.85))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
+                        .tracking(0.2)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Spacer(minLength: 2)
 
                 Text(hasData ? value : "–")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(hasData ? 1 : 0.5))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(hasData ? PulseTheme.textPrimary : PulseTheme.tertiaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
                 Text(localizesSubtitle ? localizedKey(subtitle) : subtitle)
                     .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.72))
-                    .lineLimit(2)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.86)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 0)
             }
-            .frame(width: 166, height: 128, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 156, maxHeight: 156, alignment: .topLeading)
         }
-        .saturation(hasData ? 1 : 0.35)
-        .opacity(hasData ? 1 : 0.8)
+        .opacity(hasData ? 1 : 0.86)
     }
 }
 
@@ -2011,8 +2002,11 @@ private struct PlanMicroCard: View {
         }
         .padding(12)
         .frame(width: 132, height: 160, alignment: .leading)
-        .background(PulseTheme.grouped)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke(PulseTheme.separator, lineWidth: 0.8)
+        }
     }
 }
 
@@ -2024,18 +2018,7 @@ private struct ShortcutTile: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(PulseTheme.onColor(color))
-                .frame(width: 38, height: 38)
-                .background(
-                    LinearGradient(
-                        colors: [color, color.opacity(0.68)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            PulseIconBadge(systemImage: systemImage, tint: color, size: 42, radius: PulseTheme.mediumRadius)
             VStack(alignment: .leading, spacing: 3) {
                 Text(localizedKey(title))
                     .font(.subheadline.weight(.bold))
@@ -2047,17 +2030,17 @@ private struct ShortcutTile: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
             }
+            .layoutPriority(1)
             Spacer(minLength: 0)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 84, maxHeight: 84, alignment: .leading)
-        .foregroundStyle(.primary)
-        .background(PulseTheme.card)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-        .overlay(
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 90, maxHeight: 90, alignment: .leading)
+        .foregroundStyle(PulseTheme.textPrimary)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .overlay {
             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                .stroke(PulseTheme.separator, lineWidth: 1)
-        )
+                .stroke(PulseTheme.separator, lineWidth: 0.8)
+        }
     }
 }
 

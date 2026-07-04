@@ -51,7 +51,7 @@ struct ProfileView: View {
                             } label: {
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(PulseTheme.textPrimary)
                                     .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
                                     .navigationGlassCircle(.secondary)
                             }
@@ -440,7 +440,7 @@ struct ProfileView: View {
                         } label: {
                             Text(localizedString("friends_2"))
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
                                 .background(PulseTheme.accent)
@@ -490,7 +490,7 @@ struct ProfileView: View {
                         } label: {
                             Text(localizedString("activate"))
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
                                 .background(PulseTheme.accent)
@@ -852,7 +852,7 @@ struct ProfileView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(PulseTheme.textPrimary)
                                 .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
                                 .navigationGlassCircle(.secondary)
                         }
@@ -1018,7 +1018,7 @@ struct ProfileView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(PulseTheme.textPrimary)
                                 .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
                                 .navigationGlassCircle(.secondary)
                         }
@@ -1569,13 +1569,12 @@ private struct ProfileToolSection<Content: View>: View {
     }
 
     var body: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(localizedKey(title))
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 12) {
+            Text(localizedKey(title))
+                .font(.headline)
+                .padding(.horizontal, 2)
 
-                content
-            }
+            content
         }
     }
 }
@@ -1611,6 +1610,7 @@ private struct ProfileToolCard: View {
     var badge: String?
 
     var body: some View {
+        PulseCard(minHeight: 126, contentPadding: 12) {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
                 Image(systemName: systemImage)
@@ -1652,11 +1652,9 @@ private struct ProfileToolCard: View {
                     .minimumScaleFactor(0.86)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 126, alignment: .topLeading)
-        .padding(12)
-        .background(PulseTheme.grouped)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .contentShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        }
     }
 }
 
@@ -1816,8 +1814,8 @@ private struct FeedbackSheet: View {
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 48)
-                                    .foregroundStyle(.black)
-                                    .background(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? PulseTheme.elevated : .white)
+                                    .foregroundStyle(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? PulseTheme.secondaryText : PulseTheme.onColor(PulseTheme.accent))
+                                    .background(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? PulseTheme.elevated : PulseTheme.accent)
                                     .clipShape(Capsule())
                             }
                             .buttonStyle(.plain)
@@ -2052,7 +2050,7 @@ private struct GymPassPreview: View {
         HStack(spacing: 14) {
             CodePreview(value: pass.codeValue, type: pass.codeType, imageData: pass.imageData)
                 .frame(width: 86, height: 86)
-                .background(.white)
+                .background(PulseTheme.codeBackground)
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 .opacity(pass.isActive ? 1 : 0.55)
 

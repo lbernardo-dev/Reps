@@ -29,7 +29,7 @@ struct MetricDonutChart: View {
                         angularInset: 1.5
                     )
                     .foregroundStyle(slice.color)
-                    .cornerRadius(3)
+                    .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
                 }
                 .chartLegend(.hidden)
                 .frame(width: 168, height: 168)
@@ -37,7 +37,7 @@ struct MetricDonutChart: View {
                 VStack(spacing: 2) {
                     Text(centerValue)
                         .font(.system(size: 24, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                     Text(centerLabel)
@@ -54,7 +54,7 @@ struct MetricDonutChart: View {
                             .frame(width: 9, height: 9)
                         Text(slice.label)
                             .font(.subheadline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.textPrimary)
                             .lineLimit(1)
                         Spacer(minLength: 8)
                         Text(legendValueFormatter(slice.value))
@@ -72,7 +72,7 @@ struct MetricDonutChart: View {
         slices: [
             DonutSlice(label: "Dips", value: 40, color: PulseTheme.accent),
             DonutSlice(label: "Muscle-ups", value: 34, color: PulseTheme.ringStand),
-            DonutSlice(label: "Pull-ups", value: 28, color: .purple),
+            DonutSlice(label: "Pull-ups", value: 28, color: PulseTheme.semanticProgress),
             DonutSlice(label: "Barbell Squat", value: 15, color: PulseTheme.growth),
             DonutSlice(label: "Hyperextension", value: 8.4, color: PulseTheme.warning),
         ],

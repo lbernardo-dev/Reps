@@ -57,7 +57,6 @@ struct ActiveWorkoutView: View {
     @State private var showSessionFeedback = false
     @State private var showProPreferences = false
     @State private var showMissingExerciseAlert = false
-    @State private var showStopConfirmation = false
     @State private var lastStatusPublishSecond = -1
     @State private var workoutSensorSummary: WorkoutSensorSummary?
     @State private var isFinishingWorkout = false
@@ -386,14 +385,6 @@ struct ActiveWorkoutView: View {
         } message: {
             Text("cannot_start_a_session_without_exercises")
         }
-        .confirmationDialog("stop_session", isPresented: $showStopConfirmation, titleVisibility: .visible) {
-            Button("detener_y_descartar", role: .destructive) {
-                stopWorkout()
-            }
-            Button("cancel", role: .cancel) {}
-        } message: {
-            Text("this_active_session_and_any_unsaved_changes_will_be_discarded")
-        }
         .onDisappear {
             if finishedSession == nil {
                 elapsedSeconds = elapsedWorkoutSeconds()
@@ -464,6 +455,8 @@ struct ActiveWorkoutView: View {
                             }
                             // What's next in the session.
                             nextExerciseCard
+                                .frame(width: contentWidth)
+                            hydrationCard
                                 .frame(width: contentWidth)
                             // Document the session: notes, voice, photo, video
                             // and per-attachment sharing (collapsed disclosure).
@@ -553,11 +546,7 @@ struct ActiveWorkoutView: View {
 
     private func requestWorkoutClose() {
         HapticService.selection()
-        if isSessionStarted {
-            showStopConfirmation = true
-        } else {
-            stopWorkout()
-        }
+        stopWorkout()
     }
 
 
@@ -948,22 +937,17 @@ struct ActiveWorkoutView: View {
             completedSets: completedSets,
             totalSets: totalSets,
             completion: setCompletion,
-            onStart: startPreparedSession,
-            onCompleteNext: completeNextAvailableSet,
             onDecreaseRest: { adjustRest(by: -15) },
             onIncreaseRest: { adjustRest(by: 15) },
             onSkipRest: toggleRestTimer,
-            onUndo: lastCompletedSetUndoContext == nil ? nil : { undoLastCompletedSet() },
-            onAddSet: addSetToSelectedExercise,
-            onReplaceExercise: { replacementExerciseIndex = selectedExerciseIndex }
+            onUndo: lastCompletedSetUndoContext == nil ? nil : { undoLastCompletedSet() }
         )
     }
 
     private var exerciseSwitcher: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                ForEach(exerciseDrafts.indices, id: \.self) { index in
-                    let draft = exerciseDrafts[index]
+                ForEach(Array(exerciseDrafts.enumerated()), id: \.element.workoutExercise.id) { index, draft in
                     let isActive = selectedExerciseIndex == index
                     let completedCount = draft.sets.filter(\.completed).count
                     let totalCount = draft.sets.count
@@ -1054,7 +1038,8 @@ struct ActiveWorkoutView: View {
                 showAddExercise = true
             },
             onMove: moveDraft,
-            onToggleSuperset: toggleSuperset
+            onToggleSuperset: toggleSuperset,
+            onDelete: deleteDraft
         )
     }
 
@@ -1101,6 +1086,43 @@ struct ActiveWorkoutView: View {
                 }
                 sessionExerciseOrderCard
                 sessionControlCenterCard
+            }
+        }
+    }
+
+    private var hydrationCard: some View {
+        let navy = Color(red: 0.02, green: 0.13, blue: 0.27)
+        let navyLift = Color(red: 0.04, green: 0.22, blue: 0.40)
+        let waterBlue = Color(red: 0.23, green: 0.60, blue: 0.98)
+
+        return PulseCard(backgroundColor: navy) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    Image(systemName: "waterbottle.fill")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(waterBlue)
+                        .frame(width: 42, height: 42)
+                        .background(navyLift, in: RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Registrar agua")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+                        Text(String(format: "%.2f L", waterLiters))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.72))
+                    }
+                    Spacer()
+                }
+
+                SessionControlButton(
+                    title: "+250 ml",
+                    systemImage: "waterbottle.fill",
+                    foregroundStyle: .white,
+                    backgroundStyle: waterBlue,
+                    height: 50
+                ) {
+                    addWater()
+                }
             }
         }
     }
@@ -1536,7 +1558,6 @@ struct ActiveWorkoutView: View {
 
                 SessionMetricStrip(metrics: [
                     .init(title: "remaining_time", value: timeString(estimatedRemainingSeconds), icon: "hourglass"),
-                    .init(title: "water_metric", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill"),
                     .init(title: "active_kcal", value: store.todayHealthMetric.map { "\(Int($0.activeEnergyKcal))" } ?? "--", icon: "flame.fill")
                 ])
 
@@ -1545,15 +1566,6 @@ struct ActiveWorkoutView: View {
                         moveExercise(by: -1)
                     }
                     .disabled(selectedExerciseIndex == 0)
-
-                    SessionControlButton(
-                        title: "+250 ml",
-                        systemImage: "waterbottle.fill",
-                        foregroundStyle: .white,
-                        backgroundStyle: PulseTheme.accent
-                    ) {
-                        addWater()
-                    }
 
                     SessionIconButton(systemImage: "chevron.forward") {
                         moveExercise(by: 1)
@@ -2037,6 +2049,24 @@ struct ActiveWorkoutView: View {
                 selectedWorkoutExerciseID: selectedID
             ) {
                 selectedExerciseIndex = newIndex
+            }
+        }
+        syncActiveWorkoutExercises()
+        publishActiveWorkoutStatus()
+    }
+
+    private func deleteDraft(at index: Int) {
+        guard exerciseDrafts.indices.contains(index) else { return }
+
+        HapticService.notification(.warning)
+        withAnimation(.snappy(duration: 0.24)) {
+            if let newIndex = WorkoutDraftController.removeExercise(
+                at: index,
+                from: &store.activeWorkoutDrafts
+            ) {
+                selectedExerciseIndex = newIndex
+            } else {
+                selectedExerciseIndex = 0
             }
         }
         syncActiveWorkoutExercises()

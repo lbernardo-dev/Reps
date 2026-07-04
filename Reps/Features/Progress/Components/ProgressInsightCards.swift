@@ -92,7 +92,7 @@ struct StreakBadge: View {
           .fill(
             days > 0
               ? RadialGradient(
-                colors: [Color.orange.opacity(0.35), .clear], center: .center, startRadius: 0,
+                colors: [PulseTheme.warning.opacity(0.35), .clear], center: .center, startRadius: 0,
                 endRadius: 30)
               : RadialGradient(
                 colors: [.clear, .clear], center: .center, startRadius: 0, endRadius: 30)
@@ -100,7 +100,7 @@ struct StreakBadge: View {
           .frame(width: 56, height: 56)
 
         Circle()
-          .strokeBorder(days > 0 ? Color.orange.opacity(0.4) : PulseTheme.separator, lineWidth: 2)
+          .strokeBorder(days > 0 ? PulseTheme.warning.opacity(0.4) : PulseTheme.separator, lineWidth: 2)
           .frame(width: 44, height: 44)
 
         if days > 0 {
@@ -108,12 +108,12 @@ struct StreakBadge: View {
             .font(.system(size: 29, weight: .bold))
             .foregroundStyle(
               LinearGradient(
-                colors: [.yellow, .orange, .red],
+                colors: [PulseTheme.semanticAction, PulseTheme.warning, PulseTheme.semanticEffort],
                 startPoint: .top,
                 endPoint: .bottom
               )
             )
-            .shadow(color: .orange.opacity(0.3), radius: 3, x: 0, y: 1)
+            .shadow(color: PulseTheme.warning.opacity(0.3), radius: 3, x: 0, y: 1)
         } else {
           Image(systemName: "flame.fill")
             .font(.system(size: 29, weight: .bold))
@@ -131,7 +131,7 @@ struct StreakBadge: View {
           "\(formattedDays) \(days == 1 ? (localizedString("day")) : (localizedString("days")))"
         )
         .font(.system(size: 18, weight: .bold, design: .rounded))
-        .foregroundStyle(days > 0 ? .white : PulseTheme.secondaryText)
+        .foregroundStyle(days > 0 ? PulseTheme.textPrimary : PulseTheme.secondaryText)
       }
     }
     .padding(.horizontal, 6)
@@ -151,13 +151,13 @@ struct StreakBadge: View {
         .stroke(
           days > 0
             ? LinearGradient(
-              colors: [.yellow.opacity(0.3), .orange.opacity(0.4), .red.opacity(0.3)],
+	              colors: [PulseTheme.semanticAction.opacity(0.3), PulseTheme.warning.opacity(0.4), PulseTheme.semanticEffort.opacity(0.3)],
               startPoint: .topLeading, endPoint: .bottomTrailing)
             : LinearGradient(colors: [PulseTheme.separator], startPoint: .top, endPoint: .bottom),
           lineWidth: 1.2
         )
     )
-    .shadow(color: days > 0 ? Color.orange.opacity(0.12) : Color.clear, radius: 8, x: 0, y: 3)
+    .shadow(color: days > 0 ? PulseTheme.warning.opacity(0.12) : Color.clear, radius: 8, x: 0, y: 3)
   }
 
   private var formattedDays: String {
@@ -174,4 +174,3 @@ struct StreakBadge: View {
 }
 
 // MARK: - Cardio analytics (pace/distance, pace·HR, efficiency factor)
-

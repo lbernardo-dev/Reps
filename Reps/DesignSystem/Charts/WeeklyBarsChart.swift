@@ -23,7 +23,7 @@ struct WeeklyBarsChart: View {
                 width: .ratio(0.55)
             )
             .foregroundStyle(point.isHighlighted ? tint : tint.opacity(0.32))
-            .cornerRadius(4)
+            .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
         }
         .chartXAxis {
             AxisMarks { _ in

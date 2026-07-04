@@ -533,12 +533,12 @@ struct ProfileSetupView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Image(systemName: "quote.opening")
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(.white.opacity(0.28))
+                        .foregroundStyle(PulseTheme.tertiaryText)
 
                     Text(Self.planTestimonials[testimonialIndex].text)
                         .font(.body.weight(.medium))
                         .italic()
-                        .foregroundStyle(.white.opacity(0.84))
+                        .foregroundStyle(PulseTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .id(testimonialIndex)
                         .transition(.opacity)
@@ -656,7 +656,7 @@ struct ProfileSetupView: View {
                         .font(.subheadline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 38)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.textPrimary)
                         .navigationGlassCapsule(.secondary)
                 }
                 .buttonStyle(.plain)
@@ -980,7 +980,7 @@ private struct OnboardingProgressHeader: View {
                     Image(systemName: "chevron.left")
                         .font(.subheadline.weight(.bold))
                         .frame(width: 38, height: 38)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.textPrimary)
                         .navigationGlassCircle(.secondary)
                 }
                 .buttonStyle(.plain)
@@ -992,10 +992,10 @@ private struct OnboardingProgressHeader: View {
 
             GeometryReader { proxy in
                 Capsule()
-                    .fill(.white.opacity(0.16))
+                    .fill(PulseTheme.grouped)
                     .overlay(alignment: .leading) {
                         Capsule()
-                            .fill(.white)
+                            .fill(PulseTheme.accent)
                             .frame(width: proxy.size.width * min(max(progress, 0), 1))
                     }
             }
@@ -1040,10 +1040,10 @@ private struct OnboardingOptionCard: View {
             HStack(spacing: 14) {
                 Image(systemName: icon)
                     .font(.title3.weight(.bold))
-                    .foregroundStyle(isSelected ? .white : .white.opacity(0.72))
+                    .foregroundStyle(isSelected ? PulseTheme.onColor(tint) : tint)
                     .frame(width: 48, height: 48)
-                    .background(.white.opacity(isSelected ? 0.14 : 0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(isSelected ? tint : tint.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
@@ -1149,10 +1149,10 @@ private struct OnboardingMetricSlider: View {
                 HStack(spacing: 12) {
                     Image(systemName: icon)
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .frame(width: 42, height: 42)
-                        .background(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                        .background(PulseTheme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
                     Text(title)
                         .font(.headline)
                     Spacer()
@@ -1453,7 +1453,7 @@ private struct PlanProjectionCard: View {
                         ForEach(tags) { tag in
                             Label(tag.text, systemImage: tag.icon)
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(.white.opacity(0.88))
+                                .foregroundStyle(PulseTheme.textSecondary)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
                                 .background(PulseTheme.grouped)
@@ -1477,7 +1477,7 @@ private struct PlanProjectionCard: View {
                                 endPoint: .top
                             ))
                     )
-                    .cornerRadius(3)
+                    .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
                 }
                 .chartYAxis(.hidden)
                 .chartXAxis {
@@ -1518,9 +1518,9 @@ private struct PlanDay1LockedPreviewCard: View {
                     Spacer()
                     Image(systemName: "sparkles")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .frame(width: 36, height: 36)
-                        .background(.white)
+                        .background(PulseTheme.accent)
                         .clipShape(Circle())
                 }
 
@@ -1564,12 +1564,12 @@ private struct PlanExerciseRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(.black.opacity(isLocked ? 0.45 : 0))
+                        .fill(isLocked ? PulseTheme.mediaScrimStrong.opacity(0.72) : Color.clear)
                 )
                 .overlay(
                     Image(systemName: "lock.fill")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.mediaText)
                         .opacity(isLocked ? 1 : 0)
                 )
 
@@ -1620,7 +1620,7 @@ private struct PlanLockedDaysCard: View {
                         Text("PRO")
                             .font(.caption2.weight(.black))
                             .tracking(0.8)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .padding(.horizontal, 9)
                             .padding(.vertical, 5)
                             .background(PulseTheme.accent)
@@ -1659,7 +1659,7 @@ private struct PlanLockedDaysCard: View {
                 if !isPro && otherDays.count > 3 {
                     ZStack(alignment: .center) {
                         Rectangle()
-                            .fill(.ultraThinMaterial)
+                            .fill(PulseTheme.grouped.opacity(0.78))
                             .frame(height: 56)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
@@ -1690,7 +1690,7 @@ private struct PlanUnlockProCard: View {
                 HStack(spacing: 10) {
                     Image(systemName: "bolt.heart.fill")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .frame(width: 40, height: 40)
                         .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -1721,7 +1721,7 @@ private struct PlanUnlockProCard: View {
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                     .background(PulseTheme.accent)
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
                 }
@@ -1870,17 +1870,17 @@ private struct OnboardingProgressBodyHero: View {
                 .minimumScaleFactor(0.72)
             Text("muscle +")
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(.white.opacity(0.62))
+                .foregroundStyle(PulseTheme.mediaSubtext.opacity(0.76))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(PulseTheme.mediaText)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(PulseTheme.mediaText.opacity(0.08), in: RoundedRectangle(cornerRadius: PulseTheme.largeRadius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.white.opacity(0.16), lineWidth: 1)
+            RoundedRectangle(cornerRadius: PulseTheme.largeRadius, style: .continuous)
+                .stroke(PulseTheme.mediaText.opacity(0.16), lineWidth: 1)
         }
     }
 
@@ -1894,17 +1894,17 @@ private struct OnboardingProgressBodyHero: View {
                 .minimumScaleFactor(0.72)
             Text("trend down")
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(.white.opacity(0.62))
+                .foregroundStyle(PulseTheme.mediaSubtext.opacity(0.76))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
         }
-        .foregroundStyle(.white.opacity(0.86))
+        .foregroundStyle(PulseTheme.mediaSubtext)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(PulseTheme.mediaScrimStrong.opacity(0.45), in: RoundedRectangle(cornerRadius: PulseTheme.largeRadius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.white.opacity(0.10), lineWidth: 1)
+            RoundedRectangle(cornerRadius: PulseTheme.largeRadius, style: .continuous)
+                .stroke(PulseTheme.mediaText.opacity(0.10), lineWidth: 1)
         }
     }
 
@@ -1912,16 +1912,16 @@ private struct OnboardingProgressBodyHero: View {
         HStack(spacing: 6) {
             Text(goal)
             Circle()
-                .fill(.white.opacity(0.4))
+                .fill(PulseTheme.mediaText.opacity(0.4))
                 .frame(width: 4, height: 4)
             Text("\(daysPerWeek)d")
             Circle()
-                .fill(.white.opacity(0.4))
+                .fill(PulseTheme.mediaText.opacity(0.4))
                 .frame(width: 4, height: 4)
             Text("\(minutes)m")
         }
         .font(.caption.weight(.black))
-        .foregroundStyle(.white.opacity(0.82))
+        .foregroundStyle(PulseTheme.mediaSubtext)
         .lineLimit(1)
         .minimumScaleFactor(0.78)
         .padding(.horizontal, 10)
@@ -1929,7 +1929,7 @@ private struct OnboardingProgressBodyHero: View {
         .background(.ultraThinMaterial, in: Capsule())
         .overlay {
             Capsule()
-                .stroke(.white.opacity(0.14), lineWidth: 1)
+                .stroke(PulseTheme.mediaText.opacity(0.14), lineWidth: 1)
         }
     }
 }
@@ -2085,25 +2085,25 @@ private extension UserProfile.Experience {
 
 private extension BodyViewStyle {
     static let onboardingDark = BodyViewStyle(
-        defaultFillColor: Color.white.opacity(0.16),
-        strokeColor: Color.black.opacity(0.55),
+        defaultFillColor: PulseTheme.mediaText.opacity(0.16),
+        strokeColor: PulseTheme.mediaScrimStrong.opacity(0.9),
         strokeWidth: 0.65,
         selectionColor: PulseTheme.accent,
-        selectionStrokeColor: .white,
+        selectionStrokeColor: PulseTheme.mediaText,
         selectionStrokeWidth: 1.6,
-        headColor: Color.white.opacity(0.22),
-        hairColor: Color.white.opacity(0.10)
+        headColor: PulseTheme.mediaText.opacity(0.22),
+        hairColor: PulseTheme.mediaText.opacity(0.10)
     )
 
     static let onboardingMonochromeProgress = BodyViewStyle(
-        defaultFillColor: Color.white.opacity(0.08),
-        strokeColor: Color.white.opacity(0.26),
+        defaultFillColor: PulseTheme.mediaText.opacity(0.08),
+        strokeColor: PulseTheme.mediaText.opacity(0.26),
         strokeWidth: 0.72,
-        selectionColor: .white,
-        selectionStrokeColor: .white,
+        selectionColor: PulseTheme.mediaText,
+        selectionStrokeColor: PulseTheme.mediaText,
         selectionStrokeWidth: 1.1,
-        headColor: Color.white.opacity(0.12),
-        hairColor: Color.white.opacity(0.05)
+        headColor: PulseTheme.mediaText.opacity(0.12),
+        hairColor: PulseTheme.mediaText.opacity(0.05)
     )
 }
 

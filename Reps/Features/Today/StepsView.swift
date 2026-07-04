@@ -137,8 +137,6 @@ struct StepsView: View {
 
             ScrollView {
                 VStack(spacing: 20) {
-                    HealthWidgetDetailNavBar(title: localizedString("steps"), domain: domain)
-
                     if todaySteps > 0 {
                         DomainVerdictHeader(verdict: verdict, message: verdictMessage)
                             .padding(.top, 4)
@@ -150,8 +148,12 @@ struct StepsView: View {
                     calendarCard
                     insightsCard
                 }
+                .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 32)
+            }
+            .overlay(alignment: .top) {
+                HealthWidgetDetailNavBar(title: localizedString("steps"), domain: domain)
             }
         }
         .toolbar(.hidden, for: .navigationBar)

@@ -209,7 +209,7 @@ struct PaywallView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.textPrimary)
                             .frame(width: 34, height: 34)
                             .destructiveGlassCircle(.secondary)
                     }
@@ -245,7 +245,7 @@ struct PaywallView: View {
 
                 Image(systemName: "bolt.heart.fill")
                     .font(.title2.weight(.black))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                     .frame(width: 46, height: 46)
                     .background(PulseTheme.accent)
                     .clipShape(Circle())
@@ -269,16 +269,16 @@ struct PaywallView: View {
             HStack(spacing: 8) {
                 if isPurchasing {
                     ProgressView()
-                        .tint(.black)
+                        .tint(PulseTheme.onColor(PulseTheme.accent))
                 }
                 Text(primaryButtonTitle)
                     .font(.headline)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 58)
-            .foregroundStyle(.black)
+            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
             .background(PulseTheme.accent)
-            .clipShape(Capsule())
+            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .disabled(isPurchasing || selectedProduct == nil)
@@ -443,9 +443,9 @@ struct SubscriptionCenterView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .background(PulseTheme.accent)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
@@ -474,7 +474,7 @@ struct PaywallLockedCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     Image(systemName: "lock.fill")
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .frame(width: 34, height: 34)
                         .background(PulseTheme.accent)
                         .clipShape(Circle())
@@ -491,7 +491,7 @@ struct PaywallLockedCard: View {
                         .font(.subheadline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
@@ -536,7 +536,7 @@ private struct TrialTimelineRow: View {
             VStack(spacing: 0) {
                 Image(systemName: icon)
                     .font(.subheadline.weight(.black))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                     .frame(width: 40, height: 40)
                     .background(PulseTheme.accent)
                     .clipShape(Circle())
@@ -588,7 +588,7 @@ private struct ContextualPaywallPreview: View {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: feature?.systemImage ?? "sparkles")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .frame(width: 42, height: 42)
                         .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))

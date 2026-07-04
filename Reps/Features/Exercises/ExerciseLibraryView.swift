@@ -203,6 +203,8 @@ struct ExerciseLibraryView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(PulseTheme.background)
             .onChange(of: selectedMuscle) { _, newValue in
                 if newValue != "All" { selectedMuscleSegments.removeAll() }
             }
@@ -247,7 +249,7 @@ struct ExerciseLibraryView: View {
                                     .navigationGlassCircle(.secondary, tint: .clear)
                                 if store.hasUnreadBell {
                                     Circle()
-                                        .fill(.red)
+                                        .fill(PulseTheme.destructive)
                                         .frame(width: 9, height: 9)
                                         .offset(x: -1, y: 1)
                                 }
@@ -522,19 +524,21 @@ private struct ExerciseLibraryRow: View {
         HStack(spacing: 14) {
             ExerciseMediaThumbnail(exercise: exercise, gender: gender, catalog: catalog)
                 .frame(width: 58, height: 58)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
             VStack(alignment: .leading, spacing: 4) {
                 Text(exercise.name)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(2)
+                    .minimumScaleFactor(0.82)
                 Text("\(ExerciseTextLocalizer.muscle(exercise.muscleGroup, language: language)) · \(ExerciseTextLocalizer.equipment(exercise.equipment, language: language))")
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
             }
-            Spacer()
+            .layoutPriority(1)
+            Spacer(minLength: 8)
         }
         .padding(.vertical, 8)
         .contentShape(Rectangle())
@@ -784,7 +788,7 @@ struct ExerciseDetailView: View {
                                 Rectangle()
                                     .fill(selectedTab == tab ? PulseTheme.ringStand : Color.clear)
                                     .frame(height: 3.5)
-                                    .cornerRadius(2)
+                                    .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
                             }
                         }
                         .buttonStyle(.plain)
@@ -794,7 +798,7 @@ struct ExerciseDetailView: View {
                 .background(PulseTheme.card)
                 
                 Divider()
-                    .overlay(Color.white.opacity(0.08))
+                    .overlay(PulseTheme.separator)
             }
             
             ScrollView(.vertical, showsIndicators: false) {
@@ -1291,7 +1295,7 @@ struct ExerciseHeroMedia: View {
                     }
 
                     LinearGradient(
-                        colors: [.black.opacity(0.0), .black.opacity(0.62)],
+                        colors: [PulseTheme.mediaScrimClear, PulseTheme.mediaScrimStrong],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -1301,10 +1305,10 @@ struct ExerciseHeroMedia: View {
                         Text("referencia_visual")
                             .font(.caption.weight(.bold))
                             .textCase(.uppercase)
-                            .foregroundStyle(.white.opacity(0.78))
+                            .foregroundStyle(PulseTheme.mediaSubtext)
                         Text(exercise.name)
                             .font(.headline.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.mediaText)
                             .lineLimit(2)
                             .minimumScaleFactor(0.76)
                             .fixedSize(horizontal: false, vertical: true)
@@ -1326,8 +1330,8 @@ struct ExerciseHeroMedia: View {
                 } label: {
                     Image(systemName: "play.circle.fill")
                         .font(.system(size: 56))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.35), radius: 10)
+                        .foregroundStyle(PulseTheme.mediaText)
+                        .shadow(color: PulseTheme.mediaScrimStrong, radius: 10)
                         .padding(24)
                         .contentShape(Circle())
                 }

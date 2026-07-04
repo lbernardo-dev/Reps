@@ -10,34 +10,9 @@ struct HealthWidgetDetailNavBar: View {
     private var tint: Color { domain?.tint ?? PulseTheme.accent }
 
     var body: some View {
-        HStack {
-            Button {
-                HapticService.selection()
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 38, height: 38)
-                    .navigationGlassCircle(.secondary, tint: tint)
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Text(title)
-                .font(.system(size: 19, weight: .bold, design: .rounded))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-
-            Spacer()
-
-            Image(systemName: "chevron.left")
-                .font(.system(size: 18, weight: .bold))
-                .opacity(0)
-                .frame(width: 38, height: 38)
+        DetailNavigationHeaderBar(title: title, tint: tint) {
+            dismiss()
         }
-        .padding(.vertical, 14)
     }
 }
 

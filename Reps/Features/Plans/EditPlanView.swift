@@ -340,9 +340,9 @@ struct EditPlanView: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.red.opacity(0.8))
+                        .foregroundStyle(PulseTheme.destructive)
                         .frame(width: 32, height: 32)
-                        .background(Color.red.opacity(0.1))
+                        .background(PulseTheme.destructive.opacity(0.12))
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)

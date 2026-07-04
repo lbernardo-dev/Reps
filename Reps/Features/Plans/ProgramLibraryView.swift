@@ -39,7 +39,7 @@ struct ProgramLibraryView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.textPrimary)
                             .frame(width: 32, height: 32)
                             .destructiveGlassCircle(.secondary)
                     }
@@ -205,9 +205,9 @@ struct ProgramDetailView: View {
             .font(.headline)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .foregroundStyle(.black)
+            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
             .background(PulseTheme.fitActionGradient)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .padding(.top, 4)
@@ -227,7 +227,7 @@ private struct ProgramLibraryHero: View {
                 HStack(alignment: .top, spacing: 14) {
                     Image(systemName: selectedCategory?.systemImage ?? "sparkles")
                         .font(.title2.weight(.black))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .frame(width: 56, height: 56)
                         .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
@@ -298,7 +298,7 @@ private struct ProgramCard: View {
                         } else {
                             Image(systemName: meta?.category.systemImage ?? "dumbbell.fill")
                                 .font(.system(size: 20, weight: .black))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .background(PulseTheme.fitActionGradient)
                         }
@@ -308,7 +308,7 @@ private struct ProgramCard: View {
                     .overlay(alignment: .topLeading) {
                         Image(systemName: meta?.category.systemImage ?? "dumbbell.fill")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .frame(width: 16, height: 16)
                             .background(PulseTheme.fitActionGradient, in: Circle())
                             .offset(x: -4, y: -4)

@@ -35,12 +35,12 @@ struct ProgressExecutiveCard: View {
         HStack(alignment: .top, spacing: 12) {
 	          Image(systemName: primaryInsight?.systemImage ?? "chart.bar.fill")
 	            .font(.title3.weight(.black))
-	            .foregroundStyle(.black)
+	            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
 	            .frame(width: 48, height: 48)
-	            .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+	            .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 	            .overlay(
-	              RoundedRectangle(cornerRadius: 14, style: .continuous)
-	                .stroke(.white.opacity(0.18), lineWidth: 1)
+	              RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+	                .stroke(PulseTheme.accent.opacity(0.18), lineWidth: 1)
 	            )
 
           VStack(alignment: .leading, spacing: 5) {
@@ -71,8 +71,8 @@ struct ProgressExecutiveCard: View {
 	              .font(.caption.weight(.black))
 	              .frame(maxWidth: .infinity)
 	              .frame(height: 40)
-	              .foregroundStyle(.black)
-	              .background(PulseTheme.ringStand, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+	              .foregroundStyle(PulseTheme.onColor(PulseTheme.ringStand))
+	              .background(PulseTheme.ringStand, in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
 	          }
           .buttonStyle(.plain)
 
@@ -81,11 +81,11 @@ struct ProgressExecutiveCard: View {
 	              .font(.caption.weight(.black))
 	              .frame(maxWidth: .infinity)
 	              .frame(height: 40)
-	              .foregroundStyle(.white.opacity(0.82))
-	              .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+	              .foregroundStyle(PulseTheme.textSecondary)
+	              .background(PulseTheme.grouped.opacity(0.62), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
 	              .overlay(
-	                RoundedRectangle(cornerRadius: 12, style: .continuous)
-	                  .stroke(Color.white.opacity(0.07), lineWidth: 1)
+	                RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous)
+	                  .stroke(PulseTheme.separator, lineWidth: 1)
 	              )
 	          }
           .buttonStyle(.plain)
@@ -142,6 +142,7 @@ struct ProgressToolTile: View {
   let color: Color
 
   var body: some View {
+    PulseCard(minHeight: 132, contentPadding: 14) {
     VStack(alignment: .leading, spacing: 9) {
       Image(systemName: systemImage)
         .font(.headline.weight(.black))
@@ -158,13 +159,8 @@ struct ProgressToolTile: View {
         .lineLimit(2)
         .minimumScaleFactor(0.76)
     }
-    .padding(14)
-    .frame(maxWidth: .infinity, minHeight: 132, alignment: .leading)
-    .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-    .overlay(
-      RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-        .stroke(PulseTheme.separator, lineWidth: 1)
-    )
+    .frame(maxWidth: .infinity, alignment: .leading)
+    }
   }
 }
 
@@ -176,31 +172,31 @@ struct ProgressSectionTile: View {
 	  let isLocked: Bool
 	  var showsChevron: Bool = false
 
-	  private var tileFill: Color {
-	    isSelected ? Color.white.opacity(0.06) : PulseTheme.card
-	  }
+		  private var tileFill: Color {
+		    isSelected ? PulseTheme.grouped.opacity(0.72) : PulseTheme.card
+		  }
 
-	  private var tileStroke: Color {
-	    isSelected ? Color.white.opacity(0.18) : PulseTheme.separator
-	  }
+		  private var tileStroke: Color {
+		    isSelected ? section.tint.opacity(0.28) : PulseTheme.separator
+		  }
 	
 	  var body: some View {
 	    HStack(spacing: 10) {
-      Image(systemName: isLocked ? "lock.fill" : section.systemImage)
-        .font(.headline.weight(.black))
-        .foregroundStyle(isSelected ? .white : section.tint)
-        .frame(width: 42, height: 42)
-        .background((isSelected ? Color.white.opacity(0.16) : section.tint.opacity(0.12)), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+	      Image(systemName: isLocked ? "lock.fill" : section.systemImage)
+	        .font(.headline.weight(.black))
+	        .foregroundStyle(section.tint)
+	        .frame(width: 42, height: 42)
+	        .background(section.tint.opacity(isSelected ? 0.18 : 0.12), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
 
       VStack(alignment: .leading, spacing: 3) {
         Text(localizedKey(section.title))
           .font(.subheadline.weight(.black))
-          .foregroundStyle(isSelected ? .white : .primary)
+	          .foregroundStyle(PulseTheme.textPrimary)
           .lineLimit(1)
           .minimumScaleFactor(0.72)
         Text(value)
           .font(.caption.weight(.black).monospacedDigit())
-          .foregroundStyle(isSelected ? .white.opacity(0.82) : PulseTheme.secondaryText)
+	          .foregroundStyle(PulseTheme.secondaryText)
           .lineLimit(1)
       }
 
@@ -219,7 +215,6 @@ struct ProgressSectionTile: View {
 	      RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
 	        .stroke(tileStroke, lineWidth: 1)
 	    )
-	    .shadow(color: isSelected ? section.tint.opacity(0.12) : Color.black.opacity(0.10), radius: isSelected ? 10 : 6, x: 0, y: 4)
 	    .accessibilityElement(children: .combine)
 	  }
 
@@ -228,11 +223,11 @@ struct ProgressSectionTile: View {
 	      .fill(tileFill)
 	      .overlay(
 	        LinearGradient(
-	          colors: [
-	            Color.white.opacity(isSelected ? 0.16 : 0.045),
-	            section.tint.opacity(isSelected ? 0.10 : 0.018),
-	            Color.black.opacity(0.08)
-	          ],
+		          colors: [
+		            PulseTheme.cardStroke.opacity(isSelected ? 0.22 : 0.08),
+		            section.tint.opacity(isSelected ? 0.10 : 0.018),
+		            PulseTheme.surfaceShadow.opacity(0.28)
+		          ],
 	          startPoint: .topLeading,
 	          endPoint: .bottomTrailing
 	        )
@@ -478,4 +473,3 @@ struct ProgressActionStepRow: View {
     .padding(.vertical, 9)
   }
 }
-

@@ -101,9 +101,6 @@ struct TrainingBatteryView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 24) {
-                // Header navigation bar replacement
-                customNavBar
-
                 // Central showcase hero view
                 ZStack {
                     RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
@@ -175,42 +172,18 @@ struct TrainingBatteryView: View {
 
                 Spacer(minLength: 40)
             }
+            .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.bottom, 60)
+        }
+        .overlay(alignment: .top) {
+            DetailNavigationHeaderBar(title: localizedString("training_battery")) {
+                dismiss()
+            }
         }
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
-    }
-
-    // MARK: - Navigation Bar
-    private var customNavBar: some View {
-        HStack {
-            Button {
-                HapticService.selection()
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 38, height: 38)
-                    .navigationGlassCircle(.secondary)
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Text(localizedString("training_battery"))
-                .font(.system(size: 19, weight: .bold, design: .rounded))
-
-            Spacer()
-
-            // Empty placeholder for symmetry
-            Image(systemName: "chevron.left")
-                .font(.system(size: 18, weight: .bold))
-                .opacity(0)
-        }
-        .padding(.vertical, 14)
     }
 
     // MARK: - Hero Gauge Switcher

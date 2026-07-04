@@ -12,6 +12,17 @@ struct RepsTests {
         #expect(completion <= 1)
     }
 
+    @Test func workoutPlanNormalizesNegativeActiveDayIndex() {
+        var plan = SeedData.pushPullLegsPlan
+        plan.activeDayIndex = -1
+
+        #expect(plan.normalizedActiveDayIndex == plan.days.count - 1)
+        #expect(plan.normalizedActiveDay?.id == plan.days.last?.id)
+
+        plan.normalizeActiveDayIndex()
+        #expect(plan.activeDayIndex == plan.days.count - 1)
+    }
+
     @Test @MainActor func suggestedPlanUsesNormalizedResistanceBandEquipment() {
         let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
         store.userProfile.trainingLocation = .gym

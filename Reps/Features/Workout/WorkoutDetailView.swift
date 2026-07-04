@@ -3,6 +3,7 @@ import SwiftUI
 
 struct WorkoutDetailView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
     let workout: WorkoutDay
     
     @State private var selectedWorkout: WorkoutDay
@@ -42,7 +43,9 @@ struct WorkoutDetailView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 20) {
-                headerSection
+                if shouldShowDayStrip {
+                    headerSection
+                }
                 heroCard
                 exerciseListCard
                 ProgressionRecommendationCard(
@@ -62,13 +65,20 @@ struct WorkoutDetailView: View {
             }
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.vertical, 20)
-            .safeAreaPadding(.top, 8)
+            .safeAreaPadding(.top, DetailNavigationHeaderBar.contentTopPadding)
             .padding(.bottom, 96)
+        }
+        .overlay(alignment: .top) {
+            DetailNavigationHeaderBar(title: workoutDetailNavigationTitle) {
+                dismiss()
+            }
         }
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
         .onChange(of: workout) { _, newWorkout in
             selectedWorkout = newWorkout
@@ -97,6 +107,14 @@ struct WorkoutDetailView: View {
                 )
             )
         }
+    }
+
+    private var workoutDetailNavigationTitle: String {
+        RepsText.workoutTitle(selectedWorkout.title, language: store.userProfile.preferredLanguage)
+    }
+
+    private var shouldShowDayStrip: Bool {
+        (parentPlan?.days.count ?? 1) > 1
     }
 
     private var headerSection: some View {

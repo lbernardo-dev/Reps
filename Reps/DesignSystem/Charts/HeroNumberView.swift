@@ -51,7 +51,7 @@ struct RecordRow: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(value)
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.textPrimary)
                 if let secondaryValue {
                     Text(secondaryValue)
                         .font(.subheadline.weight(.semibold))

@@ -12,7 +12,7 @@ struct ProgressionRecommendationCard: View {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "sparkles")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .frame(width: 42, height: 42)
                         .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
@@ -73,7 +73,7 @@ private struct ProgressionRecommendationRow: View {
 
                     Text(targetText)
                         .font(.caption.weight(.black).monospacedDigit())
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(recommendation.suggestion.shouldDeload ? PulseTheme.warning : PulseTheme.accent))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
                         .background(recommendation.suggestion.shouldDeload ? PulseTheme.warning : PulseTheme.accent, in: Capsule())
@@ -90,7 +90,7 @@ private struct ProgressionRecommendationRow: View {
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                .stroke(PulseTheme.separator, lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(RepsText.exerciseName(recommendation.exercise.name, language: language)), \(targetText), \(recommendation.suggestion.explanation)")

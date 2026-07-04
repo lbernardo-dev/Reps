@@ -148,9 +148,9 @@ private struct AchievementUnlockCard: View {
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(PulseTheme.mediaText.opacity(0.6))
                         .frame(width: 32, height: 32)
-                        .background(.white.opacity(0.10), in: Circle())
+                        .background(PulseTheme.mediaText.opacity(0.10), in: Circle())
                 }
             }
             .padding(.horizontal, 20)
@@ -159,11 +159,11 @@ private struct AchievementUnlockCard: View {
             // Trophy icon
             ZStack {
                 Circle()
-                    .fill(.white.opacity(0.08))
+                    .fill(PulseTheme.mediaText.opacity(0.08))
                     .frame(width: 80, height: 80)
                 Image(systemName: "trophy.fill")
                     .font(.system(size: 34, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.mediaText)
                     .symbolEffect(.bounce, value: iconBounce)
             }
             .padding(.top, 12)
@@ -173,18 +173,18 @@ private struct AchievementUnlockCard: View {
                 Text("ACHIEVEMENT UNLOCKED")
                     .font(.system(size: 11, weight: .black, design: .rounded))
                     .tracking(2.0)
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(PulseTheme.mediaText.opacity(0.55))
                     .padding(.top, 20)
 
                 Text(banner.title)
                     .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.mediaText)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 28)
 
                 Text(banner.description)
                     .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(PulseTheme.mediaText.opacity(0.65))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 28)
                     .padding(.top, 2)
@@ -194,14 +194,14 @@ private struct AchievementUnlockCard: View {
             HStack(spacing: 6) {
                 Image(systemName: "star.fill")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(PulseTheme.semanticAction)
                 Text("+\(banner.xpReward) pts")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.mediaText)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 8)
-            .background(.white.opacity(0.12), in: Capsule())
+            .background(PulseTheme.mediaText.opacity(0.12), in: Capsule())
             .padding(.top, 16)
 
             // Share button
@@ -212,10 +212,10 @@ private struct AchievementUnlockCard: View {
                     Text(localizedString("achievement_share_button"))
                         .font(.system(size: 17, weight: .bold, design: .rounded))
                 }
-                .foregroundStyle(.black)
+                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 20)
@@ -226,7 +226,7 @@ private struct AchievementUnlockCard: View {
                 Button(action: onDismiss) {
                     Text(localizedFormat("achievement_more_format", remainingCount))
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(PulseTheme.mediaText.opacity(0.55))
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 14)
@@ -237,7 +237,7 @@ private struct AchievementUnlockCard: View {
         .fixedSize(horizontal: false, vertical: true)
         .background(cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: .black.opacity(0.5), radius: 40, x: 0, y: 20)
+        .shadow(color: PulseTheme.mediaScrimStrong.opacity(0.80), radius: 40, x: 0, y: 20)
         // Entrance animation
         .scaleEffect(appeared ? 1.0 : 0.72, anchor: .center)
         .offset(y: appeared ? 0 : 60)
@@ -256,17 +256,17 @@ private struct AchievementUnlockCard: View {
     private var cardBackground: some View {
         if #available(iOS 26.0, *) {
             Color.clear
-                .glassEffect(.regular.tint(.black.opacity(0.52)), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .glassEffect(.regular.tint(PulseTheme.mediaScrimStrong.opacity(0.84)), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         } else {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(.black.opacity(0.42))
+                        .fill(PulseTheme.mediaScrimStrong.opacity(0.68))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                        .strokeBorder(PulseTheme.mediaText.opacity(0.10), lineWidth: 1)
                 )
         }
     }
@@ -285,7 +285,7 @@ struct AchievementUnlockOverlay: View {
         ZStack {
             if let banner = currentBanner, showCard {
                 // Dim backdrop
-                Color.black.opacity(0.60)
+                PulseTheme.mediaScrimStrong.opacity(0.96)
                     .ignoresSafeArea()
                     .transition(.opacity)
                     .onTapGesture { dismiss() }

@@ -33,11 +33,11 @@ private struct TrendValuePill: View {
     var body: some View {
         Text(text)
             .font(.system(size: 11, weight: .bold, design: .rounded).monospacedDigit())
-            .foregroundStyle(.white)
+            .foregroundStyle(PulseTheme.mediaText)
             .lineLimit(1)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(.black.opacity(0.55), in: Capsule())
+            .background(PulseTheme.mediaScrimStrong, in: Capsule())
             .overlay(Capsule().stroke(tint.opacity(0.45), lineWidth: 1))
     }
 }
@@ -90,12 +90,12 @@ struct DomainBarTrendChart: View {
                     y: .value("value", point.value)
                 )
                 .foregroundStyle((barColor(point) ?? domain.tint).gradient)
-                .cornerRadius(5)
+                .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
             }
 
             if let average {
                 RuleMark(y: .value("avg", average))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(PulseTheme.textTertiary)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                     .annotation(position: .top, alignment: .trailing, spacing: 4) {
                         TrendValuePill(text: valueFormat(average), tint: domain.tint)
@@ -165,7 +165,7 @@ struct DomainLineTrendChart: View {
 
             if let average {
                 RuleMark(y: .value("avg", average))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(PulseTheme.textTertiary)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                     .annotation(position: .top, alignment: .trailing, spacing: 4) {
                         TrendValuePill(text: valueFormat(average), tint: domain.tint)

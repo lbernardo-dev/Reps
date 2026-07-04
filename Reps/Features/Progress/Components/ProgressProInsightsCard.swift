@@ -48,7 +48,7 @@ struct ProInsightsTeaserCard: View {
           Spacer()
           Text(localizedString("pro_badge"))
             .font(.caption2.weight(.black))
-            .foregroundStyle(.black)
+            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
             .padding(.horizontal, 7)
             .padding(.vertical, 3)
             .background(PulseTheme.accent, in: Capsule())
@@ -79,7 +79,7 @@ struct ProInsightsTeaserCard: View {
             .font(.subheadline.weight(.bold))
             .frame(maxWidth: .infinity)
             .frame(height: 44)
-            .foregroundStyle(.black)
+            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
             .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         }
         .buttonStyle(.plain)

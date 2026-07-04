@@ -106,7 +106,7 @@ struct CreatePlanView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.textPrimary)
                             .navigationGlassCapsule(step == .basics ? .disabled : .secondary)
                     }
                     .disabled(step == .basics)
@@ -117,7 +117,7 @@ struct CreatePlanView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.textPrimary)
                             .navigationGlassCapsule(canContinue ? .primary : .disabled)
                     }
                     .disabled(!canContinue)
@@ -607,7 +607,7 @@ private struct EditableWorkoutExerciseRow: View {
                 Button(role: .destructive, action: onDelete) {
                     Image(systemName: "trash")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.textPrimary)
                         .frame(width: 36, height: 36)
                         .destructiveGlassCircle(.secondary)
                 }

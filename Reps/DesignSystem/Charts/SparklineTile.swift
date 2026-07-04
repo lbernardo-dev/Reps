@@ -46,7 +46,7 @@ struct SparklineTile: View {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(value)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Text(unit)

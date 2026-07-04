@@ -222,33 +222,32 @@ struct ActiveWorkoutCommandCard: View {
     let completedSets: Int
     let totalSets: Int
     let completion: Double
-    let onStart: () -> Void
-    let onCompleteNext: () -> Void
     let onDecreaseRest: () -> Void
     let onIncreaseRest: () -> Void
     let onSkipRest: () -> Void
     let onUndo: (() -> Void)?
-    let onAddSet: () -> Void
-    let onReplaceExercise: () -> Void
 
     private var commandColor: Color {
         if isPaused { return PulseTheme.warning }
         if isResting { return PulseTheme.ringStand }
-        return PulseTheme.accent
+        return progressColor
     }
 
-    private var primaryTitle: String {
-        if !isSessionStarted { return localizedString("start_workout") }
-        if isPaused { return localizedString("resume_workout") }
-        if isResting { return localizedString("next_set") }
-        return localizedString("complete_set")
-    }
-
-    private var primaryIcon: String {
-        if !isSessionStarted { return "play.fill" }
-        if isPaused { return "play.fill" }
-        if isResting { return "checkmark.circle.fill" }
-        return "checkmark.circle.fill"
+    private var progressColor: Color {
+        let clamped = min(max(completion, 0), 1)
+        if clamped < 0.5 {
+            return Color(
+                red: 0.90 + (0.95 - 0.90) * (clamped / 0.5),
+                green: 0.20 + (0.55 - 0.20) * (clamped / 0.5),
+                blue: 0.18
+            )
+        }
+        let progress = (clamped - 0.5) / 0.5
+        return Color(
+            red: 0.95 + (0.22 - 0.95) * progress,
+            green: 0.55 + (0.72 - 0.55) * progress,
+            blue: 0.18 + (0.42 - 0.18) * progress
+        )
     }
 
     var body: some View {
@@ -264,7 +263,7 @@ struct ActiveWorkoutCommandCard: View {
                     .frame(width: 84, height: 84)
 
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(localizedString("next_best_action"))
+                        Text(localizedString("actual"))
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.5)
                             .textCase(.uppercase)
@@ -294,7 +293,7 @@ struct ActiveWorkoutCommandCard: View {
                     )
                 } else {
                     HStack(spacing: 8) {
-                        CommandSignal(title: localizedString("target"), value: setTarget, systemImage: "scope", color: PulseTheme.accent)
+                        CommandSignal(title: "Target", value: setTarget, systemImage: "scope", color: PulseTheme.accent)
                         if let suggestion {
                             CommandSignal(title: localizedString("suggestion"), value: suggestion, systemImage: "sparkles", color: PulseTheme.accent)
                         } else if let history {
@@ -302,73 +301,9 @@ struct ActiveWorkoutCommandCard: View {
                         }
                     }
                 }
-
-                HStack(spacing: 9) {
-                    Button(action: primaryAction) {
-                        Label(primaryTitle, systemImage: primaryIcon)
-                            .font(.headline.weight(.black))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .foregroundStyle(isPaused ? .white : .black)
-                            .background(
-                                LinearGradient(
-                                    colors: [commandColor, commandColor.opacity(0.82)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                    .stroke(.white.opacity(0.16), lineWidth: 1)
-                            )
-                            .shadow(color: commandColor.opacity(0.20), radius: 8, x: 0, y: 4)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isSessionStarted && !isResting && completedSets >= totalSets)
-                    .opacity(isSessionStarted && !isResting && completedSets >= totalSets ? 0.55 : 1)
-
-                    Button(action: onAddSet) {
-                        Image(systemName: "plus")
-                            .font(.headline.weight(.black))
-                            .frame(width: 50, height: 52)
-                            .foregroundStyle(PulseTheme.accent)
-                            .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                    .stroke(PulseTheme.accent.opacity(0.20), lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(localizedString("add_series"))
-
-                    Button(action: onReplaceExercise) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.headline.weight(.black))
-                            .frame(width: 50, height: 52)
-                            .foregroundStyle(.white.opacity(0.62))
-                            .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                    .stroke(Color.white.opacity(0.065), lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(localizedString("sustituir"))
-                }
             }
         }
         .accessibilityElement(children: .contain)
-    }
-
-    private func primaryAction() {
-        if !isSessionStarted {
-            onStart()
-        } else if isResting {
-            onSkipRest()
-        } else {
-            onCompleteNext()
-        }
     }
 }
 
@@ -378,13 +313,22 @@ private struct ProgressRing: View {
     let totalSets: Int
     let color: Color
 
+    private var gradient: AngularGradient {
+        AngularGradient(
+            colors: [PulseTheme.destructive, PulseTheme.warning, PulseTheme.growth],
+            center: .center,
+            startAngle: .degrees(-90),
+            endAngle: .degrees(270)
+        )
+    }
+
     var body: some View {
         ZStack {
             Circle()
                 .stroke(PulseTheme.grouped, lineWidth: 7)
             Circle()
                 .trim(from: 0, to: min(max(progress, 0), 1))
-                .stroke(color, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                .stroke(gradient, style: StrokeStyle(lineWidth: 7, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.snappy(duration: 0.35), value: progress)
             VStack(spacing: 0) {

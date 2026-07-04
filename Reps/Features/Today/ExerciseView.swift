@@ -44,14 +44,17 @@ struct ExerciseView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                HealthWidgetDetailNavBar(title: localizedString("exercise_2"))
                 gaugeCard.padding(.top, 8)
                 stylePicker
                 weeklyTrendCard
                 insightsCard
             }
+            .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
+        }
+        .overlay(alignment: .top) {
+            HealthWidgetDetailNavBar(title: localizedString("exercise_2"))
         }
         .background(PulseTheme.background.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
@@ -135,10 +138,10 @@ struct ExerciseView: View {
                         VStack(spacing: 6) {
                             Image(systemName: style.systemImage())
                                 .font(.title3)
-                                .foregroundStyle(sel ? .white : exerciseColor)
+                                .foregroundStyle(sel ? PulseTheme.onColor(exerciseColor) : exerciseColor)
                             Text(style.displayName)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(sel ? .white : .primary)
+                                .foregroundStyle(sel ? PulseTheme.onColor(exerciseColor) : .primary)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)

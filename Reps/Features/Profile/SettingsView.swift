@@ -17,7 +17,7 @@ struct SettingsView: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PulseTheme.textPrimary)
                         .frame(width: 40, height: 40)
                         .destructiveGlassCircle(.secondary)
                 }

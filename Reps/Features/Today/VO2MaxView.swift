@@ -69,15 +69,17 @@ struct VO2MaxView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                HealthWidgetDetailNavBar(title: "VO₂ Max", domain: .cardio)
-
                 gaugeCard.padding(.top, 4)
                 trendCard
                 zonesCard
                 insightsCard
             }
+            .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
+        }
+        .overlay(alignment: .top) {
+            HealthWidgetDetailNavBar(title: "VO₂ Max", domain: .cardio)
         }
         .background {
             ZStack {

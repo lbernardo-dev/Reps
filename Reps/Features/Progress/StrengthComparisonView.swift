@@ -142,8 +142,6 @@ struct StrengthComparisonView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 20) {
-                customNavBar
-
                 introCard
 
                 if let exercise = selectedExercise {
@@ -159,7 +157,7 @@ struct StrengthComparisonView: View {
                             Text(localizedString("comparison_share_challenge"))
                         }
                         .font(.headline)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                         .background(PulseTheme.accent)
@@ -171,45 +169,21 @@ struct StrengthComparisonView: View {
                 exercisePickerSection
                 Spacer(minLength: 40)
             }
+            .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.bottom, 60)
+        }
+        .overlay(alignment: .top) {
+            DetailNavigationHeaderBar(
+                title: localizedString("comparison_title"),
+                backTitle: localizedString("comparison_back_progress")
+            ) {
+                dismiss()
+            }
         }
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
-    }
-
-    // MARK: - Navigation Bar
-
-    private var customNavBar: some View {
-        HStack {
-            Button {
-                HapticService.selection()
-                dismiss()
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
-                        .navigationGlassCircle(.secondary)
-                    Text(localizedString("comparison_back_progress"))
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                }
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Text(localizedString("comparison_title"))
-                .font(.system(size: 19, weight: .bold, design: .rounded))
-
-            Spacer()
-
-            Image(systemName: "chevron.left").font(.system(size: 18, weight: .bold)).opacity(0)
-        }
-        .padding(.vertical, 14)
     }
 
     // MARK: - Intro card

@@ -322,10 +322,8 @@ final class AppStore {
         if let scheduled = scheduledWorkouts.first(where: { calendar.isDateInToday($0.date) }) {
             return scheduled.workoutDay
         }
-        if !activePlan.days.isEmpty {
-            let count = activePlan.days.count
-            let index = ((activePlan.activeDayIndex % count) + count) % count
-            return activePlan.days[index]
+        if let day = activePlan.normalizedActiveDay {
+            return day
         }
         return .freeWorkout
     }
@@ -1121,10 +1119,8 @@ final class AppStore {
         activeWorkoutDrafts = []
 
         // Advance progress of the current plan's correct day if completed
-        if !activePlan.days.isEmpty {
+        if let currentDay = activePlan.normalizedActiveDay {
             let count = activePlan.days.count
-            let index = ((activePlan.activeDayIndex % count) + count) % count
-            let currentDay = activePlan.days[index]
             let matchesCurrentDay = sourceDayID.map { $0 == currentDay.id } ?? (session.workoutTitle == currentDay.title)
             if matchesCurrentDay {
                 activePlan.activeDayIndex = ((activePlan.activeDayIndex + 1) % count + count) % count
@@ -2180,8 +2176,10 @@ final class AppStore {
         ])
         if activate {
             scheduledWorkouts.removeAll { $0.status == .scheduled }
-            activePlan = plan
-            generateSchedule(for: plan)
+            var activatedPlan = plan
+            activatedPlan.normalizeActiveDayIndex()
+            activePlan = activatedPlan
+            generateSchedule(for: activatedPlan)
         }
     }
 
@@ -2190,15 +2188,17 @@ final class AppStore {
         if let index = plans.firstIndex(where: { $0.id == activePlan.id }) {
             plans[index] = activePlan
         }
-        activePlan = plan
+        var activatedPlan = plan
+        activatedPlan.normalizeActiveDayIndex()
+        activePlan = activatedPlan
         
         // Clear all non-completed scheduled workouts so they don't override the new plan
         scheduledWorkouts.removeAll { $0.status == .scheduled }
         
         if let index = plans.firstIndex(where: { $0.id == plan.id }) {
-            plans[index] = plan
+            plans[index] = activatedPlan
         }
-        generateSchedule(for: plan)
+        generateSchedule(for: activatedPlan)
         TelemetryService.shared.log(.planActivated, parameters: [
             "days_per_week": plan.daysPerWeek,
             "plan_days": plan.days.count,
@@ -2237,10 +2237,7 @@ final class AppStore {
         scheduledWorkouts.removeAll { calendar.isDate($0.date, inSameDayAs: today) }
         
         // Re-generate schedule for today (meaning the active plan's current day will be scheduled)
-        if !activePlan.days.isEmpty {
-            let count = activePlan.days.count
-            let index = ((activePlan.activeDayIndex % count) + count) % count
-            let day = activePlan.days[index]
+        if let day = activePlan.normalizedActiveDay {
             let scheduled = ScheduledWorkout(date: Date(), workoutDay: day, status: .scheduled)
             scheduledWorkouts.append(scheduled)
         }
@@ -2252,12 +2249,16 @@ final class AppStore {
 
     func updatePlan(_ plan: WorkoutPlan) {
         if let index = plans.firstIndex(where: { $0.id == plan.id }) {
-            plans[index] = plan
+            var updatedPlan = plan
+            updatedPlan.normalizeActiveDayIndex()
+            plans[index] = updatedPlan
         }
 
         if activePlan.id == plan.id {
-            activePlan = plan
-            generateSchedule(for: plan)
+            var updatedPlan = plan
+            updatedPlan.normalizeActiveDayIndex()
+            activePlan = updatedPlan
+            generateSchedule(for: updatedPlan)
         }
     }
 
@@ -2811,8 +2812,8 @@ final class AppStore {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         let days = plan.days.isEmpty ? [SeedData.pushDay] : plan.days
-        let count = min(plan.daysPerWeek, max(days.count, 1))
-        let startDayIndex = plan.activeDayIndex
+        let count = min(max(plan.daysPerWeek, 0), days.count)
+        let startDayIndex = ((plan.activeDayIndex % days.count) + days.count) % days.count
 
         let generated = (0..<count).compactMap { offset -> ScheduledWorkout? in
             guard let date = calendar.date(byAdding: .day, value: offset * 2, to: today) else {

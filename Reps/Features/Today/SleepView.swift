@@ -142,8 +142,6 @@ struct SleepView: View {
 
             ScrollView {
                 VStack(spacing: 20) {
-                    HealthWidgetDetailNavBar(title: localizedString("sleep"), domain: domain)
-
                     if let verdict, let verdictMessage {
                         DomainVerdictHeader(verdict: verdict, message: verdictMessage)
                             .padding(.top, 4)
@@ -157,8 +155,12 @@ struct SleepView: View {
                     chartCard
                     insightsCard
                 }
+                .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 32)
+            }
+            .overlay(alignment: .top) {
+                HealthWidgetDetailNavBar(title: localizedString("sleep"), domain: domain)
             }
         }
         .toolbar(.hidden, for: .navigationBar)

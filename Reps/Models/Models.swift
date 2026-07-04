@@ -437,6 +437,21 @@ struct WorkoutPlan: Codable, Identifiable {
 }
 
 extension WorkoutPlan {
+    var normalizedActiveDayIndex: Int? {
+        guard !days.isEmpty else { return nil }
+        let count = days.count
+        return ((activeDayIndex % count) + count) % count
+    }
+
+    var normalizedActiveDay: WorkoutDay? {
+        guard let index = normalizedActiveDayIndex else { return nil }
+        return days[index]
+    }
+
+    mutating func normalizeActiveDayIndex() {
+        activeDayIndex = normalizedActiveDayIndex ?? 0
+    }
+
     static let empty = WorkoutPlan(
         id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
         name: localizedString("plan_no_active_plan"),
