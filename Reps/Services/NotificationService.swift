@@ -405,7 +405,7 @@ enum NotificationService {
     private static let socialPrefix = "social-"
 
     /// Turns a CloudKit social subscription push into a visible local notification.
-    /// `subscriptionID` is the one set in SocialService ("new-follower-…" / "new-like-…").
+    /// `subscriptionID` is the one set in SocialService ("new-follower-…" / "new-like-…" / "new-comment-…").
     static func postCloudKitSocialNotification(subscriptionID: String) {
         let content = UNMutableNotificationContent()
         content.sound = .default
@@ -417,6 +417,9 @@ enum NotificationService {
         } else if subscriptionID.hasPrefix("new-like-") {
             content.title = localizedString("notif_new_like_title")
             content.body = localizedString("notif_new_like_body")
+        } else if subscriptionID.hasPrefix("new-comment-") {
+            content.title = localizedString("notif_new_comment_title")
+            content.body = localizedString("notif_new_comment_body")
         } else {
             return
         }

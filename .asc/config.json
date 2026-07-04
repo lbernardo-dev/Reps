@@ -1,0 +1,28 @@
+{
+  "key_id": "V28Q7SYZ4P",
+  "issuer_id": "7aac7682-ff57-4246-9108-f9f6b13f3cd6",
+  "private_key_path": "/Users/romerosoft/Downloads/VitalsPath Docs/Apple Connect/AuthKey_V28Q7SYZ4P.p8",
+  "default_key_name": "VitalsPath",
+  "keys": [
+    {
+      "name": "VitalsPath",
+      "key_id": "V28Q7SYZ4P",
+      "issuer_id": "7aac7682-ff57-4246-9108-f9f6b13f3cd6",
+      "private_key_path": "/Users/romerosoft/Downloads/VitalsPath Docs/Apple Connect/AuthKey_V28Q7SYZ4P.p8"
+    }
+  ],
+  "app_id": "",
+  "vendor_number": "",
+  "analytics_vendor_number": "",
+  "timeout": "",
+  "timeout_seconds": "",
+  "upload_timeout": "",
+  "upload_timeout_seconds": "",
+  "max_retries": "",
+  "base_delay": "",
+  "max_delay": "",
+  "retry_log": "",
+  "debug": "",
+  "ads": {},
+  "storekit": {}
+}

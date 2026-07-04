@@ -8,6 +8,13 @@ struct WorkoutHistoryView: View {
     @State private var selectedOriginFilter: OriginFilter = .all
     @State private var selectedTypeFilter: TypeFilter = .all
 
+    private var activeDomain: MetricDomain {
+        switch selectedTypeFilter {
+        case .all, .strength: .strength
+        case .cardio: .cardio
+        }
+    }
+
     enum LocationFilter: String, CaseIterable, Identifiable {
         case all = "Todos"
         case gym = "Gym"
@@ -124,8 +131,15 @@ struct WorkoutHistoryView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(PulseTheme.card)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.regular.tint(activeDomain.tint.opacity(0.10)), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(activeDomain.tint.opacity(0.22), lineWidth: 0.8)
+                }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.top, 10)
                 
@@ -139,13 +153,20 @@ struct WorkoutHistoryView: View {
                                     selectedTypeFilter = filter
                                 }
                             } label: {
+                                let domain: MetricDomain = filter == .cardio ? .cardio : .strength
                                 Text(filter.localizedLabel)
                                     .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(isSelected ? .black : .primary)
+                                    .foregroundStyle(isSelected ? PulseTheme.onColor(domain.tint) : .primary)
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 8)
-                                    .background(isSelected ? PulseTheme.accent : PulseTheme.card)
-                                    .clipShape(Capsule())
+                                    .background {
+                                        Capsule(style: .continuous)
+                                            .fill(isSelected ? domain.tint : PulseTheme.card)
+                                    }
+                                    .overlay {
+                                        Capsule(style: .continuous)
+                                            .stroke(domain.tint.opacity(isSelected ? 0.30 : 0.18), lineWidth: 0.8)
+                                    }
                             }
                             .buttonStyle(.plain)
                         }
@@ -184,12 +205,17 @@ struct WorkoutHistoryView: View {
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.bottom, 12)
             }
-            .background(PulseTheme.background)
+            .background {
+                ZStack(alignment: .top) {
+                    PulseTheme.background
+                    DomainTintedBackground(domain: activeDomain, height: 220)
+                }
+            }
             
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
                     if filteredAndGroupedSessions.isEmpty {
-                        PulseCard {
+                        GlassMetricCard(domain: activeDomain) {
                             PulseEmptyState(
                                 title: searchText.isEmpty && selectedLocationFilter == .all && selectedOriginFilter == .all ? "no_workouts_logged" : "no_results",
                                 message: "completed_sessions_match_message",
@@ -211,7 +237,7 @@ struct WorkoutHistoryView: View {
                                         NavigationLink {
                                             WorkoutSessionDetailView(session: session)
                                         } label: {
-                                            PulseCard {
+                                            GlassMetricCard(domain: session.isRouteSession ? .cardio : .strength) {
                                                 WorkoutLogRow(session: session)
                                             }
                                         }
@@ -236,6 +262,10 @@ struct WorkoutHistoryView: View {
 
 struct WorkoutLogRow: View {
     let session: WorkoutSession
+
+    private var domain: MetricDomain {
+        session.isRouteSession ? .cardio : .strength
+    }
 
     private var exerciseCount: Int {
         FitnessMetrics.completedExerciseLogs(in: session).count
@@ -270,10 +300,10 @@ struct WorkoutLogRow: View {
         HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(session.isRouteSession ? PulseTheme.accent.opacity(0.14) : (session.location == .home ? PulseTheme.accent.opacity(0.12) : PulseTheme.accent.opacity(0.12)))
+                    .fill(domain.tint.opacity(0.16))
                 Image(systemName: rowIcon)
                     .font(.subheadline)
-                    .foregroundStyle(session.isRouteSession || session.location == .home ? PulseTheme.accent : PulseTheme.accent)
+                    .foregroundStyle(domain.tint)
             }
             .frame(width: 42, height: 42)
             

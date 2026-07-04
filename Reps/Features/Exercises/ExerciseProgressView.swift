@@ -251,13 +251,13 @@ struct ExerciseProgressView: View {
                 }
             } else {
                 HStack(spacing: 14) {
-                    MetricCard(title: "best_weight", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.accent)
-                    MetricCard(title: "estimated_1rm", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt", badgeColor: PulseTheme.accent)
+                    MetricCard(title: "best_weight", value: String(format: "%.0f", rangedPoints.map(\.maxWeightKg).max() ?? 0), subtitle: "kg", systemImage: "scalemass", badgeColor: PulseTheme.accent, domain: .strength)
+                    MetricCard(title: "estimated_1rm", value: String(format: "%.0f", rangedPoints.map(\.estimatedOneRepMaxKg).max() ?? 0), subtitle: "kg", systemImage: "bolt", badgeColor: PulseTheme.accent, domain: .strength)
                 }
 
                 HStack(spacing: 14) {
-                    MetricCard(title: "overload_metric", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: "one_rm_change", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning)
-                    MetricCard(title: "avg_volume_metric", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg_per_session", systemImage: "chart.bar", badgeColor: PulseTheme.ringStand)
+                    MetricCard(title: "overload_metric", value: String(format: "%.1f", FitnessMetrics.progressiveOverloadDelta(for: rangedPoints)), subtitle: "one_rm_change", systemImage: "arrow.up.right", badgeColor: PulseTheme.warning, domain: .strength)
+                    MetricCard(title: "avg_volume_metric", value: "\(Int(FitnessMetrics.averageVolumeKg(for: rangedPoints)))", subtitle: "kg_per_session", systemImage: "chart.bar", badgeColor: PulseTheme.ringStand, domain: .strength)
                 }
 
                 Picker("metrics", selection: $metric) {

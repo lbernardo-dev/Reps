@@ -3876,7 +3876,7 @@ final class AppStore {
 
     // MARK: - Social Activity Events
 
-    private static let activityEventsKey = "activityEvents"
+    private nonisolated static let activityEventsKey = "activityEvents"
     private static let lastFeedCheckKey  = "lastFeedCheckDate"
 
     var lastFeedCheckDate: Date {
@@ -3899,6 +3899,35 @@ final class AppStore {
         if let data = try? JSONEncoder().encode(activityEvents) {
             UserDefaults.standard.set(data, forKey: Self.activityEventsKey)
         }
+        hasUnreadBell = true
+    }
+
+    /// Persists an activity event straight to disk without a live AppStore
+    /// instance — the app delegate's background remote-notification handler
+    /// (CloudKit silent push for a new follower/like) fires before/without a
+    /// SwiftUI environment, so it can't reach `saveActivityEvent` above.
+    nonisolated static func persistActivityEventFromBackground(_ event: NotificationEvent) {
+        var events: [NotificationEvent] = []
+        if let data = UserDefaults.standard.data(forKey: activityEventsKey),
+           let decoded = try? JSONDecoder().decode([NotificationEvent].self, from: data) {
+            events = decoded
+        }
+        events.insert(event, at: 0)
+        events = Array(events.prefix(30))
+        if let data = try? JSONEncoder().encode(events) {
+            UserDefaults.standard.set(data, forKey: activityEventsKey)
+        }
+    }
+
+    /// Re-reads activity events written to disk while backgrounded (see
+    /// `persistActivityEventFromBackground`) and flags the bell if anything
+    /// new showed up. Called on foreground since that background path can't
+    /// touch the live `activityEvents`/`hasUnreadBell` state directly.
+    func refreshActivityEventsFromDisk() {
+        guard let data = UserDefaults.standard.data(forKey: Self.activityEventsKey),
+              let onDisk = try? JSONDecoder().decode([NotificationEvent].self, from: data) else { return }
+        guard onDisk.first?.id != activityEvents.first?.id else { return }
+        activityEvents = onDisk
         hasUnreadBell = true
     }
 

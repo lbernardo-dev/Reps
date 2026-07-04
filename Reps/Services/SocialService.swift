@@ -494,11 +494,14 @@ actor SocialService {
 
     // MARK: - Follow / Unfollow
 
-    func follow(_ profile: SocialProfile) async throws {
+    func follow(_ profile: SocialProfile, myUsername: String) async throws {
         let myID = try await myRecordID()
         let fid = followRecordID(followerOwner: myID.recordName, followingUsername: profile.username)
         let record = CKRecord(recordType: "SocialFollow", recordID: fid)
         record["followerOwnerName"] = myID.recordName as CKRecordValue
+        // Stored alongside the owner name so a "who followed me" notification
+        // can display/link to the follower without an extra profile lookup.
+        record["followerUsername"] = myUsername.lowercased() as CKRecordValue
         record["followingUsername"] = profile.username.lowercased() as CKRecordValue
         try await publicDB.save(record)
     }
@@ -705,6 +708,41 @@ actor SocialService {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    // MARK: - Explore
+    //
+    // Surfaces posts beyond the following graph — there is no server-side
+    // ranking here (no custom backend), just recency + like count as a cheap
+    // popularity signal. The unscoped query needs a QUERYABLE+SORTABLE index
+    // on creationDate for WorkoutPost; without it we degrade to whatever this
+    // device has already cached locally (feed/profile visits), which is a
+    // smaller pool but still a reasonable "trending" approximation.
+    func fetchExplorePosts(excluding usernames: Set<String>, limit: Int = 30) async -> [WorkoutPost] {
+        let excluded = Set(usernames.map { $0.lowercased() })
+        let pred = NSPredicate(value: true)
+        let query = CKQuery(recordType: "WorkoutPost", predicate: pred)
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        if let result = try? await publicDB.records(matching: query, resultsLimit: limit * 2) {
+            let posts = result.matchResults
+                .compactMap { _, res in (try? res.get()).flatMap(WorkoutPost.init) }
+                .filter { !excluded.contains($0.ownerUsername.lowercased()) }
+            if !posts.isEmpty {
+                posts.forEach { savePostID($0.id) }
+                return posts.sorted { $0.likeCount > $1.likeCount }.prefix(limit).map { $0 }
+            }
+        }
+
+        // Fallback: rank whatever this device already has cached locally.
+        let cachedIDs = loadCachedPostIDs().map { CKRecord.ID(recordName: $0) }
+        guard !cachedIDs.isEmpty,
+              let fetched = try? await publicDB.records(for: cachedIDs) else { return [] }
+        return fetched.values
+            .compactMap { res in (try? res.get()).flatMap(WorkoutPost.init) }
+            .filter { !excluded.contains($0.ownerUsername.lowercased()) }
+            .sorted { $0.likeCount > $1.likeCount }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     // MARK: - Likes
     //
     // WorkoutLike recordName: "WorkoutLike_<likerOwner>_<postRecordName>"
@@ -713,11 +751,14 @@ actor SocialService {
         CKRecord.ID(recordName: "WorkoutLike_\(likerOwner)_\(postRecordName)")
     }
 
-    func likePost(_ post: WorkoutPost) async throws {
+    func likePost(_ post: WorkoutPost, likerUsername: String) async throws {
         let myID = try await myRecordID()
         let lid = likeRecordID(likerOwner: myID.recordName, postRecordName: post.id)
         let record = CKRecord(recordType: "WorkoutLike", recordID: lid)
         record["likerOwnerName"] = myID.recordName as CKRecordValue
+        // Stored so a "who liked my post" notification can display/link to the
+        // liker without an extra profile lookup.
+        record["likerUsername"] = likerUsername.lowercased() as CKRecordValue
         record["postRecordName"] = post.id as CKRecordValue
         record["postOwnerUsername"] = post.ownerUsername.lowercased() as CKRecordValue
         try await publicDB.save(record)
@@ -768,6 +809,8 @@ actor SocialService {
     struct PendingComment: Codable, Sendable {
         var comment: WorkoutComment
         var postID: String
+        // Defaulted so outbox entries persisted before this field existed still decode.
+        var postOwnerUsername: String = ""
     }
 
     // MARK: Cache persistence
@@ -871,6 +914,7 @@ actor SocialService {
     /// until confirmed in CloudKit.
     func addComment(
         postID: String,
+        postOwnerUsername: String,
         text: String,
         ownerUsername: String,
         ownerDisplayName: String,
@@ -891,24 +935,27 @@ actor SocialService {
         persistCache()
 
         if isOnline {
-            if let synced = try? await pushComment(comment, postID: postID) {
+            if let synced = try? await pushComment(comment, postID: postID, postOwnerUsername: postOwnerUsername) {
                 mergeIntoCache([synced], postID: postID)
                 persistCache()
                 return synced
             }
         }
         // Offline or push failed → defer.
-        enqueue(comment, postID: postID)
+        enqueue(comment, postID: postID, postOwnerUsername: postOwnerUsername)
         return comment
     }
 
     /// Pushes a single comment to CloudKit using its stable local record name so
     /// retries are idempotent.
-    private func pushComment(_ comment: WorkoutComment, postID: String) async throws -> WorkoutComment {
+    private func pushComment(_ comment: WorkoutComment, postID: String, postOwnerUsername: String) async throws -> WorkoutComment {
         let myID = try await myRecordID()
         let rid = CKRecord.ID(recordName: comment.id)
         let record = CKRecord(recordType: "WorkoutComment", recordID: rid)
         record["postRecordName"] = postID as CKRecordValue
+        // Stored so a "new comment on my post" notification can display/link
+        // to the commenter without an extra profile lookup.
+        record["postOwnerUsername"] = postOwnerUsername.lowercased() as CKRecordValue
         record["ownerUsername"] = comment.ownerUsername as CKRecordValue
         record["ownerDisplayName"] = comment.ownerDisplayName as CKRecordValue
         record["ownerRecordName"] = myID.recordName as CKRecordValue
@@ -934,9 +981,9 @@ actor SocialService {
         return synced
     }
 
-    private func enqueue(_ comment: WorkoutComment, postID: String) {
+    private func enqueue(_ comment: WorkoutComment, postID: String, postOwnerUsername: String) {
         guard !outbox.contains(where: { $0.comment.id == comment.id }) else { return }
-        outbox.append(PendingComment(comment: comment, postID: postID))
+        outbox.append(PendingComment(comment: comment, postID: postID, postOwnerUsername: postOwnerUsername))
         persistOutbox()
     }
 
@@ -946,7 +993,7 @@ actor SocialService {
         ensureLoaded()
         guard isOnline, !outbox.isEmpty else { return }
         for pending in outbox {
-            if let synced = try? await pushComment(pending.comment, postID: pending.postID) {
+            if let synced = try? await pushComment(pending.comment, postID: pending.postID, postOwnerUsername: pending.postOwnerUsername) {
                 mergeIntoCache([synced], postID: pending.postID)
                 outbox.removeAll { $0.comment.id == pending.comment.id }
             }
@@ -1075,8 +1122,44 @@ actor SocialService {
         likeNote.shouldSendContentAvailable = true
         likeSub.notificationInfo = likeNote
 
+        // New comment on own posts
+        let commentPred = NSPredicate(format: "postOwnerUsername == %@", username)
+        let commentSub = CKQuerySubscription(
+            recordType: "WorkoutComment",
+            predicate: commentPred,
+            subscriptionID: "new-comment-\(username)",
+            options: .firesOnRecordCreation
+        )
+        let commentNote = CKSubscription.NotificationInfo()
+        commentNote.shouldSendContentAvailable = true
+        commentSub.notificationInfo = commentNote
+
         _ = try? await publicDB.save(followSub)
         _ = try? await publicDB.save(likeSub)
+        _ = try? await publicDB.save(commentSub)
+    }
+
+    // MARK: - Activity actor resolution
+    //
+    // The silent CKQuerySubscription push only carries the triggering record's
+    // ID — this resolves it to who actually did the following/liking/commenting
+    // so the in-app activity entry can show and link to them.
+
+    func resolveActivityActor(recordID: CKRecord.ID) async -> (kind: String, username: String)? {
+        guard let record = try? await publicDB.record(for: recordID) else { return nil }
+        switch record.recordType {
+        case "SocialFollow":
+            guard let uname = record["followerUsername"] as? String else { return nil }
+            return ("follow", uname)
+        case "WorkoutLike":
+            guard let uname = record["likerUsername"] as? String else { return nil }
+            return ("like", uname)
+        case "WorkoutComment":
+            guard let uname = record["ownerUsername"] as? String else { return nil }
+            return ("comment", uname)
+        default:
+            return nil
+        }
     }
 }
 

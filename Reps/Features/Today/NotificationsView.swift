@@ -31,6 +31,8 @@ struct NotificationsView: View {
                 } else {
                     WorkoutHistoryView(sessions: store.workoutSessions.sorted { $0.date > $1.date })
                 }
+            case .socialProfile(let username):
+                SocialProfileDetailView(username: username)
             }
         }
     }

@@ -63,11 +63,57 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
         // show no banner on their own. Convert the recognised ones into a visible
         // local notification so the user actually sees "new follower" / "new like".
         TelemetryService.shared.breadcrumb("notif.did_receive_remote")
-        if let ckNotification = CKNotification(fromRemoteNotificationDictionary: userInfo),
-           let subscriptionID = ckNotification.subscriptionID {
-            NotificationService.postCloudKitSocialNotification(subscriptionID: subscriptionID)
+        guard let ckNotification = CKNotification(fromRemoteNotificationDictionary: userInfo),
+              let subscriptionID = ckNotification.subscriptionID else {
+            completionHandler(.noData)
+            return
         }
-        completionHandler(.newData)
+        NotificationService.postCloudKitSocialNotification(subscriptionID: subscriptionID)
+
+        // The banner above is transient (system notification center only) — also
+        // resolve who actually followed/liked and persist a durable in-app
+        // activity entry so it still shows up in the Notifications tab after
+        // the banner is dismissed, with a working link to their profile.
+        guard let queryNotification = ckNotification as? CKQueryNotification,
+              let recordID = queryNotification.recordID else {
+            completionHandler(.noData)
+            return
+        }
+        Task {
+            if let actor = await SocialService.shared.resolveActivityActor(recordID: recordID) {
+                let event: NotificationEvent = switch actor.kind {
+                case "follow":
+                    NotificationEvent(
+                        icon: "person.badge.plus",
+                        colorName: "primaryBright",
+                        title: localizedString("notif_new_follower_title"),
+                        subtitle: "@\(actor.username)",
+                        date: .now,
+                        destination: .socialProfile(username: actor.username)
+                    )
+                case "comment":
+                    NotificationEvent(
+                        icon: "bubble.left.fill",
+                        colorName: "primaryBright",
+                        title: localizedString("notif_new_comment_title"),
+                        subtitle: "@\(actor.username)",
+                        date: .now,
+                        destination: .socialProfile(username: actor.username)
+                    )
+                default: // "like"
+                    NotificationEvent(
+                        icon: "heart.fill",
+                        colorName: "orange",
+                        title: localizedString("notif_new_like_title"),
+                        subtitle: "@\(actor.username)",
+                        date: .now,
+                        destination: .socialProfile(username: actor.username)
+                    )
+                }
+                AppStore.persistActivityEventFromBackground(event)
+            }
+            completionHandler(.newData)
+        }
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {}
@@ -134,6 +180,7 @@ struct RepsApp: App {
                 store.syncWidgets()
                 store.refreshNotificationSchedule()
                 store.refreshHealthKitDataIfNeeded(reason: "foreground")
+                store.refreshActivityEventsFromDisk()
                 drainNotificationTargets()
                 Task {
                     store.runEngagementChecks()

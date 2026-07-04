@@ -11,6 +11,7 @@ struct TodayView: View {
     @State private var workoutToStart: WorkoutDay?
     @State private var showNotifications = false
     @State private var recommendedWorkout: WorkoutDay? = nil
+    @Namespace private var wellnessZoom
 
     var onSelectTab: ((AppTab) -> Void)? = nil
 
@@ -77,14 +78,6 @@ struct TodayView: View {
         }
     }
 
-    private var coachInsight: FitnessMetrics.TrainingInsight {
-        FitnessMetrics.insightCards(for: store.workoutSessions, goals: store.goals, since: weekStart).first
-            ?? FitnessMetrics.TrainingInsight(
-                title: "log_workouts_to_activate_insights",
-                message: "complete_a_session_with_sets_and_reps_to_unlock_practical_signals",
-                systemImage: "sparkles"
-            )
-    }
 
     private var nextScheduledWorkout: ScheduledWorkout? {
         store.scheduledWorkouts
@@ -306,8 +299,6 @@ struct TodayView: View {
                     planSection
                         .stickyHeaderTitle(localizedString("plan_3"))
                 }
-                coachingCard
-                    .stickyHeaderTitle(localizedString("coach"))
                 smartShortcuts
                     .stickyHeaderTitle(localizedString("shortcuts"))
             }
@@ -361,24 +352,14 @@ struct TodayView: View {
     }
 
     private var relationshipSignalBoard: some View {
-        PulseCard(contentPadding: 18) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: dailyCoachRecommendation.systemImage)
+        GlassMetricCard(domain: .strength, contentPadding: 18) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 7) {
+                    Image(systemName: "gauge.with.dots.needle.67percent")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(MetricDomain.strength.tint)
+                    Text("Señales de hoy")
                         .font(.headline.weight(.black))
-                        .foregroundStyle(.black)
-                        .frame(width: 42, height: 42)
-                        .background(color(for: dailyCoachRecommendation.tone), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Sistema de entrenamiento")
-                            .font(.headline.weight(.black))
-                        Text(dailyCoachRecommendation.message)
-                            .font(.subheadline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
 
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
@@ -387,28 +368,32 @@ struct TodayView: View {
                         value: weekTargetText,
                         subtitle: "objetivo semanal",
                         systemImage: "target",
-                        color: PulseTheme.accent
+                        color: PulseTheme.accent,
+                        domain: .strength
                     )
                     TrainingSignalTile(
                         title: localizedString("load"),
                         value: "\(Int(workloadSummary.fatigueScore.rounded()))",
                         subtitle: "fatiga",
                         systemImage: "waveform.path.ecg",
-                        color: batteryColor
+                        color: batteryColor,
+                        domain: .recovery
                     )
                     TrainingSignalTile(
                         title: localizedString("health"),
                         value: store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--",
                         subtitle: localizedString("steps_today"),
                         systemImage: "figure.walk",
-                        color: PulseTheme.ringStand
+                        color: PulseTheme.ringStand,
+                        domain: .activity
                     )
                     TrainingSignalTile(
                         title: localizedString("progress_2"),
                         value: "\(recentSessions.count)",
                         subtitle: "30 días",
                         systemImage: "chart.line.uptrend.xyaxis",
-                        color: PulseTheme.ringMove
+                        color: PulseTheme.ringMove,
+                        domain: .cardio
                     )
                 }
             }
@@ -529,34 +514,35 @@ struct TodayView: View {
                     Image(systemName: "play.fill")
                         .font(.headline.weight(.black))
                         .frame(width: 54, height: 54)
-                        .foregroundStyle(.black)
-                        .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        .foregroundStyle(.white)
+                        .background(MetricDomain.strength.tint, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(playButtonTitle)
             }
         }
         .padding(18)
-        .background(
+        .background {
+            let shape = RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
             ZStack {
-                PulseTheme.card
-                LinearGradient(
-                    colors: [
-                        PulseTheme.accent.opacity(0.22),
-                        PulseTheme.ringExercise.opacity(0.08),
-                        Color.clear
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                shape
+                    .fill(.clear)
+                    .glassEffect(
+                        .regular.tint(MetricDomain.strength.tint.opacity(0.07)),
+                        in: shape
+                    )
+                shape
+                    .fill(PulseTheme.card.opacity(0.88))
+                shape
+                    .fill(MetricDomain.strength.backgroundGradient.opacity(0.22))
             }
-        )
+        }
         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                .stroke(PulseTheme.accent.opacity(0.35), lineWidth: 1)
+                .stroke(MetricDomain.strength.tint.opacity(0.22), lineWidth: 0.8)
         )
-        .shadow(color: PulseTheme.accent.opacity(0.18), radius: 22, x: 0, y: 12)
+        .shadow(color: MetricDomain.strength.tint.opacity(0.08), radius: 16, x: 0, y: 8)
     }
 
     private var focusWorkoutMenu: some View {
@@ -889,13 +875,13 @@ struct TodayView: View {
     private func color(for tone: FitnessMetrics.DailyCoachRecommendation.Tone) -> Color {
         switch tone {
         case .primary:
-            return PulseTheme.accent
+            return MetricDomain.strength.tint
         case .recovery:
             return PulseTheme.recovery
         case .warning:
             return PulseTheme.warning
         case .accent:
-            return PulseTheme.accent
+            return MetricDomain.strength.tint
         }
     }
 
@@ -908,10 +894,16 @@ struct TodayView: View {
     }
 
     private var wellnessWidgets: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(localizedString("wellness"))
+                .font(.headline)
+                .padding(.horizontal, 2)
+
+            ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 NavigationLink {
                     TrainingBatteryView()
+                        .navigationTransition(.zoom(sourceID: "wellness-battery", in: wellnessZoom))
                 } label: {
                     WellnessWidget(
                         title: "battery_2",
@@ -919,26 +911,30 @@ struct TodayView: View {
                         subtitle: batteryStatus.suggestion,
                         localizesSubtitle: false,
                         systemImage: batteryStatus.systemImage,
-                        color: batteryColor
+                        domain: .recovery
                     )
+                    .matchedTransitionSource(id: "wellness-battery", in: wellnessZoom)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableCardStyle())
 
                 NavigationLink {
                     ExerciseView()
+                        .navigationTransition(.zoom(sourceID: "wellness-exercise", in: wellnessZoom))
                 } label: {
                     WellnessWidget(
                         title: "exercise_2",
                         value: store.todayHealthMetric.map { "\(Int($0.exerciseMinutes ?? 0)) min" } ?? "--",
                         subtitle: "apple_watch_health",
                         systemImage: "applewatch",
-                        color: PulseTheme.ringStand
+                        domain: .strength
                     )
+                    .matchedTransitionSource(id: "wellness-exercise", in: wellnessZoom)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableCardStyle())
 
                 NavigationLink {
                     HydrationView()
+                        .navigationTransition(.zoom(sourceID: "wellness-hydration", in: wellnessZoom))
                 } label: {
                     WellnessWidget(
                         title: "hydration",
@@ -946,13 +942,31 @@ struct TodayView: View {
                         subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en Reps", $0) } ?? (localizedString("no_local_log")),
                         localizesSubtitle: latestMetric?.waterLiters == nil,
                         systemImage: "drop.fill",
-                        color: PulseTheme.ringStand
+                        domain: .nutrition
                     )
+                    .matchedTransitionSource(id: "wellness-hydration", in: wellnessZoom)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableCardStyle())
+
+                NavigationLink {
+                    HeartRateView()
+                        .navigationTransition(.zoom(sourceID: "wellness-heart-rate", in: wellnessZoom))
+                } label: {
+                    WellnessWidget(
+                        title: "heart_rate_short",
+                        value: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0))" } ?? "--",
+                        subtitle: "lpm",
+                        localizesSubtitle: false,
+                        systemImage: "heart.fill",
+                        domain: .heartRate
+                    )
+                    .matchedTransitionSource(id: "wellness-heart-rate", in: wellnessZoom)
+                }
+                .buttonStyle(PressableCardStyle())
 
                 NavigationLink {
                     HRVView()
+                        .navigationTransition(.zoom(sourceID: "wellness-hrv", in: wellnessZoom))
                 } label: {
                     WellnessWidget(
                         title: "HRV",
@@ -960,13 +974,15 @@ struct TodayView: View {
                         subtitle: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? (localizedString("no_resting_hr")),
                         localizesSubtitle: store.todayHealthMetric?.restingHeartRate == nil,
                         systemImage: "waveform.path.ecg",
-                        color: PulseTheme.accent
+                        domain: .recovery
                     )
+                    .matchedTransitionSource(id: "wellness-hrv", in: wellnessZoom)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableCardStyle())
 
                 NavigationLink {
                     VO2MaxView()
+                        .navigationTransition(.zoom(sourceID: "wellness-vo2", in: wellnessZoom))
                 } label: {
                     WellnessWidget(
                         title: "VO₂ Max",
@@ -974,13 +990,15 @@ struct TodayView: View {
                         subtitle: "ml/kg/min",
                         localizesSubtitle: false,
                         systemImage: "lungs.fill",
-                        color: PulseTheme.ringStand
+                        domain: .cardio
                     )
+                    .matchedTransitionSource(id: "wellness-vo2", in: wellnessZoom)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableCardStyle())
 
                 NavigationLink {
                     SleepView()
+                        .navigationTransition(.zoom(sourceID: "wellness-sleep", in: wellnessZoom))
                 } label: {
                     let todaySleep = store.health.latestDailyMetrics
                         .sorted { $0.date > $1.date }
@@ -990,52 +1008,42 @@ struct TodayView: View {
                         value: todaySleep.map { String(format: "%.1fh", $0) } ?? "--",
                         subtitle: localizedString("last_recorded"),
                         systemImage: "moon.zzz.fill",
-                        color: Color.indigo
+                        domain: .sleep
                     )
+                    .matchedTransitionSource(id: "wellness-sleep", in: wellnessZoom)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableCardStyle())
 
                 NavigationLink {
                     StepsView()
+                        .navigationTransition(.zoom(sourceID: "wellness-steps", in: wellnessZoom))
                 } label: {
                     WellnessWidget(
                         title: "steps",
                         value: store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--",
                         subtitle: localizedFormat("goal_format", store.userProfile.dailyStepsGoal),
                         systemImage: "figure.walk",
-                        color: Color.orange
+                        domain: .activity
                     )
+                    .matchedTransitionSource(id: "wellness-steps", in: wellnessZoom)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableCardStyle())
             }
+            .scrollTargetLayout()
             .padding(.vertical, 2)
-        }
-    }
-
-    private var coachingCard: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: batteryStatus.level < 55 ? batteryStatus.systemImage : coachInsight.systemImage)
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(PulseTheme.onColor(batteryStatus.level < 55 ? batteryColor : PulseTheme.accent))
-                        .frame(width: 42, height: 42)
-                        .background(batteryStatus.level < 55 ? batteryColor : PulseTheme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("today_s_insight")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(batteryStatus.level < 55 ? batteryColor : PulseTheme.accent)
-                            .textCase(.uppercase)
-                        Text(batteryStatus.level < 55 ? batteryStatus.title : coachInsight.title)
-                            .font(.headline)
-                        Text(batteryStatus.level < 55 ? batteryStatus.suggestion : coachInsight.message)
-                            .font(.subheadline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
             }
+            .scrollTargetBehavior(.viewAligned)
+            .mask(
+                LinearGradient(
+                    stops: [
+                        .init(color: .black, location: 0),
+                        .init(color: .black, location: 0.92),
+                        .init(color: .black.opacity(0), location: 1)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
         }
     }
 
@@ -1538,14 +1546,15 @@ private struct TrainingSignalTile: View {
     let subtitle: String
     let systemImage: String
     let color: Color
+    var domain: MetricDomain? = nil
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: systemImage)
                 .font(.system(size: 13, weight: .black))
-                .foregroundStyle(color)
+                .foregroundStyle(domain?.tint ?? color)
                 .frame(width: 34, height: 34)
-                .background(color.opacity(0.13), in: Circle())
+                .background((domain?.tint ?? color).opacity(0.13), in: Circle())
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
@@ -1565,9 +1574,21 @@ private struct TrainingSignalTile: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(12)
-        .frame(minHeight: 78)
-        .background(PulseTheme.grouped.opacity(0.72), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .padding(11)
+        .frame(minHeight: 82)
+        .background {
+            if let domain {
+                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                    .fill(domain.backgroundGradient.opacity(0.30))
+            } else {
+                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                    .fill(PulseTheme.grouped.opacity(0.72))
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke((domain?.tint ?? color).opacity(domain == nil ? 0 : 0.18), lineWidth: 0.8)
+        )
     }
 }
 
@@ -1888,64 +1909,61 @@ private struct HomeMetricTile: View {
     }
 }
 
+/// Home wellness card — deliberately saturated (`DomainHeroCard`) rather than
+/// the translucent `GlassMetricCard` used in detail screens, so each metric
+/// reads as a solid block of color at a glance (competitor pattern: a red
+/// heart-rate card, an amber steps card, an indigo sleep card…).
 private struct WellnessWidget: View {
     let title: String
     let value: String
     let subtitle: String
     var localizesSubtitle = true
     let systemImage: String
-    let color: Color
+    let domain: MetricDomain
+
+    /// Without a real reading, the card would otherwise render at full
+    /// saturation with a bare "--" — indistinguishable from a loading glitch.
+    /// Muting it signals "not connected yet" instead of "broken".
+    private var hasData: Bool { value != "--" }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(color)
-                    .frame(width: 32, height: 32)
-                    .background(color.opacity(0.16), in: Circle())
-                Text(localizedKey(title))
-                    .font(.system(size: 11, weight: .black, design: .rounded))
-                    .textCase(.uppercase)
-                    .tracking(0.4)
-                    .foregroundStyle(color)
+        DomainHeroCard(domain: domain, minHeight: 128) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(.white.opacity(0.18), in: Circle())
+                    Text(localizedKey(title))
+                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .textCase(.uppercase)
+                        .tracking(0.4)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+
+                Spacer(minLength: 2)
+
+                Text(hasData ? value : "–")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(hasData ? 1 : 0.5))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .minimumScaleFactor(0.7)
+
+                Text(localizesSubtitle ? localizedKey(subtitle) : subtitle)
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.72))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 0)
             }
-
-            Spacer(minLength: 2)
-
-            Text(value)
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-
-            Text(localizesSubtitle ? localizedKey(subtitle) : subtitle)
-                .font(.caption2)
-                .foregroundStyle(PulseTheme.secondaryText)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
+            .frame(width: 166, height: 128, alignment: .topLeading)
         }
-        .frame(width: 166, height: 128, alignment: .topLeading)
-        .padding(12)
-        .background(
-            ZStack {
-                PulseTheme.card
-                LinearGradient(
-                    colors: [color.opacity(0.14), .clear],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                .stroke(color.opacity(0.30), lineWidth: 1)
-        )
+        .saturation(hasData ? 1 : 0.35)
+        .opacity(hasData ? 1 : 0.8)
     }
 }
 

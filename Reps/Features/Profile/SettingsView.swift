@@ -35,6 +35,10 @@ struct SettingsView: View {
                 .stickyHeaderTitle(localizedString("reminders"))
             proPreferencesEntry
                 .stickyHeaderTitle(localizedString("pro_preferences"))
+            #if DEBUG
+            developerMenuEntry
+                .stickyHeaderTitle(localizedString("dev_menu_title"))
+            #endif
         }
         .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
@@ -44,6 +48,10 @@ struct SettingsView: View {
                 ProPreferencesView { presentation in
                     localPaywall = presentation
                 }
+            #if DEBUG
+            case .developerMenu:
+                DeveloperMenuView()
+            #endif
             }
         }
         .fullScreenCover(item: $localPaywall) { presentation in
@@ -174,6 +182,23 @@ struct SettingsView: View {
         }
     }
 
+    #if DEBUG
+    private var developerMenuEntry: some View {
+        PulseCard {
+            Button {
+                activeDestination = .developerMenu
+            } label: {
+                PulseListRow(
+                    title: "dev_menu_title",
+                    subtitle: "dev_menu_subtitle",
+                    systemImage: "hammer.fill"
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+    #endif
+
     private var widgetColors: [String] {
         ["system", "blue", "green", "orange", "purple", "red", "yellow"]
     }
@@ -200,6 +225,9 @@ struct SettingsView: View {
 
 private enum SettingsDestination: String, Identifiable {
     case proPreferences
+    #if DEBUG
+    case developerMenu
+    #endif
 
     var id: String { rawValue }
 }

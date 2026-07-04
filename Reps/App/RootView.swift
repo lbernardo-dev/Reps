@@ -215,7 +215,7 @@ struct MainTabView: View {
                 profileTabLabel
             }
         }
-        .tint(PulseTheme.accent)
+        .tint(MetricDomain.strength.tint)
         .tabViewBottomAccessory {
             if !isQuickMenuExpanded {
                 QuickLogTabAccessory { toggleQuickMenu() }
@@ -434,7 +434,20 @@ private struct QuickLogTabAccessory: View {
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .frame(height: isInline ? 58 : 56)
+            .padding(.horizontal, 18)
             .contentShape(Capsule(style: .continuous))
+            .background {
+                Capsule(style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(
+                        .regular.tint(Color.white.opacity(0.045)).interactive(),
+                        in: Capsule(style: .continuous)
+                    )
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
+            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(localizedString("quick_menu_open"))

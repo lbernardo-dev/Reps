@@ -200,7 +200,7 @@ final class HealthKitService: ObservableObject {
             unit: HKUnit(from: "ml/kg*min"),
             days: days
         )
-        let sleepPerDay = try await dailySleepHours(days: days)
+        let sleepPerDay = try await dailySleepBreakdowns(days: days)
 
         let calendar = Calendar.current
         let dates = Set(steps.keys)
@@ -215,6 +215,7 @@ final class HealthKitService: ObservableObject {
 
         return dates.sorted().map { date in
             let day = calendar.startOfDay(for: date)
+            let sleep = sleepPerDay[day]
             return DailyHealthMetric(
                 date: date,
                 steps: steps[day] ?? 0,
@@ -224,8 +225,13 @@ final class HealthKitService: ObservableObject {
                 exerciseMinutes: exerciseMinutes[day],
                 restingHeartRate: restingHeartRate[day],
                 heartRateVariabilityMS: heartRateVariability[day],
-                sleepHours: sleepPerDay[day],
-                vo2MaxMlKgMin: vo2Max[day]
+                sleepHours: (sleep?.totalHours).flatMap { $0 > 0 ? $0 : nil },
+                vo2MaxMlKgMin: vo2Max[day],
+                sleepRemHours: sleep?.remHours,
+                sleepDeepHours: sleep?.deepHours,
+                sleepCoreHours: sleep?.coreHours,
+                sleepAwakeHours: sleep?.awakeHours,
+                sleepInterruptions: sleep.map { $0.interruptions }
             )
         }
     }
@@ -626,7 +632,20 @@ final class HealthKitService: ObservableObject {
         return values
     }
 
-    private func dailySleepHours(days: Int) async throws -> [Date: Double] {
+    /// Per-night sleep stage breakdown, bucketed from the same category
+    /// samples the old `dailySleepHours` used to collapse into one total.
+    /// Nights are keyed by the start day of the first sample (matching
+    /// HealthKit's own bedtime-day convention for sessions crossing midnight).
+    struct DailySleepBreakdown {
+        var totalHours: Double = 0
+        var remHours: Double = 0
+        var deepHours: Double = 0
+        var coreHours: Double = 0
+        var awakeHours: Double = 0
+        var interruptions: Int = 0
+    }
+
+    private func dailySleepBreakdowns(days: Int) async throws -> [Date: DailySleepBreakdown] {
         let calendar = Calendar.current
         let endDate = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now)
         let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) ?? endDate
@@ -638,17 +657,41 @@ final class HealthKitService: ObservableObject {
             limit: HKObjectQueryNoLimit
         )
         let samples = try await descriptor.result(for: healthStore)
-        let asleepValues: Set<Int> = [
-            HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
-            HKCategoryValueSleepAnalysis.asleepCore.rawValue,
-            HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
-            HKCategoryValueSleepAnalysis.asleepREM.rawValue
-        ]
-        var result: [Date: Double] = [:]
-        for sample in samples where asleepValues.contains(sample.value) {
+
+        var result: [Date: DailySleepBreakdown] = [:]
+        var hasFallenAsleep: Set<Date> = []
+        for sample in samples {
             let dayKey = calendar.startOfDay(for: sample.startDate)
             let hours = sample.endDate.timeIntervalSince(sample.startDate) / 3600
-            result[dayKey, default: 0] += hours
+            var breakdown = result[dayKey] ?? DailySleepBreakdown()
+
+            switch sample.value {
+            case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
+                breakdown.remHours += hours
+                breakdown.totalHours += hours
+                hasFallenAsleep.insert(dayKey)
+            case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
+                breakdown.deepHours += hours
+                breakdown.totalHours += hours
+                hasFallenAsleep.insert(dayKey)
+            case HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+                 HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
+                breakdown.coreHours += hours
+                breakdown.totalHours += hours
+                hasFallenAsleep.insert(dayKey)
+            case HKCategoryValueSleepAnalysis.awake.rawValue:
+                breakdown.awakeHours += hours
+                // Only counts as an "interruption" once the night has
+                // actually started — restlessness before falling asleep
+                // isn't a mid-sleep wake-up.
+                if hasFallenAsleep.contains(dayKey) {
+                    breakdown.interruptions += 1
+                }
+            default:
+                break
+            }
+
+            result[dayKey] = breakdown
         }
         return result
     }

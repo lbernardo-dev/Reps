@@ -15,20 +15,20 @@ struct RecommendedWorkoutCard: View {
     }
 
     var body: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
+        GlassMetricCard(domain: .strength, contentPadding: 16) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "bolt.fill")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.black)
-                        .frame(width: 42, height: 42)
-                        .background(batteryColor)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        .foregroundStyle(PulseTheme.onColor(batteryColor))
+                        .frame(width: 48, height: 48)
+                        .background(batteryColor, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("recommended_workout_title")
-                            .font(.headline)
+                            .font(.title3.weight(.black))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.82)
                         Text(batteryLabel)
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
@@ -37,13 +37,25 @@ struct RecommendedWorkoutCard: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text("\(workout.durationMinutes) min")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(PulseTheme.grouped, in: Capsule())
-                        .fixedSize()
+                    VStack(alignment: .trailing, spacing: 8) {
+                        Text("\(workout.durationMinutes) min")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(PulseTheme.grouped.opacity(0.78), in: Capsule())
+                            .fixedSize()
+
+                        Button(action: onStart) {
+                            Image(systemName: "play.fill")
+                                .font(.subheadline.weight(.black))
+                                .foregroundStyle(.black)
+                                .frame(width: 42, height: 42)
+                                .background(PulseTheme.fitActionGradient, in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("recommended_workout_cta")
+                    }
                 }
 
                 if !workout.subtitle.isEmpty {
@@ -53,39 +65,45 @@ struct RecommendedWorkoutCard: View {
                 }
 
                 if !workout.exercises.isEmpty {
-                    VStack(spacing: 8) {
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                         ForEach(workout.exercises.prefix(4)) { we in
-                            HStack(spacing: 10) {
-                                Circle()
-                                    .fill(PulseTheme.accent.opacity(0.15))
-                                    .frame(width: 8, height: 8)
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 10, weight: .black))
+                                    .foregroundStyle(PulseTheme.accent)
+                                    .frame(width: 20, height: 20)
+                                    .background(PulseTheme.accent.opacity(0.12), in: Circle())
                                 Text(RepsText.exerciseName(we.exercise.name, language: language))
-                                    .font(.subheadline)
+                                    .font(.caption.weight(.bold))
                                     .lineLimit(1)
+                                    .minimumScaleFactor(0.74)
                                 Spacer()
                                 Text("\(we.targetSets)×\(we.repRange)")
-                                    .font(.caption.weight(.semibold))
+                                    .font(.caption2.weight(.black))
                                     .foregroundStyle(PulseTheme.secondaryText)
+                                    .lineLimit(1)
                             }
+                            .padding(9)
+                            .background(PulseTheme.card.opacity(0.72), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                     }
-                    .padding(.vertical, 4)
                 }
 
                 Button(action: onStart) {
                     HStack(spacing: 8) {
                         Image(systemName: "play.fill")
-                            .font(.subheadline.weight(.bold))
+                            .font(.caption.weight(.black))
                         Text("recommended_workout_cta")
-                            .font(.subheadline.weight(.bold))
+                            .font(.caption.weight(.black))
+                            .lineLimit(1)
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.caption.weight(.bold))
+                            .font(.caption.weight(.black))
                     }
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    .foregroundStyle(PulseTheme.accent)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(PulseTheme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
             }

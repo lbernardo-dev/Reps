@@ -162,6 +162,7 @@
 		D4F0EE15C26BA9D2FEA9DD58 /* ActiveWorkoutSessionControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02453892FF02FC91C7EC50F1 /* ActiveWorkoutSessionControls.swift */; };
 		D63BD6ED7DC4E96444714C90 /* RepsWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467EA079553F247F75C76054 /* RepsWatchApp.swift */; };
 		D8A55712DA0CD154A199DBB4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2C6CD1669CF772946C0815 /* SettingsView.swift */; };
+		5224EF006E90168B8F423F49 /* DeveloperMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0C0972FF4591A55D1D3A9F /* DeveloperMenuView.swift */; };
 		D922780FD8ECD6C4A313A3B4 /* ExerciseProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03241FE11D2EA6C38B0A086F /* ExerciseProgressView.swift */; };
 		DA0BF8014DB6210EF977F068 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E116F57A08B4F5BA7E061433 /* ProfileSetupView.swift */; };
 		DA79A3AAA95C4B3664799090 /* RepsFriendsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96F240FA1D49782F58CDB521 /* RepsFriendsWidget.swift */; };
@@ -169,6 +170,7 @@
 		DE692FD7D748E7262B28A488 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F78E1E25B873B458B724462 /* PaywallView.swift */; };
 		DE8849EDABC0F4181011DC88 /* TrainingBatteryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050D0A2463DEAE5070D1A87 /* TrainingBatteryView.swift */; };
 		DF1E8C0D2AD8789EDCD7FE43 /* WeeklyBarsChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7018C5973A28DFA458F2B80 /* WeeklyBarsChart.swift */; };
+		F2273D04042447FE4FA7D0DF /* DomainTrendCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FB53652BEA011A09E5FA551 /* DomainTrendCharts.swift */; };
 		E0977AC22F9FE41517FB9AA6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 93621471CB3E1736B6202A5E /* PrivacyInfo.xcprivacy */; };
 		E0B3E738E8EB59FCCC6D4F1A /* ReadinessGauge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E08952A6E458B119174F60E /* ReadinessGauge.swift */; };
 		E263ED6733E166E2907C945A /* ProgressMetricDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5962CEDFB313CA8F83E353 /* ProgressMetricDetailView.swift */; };
@@ -183,6 +185,7 @@
 		F2A0278D591F28F12BB3E94C /* ProgramLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F220D40B58161D207B08BA /* ProgramLibraryView.swift */; };
 		F3EC8387F48EE30F3B732AC9 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = DA28B06B7F90192F1E87EA1F /* FirebaseAnalytics */; };
 		F5F88861BD3CBE1BB29D96E0 /* HRVView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4606AAB13D1A50C2F1196A2 /* HRVView.swift */; };
+		38831BCCBF58EEA454958A65 /* HeartRateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA33839CA59C048C53945631 /* HeartRateView.swift */; };
 		F7003C108D6BC29AB768A015 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C0EA950DDAF04C644A5992BB /* InfoPlist.xcstrings */; };
 		F9B2D5537BBD3546D9D6EA03 /* CSVService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A61FC8F7F687BB47F7F6932E /* CSVService.swift */; };
 		FFE02815E21A1E15F3CCFE41 /* EditPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F2EB2D7E12EBEF1BEAD0A73 /* EditPlanView.swift */; };
@@ -325,6 +328,7 @@
 		8AD60C6BDD44A63047D0E969 /* Reps.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Reps.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8AE6FC6EDB425205F8F3592B /* FitnessMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessMetrics.swift; sourceTree = "<group>"; };
 		8B2C6CD1669CF772946C0815 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FB0C0972FF4591A55D1D3A9F /* DeveloperMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperMenuView.swift; sourceTree = "<group>"; };
 		8BA1565353516FCB4247FD1D /* Monetization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Monetization.swift; sourceTree = "<group>"; };
 		8C342BB467A26F0B6710BAA2 /* ProgressSummaryCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCards.swift; sourceTree = "<group>"; };
 		8E32C43D45A7E3E330D94DFB /* MetricDonutChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricDonutChart.swift; sourceTree = "<group>"; };
@@ -370,6 +374,7 @@
 		C2690AE3D301DC3DD21B4F5C /* WorkoutHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryView.swift; sourceTree = "<group>"; };
 		C3A9CCD420922854020A7B5F /* ActiveWorkoutExerciseOrderComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutExerciseOrderComponents.swift; sourceTree = "<group>"; };
 		C4606AAB13D1A50C2F1196A2 /* HRVView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVView.swift; sourceTree = "<group>"; };
+		BA33839CA59C048C53945631 /* HeartRateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateView.swift; sourceTree = "<group>"; };
 		C4617C0AE3AEA837ABBC7266 /* OnboardingResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingResult.swift; sourceTree = "<group>"; };
 		C4F220D40B58161D207B08BA /* ProgramLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramLibraryView.swift; sourceTree = "<group>"; };
 		C5BF1ED538CBE15F2EDE37AE /* ProgressionRecommendationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionRecommendationCard.swift; sourceTree = "<group>"; };
@@ -385,6 +390,7 @@
 		D325B8B124558D4488A201AA /* CreatePostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePostView.swift; sourceTree = "<group>"; };
 		D4B5923EEA9DE73B9AEDAF82 /* WorkoutBackgroundKeepAlive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutBackgroundKeepAlive.swift; sourceTree = "<group>"; };
 		D7018C5973A28DFA458F2B80 /* WeeklyBarsChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyBarsChart.swift; sourceTree = "<group>"; };
+		2FB53652BEA011A09E5FA551 /* DomainTrendCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainTrendCharts.swift; sourceTree = "<group>"; };
 		D9480501C300BC8B602E9E5C /* HealthWidgetShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthWidgetShared.swift; sourceTree = "<group>"; };
 		DBBA5AE4E473D263E3CE2A52 /* SwiftDataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataModels.swift; sourceTree = "<group>"; };
 		DDACE73A69FB227E398FFFD2 /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
@@ -484,6 +490,7 @@
 				53DE0BE15EFAF1010F0647F8 /* MetricEditorViews.swift */,
 				1AACCD6E1BE104C3FD7B706C /* ProfileDetailView.swift */,
 				5E1ADC30960DF398B94738B6 /* ProfileView.swift */,
+				FB0C0972FF4591A55D1D3A9F /* DeveloperMenuView.swift */,
 				8B2C6CD1669CF772946C0815 /* SettingsView.swift */,
 			);
 			path = Profile;
@@ -637,6 +644,7 @@
 		7F4552CB0C6060A0A0471787 /* Charts */ = {
 			isa = PBXGroup;
 			children = (
+				2FB53652BEA011A09E5FA551 /* DomainTrendCharts.swift */,
 				58830BD021FA8637E0806784 /* HeroNumberView.swift */,
 				8E32C43D45A7E3E330D94DFB /* MetricDonutChart.swift */,
 				2E08952A6E458B119174F60E /* ReadinessGauge.swift */,
@@ -736,6 +744,7 @@
 			children = (
 				F035312EA4B9091F3681F51F /* ExerciseView.swift */,
 				D9480501C300BC8B602E9E5C /* HealthWidgetShared.swift */,
+				BA33839CA59C048C53945631 /* HeartRateView.swift */,
 				C4606AAB13D1A50C2F1196A2 /* HRVView.swift */,
 				2FA27C6B92EEB455ED32A9B9 /* HydrationView.swift */,
 				41FBFABFEA51C00FB4F35A72 /* NotificationsView.swift */,
@@ -1108,6 +1117,7 @@
 				4F2C762924A35063F6E5E424 /* GymPassEditorView.swift in Sources */,
 				75A68B6A77A7E572B4A1BF42 /* GymVisitEditorView.swift in Sources */,
 				F5F88861BD3CBE1BB29D96E0 /* HRVView.swift in Sources */,
+				38831BCCBF58EEA454958A65 /* HeartRateView.swift in Sources */,
 				3D2BBDC31437CC6C56128448 /* HapticService.swift in Sources */,
 				83AF69C94818232122523FB3 /* HealthGoalsView.swift in Sources */,
 				990133AA0AC6E04F09815E16 /* HealthKitService.swift in Sources */,
@@ -1165,6 +1175,7 @@
 				1118218145E04D17172393ED /* RootView.swift in Sources */,
 				14E8046963CD0B8B192BEE1E /* SeedData.swift in Sources */,
 				D8A55712DA0CD154A199DBB4 /* SettingsView.swift in Sources */,
+				5224EF006E90168B8F423F49 /* DeveloperMenuView.swift in Sources */,
 				7CDC4AEC438036B0D3153A73 /* ShareImageItemSource.swift in Sources */,
 				44292EBA25710C4E03974E19 /* SleepView.swift in Sources */,
 				AC55B17F5521F73E2EF8A159 /* SmartProgressionAdvisor.swift in Sources */,
@@ -1180,6 +1191,7 @@
 				15CB0EB913EA694C83854740 /* TodayView.swift in Sources */,
 				DE8849EDABC0F4181011DC88 /* TrainingBatteryView.swift in Sources */,
 				886DA0D283D11E89C485C8E7 /* TrendLineChart.swift in Sources */,
+				F2273D04042447FE4FA7D0DF /* DomainTrendCharts.swift in Sources */,
 				19C53A1443E9B3669CA13441 /* VO2MaxView.swift in Sources */,
 				DF1E8C0D2AD8789EDCD7FE43 /* WeeklyBarsChart.swift in Sources */,
 				9154E19651ED841295151476 /* WelcomeView.swift in Sources */,
@@ -1326,7 +1338,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202606111;
+				CURRENT_PROJECT_VERSION = 100202607031;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1393,7 +1405,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202606111;
+				CURRENT_PROJECT_VERSION = 100202607031;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_NS_ASSERTIONS = NO;

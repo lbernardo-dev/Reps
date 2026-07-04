@@ -1,4 +1,3 @@
-import Charts
 import SwiftUI
 
 // MARK: - HRV zone
@@ -89,7 +88,7 @@ struct HRVView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                HealthWidgetDetailNavBar(title: localizedString("hrv_heart_rate"))
+                HealthWidgetDetailNavBar(title: localizedString("hrv_heart_rate"), domain: .recovery)
                 gaugeCard.padding(.top, 8)
                 stylePicker
                 trendCard
@@ -98,13 +97,18 @@ struct HRVView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
         }
-        .background(PulseTheme.background.ignoresSafeArea())
+        .background {
+            ZStack {
+                PulseTheme.background.ignoresSafeArea()
+                DomainTintedBackground(domain: .recovery)
+            }
+        }
         .toolbar(.hidden, for: .navigationBar)
     }
 
     // MARK: - Gauge Card
     private var gaugeCard: some View {
-        PulseCard {
+        GlassMetricCard(domain: .recovery) {
             VStack(spacing: 14) {
                 Text(localizedString("hrv_state").uppercased())
                     .font(.system(size: 10, weight: .black, design: .rounded))
@@ -200,7 +204,7 @@ struct HRVView: View {
 
     // MARK: - 30-Day Trend
     private var trendCard: some View {
-        PulseCard {
+        GlassMetricCard(domain: .recovery) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(localizedString("thirty_day_trend")).font(.headline)
                 if historyMetrics.compactMap({ $0.heartRateVariabilityMS }).isEmpty {
@@ -211,42 +215,16 @@ struct HRVView: View {
                     let dayFmt: DateFormatter = {
                         let f = DateFormatter(); f.dateFormat = "d"; return f
                     }()
-                    Chart {
-                        ForEach(historyMetrics) { m in
-                            if let hrv = m.heartRateVariabilityMS {
-                                let z = HRVZone(ms: hrv)
-                                BarMark(
-                                    x: .value("day", dayFmt.string(from: m.date)),
-                                    y: .value("ms", hrv)
-                                )
-                                .foregroundStyle(z.color.gradient)
-                                .cornerRadius(3)
-                            }
-                        }
-                        if let avg = avgHRV7 {
-                            RuleMark(y: .value("avg", avg))
-                                .foregroundStyle(zone.color.opacity(0.5))
-                                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
-                                .annotation(position: .leading) {
-                                    Text(localizedString("seven_day_avg"))
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundStyle(zone.color.opacity(0.8))
-                                }
-                        }
-                    }
-                    .chartYAxis {
-                        AxisMarks(values: .automatic(desiredCount: 4)) { v in
-                            AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5)).foregroundStyle(PulseTheme.separator)
-                            AxisValueLabel {
-                                if let d = v.as(Double.self) {
-                                    Text(String(format: "%.0f", d))
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                }
-                            }
-                        }
-                    }
-                    .frame(height: 120)
+                    DomainBarTrendChart(
+                        domain: .recovery,
+                        points: historyMetrics.compactMap { m in
+                            m.heartRateVariabilityMS.map { DomainTrendPoint(label: dayFmt.string(from: m.date), date: m.date, value: $0) }
+                        },
+                        barColor: { HRVZone(ms: $0.value).color },
+                        valueFormat: { String(format: "%.0f", $0) },
+                        average: avgHRV7,
+                        height: 120
+                    )
 
                     // Zone legend
                     HStack(spacing: 12) {
@@ -266,7 +244,7 @@ struct HRVView: View {
 
     // MARK: - Insights
     private var insightsCard: some View {
-        PulseCard {
+        GlassMetricCard(domain: .recovery) {
             VStack(alignment: .leading, spacing: 14) {
                 Label(localizedString("insights_and_flags"), systemImage: "lightbulb.fill").font(.headline)
 

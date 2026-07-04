@@ -21,6 +21,9 @@ struct SocialHubView: View {
     @State private var likingInProgress: Set<String> = []
     @State private var suggestedProfiles: [SocialProfile] = []
     @State private var isLoadingSuggested = false
+    @State private var explorePosts: [WorkoutPost] = []
+    @State private var isLoadingExplore = false
+    @State private var selectedExplorePost: WorkoutPost? = nil
     @State private var recentSearches: [String] = []
     @State private var commentsPost: WorkoutPost? = nil
     @State private var showCreatePost = false
@@ -64,6 +67,7 @@ struct SocialHubView: View {
             }
         }
         .task { await loadFollowing(); await loadSuggested() }
+        .task { await loadExplore() }
         .task { if store.feedPosts.isEmpty { await store.loadFeed() } }
         .task { if store.activeChallenges.isEmpty { await store.loadChallenges() } }
         .sheet(isPresented: $showCreateChallenge) {
@@ -99,6 +103,44 @@ struct SocialHubView: View {
         }
         .sheet(item: $commentsPost) { post in
             CommentsView(post: post)
+        }
+        .sheet(item: $selectedExplorePost) { post in
+            NavigationStack {
+                ScrollView {
+                    WorkoutPostCard(
+                        post: post,
+                        isLiked: likedPostIDs.contains(post.id),
+                        isLiking: likingInProgress.contains(post.id),
+                        commentSummary: store.commentSummaries[post.id],
+                        onProfileTap: {
+                            // Dismiss first — this sheet's NavigationStack is
+                            // separate from the one that owns
+                            // $selectedProfileUsername's destination.
+                            HapticService.selection()
+                            let username = post.ownerUsername
+                            selectedExplorePost = nil
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                selectedProfileUsername = username
+                            }
+                        },
+                        onLike: { toggleLike(post: post) },
+                        onComment: {
+                            selectedExplorePost = nil
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                commentsPost = post
+                            }
+                        }
+                    )
+                    .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                    .padding(.top, 16)
+                }
+                .screenBackground()
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(localizedString("close")) { selectedExplorePost = nil }
+                    }
+                }
+            }
         }
         .sheet(isPresented: $showCreatePost) {
             CreatePostView()
@@ -917,7 +959,78 @@ struct SocialHubView: View {
                     }
                 }
             }
+
+            if searchText.isEmpty && !explorePosts.isEmpty {
+                exploreSection
+            }
         }
+    }
+
+    // MARK: - Explore Grid
+    //
+    // Beyond search/suggested-accounts, a grid of recent posts ranked by
+    // likes — the closest approximation of a "trending" feed this CloudKit
+    // public-DB backend can offer without a custom ranking service.
+
+    private var exploreSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localizedString("social_explore_posts"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .padding(.horizontal, 4)
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)], spacing: 2) {
+                ForEach(explorePosts) { post in
+                    Button {
+                        HapticService.selection()
+                        selectedExplorePost = post
+                    } label: {
+                        explorePostTile(post)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        }
+    }
+
+    private func explorePostTile(_ post: WorkoutPost) -> some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .bottomLeading) {
+                if let firstPhoto = post.photoDataList.first, let img = UIImage(data: firstPhoto) {
+                    Image(uiImage: img)
+                        .resizable().scaledToFill()
+                        .frame(width: proxy.size.width, height: proxy.size.width)
+                        .clipped()
+                } else {
+                    Rectangle().fill(PulseTheme.accent.opacity(0.10))
+                    VStack(spacing: 4) {
+                        Image(systemName: "dumbbell.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(PulseTheme.accent)
+                        Text(post.workoutTitle)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 4)
+                    }
+                    .frame(width: proxy.size.width, height: proxy.size.width)
+                }
+                if post.likeCount > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 9, weight: .bold))
+                        Text("\(post.likeCount)")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                    }
+                    .foregroundStyle(.white)
+                    .shadow(radius: 2)
+                    .padding(6)
+                }
+            }
+        }
+        .aspectRatio(1, contentMode: .fit)
     }
 
     // MARK: - Recent Searches
@@ -1075,6 +1188,14 @@ struct SocialHubView: View {
         isLoadingSuggested = false
     }
 
+    private func loadExplore() async {
+        isLoadingExplore = true
+        var excluded = Set(store.userProfile.socialFollowingUsernames.map { $0.lowercased() })
+        if let mine = store.userProfile.socialUsername { excluded.insert(mine.lowercased()) }
+        explorePosts = await SocialService.shared.fetchExplorePosts(excluding: excluded)
+        isLoadingExplore = false
+    }
+
     private func saveRecentSearch(_ username: String) {
         let q = username.lowercased()
         var searches = recentSearches.filter { $0 != q }
@@ -1098,7 +1219,7 @@ struct SocialHubView: View {
                 if wasLiked {
                     try await SocialService.shared.unlikePost(post)
                 } else {
-                    try await SocialService.shared.likePost(post)
+                    try await SocialService.shared.likePost(post, likerUsername: store.userProfile.socialUsername ?? "")
                 }
             } catch {
                 await MainActor.run {
@@ -1171,7 +1292,7 @@ struct SocialHubView: View {
                         store.userProfile.socialFollowingUsernames.removeAll { $0 == profile.username.lowercased() }
                     }
                 } else {
-                    try await SocialService.shared.follow(profile)
+                    try await SocialService.shared.follow(profile, myUsername: store.userProfile.socialUsername ?? "")
                     await MainActor.run {
                         following.append(profile)
                         let uname = profile.username.lowercased()

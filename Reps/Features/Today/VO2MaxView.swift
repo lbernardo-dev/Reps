@@ -1,4 +1,3 @@
-import Charts
 import SwiftUI
 
 // MARK: - VO₂ Max zone
@@ -70,7 +69,7 @@ struct VO2MaxView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                HealthWidgetDetailNavBar(title: "VO₂ Max")
+                HealthWidgetDetailNavBar(title: "VO₂ Max", domain: .cardio)
 
                 gaugeCard.padding(.top, 4)
                 trendCard
@@ -80,13 +79,18 @@ struct VO2MaxView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
         }
-        .background(PulseTheme.background.ignoresSafeArea())
+        .background {
+            ZStack {
+                PulseTheme.background.ignoresSafeArea()
+                DomainTintedBackground(domain: .cardio)
+            }
+        }
         .toolbar(.hidden, for: .navigationBar)
     }
 
     // MARK: - Gauge card
     private var gaugeCard: some View {
-        PulseCard {
+        GlassMetricCard(domain: .cardio) {
             VStack(spacing: 14) {
                 Text(localizedString("cardiorespiratory_fitness").uppercased())
                     .font(.system(size: 10, weight: .black, design: .rounded))
@@ -107,7 +111,7 @@ struct VO2MaxView: View {
                         .trim(from: 0, to: CGFloat(min((latestVO2 ?? 0) / maxVO2, 1.0)))
                         .stroke(
                             AngularGradient(
-                                colors: [zone.color.opacity(0.3), zone.color, zone.color],
+                                colors: [MetricDomain.cardio.tint.opacity(0.3), MetricDomain.cardio.tint, zone.color],
                                 center: .center,
                                 startAngle: .degrees(-90), endAngle: .degrees(270)
                             ),
@@ -148,9 +152,9 @@ struct VO2MaxView: View {
                         Text(localizedString("weekly_trend"))
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
-                        Text(trend7day)
+                    Text(trend7day)
                             .font(.system(size: 16, weight: .bold, design: .rounded).monospacedDigit())
-                            .foregroundStyle(zone.color)
+                            .foregroundStyle(MetricDomain.cardio.tint)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -161,7 +165,7 @@ struct VO2MaxView: View {
 
     // MARK: - 30-Day Trend
     private var trendCard: some View {
-        PulseCard {
+        GlassMetricCard(domain: .cardio) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(localizedString("thirty_day_trend")).font(.headline)
 
@@ -174,31 +178,14 @@ struct VO2MaxView: View {
                     let fmt: DateFormatter = {
                         let f = DateFormatter(); f.dateFormat = "d"; return f
                     }()
-                    Chart {
-                        ForEach(historyMetrics) { m in
-                            if let v = m.vo2MaxMlKgMin {
-                                LineMark(
-                                    x: .value("day", fmt.string(from: m.date)),
-                                    y: .value("vo2", v)
-                                )
-                                .foregroundStyle(zone.color.gradient)
-                                .symbol(Circle().strokeBorder(lineWidth: 2))
-                            }
-                        }
-                    }
-                    .chartYAxis {
-                        AxisMarks(values: .automatic(desiredCount: 4)) { v in
-                            AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5)).foregroundStyle(PulseTheme.separator)
-                            AxisValueLabel {
-                                if let d = v.as(Double.self) {
-                                    Text(String(format: "%.0f", d))
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                }
-                            }
-                        }
-                    }
-                    .frame(height: 120)
+                    DomainLineTrendChart(
+                        domain: .cardio,
+                        points: historyMetrics.compactMap { m in
+                            m.vo2MaxMlKgMin.map { DomainTrendPoint(label: fmt.string(from: m.date), date: m.date, value: $0) }
+                        },
+                        valueFormat: { String(format: "%.0f", $0) },
+                        height: 120
+                    )
                 }
             }
         }
@@ -206,7 +193,7 @@ struct VO2MaxView: View {
 
     // MARK: - Reference zones
     private var zonesCard: some View {
-        PulseCard {
+        GlassMetricCard(domain: .cardio) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(localizedString("reference_zones")).font(.headline)
 
@@ -239,7 +226,7 @@ struct VO2MaxView: View {
 
     // MARK: - Insights
     private var insightsCard: some View {
-        PulseCard {
+        GlassMetricCard(domain: .cardio) {
             VStack(alignment: .leading, spacing: 14) {
                 Label(localizedString("insights_and_flags"), systemImage: "lightbulb.fill").font(.headline)
 

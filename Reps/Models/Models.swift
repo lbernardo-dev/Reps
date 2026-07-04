@@ -855,6 +855,15 @@ struct DailyHealthMetric: Codable, Identifiable, Hashable {
     var heartRateVariabilityMS: Double?
     var sleepHours: Double?
     var vo2MaxMlKgMin: Double?
+    // Sleep stage breakdown, bucketed from the same HealthKit sleep-analysis
+    // samples already queried for `sleepHours` — nil on devices/nights with
+    // no stage-capable source (older watches, manual entries).
+    var sleepRemHours: Double?
+    var sleepDeepHours: Double?
+    var sleepCoreHours: Double?
+    var sleepAwakeHours: Double?
+    /// Count of distinct `.awake` segments inside the sleep window.
+    var sleepInterruptions: Int?
 }
 
 struct HealthSyncState: Codable {

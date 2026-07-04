@@ -7,6 +7,7 @@ enum InboxDestination: Codable, Hashable, Sendable {
     case workoutHistory
     case session(id: String)
     case personalRecords
+    case socialProfile(username: String)
 }
 
 struct NotificationEvent: Identifiable, Codable, Sendable {

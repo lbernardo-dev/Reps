@@ -127,6 +127,22 @@ enum PulseTheme {
 
 // MARK: - Glass Button Prominence
 
+// MARK: - Pressable Card Style
+
+/// Subtle press-down scale for tappable cards (wellness grid, hero cards) —
+/// the small bit of tactile feedback that makes a static card feel like a
+/// live control instead of decoration.
+struct PressableCardStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed { HapticService.selection() }
+            }
+    }
+}
+
 enum NavigationGlassProminence {
     case primary, secondary, disabled
 
@@ -234,6 +250,370 @@ private struct NavigationGlassCircleModifier: ViewModifier {
                     )
             }
             .shadow(color: tint.opacity(prominence.shadowOpacity), radius: 10, y: 4)
+    }
+}
+
+// MARK: - Metric Domains
+
+/// Visual identity for a product domain. Keep the domain in one place so Home
+/// cards, detail headers, charts, status pills, widgets, and share cards can
+/// reuse the same color language without duplicating ad-hoc tints.
+enum MetricDomain: String, CaseIterable, Identifiable {
+    case strength
+    case recovery
+    case cardio
+    case heartRate
+    case sleep
+    case activity
+    case body
+    case nutrition
+    case weather
+
+    var id: String { rawValue }
+
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .strength: "strength"
+        case .recovery: "recovery"
+        case .cardio: "cardio"
+        case .heartRate: "heart_rate"
+        case .sleep: "sleep"
+        case .activity: "activity"
+        case .body: "body_metrics"
+        case .nutrition: "nutrition"
+        case .weather: "weather"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .strength: "dumbbell.fill"
+        case .recovery: "waveform.path.ecg"
+        case .cardio: "heart.fill"
+        case .heartRate: "heart.fill"
+        case .sleep: "moon.fill"
+        case .activity: "figure.walk"
+        case .body: "scalemass.fill"
+        case .nutrition: "flame.fill"
+        case .weather: "sun.max.fill"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .strength: Color(red: 0.22, green: 0.58, blue: 0.30)
+        case .recovery: Color(red: 0.24, green: 0.70, blue: 0.40)
+        case .cardio: Color(red: 0.29, green: 0.86, blue: 0.95)
+        case .heartRate: Color(red: 1.00, green: 0.25, blue: 0.28)
+        case .sleep: Color(red: 0.55, green: 0.45, blue: 1.00)
+        case .activity: Color(red: 0.92, green: 0.56, blue: 0.16)
+        case .body: Color(red: 0.65, green: 0.48, blue: 1.00)
+        case .nutrition: Color(red: 1.00, green: 0.43, blue: 0.20)
+        case .weather: Color(red: 0.27, green: 0.58, blue: 1.00)
+        }
+    }
+
+    var secondaryTint: Color {
+        switch self {
+        case .strength: Color(red: 0.10, green: 0.24, blue: 0.14)
+        case .recovery: Color(red: 0.12, green: 0.36, blue: 0.22)
+        case .cardio: Color(red: 0.03, green: 0.42, blue: 0.55)
+        case .heartRate: Color(red: 0.58, green: 0.08, blue: 0.16)
+        case .sleep: Color(red: 0.25, green: 0.20, blue: 0.72)
+        case .activity: Color(red: 0.36, green: 0.22, blue: 0.06)
+        case .body: Color(red: 0.31, green: 0.21, blue: 0.63)
+        case .nutrition: Color(red: 0.50, green: 0.12, blue: 0.04)
+        case .weather: Color(red: 0.05, green: 0.20, blue: 0.50)
+        }
+    }
+
+    var backgroundGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                tint.opacity(0.12),
+                secondaryTint.opacity(0.08),
+                PulseTheme.card.opacity(0.84)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    var headerGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                tint.opacity(0.18),
+                secondaryTint.opacity(0.12),
+                Color.black.opacity(0.02)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    var chartAreaGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                tint.opacity(0.30),
+                tint.opacity(0.02)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    /// Saturated, fully-opaque gradient for `DomainHeroCard` — the Home wellness
+    /// grid needs to read as a solid block of color at a glance (competitor
+    /// pattern: red HR card, amber steps card, indigo sleep card), unlike the
+    /// translucent tint used on `GlassMetricCard` in detail screens.
+    /// A strong color wash that still resolves to the app's dark card color —
+    /// distinctive enough to read as its own domain, but built from the same
+    /// "dark base + color tint" language as `GlassMetricCard` everywhere else,
+    /// so a row of eight different domains doesn't read as eight different
+    /// apps stitched together.
+    var heroGradient: LinearGradient {
+        LinearGradient(
+            colors: [tint.opacity(0.58), secondaryTint.opacity(0.80), PulseTheme.card],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    var glowColor: Color { tint.opacity(0.35) }
+}
+
+struct DomainTintedBackground: View {
+    let domain: MetricDomain
+    var height: CGFloat = 360
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(domain.headerGradient)
+                .frame(height: height)
+                .overlay(alignment: .topTrailing) {
+                    Circle()
+                        .fill(domain.tint.opacity(0.18))
+                        .blur(radius: 54)
+                        .frame(width: 220, height: 220)
+                        .offset(x: 70, y: -70)
+                        .accessibilityHidden(true)
+                }
+            Spacer(minLength: 0)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+}
+
+struct GlassMetricCard<Content: View>: View {
+    let domain: MetricDomain
+    var minHeight: CGFloat?
+    var contentPadding: CGFloat = 16
+    var isSelected = false
+    let content: Content
+
+    init(
+        domain: MetricDomain,
+        minHeight: CGFloat? = nil,
+        contentPadding: CGFloat = 16,
+        isSelected: Bool = false,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.domain = domain
+        self.minHeight = minHeight
+        self.contentPadding = contentPadding
+        self.isSelected = isSelected
+        self.content = content()
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+
+        content
+            .frame(maxWidth: .infinity, maxHeight: minHeight != nil ? .infinity : nil, alignment: .leading)
+            .padding(contentPadding)
+            .frame(minHeight: minHeight, alignment: .leading)
+            .background {
+                ZStack {
+                    shape
+                        .fill(.clear)
+                        .glassEffect(
+                            .regular.tint(domain.tint.opacity(isSelected ? 0.14 : 0.07)),
+                            in: shape
+                        )
+                    shape
+                        .fill(domain.backgroundGradient.opacity(isSelected ? 0.44 : 0.28))
+                }
+            }
+            .overlay {
+                shape
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(isSelected ? 0.20 : 0.11),
+                                domain.tint.opacity(isSelected ? 0.30 : 0.14),
+                                .black.opacity(0.10)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: isSelected ? 1.2 : 0.8
+                    )
+            }
+            .clipShape(shape)
+            .shadow(color: domain.tint.opacity(isSelected ? 0.10 : 0.04), radius: isSelected ? 14 : 8, y: 6)
+    }
+}
+
+struct DomainStatusPill: View {
+    let text: LocalizedStringKey
+    let domain: MetricDomain
+    var prominence: NavigationGlassProminence = .secondary
+    var systemImage: String?
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 11, weight: .bold))
+            }
+            Text(localizedKey(text))
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+        .foregroundStyle(domain.tint)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .navigationGlassCapsule(prominence, tint: domain.tint)
+    }
+}
+
+// MARK: - Domain Hero Card
+
+/// Saturated, full-color card for the Home wellness grid — the counterpart to
+/// `GlassMetricCard` (which stays translucent for detail screens). Filling the
+/// whole surface with `domain.heroGradient` is what makes each metric
+/// recognizable by color alone from across the room, matching the reference
+/// pattern where heart rate is a solid red card, steps a solid amber card, etc.
+struct DomainHeroCard<Content: View>: View {
+    let domain: MetricDomain
+    var minHeight: CGFloat = 128
+    let content: Content
+
+    init(
+        domain: MetricDomain,
+        minHeight: CGFloat = 128,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.domain = domain
+        self.minHeight = minHeight
+        self.content = content()
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: minHeight, alignment: .topLeading)
+            .background {
+                ZStack {
+                    shape.fill(domain.heroGradient)
+                    shape.fill(
+                        LinearGradient(
+                            colors: [.white.opacity(0.16), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .center
+                        )
+                    )
+                }
+            }
+            .overlay {
+                shape.stroke(.white.opacity(0.18), lineWidth: 0.8)
+            }
+            .clipShape(shape)
+            .shadow(color: domain.glowColor, radius: 16, y: 8)
+    }
+}
+
+// MARK: - Domain Verdict Header
+
+/// Human-readable state, shown before any number — the pattern behind the
+/// competitor's "Excellent" (Sleep) and "Worth a look" (Vitals) headers. Color
+/// is semantic (good/fair/poor), independent of the domain's own tint, so the
+/// domain still carries identity while the verdict carries urgency.
+enum DomainVerdict {
+    case excellent, good, fair, worthALook, poor
+
+    var label: LocalizedStringKey {
+        switch self {
+        case .excellent:  "verdict_excellent"
+        case .good:       "verdict_good"
+        case .fair:       "verdict_fair"
+        case .worthALook: "verdict_worth_a_look"
+        case .poor:       "verdict_poor"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .excellent:  PulseTheme.recovery
+        case .good:       PulseTheme.ringStand
+        case .fair:       PulseTheme.warning
+        case .worthALook: PulseTheme.warning
+        case .poor:       PulseTheme.destructive
+        }
+    }
+}
+
+struct DomainVerdictHeader: View {
+    let verdict: DomainVerdict
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(localizedKey(verdict.label))
+                .font(.system(size: 30, weight: .heavy, design: .rounded))
+                .foregroundStyle(verdict.color)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(PulseTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Trend Delta
+
+/// Compact "+3,264 ↑ 62%" style comparison against a prior period — the
+/// single cheapest thing to copy from the reference screenshots and one of
+/// the most effective at signaling "serious data app".
+struct TrendDelta: View {
+    let percent: Double
+    /// Whether an increase counts as good news for this metric. Most counters
+    /// (steps, volume) want more; some (resting HR) want less — pass `false`
+    /// so a rising value still renders as a warning color.
+    var risingIsGood: Bool = true
+
+    private var isRising: Bool { percent >= 0 }
+    private var isGoodDirection: Bool { isRising == risingIsGood }
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: isRising ? "arrow.up" : "arrow.down")
+                .font(.system(size: 10, weight: .bold))
+            Text(percentText)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+        }
+        .foregroundStyle(isGoodDirection ? PulseTheme.recovery : PulseTheme.destructive)
+    }
+
+    private var percentText: String {
+        let magnitude = abs(percent * 100)
+        return String(format: "%.0f%%", magnitude)
     }
 }
 
@@ -795,7 +1175,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .safeAreaPadding(.top, max(topContentPadding, headerHeight + 12))
-                .padding(.bottom, 104)
+                .padding(.bottom, 168)
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .coordinateSpace(.named(StickyHeaderTitleReader.coordinateSpaceName))
@@ -1077,32 +1457,44 @@ struct MetricCard: View {
     let subtitle: LocalizedStringKey
     let systemImage: String
     var badgeColor: Color = PulseTheme.accent
+    var domain: MetricDomain? = nil
+    var isSelected = false
 
     var body: some View {
-        PulseCard(minHeight: 120) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 5) {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(badgeColor)
-                    Text(localizedKey(title))
-                        .font(.system(size: 11, weight: .semibold))
-                        .textCase(.uppercase)
-                        .tracking(0.4)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-                }
-                Text(value)
-                    .font(PulseTheme.metricNumeric())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .foregroundStyle(.white)
-                Text(localizedKey(subtitle))
-                    .font(.caption)
-                    .lineLimit(2)
-                    .foregroundStyle(PulseTheme.secondaryText)
+        if let domain {
+            GlassMetricCard(domain: domain, minHeight: 120, isSelected: isSelected) {
+                cardContent(tint: domain.tint)
             }
+        } else {
+            PulseCard(minHeight: 120) {
+                cardContent(tint: badgeColor)
+            }
+        }
+    }
+
+    private func cardContent(tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 5) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(tint)
+                Text(localizedKey(title))
+                    .font(.system(size: 11, weight: .semibold))
+                    .textCase(.uppercase)
+                    .tracking(0.4)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            Text(value)
+                .font(PulseTheme.metricNumeric())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(.white)
+            Text(localizedKey(subtitle))
+                .font(.caption)
+                .lineLimit(2)
+                .foregroundStyle(PulseTheme.secondaryText)
         }
     }
 }
@@ -1439,6 +1831,12 @@ private final class ExerciseThumbnailImageCache {
 extension View {
     func screenBackground() -> some View {
         background(PulseTheme.background.ignoresSafeArea())
+    }
+
+    func domainTintedBackground(_ domain: MetricDomain, height: CGFloat = 360) -> some View {
+        background {
+            DomainTintedBackground(domain: domain, height: height)
+        }
     }
 
     func stickyHeaderTitle(_ title: String) -> some View {

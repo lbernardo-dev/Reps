@@ -182,6 +182,7 @@ struct CommentsView: View {
         // background. Never throws.
         _ = await SocialService.shared.addComment(
             postID: post.id,
+            postOwnerUsername: post.ownerUsername,
             text: trimmed,
             ownerUsername: uname,
             ownerDisplayName: dname,

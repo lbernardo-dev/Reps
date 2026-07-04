@@ -5,6 +5,9 @@ struct HealthWidgetDetailNavBar: View {
     @Environment(\.dismiss) private var dismiss
 
     let title: String
+    var domain: MetricDomain?
+
+    private var tint: Color { domain?.tint ?? PulseTheme.accent }
 
     var body: some View {
         HStack {
@@ -16,7 +19,7 @@ struct HealthWidgetDetailNavBar: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 38, height: 38)
-                    .navigationGlassCircle(.secondary)
+                    .navigationGlassCircle(.secondary, tint: tint)
             }
             .buttonStyle(.plain)
 
@@ -86,6 +89,7 @@ struct HealthStatItem: Identifiable, Equatable {
 
 struct HealthStatsHeader: View {
     let items: [HealthStatItem]
+    var domain: MetricDomain?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -97,9 +101,7 @@ struct HealthStatsHeader: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(PulseTheme.card)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .modifier(HealthStatsHeaderSurface(domain: domain))
     }
 
     private func statCell(_ item: HealthStatItem) -> some View {
@@ -115,6 +117,24 @@ struct HealthStatsHeader: View {
     }
 }
 
+private struct HealthStatsHeaderSurface: ViewModifier {
+    let domain: MetricDomain?
+
+    func body(content: Content) -> some View {
+        if let domain {
+            GlassMetricCard(domain: domain, contentPadding: 0) {
+                content
+                    .padding(.vertical, 14)
+            }
+        } else {
+            content
+                .padding(.vertical, 14)
+                .background(PulseTheme.card)
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        }
+    }
+}
+
 // MARK: - Mini metric tile for health detail views
 struct HealthMiniTile: View {
     let title: String
@@ -122,9 +142,10 @@ struct HealthMiniTile: View {
     let subtitle: String
     let systemImage: String
     let color: Color
+    var domain: MetricDomain?
 
     var body: some View {
-        PulseCard(minHeight: 100, contentPadding: 12) {
+        HealthMiniTileSurface(domain: domain) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     ZStack {
@@ -149,6 +170,28 @@ struct HealthMiniTile: View {
                     .font(.system(size: 9))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(1)
+            }
+        }
+    }
+}
+
+private struct HealthMiniTileSurface<Content: View>: View {
+    let domain: MetricDomain?
+    let content: Content
+
+    init(domain: MetricDomain?, @ViewBuilder content: () -> Content) {
+        self.domain = domain
+        self.content = content()
+    }
+
+    var body: some View {
+        if let domain {
+            GlassMetricCard(domain: domain, minHeight: 100, contentPadding: 12) {
+                content
+            }
+        } else {
+            PulseCard(minHeight: 100, contentPadding: 12) {
+                content
             }
         }
     }

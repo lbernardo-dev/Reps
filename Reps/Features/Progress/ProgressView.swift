@@ -393,21 +393,21 @@ struct ProgressDashboardView: View {
             HStack(spacing: 14) {
               MetricCard(
                 title: "load_metric", value: "\(Int(workload.acuteLoad))", subtitle: "7_days",
-                systemImage: "waveform.path.ecg", badgeColor: PulseTheme.accent)
+                systemImage: "waveform.path.ecg", badgeColor: PulseTheme.accent, domain: .recovery)
               MetricCard(
                 title: "effective_sets", value: "\(effectiveSetCount)",
                 subtitle: "\(Int(effectiveVolume)) kg", systemImage: "checkmark.seal",
-                badgeColor: PulseTheme.ringStand)
+                badgeColor: PulseTheme.ringStand, domain: .strength)
             }
 
             HStack(spacing: 14) {
               MetricCard(
                 title: "ACWR", value: String(format: "%.2f", workload.acwr),
                 subtitle: "acute_chronic", systemImage: "gauge.with.needle",
-                badgeColor: PulseTheme.accent)
+                badgeColor: PulseTheme.accent, domain: .recovery)
               MetricCard(
                 title: "fatigue_score", value: "\(Int(workload.fatigueScore))", subtitle: "0-100",
-                systemImage: "battery.50", badgeColor: PulseTheme.warning)
+                systemImage: "battery.50", badgeColor: PulseTheme.warning, domain: .recovery)
             }
 
             PulseCard {
@@ -512,10 +512,10 @@ struct ProgressDashboardView: View {
             HStack(spacing: 14) {
               MetricCard(
                 title: "steps_metric", value: "\(Int(latestHealth.steps))", subtitle: "last_day",
-                systemImage: "figure.walk", badgeColor: PulseTheme.accent)
+                systemImage: "figure.walk", badgeColor: PulseTheme.accent, domain: .activity)
               MetricCard(
                 title: "active_kcal", value: "\(Int(latestHealth.activeEnergyKcal))",
-                subtitle: "last_day", systemImage: "flame", badgeColor: PulseTheme.accent)
+                subtitle: "last_day", systemImage: "flame", badgeColor: PulseTheme.accent, domain: .nutrition)
             }
 
             PulseCard {

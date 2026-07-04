@@ -379,7 +379,7 @@ struct SocialProfileDetailView: View {
                 try await SocialService.shared.unfollow(profile)
                 store.userProfile.socialFollowingUsernames.removeAll { $0 == username.lowercased() }
             } else {
-                try await SocialService.shared.follow(profile)
+                try await SocialService.shared.follow(profile, myUsername: store.userProfile.socialUsername ?? "")
                 if !store.userProfile.socialFollowingUsernames.contains(username.lowercased()) {
                     store.userProfile.socialFollowingUsernames.append(username.lowercased())
                 }
@@ -464,7 +464,7 @@ private struct PostDetailSheet: View {
                 if wasLiked {
                     try await SocialService.shared.unlikePost(post)
                 } else {
-                    try await SocialService.shared.likePost(post)
+                    try await SocialService.shared.likePost(post, likerUsername: store.userProfile.socialUsername ?? "")
                 }
             } catch {
                 await MainActor.run {

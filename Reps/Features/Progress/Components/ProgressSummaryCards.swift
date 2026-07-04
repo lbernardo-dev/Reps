@@ -34,7 +34,7 @@ struct DailySummaryFocusCard: View {
   }
 
   var body: some View {
-    PulseCard(contentPadding: 18) {
+    GlassMetricCard(domain: .recovery, contentPadding: 18) {
       VStack(alignment: .leading, spacing: 14) {
         HStack(alignment: .top, spacing: 14) {
           ZStack {
@@ -273,13 +273,13 @@ struct SummaryRingsHeroCard: View {
   let onTapStand: () -> Void
 
   var body: some View {
-    PulseCard(contentPadding: 18) {
+    PulseCard(contentPadding: 16) {
       VStack(alignment: .leading, spacing: 16) {
         ViewThatFits(in: .horizontal) {
-          HStack(alignment: .center, spacing: 12) {
-            ringsView(width: 104, lineWidth: 13, gap: 4)
+          HStack(alignment: .center, spacing: 14) {
+            ringsView(width: 112, lineWidth: 13, gap: 4)
             metricsStack
-              .frame(width: 184)
+              .frame(maxWidth: .infinity)
           }
 
           VStack(spacing: 18) {
@@ -405,6 +405,7 @@ struct RingsMetricRow: View {
             }
           }
           .frame(height: 5)
+          .opacity(progress > 0 ? 1 : 0.55)
 
           Text(goalCaption)
             .font(.system(size: 9, weight: .bold))
@@ -445,13 +446,19 @@ struct TodayMetricCard: View {
   let detail: String
 
   var body: some View {
-    PulseCard(contentPadding: 16) {
+    PulseCard(contentPadding: 14) {
       VStack(alignment: .leading, spacing: 10) {
-        Image(systemName: icon)
-          .font(.system(size: 15, weight: .black))
-          .foregroundStyle(color)
-          .frame(width: 34, height: 34)
-          .background(color.opacity(0.15), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        HStack {
+          Image(systemName: icon)
+            .font(.system(size: 15, weight: .black))
+            .foregroundStyle(color)
+            .frame(width: 34, height: 34)
+            .background(color.opacity(0.15), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+          Spacer()
+          Image(systemName: "chevron.right")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(PulseTheme.secondaryText.opacity(0.32))
+        }
 
         Text(value)
           .font(.system(size: 26, weight: .black, design: .rounded).monospacedDigit())
@@ -467,6 +474,12 @@ struct TodayMetricCard: View {
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(PulseTheme.tertiaryText)
         }
+
+        Spacer(minLength: 0)
+
+        Capsule()
+          .fill(color.opacity(value == "0" ? 0.18 : 0.92))
+          .frame(height: 8)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       .frame(minHeight: 144)
@@ -485,7 +498,10 @@ struct TodayBarChartCard: View {
   var showsChevron: Bool = false
 
   var body: some View {
-    PulseCard(contentPadding: 16) {
+    let hasVisibleData = chartData.contains { $0.value > 0 }
+    let maxValue = max(chartData.map(\.value).max() ?? 0, 1)
+
+    PulseCard(contentPadding: 14) {
       VStack(alignment: .leading, spacing: 12) {
         HStack(spacing: 7) {
           Image(systemName: icon)
@@ -512,7 +528,7 @@ struct TodayBarChartCard: View {
         }
 
         Group {
-          if !chartData.isEmpty {
+          if hasVisibleData {
             Chart(chartData) { point in
               BarMark(
                 x: .value("day", point.label),
@@ -522,6 +538,7 @@ struct TodayBarChartCard: View {
               .cornerRadius(3)
             }
             .allowsHitTesting(false)
+            .chartYScale(domain: 0...(maxValue * 1.18))
             .chartYAxis(.hidden)
             .chartXAxis {
               AxisMarks { value in
@@ -535,7 +552,7 @@ struct TodayBarChartCard: View {
               }
             }
           } else {
-            EmptyMetricBars(color: color)
+            EmptyMetricBars(color: color, labels: chartData.map(\.label))
           }
         }
         .frame(height: 72)
@@ -548,22 +565,29 @@ struct TodayBarChartCard: View {
 
 struct EmptyMetricBars: View {
   let color: Color
+  var labels: [String] = []
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Capsule()
-        .fill(color.opacity(0.88))
-        .frame(width: 34, height: 5)
-      HStack(alignment: .bottom, spacing: 5) {
+    VStack(alignment: .leading, spacing: 7) {
+      HStack(alignment: .bottom, spacing: 7) {
         ForEach(0..<7, id: \.self) { index in
           Capsule()
-            .fill(PulseTheme.separator.opacity(index == 6 ? 0.65 : 0.38))
-            .frame(width: 5, height: CGFloat(24 + (index % 3) * 10))
+            .fill(index == 6 ? color.opacity(0.26) : PulseTheme.separator.opacity(0.34))
+            .frame(maxWidth: .infinity)
+            .frame(height: CGFloat(16 + (index % 4) * 8))
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+
+      HStack {
+        ForEach(0..<7, id: \.self) { index in
+          Text(labels.indices.contains(index) ? labels[index] : "")
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(PulseTheme.tertiaryText)
+            .frame(maxWidth: .infinity)
+        }
+      }
     }
     .accessibilityHidden(true)
   }
 }
-
