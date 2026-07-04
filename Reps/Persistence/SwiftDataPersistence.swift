@@ -173,6 +173,8 @@ final class SwiftDataPersistence {
 
     private func replace(_ scope: PersistenceScope, with snapshot: AppSnapshot) {
         switch scope {
+        // Single-row scopes: delete+reinsert of one record is already cheap,
+        // so these stay as a full replace rather than adding diff complexity.
         case .profile:
             deleteAll(UserProfileRecord.self)
             let profileRecord = UserProfileRecord(profile: snapshot.userProfile)
@@ -186,53 +188,189 @@ final class SwiftDataPersistence {
         case .health:
             deleteAll(HealthSyncRecord.self)
             context.insert(HealthSyncRecord(health: snapshot.health))
+
+        // Collection scopes: reconciled by id so an unrelated, unchanged item
+        // (the common case — the vast majority of workout history, body
+        // metrics, etc. on any given save) is never touched.
         case .exerciseLibrary:
-            fetch(ExerciseRecord.self).filter(\.isLibraryItem).forEach(context.delete)
-            snapshot.exercises
-                .map { ExerciseRecord(exercise: $0, isLibraryItem: true) }
-                .forEach(context.insert)
+            reconcile(
+                snapshot.exercises,
+                existing: fetch(ExerciseRecord.self).filter(\.isLibraryItem),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { ExerciseRecord(exercise: $0, isLibraryItem: true) },
+                deleteRecord: { context.delete($0) }
+            )
         case .plans:
-            fetch(WorkoutPlanRecord.self).forEach(deleteGraph)
             let persistedPlans = snapshot.plans.contains(where: { $0.id == snapshot.activePlan.id })
                 ? snapshot.plans
                 : snapshot.plans + [snapshot.activePlan]
-            persistedPlans
-                .map { plan in
-                    let isActive = plan.id == snapshot.activePlan.id
-                    return WorkoutPlanRecord(plan: isActive ? snapshot.activePlan : plan, isActive: isActive)
-                }
-                .forEach(context.insert)
+            reconcilePlans(persistedPlans, activePlanID: snapshot.activePlan.id, activePlan: snapshot.activePlan)
         case .workoutTemplates:
-            fetch(WorkoutTemplateRecord.self).forEach(deleteGraph)
-            snapshot.workoutTemplates.map(WorkoutTemplateRecord.init).forEach(context.insert)
+            reconcile(
+                snapshot.workoutTemplates,
+                existing: fetch(WorkoutTemplateRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { WorkoutTemplateRecord(day: $0) },
+                deleteRecord: { deleteGraph($0) }
+            )
         case .scheduledWorkouts:
-            fetch(ScheduledWorkoutRecord.self).forEach(deleteGraph)
-            snapshot.scheduledWorkouts.map(ScheduledWorkoutRecord.init).forEach(context.insert)
+            reconcile(
+                snapshot.scheduledWorkouts,
+                existing: fetch(ScheduledWorkoutRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { ScheduledWorkoutRecord(scheduled: $0) },
+                deleteRecord: { deleteGraph($0) }
+            )
         case .workoutSessions:
-            fetch(WorkoutSessionRecord.self).forEach(deleteGraph)
-            snapshot.workoutSessions.map(WorkoutSessionRecord.init).forEach(context.insert)
+            reconcile(
+                snapshot.workoutSessions,
+                existing: fetch(WorkoutSessionRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { WorkoutSessionRecord(session: $0) },
+                deleteRecord: { deleteGraph($0) }
+            )
         case .cardioLogs:
-            deleteAll(CardioLogRecord.self)
-            snapshot.cardioLogs.map(CardioLogRecord.init).forEach(context.insert)
+            reconcile(
+                snapshot.cardioLogs,
+                existing: fetch(CardioLogRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { CardioLogRecord(log: $0) },
+                deleteRecord: { context.delete($0) }
+            )
         case .bodyMetrics:
-            deleteAll(BodyMetricRecord.self)
-            snapshot.bodyMetrics.map(BodyMetricRecord.init).forEach(context.insert)
+            reconcile(
+                snapshot.bodyMetrics,
+                existing: fetch(BodyMetricRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { BodyMetricRecord(metric: $0) },
+                deleteRecord: { context.delete($0) }
+            )
         case .progressPhotos:
-            deleteAll(ProgressPhotoRecord.self)
-            snapshot.progressPhotos.map(ProgressPhotoRecord.init).forEach(context.insert)
+            reconcile(
+                snapshot.progressPhotos,
+                existing: fetch(ProgressPhotoRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { ProgressPhotoRecord(photo: $0) },
+                deleteRecord: { context.delete($0) }
+            )
         case .gymPasses:
-            deleteAll(GymPassRecord.self)
-            snapshot.gymPasses.map(GymPassRecord.init).forEach(context.insert)
+            reconcile(
+                snapshot.gymPasses,
+                existing: fetch(GymPassRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { GymPassRecord(pass: $0) },
+                deleteRecord: { context.delete($0) }
+            )
         case .gymVisits:
-            deleteAll(GymVisitRecord.self)
-            snapshot.gymVisits.map(GymVisitRecord.init).forEach(context.insert)
+            reconcile(
+                snapshot.gymVisits,
+                existing: fetch(GymVisitRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { GymVisitRecord(visit: $0) },
+                deleteRecord: { context.delete($0) }
+            )
         case .goals:
-            deleteAll(GoalRecord.self)
-            snapshot.goals.map(GoalRecord.init).forEach(context.insert)
+            reconcile(
+                snapshot.goals,
+                existing: fetch(GoalRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { GoalRecord(goal: $0) },
+                deleteRecord: { context.delete($0) }
+            )
         case .savedShareCards:
-            deleteAll(SavedShareCardRecord.self)
-            snapshot.savedShareCards.map(SavedShareCardRecord.init).forEach(context.insert)
+            reconcile(
+                snapshot.savedShareCards,
+                existing: fetch(SavedShareCardRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { SavedShareCardRecord(card: $0) },
+                deleteRecord: { context.delete($0) }
+            )
         }
+    }
+
+    private static let diffEncoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return encoder
+    }()
+
+    private func contentEquals<T: Codable>(_ a: T, _ b: T) -> Bool {
+        guard let dataA = try? Self.diffEncoder.encode(a), let dataB = try? Self.diffEncoder.encode(b) else {
+            return false
+        }
+        return dataA == dataB
+    }
+
+    /// Upserts `domainItems` against `existing` records by id instead of a full
+    /// delete-then-reinsert: unchanged records are left untouched, changed ones
+    /// are replaced, and records no longer present in `domainItems` are removed.
+    /// Deleting and reinserting the *entire* scope on every save meant editing a
+    /// single item (e.g. one set during an active workout) rewrote the whole
+    /// history — the larger the store, the slower every save, and it all ran
+    /// synchronously on the main actor.
+    private func reconcile<Domain: Codable, Record: PersistentModel>(
+        _ domainItems: [Domain],
+        existing: [Record],
+        id: (Domain) -> UUID,
+        domainOf: (Record) -> Domain,
+        recordID: (Record) -> UUID,
+        makeRecord: (Domain) -> Record,
+        deleteRecord: (Record) -> Void
+    ) {
+        var existingByID = Dictionary(uniqueKeysWithValues: existing.map { (recordID($0), $0) })
+        for item in domainItems {
+            if let match = existingByID.removeValue(forKey: id(item)) {
+                if !contentEquals(domainOf(match), item) {
+                    deleteRecord(match)
+                    context.insert(makeRecord(item))
+                }
+            } else {
+                context.insert(makeRecord(item))
+            }
+        }
+        existingByID.values.forEach(deleteRecord)
+    }
+
+    /// Plans need the `isActive` flag compared explicitly alongside content:
+    /// it lives on the record, not on the `WorkoutPlan` domain struct, so a
+    /// pure content diff would miss "same plan, but activation changed".
+    private func reconcilePlans(_ persistedPlans: [WorkoutPlan], activePlanID: UUID, activePlan: WorkoutPlan) {
+        var existingByID = Dictionary(uniqueKeysWithValues: fetch(WorkoutPlanRecord.self).map { ($0.id, $0) })
+        for plan in persistedPlans {
+            let isActive = plan.id == activePlanID
+            let resolvedPlan = isActive ? activePlan : plan
+            if let match = existingByID.removeValue(forKey: plan.id) {
+                if match.isActive != isActive || !contentEquals(match.domain, resolvedPlan) {
+                    deleteGraph(match)
+                    context.insert(WorkoutPlanRecord(plan: resolvedPlan, isActive: isActive))
+                }
+            } else {
+                context.insert(WorkoutPlanRecord(plan: resolvedPlan, isActive: isActive))
+            }
+        }
+        existingByID.values.forEach(deleteGraph)
     }
 
     // MARK: - Graph deletion
