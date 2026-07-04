@@ -357,7 +357,7 @@ struct TodayView: View {
     }
 
     private var relationshipSignalBoard: some View {
-        GlassMetricCard(domain: .strength, contentPadding: 18) {
+        DomainHeroCard(domain: .strength, minHeight: 0) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 7) {
                     Image(systemName: "gauge.with.dots.needle.67percent")
@@ -402,6 +402,7 @@ struct TodayView: View {
                     )
                 }
             }
+            .padding(18)
         }
     }
 
@@ -1694,45 +1695,42 @@ private struct TrainingSignalTile: View {
     let color: Color
     var domain: MetricDomain? = nil
 
+    private var tileTint: Color { domain?.tint ?? color }
+
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-                PulseIconBadge(systemImage: systemImage, tint: domain?.tint ?? color, size: 34, radius: PulseTheme.smallRadius)
+            PulseIconBadge(systemImage: systemImage, tint: tileTint, size: 34, radius: PulseTheme.smallRadius)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(value)
-                    .font(.system(size: 21, weight: .black, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 20, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(PulseTheme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
                 Text(title)
-                    .font(.caption.weight(.bold))
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .textCase(.uppercase)
+                    .tracking(0.3)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(1)
                 Text(subtitle)
-                    .font(.caption2.weight(.semibold))
+                    .font(.caption2)
                     .foregroundStyle(PulseTheme.tertiaryText)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(11)
         .frame(minHeight: 82)
         .background {
-            if let domain {
-                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                    .fill(PulseTheme.grouped.opacity(0.70))
-                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                    .fill(domain.backgroundGradient.opacity(0.22))
-            } else {
-                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                    .fill(PulseTheme.grouped.opacity(0.72))
-            }
-        }
-        .overlay(
             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                .stroke((domain?.tint ?? color).opacity(domain == nil ? 0 : 0.18), lineWidth: 0.8)
-        )
+                .fill(tileTint.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                        .stroke(tileTint.opacity(0.18), lineWidth: 0.8)
+                )
+        }
     }
 }
 
@@ -2071,38 +2069,47 @@ private struct WellnessWidget: View {
     private var hasData: Bool { value != "--" }
 
     var body: some View {
-        GlassMetricCard(domain: domain, minHeight: 156, contentPadding: 14) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    PulseIconBadge(systemImage: systemImage, tint: hasData ? domain.tint : PulseTheme.semanticNeutral, size: 30, radius: PulseTheme.smallRadius)
-                    Text(localizedKey(title))
-                        .font(.system(size: 10, weight: .black, design: .rounded))
-                        .textCase(.uppercase)
-                        .tracking(0.2)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.82)
-                        .fixedSize(horizontal: false, vertical: true)
+        DomainHeroCard(domain: domain, minHeight: 156) {
+            ZStack(alignment: .bottomTrailing) {
+                if hasData {
+                    WidgetVisualDecoration(domain: domain, valueString: value)
+                        .padding(.trailing, 12)
+                        .padding(.bottom, 12)
                 }
 
-                Spacer(minLength: 2)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        PulseIconBadge(systemImage: systemImage, tint: hasData ? domain.tint : PulseTheme.semanticNeutral, size: 30, radius: PulseTheme.smallRadius)
+                        Text(localizedKey(title))
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .textCase(.uppercase)
+                            .tracking(0.2)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.82)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
-                Text(hasData ? value : "–")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(hasData ? PulseTheme.textPrimary : PulseTheme.tertiaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    Spacer(minLength: 2)
 
-                Text(localizesSubtitle ? localizedKey(subtitle) : subtitle)
-                    .font(.caption2)
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.86)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text(hasData ? value : "–")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundStyle(hasData ? PulseTheme.textPrimary : PulseTheme.tertiaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
 
-                Spacer(minLength: 0)
+                    Text(localizesSubtitle ? localizedKey(subtitle) : subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.86)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: 0)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, minHeight: 156, maxHeight: 156, alignment: .topLeading)
             }
-            .frame(maxWidth: .infinity, minHeight: 156, maxHeight: 156, alignment: .topLeading)
         }
         .opacity(hasData ? 1 : 0.86)
     }
@@ -2308,3 +2315,172 @@ private struct VisualExerciseCard: View {
         }
     }
 }
+
+// MARK: - Premium Widget Visual Decorations
+private struct WidgetVisualDecoration: View {
+    let domain: MetricDomain
+    let valueString: String
+
+    var body: some View {
+        Group {
+            switch domain {
+            case .recovery:
+                if valueString.contains("%") {
+                    BatteryLevelVisual(level: Int(valueString.filter("0123456789".contains)) ?? 80)
+                } else {
+                    HeartbeatWaveVisual(color: domain.tint)
+                }
+            case .strength:
+                ConcentricRingVisual(progress: 0.70, color: domain.tint)
+            case .nutrition:
+                WaterDropsVisual(color: domain.tint)
+            case .heartRate:
+                HeartbeatWaveVisual(color: domain.tint)
+            case .sleep:
+                SleepStagesVisual(color: domain.tint)
+            case .activity:
+                MiniStepBarsVisual(color: domain.tint)
+            case .cardio:
+                UpwardTrendVisual(color: domain.tint)
+            default:
+                EmptyView()
+            }
+        }
+        .frame(width: 64, height: 48)
+        .opacity(0.18) // Muted watermark style to keep text readable
+    }
+}
+
+private struct BatteryLevelVisual: View {
+    let level: Int
+    var body: some View {
+        HStack(spacing: 3) {
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .stroke(PulseTheme.secondaryText.opacity(0.5), lineWidth: 1.5)
+                    .frame(width: 38, height: 20)
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(level > 50 ? PulseTheme.recovery : (level > 20 ? PulseTheme.warning : PulseTheme.destructive))
+                    .frame(width: CGFloat(min(100, max(0, level))) * 0.32, height: 14)
+                    .padding(.leading, 2)
+            }
+            RoundedRectangle(cornerRadius: 1, style: .continuous)
+                .fill(PulseTheme.secondaryText.opacity(0.5))
+                .frame(width: 3, height: 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+}
+
+private struct HeartbeatWaveVisual: View {
+    let color: Color
+    var body: some View {
+        Path { path in
+            path.move(to: CGPoint(x: 0, y: 24))
+            path.addLine(to: CGPoint(x: 12, y: 24))
+            path.addLine(to: CGPoint(x: 16, y: 12))
+            path.addLine(to: CGPoint(x: 20, y: 36))
+            path.addLine(to: CGPoint(x: 24, y: 24))
+            path.addLine(to: CGPoint(x: 32, y: 24))
+            path.addLine(to: CGPoint(x: 36, y: 4))
+            path.addLine(to: CGPoint(x: 40, y: 44))
+            path.addLine(to: CGPoint(x: 44, y: 24))
+            path.addLine(to: CGPoint(x: 64, y: 24))
+        }
+        .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+        .frame(width: 64, height: 48)
+    }
+}
+
+private struct ConcentricRingVisual: View {
+    let progress: Double
+    let color: Color
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(color.opacity(0.18), lineWidth: 5)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(color, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: 38, height: 38)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+}
+
+private struct WaterDropsVisual: View {
+    let color: Color
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 4) {
+            Image(systemName: "drop.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(color.opacity(0.6))
+            Image(systemName: "drop.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(color)
+            Image(systemName: "drop.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(color.opacity(0.4))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+}
+
+private struct SleepStagesVisual: View {
+    let color: Color
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 3) {
+            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                .fill(color.opacity(0.4))
+                .frame(width: 6, height: 12)
+            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                .fill(color.opacity(0.7))
+                .frame(width: 6, height: 28)
+            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                .fill(color)
+                .frame(width: 6, height: 18)
+            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                .fill(color.opacity(0.8))
+                .frame(width: 6, height: 36)
+            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                .fill(color.opacity(0.5))
+                .frame(width: 6, height: 16)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+}
+
+private struct MiniStepBarsVisual: View {
+    let color: Color
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 2) {
+            ForEach([12, 22, 34, 28, 40, 36, 46], id: \.self) { height in
+                RoundedRectangle(cornerRadius: 1.2, style: .continuous)
+                    .fill(color)
+                    .frame(width: 4, height: CGFloat(height))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+}
+
+private struct UpwardTrendVisual: View {
+    let color: Color
+    var body: some View {
+        ZStack {
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: 36))
+                path.addLine(to: CGPoint(x: 12, y: 32))
+                path.addLine(to: CGPoint(x: 24, y: 24))
+                path.addLine(to: CGPoint(x: 36, y: 28))
+                path.addLine(to: CGPoint(x: 48, y: 12))
+                path.addLine(to: CGPoint(x: 60, y: 8))
+            }
+            .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: 60, height: 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+}
+

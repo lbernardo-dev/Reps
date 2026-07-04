@@ -18,10 +18,11 @@ enum PulseTheme {
     // MARK: Brand accent — single tunable token
     static let accent = semanticAction
 
-    // MARK: Activity ring semantics
-    static let ringMove     = semanticEffort
-    static let ringExercise = semanticAction
-    static let ringStand    = semanticProgress
+    // MARK: Activity ring semantics — aligned with the app's own domain color language
+    // (outer → volume/movement: lime, middle → sessions/exercise: health-green, inner → consistency: cyan)
+    static let ringMove     = semanticAction    // Lima  — Movimiento / Volumen
+    static let ringExercise = semanticHealth    // Verde — Ejercicio / Sesiones
+    static let ringStand    = semanticProgress  // Cian  — De pie / Constancia
 
     // MARK: Semantic / functional
     static let destructive  = semanticCritical
@@ -420,7 +421,11 @@ enum MetricDomain: String, CaseIterable, Identifiable {
     /// apps stitched together.
     var heroGradient: LinearGradient {
         LinearGradient(
-            colors: [tint.opacity(0.18), secondaryTint.opacity(0.10), PulseTheme.card],
+            colors: [
+                tint.opacity(0.40),
+                secondaryTint.opacity(0.24),
+                PulseTheme.card.opacity(0.95)
+            ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -574,6 +579,7 @@ struct DomainHeroCard<Content: View>: View {
                 shape.stroke(PulseTheme.cardStroke, lineWidth: 0.8)
             }
             .clipShape(shape)
+            .shadow(color: domain.glowColor, radius: 18, x: 0, y: 4)
             .shadow(color: PulseTheme.surfaceShadow, radius: 7, y: 3)
     }
 }

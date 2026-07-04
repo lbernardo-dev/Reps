@@ -1112,6 +1112,8 @@ struct ActiveWorkoutView: View {
                     HStack(spacing: 10) {
                         Label("more_session_tools", systemImage: "slider.horizontal.3")
                             .font(.headline)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                             .foregroundStyle(PulseTheme.accent)
                         Spacer(minLength: 8)
                         Image(systemName: "chevron.down")

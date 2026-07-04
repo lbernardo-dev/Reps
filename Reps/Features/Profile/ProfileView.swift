@@ -666,10 +666,10 @@ struct ProfileView: View {
 
                 if let metric = store.todayHealthMetric {
                     LazyVGrid(columns: profileToolColumns, spacing: 10) {
-                        HealthMiniMetric(title: "Pasos", value: "\(Int(metric.steps))", systemImage: "figure.walk")
-                        HealthMiniMetric(title: "Ejercicio", value: "\(Int(metric.exerciseMinutes ?? 0)) min", systemImage: "figure.strengthtraining.traditional")
-                        HealthMiniMetric(title: "Reposo", value: metric.restingHeartRate.map { "\(Int($0)) \(localizedString("lpm"))" } ?? "--", systemImage: "heart")
-                        HealthMiniMetric(title: "HRV", value: metric.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--", systemImage: "waveform.path.ecg")
+                        HealthMiniMetric(title: "Pasos", value: "\(Int(metric.steps))", systemImage: "figure.walk", tint: PulseTheme.ringStand)
+                        HealthMiniMetric(title: "Ejercicio", value: "\(Int(metric.exerciseMinutes ?? 0)) min", systemImage: "figure.strengthtraining.traditional", tint: PulseTheme.ringMove)
+                        HealthMiniMetric(title: "Reposo", value: metric.restingHeartRate.map { "\(Int($0)) \(localizedString("lpm"))" } ?? "--", systemImage: "heart", tint: PulseTheme.semanticEffort)
+                        HealthMiniMetric(title: "HRV", value: metric.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--", systemImage: "waveform.path.ecg", tint: PulseTheme.ringExercise)
                     }
                 }
 
@@ -1923,33 +1923,42 @@ private struct HealthMiniMetric: View {
     let title: LocalizedStringKey
     let value: String
     let systemImage: String
+    var tint: Color = PulseTheme.accent
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: systemImage)
-                .font(.subheadline.weight(.bold))
-                .frame(width: 30, height: 30)
-                .foregroundStyle(PulseTheme.accent)
-                .background(PulseTheme.accent.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 5) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(tint)
                 Text(localizedKey(title))
-                    .font(.caption2.weight(.semibold))
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .textCase(.uppercase)
+                    .tracking(0.3)
                     .foregroundStyle(PulseTheme.secondaryText)
-                Text(value)
-                    .font(.subheadline.weight(.bold).monospacedDigit())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
             }
-            Spacer(minLength: 0)
+            Text(value)
+                .font(.system(size: 22, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(PulseTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
         }
-        .padding(10)
-        .background(PulseTheme.grouped)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .fill(tint.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                        .stroke(tint.opacity(0.18), lineWidth: 0.8)
+                )
+        }
     }
 }
 
+/// Glass-tinted capsule button used for Apple Health actions.
+/// Replaces the old solid-colour `ProfileActionButtonStyle` with a
+/// translucent glass look that doesn't break card harmony.
 private struct ProfileActionButtonStyle: ButtonStyle {
     let color: Color
 
@@ -1958,9 +1967,17 @@ private struct ProfileActionButtonStyle: ButtonStyle {
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity)
             .frame(height: 44)
-            .foregroundStyle(PulseTheme.onColor(color))
-            .background(color.opacity(configuration.isPressed ? 0.75 : 1))
-            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            .foregroundStyle(color)
+            .background {
+                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                    .fill(color.opacity(configuration.isPressed ? 0.18 : 0.10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                            .stroke(color.opacity(0.35), lineWidth: 1)
+                    )
+            }
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 

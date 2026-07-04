@@ -616,17 +616,31 @@ struct WorkoutSession: Codable, Identifiable {
 }
 
 extension WorkoutSession {
+    /// True when the session contains cardio-route specific data (GPS points, pace, distance).
+    /// NOTE: `steps` alone is NOT sufficient — HealthKit syncs step counts on any workout type,
+    /// including strength sessions, so we exclude that field here to avoid misclassification.
     var hasRouteMetrics: Bool {
         !routePoints.isEmpty ||
         distanceKm != nil ||
-        averagePaceSecondsPerKm != nil ||
-        steps != nil
+        averagePaceSecondsPerKm != nil
     }
 
+    /// True if the session should be treated as a cardio/route session (shows route panel
+    /// in the receipt, map-backdrop in history, distance metrics, etc.).
+    ///
+    /// Priority rule: a session that contains completed strength sets or exercise logs
+    /// is **always** a strength session, regardless of any route metrics that may have
+    /// been incidentally synced from HealthKit (e.g. step counts).
     var isRouteSession: Bool {
-        if hasRouteMetrics {
-            return true
-        }
+        // If there are actual strength-training records, this is a strength session.
+        let hasStrengthContent = !sets.isEmpty ||
+            (exerciseLogs?.isEmpty == false)
+        if hasStrengthContent { return false }
+
+        // Now check for cardio route data (GPS, pace, distance).
+        if hasRouteMetrics { return true }
+
+        // Fallback: empty session whose title suggests cardio activity.
         let normalizedTitle = workoutTitle.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
         return sets.isEmpty && (
             normalizedTitle.localizedCaseInsensitiveContains("camina") ||

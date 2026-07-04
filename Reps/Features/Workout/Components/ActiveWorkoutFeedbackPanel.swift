@@ -40,6 +40,8 @@ struct SessionFeedbackPanel: View {
                 HStack(spacing: 10) {
                     Label(localizedKey(title), systemImage: systemImage)
                         .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .foregroundStyle(PulseTheme.accent)
                     
                     Spacer(minLength: 8)

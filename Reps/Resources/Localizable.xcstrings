@@ -37976,13 +37976,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Document session"
+            "value" : "Document"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Documenta la sesión"
+            "value" : "Documentar"
           }
         }
       }

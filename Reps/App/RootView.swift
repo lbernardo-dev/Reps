@@ -73,7 +73,7 @@ struct MainTabView: View {
                 }
             }
             .overlay {
-                if !store.pendingAchievementUnlocks.isEmpty {
+                if !store.pendingAchievementUnlocks.isEmpty && store.finishedSessionForSummary == nil {
                     AchievementUnlockOverlay()
                         .environment(store)
                 }
@@ -156,7 +156,7 @@ struct MainTabView: View {
 
     @ViewBuilder
     private var activeTabSurface: some View {
-        if isQuickMenuExpanded || presentedQuickAction != nil || store.finishedSessionForSummary != nil {
+        if isQuickMenuExpanded || presentedQuickAction != nil {
             PulseTheme.background
                 .ignoresSafeArea()
                 .accessibilityHidden(true)

@@ -794,10 +794,12 @@ private struct PlanCard: View {
 
                     if isLocked {
                         Image(systemName: "lock.fill")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
                             .frame(width: 18, height: 18)
-                            .background(PulseTheme.accent, in: Circle())
+                            .background(.ultraThinMaterial, in: Circle())
+                            .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
+                            .shadow(color: .black.opacity(0.2), radius: 2)
                             .offset(x: 4, y: 4)
                     }
                 }
