@@ -4,54 +4,6 @@
     "" : {
 
     },
-    "current_exercise_label" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Current Exercise"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ejercicio en curso"
-          }
-        }
-      }
-    },
-    "next_exercise_label" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next Exercise"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Siguiente ejercicio"
-          }
-        }
-      }
-    },
-    "water_label" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Water"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Agua"
-          }
-        }
-      }
-    },
     "\n        # gym_passes\n        id,gym,membership_id,code_type,notes\n        legacy-id,Downtown Gym,member-123,barcode,Legacy access\n        " : {
       "extractionState" : "stale",
       "localizations" : {
@@ -33935,6 +33887,23 @@
         }
       }
     },
+    "current_exercise_label" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Exercise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejercicio en curso"
+          }
+        }
+      }
+    },
     "current_level_format" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -43374,6 +43343,9 @@
         }
       }
     },
+    "Esta acción no se puede deshacer." : {
+
+    },
     "Esta cuenta iCloud no está en la allowlist Pro." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -43596,6 +43568,9 @@
           }
         }
       }
+    },
+    "Este ejercicio se quitará de la sesión actual." : {
+
     },
     "Este ejercicio todavía no incluye instrucciones detalladas." : {
       "extractionState" : "stale",
@@ -69283,6 +69258,23 @@
         }
       }
     },
+    "next_exercise_label" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Exercise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siguiente ejercicio"
+          }
+        }
+      }
+    },
     "next_renewal" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -89537,6 +89529,74 @@
         }
       }
     },
+    "recommended_projection_caption_fmt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Projected %@ in %d weeks if you stick to this plan"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso estimado de %@ en %d semanas si sigues este plan"
+          }
+        }
+      }
+    },
+    "recommended_projection_disclaimer_full" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This projection is an educational estimate based on your experience level, goal and training frequency — it isn't a promise of results. Your real progress depends on adherence to the plan, nutrition, sleep, recovery and individual factors."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta proyección es una estimación educativa basada en tu nivel de experiencia, objetivo y frecuencia de entrenamiento — no es una promesa de resultados. Tu progreso real depende de la adherencia al plan, la alimentación, el sueño, la recuperación y factores individuales."
+          }
+        }
+      }
+    },
+    "recommended_projection_disclaimer_short" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Educational estimate, not a guarantee"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimación educativa, no una garantía"
+          }
+        }
+      }
+    },
+    "recommended_projection_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimated progress"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progresión estimada"
+          }
+        }
+      }
+    },
     "recommended_workout_cta" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -90711,6 +90771,9 @@
           }
         }
       }
+    },
+    "Registrar agua" : {
+
     },
     "Registrar cardio" : {
       "extractionState" : "stale",
@@ -97335,9 +97398,6 @@
         }
       }
     },
-    "Señales de hoy" : {
-
-    },
     "send_feedback" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -102024,6 +102084,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accesos directos"
+          }
+        }
+      }
+    },
+    "smart_shortcuts_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick access to what you use most"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accede rápido a lo que más usas"
           }
         }
       }
@@ -108569,6 +108646,7 @@
       }
     },
     "this_active_session_and_any_unsaved_changes_will_be_discarded" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -109617,6 +109695,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Entrenamiento de hoy"
+          }
+        }
+      }
+    },
+    "today_signals" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's signals"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Señales de hoy"
+          }
+        }
+      }
+    },
+    "today_signals_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A quick look at your day"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un vistazo rápido a tu día"
           }
         }
       }
@@ -115725,6 +115837,23 @@
         }
       }
     },
+    "water_label" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Water"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agua"
+          }
+        }
+      }
+    },
     "water_liters" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -116738,6 +116867,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Indicadores de Bienestar"
+          }
+        }
+      }
+    },
+    "wellness_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sleep, hydration and recovery"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sueño, hidratación y recuperación"
           }
         }
       }
@@ -119126,142 +119272,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zottman Curl"
-          }
-        }
-      }
-    },
-    "today_signals" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Today's signals"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Señales de hoy"
-          }
-        }
-      }
-    },
-    "today_signals_subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A quick look at your day"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un vistazo rápido a tu día"
-          }
-        }
-      }
-    },
-    "wellness_subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sleep, hydration and recovery"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sueño, hidratación y recuperación"
-          }
-        }
-      }
-    },
-    "smart_shortcuts_subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quick access to what you use most"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accede rápido a lo que más usas"
-          }
-        }
-      }
-    },
-    "recommended_projection_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estimated progress"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Progresión estimada"
-          }
-        }
-      }
-    },
-    "recommended_projection_caption_fmt" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Projected %@ in %d weeks if you stick to this plan"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Progreso estimado de %@ en %d semanas si sigues este plan"
-          }
-        }
-      }
-    },
-    "recommended_projection_disclaimer_short" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Educational estimate, not a guarantee"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estimación educativa, no una garantía"
-          }
-        }
-      }
-    },
-    "recommended_projection_disclaimer_full" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This projection is an educational estimate based on your experience level, goal and training frequency — it isn't a promise of results. Your real progress depends on adherence to the plan, nutrition, sleep, recovery and individual factors."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esta proyección es una estimación educativa basada en tu nivel de experiencia, objetivo y frecuencia de entrenamiento — no es una promesa de resultados. Tu progreso real depende de la adherencia al plan, la alimentación, el sueño, la recuperación y factores individuales."
           }
         }
       }
