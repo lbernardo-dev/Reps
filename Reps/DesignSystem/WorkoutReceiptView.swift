@@ -128,7 +128,7 @@ enum WorkoutReceiptDeepLink {
                         name: line.name,
                         muscleGroup: "General",
                         secondaryMuscles: [],
-                        equipment: "Reps QR"
+                        equipment: "StreakRep QR"
                     ),
                     notes: "",
                     sets: (0..<line.sets).map { index in
@@ -268,7 +268,7 @@ struct WorkoutReceiptView: View {
         guard let session else {
             return WorkoutReceiptSharePayload(
                 id: UUID(),
-                workoutTitle: "Reps Workout",
+                workoutTitle: "StreakRep Workout",
                 date: .now,
                 durationMinutes: 0,
                 totalVolumeKg: 0,

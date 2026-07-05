@@ -91,7 +91,7 @@ struct WatchStartView: View {
                     .padding(.horizontal, 4)
                     .padding(.bottom, 10)
                 }
-                .navigationTitle("Reps")
+                .navigationTitle("StreakRep")
             }
         }
     }

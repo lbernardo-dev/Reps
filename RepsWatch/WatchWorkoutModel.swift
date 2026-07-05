@@ -979,7 +979,7 @@ extension WatchWorkoutModel: WCSessionDelegate {
         SharedWorkoutSnapshot(
             hasActiveWorkout: context["hasActiveWorkout"] as? Bool ?? false,
             planTitle: context["planTitle"] as? String,
-            workoutTitle: context["workoutTitle"] as? String ?? "Reps",
+            workoutTitle: context["workoutTitle"] as? String ?? "StreakRep",
             sessionTitle: context["sessionTitle"] as? String,
             elapsedSeconds: context["elapsedSeconds"] as? Int ?? 0,
             pausedSeconds: context["pausedSeconds"] as? Int ?? 0,

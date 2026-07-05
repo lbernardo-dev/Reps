@@ -323,7 +323,7 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
     static let empty = SharedWorkoutSnapshot(
         hasActiveWorkout: false,
         planTitle: nil,
-        workoutTitle: "Reps",
+        workoutTitle: "StreakRep",
         sessionTitle: nil,
         elapsedSeconds: 0,
         pausedSeconds: 0,

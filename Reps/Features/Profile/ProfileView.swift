@@ -1299,7 +1299,7 @@ struct ProfileView: View {
         components.scheme = "mailto"
         components.path = "support@romerodev.com"
         components.queryItems = [
-            URLQueryItem(name: "subject", value: "Feedback Reps \(appVersionText)"),
+            URLQueryItem(name: "subject", value: "Feedback StreakRep \(appVersionText)"),
             URLQueryItem(name: "body", value: trimmed)
         ]
 

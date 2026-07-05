@@ -615,6 +615,8 @@ struct TodayView: View {
         let isPaused = status.isPaused
         let setsWord = localizedString("sets_3")
         let progress: Double = status.totalSets > 0 ? Double(status.completedSets) / Double(status.totalSets) : 0
+        let language = store.userProfile.preferredLanguage
+        let sessionTitle = status.sessionTitle.map { RepsText.localizedWorkoutSubtitle($0, language: language) }
         
         let progressColor: Color = {
             let percent = progress * 100
@@ -654,7 +656,7 @@ struct TodayView: View {
                         .font(.system(size: 10, weight: .black, design: .rounded))
                         .tracking(1.8)
                         .foregroundStyle(Color.orange)
-                    Text(RepsText.workoutTitle(status.workoutTitle, language: store.userProfile.preferredLanguage))
+                    Text(RepsText.workoutTitle(status.workoutTitle, language: language))
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
@@ -669,12 +671,12 @@ struct TodayView: View {
                     Image(systemName: "square.grid.3x3.topleft.filled")
                         .font(.caption2)
                         .foregroundStyle(Color.orange)
-                    Text("\(planTitle)\(status.sessionTitle.map { " · \($0)" } ?? "")")
+                    Text("\(planTitle)\(sessionTitle.map { " · \($0)" } ?? "")")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
                 .padding(.top, -4)
-            } else if let sessionTitle = status.sessionTitle {
+            } else if let sessionTitle {
                 HStack(spacing: 6) {
                     Image(systemName: "list.clipboard.fill")
                         .font(.caption2)
@@ -1116,7 +1118,7 @@ struct TodayView: View {
                     WellnessWidget(
                         title: "hydration",
                         value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
-                        subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en Reps", $0) } ?? (localizedString("no_local_log")),
+                        subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en StreakRep", $0) } ?? (localizedString("no_local_log")),
                         localizesSubtitle: latestMetric?.waterLiters == nil,
                         systemImage: "drop.fill",
                         domain: .nutrition
@@ -2543,4 +2545,3 @@ private struct UpwardTrendVisual: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
 }
-

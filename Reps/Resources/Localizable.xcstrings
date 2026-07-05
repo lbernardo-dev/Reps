@@ -5207,19 +5207,19 @@
         }
       }
     },
-    "%.1f L en Reps": {
+    "%.1f L en StreakRep": {
       "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%.1f L en Reps"
+            "value": "%.1f L en StreakRep"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%.1f L en Reps"
+            "value": "%.1f L en StreakRep"
           }
         }
       }
@@ -8995,13 +8995,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "I unlocked %@ in Reps and earned %d XP."
+            "value": "I unlocked %@ in StreakRep and earned %d XP."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "He desbloqueado %@ en Reps y he ganado %d XP."
+            "value": "He desbloqueado %@ en StreakRep y he ganado %d XP."
           }
         }
       }
@@ -9267,13 +9267,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You have enough history for Reps to start personalizing load and recovery."
+            "value": "You have enough history for StreakRep to start personalizing load and recovery."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ya tienes historial suficiente para que Reps empiece a personalizar carga y recuperación."
+            "value": "Ya tienes historial suficiente para que StreakRep empiece a personalizar carga y recuperación."
           }
         }
       }
@@ -9826,13 +9826,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Activate Reps Pro to configure RPE, RIR, tempo, set type, auto-progression, and advanced equipment."
+            "value": "Activate StreakRep Pro to configure RPE, RIR, tempo, set type, auto-progression, and advanced equipment."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Activa Reps Pro para configurar RPE, RIR, tempo, tipo de serie, auto-progresión y tu equipamiento avanzado."
+            "value": "Activa StreakRep Pro para configurar RPE, RIR, tempo, tipo de serie, auto-progresión y tu equipamiento avanzado."
           }
         }
       }
@@ -12806,13 +12806,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Health offline in Reps. You can revoke permissions in the Health app."
+            "value": "Apple Health offline in StreakRep. You can revoke permissions in the Health app."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Health desconectado en Reps. Puedes revocar permisos en la app Salud."
+            "value": "Apple Health desconectado en StreakRep. Puedes revocar permisos en la app Salud."
           }
         }
       }
@@ -17285,13 +17285,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Body metrics saved in Reps."
+            "value": "Body metrics saved in StreakRep."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Métricas corporales guardadas en Reps."
+            "value": "Métricas corporales guardadas en StreakRep."
           }
         }
       }
@@ -19308,13 +19308,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Camera is blocked. Enable it in Settings → Reps."
+            "value": "Camera is blocked. Enable it in Settings → StreakRep."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La cámara está bloqueada. Actívala en Ajustes → Reps."
+            "value": "La cámara está bloqueada. Actívala en Ajustes → StreakRep."
           }
         }
       }
@@ -22226,13 +22226,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "📉 Work in progress in %@. 1RM: %@ %@ (-%d%% vs 4 weeks ago). #Reps"
+            "value": "📉 Work in progress in %@. 1RM: %@ %@ (-%d%% vs 4 weeks ago). #StreakRep"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "📉 Trabajo pendiente en %@. 1RM: %@ %@ (-%d%% vs hace 4 semanas). #Reps"
+            "value": "📉 Trabajo pendiente en %@. 1RM: %@ %@ (-%d%% vs hace 4 semanas). #StreakRep"
           }
         }
       }
@@ -22243,13 +22243,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "🏋️ Holding strong in %@: %@ %@. #Reps"
+            "value": "🏋️ Holding strong in %@: %@ %@. #StreakRep"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "🏋️ Mi fuerza en %@ se mantiene: %@ %@. #Reps"
+            "value": "🏋️ Mi fuerza en %@ se mantiene: %@ %@. #StreakRep"
           }
         }
       }
@@ -22260,13 +22260,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "💪 I got stronger in %@! 1RM: %@ %@ (+%d%% vs 4 weeks ago). #Reps"
+            "value": "💪 I got stronger in %@! 1RM: %@ %@ (+%d%% vs 4 weeks ago). #StreakRep"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "💪 Soy más fuerte en %@! 1RM: %@ %@ (+%d%% vs hace 4 semanas). #Reps"
+            "value": "💪 Soy más fuerte en %@! 1RM: %@ %@ (+%d%% vs hace 4 semanas). #StreakRep"
           }
         }
       }
@@ -24260,13 +24260,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are currently on Reps Free."
+            "value": "You are currently on StreakRep Free."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Actualmente estás en Reps Free."
+            "value": "Actualmente estás en StreakRep Free."
           }
         }
       }
@@ -24413,13 +24413,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Customize the display of Reps widgets."
+            "value": "Customize the display of StreakRep widgets."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Personaliza la visualización de los widgets de Reps."
+            "value": "Personaliza la visualización de los widgets de StreakRep."
           }
         }
       }
@@ -32308,19 +32308,19 @@
         }
       }
     },
-    "Feedback Reps \\(appVersionText)": {
+    "Feedback StreakRep \\(appVersionText)": {
       "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Feedback Reps \\(appVersionText)"
+            "value": "Feedback StreakRep \\(appVersionText)"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Feedback Reps \\(appVersionText)"
+            "value": "Feedback StreakRep \\(appVersionText)"
           }
         }
       }
@@ -39624,13 +39624,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "If you have an active Apple Music subscription on this device, Reps can connect to your local library and load your playlists instantly without copying URLs."
+            "value": "If you have an active Apple Music subscription on this device, StreakRep can connect to your local library and load your playlists instantly without copying URLs."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Si tienes una suscripción de Apple Music activa en este dispositivo, Reps puede conectarse a tu biblioteca local y cargar tus playlists al instante sin copiar URLs."
+            "value": "Si tienes una suscripción de Apple Music activa en este dispositivo, StreakRep puede conectarse a tu biblioteca local y cargar tus playlists al instante sin copiar URLs."
           }
         }
       }
@@ -39930,13 +39930,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Imported from a Reps receipt QR."
+            "value": "Imported from a StreakRep receipt QR."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Importado desde un QR de recibo Reps."
+            "value": "Importado desde un QR de recibo StreakRep."
           }
         }
       }
@@ -40371,13 +40371,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Includes Reps Pro"
+            "value": "Includes StreakRep Pro"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Incluye Reps Pro"
+            "value": "Incluye StreakRep Pro"
           }
         }
       }
@@ -43898,13 +43898,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Preparing Reps..."
+            "value": "Preparing StreakRep..."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Preparando Reps..."
+            "value": "Preparando StreakRep..."
           }
         }
       }
@@ -46710,13 +46710,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Microphone is blocked. Enable it in Settings → Reps."
+            "value": "Microphone is blocked. Enable it in Settings → StreakRep."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El micrófono está bloqueado. Actívalo en Ajustes → Reps."
+            "value": "El micrófono está bloqueado. Actívalo en Ajustes → StreakRep."
           }
         }
       }
@@ -50159,13 +50159,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your Reps daily summary"
+            "value": "Your StreakRep daily summary"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Resumen diario de Reps"
+            "value": "Resumen diario de StreakRep"
           }
         }
       }
@@ -52731,13 +52731,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Pro"
+            "value": "StreakRep Pro"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Pro"
+            "value": "StreakRep Pro"
           }
         }
       }
@@ -55154,13 +55154,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Manage Reps Pro"
+            "value": "Manage StreakRep Pro"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gestiona Reps Pro"
+            "value": "Gestiona StreakRep Pro"
           }
         }
       }
@@ -55885,13 +55885,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unlock Reps Pro"
+            "value": "Unlock StreakRep Pro"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desbloquea Reps Pro"
+            "value": "Desbloquea StreakRep Pro"
           }
         }
       }
@@ -56241,13 +56241,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Camera access is blocked. Enable it in Settings → Reps → Camera."
+            "value": "Camera access is blocked. Enable it in Settings → StreakRep → Camera."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La cámara está bloqueada. Actívala en Ajustes → Reps → Cámara."
+            "value": "La cámara está bloqueada. Actívala en Ajustes → StreakRep → Cámara."
           }
         }
       }
@@ -56258,13 +56258,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps needs camera access to take progress photos."
+            "value": "StreakRep needs camera access to take progress photos."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps necesita acceso a la cámara para tomar fotos de progreso."
+            "value": "StreakRep necesita acceso a la cámara para tomar fotos de progreso."
           }
         }
       }
@@ -56275,13 +56275,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Microphone access is blocked. Enable it in Settings → Reps → Microphone."
+            "value": "Microphone access is blocked. Enable it in Settings → StreakRep → Microphone."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El micrófono está bloqueado. Actívalo en Ajustes → Reps → Micrófono."
+            "value": "El micrófono está bloqueado. Actívalo en Ajustes → StreakRep → Micrófono."
           }
         }
       }
@@ -56292,13 +56292,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps needs microphone access to record voice notes."
+            "value": "StreakRep needs microphone access to record voice notes."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps necesita acceso al micrófono para grabar notas de voz."
+            "value": "StreakRep necesita acceso al micrófono para grabar notas de voz."
           }
         }
       }
@@ -56309,13 +56309,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Notifications are blocked. Enable them in Settings → Reps → Notifications."
+            "value": "Notifications are blocked. Enable them in Settings → StreakRep → Notifications."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Las notificaciones están bloqueadas. Actívalas en Ajustes → Reps → Notificaciones."
+            "value": "Las notificaciones están bloqueadas. Actívalas en Ajustes → StreakRep → Notificaciones."
           }
         }
       }
@@ -56326,13 +56326,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps needs notifications to remind you about your workouts."
+            "value": "StreakRep needs notifications to remind you about your workouts."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps necesita notificaciones para recordarte tus entrenos."
+            "value": "StreakRep necesita notificaciones para recordarte tus entrenos."
           }
         }
       }
@@ -56343,13 +56343,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Photo access is blocked. Enable it in Settings → Reps → Photos."
+            "value": "Photo access is blocked. Enable it in Settings → StreakRep → Photos."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El acceso a fotos está bloqueado. Actívalo en Ajustes → Reps → Fotos."
+            "value": "El acceso a fotos está bloqueado. Actívalo en Ajustes → StreakRep → Fotos."
           }
         }
       }
@@ -56360,13 +56360,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps needs photo access to save progress images."
+            "value": "StreakRep needs photo access to save progress images."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps necesita acceso a tus fotos para guardar imágenes de progreso."
+            "value": "StreakRep necesita acceso a tus fotos para guardar imágenes de progreso."
           }
         }
       }
@@ -57868,13 +57868,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Play in Reps"
+            "value": "Play in StreakRep"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reproducir en Reps"
+            "value": "Reproducir en StreakRep"
           }
         }
       }
@@ -62228,13 +62228,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Receipt gallery and shareable cards unlock with Reps Pro."
+            "value": "Receipt gallery and shareable cards unlock with StreakRep Pro."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La galería de recibos y las tarjetas compartibles se desbloquean con Reps Pro."
+            "value": "La galería de recibos y las tarjetas compartibles se desbloquean con StreakRep Pro."
           }
         }
       }
@@ -62804,13 +62804,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnect to let Reps save your workouts to Apple Health with a real heart-rate curve and GPS route."
+            "value": "Reconnect to let StreakRep save your workouts to Apple Health with a real heart-rate curve and GPS route."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconéctate para que Reps guarde tus entrenos en Apple Health con la curva real de pulso y la ruta GPS."
+            "value": "Reconéctate para que StreakRep guarde tus entrenos en Apple Health con la curva real de pulso y la ruta GPS."
           }
         }
       }
@@ -64263,13 +64263,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Free"
+            "value": "StreakRep Free"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Free"
+            "value": "StreakRep Free"
           }
         }
       }
@@ -64282,47 +64282,47 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Pro"
+            "value": "StreakRep Pro"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Pro"
+            "value": "StreakRep Pro"
           }
         }
       }
     },
-    "Reps QR": {
+    "StreakRep QR": {
       "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps QR"
+            "value": "StreakRep QR"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps QR"
+            "value": "StreakRep QR"
           }
         }
       }
     },
-    "Reps Workout": {
+    "StreakRep Workout": {
       "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Workout"
+            "value": "StreakRep Workout"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Entrenamiento"
+            "value": "StreakRep Entrenamiento"
           }
         }
       }
@@ -64332,13 +64332,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "REPS"
+            "value": "STREAKREP"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "REPS"
+            "value": "STREAKREP"
           }
         }
       }
@@ -64348,13 +64348,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "REPS®"
+            "value": "STREAKREP®"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "REPS®"
+            "value": "STREAKREP®"
           }
         }
       }
@@ -64397,13 +64397,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps battery %d%% · %@"
+            "value": "StreakRep battery %d%% · %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps batería %d%% · %@"
+            "value": "StreakRep batería %d%% · %@"
           }
         }
       }
@@ -64448,13 +64448,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps: %@"
+            "value": "StreakRep: %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps: %@"
+            "value": "StreakRep: %@"
           }
         }
       }
@@ -64464,13 +64464,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Pro"
+            "value": "StreakRep Pro"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Pro"
+            "value": "StreakRep Pro"
           }
         }
       }
@@ -64498,13 +64498,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps stores your workouts, routines, metrics, photos, and cards in local storage."
+            "value": "StreakRep stores your workouts, routines, metrics, photos, and cards in local storage."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps guarda tus entrenos, rutinas, métricas, fotos y tarjetas en almacenamiento local."
+            "value": "StreakRep guarda tus entrenos, rutinas, métricas, fotos y tarjetas en almacenamiento local."
           }
         }
       }
@@ -64515,13 +64515,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps %d days · %d%% week"
+            "value": "StreakRep %d days · %d%% week"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps %d días · %d%% semana"
+            "value": "StreakRep %d días · %d%% semana"
           }
         }
       }
@@ -64532,13 +64532,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps will create %d editable days from this template."
+            "value": "StreakRep will create %d editable days from this template."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps creará %d días editables a partir de esta plantilla."
+            "value": "StreakRep creará %d días editables a partir de esta plantilla."
           }
         }
       }
@@ -64566,13 +64566,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Workout"
+            "value": "StreakRep Workout"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Entrenamiento"
+            "value": "StreakRep Entrenamiento"
           }
         }
       }
@@ -67988,13 +67988,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "See Reps Pro"
+            "value": "See StreakRep Pro"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ver Reps Pro"
+            "value": "Ver StreakRep Pro"
           }
         }
       }
@@ -69346,13 +69346,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Share Reps"
+            "value": "Share StreakRep"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compartir Reps"
+            "value": "Compartir StreakRep"
           }
         }
       }
@@ -69363,13 +69363,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Invite someone to train with Reps."
+            "value": "Invite someone to train with StreakRep."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Invita a alguien a entrenar con Reps."
+            "value": "Invita a alguien a entrenar con StreakRep."
           }
         }
       }
@@ -71485,13 +71485,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Type a username to find your friend in the Reps community."
+            "value": "Type a username to find your friend in the StreakRep community."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Escribe un username para encontrar a tu amigo en la comunidad Reps."
+            "value": "Escribe un username para encontrar a tu amigo en la comunidad StreakRep."
           }
         }
       }
@@ -71621,13 +71621,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sign in to iCloud on this device to activate Reps Social. Open Settings, choose your Apple Account, then enable iCloud and return to Reps."
+            "value": "Sign in to iCloud on this device to activate StreakRep Social. Open Settings, choose your Apple Account, then enable iCloud and return to StreakRep."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inicia sesión en iCloud en este dispositivo para activar Reps Social. Abre Ajustes, entra en tu Cuenta de Apple, activa iCloud y vuelve a Reps."
+            "value": "Inicia sesión en iCloud en este dispositivo para activar StreakRep Social. Abre Ajustes, entra en tu Cuenta de Apple, activa iCloud y vuelve a StreakRep."
           }
         }
       }
@@ -71672,13 +71672,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud is restricted on this device. Check Screen Time or Apple Account settings before activating Reps Social."
+            "value": "iCloud is restricted on this device. Check Screen Time or Apple Account settings before activating StreakRep Social."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud está restringido en este dispositivo. Revisa Tiempo de uso o los ajustes de tu Cuenta de Apple antes de activar Reps Social."
+            "value": "iCloud está restringido en este dispositivo. Revisa Tiempo de uso o los ajustes de tu Cuenta de Apple antes de activar StreakRep Social."
           }
         }
       }
@@ -71706,13 +71706,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps couldn’t verify iCloud on this device. Check your Apple Account settings and try again."
+            "value": "StreakRep couldn’t verify iCloud on this device. Check your Apple Account settings and try again."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps no pudo verificar iCloud en este dispositivo. Revisa los ajustes de tu Cuenta de Apple e inténtalo de nuevo."
+            "value": "StreakRep no pudo verificar iCloud en este dispositivo. Revisa los ajustes de tu Cuenta de Apple e inténtalo de nuevo."
           }
         }
       }
@@ -71740,13 +71740,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Follow me on Reps! @%@\nreps://social/@%@"
+            "value": "Follow me on StreakRep! @%@\\nreps://social/@%@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "¡Sígueme en Reps! @%@\nreps://social/@%@"
+            "value": "¡Sígueme en StreakRep! @%@\\nreps://social/@%@"
           }
         }
       }
@@ -71876,13 +71876,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pick a username to appear in the Reps community and compare your progress with friends."
+            "value": "Pick a username to appear in the StreakRep community and compare your progress with friends."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elige un nombre de usuario para aparecer en la comunidad Reps y comparar tu progreso con amigos."
+            "value": "Elige un nombre de usuario para aparecer en la comunidad StreakRep y comparar tu progreso con amigos."
           }
         }
       }
@@ -72012,13 +72012,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "🏆 @%@ vs @%@ on Reps — I'm ahead! (%d XP vs %d XP). #RepsFitness"
+            "value": "🏆 @%@ vs @%@ on StreakRep — I'm ahead! (%d XP vs %d XP). #StreakRepFitness"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "🏆 @%@ vs @%@ en Reps — ¡Voy ganando! (%d XP vs %d XP). #RepsFitness"
+            "value": "🏆 @%@ vs @%@ en StreakRep — ¡Voy ganando! (%d XP vs %d XP). #StreakRepFitness"
           }
         }
       }
@@ -72029,13 +72029,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "⚡ @%@ vs @%@ on Reps — Coming for you! (%d XP vs %d XP). #RepsFitness"
+            "value": "⚡ @%@ vs @%@ on StreakRep — Coming for you! (%d XP vs %d XP). #StreakRepFitness"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "⚡ @%@ vs @%@ en Reps — ¡Voy a alcanzarte! (%d XP vs %d XP). #RepsFitness"
+            "value": "⚡ @%@ vs @%@ en StreakRep — ¡Voy a alcanzarte! (%d XP vs %d XP). #StreakRepFitness"
           }
         }
       }
@@ -78260,13 +78260,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Train, log and let Reps adjust your metrics."
+            "value": "Train, log and let StreakRep adjust your metrics."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Entrena, registra y deja que Reps ajuste tus métricas."
+            "value": "Entrena, registra y deja que StreakRep ajuste tus métricas."
           }
         }
       }
@@ -78855,13 +78855,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unlock Reps Pro for 7 days."
+            "value": "Unlock StreakRep Pro for 7 days."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desbloquea Reps Pro durante 7 días."
+            "value": "Desbloquea StreakRep Pro durante 7 días."
           }
         }
       }
@@ -78872,13 +78872,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unlock the receipt gallery, shareable cards, and workout images with Reps Pro."
+            "value": "Unlock the receipt gallery, shareable cards, and workout images with StreakRep Pro."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desbloquea la galería de recibos, tarjetas compartibles e imágenes resumen desde Reps Pro."
+            "value": "Desbloquea la galería de recibos, tarjetas compartibles e imágenes resumen desde StreakRep Pro."
           }
         }
       }
@@ -79957,13 +79957,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "View Reps Pro"
+            "value": "View StreakRep Pro"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ver Reps Pro"
+            "value": "Ver StreakRep Pro"
           }
         }
       }
@@ -81075,13 +81075,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Pro Required"
+            "value": "StreakRep Pro Required"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Requiere Reps Pro"
+            "value": "Requiere StreakRep Pro"
           }
         }
       }
@@ -82325,13 +82325,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open Reps to sync"
+            "value": "Open StreakRep to sync"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abre Reps para sincronizar"
+            "value": "Abre StreakRep para sincronizar"
           }
         }
       }

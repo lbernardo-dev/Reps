@@ -815,10 +815,16 @@ enum RepsText {
     }
 
     static func workoutTitle(_ value: String, language: String) -> String {
-        localizedTerm(prefix: "workout.title", value: value, defaultValue: value, language: language)
+        if let activityTitle = localizedKnownWorkoutTitle(value, language: language) {
+            return activityTitle
+        }
+        return localizedTerm(prefix: "workout.title", value: value, defaultValue: value, language: language)
     }
 
     static func localizedWorkoutSubtitle(_ value: String, language: String) -> String {
+        if let direct = localizedCatalogValue(value, defaultValue: value, language: language), direct != value {
+            return direct
+        }
         let canonical = canonicalWorkoutSubtitle(value)
         return localizedTerm(prefix: "workout.subtitle", value: canonical, defaultValue: canonical, language: language)
     }
@@ -831,6 +837,13 @@ enum RepsText {
 
     private static func localizedTerm(prefix: String, value: String, defaultValue: String, language: String) -> String {
         let key = "\(prefix).\(slug(value))"
+        if let localized = localizedCatalogValue(key, defaultValue: defaultValue, language: language) {
+            return localized
+        }
+        return defaultValue
+    }
+
+    private static func localizedCatalogValue(_ key: String, defaultValue: String, language: String) -> String? {
         if let path = Bundle.main.path(forResource: language, ofType: "lproj"),
            let languageBundle = Bundle(path: path) {
             let localized = languageBundle.localizedString(forKey: key, value: defaultValue, table: nil)
@@ -839,6 +852,33 @@ enum RepsText {
             }
         }
         return defaultValue
+    }
+
+    private static func localizedKnownWorkoutTitle(_ value: String, language: String) -> String? {
+        let key: String
+        switch normalized(value) {
+        case "traditional strength", "fuerza tradicional":
+            key = "activity_strength_traditional"
+        case "functional strength", "fuerza funcional":
+            key = "activity_strength_functional"
+        case "core", "core training", "entrenamiento de core":
+            key = "activity_core"
+        case "running", "carrera":
+            key = "activity_running"
+        case "walking", "caminar", "andar":
+            key = "activity_walking"
+        case "cycling", "ciclismo":
+            key = "activity_cycling"
+        case "swimming", "natacion":
+            key = "activity_swimming"
+        case "yoga":
+            key = "activity_yoga"
+        case "pilates":
+            key = "activity_pilates"
+        default:
+            return nil
+        }
+        return localizedCatalogValue(key, defaultValue: value, language: language)
     }
 
     private static func slug(_ value: String) -> String {

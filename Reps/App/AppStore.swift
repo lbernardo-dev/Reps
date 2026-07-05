@@ -157,7 +157,7 @@ final class AppStore {
             if let session {
                 return WorkoutShareImageRenderer.render(session: session)
             }
-            return WorkoutShareImageRenderer.render(title: "Reps Workout", duration: 0, volume: 0, sets: 0)
+            return WorkoutShareImageRenderer.render(title: "StreakRep Workout", duration: 0, volume: 0, sets: 0)
         }
         self.isUsingFallbackStorage = persistence.didFallbackToInMemory
         self.seenAchievementKeys = Set(UserDefaults.standard.stringArray(forKey: seenAchievementsKey) ?? [])
@@ -2059,7 +2059,7 @@ final class AppStore {
             return SharedWorkoutSnapshot(
                 hasActiveWorkout: false,
                 planTitle: activePlan.days.isEmpty ? nil : activePlan.name,
-                workoutTitle: "Reps",
+                workoutTitle: "StreakRep",
                 sessionTitle: nil,
                 elapsedSeconds: 0,
                 pausedSeconds: 0,

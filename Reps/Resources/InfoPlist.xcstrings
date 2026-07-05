@@ -24,13 +24,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reps"
+            "value" : "StreakRep"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reps"
+            "value" : "StreakRep"
           }
         }
       }
