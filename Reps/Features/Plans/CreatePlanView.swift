@@ -549,8 +549,8 @@ private struct SessionBuilderCard: View {
 
                 HStack(spacing: 12) {
                     CompactStepper(title: "duration_label", value: $day.durationMinutes, range: 10...240, suffix: "min", step: 5)
-                    CompactStepper(title: "between_exercises", value: $day.restBetweenExercisesSeconds, range: 0...600, suffix: "s", step: 15)
                 }
+                NumericSecondsField(title: "between_exercises", seconds: $day.restBetweenExercisesSeconds)
 
                 if day.sessionType == .cardioRun || day.sessionType == .cardioWalk || day.sessionType == .mixedRoute {
                     Label("this_session_will_show_gps_route_and_map_during_training", systemImage: "map.fill")

@@ -21,6 +21,7 @@ struct AppSnapshot: Codable {
     var activeWorkoutDrafts: [ExerciseSessionDraft]? = nil
     var activeWorkoutStatus: ActiveWorkoutStatus? = nil
     var savedShareCards: [SavedShareCard] = []
+    var rehabLogs: [RehabSessionLog] = []
 
     init(
         userProfile: UserProfile,
@@ -42,6 +43,7 @@ struct AppSnapshot: Codable {
         activeWorkoutDrafts: [ExerciseSessionDraft]? = nil,
         activeWorkoutStatus: ActiveWorkoutStatus? = nil,
         savedShareCards: [SavedShareCard] = [],
+        rehabLogs: [RehabSessionLog] = [],
         snapshotVersion: Int = 2
     ) {
         self.snapshotVersion = snapshotVersion
@@ -64,6 +66,7 @@ struct AppSnapshot: Codable {
         self.activeWorkoutDrafts = activeWorkoutDrafts
         self.activeWorkoutStatus = activeWorkoutStatus
         self.savedShareCards = savedShareCards
+        self.rehabLogs = rehabLogs
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -87,6 +90,7 @@ struct AppSnapshot: Codable {
         case activeWorkoutDrafts
         case activeWorkoutStatus
         case savedShareCards
+        case rehabLogs
     }
 
     init(from decoder: Decoder) throws {
@@ -111,6 +115,7 @@ struct AppSnapshot: Codable {
         activeWorkoutDrafts = try container.decodeIfPresent([ExerciseSessionDraft].self, forKey: .activeWorkoutDrafts)
         activeWorkoutStatus = try container.decodeIfPresent(ActiveWorkoutStatus.self, forKey: .activeWorkoutStatus)
         savedShareCards = try container.decodeIfPresent([SavedShareCard].self, forKey: .savedShareCards) ?? []
+        rehabLogs = try container.decodeIfPresent([RehabSessionLog].self, forKey: .rehabLogs) ?? []
     }
 }
 

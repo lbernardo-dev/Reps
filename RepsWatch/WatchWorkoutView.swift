@@ -1335,7 +1335,7 @@ struct WatchMusicBar: View {
                     Image(systemName: snapshot.isMusicPlaying == true ? "pause.fill" : "play.fill")
                 }
                 .buttonStyle(WatchCircleButtonStyle(color: .purple, size: 34))
-                .accessibilityLabel(snapshot.isMusicPlaying == true ? localizedString("Pause") : "Play")
+                .accessibilityLabel(snapshot.isMusicPlaying == true ? localizedString("Pause") : localizedString("Play"))
                 Button(action: onNext) { Image(systemName: "forward.fill") }
                     .buttonStyle(WatchCircleButtonStyle(color: .purple, size: 30))
                     .accessibilityLabel("Siguiente")

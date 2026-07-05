@@ -74,6 +74,16 @@ struct ExerciseLibraryView: View {
         NavigationStack {
             List {
                 Section {
+                    NavigationLink {
+                        RehabLibraryView()
+                    } label: {
+                        RehabEntryCard()
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                }
+
+                Section {
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(PulseTheme.secondaryText)

@@ -66,6 +66,41 @@ function extractSwiftStrings(source) {
   return strings;
 }
 
+function extractLocalizedLookupKeys(source) {
+  const keys = [];
+  const lookupPattern = /\blocalized(?:String|Format)\(\s*"((?:\\.|[^"\\])*)"/g;
+  for (const match of source.matchAll(lookupPattern)) {
+    if (match[1].includes("\\(")) continue;
+    keys.push(match[1]);
+  }
+  return keys;
+}
+
+function stripSwiftComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+}
+
+function stripRehabLocalizedText(source, relativePath) {
+  if (!relativePath.startsWith("Reps/Models/Rehab")) return source;
+
+  const pairPattern =
+    /RehabLocalizedText\(\s*en:\s*"((?:\\.|[^"\\])*)"\s*,\s*es:\s*"((?:\\.|[^"\\])*)"\s*\)/gs;
+
+  return source.replace(pairPattern, (_match, english, spanish) => {
+    if (!english.trim() || !spanish.trim()) {
+      errors.push(`${relativePath}: RehabLocalizedText has an empty en/es value`);
+    } else if (strongSpanishInEnglish.test(english)) {
+      errors.push(`${relativePath}: RehabLocalizedText English value still looks Spanish -> "${english}"`);
+    }
+    if (!samePlaceholders(english, spanish)) {
+      errors.push(`${relativePath}: RehabLocalizedText placeholder mismatch -> "${english}"`);
+    }
+    return "";
+  });
+}
+
 const spanishSignal = /[\u00C1\u00C9\u00CD\u00D3\u00DA\u00D1\u00E1\u00E9\u00ED\u00F3\u00FA\u00F1\u00BF\u00A1]|\b(entreno|entrenos|sesion|sesiones|serie|series|siguiente|guardar|cancelar|cerrar|peso|altura|fecha|agua|descanso|ejercicio|objetivo|permiso|anade|anadir|metricas|cuerpo|gimnasio|notificaciones|microfono|camara|fotos|semana|semanales|dias|calorias|duracion|distancia|notas|compartir|biblioteca|progreso|rutina|programa|activa|mostrar|marcar|perfil|salud|logros|recibos|calendario|volver|empezar|plantillas|hoy|ayer)\b/i;
 const strongSpanishInEnglish = /[\u00C1\u00C9\u00CD\u00D3\u00DA\u00D1\u00E1\u00E9\u00ED\u00F3\u00FA\u00F1\u00BF\u00A1]|\b(dias|semana|semanales|duracion|entrenado|directas|ultimos|recomienda|ejercicios|descanso|objetivo|previo|entreno|sesion)\b/i;
 
@@ -136,8 +171,15 @@ if (infoPlistResourceCount < 3) {
 for (const swiftFile of walk(root)) {
   const relativePath = path.relative(root, swiftFile);
   if (relativePath.startsWith("Scripts/")) continue;
-  const source = fs.readFileSync(swiftFile, "utf8");
-  for (const value of extractSwiftStrings(source)) {
+  const source = stripSwiftComments(fs.readFileSync(swiftFile, "utf8"));
+  for (const key of extractLocalizedLookupKeys(source)) {
+    if (!localizableKeys.has(key)) {
+      errors.push(`${relativePath}: localized lookup key is not present in Localizable.xcstrings -> "${key}"`);
+    }
+  }
+
+  const auditedSource = stripRehabLocalizedText(source, relativePath);
+  for (const value of extractSwiftStrings(auditedSource)) {
     if (spanishSignal.test(value) && !localizableKeys.has(value)) {
       errors.push(`${relativePath}: Spanish literal is not present in Localizable.xcstrings -> "${value}"`);
     }

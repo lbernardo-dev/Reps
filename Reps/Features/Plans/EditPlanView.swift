@@ -217,10 +217,10 @@ struct EditPlanView: View {
                             get: { days[dayIndex].durationMinutes },
                             set: { days[dayIndex].durationMinutes = $0 }
                         ), in: 10...180, step: 5)
-                        Stepper(localizedFormat("rest_between_exercises_format", days[dayIndex].restBetweenExercisesSeconds), value: Binding(
+                        NumericSecondsField(title: "between_exercises", seconds: Binding(
                             get: { days[dayIndex].restBetweenExercisesSeconds },
                             set: { days[dayIndex].restBetweenExercisesSeconds = $0 }
-                        ), in: 0...600, step: 15)
+                        ))
 
                         ForEach(days[dayIndex].exercises.indices, id: \.self) { exerciseIndex in
                             exerciseRow(dayIndex: dayIndex, exerciseIndex: exerciseIndex)

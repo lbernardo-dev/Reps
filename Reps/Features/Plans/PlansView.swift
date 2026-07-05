@@ -1415,6 +1415,38 @@ struct CompactStepper: View {
     }
 }
 
+/// Numeric-only seconds input (digits filtered as typed, no upper bound) —
+/// used for the exercise-change timer, which the user can extend well past
+/// the 5 min default and shouldn't be capped like a stepper range.
+struct NumericSecondsField: View {
+    let title: String
+    @Binding var seconds: Int
+    @State private var text: String = ""
+
+    var body: some View {
+        HStack {
+            Text(localizedKey(title))
+                .font(.subheadline)
+            Spacer()
+            TextField("300", text: $text)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 64)
+                .onChange(of: text) { _, newValue in
+                    let filtered = newValue.filter(\.isNumber)
+                    if filtered != newValue { text = filtered }
+                    seconds = Int(filtered) ?? 0
+                }
+            Text("s")
+                .font(.subheadline)
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .onAppear {
+            if text.isEmpty { text = String(seconds) }
+        }
+    }
+}
+
 struct PlanPreviewDay: View {
     let title: String
     let workout: String

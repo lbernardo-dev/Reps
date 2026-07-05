@@ -17,6 +17,7 @@ enum PersistenceScope: CaseIterable, Hashable, Sendable {
     case gymVisits
     case goals
     case savedShareCards
+    case rehabLogs
 
     static let all = Set(PersistenceScope.allCases)
 }
@@ -49,7 +50,8 @@ final class SwiftDataPersistence {
             SavedShareCardRecord.self,
             GymPassRecord.self,
             GymVisitRecord.self,
-            HealthSyncRecord.self
+            HealthSyncRecord.self,
+            RehabSessionLogRecord.self
         ])
 
         do {
@@ -151,7 +153,8 @@ final class SwiftDataPersistence {
             activeWorkout: activeWorkout,
             activeWorkoutDrafts: activeWorkoutDrafts,
             activeWorkoutStatus: activeWorkoutStatus,
-            savedShareCards: fetch(SavedShareCardRecord.self).map(\.domain)
+            savedShareCards: fetch(SavedShareCardRecord.self).map(\.domain),
+            rehabLogs: fetch(RehabSessionLogRecord.self).map(\.domain)
         )
     }
 
@@ -305,6 +308,16 @@ final class SwiftDataPersistence {
                 domainOf: \.domain,
                 recordID: \.id,
                 makeRecord: { SavedShareCardRecord(card: $0) },
+                deleteRecord: { context.delete($0) }
+            )
+        case .rehabLogs:
+            reconcile(
+                snapshot.rehabLogs,
+                existing: fetch(RehabSessionLogRecord.self),
+                id: \.id,
+                domainOf: \.domain,
+                recordID: \.id,
+                makeRecord: { RehabSessionLogRecord(log: $0) },
                 deleteRecord: { context.delete($0) }
             )
         }

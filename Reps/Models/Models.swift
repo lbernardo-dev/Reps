@@ -380,7 +380,7 @@ struct WorkoutDay: Codable, Identifiable, Hashable {
     var durationMinutes: Int
     var exercises: [WorkoutExercise]
     var sessionType: SessionType = .strength
-    var restBetweenExercisesSeconds: Int = 120
+    var restBetweenExercisesSeconds: Int = 300
     var cardioEnvironment: CardioEnvironment?
 }
 

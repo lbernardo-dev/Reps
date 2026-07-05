@@ -399,7 +399,7 @@ final class WorkoutDayRecord {
             durationMinutes: durationMinutes,
             exercises: exercises.map(\.domain),
             sessionType: WorkoutDay.SessionType(rawValue: sessionType ?? "") ?? .strength,
-            restBetweenExercisesSeconds: restBetweenExercisesSeconds ?? 120
+            restBetweenExercisesSeconds: restBetweenExercisesSeconds ?? 300
         )
     }
 }
@@ -614,6 +614,29 @@ final class GoalRecord {
 
     var domain: Goal {
         Goal(id: id, kind: Goal.Kind(rawValue: kind) ?? .strength, title: title, current: current, target: target, unit: unit, deadline: deadline)
+    }
+}
+
+@Model
+final class RehabSessionLogRecord {
+    var id: UUID
+    var rehabExerciseID: UUID
+    var date: Date
+    var setsCompleted: Int
+    var painLevel: Int
+    var notes: String?
+
+    init(log: RehabSessionLog) {
+        id = log.id
+        rehabExerciseID = log.rehabExerciseID
+        date = log.date
+        setsCompleted = log.setsCompleted
+        painLevel = log.painLevel
+        notes = log.notes
+    }
+
+    var domain: RehabSessionLog {
+        RehabSessionLog(id: id, rehabExerciseID: rehabExerciseID, date: date, setsCompleted: setsCompleted, painLevel: painLevel, notes: notes)
     }
 }
 

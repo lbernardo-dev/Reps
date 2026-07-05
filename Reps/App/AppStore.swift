@@ -54,6 +54,10 @@ final class AppStore {
     var gymPasses: [GymPass] = [] { didSet { save(scope: .gymPasses) } }
     var gymVisits: [GymVisit] = [] { didSet { save(scope: .gymVisits) } }
     var goals: [Goal] = [] { didSet { save(scope: .goals) } }
+    /// Static, bundled rehab catalog — read-only content, never persisted itself
+    /// (mirrors how `SeedData` seeds `exercises`, but with no user edits to save).
+    let rehabCatalog: [RehabExercise] = RehabSeedData.exercises
+    var rehabLogs: [RehabSessionLog] = [] { didSet { save(scope: .rehabLogs) } }
     var health = HealthSyncState() { didSet { save(scope: .health); updateTrainingBattery() } }
     var isSyncingExerciseLibrary = false
     var exerciseLibrarySyncMessage: String?
@@ -3091,7 +3095,25 @@ final class AppStore {
             activeWorkout: activeWorkout,
             activeWorkoutDrafts: activeWorkoutDrafts,
             activeWorkoutStatus: activeWorkoutStatus,
-            savedShareCards: savedShareCards
+            savedShareCards: savedShareCards,
+            rehabLogs: rehabLogs
+        )
+    }
+
+    func rehabLogs(forExerciseID exerciseID: UUID) -> [RehabSessionLog] {
+        rehabLogs
+            .filter { $0.rehabExerciseID == exerciseID }
+            .sorted { $0.date > $1.date }
+    }
+
+    func logRehabSession(exerciseID: UUID, setsCompleted: Int, painLevel: Int, notes: String? = nil) {
+        rehabLogs.append(
+            RehabSessionLog(
+                rehabExerciseID: exerciseID,
+                setsCompleted: setsCompleted,
+                painLevel: painLevel,
+                notes: notes
+            )
         )
     }
 
@@ -3138,7 +3160,8 @@ final class AppStore {
         activeWorkoutDrafts = snapshot.activeWorkoutDrafts ?? []
         activeWorkoutStatus = snapshot.activeWorkoutStatus
         savedShareCards = snapshot.savedShareCards
-        
+        rehabLogs = snapshot.rehabLogs
+
         sanitizeAvailableEquipment()
 
         isRestoring = false

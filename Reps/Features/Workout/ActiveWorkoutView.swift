@@ -35,6 +35,7 @@ struct ActiveWorkoutView: View {
     @State private var restSeconds = 0
     @State private var restStartedAt: Date? = nil   // ← date-based rest timing
     @State private var restDuration = 0              // duration when rest started
+    @State private var restKind: RestPhaseKind = .betweenSets
     @State private var finishedSession: WorkoutSession?
     @State private var selectedExerciseIndex = 0
     @State private var showAdvancedFields = false
@@ -262,9 +263,11 @@ struct ActiveWorkoutView: View {
                     restDuration   = dur
                     restStartedAt  = Date().addingTimeInterval(-Double(dur - savedRest))
                     restSeconds    = savedRest
+                    restKind       = dur == workout.restBetweenExercisesSeconds ? .exerciseChange : .betweenSets
                 } else {
                     restSeconds    = 0
                     restStartedAt  = nil
+                    restKind       = .betweenSets
                 }
                 startedAt          = status.startedAt
                 lastPausedAt       = status.lastPausedAt
@@ -741,7 +744,12 @@ struct ActiveWorkoutView: View {
                 if remaining == 0 {
                     restSeconds = 0
                     restStartedAt = nil
-                    HapticService.notification(.success)
+                    if restKind == .exerciseChange {
+                        HapticService.exerciseChangeTimerEnded()
+                        advanceToNextExerciseAfterTransition()
+                    } else {
+                        HapticService.restTimerEnded()
+                    }
                 }
             }
         }
@@ -1178,15 +1186,21 @@ struct ActiveWorkoutView: View {
         let undoAction: (() -> Void)? = lastCompletedSetUndoContext == nil
             ? nil
             : { undoLastCompletedSet() }
+        let backAction: (() -> Void)? = (restKind == .exerciseChange && selectedExerciseIndex > 0)
+            ? { moveExercise(by: -1) }
+            : nil
         return ActiveRestPanel(
             isRestActive: lastSetCompletedAtSeconds != nil,
             currentRestSeconds: currentRestRemainingSeconds(),
             restStartedAt: restStartedAt,
             restDuration: restDuration,
+            kind: restKind,
+            nextExerciseName: restKind == .exerciseChange ? nextExerciseTitle : nil,
             onDecrease: { adjustRest(by: -15) },
             onIncrease: { adjustRest(by: 15) },
             onSkipOrRestart: toggleRestTimer,
-            onUndo: undoAction
+            onUndo: undoAction,
+            onBackToPreviousExercise: backAction
         )
     }
 
@@ -2086,7 +2100,8 @@ struct ActiveWorkoutView: View {
     private func toggleRestTimer() {
         HapticService.selection()
         if currentRestRemainingSeconds() == 0 {
-            startRest(duration: currentRestDuration)
+            let kind = restKind
+            startRest(duration: kind == .exerciseChange ? workout.restBetweenExercisesSeconds : currentRestDuration, kind: kind)
         } else {
             stopRest()
         }
@@ -2385,7 +2400,7 @@ struct ActiveWorkoutView: View {
         lastSetCompletedAtSeconds = elapsedSeconds
 
         if let duration = outcome?.restDurationSeconds {
-            startRest(duration: duration)
+            startRest(duration: duration, kind: outcome?.shouldMoveToNextExercise == true ? .exerciseChange : .betweenSets)
         } else {
             stopRest()
         }
@@ -2393,8 +2408,9 @@ struct ActiveWorkoutView: View {
     }
 
     /// Begins a date-anchored rest countdown so the timer survives background suspension.
-    private func startRest(duration: Int) {
+    private func startRest(duration: Int, kind: RestPhaseKind = .betweenSets) {
         guard duration > 0 else { stopRest(); return }
+        restKind      = kind
         restDuration  = duration
         restStartedAt = Date()
         restSeconds   = duration
@@ -2409,7 +2425,21 @@ struct ActiveWorkoutView: View {
         restSeconds   = 0
         restStartedAt = nil
         restDuration  = 0
+        restKind      = .betweenSets
         NotificationService.cancelRestEndNotification()
+    }
+
+    /// Called when the exercise-change timer reaches zero: auto-advance to
+    /// whichever exercise still has pending sets (falls back to the next
+    /// index if the plan is otherwise complete).
+    private func advanceToNextExerciseAfterTransition() {
+        withAnimation(.snappy(duration: 0.25)) {
+            if let next = nextIncompleteSet {
+                selectedExerciseIndex = next.exerciseIndex
+            } else if !exerciseDrafts.isEmpty {
+                selectedExerciseIndex = min(selectedExerciseIndex + 1, exerciseDrafts.count - 1)
+            }
+        }
     }
 
     private func applyAutoProgressionIfNeeded() {
