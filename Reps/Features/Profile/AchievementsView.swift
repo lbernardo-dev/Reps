@@ -605,7 +605,9 @@ enum SavedShareCardDateFormatter {
 struct ReceiptPreviewSheet: View {
     let card: SavedShareCard
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppStore.self) private var store
     @State private var uiImage: UIImage? = nil
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -649,6 +651,13 @@ struct ReceiptPreviewSheet: View {
             .navigationTitle(card.workoutTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(localizedString("close")) {
                         dismiss()
@@ -657,6 +666,19 @@ struct ReceiptPreviewSheet: View {
             }
             .onAppear {
                 uiImage = UIImage(data: card.imageData)
+            }
+            .confirmationDialog(
+                localizedString("delete_receipt_confirm_title"),
+                isPresented: $showDeleteConfirm,
+                titleVisibility: .visible
+            ) {
+                Button(localizedString("delete_receipt_action"), role: .destructive) {
+                    store.deleteSavedShareCard(card)
+                    dismiss()
+                }
+                Button(localizedString("cancel"), role: .cancel) {}
+            } message: {
+                Text(localizedString("delete_receipt_confirm_message"))
             }
         }
     }

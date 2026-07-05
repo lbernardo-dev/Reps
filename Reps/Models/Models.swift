@@ -57,10 +57,12 @@ struct UserProfile: Codable {
     var avatarImageData: Data?
     var preferredLanguage = UserProfile.deviceDefaultLanguage
 
-    /// Fresh installs use the app's development language so shared services,
-    /// widgets and tests start from one deterministic localization baseline.
+    /// Fresh installs follow the user's supported system language. If neither
+    /// English nor Spanish is preferred, English is the fallback.
     static var deviceDefaultLanguage: String {
-        "es"
+        Locale.preferredLanguages
+            .compactMap { $0.split(separator: "-").first?.lowercased() }
+            .first { ["en", "es"].contains($0) } ?? "en"
     }
     var units: Units = .metric
     var distanceUnit: DistanceUnit = .kilometers

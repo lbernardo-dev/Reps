@@ -14,7 +14,7 @@ import WidgetKit
 
 #if canImport(SwiftUI)
 enum RepsLocalization {
-    nonisolated(unsafe) private static var activeLanguage: String = "es"
+    nonisolated(unsafe) private static var activeLanguage: String = Self.preferredSupportedLanguage()
 
     static var language: String {
         activeLanguage
@@ -26,9 +26,7 @@ enum RepsLocalization {
 
     @discardableResult
     static func use(_ language: String?) -> Locale {
-        if let language, !language.isEmpty {
-            activeLanguage = language
-        }
+        activeLanguage = normalizedSupportedLanguage(language)
         return locale
     }
 
@@ -41,6 +39,20 @@ enum RepsLocalization {
             }
         }
         return String(localized: String.LocalizationValue(key), bundle: .main, locale: locale)
+    }
+
+    private static func normalizedSupportedLanguage(_ language: String?) -> String {
+        guard let identifier = language?.split(separator: "-").first?.lowercased(),
+              ["en", "es"].contains(identifier) else {
+            return preferredSupportedLanguage()
+        }
+        return identifier
+    }
+
+    private static func preferredSupportedLanguage() -> String {
+        Locale.preferredLanguages
+            .compactMap { $0.split(separator: "-").first?.lowercased() }
+            .first { ["en", "es"].contains($0) } ?? "en"
     }
 }
 

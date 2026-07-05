@@ -191,14 +191,17 @@ struct WorkoutReceiptView: View {
     
     private var dateString: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "dd MMM yyyy"
-        formatter.locale = Locale(identifier: localizedString("en_us"))
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        formatter.locale = RepsLocalization.locale
         return formatter.string(from: sharePayload.date).uppercased()
     }
     
     private var timeString: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        formatter.locale = RepsLocalization.locale
         return formatter.string(from: sharePayload.date)
     }
     

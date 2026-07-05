@@ -1376,7 +1376,7 @@ struct WatchWaterRow: View {
                     .background(Color.cyan.opacity(0.14), in: Capsule())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Añadir 250 ml de agua")
+            .accessibilityLabel(Text("add_250_ml_water"))
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 10)

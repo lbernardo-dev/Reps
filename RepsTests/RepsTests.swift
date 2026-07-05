@@ -6,6 +6,10 @@ import MuscleMap
 
 @Suite(.serialized)
 struct RepsTests {
+    init() {
+        RepsLocalization.use("es")
+    }
+
     @Test func weeklyCompletionCapsAtOne() async throws {
         let store = await AppStore(persistence: SwiftDataPersistence(inMemory: true))
         let completion = await store.weeklyCompletion

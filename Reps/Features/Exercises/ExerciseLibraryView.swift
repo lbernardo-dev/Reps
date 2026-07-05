@@ -403,58 +403,11 @@ private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable {
 
 private enum ExerciseTextLocalizer {
     static func muscle(_ value: String, language: String = Locale.current.language.languageCode?.identifier ?? "en") -> String {
-        guard language.hasPrefix("es") else {
-            return canonicalMuscle(value)
-        }
-
-        return switch value.normalizedExerciseFilterValue {
-        case "arms": "Brazos"
-        case "back": "Espalda"
-        case "cardio": "Cardio"
-        case "chest": "Pecho"
-        case "core", "abdominals": "Core"
-        case "full body": "Cuerpo completo"
-        case "glutes": "Glúteos"
-        case "legs": "Piernas"
-        case "neck": "Cuello"
-        case "shoulders": "Hombros"
-        default: value
-        }
+        RepsText.muscle(value, language: language)
     }
 
     static func equipment(_ value: String, language: String = Locale.current.language.languageCode?.identifier ?? "en") -> String {
-        guard language.hasPrefix("es") else {
-            return canonicalEquipment(value)
-        }
-
-        return switch value.normalizedExerciseFilterValue {
-        case "barbell": "Barra"
-        case "body only", "bodyweight": "Peso corporal"
-        case "cable": "Polea"
-        case "cardio machine": "Máquina de cardio"
-        case "dumbbell", "dumbbells": "Mancuernas"
-        case "kettlebell", "kettlebells": "Kettlebells"
-        case "machine", "machines": "Máquina"
-        case "other": "Otro"
-        case "resistance band": "Banda elástica"
-        default: value
-        }
-    }
-
-    private static func canonicalMuscle(_ value: String) -> String {
-        switch value.normalizedExerciseFilterValue {
-        case "abdominals": "Core"
-        default: value
-        }
-    }
-
-    private static func canonicalEquipment(_ value: String) -> String {
-        switch value.normalizedExerciseFilterValue {
-        case "body only": "Bodyweight"
-        case "dumbbell": "Dumbbells"
-        case "kettlebell": "Kettlebells"
-        default: value
-        }
+        RepsText.equipment(value, language: language)
     }
 }
 

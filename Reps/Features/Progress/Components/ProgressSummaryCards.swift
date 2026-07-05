@@ -22,15 +22,15 @@ struct DailySummaryFocusCard: View {
 
   private var headline: String {
     if !hasHealthData && !hasManualData {
-      return "Configura Health o registra una sesión"
+      return localizedString("daily_summary_headline_configure_health")
     }
     if sessionsToday > 0 {
-      return "Sesión registrada hoy"
+      return localizedString("daily_summary_headline_session_today")
     }
     if readinessLevel < 45 {
-      return "Hoy conviene bajar la carga"
+      return localizedString("daily_summary_headline_reduce_load")
     }
-    return "Listo para entrenar con criterio"
+    return localizedString("daily_summary_headline_ready")
   }
 
   var body: some View {
@@ -69,8 +69,8 @@ struct DailySummaryFocusCard: View {
 
         HStack(spacing: 8) {
           DailySignalPill(
-            title: "Hoy",
-            value: sessionsToday > 0 ? "\(sessionsToday) ses." : "pendiente",
+            title: localizedString("today_2"),
+            value: sessionsToday > 0 ? localizedFormat("short_sessions_count_format", sessionsToday) : localizedString("pending"),
             systemImage: "checkmark.circle.fill",
             color: sessionsToday > 0 ? PulseTheme.ringExercise : PulseTheme.warning
           )
@@ -81,7 +81,7 @@ struct DailySummaryFocusCard: View {
             color: PulseTheme.ringMove
           )
           DailySignalPill(
-            title: "Semana",
+            title: localizedString("week"),
             value: "\(exerciseMinutesWeek) min",
             systemImage: "figure.run",
             color: PulseTheme.ringStand
@@ -90,7 +90,7 @@ struct DailySummaryFocusCard: View {
 
         HStack(spacing: 10) {
           Button(action: onOpenWorkout) {
-	            Label("Entrenar", systemImage: "play.fill")
+	            Label(localizedString("train"), systemImage: "play.fill")
 	              .font(.subheadline.weight(.black))
 	              .foregroundStyle(PulseTheme.onColor(PulseTheme.ringExercise))
 	              .frame(maxWidth: .infinity)
@@ -100,7 +100,7 @@ struct DailySummaryFocusCard: View {
           .buttonStyle(.plain)
 
           Button(action: onOpenCalendar) {
-	            Label("Plan", systemImage: "calendar")
+	            Label(localizedString("plan"), systemImage: "calendar")
 	              .font(.subheadline.weight(.black))
 	              .foregroundStyle(PulseTheme.textSecondary)
 	              .frame(maxWidth: .infinity)

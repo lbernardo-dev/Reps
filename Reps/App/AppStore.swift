@@ -1231,6 +1231,10 @@ final class AppStore {
         }
     }
 
+    func deleteSavedShareCard(_ card: SavedShareCard) {
+        savedShareCards.removeAll { $0.id == card.id }
+    }
+
     private static let junkHealthCleanupDefaultsKey = "didCleanupJunkHealthWorkouts_v1"
 
     /// One-time sweep that removes the empty/duplicate auto-imported workouts (and

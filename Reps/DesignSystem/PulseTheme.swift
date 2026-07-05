@@ -762,104 +762,17 @@ struct RepsActivityRings: View {
 
 enum RepsText {
     static func exerciseName(_ value: String, language: String) -> String {
-        guard language.hasPrefix("es") else { return value }
-        return switch normalized(value) {
-        case "barbell bench press": "Press banca con barra"
-        case "incline dumbbell press": "Press inclinado con mancuernas"
-        case "overhead press": "Press militar"
-        case "barbell deadlift": "Peso muerto con barra"
-        case "barbell squat": "Sentadilla con barra"
-        case "barbell back squat": "Sentadilla trasera con barra"
-        case "dumbbell row": "Remo con mancuerna"
-        case "push-up": "Flexiones"
-        case "plank": "Plancha"
-        case "walking lunge": "Zancadas caminando"
-        case "pull-up": "Dominadas"
-        case "inverted row": "Remo invertido"
-        case "goblet squat": "Sentadilla goblet"
-        case "romanian deadlift": "Peso muerto rumano"
-        case "dumbbell romanian deadlift": "Peso muerto rumano con mancuernas"
-        case "dumbbell deadlift": "Peso muerto con mancuernas"
-        case "hip thrust": "Hip thrust"
-        case "band row": "Remo con banda"
-        case "band face pull": "Face pull con banda"
-        case "dumbbell floor press": "Press en suelo con mancuernas"
-        case "lateral raise": "Elevación lateral"
-        case "dumbbell curl": "Curl con mancuernas"
-        case "dumbbell preacher curl": "Curl predicador con mancuernas"
-        case "overhead triceps extension": "Extensión de tríceps sobre cabeza"
-        case "bulgarian split squat": "Sentadilla búlgara"
-        case "standing calf raise": "Elevación de gemelos"
-        case "mountain climber": "Escalador"
-        case "kettlebell swing": "Swing con kettlebell"
-        case "stationary bike": "Bicicleta estática"
-        case "treadmill run": "Carrera en cinta"
-        case "rowing machine": "Remo en máquina"
-        case "t-bar row (chest supported)": "Remo T con apoyo de pecho"
-        case "leg press (plate-loaded)": "Prensa de piernas"
-        case "machine chest press": "Press de pecho en máquina"
-        case "cable kneeling crunch": "Crunch arrodillado en polea"
-        case "cable pushdown (with rope)": "Jalón de tríceps con cuerda"
-        case "cable straight arm pulldown": "Pulldown brazos rectos en polea"
-        case "machine seated leg extension": "Extensión de piernas en máquina"
-        case "smith machine calf raise (with block)": "Elevación de gemelos en Smith"
-        default: value
-        }
+        localizedTerm(prefix: "exercise", value: value, defaultValue: value, language: language)
     }
 
     static func muscle(_ value: String, language: String) -> String {
-        guard language.hasPrefix("es") else { return value == "Abdominals" ? "Core" : value }
-        return switch normalized(value) {
-        case "arms": "Brazos"
-        case "back": "Espalda"
-        case "biceps": "Bíceps"
-        case "cardio": "Cardio"
-        case "chest": "Pecho"
-        case "core", "abdominals": "Core"
-        case "abs": "Abdominales"
-        case "adductors": "Aductores"
-        case "abductors": "Abductores"
-        case "calves": "Gemelos"
-        case "forearms": "Antebrazos"
-        case "full body": "Cuerpo completo"
-        case "glutes": "Glúteos"
-        case "hamstrings": "Isquios"
-        case "lats": "Dorsales"
-        case "legs": "Piernas"
-        case "lower back": "Lumbar"
-        case "neck": "Cuello"
-        case "quadriceps": "Cuádriceps"
-        case "shoulders": "Hombros"
-        case "traps": "Trapecios"
-        case "triceps": "Tríceps"
-        case "upper back": "Espalda alta"
-        default: value
-        }
+        let canonical = canonicalMuscle(value)
+        return localizedTerm(prefix: "muscle", value: canonical, defaultValue: canonical, language: language)
     }
 
     static func equipment(_ value: String, language: String) -> String {
-        guard language.hasPrefix("es") else { return value }
-        return switch normalized(value) {
-        case "barbell": "Barra"
-        case "body only", "bodyweight": "Peso corporal"
-        case "cable": "Polea"
-        case "cardio machine": "Máquina de cardio"
-        case "dumbbell", "dumbbells": "Mancuernas"
-        case "ez bar", "e-z curl bar": "Barra Z"
-        case "kettlebell", "kettlebells": "Kettlebell"
-        case "leg press": "Prensa de piernas"
-        case "machine", "machines": "Máquina"
-        case "medicine ball": "Balón medicinal"
-        case "other": "Otro"
-        case "resistance band": "Banda elástica"
-        case "bench": "Banco"
-        case "rack": "Rack"
-        case "smith machine": "Multipower / Smith"
-        case "suspension trainer": "TRX / suspensión"
-        case "pullup bar": "Dominadas"
-        case "cardio": "Cardio"
-        default: value
-        }
+        let canonical = canonicalEquipment(value)
+        return localizedTerm(prefix: "equipment", value: canonical, defaultValue: canonical, language: language)
     }
 
     static func equipmentIcon(_ value: String) -> String {
@@ -902,33 +815,81 @@ enum RepsText {
     }
 
     static func workoutTitle(_ value: String, language: String) -> String {
-        guard language.hasPrefix("es") else { return value }
-        return switch normalized(value) {
-        case "push day": "Día de empuje"
-        case "pull day": "Día de tirón"
-        case "leg day": "Día de pierna"
-        case "home full body a": "Full body casa A"
-        case "home full body b": "Full body casa B"
-        default: value
-        }
+        localizedTerm(prefix: "workout.title", value: value, defaultValue: value, language: language)
     }
 
     static func localizedWorkoutSubtitle(_ value: String, language: String) -> String {
-        guard language.hasPrefix("es") else { return value }
-        return switch normalized(value) {
-        case "upper body & core", "upper body and core": "Tren superior y core"
-        case "back & biceps", "back and biceps": "Espalda y bíceps"
-        case "lower body": "Tren inferior"
-        case "dumbbells, bands & bodyweight", "dumbbells, bands and bodyweight": "Mancuernas, bandas y peso corporal"
-        case "limited equipment strength": "Fuerza con equipamiento limitado"
-        default: value
-        }
+        let canonical = canonicalWorkoutSubtitle(value)
+        return localizedTerm(prefix: "workout.subtitle", value: canonical, defaultValue: canonical, language: language)
     }
 
     private static func normalized(_ value: String) -> String {
         value.trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
             .lowercased()
+    }
+
+    private static func localizedTerm(prefix: String, value: String, defaultValue: String, language: String) -> String {
+        let key = "\(prefix).\(slug(value))"
+        if let path = Bundle.main.path(forResource: language, ofType: "lproj"),
+           let languageBundle = Bundle(path: path) {
+            let localized = languageBundle.localizedString(forKey: key, value: defaultValue, table: nil)
+            if localized != key {
+                return localized
+            }
+        }
+        return defaultValue
+    }
+
+    private static func slug(_ value: String) -> String {
+        normalized(value)
+            .map { character in
+                character.isLetter || character.isNumber ? character : "_"
+            }
+            .reduce(into: "") { partial, character in
+                if character == "_" && partial.last == "_" {
+                    return
+                }
+                partial.append(character)
+            }
+            .trimmingCharacters(in: CharacterSet(charactersIn: "_"))
+    }
+
+    private static func canonicalMuscle(_ value: String) -> String {
+        switch normalized(value) {
+        case "abdominals":
+            return "Core"
+        default:
+            return value
+        }
+    }
+
+    private static func canonicalEquipment(_ value: String) -> String {
+        switch normalized(value) {
+        case "body only":
+            return "Bodyweight"
+        case "dumbbell":
+            return "Dumbbells"
+        case "kettlebell":
+            return "Kettlebell"
+        case "machines":
+            return "Machine"
+        default:
+            return value
+        }
+    }
+
+    private static func canonicalWorkoutSubtitle(_ value: String) -> String {
+        switch normalized(value) {
+        case "upper body and core":
+            return "Upper Body & Core"
+        case "back and biceps":
+            return "Back & Biceps"
+        case "dumbbells, bands and bodyweight":
+            return "Dumbbells, Bands & Bodyweight"
+        default:
+            return value
+        }
     }
 }
 

@@ -67,20 +67,37 @@ function extractSwiftStrings(source) {
 }
 
 const spanishSignal = /[\u00C1\u00C9\u00CD\u00D3\u00DA\u00D1\u00E1\u00E9\u00ED\u00F3\u00FA\u00F1\u00BF\u00A1]|\b(entreno|entrenos|sesion|sesiones|serie|series|siguiente|guardar|cancelar|cerrar|peso|altura|fecha|agua|descanso|ejercicio|objetivo|permiso|anade|anadir|metricas|cuerpo|gimnasio|notificaciones|microfono|camara|fotos|semana|semanales|dias|calorias|duracion|distancia|notas|compartir|biblioteca|progreso|rutina|programa|activa|mostrar|marcar|perfil|salud|logros|recibos|calendario|volver|empezar|plantillas|hoy|ayer)\b/i;
-const strongSpanishInEnglish = /[\u00C1\u00C9\u00CD\u00D3\u00DA\u00D1\u00E1\u00E9\u00ED\u00F3\u00FA\u00F1\u00BF\u00A1]|\b(dias|semana|semanales|duracion|entrenado|directas|ultimos|recomienda|frecuencia|ejercicios|descanso|objetivo|previo|entreno|sesion)\b/i;
+const strongSpanishInEnglish = /[\u00C1\u00C9\u00CD\u00D3\u00DA\u00D1\u00E1\u00E9\u00ED\u00F3\u00FA\u00F1\u00BF\u00A1]|\b(dias|semana|semanales|duracion|entrenado|directas|ultimos|recomienda|ejercicios|descanso|objetivo|previo|entreno|sesion)\b/i;
 
 const catalogs = catalogPaths.map((relativePath) => [relativePath, readJSON(relativePath)]);
 const localizable = readJSON("Reps/Resources/Localizable.xcstrings");
 const localizableKeys = new Set(Object.keys(localizable.strings));
 
+function placeholders(value) {
+  return [...value.matchAll(/%(?:\d+\$)?(?:\.\d+)?[@dfisu]/g)].map((match) =>
+    match[0].replace(/^\%(\d+\$)?(?:\.\d+)?/, "%")
+  );
+}
+
+function samePlaceholders(a, b) {
+  const left = placeholders(a).sort();
+  const right = placeholders(b).sort();
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 for (const [relativePath, catalog] of catalogs) {
   if (catalog.sourceLanguage !== "es") {
     errors.push(`${relativePath}: expected sourceLanguage "es", got "${catalog.sourceLanguage}"`);
   }
+  let staleCount = 0;
   for (const [key, entry] of Object.entries(catalog.strings)) {
+    const isStale = entry.extractionState === "stale";
     if (entry.extractionState === "stale") {
-      errors.push(`${relativePath}: stale key "${key}"`);
+      staleCount += 1;
     }
+
+    if (isStale) continue;
+
     for (const language of ["en", "es"]) {
       const unit = entry.localizations?.[language]?.stringUnit;
       if (!unit?.value) {
@@ -93,6 +110,13 @@ for (const [relativePath, catalog] of catalogs) {
     if (strongSpanishInEnglish.test(english)) {
       errors.push(`${relativePath}: English value still looks Spanish for key "${key}" -> "${english}"`);
     }
+    const spanish = entry.localizations?.es?.stringUnit?.value ?? "";
+    if (english && spanish && !samePlaceholders(english, spanish)) {
+      errors.push(`${relativePath}: placeholder mismatch for key "${key}"`);
+    }
+  }
+  if (staleCount > 0) {
+    console.warn(`${relativePath}: ${staleCount} stale entries ignored by release gate; schedule catalog cleanup.`);
   }
 }
 

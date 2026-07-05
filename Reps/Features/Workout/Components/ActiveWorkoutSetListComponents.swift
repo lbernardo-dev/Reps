@@ -75,14 +75,14 @@ struct SwipeToDeleteView<Content: View>: View {
                     }
                 }
         }
-        .alert("¿Eliminar serie?", isPresented: $isPresented) {
-            Button("Cancelar", role: .cancel) {
+        .alert(localizedString("delete_set_title"), isPresented: $isPresented) {
+            Button(localizedString("cancel"), role: .cancel) {
                 withAnimation(.spring()) {
                     offset = 0
                     showDeleteButton = false
                 }
             }
-            Button("Eliminar", role: .destructive) {
+            Button(localizedString("delete"), role: .destructive) {
                 onDelete()
                 withAnimation(.spring()) {
                     offset = 0
@@ -90,7 +90,7 @@ struct SwipeToDeleteView<Content: View>: View {
                 }
             }
         } message: {
-            Text("Esta acción no se puede deshacer.")
+            Text("delete_set_message")
         }
     }
 }
@@ -141,4 +141,3 @@ struct ActiveAdvancedSetFieldsList: View {
         .padding(.top, 8)
     }
 }
-

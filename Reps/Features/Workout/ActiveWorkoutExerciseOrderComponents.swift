@@ -92,18 +92,18 @@ struct ActiveExerciseOrderCard: View {
                 }
             }
         }
-        .confirmationDialog("Eliminar ejercicio", isPresented: deleteConfirmationBinding, titleVisibility: .visible) {
-            Button("Eliminar", role: .destructive) {
+        .confirmationDialog(localizedString("delete_exercise_title"), isPresented: deleteConfirmationBinding, titleVisibility: .visible) {
+            Button(localizedString("delete"), role: .destructive) {
                 guard let pendingDeleteIndex else { return }
                 onDelete(pendingDeleteIndex)
                 self.pendingDeleteIndex = nil
                 revealedDeleteIndex = nil
             }
-            Button("cancel", role: .cancel) {
+            Button(localizedString("cancel"), role: .cancel) {
                 pendingDeleteIndex = nil
             }
         } message: {
-            Text("Este ejercicio se quitará de la sesión actual.")
+            Text("delete_exercise_message")
         }
     }
 

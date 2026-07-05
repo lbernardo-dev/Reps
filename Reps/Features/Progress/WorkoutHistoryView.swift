@@ -91,7 +91,7 @@ struct WorkoutHistoryView: View {
         // Group by month
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "LLLL yyyy"
-        dateFormatter.locale = Locale(identifier: "es")
+        dateFormatter.locale = RepsLocalization.locale
         
         let grouped = Dictionary(grouping: filtered) { session -> String in
             dateFormatter.string(from: session.date).capitalized
