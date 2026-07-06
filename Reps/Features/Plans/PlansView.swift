@@ -9,12 +9,35 @@ struct PlansView: View {
         store.monetization.hasProAccess || store.plans.isEmpty
     }
 
+    private func canManagePlan(_ plan: WorkoutPlan) -> Bool {
+        store.monetization.hasProAccess || store.plans.count <= 1 || plan.id == store.activePlan.id
+    }
+
     private func tryOpenCreatePlan() {
         if isProOrHasNoPlan {
             showCreatePlan = true
         } else {
             store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
         }
+    }
+
+    private func tryActivateSavedPlan(_ plan: WorkoutPlan) {
+        guard canManagePlan(plan) else {
+            store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+            return
+        }
+
+        HapticService.selection()
+        store.activatePlan(plan)
+    }
+
+    private func tryEditPlan(_ plan: WorkoutPlan) {
+        guard canManagePlan(plan) else {
+            store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+            return
+        }
+
+        planToEdit = plan
     }
 
     /// Browsing the catalog (search, filter, read details) is always free —
@@ -127,17 +150,12 @@ struct PlansView: View {
                     } else {
                         LazyVStack(spacing: 10) {
                             ForEach(inactivePlans) { plan in
-                                PlanCard(plan: plan, isLocked: !store.monetization.hasProAccess) {
+                                PlanCard(plan: plan, isLocked: !canManagePlan(plan)) {
                                     selectedPlanForDetail = plan
                                 } onActivate: {
-                                    if store.monetization.hasProAccess {
-                                        HapticService.selection()
-                                        store.activatePlan(plan)
-                                    } else {
-                                        store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
-                                    }
+                                    tryActivateSavedPlan(plan)
                                 } onEdit: {
-                                    planToEdit = plan
+                                    tryEditPlan(plan)
                                 } onDelete: {
                                     store.deletePlan(plan)
                                 }
@@ -156,18 +174,18 @@ struct PlansView: View {
                 EditPlanView(plan: plan)
             }
             .sheet(item: $selectedPlanForDetail) { plan in
-                PlanDetailSheet(plan: plan) {
-                    if store.monetization.hasProAccess {
-                        store.activatePlan(plan)
+                PlanDetailSheet(plan: plan, isLocked: !canManagePlan(plan)) {
+                    tryActivateSavedPlan(plan)
+                    if canManagePlan(plan) {
                         selectedPlanForDetail = nil
-                    } else {
-                        store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
                     }
                 } onEdit: {
-                    selectedPlanForDetail = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        planToEdit = plan
+                    guard canManagePlan(plan) else {
+                        store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+                        return
                     }
+                    selectedPlanForDetail = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { planToEdit = plan }
                 }
                 .environment(store)
             }
@@ -434,7 +452,10 @@ struct PlansView: View {
                         Button {
                             tryOpenCreatePlan()
                         } label: {
-                            Label("create_plan", systemImage: "plus")
+                            Label(
+                                store.monetization.hasProAccess ? localizedString("create_plan") : "Crear plan Pro",
+                                systemImage: store.monetization.hasProAccess ? "plus" : "lock.fill"
+                            )
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
@@ -862,12 +883,12 @@ private struct PlanCard: View {
                         Button {
                             onActivate()
                         } label: {
-                            Label(localizedString("activate_plan"), systemImage: "bolt.fill")
+                            Label(isLocked ? "Activar con Pro" : localizedString("activate_plan"), systemImage: isLocked ? "lock.fill" : "bolt.fill")
                         }
                         Button {
                             onEdit()
                         } label: {
-                            Label(localizedString("edit_plan"), systemImage: "pencil")
+                            Label(isLocked ? "Editar con Pro" : localizedString("edit_plan"), systemImage: isLocked ? "lock.fill" : "pencil")
                         }
                         Button(role: .destructive) {
                             onDelete()
@@ -896,12 +917,12 @@ private struct PlanCard: View {
             Button {
                 onActivate()
             } label: {
-                Label(localizedString("activate_plan"), systemImage: "bolt.fill")
+                Label(isLocked ? "Activar con Pro" : localizedString("activate_plan"), systemImage: isLocked ? "lock.fill" : "bolt.fill")
             }
             Button {
                 onEdit()
             } label: {
-                Label(localizedString("edit_plan"), systemImage: "pencil")
+                Label(isLocked ? "Editar con Pro" : localizedString("edit_plan"), systemImage: isLocked ? "lock.fill" : "pencil")
             }
             Button(role: .destructive) {
                 onDelete()
@@ -916,6 +937,7 @@ private struct PlanDetailSheet: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let plan: WorkoutPlan
+    let isLocked: Bool
     let onActivate: () -> Void
     let onEdit: () -> Void
 
@@ -999,12 +1021,19 @@ private struct PlanDetailSheet: View {
                     Button(localizedString("cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button(localizedString("edit_plan")) { onEdit() }
+                    Button {
+                        onEdit()
+                    } label: {
+                        Label(localizedString("edit_plan"), systemImage: isLocked ? "lock.fill" : "pencil")
+                    }
                 }
             }
             .safeAreaInset(edge: .bottom) {
                 Button(action: onActivate) {
-                    Label(localizedString("activate_plan"), systemImage: "bolt.fill")
+                    Label(
+                        isLocked ? "Activar con Pro" : localizedString("activate_plan"),
+                        systemImage: isLocked ? "lock.fill" : "bolt.fill"
+                    )
                         .font(.headline.weight(.black))
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)

@@ -20,7 +20,8 @@ struct ProgramLibraryView: View {
                     ProgramLibraryHero(
                         programCount: filteredPlans.count,
                         totalPrograms: SeedData.defaultPlans.count,
-                        selectedCategory: selectedCategory
+                        selectedCategory: selectedCategory,
+                        activationRequiresPro: !store.monetization.hasProAccess
                     )
                     categoryFilter
                     programList
@@ -220,6 +221,7 @@ private struct ProgramLibraryHero: View {
     let programCount: Int
     let totalPrograms: Int
     let selectedCategory: SeedData.ProgramMetadata.Category?
+    let activationRequiresPro: Bool
 
     var body: some View {
         PulseCard(contentPadding: 18) {
@@ -240,6 +242,14 @@ private struct ProgramLibraryHero: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
+
+                        if activationRequiresPro {
+                            Label("Explora gratis. Activar programas requiere Pro.", systemImage: "lock.open.fill")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(PulseTheme.accent)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.82)
+                        }
                     }
                 }
 
@@ -315,14 +325,13 @@ private struct ProgramCard: View {
                     }
 
                     if !store.monetization.hasProAccess {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 17, height: 17)
-                            .background(.ultraThinMaterial, in: Circle())
-                            .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
-                            .shadow(color: .black.opacity(0.2), radius: 2)
-                            .offset(x: 4, y: 4)
+                        Text("Pro al activar")
+                            .font(.system(size: 7, weight: .black, design: .rounded))
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 3)
+                            .background(PulseTheme.fitActionGradient, in: Capsule())
+                            .offset(x: 6, y: 5)
                     }
                 }
 

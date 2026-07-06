@@ -2217,6 +2217,11 @@ final class AppStore {
     }
 
     func activatePlan(_ plan: WorkoutPlan) {
+        guard monetization.hasProAccess || plans.count <= 1 || plan.id == activePlan.id else {
+            presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+            return
+        }
+
         // Save current activePlan progress to plans list first
         if let index = plans.firstIndex(where: { $0.id == activePlan.id }) {
             plans[index] = activePlan
