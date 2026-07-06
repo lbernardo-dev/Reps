@@ -30,6 +30,8 @@ struct SocialHubView: View {
     @State private var showCreateChallenge = false
     @State private var showSocialOnboarding = false
     @State private var selectedChallenge: SocialChallenge? = nil
+    @State private var didLoadInitialData = false
+    @State private var searchTask: Task<Void, Never>?
 
     private enum Tab { case feed, friends, challenges, discover }
 
@@ -66,10 +68,7 @@ struct SocialHubView: View {
                 socialHeaderActions
             }
         }
-        .task { await loadFollowing(); await loadSuggested() }
-        .task { await loadExplore() }
-        .task { if store.feedPosts.isEmpty { await store.loadFeed() } }
-        .task { if store.activeChallenges.isEmpty { await store.loadChallenges() } }
+        .task { await loadInitialDataIfNeeded() }
         .sheet(isPresented: $showCreateChallenge) {
             CreateChallengeView()
         }
@@ -1175,6 +1174,23 @@ struct SocialHubView: View {
 
     // MARK: - Data loading
 
+    private func loadInitialDataIfNeeded() async {
+        guard !didLoadInitialData else { return }
+        didLoadInitialData = true
+
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await loadFollowing() }
+            group.addTask { await loadSuggested() }
+            group.addTask { await loadExplore() }
+            if store.feedPosts.isEmpty {
+                group.addTask { await store.loadFeed() }
+            }
+            if store.activeChallenges.isEmpty {
+                group.addTask { await store.loadChallenges() }
+            }
+        }
+    }
+
     private func loadSuggested() async {
         isLoadingSuggested = true
         do {
@@ -1262,14 +1278,21 @@ struct SocialHubView: View {
 
     private func scheduleSearch() {
         let q = searchText
-        guard !q.isEmpty else { searchResults = []; return }
+        searchTask?.cancel()
+        guard !q.isEmpty else {
+            searchResults = []
+            isSearching = false
+            return
+        }
         isSearching = true
-        Task {
+        searchTask = Task {
             try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
             guard searchText == q else { return }
             do {
                 let results = try await SocialService.shared.searchUsers(query: q)
                 await MainActor.run {
+                    guard !Task.isCancelled else { return }
                     guard searchText == q else { return }
                     searchResults = results
                     isSearching = false

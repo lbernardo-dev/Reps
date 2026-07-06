@@ -13,7 +13,7 @@ struct ExerciseLibraryView: View {
 
     @State private var searchText = ""
     @State private var selectedMuscle = "All"
-    @State private var muscleFilterMode: MuscleFilterMode = .list
+    @State private var selectedPath = ExerciseLibraryPath.muscles
     @State private var selectedMuscleSegments: Set<MuscleSegment> = []
     @State private var selectedEquipment = "All"
     @State private var selectedType: Exercise.ExerciseType?
@@ -38,9 +38,9 @@ struct ExerciseLibraryView: View {
             // below only runs for exercises that already passed every other
             // filter — with 800+ exercises, building that string for every
             // item on every render (e.g. each keystroke) was the slow part.
-            if !selectedMuscleSegments.isEmpty {
+            if selectedPath == .muscles, !selectedMuscleSegments.isEmpty {
                 guard !Set(MuscleLoadCalculator.segments(for: exercise)).isDisjoint(with: selectedMuscleSegments) else { return false }
-            } else {
+            } else if selectedPath == .filters {
                 guard selectedMuscle == "All" || exercise.muscleGroup == selectedMuscle else { return false }
             }
             guard selectedEquipment == "All" || exercise.equipment == selectedEquipment else { return false }
@@ -65,155 +65,225 @@ struct ExerciseLibraryView: View {
         }
     }
 
-    private var groupedExercises: [(String, [Exercise])] {
-        let grouped = Dictionary(grouping: filteredExercises, by: \.muscleGroup)
+    private func groupedExercises(from exercises: [Exercise]) -> [(String, [Exercise])] {
+        let grouped = Dictionary(grouping: exercises, by: \.muscleGroup)
         return grouped.keys.sorted().map { ($0, grouped[$0, default: []].sorted { $0.name < $1.name }) }
+    }
+
+    @ViewBuilder
+    private var featureFiltersPanel: some View {
+        VStack(spacing: 16) {
+            CatalogSectionHeader(
+                eyebrow: localizedString("characteristics"),
+                title: localizedString("Filter by goal, place and material"),
+                subtitle: localizedString("Combine type, muscle group, equipment and difficulty to narrow the catalog.")
+            )
+
+            ExerciseSearchField(searchText: $searchText)
+
+            categoryScroller
+
+            Picker(localizedString("Training type"), selection: $selectedType) {
+                Text(localizedString("All")).tag(Optional<Exercise.ExerciseType>.none)
+                ForEach(Exercise.ExerciseType.allCases) { type in
+                    Text(type.localizedTitle).tag(Optional(type))
+                }
+            }
+            .pickerStyle(.segmented)
+
+            VStack(spacing: 0) {
+                FilterMenuRow(title: localizedString("Muscle group"), value: displayName(forMuscle: selectedMuscle)) {
+                    ForEach(muscles, id: \.self) { muscle in
+                        Button(displayName(forMuscle: muscle)) {
+                            selectedMuscle = muscle
+                        }
+                    }
+                }
+
+                filterDivider
+
+                FilterMenuRow(title: localizedString("Equipment"), value: displayName(forEquipment: selectedEquipment)) {
+                    ForEach(equipmentOptions, id: \.self) { equipment in
+                        Button(displayName(forEquipment: equipment)) {
+                            selectedEquipment = equipment
+                        }
+                    }
+                }
+
+                filterDivider
+
+                FilterMenuRow(title: localizedString("Environment"), value: environmentFilterTitle) {
+                    Button(localizedString("Any environment")) {
+                        selectedEnvironment = nil
+                    }
+                    ForEach(Exercise.Environment.allCases) { environment in
+                        Button(environment.localizedDisplayName) {
+                            selectedEnvironment = environment
+                        }
+                    }
+                }
+
+                filterDivider
+
+                FilterMenuRow(title: localizedString("Difficulty"), value: difficultyFilterTitle) {
+                    Button(localizedString("Any difficulty")) {
+                        selectedDifficulty = nil
+                    }
+                    ForEach(Exercise.Difficulty.allCases) { difficulty in
+                        Button(difficulty.localizedDisplayName) {
+                            selectedDifficulty = difficulty
+                        }
+                    }
+                }
+
+                filterDivider
+
+                Toggle(localizedString("Only my equipment"), isOn: $onlyAvailableEquipment)
+            }
+            .padding(16)
+            .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                    .stroke(PulseTheme.cardStroke, lineWidth: 1)
+            }
+        }
+    }
+
+    private var rehabPanel: some View {
+        VStack(spacing: 14) {
+            CatalogSectionHeader(
+                eyebrow: localizedString("rehabilitation"),
+                title: localizedString("Recover tendons, joints and muscles"),
+                subtitle: localizedString("Use a separate catalog with controlled protocols, pain guidance and recovery stages.")
+            )
+
+            NavigationLink {
+                RehabLibraryView()
+            } label: {
+                RehabHeroCard()
+            }
+            .buttonStyle(PressableCardStyle())
+
+            HStack(spacing: 10) {
+                RehabFocusTile(title: localizedString("Tendons"), systemImage: "bolt.horizontal", tint: PulseTheme.warning)
+                RehabFocusTile(title: localizedString("Joints"), systemImage: "circle.hexagongrid", tint: PulseTheme.ringStand)
+                RehabFocusTile(title: localizedString("Muscles"), systemImage: "figure.strengthtraining.functional", tint: PulseTheme.accent)
+            }
+        }
+    }
+
+    private var categoryScroller: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(ExerciseLibraryCategory.allCases) { category in
+                    Button {
+                        selectedCategory = category
+                    } label: {
+                        Label(category.title, systemImage: category.systemImage)
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 9)
+                            .foregroundStyle(selectedCategory == category ? PulseTheme.onColor(PulseTheme.accent) : PulseTheme.accent)
+                            .background(selectedCategory == category ? PulseTheme.accent : PulseTheme.accent.opacity(0.10))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private func exerciseResults(for exercises: [Exercise]) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text(localizedString("Exercises"))
+                    .font(.title3.weight(.bold))
+                Spacer()
+                Text("\(exercises.count)")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(PulseTheme.accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(PulseTheme.accent.opacity(0.12), in: Capsule())
+            }
+
+            if exercises.isEmpty {
+                PulseEmptyState(
+                    title: "no_exercises_found",
+                    message: "try_removing_a_filter_or_searching_by_muscle_equipment_or_exercise_name",
+                    systemImage: "line.3.horizontal.decrease.circle"
+                )
+                .padding(18)
+                .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            } else {
+                ForEach(groupedExercises(from: exercises), id: \.0) { group, exercises in
+                    ExerciseGroupCard(
+                        title: displayName(forMuscle: group),
+                        exercises: exercises,
+                        language: store.userProfile.preferredLanguage,
+                        gender: store.userProfile.muscleMapGender,
+                        catalog: store.exercises
+                    )
+                }
+            }
+        }
+    }
+
+    private var filterDivider: some View {
+        Divider()
+            .overlay(PulseTheme.separator)
+            .padding(.vertical, 10)
+    }
+
+    private var hasActiveFeatureFilter: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || selectedMuscle != "All"
+            || selectedEquipment != "All"
+            || selectedType != nil
+            || selectedDifficulty != nil
+            || selectedEnvironment != nil
+            || selectedCategory != .all
+            || onlyAvailableEquipment
     }
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    NavigationLink {
-                        RehabLibraryView()
-                    } label: {
-                        RehabEntryCard()
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                }
+            ScrollView {
+                LazyVStack(spacing: 18) {
+                    ExercisePathSwitcher(selection: $selectedPath)
 
-                Section {
-                    HStack(spacing: 10) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(PulseTheme.secondaryText)
-                        TextField(localizedString("Search exercises"), text: $searchText)
-                            .textFieldStyle(.plain)
-                        if !searchText.isEmpty {
-                            Button {
-                                searchText = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(PulseTheme.tertiaryText)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(ExerciseLibraryCategory.allCases) { category in
-                                Button {
-                                    selectedCategory = category
-                                } label: {
-                                    Label(category.title, systemImage: category.systemImage)
-                                        .font(.caption.weight(.semibold))
-                                        .lineLimit(1)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 9)
-                                        .foregroundStyle(selectedCategory == category ? PulseTheme.onColor(PulseTheme.accent) : PulseTheme.accent)
-                                        .background(selectedCategory == category ? PulseTheme.accent : PulseTheme.accent.opacity(0.10))
-                                        .clipShape(Capsule())
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-
-                    Picker(localizedString("Training type"), selection: $selectedType) {
-                        Text(localizedString("All")).tag(Optional<Exercise.ExerciseType>.none)
-                        ForEach(Exercise.ExerciseType.allCases) { type in
-                            Text(type.localizedTitle).tag(Optional(type))
-                        }
-                    }
-                    .pickerStyle(.segmented)
-
-                    Picker(localizedString("Muscle group"), selection: $muscleFilterMode) {
-                        ForEach(MuscleFilterMode.allCases) { mode in
-                            Label(mode.title, systemImage: mode.systemImage).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-
-                    switch muscleFilterMode {
-                    case .list:
-                        FilterMenuRow(title: localizedString("Muscle group"), value: displayName(forMuscle: selectedMuscle)) {
-                            ForEach(muscles, id: \.self) { muscle in
-                                Button(displayName(forMuscle: muscle)) {
-                                    selectedMuscle = muscle
-                                }
-                            }
-                        }
-                    case .body:
-                        ExerciseBodyMuscleSelector(
+                    switch selectedPath {
+                    case .muscles:
+                        let exercises = filteredExercises
+                        MuscleCatalogPanel(
                             gender: store.userProfile.muscleMapGender,
-                            selectedSegments: $selectedMuscleSegments
+                            selectedSegments: $selectedMuscleSegments,
+                            resultCount: exercises.count
                         )
-                    }
 
-                    FilterMenuRow(title: localizedString("Equipment"), value: displayName(forEquipment: selectedEquipment)) {
-                        ForEach(equipmentOptions, id: \.self) { equipment in
-                            Button(displayName(forEquipment: equipment)) {
-                                selectedEquipment = equipment
-                            }
+                        if selectedMuscleSegments.isEmpty {
+                            MuscleShortcutGrid(selectedSegments: $selectedMuscleSegments)
+                        } else {
+                            exerciseResults(for: exercises)
                         }
-                    }
+                    case .filters:
+                        featureFiltersPanel
 
-                    FilterMenuRow(title: localizedString("Environment"), value: environmentFilterTitle) {
-                        Button(localizedString("Any environment")) {
-                            selectedEnvironment = nil
+                        if !hasActiveFeatureFilter {
+                            FeatureFilterPrompt()
+                        } else {
+                            exerciseResults(for: filteredExercises)
                         }
-                        ForEach(Exercise.Environment.allCases) { environment in
-                            Button(environment.localizedDisplayName) {
-                                selectedEnvironment = environment
-                            }
-                        }
-                    }
-
-                    FilterMenuRow(title: localizedString("Difficulty"), value: difficultyFilterTitle) {
-                        Button(localizedString("Any difficulty")) {
-                            selectedDifficulty = nil
-                        }
-                        ForEach(Exercise.Difficulty.allCases) { difficulty in
-                            Button(difficulty.localizedDisplayName) {
-                                selectedDifficulty = difficulty
-                            }
-                        }
-                    }
-
-                    Toggle(localizedString("Only my equipment"), isOn: $onlyAvailableEquipment)
-                }
-
-                if filteredExercises.isEmpty {
-                    Section {
-                        PulseEmptyState(
-                            title: "no_exercises_found",
-                            message: "try_removing_a_filter_or_searching_by_muscle_equipment_or_exercise_name",
-                            systemImage: "line.3.horizontal.decrease.circle"
-                        )
-                    }
-                } else {
-                    ForEach(groupedExercises, id: \.0) { group, exercises in
-                        Section(displayName(forMuscle: group)) {
-                            ForEach(exercises) { exercise in
-                                NavigationLink {
-                                    ExerciseDetailView(exercise: exercise)
-                                } label: {
-                                    ExerciseLibraryRow(
-                                        exercise: exercise,
-                                        language: store.userProfile.preferredLanguage,
-                                        gender: store.userProfile.muscleMapGender,
-                                        catalog: store.exercises
-                                    )
-                                }
-                            }
-                        }
+                    case .rehab:
+                        rehabPanel
                     }
                 }
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.top, 18)
+                .padding(.bottom, 118)
             }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
             .background(PulseTheme.background)
             .onChange(of: selectedMuscle) { _, newValue in
                 if newValue != "All" { selectedMuscleSegments.removeAll() }
@@ -221,11 +291,9 @@ struct ExerciseLibraryView: View {
             .onChange(of: selectedMuscleSegments) { _, newValue in
                 if !newValue.isEmpty { selectedMuscle = "All" }
             }
-            .onChange(of: muscleFilterMode) { _, newValue in
-                switch newValue {
-                case .list: selectedMuscleSegments.removeAll()
-                case .body: selectedMuscle = "All"
-                }
+            .onChange(of: selectedPath) { _, newValue in
+                if newValue == .muscles { selectedMuscle = "All" }
+                if newValue == .filters { selectedMuscleSegments.removeAll() }
             }
             .safeAreaInset(edge: .top) {
                 PulseHeaderBar(
@@ -348,6 +416,378 @@ struct ExerciseLibraryView: View {
         selectedDifficulty?.localizedDisplayName ?? localizedString("any_difficulty")
     }
 
+}
+
+private enum ExerciseLibraryPath: String, CaseIterable, Identifiable {
+    case muscles
+    case filters
+    case rehab
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .muscles: localizedString("Muscles")
+        case .filters: localizedString("Characteristics")
+        case .rehab: localizedString("Rehab")
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .muscles: localizedString("Tap the body model")
+        case .filters: localizedString("Choose exact filters")
+        case .rehab: localizedString("Recovery protocols")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .muscles: "figure.arms.open"
+        case .filters: "slider.horizontal.3"
+        case .rehab: "cross.case.fill"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .muscles: PulseTheme.accent
+        case .filters: PulseTheme.ringStand
+        case .rehab: PulseTheme.warning
+        }
+    }
+}
+
+private struct ExercisePathSwitcher: View {
+    @Binding var selection: ExerciseLibraryPath
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(ExerciseLibraryPath.allCases) { path in
+                Button {
+                    HapticService.selection()
+                    withAnimation(.snappy(duration: 0.22)) {
+                        selection = path
+                    }
+                } label: {
+                    VStack(spacing: 7) {
+                        Image(systemName: path.systemImage)
+                            .font(.system(size: 17, weight: .bold))
+                            .frame(width: 34, height: 34)
+                            .foregroundStyle(isSelected(path) ? PulseTheme.onColor(path.tint) : path.tint)
+                            .background(isSelected(path) ? path.tint : path.tint.opacity(0.12), in: Circle())
+
+                        Text(path.title)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+
+                        Text(path.subtitle)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.74)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 112)
+                    .padding(.horizontal, 6)
+                    .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                            .stroke(isSelected(path) ? path.tint.opacity(0.55) : PulseTheme.cardStroke, lineWidth: 1)
+                    }
+                }
+                .buttonStyle(PressableCardStyle())
+            }
+        }
+    }
+
+    private func isSelected(_ path: ExerciseLibraryPath) -> Bool {
+        selection == path
+    }
+}
+
+private struct CatalogSectionHeader: View {
+    let eyebrow: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(eyebrow.uppercased())
+                .font(.caption.weight(.heavy))
+                .foregroundStyle(PulseTheme.accent)
+            Text(title)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundStyle(PulseTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct ExerciseSearchField: View {
+    @Binding var searchText: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(PulseTheme.secondaryText)
+            TextField(localizedString("Search exercises"), text: $searchText)
+                .textFieldStyle(.plain)
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(PulseTheme.tertiaryText)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 52)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke(PulseTheme.cardStroke, lineWidth: 1)
+        }
+    }
+}
+
+private struct MuscleCatalogPanel: View {
+    let gender: BodyGender
+    @Binding var selectedSegments: Set<MuscleSegment>
+    let resultCount: Int
+
+    var body: some View {
+        VStack(spacing: 16) {
+            CatalogSectionHeader(
+                eyebrow: localizedString("direct muscle selection"),
+                title: localizedString("Tap a muscle and browse matching exercises"),
+                subtitle: localizedString("The model highlights the selected region and the catalog groups results by muscle.")
+            )
+
+            VStack(spacing: 14) {
+                ExerciseBodyMuscleSelector(gender: gender, selectedSegments: $selectedSegments)
+
+                HStack {
+                    Label(resultSummary, systemImage: "line.3.horizontal.decrease.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                    Spacer()
+                    if !selectedSegments.isEmpty {
+                        Button(localizedString("Clear")) {
+                            HapticService.selection()
+                            selectedSegments.removeAll()
+                        }
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(PulseTheme.accent)
+                    }
+                }
+            }
+            .padding(16)
+            .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                    .stroke(PulseTheme.cardStroke, lineWidth: 1)
+            }
+        }
+    }
+
+    private var resultSummary: String {
+        selectedSegments.isEmpty
+            ? localizedString("Select one or more muscles")
+            : localizedFormat("exercises_count_format", resultCount)
+    }
+}
+
+private struct RehabHeroCard: View {
+    var body: some View {
+        HStack(spacing: 14) {
+            PulseIconBadge(systemImage: "figure.walk.motion", tint: PulseTheme.ringStand, size: 54, isFilled: true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(localizedString("Rehabilitation library"))
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.primary)
+                Text(localizedString("Browse protocols by region, structure and recovery stage."))
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(PulseTheme.tertiaryText)
+        }
+        .padding(16)
+        .background(PulseTheme.ringStand.opacity(0.10), in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke(PulseTheme.ringStand.opacity(0.28), lineWidth: 1)
+        }
+    }
+}
+
+private struct RehabFocusTile: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: 36, height: 36)
+                .background(tint.opacity(0.12), in: Circle())
+            Text(title)
+                .font(.caption.weight(.bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 84)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke(PulseTheme.cardStroke, lineWidth: 1)
+        }
+    }
+}
+
+private struct MuscleShortcutGrid: View {
+    @Binding var selectedSegments: Set<MuscleSegment>
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(localizedString("Muscle groups"))
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.primary)
+
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(primarySegments) { segment in
+                    Button {
+                        HapticService.selection()
+                        withAnimation(.snappy(duration: 0.22)) {
+                            selectedSegments = [segment]
+                        }
+                    } label: {
+                        VStack(spacing: 8) {
+                            MuscleGroupAnatomyThumbnail(
+                                segment: segment,
+                                size: 86,
+                                intensity: 1
+                            )
+                            Text(segment.title)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.72)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 132)
+                        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                                .stroke(PulseTheme.cardStroke, lineWidth: 1)
+                        }
+                    }
+                    .buttonStyle(PressableCardStyle())
+                }
+            }
+        }
+    }
+
+    private var primarySegments: [MuscleSegment] {
+        [.chest, .deltoids, .upperBack, .biceps, .triceps, .abs, .quads, .glutes, .calves]
+    }
+}
+
+private struct FeatureFilterPrompt: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            PulseIconBadge(systemImage: "slider.horizontal.3", tint: PulseTheme.ringStand, size: 44)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(localizedString("Choose at least one characteristic"))
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.primary)
+                Text(localizedString("Search, pick a category, or adjust any filter to load a focused exercise list."))
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(16)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke(PulseTheme.cardStroke, lineWidth: 1)
+        }
+    }
+}
+
+private struct ExerciseGroupCard: View {
+    let title: String
+    let exercises: [Exercise]
+    let language: String
+    let gender: BodyGender
+    let catalog: [Exercise]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text(title)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text("\(exercises.count)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
+
+            ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
+                NavigationLink {
+                    ExerciseDetailView(exercise: exercise)
+                } label: {
+                    ExerciseLibraryRow(
+                        exercise: exercise,
+                        language: language,
+                        gender: gender,
+                        catalog: catalog
+                    )
+                    .padding(.horizontal, 16)
+                }
+                .buttonStyle(.plain)
+
+                if index < exercises.count - 1 {
+                    Divider()
+                        .overlay(PulseTheme.separator)
+                        .padding(.leading, 88)
+                }
+            }
+        }
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke(PulseTheme.cardStroke, lineWidth: 1)
+        }
+    }
 }
 
 private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable {

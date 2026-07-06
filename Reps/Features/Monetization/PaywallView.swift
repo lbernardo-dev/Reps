@@ -1,4 +1,5 @@
-import StoreKit
+import RevenueCat
+import RevenueCatUI
 import SwiftUI
 import UIKit
 
@@ -9,12 +10,11 @@ struct PaywallView: View {
     let presentation: PaywallPresentation
     let onDismissReason: ((PaywallDismissReason) -> Void)?
 
-    @State private var selectedPlan: SubscriptionBillingCycle = .annual
+    @State private var selectedPlan: SubscriptionBillingCycle = .yearly
     @State private var isPurchasing = false
     @State private var isRestoring = false
     @State private var showStoreKitInfo = false
     @State private var storeKitInfoMessage = ""
-    @State private var showingOfferCodeRedemption = false
 
     private let includedFeatures: [ProductFeature] = [
         .configurableProgression,
@@ -28,209 +28,41 @@ struct PaywallView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: 22) {
-                    paywallHero
-
-                    if let feature = presentation.feature {
-                        LockedFeatureSummary(feature: feature)
-                    }
-
-                    ContextualPaywallPreview(source: presentation.source, feature: presentation.feature)
-
-                    PlanComparisonCard()
-
-                    trialTimeline
-
-                    PulseCard {
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("what_keeps_your_progress_alive")
-                                .font(.headline)
-
-                            VStack(spacing: 12) {
-                                ForEach(includedFeatures) { feature in
-                                    PaywallBenefitRow(feature: feature)
-                                }
-                            }
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("choose_your_access")
-                            .font(.headline)
-
-                        if store.isLoadingStoreKitProducts && store.storeKitProducts.isEmpty {
-                            ForEach(0..<3, id: \.self) { _ in
-                                PulseSkeletonCard(lines: 2)
-                            }
-                        } else if store.storeKitProducts.isEmpty {
-                            PulseCard {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("app_store_products_could_not_be_loaded_review_connectivity_sandbox_or_product_co")
-                                        .font(.footnote)
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                    SecondaryButton("reintentar", systemImage: "arrow.clockwise") {
-                                        Task { await store.refreshStoreKitProducts() }
-                                    }
-                                }
-                            }
-                        } else {
-                            ForEach(availablePlans) { cycle in
-                                Button {
-                                    selectedPlan = cycle
-                                    store.trackPaywallPlanSelection(cycle, source: presentation.source)
-                                } label: {
-                                    let product = store.storeKitProduct(for: cycle)
-                                    PaywallPlanCard(
-                                        title: cycle.title,
-                                        subtitle: planSubtitle(for: cycle, product: product),
-                                        price: product?.displayPrice ?? fallbackPrice(for: cycle),
-                                        badge: badge(for: cycle),
-                                        isSelected: selectedPlan == cycle
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-
-                    VStack(spacing: 10) {
-                        primaryPurchaseButton
-
-                        Button {
-                            close(reason: .notNow)
-                        } label: {
-                            Text("ahora_no")
-                                .font(.subheadline.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 46)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                                .background(PulseTheme.grouped)
-                                .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-
-                        Button {
-                            Task { await restorePurchases() }
-                        } label: {
-                            Text(isRestoring ? localizedString("paywall_restoring") : localizedString("paywall_restore_licenses"))
-                                .font(.footnote.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                                .foregroundStyle(PulseTheme.accent)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isRestoring)
-
-                        Button {
-                            showingOfferCodeRedemption = true
-                        } label: {
-                            Text("apply_promotional_code")
-                                .font(.footnote.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                                .foregroundStyle(PulseTheme.accent)
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label("value_7_days_free_included_in_weekly_monthly_and_annual_then_it_is_renewed_from", systemImage: "checkmark.seal.fill")
-                            .font(.footnote)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                        Label("lifetime_is_a_one_time_payment_and_does_not_support_a_free_trial_on_app_store_co", systemImage: "infinity")
-                            .font(.footnote)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                        Text("access_applies_to_advanced_analytics_progression_preferences_backups_and_shareab")
-                            .font(.footnote)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-
-                    #if DEBUG
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("desarrollo")
-                            .font(.headline)
-                        if let message = store.iCloudProEntitlementMessage {
-                            Text(localizedKey(message))
-                                .font(.footnote)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                        if let hash = store.iCloudProRecordHash {
-                            Text("iCloud hash: \(hash)")
-                                .font(.caption.monospaced())
-                                .foregroundStyle(PulseTheme.secondaryText)
-                                .textSelection(.enabled)
-                            Button("copiar_hash_icloud") {
-                                UIPasteboard.general.string = hash
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                        Button("actualizar_acceso_pro_icloud") {
-                            Task { await store.refreshICloudProEntitlement() }
-                        }
-                        .buttonStyle(.bordered)
-                        Button("resetear_acceso_pro_local") {
-                            store.resetProAccessForDebug()
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    #endif
-                }
-                .padding(20)
-                .padding(.bottom, 128)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        RevenueCatUI.PaywallView(displayCloseButton: true)
+            .tint(PulseTheme.accent)
+            .onPurchaseCompleted { customerInfo in
+                store.handleRevenueCatCustomerInfo(customerInfo)
+                close(reason: .system)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-            .clipped()
-            .safeAreaInset(edge: .bottom) {
-                VStack(spacing: 8) {
-                    primaryPurchaseButton
-
-                    Button {
-                        close(reason: .notNow)
-                    } label: {
-                        Text("ahora_no")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
-                .background(.ultraThinMaterial)
+            .onRestoreCompleted { customerInfo in
+                store.handleRevenueCatCustomerInfo(customerInfo)
+                storeKitInfoMessage = customerInfo.entitlements.all[RevenueCatConfiguration.proEntitlementID]?.isActive == true
+                    ? localizedString("licenses_restored_success")
+                    : localizedString("no_active_license_to_restore")
+                showStoreKitInfo = true
             }
-            .navigationTitle("subscription")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        close(reason: .close)
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(PulseTheme.textPrimary)
-                            .frame(width: 34, height: 34)
-                            .destructiveGlassCircle(.secondary)
-                    }
-                }
+            .onPurchaseFailure { error in
+                storeKitInfoMessage = error.localizedDescription
+                showStoreKitInfo = true
+            }
+            .onRestoreFailure { error in
+                storeKitInfoMessage = error.localizedDescription
+                showStoreKitInfo = true
+            }
+            .onRequestedDismissal {
+                close(reason: .close)
             }
             .task {
                 await store.refreshStoreKitProducts()
-                if store.storeKitProduct(for: selectedPlan) == nil,
-                   let firstPlan = availablePlans.first {
-                    selectedPlan = firstPlan
-                }
+                await store.refreshRevenueCatCustomerInfo()
             }
-            .alert("storekit", isPresented: $showStoreKitInfo) {
+            .alert("revenuecat", isPresented: $showStoreKitInfo) {
                 Button("aceptar", role: .cancel) {}
             } message: {
                 Text(storeKitInfoMessage)
             }
-        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .screenBackground()
-        .offerCodeRedemption(isPresented: $showingOfferCodeRedemption)
     }
 
     private var paywallHero: some View {
@@ -295,8 +127,8 @@ struct PaywallView: View {
     }
 
     private var availablePlans: [SubscriptionBillingCycle] {
-        let loadedPlans = store.storeKitProducts.compactMap { product in
-            StoreKitProductID(rawValue: product.id)?.billingCycle
+        let loadedPlans = store.storeKitProducts.compactMap { package in
+            StoreKitProductID(rawValue: package.identifier)?.billingCycle
         }
 
         if loadedPlans.isEmpty {
@@ -306,7 +138,7 @@ struct PaywallView: View {
         return SubscriptionBillingCycle.allCases.filter { loadedPlans.contains($0) }
     }
 
-    private var selectedProduct: Product? {
+    private var selectedProduct: Package? {
         store.storeKitProduct(for: selectedPlan)
     }
 
@@ -322,9 +154,9 @@ struct PaywallView: View {
         return localizedString("buy_lifetime")
     }
 
-    private func planSubtitle(for cycle: SubscriptionBillingCycle, product: Product?) -> String {
+    private func planSubtitle(for cycle: SubscriptionBillingCycle, product: Package?) -> String {
         if cycle.hasIntroTrial {
-            let price = product?.displayPrice ?? fallbackPrice(for: cycle)
+            let price = product?.storeProduct.localizedPriceString ?? fallbackPrice(for: cycle)
             return localizedFormat("first_week_free_then_format", price, renewalText(for: cycle))
         }
 
@@ -335,7 +167,7 @@ struct PaywallView: View {
         switch cycle {
         case .weekly: return localizedString("per_week")
         case .monthly: return localizedString("per_month")
-        case .annual: return localizedString("per_year")
+        case .yearly: return localizedString("per_year")
         case .lifetime: return ""
         }
     }
@@ -344,14 +176,14 @@ struct PaywallView: View {
         switch cycle {
         case .weekly: return "0,99 €"
         case .monthly: return "1,99 €"
-        case .annual: return "9,99 €"
+        case .yearly: return "9,99 €"
         case .lifetime: return "19,99 €"
         }
     }
 
     private func badge(for cycle: SubscriptionBillingCycle) -> String? {
         switch cycle {
-        case .annual: return localizedString("best_value")
+        case .yearly: return localizedString("best_value")
         case .monthly: return localizedString("flexible_label")
         case .lifetime: return localizedString("one_time_payment")
         case .weekly: return localizedString("quick_trial")
@@ -400,6 +232,7 @@ struct PaywallView: View {
 struct SubscriptionCenterView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppStore.self) private var store
+    @State private var presentingCustomerCenter = false
 
     var body: some View {
         NavigationStack {
@@ -448,6 +281,21 @@ struct SubscriptionCenterView: View {
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
+
+                    if store.monetization.hasProAccess {
+                        Button {
+                            presentingCustomerCenter = true
+                        } label: {
+                            Label("manage_subscription", systemImage: "person.crop.circle.badge.checkmark")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .foregroundStyle(PulseTheme.accent)
+                                .background(PulseTheme.grouped)
+                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.vertical, 20)
@@ -460,6 +308,13 @@ struct SubscriptionCenterView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .screenBackground()
+        .presentCustomerCenter(
+            isPresented: $presentingCustomerCenter,
+            onDismiss: {
+                presentingCustomerCenter = false
+                Task { await store.refreshRevenueCatCustomerInfo() }
+            }
+        )
     }
 }
 

@@ -3,7 +3,7 @@ import CoreLocation
 import Foundation
 import HealthKit
 import Observation
-import StoreKit
+import RevenueCat
 import UIKit
 import UserNotifications
 import WatchConnectivity
@@ -31,9 +31,10 @@ final class AppStore {
         }
     }
     var monetization = MonetizationState() { didSet { save(scope: .monetization) } }
-    private(set) var storeKitProducts: [Product] = []
+    private(set) var storeKitProducts: [Package] = []
     private(set) var isLoadingStoreKitProducts = false
     private(set) var storeKitErrorMessage: String?
+    private(set) var revenueCatCustomerInfo: CustomerInfo?
     private(set) var iCloudProRecordHash: String?
     private(set) var iCloudProEntitlementMessage: String?
     var activePlan = WorkoutPlan.empty { didSet { save(scope: .plans); updateTrainingBattery() } }
@@ -138,6 +139,7 @@ final class AppStore {
     @ObservationIgnored private var pendingWidgetTimelineReload = false
     @ObservationIgnored private var pendingPaywallDismissReason: PaywallDismissReason?
     @ObservationIgnored private var transactionUpdatesTask: Task<Void, Never>?
+    @ObservationIgnored private var hasStartedBackgroundServices = false
     @ObservationIgnored private var isAutomaticHealthSyncInProgress = false
     @ObservationIgnored private var lastAutomaticHealthRefreshDate: Date?
     @ObservationIgnored let seenAchievementsKey = "reps_seenAchievementKeys_v1"
@@ -208,34 +210,8 @@ final class AppStore {
 
         iCloudBackupDate = ICloudBackupService.lastBackupDate()
 
-        let shouldStartBackgroundServices = startsBackgroundServices && !Self.isRunningUnitTests
-        if shouldStartBackgroundServices {
-            Task {
-                await refreshStoreKitProducts()
-                await refreshStoreKitEntitlements()
-                await refreshICloudProEntitlement()
-                await syncOpenExerciseLibraryIfNeeded()
-                await restoreFromICloudIfNeeded()
-            }
-
-            transactionUpdatesTask = Task { [weak self] in
-                await self?.listenForStoreKitTransactions()
-            }
-
-            startHealthKitWorkoutObserverIfAuthorized()
-            nativeWorkoutSessionService.startMirroringListener()
-            refreshHealthKitDataIfNeeded(reason: "launch")
-
-            liveActivityCommandObserver = NotificationCenter.default.addObserver(
-                forName: LiveActivityCommandBridge.notificationName,
-                object: nil,
-                queue: .main
-            ) { [weak self] notification in
-                guard let command = LiveActivityCommandBridge.command(from: notification) else { return }
-                Task { @MainActor in
-                    self?.handleWatchCommand(command)
-                }
-            }
+        if startsBackgroundServices {
+            startBackgroundServicesIfNeeded()
         }
     }
 
@@ -256,6 +232,34 @@ final class AppStore {
 
     func refreshNotificationSchedule() {
         reconcileNotificationStateIfNeeded()
+    }
+
+    func startBackgroundServicesIfNeeded() {
+        guard !hasStartedBackgroundServices, !Self.isRunningUnitTests else { return }
+        hasStartedBackgroundServices = true
+
+        Task {
+            await refreshStoreKitProducts()
+            await refreshRevenueCatCustomerInfo()
+            await refreshICloudProEntitlement()
+            await syncOpenExerciseLibraryIfNeeded()
+            await restoreFromICloudIfNeeded()
+        }
+
+        startHealthKitWorkoutObserverIfAuthorized()
+        nativeWorkoutSessionService?.startMirroringListener()
+        refreshHealthKitDataIfNeeded(reason: "launch")
+
+        liveActivityCommandObserver = NotificationCenter.default.addObserver(
+            forName: LiveActivityCommandBridge.notificationName,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let command = LiveActivityCommandBridge.command(from: notification) else { return }
+            Task { @MainActor in
+                self?.handleWatchCommand(command)
+            }
+        }
     }
 
     func handleNotificationTarget(_ target: NotificationService.NotificationTarget) {
@@ -563,9 +567,10 @@ final class AppStore {
         defer { isLoadingStoreKitProducts = false }
 
         do {
-            let products = try await Product.products(for: StoreKitProductID.allProductIDs)
-            storeKitProducts = products.sorted { lhs, rhs in
-                storeKitSortIndex(for: lhs.id) < storeKitSortIndex(for: rhs.id)
+            let offerings = try await Purchases.shared.offerings()
+            let packages = offerings.current?.availablePackages ?? []
+            storeKitProducts = packages.sorted { lhs, rhs in
+                storeKitSortIndex(for: lhs) < storeKitSortIndex(for: rhs)
             }
             storeKitErrorMessage = nil
         } catch {
@@ -573,28 +578,22 @@ final class AppStore {
         }
     }
 
-    func storeKitProduct(for cycle: SubscriptionBillingCycle) -> Product? {
-        storeKitProducts.first { product in
-            StoreKitProductID(rawValue: product.id)?.billingCycle == cycle
+    func storeKitProduct(for cycle: SubscriptionBillingCycle) -> Package? {
+        storeKitProducts.first { package in
+            revenueCatBillingCycle(for: package) == cycle
         }
     }
 
     @discardableResult
-    func purchaseStoreKitProduct(_ product: Product) async -> Bool {
+    func purchaseStoreKitProduct(_ package: Package) async -> Bool {
         do {
-            let result = try await product.purchase()
-            switch result {
-            case .success(let verification):
-                let transaction = try checkVerified(verification)
-                await applyStoreKitEntitlement(from: transaction)
-                await transaction.finish()
-                await refreshStoreKitEntitlements()
-                return true
-            case .userCancelled, .pending:
-                return false
-            @unknown default:
+            let result = try await Purchases.shared.purchase(package: package)
+            revenueCatCustomerInfo = result.customerInfo
+            applyRevenueCatCustomerInfo(result.customerInfo)
+            if result.userCancelled {
                 return false
             }
+            return result.customerInfo.entitlements.all[RevenueCatConfiguration.proEntitlementID]?.isActive == true
         } catch {
             storeKitErrorMessage = error.localizedDescription
             return false
@@ -604,8 +603,10 @@ final class AppStore {
     @discardableResult
     func restoreStoreKitPurchases() async -> Bool {
         do {
-            try await StoreKit.AppStore.sync()
-            return await refreshStoreKitEntitlements()
+            let customerInfo = try await Purchases.shared.restorePurchases()
+            revenueCatCustomerInfo = customerInfo
+            applyRevenueCatCustomerInfo(customerInfo)
+            return customerInfo.entitlements.all[RevenueCatConfiguration.proEntitlementID]?.isActive == true
         } catch {
             storeKitErrorMessage = error.localizedDescription
             return false
@@ -663,27 +664,31 @@ final class AppStore {
 
     @discardableResult
     func refreshStoreKitEntitlements() async -> Bool {
-        var latestTransaction: Transaction?
+        await refreshRevenueCatCustomerInfo()
+    }
 
-        for await result in Transaction.currentEntitlements {
-            guard case .verified(let transaction) = result,
-                  transaction.revocationDate == nil,
-                  StoreKitProductID(rawValue: transaction.productID) != nil else {
-                continue
-            }
-
-            if let current = latestTransaction {
-                let currentDate = current.expirationDate ?? current.purchaseDate
-                let nextDate = transaction.expirationDate ?? transaction.purchaseDate
-                if nextDate > currentDate {
-                    latestTransaction = transaction
-                }
-            } else {
-                latestTransaction = transaction
-            }
+    @discardableResult
+    func refreshRevenueCatCustomerInfo() async -> Bool {
+        do {
+            let customerInfo = try await Purchases.shared.customerInfo()
+            revenueCatCustomerInfo = customerInfo
+            applyRevenueCatCustomerInfo(customerInfo)
+            storeKitErrorMessage = nil
+            return customerInfo.entitlements.all[RevenueCatConfiguration.proEntitlementID]?.isActive == true
+        } catch {
+            storeKitErrorMessage = error.localizedDescription
+            return monetization.hasProAccess
         }
+    }
 
-        guard let latestTransaction else {
+    func handleRevenueCatCustomerInfo(_ customerInfo: CustomerInfo) {
+        revenueCatCustomerInfo = customerInfo
+        applyRevenueCatCustomerInfo(customerInfo)
+    }
+
+    private func applyRevenueCatCustomerInfo(_ customerInfo: CustomerInfo) {
+        guard let entitlement = customerInfo.entitlements.all[RevenueCatConfiguration.proEntitlementID],
+              entitlement.isActive else {
             if monetization.provider == .storeKit {
                 monetization.entitlement = .free
                 monetization.status = .inactive
@@ -691,58 +696,72 @@ final class AppStore {
                 monetization.renewsAt = nil
                 monetization.lastEntitlementSyncDate = .now
             }
-            return false
-        }
-
-        await applyStoreKitEntitlement(from: latestTransaction)
-        return true
-    }
-
-    private func listenForStoreKitTransactions() async {
-        for await result in Transaction.updates {
-            guard !Task.isCancelled else {
-                return
-            }
-
-            guard case .verified(let transaction) = result,
-                  StoreKitProductID(rawValue: transaction.productID) != nil else {
-                continue
-            }
-
-            await applyStoreKitEntitlement(from: transaction)
-            await transaction.finish()
-        }
-    }
-
-    private func applyStoreKitEntitlement(from transaction: Transaction) async {
-        guard transaction.revocationDate == nil,
-              let productID = StoreKitProductID(rawValue: transaction.productID) else {
-            await refreshStoreKitEntitlements()
             return
         }
 
         monetization.entitlement = .pro
-        monetization.status = .active
-        monetization.billingCycle = productID.billingCycle
+        monetization.status = revenueCatStatus(for: entitlement)
+        monetization.billingCycle = revenueCatBillingCycle(for: entitlement.productIdentifier)
         monetization.provider = .storeKit
-        monetization.renewsAt = transaction.expirationDate
+        monetization.renewsAt = entitlement.expirationDate
         monetization.lastEntitlementSyncDate = .now
     }
 
-    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
-        switch result {
-        case .verified(let value):
-            return value
-        case .unverified(_, let error):
-            throw error
+    private func revenueCatStatus(for entitlement: EntitlementInfo) -> SubscriptionStatus {
+        if entitlement.periodType == .trial {
+            return .trial
+        }
+
+        return entitlement.expirationDate == nil ? .active : .active
+    }
+
+    private func revenueCatBillingCycle(for package: Package) -> SubscriptionBillingCycle? {
+        let normalizedIdentifier = package.identifier
+            .replacingOccurrences(of: "$rc_", with: "")
+            .lowercased()
+        if let productID = StoreKitProductID(rawValue: normalizedIdentifier) {
+            return productID.billingCycle
+        }
+
+        switch package.packageType {
+        case .weekly:
+            return .weekly
+        case .monthly:
+            return .monthly
+        case .annual:
+            return .yearly
+        case .lifetime:
+            return .lifetime
+        default:
+            return revenueCatBillingCycle(for: package.storeProduct.productIdentifier)
         }
     }
 
-    private func storeKitSortIndex(for productID: String) -> Int {
-        switch StoreKitProductID(rawValue: productID) {
+    private func revenueCatBillingCycle(for productID: String) -> SubscriptionBillingCycle? {
+        let normalizedProductID = productID.lowercased()
+        if let productID = StoreKitProductID(rawValue: normalizedProductID) {
+            return productID.billingCycle
+        }
+        if normalizedProductID.contains("weekly") || normalizedProductID.contains("week") {
+            return .weekly
+        }
+        if normalizedProductID.contains("monthly") || normalizedProductID.contains("month") {
+            return .monthly
+        }
+        if normalizedProductID.contains("yearly") || normalizedProductID.contains("annual") || normalizedProductID.contains("year") {
+            return .yearly
+        }
+        if normalizedProductID.contains("lifetime") {
+            return .lifetime
+        }
+        return nil
+    }
+
+    private func storeKitSortIndex(for package: Package) -> Int {
+        switch revenueCatBillingCycle(for: package) {
         case .weekly: return 0
         case .monthly: return 1
-        case .annual: return 2
+        case .yearly: return 2
         case .lifetime: return 3
         case nil: return Int.max
         }
@@ -2176,8 +2195,8 @@ final class AppStore {
         )
     }
 
-    func addPlan(_ plan: WorkoutPlan, activate: Bool, fromCatalog: Bool = false) {
-        guard monetization.hasProAccess || (!fromCatalog && plans.isEmpty) else {
+    func addPlan(_ plan: WorkoutPlan, activate: Bool, fromCatalog: Bool = false, bypassPlanLimit: Bool = false) {
+        guard bypassPlanLimit || monetization.hasProAccess || (!fromCatalog && plans.isEmpty) else {
             presentPaywall(source: fromCatalog ? .planActivation : .multiplePlans, feature: nil, trigger: .featureGate)
             return
         }
@@ -2735,7 +2754,7 @@ final class AppStore {
             ? localizedKey("home_based_on_my_equipment")
             : localizedKey("recommended_gym"))
         suggested.daysPerWeek = max(1, daysPerWeek)
-        addPlan(suggested, activate: true)
+        addPlan(suggested, activate: true, bypassPlanLimit: true)
         health.message = localizedFormat("routine_created_active_in_plans_message", suggested.name)
         return suggested
     }
@@ -4027,6 +4046,7 @@ final class AppStore {
     }
 
     func loadFeed() async {
+        guard !isFeedLoading else { return }
         var usernames = userProfile.socialFollowingUsernames
         if let own = userProfile.socialUsername { usernames.append(own.lowercased()) }
         guard !usernames.isEmpty else { return }
@@ -4059,7 +4079,7 @@ final class AppStore {
     }
 
     func loadChallenges() async {
-        guard userProfile.socialEnabled else { return }
+        guard userProfile.socialEnabled, !isChallengesLoading else { return }
         isChallengesLoading = true
         activeChallenges = await SocialService.shared.fetchActiveChallenges()
         isChallengesLoading = false

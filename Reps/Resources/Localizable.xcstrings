@@ -64459,6 +64459,22 @@
         }
       }
     },
+    "revenuecat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RevenueCat"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RevenueCat"
+          }
+        }
+      }
+    },
     "reps_pro": {
       "localizations": {
         "en": {
@@ -83907,6 +83923,374 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recupera tendones, articulaciones y músculos"
+          }
+        }
+      }
+    },
+    "Browse protocols by region, structure and recovery stage.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browse protocols by region, structure and recovery stage."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explora protocolos por zona, estructura y fase de recuperación."
+          }
+        }
+      }
+    },
+    "Characteristics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Characteristics"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Características"
+          }
+        }
+      }
+    },
+    "characteristics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Characteristics"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Características"
+          }
+        }
+      }
+    },
+    "Choose exact filters": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose exact filters"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige filtros exactos"
+          }
+        }
+      }
+    },
+    "Choose at least one characteristic": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose at least one characteristic"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige al menos una característica"
+          }
+        }
+      }
+    },
+    "Combine type, muscle group, equipment and difficulty to narrow the catalog.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Combine type, muscle group, equipment and difficulty to narrow the catalog."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Combina tipo, grupo muscular, material y dificultad para afinar el catálogo."
+          }
+        }
+      }
+    },
+    "direct muscle selection": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Direct muscle selection"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selección directa del músculo"
+          }
+        }
+      }
+    },
+    "Filter by goal, place and material": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter by goal, place and material"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtra por objetivo, lugar y material"
+          }
+        }
+      }
+    },
+    "Joints": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Joints"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Articulaciones"
+          }
+        }
+      }
+    },
+    "Muscle groups": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muscle groups"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grupos musculares"
+          }
+        }
+      }
+    },
+    "Muscles": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muscles"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Músculos"
+          }
+        }
+      }
+    },
+    "Rehab": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rehab"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rehab"
+          }
+        }
+      }
+    },
+    "Rehabilitation library": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rehabilitation library"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biblioteca de rehabilitación"
+          }
+        }
+      }
+    },
+    "Recovery protocols": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovery protocols"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protocolos de recuperación"
+          }
+        }
+      }
+    },
+    "rehabilitation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rehabilitation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rehabilitación"
+          }
+        }
+      }
+    },
+    "Recover tendons, joints and muscles": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recover tendons, joints and muscles"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recupera tendones, articulaciones y músculos"
+          }
+        }
+      }
+    },
+    "Select one or more muscles": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select one or more muscles"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecciona uno o varios músculos"
+          }
+        }
+      }
+    },
+    "Search, pick a category, or adjust any filter to load a focused exercise list.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search, pick a category, or adjust any filter to load a focused exercise list."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Busca, elige una categoría o ajusta cualquier filtro para cargar una lista enfocada."
+          }
+        }
+      }
+    },
+    "Tap a muscle and browse matching exercises": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a muscle and browse matching exercises"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca un músculo y explora ejercicios relacionados"
+          }
+        }
+      }
+    },
+    "Tap the body model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the body model"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca el modelo corporal"
+          }
+        }
+      }
+    },
+    "Tendons": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tendons"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tendones"
+          }
+        }
+      }
+    },
+    "The model highlights the selected region and the catalog groups results by muscle.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model highlights the selected region and the catalog groups results by muscle."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo resalta la zona seleccionada y el catálogo agrupa resultados por músculo."
+          }
+        }
+      }
+    },
+    "Use a separate catalog with controlled protocols, pain guidance and recovery stages.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a separate catalog with controlled protocols, pain guidance and recovery stages."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa un catálogo separado con protocolos controlados, guía de dolor y fases de recuperación."
           }
         }
       }

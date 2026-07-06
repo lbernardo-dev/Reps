@@ -34,29 +34,30 @@ struct ExerciseBodyMuscleSelector: View {
     var body: some View {
         VStack(spacing: 10) {
             GeometryReader { proxy in
-                let bodyWidth = proxy.size.width * 0.62
-                let bodyHeight = proxy.size.height * 0.92
-                let visualScale = min(1.1, max(1.0, proxy.size.width / 390))
+                let bodyWidth = proxy.size.width * 0.72
+                let bodyHeight = proxy.size.height * 1.04
+                let visualScale = min(1.24, max(1.1, proxy.size.width / 360))
+                let sideOffset = proxy.size.width * 0.2
 
                 ZStack {
                     bodyView(side: .back)
                         .frame(width: bodyWidth, height: bodyHeight)
                         .scaleEffect(visualScale, anchor: .center)
-                        .offset(x: proxy.size.width * 0.17, y: 4)
+                        .offset(x: sideOffset, y: 0)
                         .opacity(selectedSegments.isEmpty ? 0.88 : 0.72)
                         .zIndex(1)
 
                     bodyView(side: .front)
                         .frame(width: bodyWidth, height: bodyHeight)
                         .scaleEffect(visualScale, anchor: .center)
-                        .offset(x: -proxy.size.width * 0.16, y: -2)
+                        .offset(x: -sideOffset, y: 0)
                         .zIndex(2)
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height, alignment: .center)
                 .compositingGroup()
                 .clipped()
             }
-            .frame(height: 240)
+            .frame(height: 340)
             .accessibilityLabel(localizedString("tap_a_muscle_to_filter"))
 
             if selectedSegments.isEmpty {

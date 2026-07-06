@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "ios-launch-performance": {
+      "source": "Livsy90/iOS-Performance-Agent-Skills",
+      "sourceType": "github",
+      "skillPath": "ios-launch-performance/SKILL.md",
+      "computedHash": "fbff57007faa8dd8ca9a9bbaea93ed07078fea7fa990832fcd9e295f1ab58fd1"
+    },
+    "ios-perceived-performance": {
+      "source": "Livsy90/iOS-Performance-Agent-Skills",
+      "sourceType": "github",
+      "skillPath": "ios-perceived-performance/SKILL.md",
+      "computedHash": "25c284698e0959c664ecf2d7b596627bf6d6032fc6329e3d5d04538ad650b4a8"
+    },
+    "ios-performance-profiling": {
+      "source": "Livsy90/iOS-Performance-Agent-Skills",
+      "sourceType": "github",
+      "skillPath": "ios-performance-profiling/SKILL.md",
+      "computedHash": "b7d05951ac32cfbab373900c5800236dbf7aaa8c9065a61013f9f5ef6c0bc96c"
+    },
+    "swift-concurrency-performance": {
+      "source": "Livsy90/iOS-Performance-Agent-Skills",
+      "sourceType": "github",
+      "skillPath": "swift-concurrency-performance/SKILL.md",
+      "computedHash": "3f088a696f87498ffec559e63828dea8119e3dc5512fec48979941f64d1a4f82"
+    },
+    "swift-runtime-performance": {
+      "source": "Livsy90/iOS-Performance-Agent-Skills",
+      "sourceType": "github",
+      "skillPath": "swift-runtime-performance/SKILL.md",
+      "computedHash": "47b5bd3df17cdef3bc6d58db30eb187b6e1182999a3ecb0e5ba3b48372d72312"
+    },
+    "swiftui-performance": {
+      "source": "Livsy90/iOS-Performance-Agent-Skills",
+      "sourceType": "github",
+      "skillPath": "swiftui-performance/SKILL.md",
+      "computedHash": "1a85bdcd97934ba65e3f7ef37c5a7e4475e904b6ac8f6bf9a1a5e4cc3435668b"
+    }
+  }
+}

@@ -29,6 +29,7 @@ struct RepsTests {
 
     @Test @MainActor func suggestedPlanUsesNormalizedResistanceBandEquipment() {
         let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+        store.userProfile.preferredLanguage = "es"
         store.userProfile.trainingLocation = .gym
         store.userProfile.availableEquipment = ["Resistance Band"]
 
@@ -1712,6 +1713,7 @@ struct RepsTests {
 
     @Test @MainActor func competitiveActionSchedulesDeloadSession() {
         let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+        store.userProfile.preferredLanguage = "es"
 
         let destination = store.executeCompetitiveAction(.scheduleDeloadExercise(SeedData.bench.id))
 
@@ -1975,7 +1977,7 @@ struct RepsTests {
         var snapshot = AppSnapshot.seed
         snapshot.monetization.entitlement = .pro
         snapshot.monetization.status = .active
-        snapshot.monetization.billingCycle = .annual
+        snapshot.monetization.billingCycle = .yearly
         snapshot.monetization.provider = .iCloudOwner
         snapshot.monetization.lastPaywallSource = .profileSubscription
         snapshot.monetization.paywallPresentationCount = 3
@@ -1985,7 +1987,7 @@ struct RepsTests {
         let loaded = persistence.loadSnapshot()
         #expect(loaded?.monetization.entitlement == .pro)
         #expect(loaded?.monetization.status == .active)
-        #expect(loaded?.monetization.billingCycle == .annual)
+        #expect(loaded?.monetization.billingCycle == .yearly)
         #expect(loaded?.monetization.provider == .iCloudOwner)
         #expect(loaded?.monetization.lastPaywallSource == .profileSubscription)
         #expect(loaded?.monetization.paywallPresentationCount == 3)
@@ -2203,11 +2205,15 @@ struct RepsTests {
             date: Date().addingTimeInterval(7_200)
         )
         try await NotificationService.schedulePersonalRecordCelebration(exerciseName: "Squat", delay: 120)
-        let streakBaseDate = try #require(ISO8601DateFormatter().date(from: "2026-06-24T08:00:00Z"))
+        let streakBaseDate = Date()
+        let streakFireComponents = Calendar.current.dateComponents(
+            [.hour, .minute],
+            from: streakBaseDate.addingTimeInterval(7_200)
+        )
         try await NotificationService.scheduleStreakAtRiskReminder(
             currentStreak: 3,
-            hour: 12,
-            minute: 0,
+            hour: try #require(streakFireComponents.hour),
+            minute: try #require(streakFireComponents.minute),
             now: streakBaseDate
         )
         try await NotificationService.scheduleGymRenewalReminder(

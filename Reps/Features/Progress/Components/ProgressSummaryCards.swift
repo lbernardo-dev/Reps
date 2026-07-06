@@ -5,14 +5,14 @@ import SwiftUI
 struct DailySummaryFocusCard: View {
   let summary: String
   let readinessLevel: Int
+  let todaySessions: [WorkoutSession]
+  let dateOfBirth: Date?
   let sessionsToday: Int
   let activeEnergyToday: Int
   let stepsToday: Int
   let exerciseMinutesWeek: Int
   let hasHealthData: Bool
   let hasManualData: Bool
-  let onOpenWorkout: () -> Void
-  let onOpenCalendar: () -> Void
 
   private var readinessColor: Color {
     if readinessLevel >= 70 { return PulseTheme.ringExercise }
@@ -88,29 +88,300 @@ struct DailySummaryFocusCard: View {
           )
         }
 
-        HStack(spacing: 10) {
-          Button(action: onOpenWorkout) {
-	            Label(localizedString("train"), systemImage: "play.fill")
-	              .font(.subheadline.weight(.black))
-	              .foregroundStyle(PulseTheme.onColor(PulseTheme.ringExercise))
-	              .frame(maxWidth: .infinity)
-	              .frame(height: 42)
-	              .background(PulseTheme.ringExercise, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-          }
-          .buttonStyle(.plain)
+        TodayZoneDistributionPanel(
+          sessions: todaySessions,
+          dateOfBirth: dateOfBirth
+        )
+      }
+    }
+  }
+}
 
-          Button(action: onOpenCalendar) {
-	            Label(localizedString("plan"), systemImage: "calendar")
-	              .font(.subheadline.weight(.black))
-	              .foregroundStyle(PulseTheme.textSecondary)
-	              .frame(maxWidth: .infinity)
-	              .frame(height: 42)
-	              .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-          }
-          .buttonStyle(.plain)
+private enum TodayTrainingZone: Int, CaseIterable, Identifiable {
+  case one = 0
+  case two
+  case three
+  case four
+  case five
+
+  var id: Int { rawValue }
+
+  var color: Color {
+    PulseTheme.hrZones[rawValue]
+  }
+
+  var label: String {
+    switch self {
+    case .one: return localizedString("zone_1_label")
+    case .two: return localizedString("zone_2_label")
+    case .three: return localizedString("zone_3_label")
+    case .four: return localizedString("zone_4_label")
+    case .five: return localizedString("zone_5_label")
+    }
+  }
+
+  func lowerBound(maxHR: Double) -> Double {
+    [0.0, 0.60, 0.70, 0.80, 0.90][rawValue] * maxHR
+  }
+
+  func rangeLabel(maxHR: Double) -> String {
+    switch self {
+    case .one: return "<\(Int(maxHR * 0.60))BPM"
+    case .two: return "\(Int(maxHR * 0.60))-\(Int(maxHR * 0.70))BPM"
+    case .three: return "\(Int(maxHR * 0.70))-\(Int(maxHR * 0.80))BPM"
+    case .four: return "\(Int(maxHR * 0.80))-\(Int(maxHR * 0.90))BPM"
+    case .five: return "\(Int(maxHR * 0.90))+BPM"
+    }
+  }
+}
+
+private struct TodayZoneDistributionPanel: View {
+  let sessions: [WorkoutSession]
+  let dateOfBirth: Date?
+
+  private var maxHeartRate: Double {
+    guard let dateOfBirth,
+          let age = Calendar.current.dateComponents([.year], from: dateOfBirth, to: .now).year,
+          age > 0
+    else { return 190 }
+    return Double(max(120, 220 - age))
+  }
+
+  private var heartRateMinutes: [Int] {
+    var minutes = Array(repeating: 0, count: TodayTrainingZone.allCases.count)
+
+    for session in sessions {
+      let points = session.routePoints.filter { $0.heartRate != nil }
+      if points.count >= 2 {
+        for index in 1..<points.count {
+          guard let heartRate = points[index - 1].heartRate else { continue }
+          let seconds = points[index].timestamp.timeIntervalSince(points[index - 1].timestamp)
+          guard seconds > 0, seconds < 300 else { continue }
+          minutes[zoneIndex(forHeartRate: heartRate)] += max(1, Int((seconds / 60).rounded()))
+        }
+      } else if let heartRate = session.averageHeartRate, heartRate > 0 {
+        minutes[zoneIndex(forHeartRate: heartRate)] += max(session.durationMinutes, 1)
+      }
+    }
+
+    return minutes
+  }
+
+  private var loadMinutes: [Int] {
+    var minutes = Array(repeating: 0, count: TodayTrainingZone.allCases.count)
+
+    for session in sessions {
+      let completedSets = session.sets.filter(\.completed).count
+      minutes[zoneIndex(forLoadIn: session, completedSets: completedSets)] += effectiveMinutes(
+        for: session,
+        completedSets: completedSets
+      )
+    }
+
+    return minutes
+  }
+
+  private var zoneMinutes: [Int] {
+    let heartRateTotal = heartRateMinutes.reduce(0, +)
+    return heartRateTotal > 0 ? heartRateMinutes : loadMinutes
+  }
+
+  private var totalMinutes: Int {
+    zoneMinutes.reduce(0, +)
+  }
+
+  private var isUsingHeartRate: Bool {
+    heartRateMinutes.reduce(0, +) > 0
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Zonas de hoy")
+            .font(.subheadline.weight(.black))
+          Text(isUsingHeartRate ? "Frecuencia cardiaca" : "Carga estimada por sesión")
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(PulseTheme.secondaryText)
+        }
+        Spacer()
+        Text("\(totalMinutes) min")
+          .font(.caption.weight(.black).monospacedDigit())
+          .foregroundStyle(PulseTheme.secondaryText)
+      }
+
+      TodayClassicZoneScale(
+        minutes: zoneMinutes,
+        indicatorSystemImage: isUsingHeartRate ? "heart.fill" : "bolt.fill"
+      )
+      .frame(height: 44)
+
+      VStack(spacing: 7) {
+        ForEach(TodayTrainingZone.allCases) { zone in
+          TodayZoneRow(
+            zone: zone,
+            minutes: zoneMinutes[zone.rawValue],
+            totalMinutes: totalMinutes,
+            maxHeartRate: maxHeartRate,
+            showHeartRateRange: isUsingHeartRate
+          )
         }
       }
     }
+    .padding(12)
+    .background(PulseTheme.grouped.opacity(0.56), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+  }
+
+  private func zoneIndex(forHeartRate heartRate: Double) -> Int {
+    TodayTrainingZone.allCases.last { heartRate >= $0.lowerBound(maxHR: maxHeartRate) }?.rawValue ?? 0
+  }
+
+  private func zoneIndex(forLoadIn session: WorkoutSession, completedSets: Int) -> Int {
+    if let rpe = session.sessionRPE {
+      switch rpe {
+      case ..<3: return 0
+      case ..<5: return 1
+      case ..<7: return 2
+      case ..<9: return 3
+      default: return 4
+      }
+    }
+
+    switch completedSets {
+    case 0...2: return 0
+    case 3...6: return 1
+    case 7...12: return 2
+    case 13...18: return 3
+    default: return 4
+    }
+  }
+
+  private func effectiveMinutes(for session: WorkoutSession, completedSets: Int) -> Int {
+    let setEstimate = max(completedSets * 2, 1)
+    let rawDuration = session.durationMinutes
+
+    if rawDuration <= 0 {
+      return min(max(setEstimate, 1), 120)
+    }
+
+    if rawDuration > 300 {
+      return min(max(setEstimate, 20), 120)
+    }
+
+    return min(max(rawDuration, setEstimate), 240)
+  }
+}
+
+private struct TodayClassicZoneScale: View {
+  let minutes: [Int]
+  let indicatorSystemImage: String
+
+  private var selectedZone: TodayTrainingZone? {
+    guard let maxMinutes = minutes.max(), maxMinutes > 0 else { return nil }
+    let index = minutes.firstIndex(of: maxMinutes) ?? 0
+    return TodayTrainingZone(rawValue: index)
+  }
+
+  var body: some View {
+    GeometryReader { geometry in
+      let spacing: CGFloat = 5
+      let segmentWidth = max(0, (geometry.size.width - spacing * 4) / 5)
+      let pillWidth = min(124, geometry.size.width * 0.42)
+
+      ZStack(alignment: .topLeading) {
+        HStack(spacing: spacing) {
+          ForEach(TodayTrainingZone.allCases) { zone in
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+              .fill(zone.color)
+              .frame(maxWidth: .infinity)
+              .opacity(selectedZone == nil || selectedZone == zone ? 1 : 0.58)
+          }
+        }
+        .frame(height: 32)
+
+        if let selectedZone {
+          let center = (segmentWidth / 2) + CGFloat(selectedZone.rawValue) * (segmentWidth + spacing)
+          let x = min(max(center - pillWidth / 2, 0), max(0, geometry.size.width - pillWidth))
+
+          HStack(spacing: 6) {
+            Image(systemName: indicatorSystemImage)
+              .font(.system(size: 12, weight: .black))
+            Text("ZONA \(selectedZone.rawValue + 1)")
+              .font(.system(size: 15, weight: .black, design: .rounded))
+              .lineLimit(1)
+              .minimumScaleFactor(0.78)
+          }
+          .foregroundStyle(PulseTheme.onColor(selectedZone.color))
+          .frame(width: pillWidth, height: 32)
+          .background(selectedZone.color, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+          .offset(x: x)
+
+          ZonePointer()
+            .fill(.white)
+            .frame(width: 14, height: 8)
+            .offset(x: min(max(center - 7, 0), max(0, geometry.size.width - 14)), y: 32)
+        }
+      }
+    }
+  }
+}
+
+private struct ZonePointer: Shape {
+  func path(in rect: CGRect) -> Path {
+    var path = Path()
+    path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+    path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+    path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+    path.closeSubpath()
+    return path
+  }
+}
+
+private struct TodayZoneRow: View {
+  let zone: TodayTrainingZone
+  let minutes: Int
+  let totalMinutes: Int
+  let maxHeartRate: Double
+  let showHeartRateRange: Bool
+
+  private var progress: Double {
+    guard totalMinutes > 0 else { return 0 }
+    return Double(minutes) / Double(totalMinutes)
+  }
+
+  var body: some View {
+    HStack(spacing: 8) {
+      Text("Z\(zone.rawValue + 1)")
+        .font(.caption.weight(.black))
+        .foregroundStyle(zone.color)
+        .frame(width: 22, alignment: .leading)
+
+      GeometryReader { geometry in
+        ZStack(alignment: .leading) {
+          Capsule()
+            .fill(PulseTheme.secondaryText.opacity(0.12))
+          Capsule()
+            .fill(zone.color)
+            .frame(width: max(minutes > 0 ? 7 : 0, geometry.size.width * progress))
+        }
+      }
+      .frame(height: 7)
+
+      Text("\(minutes)m")
+        .font(.caption.weight(.bold).monospacedDigit())
+        .foregroundStyle(.primary)
+        .lineLimit(1)
+        .minimumScaleFactor(0.72)
+        .frame(width: 44, alignment: .trailing)
+
+      if showHeartRateRange {
+        Text(zone.rangeLabel(maxHR: maxHeartRate))
+          .font(.caption2.weight(.semibold).monospacedDigit())
+          .foregroundStyle(PulseTheme.tertiaryText)
+          .frame(width: 74, alignment: .trailing)
+      }
+    }
+    .frame(height: 16)
   }
 }
 
@@ -268,13 +539,43 @@ struct SummaryRingsHeroCard: View {
   let standValue: String
   let standGoal: String
   let weeklyDays: [Bool]
+  let weekStart: Date
+  let dailyPoints: [BodyFusionPoint]
   let onTapMove: () -> Void
   let onTapExercise: () -> Void
   let onTapStand: () -> Void
 
+  private var weekEnd: Date {
+    Calendar.current.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
+  }
+
+  private var rangeText: String {
+    let formatter = DateFormatter()
+    formatter.locale = .current
+    formatter.setLocalizedDateFormatFromTemplate("d MMM")
+    return "\(formatter.string(from: weekStart)) - \(formatter.string(from: weekEnd))"
+  }
+
   var body: some View {
     PulseCard(contentPadding: 16) {
       VStack(alignment: .leading, spacing: 16) {
+        HStack(alignment: .firstTextBaseline) {
+          VStack(alignment: .leading, spacing: 3) {
+            Text("Resumen semanal")
+              .font(.headline.weight(.black))
+            Text("Rango evaluado: \(rangeText)")
+              .font(.caption.weight(.bold))
+              .foregroundStyle(PulseTheme.secondaryText)
+          }
+          Spacer()
+          Text("\(weeklyDays.filter { $0 }.count)/7")
+            .font(.caption.weight(.black).monospacedDigit())
+            .foregroundStyle(PulseTheme.ringStand)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(PulseTheme.ringStand.opacity(0.12), in: Capsule())
+        }
+
         ViewThatFits(in: .horizontal) {
           HStack(alignment: .center, spacing: 14) {
             ringsView(width: 112, lineWidth: 13, gap: 4)
@@ -300,6 +601,12 @@ struct SummaryRingsHeroCard: View {
           }
           WeekRingStrip(days: weeklyDays)
         }
+
+        WeeklyDistributionPanel(
+          points: dailyPoints,
+          activeDays: weeklyDays,
+          weekStart: weekStart
+        )
       }
     }
   }
@@ -352,6 +659,166 @@ struct SummaryRingsHeroCard: View {
       gap: gap
     )
     .frame(width: width, height: width)
+  }
+}
+
+private struct WeeklyDistributionPanel: View {
+  let points: [BodyFusionPoint]
+  let activeDays: [Bool]
+  let weekStart: Date
+
+  private var normalizedPoints: [BodyFusionPoint] {
+    if points.count == 7 { return points }
+
+    let calendar = Calendar.current
+    let byDay = Dictionary(grouping: points) { calendar.startOfDay(for: $0.date) }
+    return (0..<7).compactMap { offset in
+      guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
+      let day = calendar.startOfDay(for: date)
+      if let existing = byDay[day]?.first { return existing }
+      return BodyFusionPoint(date: day, activity: 0, volume: 0)
+    }
+  }
+
+  private var maxVolume: Double {
+    max(normalizedPoints.map(\.volume).max() ?? 0, 1)
+  }
+
+  private var maxActivity: Double {
+    max(normalizedPoints.map(\.activity).max() ?? 0, 1)
+  }
+
+  private var sessionValues: [Double] {
+    activeDays.enumerated().map { index, isActive in
+      guard index < normalizedPoints.count else { return 0 }
+      return isActive ? 1 : 0
+    }
+  }
+
+  private var activeDaysLabel: String {
+    let count = activeDays.filter { $0 }.count
+    return count == 1 ? "1 día" : "\(count) días"
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(alignment: .firstTextBaseline) {
+        Text("Distribución diaria")
+          .font(.caption.weight(.black))
+          .foregroundStyle(PulseTheme.secondaryText)
+        Spacer()
+        Text("Lun-Dom")
+          .font(.caption2.weight(.black))
+          .foregroundStyle(PulseTheme.tertiaryText)
+      }
+
+      VStack(spacing: 10) {
+        WeeklySparkMetricRow(
+          title: "Volumen",
+          total: "\(Int(normalizedPoints.map(\.volume).reduce(0, +))) kg",
+          color: PulseTheme.ringMove,
+          values: normalizedPoints.map { $0.volume / maxVolume },
+          dayDates: normalizedPoints.map(\.date),
+          footer: "Carga registrada"
+        )
+
+        WeeklySparkMetricRow(
+          title: "Sesiones",
+          total: activeDaysLabel,
+          color: PulseTheme.ringExercise,
+          values: sessionValues,
+          dayDates: normalizedPoints.map(\.date),
+          footer: "Días con entreno"
+        )
+
+        WeeklySparkMetricRow(
+          title: "Actividad",
+          total: "\(Int(normalizedPoints.map(\.activity).reduce(0, +))) kcal",
+          color: PulseTheme.ringStand,
+          values: normalizedPoints.map { $0.activity / maxActivity },
+          dayDates: normalizedPoints.map(\.date),
+          footer: "Health semanal"
+        )
+      }
+    }
+    .padding(12)
+    .background(PulseTheme.grouped.opacity(0.46), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+  }
+}
+
+private struct WeeklySparkMetricRow: View {
+  let title: String
+  let total: String
+  let color: Color
+  let values: [Double]
+  let dayDates: [Date]
+  let footer: String
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 5) {
+      HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 1) {
+          Text(title)
+            .font(.caption.weight(.black))
+            .foregroundStyle(.primary)
+          Text(footer)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(PulseTheme.tertiaryText)
+        }
+        Spacer()
+        Text(total)
+          .font(.caption.weight(.black).monospacedDigit())
+          .foregroundStyle(color)
+          .lineLimit(1)
+          .minimumScaleFactor(0.72)
+      }
+
+      HStack(alignment: .bottom, spacing: 5) {
+        ForEach(Array(values.enumerated()), id: \.offset) { index, value in
+          let clamped = min(max(value, 0), 1)
+          Capsule()
+            .fill(clamped > 0 ? color : PulseTheme.secondaryText.opacity(0.12))
+            .frame(maxWidth: .infinity)
+            .frame(height: max(4, 34 * clamped))
+            .overlay(alignment: .bottom) {
+              if clamped == 0 {
+                Capsule()
+                  .fill(PulseTheme.secondaryText.opacity(0.08))
+                  .frame(height: 4)
+              }
+            }
+            .accessibilityLabel(dayLabel(for: index))
+        }
+      }
+      .frame(height: 34, alignment: .bottom)
+
+      HStack(spacing: 5) {
+        ForEach(Array(dayDates.enumerated()), id: \.offset) { index, date in
+          Text(dayInitial(for: date))
+            .font(.system(size: 8, weight: .black, design: .rounded))
+            .foregroundStyle(index == todayIndex ? color : PulseTheme.tertiaryText)
+            .frame(maxWidth: .infinity)
+        }
+      }
+    }
+  }
+
+  private var todayIndex: Int? {
+    let today = Calendar.current.startOfDay(for: .now)
+    return dayDates.firstIndex { Calendar.current.startOfDay(for: $0) == today }
+  }
+
+  private func dayInitial(for date: Date) -> String {
+    let weekday = Calendar.current.component(.weekday, from: date)
+    return ["D", "L", "M", "X", "J", "V", "S"][max(0, min(weekday - 1, 6))]
+  }
+
+  private func dayLabel(for index: Int) -> String {
+    guard index < dayDates.count else { return title }
+    let formatter = DateFormatter()
+    formatter.locale = .current
+    formatter.setLocalizedDateFormatFromTemplate("EEEE d MMM")
+    return "\(title), \(formatter.string(from: dayDates[index]))"
   }
 }
 

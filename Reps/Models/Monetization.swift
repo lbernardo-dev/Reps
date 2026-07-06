@@ -3,22 +3,28 @@ import Foundation
 enum StoreKitProductID: String, CaseIterable, Identifiable {
     case weekly = "com.romerodev.repsfitness.pro.weekly"
     case monthly = "com.romerodev.repsfitness.pro.monthly"
-    case annual = "com.romerodev.repsfitness.pro.annual"
+    case yearly = "com.romerodev.repsfitness.pro.annual"
     case lifetime = "com.romerodev.repsfitness.pro.lifetime"
 
     var id: String { rawValue }
 
-    static let subscriptions: [StoreKitProductID] = [.weekly, .monthly, .annual]
+    static let subscriptions: [StoreKitProductID] = [.weekly, .monthly, .yearly]
     static let allProductIDs = StoreKitProductID.allCases.map(\.rawValue)
 
     var billingCycle: SubscriptionBillingCycle {
         switch self {
         case .weekly: return .weekly
         case .monthly: return .monthly
-        case .annual: return .annual
+        case .yearly: return .yearly
         case .lifetime: return .lifetime
         }
     }
+}
+
+enum RevenueCatConfiguration {
+    static let apiKey = "appl_iAJUnQzosUZuncLQNWAVnAifxjk"
+    static let proEntitlementID = "StreakRep Pro"
+    static let defaultOfferingID = "default"
 }
 
 enum ProductFeature: String, CaseIterable, Identifiable, Codable {
@@ -149,7 +155,7 @@ enum SubscriptionStatus: String, Codable {
 enum SubscriptionBillingCycle: String, Codable, CaseIterable, Identifiable {
     case weekly
     case monthly
-    case annual
+    case yearly
     case lifetime
 
     var id: String { rawValue }
@@ -158,7 +164,7 @@ enum SubscriptionBillingCycle: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .weekly:   return localizedString("weekly_billing_title")
         case .monthly:  return localizedString("monthly_billing_title")
-        case .annual:   return localizedString("annual_billing_title")
+        case .yearly:   return localizedString("annual_billing_title")
         case .lifetime: return localizedString("Lifetime")
         }
     }
@@ -167,7 +173,7 @@ enum SubscriptionBillingCycle: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .weekly:   return localizedString("weekly_price_summary")
         case .monthly:  return localizedString("monthly_price_summary")
-        case .annual:   return localizedString("annual_price_summary")
+        case .yearly:   return localizedString("annual_price_summary")
         case .lifetime: return localizedString("lifetime_price_summary")
         }
     }

@@ -56,7 +56,7 @@ struct ExerciseAnatomyThumbnail: View {
     }
 
     private var cacheKey: String {
-        return "v7-\(exercise.id.uuidString)-\(gender)-\(Int(size.rounded()))-\(descriptor.region.side)-\(descriptor.cacheKey)"
+        return "v8-\(exercise.id.uuidString)-\(gender)-\(Int(size.rounded()))-\(descriptor.region.side)-\(descriptor.cacheKey)"
     }
 
     private var cardioFallback: some View {
@@ -74,22 +74,98 @@ struct MuscleGroupAnatomyThumbnail: View {
     var gender: BodyGender = .male
     var size: CGFloat = 58
     var intensity: Double = 1
+    private let segment: MuscleSegment?
+    @State private var renderedImage: UIImage?
 
     private var descriptor: ExerciseAnatomyDescriptor {
-        ExerciseAnatomyDescriptor(muscleGroup: muscleGroup, exerciseName: exerciseName, secondaryMuscles: [])
+        if let segment {
+            ExerciseAnatomyDescriptor(segment: segment)
+        } else {
+            ExerciseAnatomyDescriptor(muscleGroup: muscleGroup, exerciseName: exerciseName, secondaryMuscles: [])
+        }
+    }
+
+    init(
+        muscleGroup: String,
+        exerciseName: String = "",
+        gender: BodyGender = .male,
+        size: CGFloat = 58,
+        intensity: Double = 1
+    ) {
+        self.muscleGroup = muscleGroup
+        self.exerciseName = exerciseName
+        self.gender = gender
+        self.size = size
+        self.intensity = intensity
+        self.segment = nil
+    }
+
+    init(
+        segment: MuscleSegment,
+        gender: BodyGender = .male,
+        size: CGFloat = 58,
+        intensity: Double = 1
+    ) {
+        self.muscleGroup = segment.rawValue
+        self.exerciseName = ""
+        self.gender = gender
+        self.size = size
+        self.intensity = intensity
+        self.segment = segment
     }
 
     var body: some View {
-        AnatomyThumbnailCanvas(
-            gender: gender,
-            primarySide: descriptor.region.side,
-            region: descriptor.region,
-            intensities: descriptor.thumbnailHeatmap(primaryIntensity: max(0.35, min(intensity, 1)))
-        )
+        Group {
+            if let image = renderedImage ?? AnatomyThumbnailImageCache.shared.image(for: cacheKey) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else if segment != nil {
+                SegmentAnatomyThumbnailCanvas(
+                    gender: gender,
+                    region: descriptor.region,
+                    intensities: descriptor.thumbnailHeatmap(primaryIntensity: max(0.35, min(intensity, 1)))
+                )
+            } else {
+                AnatomyThumbnailCanvas(
+                    gender: gender,
+                    primarySide: descriptor.region.side,
+                    region: descriptor.region,
+                    intensities: descriptor.thumbnailHeatmap(primaryIntensity: max(0.35, min(intensity, 1)))
+                )
+            }
+        }
         .frame(width: size, height: size)
         .background(anatomyThumbnailBackground)
         .clipShape(RoundedRectangle(cornerRadius: min(16, size * 0.25), style: .continuous))
         .accessibilityHidden(true)
+        .onAppear {
+            guard renderedImage == nil else { return }
+            let thumbnailHeatmap = descriptor.thumbnailHeatmap(primaryIntensity: max(0.35, min(intensity, 1)))
+            if segment != nil {
+                renderedImage = AnatomyThumbnailImageCache.shared.renderSegment(
+                    key: cacheKey,
+                    gender: gender,
+                    region: descriptor.region,
+                    size: size,
+                    intensities: thumbnailHeatmap
+                )
+            } else {
+                renderedImage = AnatomyThumbnailImageCache.shared.render(
+                    key: cacheKey,
+                    gender: gender,
+                    primarySide: descriptor.region.side,
+                    region: descriptor.region,
+                    size: size,
+                    intensities: thumbnailHeatmap
+                )
+            }
+        }
+    }
+
+    private var cacheKey: String {
+        let segmentKey = segment?.rawValue ?? "group-\(muscleGroup)-\(exerciseName)"
+        return "group-v3-\(segmentKey)-\(gender)-\(Int(size.rounded()))-\(Int((max(0.35, min(intensity, 1)) * 100).rounded()))-\(descriptor.region.side)-\(descriptor.cacheKey)"
     }
 }
 
@@ -105,6 +181,7 @@ private struct AnatomyThumbnailCanvas: View {
                 BodyView(gender: gender, side: primarySide == .front ? .back : .front, style: .thumbnailAnatomy)
                     .heatmap(heatmap, configuration: .thumbnailAnatomy)
                     .showSubGroups()
+                    .selected(selectedMuscles)
                     .opacity(0.22)
                     .frame(width: proxy.size.width * 0.92, height: proxy.size.height * 1.05)
                     .scaleEffect(max(effectiveScale * 0.86, 1.14), anchor: region.anchor)
@@ -115,6 +192,7 @@ private struct AnatomyThumbnailCanvas: View {
                 BodyView(gender: gender, side: primarySide, style: .thumbnailAnatomy)
                     .heatmap(heatmap, configuration: .thumbnailAnatomy)
                     .showSubGroups()
+                    .selected(selectedMuscles)
                     .frame(width: proxy.size.width * 0.94, height: proxy.size.height * 1.05)
                     .scaleEffect(effectiveScale, anchor: region.anchor)
                     .offset(x: proxy.size.width * (0.18 + region.offset.width), y: proxy.size.height * region.offset.height)
@@ -128,11 +206,46 @@ private struct AnatomyThumbnailCanvas: View {
     }
 
     private var effectiveScale: CGFloat {
-        min(max(region.scale, 1.28), 3.18)
+        min(max(region.scale, 1.28), 3.75)
     }
 
     private var heatmap: [MuscleIntensity] {
         intensities
+    }
+
+    private var selectedMuscles: Set<Muscle> {
+        Set(intensities.map(\.muscle))
+    }
+}
+
+private struct SegmentAnatomyThumbnailCanvas: View {
+    let gender: BodyGender
+    let region: AnatomyRegion
+    let intensities: [MuscleIntensity]
+
+    var body: some View {
+        GeometryReader { proxy in
+            BodyView(gender: gender, side: region.side, style: .thumbnailAnatomy)
+                .heatmap(intensities, configuration: .thumbnailAnatomy)
+                .showSubGroups()
+                .selected(selectedMuscles)
+                .frame(width: proxy.size.width * 1.16, height: proxy.size.height * 1.18)
+                .scaleEffect(effectiveScale, anchor: region.anchor)
+                .offset(x: proxy.size.width * region.offset.width, y: proxy.size.height * region.offset.height)
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .clipped()
+        .accessibilityHidden(true)
+    }
+
+    private var effectiveScale: CGFloat {
+        min(max(region.scale, 1.28), 4.8)
+    }
+
+    private var selectedMuscles: Set<Muscle> {
+        Set(intensities.map(\.muscle))
     }
 }
 
@@ -167,6 +280,37 @@ private final class AnatomyThumbnailImageCache {
         )
         .frame(width: size, height: size)
         .background(anatomyThumbnailBackground)
+        .environment(\.colorScheme, .dark)
+
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = UITraitCollection.current.displayScale
+        guard let image = renderer.uiImage else {
+            return nil
+        }
+        cache.setObject(image, forKey: nsKey)
+        return image
+    }
+
+    func renderSegment(
+        key: String,
+        gender: BodyGender,
+        region: AnatomyRegion,
+        size: CGFloat,
+        intensities: [MuscleIntensity]
+    ) -> UIImage? {
+        let nsKey = key as NSString
+        if let image = cache.object(forKey: nsKey) {
+            return image
+        }
+
+        let content = SegmentAnatomyThumbnailCanvas(
+            gender: gender,
+            region: region,
+            intensities: intensities
+        )
+        .frame(width: size, height: size)
+        .background(anatomyThumbnailBackground)
+        .environment(\.colorScheme, .dark)
 
         let renderer = ImageRenderer(content: content)
         renderer.scale = UITraitCollection.current.displayScale
@@ -208,6 +352,13 @@ struct ExerciseAnatomyDescriptor {
         self.secondaryMuscles = Self.unique(secondary).filter { !primaryFocus.primaryMuscles.contains($0) }
         muscles = Self.unique(self.primaryMuscles + self.secondaryMuscles)
         region = primaryFocus.region
+    }
+
+    init(segment: MuscleSegment) {
+        primaryMuscles = segment.thumbnailMuscles
+        secondaryMuscles = []
+        muscles = Self.unique(primaryMuscles)
+        region = segment.thumbnailRegion
     }
 
     var cacheKey: String {
@@ -340,6 +491,92 @@ enum AnatomyRegionFocus {
     var anatomyRegion: AnatomyRegion {
         let viewport = thumbnail
         return AnatomyRegion(side: side, scale: viewport.scale, anchor: viewport.anchor, offset: viewport.offset)
+    }
+}
+
+extension MuscleSegment {
+    var thumbnailRegion: AnatomyRegion {
+        let viewport = thumbnailViewport
+        return AnatomyRegion(side: thumbnailSide, scale: viewport.scale, anchor: viewport.anchor, offset: viewport.offset)
+    }
+
+    private var thumbnailSide: BodySide {
+        switch self {
+        case .traps, .upperBack, .lowerBack, .triceps, .hamstrings, .glutes, .calves:
+            .back
+        default:
+            .front
+        }
+    }
+
+    private var thumbnailViewport: AnatomyViewport {
+        switch self {
+        case .chest:
+            AnatomyViewport(scale: 3.05, anchor: .center, offset: CGSize(width: 0.00, height: 0.86))
+        case .deltoids:
+            AnatomyViewport(scale: 3.10, anchor: .center, offset: CGSize(width: 0.00, height: 0.86))
+        case .traps:
+            AnatomyViewport(scale: 3.12, anchor: .center, offset: CGSize(width: 0.00, height: 0.64))
+        case .upperBack:
+            AnatomyViewport(scale: 3.08, anchor: .center, offset: CGSize(width: 0.00, height: 0.52))
+        case .lowerBack:
+            AnatomyViewport(scale: 3.22, anchor: .center, offset: CGSize(width: 0.00, height: 0.14))
+        case .biceps:
+            AnatomyViewport(scale: 3.28, anchor: .center, offset: CGSize(width: 0.00, height: 0.72))
+        case .triceps:
+            AnatomyViewport(scale: 3.28, anchor: .center, offset: CGSize(width: 0.00, height: 0.66))
+        case .forearms:
+            AnatomyViewport(scale: 3.45, anchor: .center, offset: CGSize(width: 0.00, height: 0.28))
+        case .abs:
+            AnatomyViewport(scale: 3.04, anchor: .center, offset: CGSize(width: 0.00, height: 0.50))
+        case .obliques:
+            AnatomyViewport(scale: 3.04, anchor: .center, offset: CGSize(width: 0.00, height: 0.48))
+        case .quads:
+            AnatomyViewport(scale: 3.32, anchor: .bottom, offset: CGSize(width: 0.00, height: 0.72))
+        case .hamstrings:
+            AnatomyViewport(scale: 3.30, anchor: .bottom, offset: CGSize(width: 0.00, height: 0.68))
+        case .glutes:
+            AnatomyViewport(scale: 3.34, anchor: .bottom, offset: CGSize(width: 0.00, height: 1.00))
+        case .calves:
+            AnatomyViewport(scale: 3.36, anchor: .bottom, offset: CGSize(width: 0.00, height: 0.24))
+        case .adductors:
+            AnatomyViewport(scale: 3.24, anchor: .bottom, offset: CGSize(width: 0.00, height: 0.68))
+        }
+    }
+
+    fileprivate var thumbnailMuscles: [Muscle] {
+        switch self {
+        case .chest:
+            [.chest, .upperChest, .lowerChest]
+        case .deltoids:
+            [.deltoids, .frontDeltoid, .rearDeltoid, .rotatorCuff]
+        case .traps:
+            [.upperTrapezius, .lowerTrapezius]
+        case .upperBack:
+            [.upperBack, .rhomboids]
+        case .lowerBack:
+            [.lowerBack]
+        case .biceps:
+            [.biceps]
+        case .triceps:
+            [.triceps]
+        case .forearms:
+            [.forearm]
+        case .abs:
+            [.upperAbs, .lowerAbs]
+        case .obliques:
+            [.obliques, .serratus]
+        case .quads:
+            [.quadriceps, .innerQuad, .outerQuad]
+        case .hamstrings:
+            [.hamstring]
+        case .glutes:
+            [.gluteal]
+        case .calves:
+            [.calves, .tibialis]
+        case .adductors:
+            [.adductors]
+        }
     }
 }
 

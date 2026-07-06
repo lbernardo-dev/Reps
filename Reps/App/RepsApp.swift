@@ -1,5 +1,6 @@
 import CloudKit
 import Combine
+import RevenueCat
 import SwiftUI
 import UserNotifications
 
@@ -22,10 +23,25 @@ private enum FirebaseBootstrap {
     }
 }
 
+private enum RevenueCatBootstrap {
+    static func configureIfNeeded() {
+        guard !Purchases.isConfigured,
+              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+            return
+        }
+
+        #if DEBUG
+        Purchases.logLevel = .debug
+        #endif
+        Purchases.configure(withAPIKey: RevenueCatConfiguration.apiKey)
+    }
+}
+
 @MainActor
 final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
     override init() {
         FirebaseBootstrap.configureIfNeeded()
+        RevenueCatBootstrap.configureIfNeeded()
         super.init()
     }
 
@@ -42,6 +58,7 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         TelemetryService.shared.configure()
+        RevenueCatBootstrap.configureIfNeeded()
         TelemetryService.shared.breadcrumb("app.did_finish_launching")
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
         NotificationService.registerCategories()
@@ -128,9 +145,10 @@ struct RepsApp: App {
 
     init() {
         FirebaseBootstrap.configureIfNeeded()
+        RevenueCatBootstrap.configureIfNeeded()
         TelemetryService.shared.configure()
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
-        _store = State(initialValue: AppStore())
+        _store = State(initialValue: AppStore(startsBackgroundServices: false))
     }
 
     var body: some Scene {
@@ -142,6 +160,8 @@ struct RepsApp: App {
                 .task {
                     RepsLocalization.use(store.userProfile.preferredLanguage)
                     PermissionService.shared.refreshAll()
+                    await Task.yield()
+                    store.startBackgroundServicesIfNeeded()
 
                     if store.userProfile.onboardingCompleted,
                        store.userProfile.remindersEnabled {

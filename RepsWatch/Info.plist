@@ -33,6 +33,7 @@
 	<key>WKBackgroundModes</key>
 	<array>
 		<string>workout-processing</string>
+		<string>location</string>
 	</array>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.romerodev.repsfitness</string>

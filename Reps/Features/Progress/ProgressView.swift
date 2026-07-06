@@ -43,19 +43,12 @@ struct ProgressDashboardView: View {
         }
       ) {
 
-          DailySummaryFocusCard(
-            summary: store.dailySummary,
-            readinessLevel: store.trainingBattery.level,
-            sessionsToday: todaySessionsCount,
-            activeEnergyToday: Int(activeEnergyToday),
-            stepsToday: stepsToday,
-            exerciseMinutesWeek: weekHealthExerciseMinutes,
-            hasHealthData: !weekHealthMetrics.isEmpty,
-            hasManualData: heroMetrics.sessionsThisWeek > 0,
-            onOpenWorkout: { onSelectTab?(.today) },
-            onOpenCalendar: { onSelectTab?(.calendar) }
+          TrainingLoadOverviewCard(
+            battery: store.trainingBattery,
+            workload: workload,
+            onTap: { openSection(.load) }
           )
-          .stickyHeaderTitle(localizedString("today"))
+          .stickyHeaderTitle(localizedString("load"))
 
           // ── HOY: Anillos + métricas clave, inspirado en Fitness ───────────────
           SummaryRingsHeroCard(
@@ -73,6 +66,8 @@ struct ProgressDashboardView: View {
             standValue: "\(weekActiveDays)/7",
             standGoal: localizedString("days").lowercased(),
             weeklyDays: heroMetrics.weekActivityDays,
+            weekStart: heroMetrics.weekStart,
+            dailyPoints: bodyFusionChartPoints,
             onTapMove: { handleMetricTap(.volume) },
             onTapExercise: { handleMetricTap(.sessions) },
             onTapStand: { onSelectTab?(.calendar) }
@@ -143,11 +138,19 @@ struct ProgressDashboardView: View {
             }
           }
 
-          TrainingLoadOverviewCard(
-            battery: store.trainingBattery,
-            workload: workload,
-            onTap: { openSection(.load) }
+          DailySummaryFocusCard(
+            summary: store.dailySummary,
+            readinessLevel: store.trainingBattery.level,
+            todaySessions: todaySessions,
+            dateOfBirth: store.userProfile.dateOfBirth,
+            sessionsToday: todaySessionsCount,
+            activeEnergyToday: Int(activeEnergyToday),
+            stepsToday: stepsToday,
+            exerciseMinutesWeek: weekHealthExerciseMinutes,
+            hasHealthData: !weekHealthMetrics.isEmpty,
+            hasManualData: heroMetrics.sessionsThisWeek > 0
           )
+          .stickyHeaderTitle(localizedString("today"))
 
           // ── EXPLORAR: pantallas de análisis detallado ────────
           VStack(spacing: 10) {
@@ -728,8 +731,12 @@ struct ProgressDashboardView: View {
   }
 
   private var todaySessionsCount: Int {
+    todaySessions.count
+  }
+
+  private var todaySessions: [WorkoutSession] {
     let today = Calendar.current.startOfDay(for: .now)
-    return store.workoutSessions.filter { Calendar.current.startOfDay(for: $0.date) == today }.count
+    return store.workoutSessions.filter { Calendar.current.startOfDay(for: $0.date) == today }
   }
 
   private var weeklySessionGoal: Int {
