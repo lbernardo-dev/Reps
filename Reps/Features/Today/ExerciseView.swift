@@ -297,9 +297,10 @@ struct ExercisePulseGauge: View {
     let fraction: Double
     let color: Color
     let minutes: Int
+    @State private var isAnimationActive = false
 
     var body: some View {
-        TimelineView(.animation) { timeline in
+        TimelineView(.animation(minimumInterval: nil, paused: !isAnimationActive)) { timeline in
             let time = timeline.date.timeIntervalSince1970
             VStack(spacing: 24) {
                 Spacer(minLength: 0)
@@ -361,6 +362,12 @@ struct ExercisePulseGauge: View {
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity)
+        }
+        .onAppear {
+            isAnimationActive = true
+        }
+        .onDisappear {
+            isAnimationActive = false
         }
     }
 }

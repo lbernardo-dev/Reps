@@ -34,6 +34,13 @@ final class TelemetryService {
         #else
         isConfigured = false
         #endif
+
+        #if canImport(FirebaseCrashlytics)
+        if isConfigured {
+            Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(true)
+            Crashlytics.crashlytics().sendUnsentReports()
+        }
+        #endif
     }
 
     func updateUserProperties(_ profile: UserProfile) {

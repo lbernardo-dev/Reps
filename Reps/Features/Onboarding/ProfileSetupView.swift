@@ -406,6 +406,7 @@ struct ProfileSetupView: View {
                                     .font(.caption.weight(.bold))
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 38)
+                                    .contentShape(Capsule())
                                     .foregroundStyle(draft.bodyMapPreference == preference ? .black : PulseTheme.secondaryText)
                                     .background(draft.bodyMapPreference == preference ? .white : PulseTheme.grouped)
                                     .clipShape(Capsule())
@@ -1063,6 +1064,7 @@ private struct OnboardingOptionCard: View {
             }
             .padding(15)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
             .background(isSelected ? .white.opacity(0.08) : PulseTheme.card)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
             .overlay(
@@ -1116,6 +1118,7 @@ private struct OnboardingNumberPicker: View {
                                 .font(.headline.monospacedDigit())
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)
+                                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 .foregroundStyle(value == option ? .black : PulseTheme.secondaryText)
                                 .background(value == option ? .white : PulseTheme.grouped)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -1219,6 +1222,7 @@ private struct EquipmentChip: View {
                 .font(.subheadline.weight(.bold))
                 .padding(.horizontal, 14)
                 .frame(height: 40)
+                .contentShape(Capsule())
                 .foregroundStyle(isSelected ? .black : PulseTheme.secondaryText)
                 .background(isSelected ? PulseTheme.accent : PulseTheme.grouped)
                 .clipShape(Capsule())
@@ -1721,6 +1725,7 @@ private struct PlanUnlockProCard: View {
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
+                    .contentShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
                     .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                     .background(PulseTheme.accent)
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))

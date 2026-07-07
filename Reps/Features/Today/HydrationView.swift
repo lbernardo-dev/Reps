@@ -338,9 +338,10 @@ struct HydrationView: View {
 struct WaterBottleGauge: View {
     let fraction: Double
     let color: Color
+    @State private var isAnimationActive = false
 
     var body: some View {
-        TimelineView(.animation) { timeline in
+        TimelineView(.animation(minimumInterval: nil, paused: !isAnimationActive)) { timeline in
             let time = timeline.date.timeIntervalSince1970
             GeometryReader { geo in
                 let w = geo.size.width
@@ -390,6 +391,12 @@ struct WaterBottleGauge: View {
                     .offset(y: bottleH * 0.12)
                 }
             }
+        }
+        .onAppear {
+            isAnimationActive = true
+        }
+        .onDisappear {
+            isAnimationActive = false
         }
     }
 

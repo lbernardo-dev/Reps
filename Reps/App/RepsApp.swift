@@ -8,7 +8,10 @@ import UserNotifications
 import FirebaseCore
 #endif
 
+@MainActor
 private enum FirebaseBootstrap {
+    private static var didConfigure = false
+
     static func configureIfNeeded() {
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
               ProcessInfo.processInfo.environment["REPS_DISABLE_TELEMETRY"] != "1" else {
@@ -16,8 +19,9 @@ private enum FirebaseBootstrap {
         }
 
         #if canImport(FirebaseCore)
-        if FirebaseApp.app() == nil {
+        if !didConfigure {
             FirebaseApp.configure()
+            didConfigure = true
         }
         #endif
     }
@@ -58,6 +62,7 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         TelemetryService.shared.configure()
+        MetricsDiagnosticsService.shared.start()
         RevenueCatBootstrap.configureIfNeeded()
         TelemetryService.shared.breadcrumb("app.did_finish_launching")
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
@@ -141,12 +146,15 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
 struct RepsApp: App {
     @UIApplicationDelegateAdaptor(RepsApplicationDelegate.self) private var appDelegate
     @State private var store: AppStore
+    @State private var didRunStartupTask = false
+    @State private var didHandleInitialActivePhase = false
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
         FirebaseBootstrap.configureIfNeeded()
         RevenueCatBootstrap.configureIfNeeded()
         TelemetryService.shared.configure()
+        MetricsDiagnosticsService.shared.start()
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
         _store = State(initialValue: AppStore(startsBackgroundServices: false))
     }
@@ -158,6 +166,9 @@ struct RepsApp: App {
                 .environment(\.locale, Locale(identifier: store.userProfile.preferredLanguage))
                 .tint(PulseTheme.accent)
                 .task {
+                    guard !didRunStartupTask else { return }
+                    didRunStartupTask = true
+
                     RepsLocalization.use(store.userProfile.preferredLanguage)
                     PermissionService.shared.refreshAll()
                     await Task.yield()
@@ -197,20 +208,11 @@ struct RepsApp: App {
                 store.flushPendingSave()
             }
             if newPhase == .active {
-                store.syncWidgets()
-                store.refreshNotificationSchedule()
-                store.refreshHealthKitDataIfNeeded(reason: "foreground")
-                store.refreshActivityEventsFromDisk()
-                drainNotificationTargets()
-                Task {
-                    store.runEngagementChecks()
-                    await store.refreshStoreKitEntitlements()
-                    await store.refreshICloudProEntitlement()
-                    if let uname = store.userProfile.socialUsername, store.userProfile.socialEnabled {
-                        await SocialService.shared.pingActivity(myUsername: uname)
-                        await store.flushPendingComments()
-                    }
+                guard didHandleInitialActivePhase else {
+                    didHandleInitialActivePhase = true
+                    return
                 }
+                store.handleForegroundActivation(drainNotificationTargets: drainNotificationTargets)
             }
         }
     }

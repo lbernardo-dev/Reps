@@ -645,6 +645,7 @@ struct LiquidCapsuleGauge: View {
     let color: Color
     var size: CGSize = CGSize(width: 100, height: 180)
     var showsLabel: Bool = true
+    @State private var isAnimationActive = false
 
     /// Uniform shrink factor for stroke widths, fonts and decorative details, derived from the
     /// reference 100x180 design so the gauge can be reused at compact card sizes.
@@ -656,66 +657,71 @@ struct LiquidCapsuleGauge: View {
     private var innerCapsuleHeight: CGFloat { size.height - 12 }
 
     var body: some View {
-        TimelineView(.animation) { timeline in
-            let date = timeline.date
-            let time = date.timeIntervalSince1970
+        ZStack {
+            // Battery Frame Outline
+            Capsule()
+                .stroke(PulseTheme.separator, lineWidth: max(2, 6 * scale))
+                .background(Capsule().fill(.black.opacity(0.35)))
+                .frame(width: capsuleWidth, height: capsuleHeight)
+                .shadow(color: color.opacity(0.18), radius: 10 * scale)
 
-            ZStack {
-                // Battery Frame Outline
-                Capsule()
-                    .stroke(PulseTheme.separator, lineWidth: max(2, 6 * scale))
-                    .background(Capsule().fill(.black.opacity(0.35)))
-                    .frame(width: capsuleWidth, height: capsuleHeight)
-                    .shadow(color: color.opacity(0.18), radius: 10 * scale)
+            // Metallic Pin on top
+            RoundedRectangle(cornerRadius: 3 * scale)
+                .fill(PulseTheme.grouped)
+                .frame(width: 32 * scale, height: 10 * scale)
+                .offset(y: -(capsuleHeight / 2 + 5 * scale))
 
-                // Metallic Pin on top
-                RoundedRectangle(cornerRadius: 3 * scale)
-                    .fill(PulseTheme.grouped)
-                    .frame(width: 32 * scale, height: 10 * scale)
-                    .offset(y: -(capsuleHeight / 2 + 5 * scale))
+            // Internal sloshing liquid and bubbles share the same clipped capsule bounds.
+            // Only this piece needs a per-frame time value, so it is the only content
+            // re-evaluated on the timeline tick instead of the whole gauge.
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isAnimationActive)) { timeline in
+                innerLiquidCapsule(time: timeline.date.timeIntervalSince1970)
+            }
+            .onAppear {
+                isAnimationActive = true
+            }
+            .onDisappear {
+                isAnimationActive = false
+            }
 
-                // Internal sloshing liquid and bubbles share the same clipped capsule bounds.
-                innerLiquidCapsule(time: time)
-
-                // Glass shine / overlay
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [.white.opacity(0.18), .clear, .white.opacity(0.04)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+            // Glass shine / overlay
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [.white.opacity(0.18), .clear, .white.opacity(0.04)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                    .frame(width: innerCapsuleWidth, height: innerCapsuleHeight)
-                    .clipShape(Capsule())
-                    .overlay(alignment: .topLeading) {
-                        // Gloss specular shine line
-                        Capsule()
-                            .stroke(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.35), .clear],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1.5 * scale
-                            )
-                            .padding(2 * scale)
-                    }
+                )
+                .frame(width: innerCapsuleWidth, height: innerCapsuleHeight)
+                .clipShape(Capsule())
+                .overlay(alignment: .topLeading) {
+                    // Gloss specular shine line
+                    Capsule()
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.35), .clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5 * scale
+                        )
+                        .padding(2 * scale)
+                }
 
-                // Central bold level readout
-                if showsLabel {
-                    VStack(spacing: -2) {
-                        Text("\(level)")
-                            .font(.system(size: 32 * scale, weight: .black, design: .rounded))
-                            .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.55), radius: 6)
+            // Central bold level readout
+            if showsLabel {
+                VStack(spacing: -2) {
+                    Text("\(level)")
+                        .font(.system(size: 32 * scale, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.55), radius: 6)
 
-                        if scale >= 0.7 {
-                            Text("%")
-                                .font(.system(size: 14 * scale, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.85))
-                                .shadow(color: .black.opacity(0.55), radius: 4)
-                        }
+                    if scale >= 0.7 {
+                        Text("%")
+                            .font(.system(size: 14 * scale, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .shadow(color: .black.opacity(0.55), radius: 4)
                     }
                 }
             }

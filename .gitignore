@@ -1,8 +1,13 @@
 # Xcode build artifacts
 build/
 DerivedData/
+.derived-release-device/
 .asc/artifacts/
 .asc/signing/
+
+# Instruments trace output
+traces/
+*.trace/
 
 # User-specific Xcode settings
 xcuserdata/

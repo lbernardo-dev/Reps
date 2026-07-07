@@ -372,6 +372,54 @@ struct TodayView: View {
             .navigationDestination(isPresented: $showFreeWorkoutStart) {
                 FreeWorkoutStartView()
             }
+            .navigationDestination(for: TodayRoute.self) { route in
+                switch route {
+                case .sleep:
+                    SleepView()
+                        .navigationTransition(.zoom(sourceID: "wellness-sleep", in: wellnessZoom))
+                case .hrv:
+                    HRVView()
+                        .navigationTransition(.zoom(sourceID: "wellness-hrv", in: wellnessZoom))
+                case .heartRate:
+                    HeartRateView()
+                        .navigationTransition(.zoom(sourceID: "wellness-heart-rate", in: wellnessZoom))
+                case .trainingBattery:
+                    TrainingBatteryView()
+                        .navigationTransition(.zoom(sourceID: "wellness-battery", in: wellnessZoom))
+                case .exercise:
+                    ExerciseView()
+                        .navigationTransition(.zoom(sourceID: "wellness-exercise", in: wellnessZoom))
+                case .hydration:
+                    HydrationView()
+                        .navigationTransition(.zoom(sourceID: "wellness-hydration", in: wellnessZoom))
+                case .vo2Max:
+                    VO2MaxView()
+                        .navigationTransition(.zoom(sourceID: "wellness-vo2", in: wellnessZoom))
+                case .steps:
+                    StepsView()
+                        .navigationTransition(.zoom(sourceID: "wellness-steps", in: wellnessZoom))
+                case .greetingSleep:
+                    SleepView()
+                        .navigationTransition(.zoom(sourceID: "greeting-sleep", in: wellnessZoom))
+                case .greetingHrv:
+                    HRVView()
+                        .navigationTransition(.zoom(sourceID: "greeting-hrv", in: wellnessZoom))
+                case .greetingHeartRate:
+                    HeartRateView()
+                        .navigationTransition(.zoom(sourceID: "greeting-heart-rate", in: wellnessZoom))
+                case .greetingRecovery:
+                    TrainingBatteryView()
+                        .navigationTransition(.zoom(sourceID: "greeting-recovery", in: wellnessZoom))
+                case .activeWorkout:
+                    ActiveWorkoutView(workout: store.activeWorkout ?? focusWorkout)
+                case .workoutDetail(let day):
+                    WorkoutDetailView(workout: day)
+                case .exerciseLibrary:
+                    ExerciseLibraryView()
+                case .workoutLibrary:
+                    WorkoutLibraryView()
+                }
+            }
             .alert("Entreno recomendado", isPresented: recommendedWorkoutConfirmationBinding) {
                 Button("Cancelar", role: .cancel) {
                     recommendedWorkoutToConfirm = nil
@@ -589,6 +637,15 @@ struct TodayView: View {
         }
     }
 
+    private func route(for greetingDestination: GreetingMetricDestination) -> TodayRoute {
+        switch greetingDestination {
+        case .sleep: return .greetingSleep
+        case .hrv: return .greetingHrv
+        case .heartRate: return .greetingHeartRate
+        case .recovery: return .greetingRecovery
+        }
+    }
+
     @ViewBuilder
     private func greetingTokenView(_ token: GreetingFlowToken) -> some View {
         switch token.kind {
@@ -597,10 +654,7 @@ struct TodayView: View {
                 .font(.subheadline)
                 .foregroundStyle(PulseTheme.secondaryText)
         case .pill(let icon, let value, let tint, let destination):
-            NavigationLink {
-                greetingDestinationView(for: destination)
-                    .navigationTransition(.zoom(sourceID: destination.zoomID, in: wellnessZoom))
-            } label: {
+            NavigationLink(value: route(for: destination)) {
                 HStack(spacing: 4) {
                     Image(systemName: icon)
                         .font(.system(size: 10, weight: .bold))
@@ -1124,9 +1178,7 @@ struct TodayView: View {
             // ── Action buttons ────────────────────────────────────────
             HStack(spacing: 10) {
                 // Return to workout
-                NavigationLink {
-                    ActiveWorkoutView(workout: store.activeWorkout ?? focusWorkout)
-                } label: {
+                NavigationLink(value: TodayRoute.activeWorkout) {
                     Label(localizedString("return"), systemImage: "arrow.right.circle.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
@@ -1341,10 +1393,7 @@ struct TodayView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 12) {
-                NavigationLink {
-                    TrainingBatteryView()
-                        .navigationTransition(.zoom(sourceID: "wellness-battery", in: wellnessZoom))
-                } label: {
+                NavigationLink(value: TodayRoute.trainingBattery) {
                     WellnessWidget(
                         title: "battery_2",
                         value: "\(batteryStatus.level)%",
@@ -1359,10 +1408,7 @@ struct TodayView: View {
                 }
                 .buttonStyle(PressableCardStyle())
 
-                NavigationLink {
-                    ExerciseView()
-                        .navigationTransition(.zoom(sourceID: "wellness-exercise", in: wellnessZoom))
-                } label: {
+                NavigationLink(value: TodayRoute.exercise) {
                     WellnessWidget(
                         title: "exercise_2",
                         value: store.todayHealthMetric.map { "\(Int($0.exerciseMinutes ?? 0)) min" } ?? "--",
@@ -1375,10 +1421,7 @@ struct TodayView: View {
                 }
                 .buttonStyle(PressableCardStyle())
 
-                NavigationLink {
-                    HydrationView()
-                        .navigationTransition(.zoom(sourceID: "wellness-hydration", in: wellnessZoom))
-                } label: {
+                NavigationLink(value: TodayRoute.hydration) {
                     WellnessWidget(
                         title: "hydration",
                         value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
@@ -1392,10 +1435,7 @@ struct TodayView: View {
                 }
                 .buttonStyle(PressableCardStyle())
 
-                NavigationLink {
-                    HeartRateView()
-                        .navigationTransition(.zoom(sourceID: "wellness-heart-rate", in: wellnessZoom))
-                } label: {
+                NavigationLink(value: TodayRoute.heartRate) {
                     WellnessWidget(
                         title: "heart_rate_short",
                         value: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0))" } ?? "--",
@@ -1409,10 +1449,7 @@ struct TodayView: View {
                 }
                 .buttonStyle(PressableCardStyle())
 
-                NavigationLink {
-                    HRVView()
-                        .navigationTransition(.zoom(sourceID: "wellness-hrv", in: wellnessZoom))
-                } label: {
+                NavigationLink(value: TodayRoute.hrv) {
                     WellnessWidget(
                         title: "HRV",
                         value: store.todayHealthMetric?.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--",
@@ -1426,10 +1463,7 @@ struct TodayView: View {
                 }
                 .buttonStyle(PressableCardStyle())
 
-                NavigationLink {
-                    VO2MaxView()
-                        .navigationTransition(.zoom(sourceID: "wellness-vo2", in: wellnessZoom))
-                } label: {
+                NavigationLink(value: TodayRoute.vo2Max) {
                     WellnessWidget(
                         title: "VO₂ Max",
                         value: store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first(where: { $0.vo2MaxMlKgMin != nil })?.vo2MaxMlKgMin.map { String(format: "%.1f", $0) } ?? "--",
@@ -1443,10 +1477,7 @@ struct TodayView: View {
                 }
                 .buttonStyle(PressableCardStyle())
 
-                NavigationLink {
-                    SleepView()
-                        .navigationTransition(.zoom(sourceID: "wellness-sleep", in: wellnessZoom))
-                } label: {
+                NavigationLink(value: TodayRoute.sleep) {
                     let todaySleep = store.health.latestDailyMetrics
                         .sorted { $0.date > $1.date }
                         .first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours
@@ -1462,10 +1493,7 @@ struct TodayView: View {
                 }
                 .buttonStyle(PressableCardStyle())
 
-                NavigationLink {
-                    StepsView()
-                        .navigationTransition(.zoom(sourceID: "wellness-steps", in: wellnessZoom))
-                } label: {
+                NavigationLink(value: TodayRoute.steps) {
                     WellnessWidget(
                         title: "steps",
                         value: store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--",
@@ -1573,9 +1601,7 @@ struct TodayView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(store.activePlan.days) { day in
-                            NavigationLink {
-                                WorkoutDetailView(workout: day)
-                            } label: {
+                            NavigationLink(value: TodayRoute.workoutDetail(day)) {
                                 PlanMicroCard(
                                     day: day,
                                     language: store.userProfile.preferredLanguage,
@@ -1600,9 +1626,7 @@ struct TodayView: View {
                 subtitleKey: "smart_shortcuts_subtitle"
             )
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                NavigationLink {
-                    ExerciseLibraryView()
-                } label: {
+                NavigationLink(value: TodayRoute.exerciseLibrary) {
                     ShortcutTile(
                         title: "library",
                         subtitle: LocalizedStringKey(localizedFormat("exercises_count_format", store.exercises.count)),
@@ -1640,9 +1664,7 @@ struct TodayView: View {
                 }
                 .buttonStyle(.plain)
 
-                NavigationLink {
-                    WorkoutLibraryView()
-                } label: {
+                NavigationLink(value: TodayRoute.workoutLibrary) {
                     ShortcutTile(
                         title: "routines",
                         subtitle: LocalizedStringKey(localizedFormat("templates_count_format", store.workoutTemplates.count)),
@@ -3592,4 +3614,23 @@ private struct WeatherWindBars: View {
             }
         }
     }
+}
+
+private enum TodayRoute: Hashable {
+    case sleep
+    case hrv
+    case heartRate
+    case trainingBattery
+    case exercise
+    case hydration
+    case vo2Max
+    case steps
+    case greetingSleep
+    case greetingHrv
+    case greetingHeartRate
+    case greetingRecovery
+    case activeWorkout
+    case workoutDetail(WorkoutDay)
+    case exerciseLibrary
+    case workoutLibrary
 }

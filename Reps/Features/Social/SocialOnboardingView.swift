@@ -137,6 +137,7 @@ struct SocialOnboardingView: View {
                         } label: {
                             Label(localizedString("social_icloud_open_settings"), systemImage: "gear")
                                 .font(.caption.weight(.bold))
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(PulseTheme.accent)

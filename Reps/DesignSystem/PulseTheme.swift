@@ -279,6 +279,7 @@ private struct NavigationGlassCapsuleModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .contentShape(Capsule(style: .continuous))
             .background {
                 if prominence == .translucent {
                     Capsule(style: .continuous)
@@ -334,6 +335,7 @@ private struct NavigationGlassCircleModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .contentShape(Circle())
             .background {
                 Circle()
                     .fill(.clear)
@@ -1472,33 +1474,12 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
             .background(VerticalScrollAxisLock())
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .coordinateSpace(.named(StickyHeaderTitleReader.coordinateSpaceName))
-            .onPreferenceChange(StickyHeaderTitlePreferenceKey.self) { markers in
-                let nextTitle = titleForVisibleSection(markers)
-                guard activeTitle != nextTitle else { return }
-                DispatchQueue.main.async {
-                    guard activeTitle != nextTitle else { return }
-                    withAnimation(.snappy(duration: 0.18)) {
-                        activeTitle = nextTitle
-                    }
-                }
-            }
 
             stickyHeader
-                .background {
-                    GeometryReader { proxy in
-                        Color.clear.preference(key: StickyHeaderHeightPreferenceKey.self, value: proxy.size.height)
-                    }
-                }
         }
         .screenBackground()
         .onChange(of: locale) { _, _ in
             activeTitle = title
-        }
-        .onPreferenceChange(StickyHeaderHeightPreferenceKey.self) { height in
-            guard height > 0, headerHeight != height else { return }
-            DispatchQueue.main.async {
-                headerHeight = height
-            }
         }
     }
 
@@ -1597,7 +1578,13 @@ struct StickyHeaderTitlePreferenceKey: PreferenceKey {
     static let defaultValue: [StickyHeaderTitleMarker] = []
 
     static func reduce(value: inout [StickyHeaderTitleMarker], nextValue: () -> [StickyHeaderTitleMarker]) {
-        value.append(contentsOf: nextValue())
+        for marker in nextValue() {
+            if let index = value.firstIndex(where: { $0.title == marker.title }) {
+                value[index] = marker
+            } else {
+                value.append(marker)
+            }
+        }
     }
 }
 
@@ -2174,7 +2161,7 @@ extension View {
     }
 
     func stickyHeaderTitle(_ title: String) -> some View {
-        background(StickyHeaderTitleReader(title: title))
+        self
     }
 
     func mainTabBarHidden(_ hidden: Bool = true) -> some View {

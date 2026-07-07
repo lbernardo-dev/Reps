@@ -167,6 +167,7 @@
 		CC5A027A2328DE6801F006AC /* ActiveWorkoutRestComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7CB9DE9B048BBFADD9E6E61 /* ActiveWorkoutRestComponents.swift */; };
 		CE4EB6F85085FE6AD0295425 /* CodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16CCCA765D3E74E7270004A7 /* CodeScannerView.swift */; };
 		D09AF9307979AF4C40A987FB /* IntervalTimerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C321DDD16F2CED8E3D302F /* IntervalTimerEngine.swift */; };
+		D152C877FED4836405B2FC3A /* MetricsDiagnosticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60BCBB96781635E07A7C1FA /* MetricsDiagnosticsService.swift */; };
 		D4F0EE15C26BA9D2FEA9DD58 /* ActiveWorkoutSessionControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02453892FF02FC91C7EC50F1 /* ActiveWorkoutSessionControls.swift */; };
 		D63BD6ED7DC4E96444714C90 /* RepsWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467EA079553F247F75C76054 /* RepsWatchApp.swift */; };
 		D8A55712DA0CD154A199DBB4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2C6CD1669CF772946C0815 /* SettingsView.swift */; };
@@ -411,6 +412,7 @@
 		E2BE385D47ABA3B5B45D5345 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		E4D0A3F50CC0E82A7B1081F9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E5C321DDD16F2CED8E3D302F /* IntervalTimerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalTimerEngine.swift; sourceTree = "<group>"; };
+		E60BCBB96781635E07A7C1FA /* MetricsDiagnosticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsDiagnosticsService.swift; sourceTree = "<group>"; };
 		E8A8D63D611CC32BFF2A8AFD /* RepsWorkoutWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsWorkoutWidget.swift; sourceTree = "<group>"; };
 		EC0A97C79C7E907579CBFCBD /* MuscleVolume.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleVolume.swift; sourceTree = "<group>"; };
 		ECAAE8CFA35AE39312E52F78 /* ProgressCompetitiveCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressCompetitiveCards.swift; sourceTree = "<group>"; };
@@ -489,6 +491,7 @@
 				130E4F75D706852645E5A1F1 /* HapticService.swift */,
 				C69B0543BC4F024E364CD79A /* ICloudBackupService.swift */,
 				005DB2151835E5ACB3D3C20D /* ICloudProEntitlementService.swift */,
+				E60BCBB96781635E07A7C1FA /* MetricsDiagnosticsService.swift */,
 				87CD664F776611D49CB2499E /* NotificationEngine.swift */,
 				FBE400159890F89819FDFC36 /* NotificationService.swift */,
 				CCD6E9727C891B41CB538DE6 /* PermissionService.swift */,
@@ -1166,6 +1169,7 @@
 				EE68B76DFBE62E1F88D8C226 /* IntervalTimerRunView.swift in Sources */,
 				C62CF23AA5D5F7BA45E5ECEB /* MetricDonutChart.swift in Sources */,
 				2D2D7741590F155133751CA0 /* MetricEditorViews.swift in Sources */,
+				D152C877FED4836405B2FC3A /* MetricsDiagnosticsService.swift in Sources */,
 				78728E1A068FE15F3627D13B /* MetronomeView.swift in Sources */,
 				35FAA03EF8B2445CA6A24D09 /* Models.swift in Sources */,
 				4A941FA423A34C543F601E83 /* Monetization.swift in Sources */,
@@ -1379,7 +1383,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202607071;
+				CURRENT_PROJECT_VERSION = 100202607073;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1408,7 +1412,7 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
 		};
@@ -1446,7 +1450,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202607071;
+				CURRENT_PROJECT_VERSION = 100202607073;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1468,7 +1472,7 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};
@@ -1487,7 +1491,7 @@
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
 		};
@@ -1544,7 +1548,7 @@
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};

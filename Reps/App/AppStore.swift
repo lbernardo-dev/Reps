@@ -139,9 +139,12 @@ final class AppStore {
     @ObservationIgnored private var pendingWidgetTimelineReload = false
     @ObservationIgnored private var pendingPaywallDismissReason: PaywallDismissReason?
     @ObservationIgnored private var transactionUpdatesTask: Task<Void, Never>?
+    @ObservationIgnored private var foregroundRefreshTask: Task<Void, Never>?
+    @ObservationIgnored private var backgroundFlushTask: UIBackgroundTaskIdentifier = .invalid
     @ObservationIgnored private var hasStartedBackgroundServices = false
     @ObservationIgnored private var isAutomaticHealthSyncInProgress = false
     @ObservationIgnored private var lastAutomaticHealthRefreshDate: Date?
+    @ObservationIgnored private var lastForegroundActivationDate: Date?
     @ObservationIgnored let seenAchievementsKey = "reps_seenAchievementKeys_v1"
     @ObservationIgnored var seenAchievementKeys: Set<String> = []
     // Written once during init (MainActor) and read in deinit for cleanup.
@@ -217,6 +220,7 @@ final class AppStore {
 
     deinit {
         transactionUpdatesTask?.cancel()
+        foregroundRefreshTask?.cancel()
         if let liveActivityCommandObserver {
             NotificationCenter.default.removeObserver(liveActivityCommandObserver)
         }
@@ -232,6 +236,38 @@ final class AppStore {
 
     func refreshNotificationSchedule() {
         reconcileNotificationStateIfNeeded()
+    }
+
+    func handleForegroundActivation(drainNotificationTargets: @escaping @MainActor () -> Void) {
+        let now = Date()
+        if let lastForegroundActivationDate,
+           now.timeIntervalSince(lastForegroundActivationDate) < 30 {
+            drainNotificationTargets()
+            return
+        }
+        lastForegroundActivationDate = now
+
+        syncWidgets()
+        refreshNotificationSchedule()
+        refreshHealthKitDataIfNeeded(reason: "foreground")
+        refreshActivityEventsFromDisk()
+        drainNotificationTargets()
+
+        foregroundRefreshTask?.cancel()
+        let username = userProfile.socialUsername
+        let socialEnabled = userProfile.socialEnabled
+        foregroundRefreshTask = Task { [weak self] in
+            guard let self else { return }
+            await Task.yield()
+            guard !Task.isCancelled else { return }
+            self.runEngagementChecks()
+            await self.refreshStoreKitEntitlements()
+            await self.refreshICloudProEntitlement()
+            if let username, socialEnabled {
+                await SocialService.shared.pingActivity(myUsername: username)
+                await self.flushPendingComments()
+            }
+        }
     }
 
     func startBackgroundServicesIfNeeded() {
@@ -3043,7 +3079,26 @@ final class AppStore {
         guard !pendingSaveScopes.isEmpty else { return }
         saveTask?.cancel()
         saveTask = nil
-        commitPendingSave()
+        beginBackgroundFlushTaskIfNeeded()
+        Task { @MainActor [weak self] in
+            defer { self?.endBackgroundFlushTask() }
+            self?.commitPendingSave()
+        }
+    }
+
+    private func beginBackgroundFlushTaskIfNeeded() {
+        guard backgroundFlushTask == .invalid else { return }
+        backgroundFlushTask = UIApplication.shared.beginBackgroundTask(withName: "FlushPendingSave") { [weak self] in
+            Task { @MainActor in
+                self?.endBackgroundFlushTask()
+            }
+        }
+    }
+
+    private func endBackgroundFlushTask() {
+        guard backgroundFlushTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundFlushTask)
+        backgroundFlushTask = .invalid
     }
 
     private func commitPendingSave() {

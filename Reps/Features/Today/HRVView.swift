@@ -286,9 +286,10 @@ struct HRVSignalGauge: View {
     let zone: HRVZone
 
     private let maxMs: Double = 100
+    @State private var isAnimationActive = false
 
     var body: some View {
-        TimelineView(.animation) { tl in
+        TimelineView(.animation(minimumInterval: nil, paused: !isAnimationActive)) { tl in
             let time = tl.date.timeIntervalSince1970
             VStack(spacing: 20) {
                 // ECG-style animated waveform
@@ -353,6 +354,12 @@ struct HRVSignalGauge: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+        .onAppear {
+            isAnimationActive = true
+        }
+        .onDisappear {
+            isAnimationActive = false
         }
     }
 }
