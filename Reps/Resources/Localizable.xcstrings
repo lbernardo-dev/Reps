@@ -9752,6 +9752,22 @@
         }
       }
     },
+    "activate_on_save_loss_hint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave it on so this plan is ready for the next workout instead of sitting unused."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déjalo activo para que este plan esté listo en el próximo entrenamiento y no se quede sin usar."
+          }
+        }
+      }
+    },
     "activate_one_below_or_discover_a_new_program": {
       "extractionState": "stale",
       "localizations": {
@@ -23487,6 +23503,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Crea o programa tu primera sesión"
+          }
+        }
+      }
+    },
+    "continue_plan": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
           }
         }
       }
@@ -57276,13 +57308,93 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Defines objective, environment and duration of the block."
+            "value": "Review the recommended setup and adjust only what does not fit."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Define objetivo, entorno y duración del bloque."
+            "value": "Revisa la configuración recomendada y ajusta solo lo que no encaje."
+          }
+        }
+      }
+    },
+    "plan_name_default": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My strength block"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi bloque de fuerza"
+          }
+        }
+      }
+    },
+    "plan_progress_seeded_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Step %d of %d · defaults already applied"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paso %d de %d · valores recomendados ya aplicados"
+          }
+        }
+      }
+    },
+    "plan_save_cta": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start with my plan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar con mi plan"
+          }
+        }
+      }
+    },
+    "plan_smart_defaults_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name, gym setup, 4 training days, 8 weeks and first sessions are prefilled. Scan and tweak."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre, gimnasio, 4 días, 8 semanas y primeras sesiones ya están preparados. Revisa y ajusta."
+          }
+        }
+      }
+    },
+    "plan_smart_defaults_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommended defaults applied"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valores recomendados aplicados"
           }
         }
       }

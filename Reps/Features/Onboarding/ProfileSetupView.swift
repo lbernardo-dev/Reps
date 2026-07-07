@@ -756,7 +756,7 @@ struct ProfileSetupView: View {
     private func startPlanGeneration() {
         generationTask?.cancel()
         cachedPlan = buildPlan()
-        generationProgress = 0
+        generationProgress = 0.18
         generationStatusText = localizedString("onboarding_gen_saving")
         isGenerationComplete = false
         generationPulse = false

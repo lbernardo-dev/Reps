@@ -50,7 +50,7 @@ struct CreatePlanView: View {
     @Environment(AppStore.self) private var store
 
     @State private var step: PlanWizardStep = .basics
-    @State private var planName = ""
+    @State private var planName = localizedString("plan_name_default")
     @State private var location: UserProfile.TrainingLocation = .gym
     @State private var daysPerWeek = 4
     @State private var totalWeeks = 8
@@ -113,7 +113,7 @@ struct CreatePlanView: View {
                     .opacity(step == .basics ? 0.45 : 1)
 
                     Button { nextOrSave() } label: {
-                        Label(step == .musicReview ? "save" : "next", systemImage: step == .musicReview ? "checkmark" : "chevron.right")
+                        Label(step == .musicReview ? "plan_save_cta" : "continue_plan", systemImage: step == .musicReview ? "checkmark" : "chevron.right")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
@@ -153,14 +153,37 @@ struct CreatePlanView: View {
             Text(step.subtitle)
                 .font(.subheadline)
                 .foregroundStyle(PulseTheme.secondaryText)
+            Label(progressHintText, systemImage: "checkmark.seal.fill")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(PulseTheme.accent)
         }
         .padding(.horizontal, PulseTheme.screenHorizontalPadding)
         .padding(.vertical, 14)
         .background(PulseTheme.background)
     }
 
+    private var progressHintText: LocalizedStringKey {
+        LocalizedStringKey(localizedFormat("plan_progress_seeded_format", step.rawValue + 1, PlanWizardStep.allCases.count))
+    }
+
     private var basicsStep: some View {
         VStack(spacing: 16) {
+            PulseCard(backgroundColor: PulseTheme.accent.opacity(0.10)) {
+                Label {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("plan_smart_defaults_title")
+                            .font(.headline)
+                        Text("plan_smart_defaults_body")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                } icon: {
+                    Image(systemName: "wand.and.stars")
+                        .foregroundStyle(PulseTheme.accent)
+                }
+            }
+
             PulseCard {
                 VStack(alignment: .leading, spacing: 14) {
                     CardTitle("plan_identity")
@@ -173,6 +196,10 @@ struct CreatePlanView: View {
                     }
                     .pickerStyle(.segmented)
                     Toggle("activate_on_save", isOn: $activateImmediately)
+                    Text("activate_on_save_loss_hint")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
