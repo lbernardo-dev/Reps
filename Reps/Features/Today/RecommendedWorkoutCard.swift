@@ -9,6 +9,8 @@ struct RecommendedWorkoutCard: View {
     let weeklyTrainingDays: Int
     let onStart: () -> Void
 
+    @State private var showDetail = false
+
     private static let projectionWeeks = 8
 
     private var batteryColor: Color {
@@ -137,8 +139,8 @@ struct RecommendedWorkoutCard: View {
                 .padding(.vertical, 10)
                 .background(PulseTheme.grouped.opacity(0.72), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
 
-                NavigationLink {
-                    WorkoutDetailView(workout: workout)
+                Button {
+                    showDetail = true
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "list.bullet.clipboard.fill")
@@ -162,6 +164,11 @@ struct RecommendedWorkoutCard: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("recommended_workout_detail_cta")
+            }
+        }
+        .fullScreenCover(isPresented: $showDetail) {
+            NavigationStack {
+                WorkoutDetailView(workout: workout)
             }
         }
     }

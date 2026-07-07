@@ -80,6 +80,7 @@ struct WorkoutDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
         .mainTabBarHidden()
         .onChange(of: workout) { _, newWorkout in
             selectedWorkout = newWorkout
