@@ -194,14 +194,23 @@ struct PressableCardStyle: ButtonStyle {
     }
 }
 
-enum NavigationGlassProminence {
+enum NavigationGlassProminence: Equatable {
     case primary, secondary, disabled
+    /// Higher-contrast tier for standalone floating pills that sit directly on a
+    /// plain, dark backdrop (no lighter content behind them to refract) — e.g. the
+    /// quick-menu open/close buttons. Real backdrop-blur glass only "reads" as
+    /// glass when it has varied content to refract; over flat black it just looks
+    /// like a solid fill no matter the tint. This tier compensates with a baked-in
+    /// diagonal sheen highlight (see `NavigationGlassCapsuleModifier`) so the pill
+    /// still looks like glass, not a flat tinted rectangle.
+    case floating
 
     var tintOpacity: Double {
         switch self {
         case .primary:   0.28
         case .secondary: 0.16
         case .disabled:  0.08
+        case .floating:  0.30
         }
     }
     var strokeOpacity: Double {
@@ -209,6 +218,7 @@ enum NavigationGlassProminence {
         case .primary:   0.50
         case .secondary: 0.30
         case .disabled:  0.16
+        case .floating:  0.70
         }
     }
     var shadowOpacity: Double {
@@ -216,6 +226,7 @@ enum NavigationGlassProminence {
         case .primary:   0.18
         case .secondary: 0.08
         case .disabled:  0.03
+        case .floating:  0.30
         }
     }
 }
@@ -259,6 +270,23 @@ private struct NavigationGlassCapsuleModifier: ViewModifier {
                         .regular.tint(tint.opacity(prominence.tintOpacity)).interactive(),
                         in: Capsule(style: .continuous)
                     )
+            }
+            .overlay {
+                // Real backdrop-blur glass only shows character over a varied
+                // background; standalone pills over flat black have nothing to
+                // refract, so bake in a diagonal sheen to read as glass anyway.
+                if prominence == .floating {
+                    Capsule(style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [.white.opacity(0.38), .white.opacity(0.06), .clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .blendMode(.plusLighter)
+                        .allowsHitTesting(false)
+                }
             }
             .overlay {
                 Capsule(style: .continuous)
