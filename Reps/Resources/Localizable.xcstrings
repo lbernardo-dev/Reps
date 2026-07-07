@@ -23086,6 +23086,23 @@
         }
       }
     },
+    "complete_all_sets" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Complete all sets"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completar todas las series"
+          }
+        }
+      }
+    },
     "complete_set" : {
       "extractionState" : "manual",
       "localizations" : {

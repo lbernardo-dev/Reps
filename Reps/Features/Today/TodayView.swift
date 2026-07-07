@@ -1102,8 +1102,8 @@ struct TodayView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
-                        .background(PulseTheme.playControl)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.semanticProgress))
+                        .background(PulseTheme.semanticProgress)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -1711,10 +1711,14 @@ private struct StatPill: View {
                     .opacity(0.75)
                 Text(value)
                     .font(.system(size: 15, weight: .bold, design: .rounded).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             Text(localizedKey(label))
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .opacity(0.7)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
     }

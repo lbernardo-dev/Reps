@@ -3257,9 +3257,21 @@ final class AppStore {
         guard health.isAuthorized else { return }
         startHealthKitDailyMetricsObserverIfAuthorized()
         guard !healthKitWorkoutObserverStarted else { return }
-        
+
         let workoutType = HKWorkoutType.workoutType()
-        guard healthStore.authorizationStatus(for: workoutType) != .notDetermined else { return }
+        let store = healthStore
+        // `authorizationStatus(for:)` makes a synchronous XPC round trip to the
+        // HealthKit daemon; on a slow/cold-started daemon (common right after a
+        // Simulator boot) that call can stall for a long time. AppStore is
+        // @MainActor, so run it off-thread instead of freezing app launch.
+        Task.detached(priority: .utility) { [weak self] in
+            guard store.authorizationStatus(for: workoutType) != .notDetermined else { return }
+            await self?.beginHealthKitWorkoutObserver(for: workoutType)
+        }
+    }
+
+    private func beginHealthKitWorkoutObserver(for workoutType: HKWorkoutType) {
+        guard !healthKitWorkoutObserverStarted else { return }
 
         let query = HKObserverQuery(sampleType: workoutType, predicate: nil) { [weak self] _, completionHandler, error in
             if let error = error {

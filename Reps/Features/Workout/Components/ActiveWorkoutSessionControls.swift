@@ -148,18 +148,22 @@ struct MiniSessionPill: View {
         HStack(spacing: 7) {
             Image(systemName: icon)
                 .foregroundStyle(PulseTheme.accent)
+                .layoutPriority(1)
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
                     .font(.subheadline.weight(.bold))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(0.6)
                 Text(localizedKey(title))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 8)
         .background(PulseTheme.grouped)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }

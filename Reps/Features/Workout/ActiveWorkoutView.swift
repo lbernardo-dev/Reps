@@ -1455,6 +1455,14 @@ struct ActiveWorkoutView: View {
                             Label("skip_exercise", systemImage: "forward.end")
                         }
 
+                        if hasIncompleteSetsForSelectedExercise {
+                            Button {
+                                completeAllSetsForSelectedExercise()
+                            } label: {
+                                Label("complete_all_sets", systemImage: "checkmark.circle")
+                            }
+                        }
+
                         Divider()
 
                         Button(role: .destructive) {
@@ -2261,6 +2269,26 @@ struct ActiveWorkoutView: View {
             syncActiveWorkoutExercises()
             publishActiveWorkoutStatus()
         }
+    }
+
+    private var hasIncompleteSetsForSelectedExercise: Bool {
+        guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return false }
+        return exerciseDrafts[selectedExerciseIndex].sets.contains { !$0.completed }
+    }
+
+    private func completeAllSetsForSelectedExercise() {
+        guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return }
+        let pendingSetIndices = exerciseDrafts[selectedExerciseIndex].sets.indices.filter {
+            !exerciseDrafts[selectedExerciseIndex].sets[$0].completed
+        }
+        guard !pendingSetIndices.isEmpty else { return }
+
+        withAnimation(.snappy(duration: 0.22)) {
+            for setIndex in pendingSetIndices {
+                handleSetCompleted(exerciseIndex: selectedExerciseIndex, setIndex: setIndex)
+            }
+        }
+        HapticService.notification(.success)
     }
 
     private func syncActiveWorkoutExercises() {
