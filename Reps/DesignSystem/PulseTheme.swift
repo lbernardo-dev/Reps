@@ -196,6 +196,7 @@ struct PressableCardStyle: ButtonStyle {
 
 enum NavigationGlassProminence: Equatable {
     case primary, secondary, disabled
+    case translucent
     /// Higher-contrast tier for standalone floating pills that sit directly on a
     /// plain, dark backdrop (no lighter content behind them to refract) — e.g. the
     /// quick-menu open/close buttons. Real backdrop-blur glass only "reads" as
@@ -210,6 +211,7 @@ enum NavigationGlassProminence: Equatable {
         case .primary:   0.28
         case .secondary: 0.16
         case .disabled:  0.08
+        case .translucent: 0.16
         case .floating:  0.30
         }
     }
@@ -218,6 +220,7 @@ enum NavigationGlassProminence: Equatable {
         case .primary:   0.50
         case .secondary: 0.30
         case .disabled:  0.16
+        case .translucent: 0.66
         case .floating:  0.70
         }
     }
@@ -226,6 +229,7 @@ enum NavigationGlassProminence: Equatable {
         case .primary:   0.18
         case .secondary: 0.08
         case .disabled:  0.03
+        case .translucent: 0.14
         case .floating:  0.30
         }
     }
@@ -264,12 +268,21 @@ private struct NavigationGlassCapsuleModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background {
-                Capsule(style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(
-                        .regular.tint(tint.opacity(prominence.tintOpacity)).interactive(),
-                        in: Capsule(style: .continuous)
-                    )
+                if prominence == .translucent {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(
+                            .clear.tint(tint.opacity(prominence.tintOpacity)).interactive(),
+                            in: Capsule(style: .continuous)
+                        )
+                } else {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(
+                            .regular.tint(tint.opacity(prominence.tintOpacity)).interactive(),
+                            in: Capsule(style: .continuous)
+                        )
+                }
             }
             .overlay {
                 // Real backdrop-blur glass only shows character over a varied

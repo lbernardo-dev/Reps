@@ -32,7 +32,7 @@ struct ProgramLibraryView: View {
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .navigationTitle(localizedString("program_library_title"))
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -234,10 +234,6 @@ private struct ProgramLibraryHero: View {
                         .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(localizedString("program_library_title"))
-                            .font(.system(size: 28, weight: .black, design: .rounded))
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.75)
                         Text(selectedCategory?.displayName ?? "Choose a proven block for your current goal.")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)

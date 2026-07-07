@@ -465,7 +465,6 @@ private struct QuickLogTabAccessory: View {
       .frame(height: isInline ? 58 : 56)
       .padding(.horizontal, 16)
       .contentShape(Capsule(style: .continuous))
-      .navigationGlassCapsule(.floating, tint: PulseTheme.fitOrange)
     }
     .buttonStyle(.plain)
     .accessibilityLabel(localizedString("quick_menu_open"))
@@ -495,7 +494,7 @@ private struct QuickMenuCloseButton: View {
       .frame(height: 58)
       .padding(.horizontal, 18)
       .contentShape(Capsule(style: .continuous))
-      .destructiveGlassCapsule(.floating)
+      .destructiveGlassCapsule(.translucent)
     }
     .buttonStyle(.plain)
     .accessibilityLabel(localizedString("quick_menu_close"))
