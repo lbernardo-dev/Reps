@@ -138,6 +138,30 @@ enum NotificationService {
         center.removeDeliveredNotifications(withIdentifiers: [restTimerIdentifier])
     }
 
+    private static let durationExhaustedIdentifier = "workout-duration-exhausted"
+
+    /// Notifies the user that the planned workout time has elapsed so they can
+    /// decide whether to stop. The workout itself is never ended automatically —
+    /// this is informational only, and reaches the user even if the app is
+    /// backgrounded (e.g. an outdoor walk with the phone locked).
+    static func scheduleWorkoutDurationExhaustedNotification(plannedMinutes: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = localizedString("are_you_done")
+        content.body = localizedFormat("planned_workout_time_completed_format", plannedMinutes)
+        content.sound = .default
+        content.threadIdentifier = "workout-duration"
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let request = UNNotificationRequest(identifier: durationExhaustedIdentifier, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    static func cancelWorkoutDurationExhaustedNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [durationExhaustedIdentifier])
+        center.removeDeliveredNotifications(withIdentifiers: [durationExhaustedIdentifier])
+    }
+
     static func scheduleWorkoutReminder(for scheduledWorkout: ScheduledWorkout) async throws {
         guard let request = workoutReminderRequest(for: scheduledWorkout, now: .now) else {
             return

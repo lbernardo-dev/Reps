@@ -961,6 +961,7 @@ private func sessionTypeTitle(_ type: WorkoutDay.SessionType) -> String {
     case .mixedRoute: localizedString("mixed_route")
     case .mobility: localizedString("mobility")
     case .free: localizedString("free_session")
+    case .core: localizedString("core_training")
     }
 }
 
@@ -972,5 +973,6 @@ private func sessionTypeIcon(_ type: WorkoutDay.SessionType) -> String {
     case .mixedRoute: "map.fill"
     case .mobility: "figure.flexibility"
     case .free: "sparkles"
+    case .core: "figure.core.training"
     }
 }

@@ -29,6 +29,8 @@ struct SettingsView: View {
                 .stickyHeaderTitle(localizedString("app"))
             trainingPreferences
                 .stickyHeaderTitle(localizedString("training_2"))
+            workoutSessionPreferences
+                .stickyHeaderTitle(localizedString("workout_session"))
             widgetPreferences
                 .stickyHeaderTitle(localizedString("widgets"))
             notificationPreferences
@@ -112,6 +114,20 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+            }
+        }
+    }
+
+    private var workoutSessionPreferences: some View {
+        @Bindable var store = store
+        return PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Toggle(localizedString("confirm_before_ending_workout"), isOn: $store.userProfile.confirmBeforeEndingWorkout)
+                    .font(.headline)
+
+                Text(localizedString("confirm_before_ending_workout_subtitle"))
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
             }
         }
     }

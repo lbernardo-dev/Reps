@@ -18,6 +18,18 @@ enum PulseTheme {
     // MARK: Brand accent — single tunable token
     static let accent = semanticAction
 
+    /// `accent` (lime) rendered directly as foreground text/stroke/icon on a
+    /// card — as opposed to as a filled pill background paired with
+    /// `onColor()`. Lime's luminance is ~0.83, so at full brightness it fails
+    /// WCAG contrast against a white light-mode card; this darkens it in
+    /// light mode only, keeping the vivid lime in dark mode where it already
+    /// reads fine against a near-black card.
+    static let accentOnCard = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.64, green: 0.93, blue: 0.20, alpha: 1.0)
+            : UIColor(red: 0.27, green: 0.42, blue: 0.04, alpha: 1.0)
+    })
+
     // MARK: Activity ring semantics — aligned with the app's own domain color language
     // (outer → volume/movement: lime, middle → sessions/exercise: health-green, inner → consistency: cyan)
     static let ringMove     = semanticAction    // Lima  — Movimiento / Volumen
@@ -397,7 +409,7 @@ enum MetricDomain: String, CaseIterable, Identifiable {
         case .recovery: PulseTheme.semanticHealth
         case .cardio: PulseTheme.semanticProgress
         case .heartRate: PulseTheme.semanticEffort
-        case .sleep: PulseTheme.semanticNeutral
+        case .sleep: PulseTheme.semanticProgress
         case .activity: PulseTheme.semanticWarning
         case .body: PulseTheme.semanticHealth
         case .nutrition: PulseTheme.semanticWarning
@@ -411,7 +423,7 @@ enum MetricDomain: String, CaseIterable, Identifiable {
         case .recovery: PulseTheme.semanticHealth.opacity(0.58)
         case .cardio: PulseTheme.semanticProgress.opacity(0.62)
         case .heartRate: PulseTheme.semanticEffort.opacity(0.64)
-        case .sleep: PulseTheme.semanticNeutral.opacity(0.54)
+        case .sleep: PulseTheme.semanticProgress.opacity(0.54)
         case .activity: PulseTheme.semanticWarning.opacity(0.62)
         case .body: PulseTheme.semanticHealth.opacity(0.46)
         case .nutrition: PulseTheme.semanticWarning.opacity(0.58)

@@ -119,6 +119,7 @@ struct ProfileView: View {
         .onAppear {
             refreshMetricTextFields()
             store.health.isAvailable = healthKit.isAvailable
+            Task { await healthKit.refreshAuthorizationCache() }
         }
         .onChange(of: store.userProfile.units) { _, _ in
             refreshMetricTextFields()

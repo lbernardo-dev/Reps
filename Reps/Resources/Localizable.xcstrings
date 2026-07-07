@@ -11476,6 +11476,23 @@
         }
       }
     },
+    "add_core_exercises_and_log_sets_or_time" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No GPS: add core exercises and log sets or time."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin GPS: añade ejercicios de core y registra series o tiempo."
+          }
+        }
+      }
+    },
     "add_exercises_and_log_sets" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12467,6 +12484,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Todo"
+          }
+        }
+      }
+    },
+    "already_completed_today_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've already logged a session for this workout today. Your previous progress can't be resumed, but you can start a brand-new session."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya registraste una sesión de este entreno hoy. No se puede continuar el progreso anterior, pero puedes iniciar una sesión nueva."
+          }
+        }
+      }
+    },
+    "already_completed_today_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already completed today"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya completado hoy"
           }
         }
       }
@@ -13534,6 +13585,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "¿Has terminado?"
+          }
+        }
+      }
+    },
+    "end_workout_confirmation_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End workout?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Finalizar entrenamiento?"
+          }
+        }
+      }
+    },
+    "end_workout_confirmation_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your progress up to this point will be saved."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se guardará tu progreso hasta este momento."
+          }
+        }
+      }
+    },
+    "end_and_dont_ask_again" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End & don't ask again"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finalizar y no preguntar de nuevo"
           }
         }
       }
@@ -23880,6 +23982,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Core"
+          }
+        }
+      }
+    },
+    "core_training" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Core Training"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrenamiento de core"
           }
         }
       }
@@ -41782,6 +41901,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Añadir agua"
+          }
+        }
+      }
+    },
+    "intent_stop_workout_desc" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End the current workout session."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finaliza la sesión de entreno actual."
+          }
+        }
+      }
+    },
+    "intent_stop_workout_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop Workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener entreno"
           }
         }
       }
@@ -60474,6 +60627,57 @@
         }
       }
     },
+    "workout_session" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workout Session"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesión de entrenamiento"
+          }
+        }
+      }
+    },
+    "confirm_before_ending_workout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm before ending"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirmar antes de finalizar"
+          }
+        }
+      }
+    },
+    "confirm_before_ending_workout_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask for confirmation when ending a workout. If you turned this off from the end-workout button, you can turn it back on here."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pide confirmación al finalizar un entrenamiento. Si la desactivaste desde el botón de finalizar, puedes reactivarla aquí."
+          }
+        }
+      }
+    },
     "pro_preferences_locked" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -74216,6 +74420,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Empieza desde Today o desde una rutina programada."
+          }
+        }
+      }
+    },
+    "start_new_session" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start new session"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar sesión nueva"
           }
         }
       }

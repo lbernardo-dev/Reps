@@ -43,6 +43,8 @@ struct MetricDonutChart: View {
                     Text(centerLabel)
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                 }
             }
 
@@ -77,7 +79,7 @@ struct MetricDonutChart: View {
             DonutSlice(label: "Hyperextension", value: 8.4, color: PulseTheme.warning),
         ],
         centerValue: "128k kg",
-        centerLabel: "total_2"
+        centerLabel: "total_volume"
     )
     .padding()
     .screenBackground()

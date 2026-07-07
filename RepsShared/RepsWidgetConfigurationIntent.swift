@@ -309,6 +309,18 @@ public struct NextExerciseLiveActivityIntent: LiveActivityIntent {
     }
 }
 
+public struct StopWorkoutLiveActivityIntent: LiveActivityIntent {
+    public static let title: LocalizedStringResource = "intent_stop_workout_title"
+    public static let description = IntentDescription("intent_stop_workout_desc")
+
+    public init() {}
+
+    public func perform() async throws -> some IntentResult {
+        await LiveActivityCommandBridge.post(.stop)
+        return .result()
+    }
+}
+
 public struct AddWaterLiveActivityIntent: LiveActivityIntent {
     public static let title: LocalizedStringResource = "intent_add_water_title"
     public static let description = IntentDescription("intent_add_water_desc")

@@ -29,7 +29,7 @@ struct ActiveWorkoutView: View {
     @State private var basePausedSeconds = 0
     @State private var hasShownDurationAlert = false
     @State private var showDurationExhaustedAlert = false
-    @State private var dateDurationAlertShown: Date? = nil
+    @State private var showEndWorkoutConfirmation = false
     @State private var activeBookmark: ExerciseMediaBookmark?
     @State private var isPaused = false
     @State private var restSeconds = 0
@@ -180,7 +180,7 @@ struct ActiveWorkoutView: View {
         case .charged:
             return PulseTheme.recovery
         case .steady:
-            return PulseTheme.accent
+            return PulseTheme.accentOnCard
         case .low:
             return PulseTheme.warning
         case .critical:
@@ -381,6 +381,22 @@ struct ActiveWorkoutView: View {
         } message: {
             Text(localizedFormat("planned_workout_time_completed_format", plannedDurationMinutes))
         }
+        .confirmationDialog(
+            "end_workout_confirmation_title",
+            isPresented: $showEndWorkoutConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("end_training", role: .destructive) {
+                finishWorkout()
+            }
+            Button("end_and_dont_ask_again", role: .destructive) {
+                store.userProfile.confirmBeforeEndingWorkout = false
+                finishWorkout()
+            }
+            Button("cancel", role: .cancel) {}
+        } message: {
+            Text("end_workout_confirmation_message")
+        }
         .alert("add_at_least_one_exercise", isPresented: $showMissingExerciseAlert) {
             Button("find_exercise") {
                 showAddExercise = true
@@ -568,7 +584,11 @@ struct ActiveWorkoutView: View {
     private func performPrimaryWorkoutAction() {
         if isSessionStarted {
             HapticService.notification(.warning)
-            finishWorkout()
+            if store.userProfile.confirmBeforeEndingWorkout {
+                showEndWorkoutConfirmation = true
+            } else {
+                finishWorkout()
+            }
         } else {
             HapticService.impact(.medium)
             startPreparedSession()
@@ -594,6 +614,7 @@ struct ActiveWorkoutView: View {
             showMissingExerciseAlert = true
             return
         }
+        NotificationService.cancelWorkoutDurationExhaustedNotification()
         isFinishingWorkout = true
         Task {
             await finishWorkoutAsync()
@@ -754,27 +775,15 @@ struct ActiveWorkoutView: View {
             }
         }
 
-        // Comprobar si se ha agotado el tiempo planificado
+        // Comprobar si se ha agotado el tiempo planificado. Esto solo notifica
+        // al usuario (in-app y por notificación local, por si la app está en
+        // background); el entrenamiento nunca se detiene automáticamente.
         let targetSeconds = plannedDurationMinutes * 60
-        if currentElapsed >= targetSeconds, !hasShownDurationAlert {
+        if targetSeconds > 0, currentElapsed >= targetSeconds, !hasShownDurationAlert {
             elapsedSeconds = currentElapsed
             hasShownDurationAlert = true
             showDurationExhaustedAlert = true
-        }
-
-        if showDurationExhaustedAlert {
-            if let shownAt = dateDurationAlertShown {
-                let timeSinceShown = Date().timeIntervalSince(shownAt)
-                if timeSinceShown >= 300 { // 5 minutes (300 seconds)
-                    showDurationExhaustedAlert = false
-                    dateDurationAlertShown = nil
-                    finishWorkout()
-                }
-            } else {
-                dateDurationAlertShown = Date()
-            }
-        } else {
-            dateDurationAlertShown = nil
+            NotificationService.scheduleWorkoutDurationExhaustedNotification(plannedMinutes: plannedDurationMinutes)
         }
 
         elapsedSeconds = currentElapsed
@@ -1319,7 +1328,7 @@ struct ActiveWorkoutView: View {
         case .inactive:
             return PulseTheme.secondaryText
         case .active:
-            return PulseTheme.accent
+            return PulseTheme.accentOnCard
         case .paused:
             return PulseTheme.warning
         }
@@ -2116,6 +2125,7 @@ struct ActiveWorkoutView: View {
     }
 
     private func addWater() {
+        HapticService.selection()
         if !isSessionStarted {
             startPreparedSession()
         }

@@ -11,12 +11,14 @@ final class HealthKitService: ObservableObject {
         HKHealthStore.isHealthDataAvailable()
     }
 
-    var hasWriteAuthorization: Bool {
-        guard isAvailable else { return false }
-        return writableTypes.contains {
-            healthStore.authorizationStatus(for: $0) == .sharingAuthorized
-        }
-    }
+    /// Cached mirrors of `authorizationStatus(for:)` checks. That HealthKit API makes a
+    /// synchronous XPC round trip to the HealthKit daemon; reading it directly from a
+    /// SwiftUI view's body/computed property (as these used to be) can stall the whole
+    /// view graph for as long as the daemon takes to respond — including indefinitely on
+    /// a cold Simulator. Views read these cached flags instead; call
+    /// `refreshAuthorizationCache()` off the render path to keep them current.
+    @Published private(set) var hasWriteAuthorization: Bool = false
+    @Published private(set) var needsWorkoutWriteUpgrade: Bool = false
 
     /// Write types added after the first release (HR / steps / route). If any is
     /// still undetermined, users who connected Health earlier need to re-grant so
@@ -30,11 +32,26 @@ final class HealthKitService: ObservableObject {
         ]
     }
 
-    var needsWorkoutWriteUpgrade: Bool {
-        guard isAvailable else { return false }
-        return workoutWriteUpgradeTypes.contains {
-            healthStore.authorizationStatus(for: $0) == .notDetermined
+    @discardableResult
+    func refreshAuthorizationCache() async -> Bool {
+        guard isAvailable else {
+            hasWriteAuthorization = false
+            needsWorkoutWriteUpgrade = false
+            return false
         }
+
+        let store = healthStore
+        let writable = writableTypes
+        let upgradeTypes = workoutWriteUpgradeTypes
+        let (hasWrite, needsUpgrade) = await Task.detached(priority: .utility) {
+            let hasWrite = writable.contains { store.authorizationStatus(for: $0) == .sharingAuthorized }
+            let needsUpgrade = upgradeTypes.contains { store.authorizationStatus(for: $0) == .notDetermined }
+            return (hasWrite, needsUpgrade)
+        }.value
+
+        hasWriteAuthorization = hasWrite
+        needsWorkoutWriteUpgrade = needsUpgrade
+        return hasWrite
     }
 
     func requestAuthorization() async throws {
@@ -42,6 +59,7 @@ final class HealthKitService: ObservableObject {
 
         try await healthStore.requestAuthorization(toShare: writableTypes, read: readableTypes)
         await enableBackgroundDelivery()
+        await refreshAuthorizationCache()
     }
 
     private var writableTypes: Set<HKSampleType> {
@@ -61,9 +79,13 @@ final class HealthKitService: ObservableObject {
 
     /// HealthKit hides read status, but sharing status is readable. We only write
     /// a sample type the user actually authorized, so one denied type never makes
-    /// the whole workout save fail.
-    private func canShare(_ type: HKSampleType) -> Bool {
-        healthStore.authorizationStatus(for: type) == .sharingAuthorized
+    /// the whole workout save fail. Batched and run off the main actor since
+    /// `authorizationStatus(for:)` is a blocking XPC call per type.
+    private func shareableTypes(among types: Set<HKSampleType>) async -> Set<HKSampleType> {
+        let store = healthStore
+        return await Task.detached(priority: .utility) {
+            Set(types.filter { store.authorizationStatus(for: $0) == .sharingAuthorized })
+        }.value
     }
 
     private var readableTypes: Set<HKObjectType> {
@@ -373,9 +395,18 @@ final class HealthKitService: ObservableObject {
     @discardableResult
     func saveWorkout(_ session: WorkoutSession) async throws -> String? {
         guard isAvailable else { throw HealthKitError.unavailable }
+
+        let energyType = HKQuantityType(.activeEnergyBurned)
+        let distanceType = HKQuantityType(.distanceWalkingRunning)
+        let stepsType = HKQuantityType(.stepCount)
+        let heartRateType = HKQuantityType(.heartRate)
+        let routeType = HKSeriesType.workoutRoute()
+        let shareable = await shareableTypes(among: [
+            HKWorkoutType.workoutType(), energyType, distanceType, stepsType, heartRateType, routeType
+        ])
         // Respect the user's choice: if they didn't allow Reps to write workouts,
         // do nothing rather than throwing or partially writing.
-        guard canShare(HKWorkoutType.workoutType()) else { return nil }
+        guard shareable.contains(HKWorkoutType.workoutType()) else { return nil }
 
         let start = session.startedAt ?? session.date
         let end = session.endedAt ?? Calendar.current.date(byAdding: .minute, value: session.durationMinutes, to: start) ?? start
@@ -392,8 +423,7 @@ final class HealthKitService: ObservableObject {
 
         var samples: [HKSample] = []
 
-        let energyType = HKQuantityType(.activeEnergyBurned)
-        if canShare(energyType), let calories = session.activeEnergyKcal ?? session.estimatedCalories, calories > 0 {
+        if shareable.contains(energyType), let calories = session.activeEnergyKcal ?? session.estimatedCalories, calories > 0 {
             samples.append(HKQuantitySample(
                 type: energyType,
                 quantity: HKQuantity(unit: .kilocalorie(), doubleValue: calories),
@@ -402,8 +432,7 @@ final class HealthKitService: ObservableObject {
             ))
         }
 
-        let distanceType = HKQuantityType(.distanceWalkingRunning)
-        if canShare(distanceType), let distanceKm = session.distanceKm, distanceKm > 0 {
+        if shareable.contains(distanceType), let distanceKm = session.distanceKm, distanceKm > 0 {
             samples.append(HKQuantitySample(
                 type: distanceType,
                 quantity: HKQuantity(unit: .meterUnit(with: .kilo), doubleValue: distanceKm),
@@ -412,8 +441,7 @@ final class HealthKitService: ObservableObject {
             ))
         }
 
-        let stepsType = HKQuantityType(.stepCount)
-        if canShare(stepsType), let steps = session.steps, steps > 0 {
+        if shareable.contains(stepsType), let steps = session.steps, steps > 0 {
             samples.append(HKQuantitySample(
                 type: stepsType,
                 quantity: HKQuantity(unit: .count(), doubleValue: steps),
@@ -422,9 +450,8 @@ final class HealthKitService: ObservableObject {
             ))
         }
 
-        let heartRateType = HKQuantityType(.heartRate)
         let bpm = HKUnit.count().unitDivided(by: .minute())
-        if canShare(heartRateType) {
+        if shareable.contains(heartRateType) {
             // Prefer the real per-sample HR series recorded during the window so
             // Fitness shows an actual curve; only synthesize summary points when no
             // real samples exist (e.g. no watch was worn).
@@ -466,7 +493,7 @@ final class HealthKitService: ObservableObject {
         let workout = try await builder.finishWorkout()
 
         // Attach the recorded GPS route (outdoor sessions) to the saved workout.
-        if let workout, session.routePoints.count >= 2, canShare(HKSeriesType.workoutRoute()) {
+        if let workout, session.routePoints.count >= 2, shareable.contains(routeType) {
             let locations = session.routePoints.map { point in
                 CLLocation(
                     coordinate: CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude),
@@ -824,6 +851,9 @@ private extension WorkoutSession {
         }
         if title.contains("carrera") || title.contains("run") {
             return .running
+        }
+        if title.contains("core") {
+            return .coreTraining
         }
         if distanceKm != nil || !routePoints.isEmpty {
             return .walking

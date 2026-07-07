@@ -518,6 +518,7 @@ private func calendarSessionTypeTitle(_ type: WorkoutDay.SessionType) -> String 
     case .mixedRoute: localizedString("mixed_route")
     case .mobility: localizedString("mobility")
     case .free: localizedString("free_session")
+    case .core: localizedString("core_training")
     }
 }
 

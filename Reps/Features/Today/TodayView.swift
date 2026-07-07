@@ -14,6 +14,7 @@ struct TodayView: View {
     @State private var showNotifications = false
     @State private var recommendedWorkout: WorkoutDay? = nil
     @State private var recommendedWorkoutToConfirm: WorkoutDay?
+    @State private var showRestartConfirmation = false
     @Namespace private var wellnessZoom
     @Namespace private var weatherZoom
 
@@ -29,6 +30,25 @@ struct TodayView: View {
 
     private var focusWorkout: WorkoutDay {
         todaysScheduledWorkout?.workoutDay ?? store.todaysWorkout
+    }
+
+    /// True once today's session for `focusWorkout` is already logged — pressing
+    /// play again would otherwise silently start a brand-new, all-zero session
+    /// instead of warning the user their prior progress isn't resumable.
+    private var focusWorkoutAlreadyCompletedToday: Bool {
+        if todaysScheduledWorkout?.status == .completed { return true }
+        let title = focusWorkout.title
+        return store.workoutSessions.contains {
+            Calendar.current.isDateInToday($0.date) && $0.workoutTitle == title
+        }
+    }
+
+    private func startFocusWorkout() {
+        guard focusWorkoutAlreadyCompletedToday else {
+            workoutToStart = focusWorkout
+            return
+        }
+        showRestartConfirmation = true
     }
 
     private var weekStart: Date {
@@ -364,6 +384,14 @@ struct TodayView: View {
                 }
             } message: {
                 Text("Se seleccionará como plan de entrenamiento activo.")
+            }
+            .alert(localizedString("already_completed_today_title"), isPresented: $showRestartConfirmation) {
+                Button(localizedString("cancel"), role: .cancel) {}
+                Button(localizedString("start_new_session")) {
+                    workoutToStart = focusWorkout
+                }
+            } message: {
+                Text(localizedString("already_completed_today_message"))
             }
             .toolbar(.hidden, for: .navigationBar)
             .onAppear { buildRecommendedWorkoutIfNeeded() }
@@ -795,11 +823,12 @@ struct TodayView: View {
                 }
                 .buttonStyle(.plain)
 
-                NavigationLink {
+                Button {
+                    HapticService.selection()
                     if hasActivePlanSession {
-                        ActiveWorkoutView(workout: focusWorkout)
+                        startFocusWorkout()
                     } else {
-                        FreeWorkoutStartView()
+                        showFreeWorkoutStart = true
                     }
                 } label: {
                     Image(systemName: "play.fill")
@@ -1250,7 +1279,7 @@ struct TodayView: View {
         switch action {
         case .startWorkout:
             if todaysScheduledWorkout != nil || hasActivePlan {
-                workoutToStart = focusWorkout
+                startFocusWorkout()
             } else {
                 showFreeWorkoutStart = true
             }

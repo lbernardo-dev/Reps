@@ -657,6 +657,9 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
             title.localizedCaseInsensitiveContains("mobility") {
             return .flexibility
         }
+        if title.localizedCaseInsensitiveContains("core") {
+            return .coreTraining
+        }
         return .traditionalStrengthTraining
     }
 

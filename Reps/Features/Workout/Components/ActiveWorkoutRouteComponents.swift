@@ -136,7 +136,7 @@ struct ExpandedRouteMapView: View {
                         .font(.headline.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 44, height: 44)
-                        .destructiveGlassCircle(.secondary)
+                        .destructiveGlassCircle(.primary)
                 }
                 .buttonStyle(.plain)
             }

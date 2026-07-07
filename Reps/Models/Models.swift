@@ -95,6 +95,10 @@ struct UserProfile: Codable {
     var weightIncrementKg = 2.5
     var autoProgressionEnabled = false
     var remindersEnabled = false
+    /// Whether ending an active workout asks for confirmation first. The user
+    /// can permanently silence this from the in-workout "don't ask again"
+    /// checkbox, or re-enable it later from Settings.
+    var confirmBeforeEndingWorkout: Bool = true
     var onboardingCompleted = false
     var themeMode: ThemeMode?
     var targetEventName: String?
@@ -379,6 +383,7 @@ struct WorkoutDay: Codable, Identifiable, Hashable {
         case mixedRoute
         case mobility
         case free
+        case core
 
         var id: String { rawValue }
     }
@@ -409,6 +414,17 @@ extension WorkoutDay {
             durationMinutes: 45,
             exercises: [],
             sessionType: .free
+        )
+    }
+
+    static var freeCore: WorkoutDay {
+        WorkoutDay(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
+            title: localizedString("core_training"),
+            subtitle: localizedString("add_core_exercises_and_log_sets_or_time"),
+            durationMinutes: 20,
+            exercises: [],
+            sessionType: .core
         )
     }
 }
@@ -698,7 +714,7 @@ extension WorkoutDay {
         switch sessionType {
         case .cardioRun, .cardioWalk, .mixedRoute:
             return true
-        case .strength, .mobility, .free:
+        case .strength, .mobility, .free, .core:
             return false
         }
     }

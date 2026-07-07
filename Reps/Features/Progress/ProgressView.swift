@@ -682,7 +682,7 @@ struct ProgressDashboardView: View {
                     MetricDonutChart(
                       slices: muscleVolumeDonutSlices,
                       centerValue: formattedTotalMuscleVolume,
-                      centerLabel: "total_2",
+                      centerLabel: "total_volume",
                       legendValueFormatter: { String(format: "%.0f kg", $0) }
                     )
                   }

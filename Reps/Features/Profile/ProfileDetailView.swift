@@ -161,6 +161,11 @@ struct ProfileDetailView: View {
                 }
             }
         }
+        .onDisappear {
+            // Commit edits regardless of how the user leaves this screen — swipe-back,
+            // tab switch, or backgrounding — not just via the toolbar Save button.
+            saveProfile()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("save") {

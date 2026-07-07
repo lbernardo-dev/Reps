@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FreeWorkoutStartView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -21,6 +22,19 @@ struct FreeWorkoutStartView: View {
                         systemImage: "dumbbell.fill",
                         tint: PulseTheme.accent,
                         chips: ["sets_3", "volume_2"]
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    ActiveWorkoutView(workout: .freeCore, origin: .free)
+                } label: {
+                    FreeWorkoutStartRow(
+                        title: "core_training",
+                        subtitle: "add_core_exercises_and_log_sets_or_time",
+                        systemImage: "figure.core.training",
+                        tint: PulseTheme.ringExercise,
+                        chips: ["time_3", "sets_3"]
                     )
                 }
                 .buttonStyle(.plain)
@@ -89,6 +103,11 @@ struct FreeWorkoutStartView: View {
         }
         .navigationTitle(localizedString("start"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("cancel") { dismiss() }
+            }
+        }
         .screenBackground()
     }
 }

@@ -303,6 +303,13 @@ struct RepsWorkoutLiveActivity: Widget {
             }
             .buttonStyle(.bordered)
             .tint(theme.tint)
+
+            Button(intent: StopWorkoutLiveActivityIntent()) {
+                Image(systemName: "stop.fill")
+                    .font(.caption.weight(.bold))
+            }
+            .buttonStyle(.bordered)
+            .tint(.red)
         }
         .controlSize(.small)
     }
@@ -372,6 +379,14 @@ struct RepsWorkoutLiveActivity: Widget {
                     .buttonBorderShape(.circle)
                     .tint(theme.tint)
                 }
+
+                Button(intent: StopWorkoutLiveActivityIntent()) {
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 13, weight: .bold))
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .tint(.red)
             }
         }
         .padding(.horizontal, 12)

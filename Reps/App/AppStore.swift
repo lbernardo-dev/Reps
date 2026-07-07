@@ -4615,13 +4615,18 @@ final class NativeWorkoutSessionService: NSObject {
     }
 
     private func attachMirroredSession(_ mirroredSession: HKWorkoutSession) async {
+        // HealthKit redelivers the current state to a newly assigned delegate.
+        // A stale/leftover session that is already ended/stopped must not be
+        // adopted as "the" active session — doing so makes a brand-new workout
+        // look like it just ended.
+        guard mirroredSession.state != .ended, mirroredSession.state != .stopped else { return }
+
         pendingFallbackStartTask?.cancel()
         pendingFallbackStartTask = nil
         companionLaunchStatusID = nil
         isLaunchingCompanionWorkout = false
 
         if let existingSession = session, existingSession !== mirroredSession {
-            session = existingSession
             endCurrentSession(notifyApp: false)
         }
 
@@ -4699,6 +4704,8 @@ final class NativeWorkoutSessionService: NSObject {
             case .mixedRoute:
                 return status.workoutTitle.localizedCaseInsensitiveContains("run") ||
                     status.workoutTitle.localizedCaseInsensitiveContains("carrera") ? .running : .walking
+            case .core:
+                return .coreTraining
             case .strength, .free:
                 break
             }
@@ -4724,6 +4731,21 @@ extension NativeWorkoutSessionService: HKWorkoutSessionDelegate {
     ) {
         guard toState == .ended || toState == .stopped else { return }
         Task { @MainActor in
+            // Ignore redelivered/stale terminal states for sessions we aren't
+            // actively tracking, or that never reached a running/paused state
+            // under our watch (e.g. a leftover session object from a previous
+            // workout). Only a genuine drop of the session we're currently
+            // tracking should ever be surfaced.
+            guard workoutSession === self.session,
+                  fromState == .running || fromState == .paused else {
+                if workoutSession === self.session {
+                    session = nil
+                    builderStorage = nil
+                    activeStatusID = nil
+                }
+                return
+            }
+
             let shouldNotify = !isEndingFromAppState
             isEndingFromAppState = false
             session = nil
