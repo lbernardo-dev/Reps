@@ -51,8 +51,8 @@ struct MetronomeView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .foregroundStyle(.black)
-                    .background(TimerKind.metronome.tint)
+                    .foregroundStyle(PulseTheme.onColor(isRunning ? PulseTheme.stopControl : PulseTheme.playControl))
+                    .background(isRunning ? PulseTheme.stopControl : PulseTheme.playControl)
                     .clipShape(Capsule())
             }
             .buttonStyle(.plain)

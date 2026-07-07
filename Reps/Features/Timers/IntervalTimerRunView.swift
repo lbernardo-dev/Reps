@@ -61,8 +61,8 @@ struct IntervalTimerRunView: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .foregroundStyle(.black)
-                .background(kind.tint)
+                .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
+                .background(PulseTheme.playControl)
                 .clipShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -147,8 +147,8 @@ struct IntervalTimerRunView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .foregroundStyle(.black)
-                    .background(kind.tint)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
+                    .background(PulseTheme.playControl)
                     .clipShape(Capsule())
             }
             .buttonStyle(.plain)
@@ -170,14 +170,16 @@ struct IntervalTimerRunView: View {
         }
     }
 
+    @ViewBuilder
     private func controlButton(title: LocalizedStringKey, systemImage: String, action: @escaping () -> Void) -> some View {
+        let tint = systemImage == "play.fill" ? PulseTheme.playControl : (systemImage == "pause.fill" ? PulseTheme.pauseControl : PulseTheme.grouped)
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.subheadline.weight(.bold))
                 .frame(maxWidth: .infinity)
                 .frame(height: PulseTheme.minTapTarget)
-                .foregroundStyle(.primary)
-                .background(PulseTheme.grouped)
+                .foregroundStyle(systemImage == "play.fill" || systemImage == "pause.fill" ? PulseTheme.onColor(tint) : .primary)
+                .background(tint)
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
         }
         .buttonStyle(.plain)

@@ -71,7 +71,15 @@ targets:
           - audio
           - location
           - remote-notification
-        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+        UILaunchScreen:
+          UIColorName: LaunchScreenBackground
+          UIImageName: LaunchLogo
+          UIImageRespectsSafeAreaInsets: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown

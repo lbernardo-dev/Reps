@@ -6,6 +6,9 @@ struct ProfileDetailView: View {
     @Environment(AppStore.self) private var store
     
     @State private var displayName = ""
+    @State private var alias = ""
+    @State private var aliasIsCustom = false
+    @State private var isUpdatingAliasProgrammatically = false
     @State private var email = ""
     @State private var sex: UserProfile.Sex = .male
     @State private var dateOfBirth = Date()
@@ -65,7 +68,19 @@ struct ProfileDetailView: View {
                 TextField("name_2", text: $displayName)
                     .textInputAutocapitalization(.words)
                     .disableAutocorrection(true)
-                
+
+                TextField("alias", text: $alias)
+                    .textInputAutocapitalization(.words)
+                    .disableAutocorrection(true)
+                    .onChange(of: alias) { _, _ in
+                        if !isUpdatingAliasProgrammatically {
+                            aliasIsCustom = true
+                        }
+                    }
+                Text("alias_hint")
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+
                 TextField("email", text: $email)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
@@ -117,6 +132,9 @@ struct ProfileDetailView: View {
         .mainTabBarHidden()
         .onAppear {
             displayName = store.userProfile.displayName ?? ""
+            let storedAlias = store.userProfile.alias
+            alias = storedAlias?.isEmpty == false ? storedAlias! : UserProfile.firstName(from: displayName)
+            aliasIsCustom = storedAlias?.isEmpty == false
             email = store.userProfile.email ?? ""
             sex = store.userProfile.sex ?? .male
             dateOfBirth = store.userProfile.dateOfBirth ?? Calendar.current.date(byAdding: .year, value: -30, to: .now) ?? .now
@@ -125,6 +143,12 @@ struct ProfileDetailView: View {
             weeklyTrainingDays = store.userProfile.weeklyTrainingDays
             trainingLocation = store.userProfile.trainingLocation
             avatarData = store.userProfile.avatarImageData
+        }
+        .onChange(of: displayName) { _, newValue in
+            guard !aliasIsCustom else { return }
+            isUpdatingAliasProgrammatically = true
+            alias = UserProfile.firstName(from: newValue)
+            isUpdatingAliasProgrammatically = false
         }
         .onChange(of: avatarPickerItem) { _, item in
             Task {
@@ -151,6 +175,7 @@ struct ProfileDetailView: View {
     
     private func saveProfile() {
         store.userProfile.displayName = displayName.isEmpty ? nil : displayName
+        store.userProfile.alias = alias.isEmpty ? nil : alias
         store.userProfile.email = email.isEmpty ? nil : email
         store.userProfile.sex = sex
         store.userProfile.dateOfBirth = dateOfBirth

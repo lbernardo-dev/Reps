@@ -2216,6 +2216,22 @@ final class AppStore {
         }
     }
 
+    func activateRecommendedWorkoutPlan(from workout: WorkoutDay) {
+        var recommendedWorkout = workout
+        recommendedWorkout.title = localizedString("recommended_workout_title")
+
+        let plan = WorkoutPlan(
+            name: localizedString("recommended_workout_title"),
+            location: userProfile.trainingLocation,
+            daysPerWeek: 1,
+            currentWeek: 1,
+            totalWeeks: 8,
+            completion: 0,
+            days: [recommendedWorkout]
+        )
+        addPlan(plan, activate: true, bypassPlanLimit: true)
+    }
+
     func activatePlan(_ plan: WorkoutPlan) {
         guard monetization.hasProAccess || plans.count <= 1 || plan.id == activePlan.id else {
             presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)

@@ -51,6 +51,9 @@ struct PlansView: View {
     @State private var showProgramLibrary = false
     @State private var showNotifications = false
     @State private var showCalendar = false
+    @State private var recommendedWorkout: WorkoutDay? = nil
+    @State private var recommendedWorkoutToConfirm: WorkoutDay?
+    @State private var workoutToStart: WorkoutDay?
 
     /// A few exercises spanning distinct muscle groups, for the library collage.
     private var collageExercises: [Exercise] {
@@ -109,6 +112,22 @@ struct PlansView: View {
                 }
             ) {
                     if hasActivePlan {
+                        if let rec = recommendedWorkout {
+                            RecommendedWorkoutCard(
+                                workout: rec,
+                                batteryLevel: store.trainingBattery.level,
+                                language: store.userProfile.preferredLanguage,
+                                experience: store.userProfile.experience,
+                                mainGoal: store.userProfile.mainGoal,
+                                weeklyTrainingDays: store.userProfile.weeklyTrainingDays,
+                                onStart: {
+                                    HapticService.impact(.medium)
+                                    recommendedWorkoutToConfirm = rec
+                                }
+                            )
+                            .stickyHeaderTitle(localizedString("recommended_workout_title"))
+                        }
+
                         activePlanSection
                             .stickyHeaderTitle(localizedString("active_plan"))
 
@@ -195,11 +214,58 @@ struct PlansView: View {
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()
             }
+            .navigationDestination(item: $workoutToStart) { workout in
+                ActiveWorkoutView(workout: workout, origin: .routine)
+            }
             .fullScreenCover(isPresented: $showCalendar) {
                 CalendarView()
             }
+            .alert("Entreno recomendado", isPresented: recommendedWorkoutConfirmationBinding) {
+                Button("Cancelar", role: .cancel) {
+                    recommendedWorkoutToConfirm = nil
+                }
+                Button("Seleccionar y empezar") {
+                    guard let workout = recommendedWorkoutToConfirm else { return }
+                    store.activateRecommendedWorkoutPlan(from: workout)
+                    recommendedWorkoutToConfirm = nil
+                    workoutToStart = workout
+                }
+            } message: {
+                Text("Se seleccionará como plan de entrenamiento activo.")
+            }
             .toolbar(.hidden, for: .navigationBar)
+            .onAppear { buildRecommendedWorkoutIfNeeded() }
         }
+    }
+
+    private var recommendedWorkoutConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { recommendedWorkoutToConfirm != nil },
+            set: { isPresented in
+                if !isPresented {
+                    recommendedWorkoutToConfirm = nil
+                }
+            }
+        )
+    }
+
+    private func buildRecommendedWorkoutIfNeeded() {
+        guard recommendedWorkout == nil, store.activeWorkoutStatus == nil else { return }
+        let undertrainedMuscles = AnalyticsEngine.competitiveSummary(
+            sessions: store.workoutSessions,
+            activePlan: store.activePlan,
+            exercises: store.exercises,
+            since: Calendar.current.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now.addingTimeInterval(-604_800)
+        )
+        .undertrainedMuscles
+        .map(\.muscleGroup)
+        let bodyMetric = store.bodyMetrics.sorted { $0.date > $1.date }.first ?? BodyMetric(date: .now, weightKg: 70, heightCm: 170, source: .manual)
+        recommendedWorkout = OnboardingPlanBuilder.makeRecommendedDay(
+            profile: store.userProfile,
+            bodyMetric: bodyMetric,
+            batteryLevel: store.trainingBattery.level,
+            undertrainedMuscles: undertrainedMuscles
+        )
     }
 
     private func locationTitle(_ location: UserProfile.TrainingLocation) -> String {

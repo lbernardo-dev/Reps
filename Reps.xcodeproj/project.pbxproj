@@ -94,6 +94,7 @@
 		60D2E8A9440F68F85D0C3044 /* RepsAppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A061386A12555F63FB9492CB /* RepsAppShortcuts.swift */; };
 		628DEBCBED2D670A1A0F355E /* ProgressSummaryCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C342BB467A26F0B6710BAA2 /* ProgressSummaryCards.swift */; };
 		643DC797D475E41D607175D9 /* ProgressCardioAnalyticsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 950200F84625327CC6A342A2 /* ProgressCardioAnalyticsCard.swift */; };
+		653B348B0ACDED9B17D41B36 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E780AA54FD434126EFB818 /* SplashView.swift */; };
 		65F1DBC1506432DD8334A700 /* RehabSeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E10952EC54041DC6B4C99F /* RehabSeedData.swift */; };
 		6694B5FAC0A4A12C04A0D9D1 /* ExerciseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F035312EA4B9091F3681F51F /* ExerciseView.swift */; };
 		6745672C912256F4A0D8ADFC /* HeroNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58830BD021FA8637E0806784 /* HeroNumberView.swift */; };
@@ -310,6 +311,7 @@
 		51B411BBCF8E5995A65EA8A3 /* ActiveWorkoutExercisePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutExercisePicker.swift; sourceTree = "<group>"; };
 		5207FC54AA0F20CA9E4C36D1 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		53DE0BE15EFAF1010F0647F8 /* MetricEditorViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricEditorViews.swift; sourceTree = "<group>"; };
+		53E780AA54FD434126EFB818 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		542BD8688B577CF24924B7C3 /* RepsWidgetConfigurationIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsWidgetConfigurationIntent.swift; sourceTree = "<group>"; };
 		54CD939A2CD9CE21F12AEBBF /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		58830BD021FA8637E0806784 /* HeroNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroNumberView.swift; sourceTree = "<group>"; };
@@ -586,6 +588,7 @@
 				F998B9C72A27863842809A33 /* AppStore.swift */,
 				139C9662D78E951B54E33A7E /* RepsApp.swift */,
 				54CD939A2CD9CE21F12AEBBF /* RootView.swift */,
+				53E780AA54FD434126EFB818 /* SplashView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -988,11 +991,7 @@
 					};
 					0416157AB6A2DD4CDDAF81C0 = {
 						DevelopmentTeam = L2B56644F5;
-						SystemCapabilities = {
-							com.apple.InAppPurchase = {
-								enabled = 1;
-							};
-						};
+						SystemCapabilities = "[\"com.apple.InAppPurchase\": [\"enabled\": 1]]";
 					};
 					4B274BECDF40555313A5737C = {
 						DevelopmentTeam = L2B56644F5;
@@ -1231,6 +1230,7 @@
 				726FF8016C151D1036C0EEC9 /* SocialProfileDetailView.swift in Sources */,
 				ECEC0E2542C138655D968F5F /* SocialService.swift in Sources */,
 				22060280769E3120190A5FF2 /* SparklineTile.swift in Sources */,
+				653B348B0ACDED9B17D41B36 /* SplashView.swift in Sources */,
 				029928638CD6C714C4C81760 /* StepsView.swift in Sources */,
 				56CD09418E7591379E58A58D /* StopwatchView.swift in Sources */,
 				151715362FED0FEF56B2D3C3 /* StrengthComparisonView.swift in Sources */,
@@ -1479,6 +1479,7 @@
 		6F3AB2473C31CC9ACB9BC34A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RepsWatch/Info.plist;
@@ -1535,6 +1536,7 @@
 		CEFD8405E7DEF8522AA68218 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RepsWatch/Info.plist;

@@ -51,6 +51,22 @@ struct UserProfile: Codable {
     }
 
     var displayName: String?
+    /// Short name used for in-app greetings. Auto-derived from `displayName`
+    /// until the user overrides it explicitly in their profile.
+    var alias: String?
+
+    static func firstName(from fullName: String) -> String {
+        String(fullName.split(separator: " ").first ?? "")
+    }
+
+    /// The alias to greet the user with: their explicit override, or the
+    /// first name lifted from `displayName` as a live fallback.
+    var resolvedAlias: String? {
+        if let alias, !alias.isEmpty { return alias }
+        guard let displayName, !displayName.isEmpty else { return nil }
+        return Self.firstName(from: displayName)
+    }
+
     var email: String?
     var sex: Sex?
     var dateOfBirth: Date?

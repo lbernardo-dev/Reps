@@ -75,7 +75,7 @@ struct MusicTransportControls: View {
     let onForward: () -> Void
 
     private var tint: Color {
-        PulseTheme.appleMusic
+        isPlaying ? PulseTheme.pauseControl : PulseTheme.playControl
     }
 
     var body: some View {

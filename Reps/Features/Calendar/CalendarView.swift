@@ -499,9 +499,9 @@ private struct CalendarPlannedWorkoutRow: View {
             }
             Spacer()
             Image(systemName: "play.fill")
-                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
                 .frame(width: 42, height: 42)
-                .background(PulseTheme.accent)
+                .background(PulseTheme.playControl)
                 .clipShape(Circle())
         }
         .padding(12)

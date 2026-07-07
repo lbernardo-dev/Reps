@@ -754,6 +754,8 @@ private struct WeeklySparkMetricRow: View {
   let dayDates: [Date]
   let footer: String
 
+  private let segmentCount = 6
+
   var body: some View {
     VStack(alignment: .leading, spacing: 5) {
       HStack(alignment: .firstTextBaseline) {
@@ -776,18 +778,19 @@ private struct WeeklySparkMetricRow: View {
       HStack(alignment: .bottom, spacing: 5) {
         ForEach(Array(values.enumerated()), id: \.offset) { index, value in
           let clamped = min(max(value, 0), 1)
-          Capsule()
-            .fill(clamped > 0 ? color : PulseTheme.secondaryText.opacity(0.12))
-            .frame(maxWidth: .infinity)
-            .frame(height: max(4, 34 * clamped))
-            .overlay(alignment: .bottom) {
-              if clamped == 0 {
-                Capsule()
-                  .fill(PulseTheme.secondaryText.opacity(0.08))
-                  .frame(height: 4)
-              }
+          let activeSegments = Int((clamped * Double(segmentCount)).rounded(.up))
+
+          VStack(spacing: 3) {
+            ForEach((0..<segmentCount).reversed(), id: \.self) { segment in
+              Capsule()
+                .fill(segment < activeSegments ? segmentColor(for: segment) : PulseTheme.secondaryText.opacity(0.12))
+                .frame(height: 4)
             }
-            .accessibilityLabel(dayLabel(for: index))
+          }
+          .frame(maxWidth: .infinity)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(dayLabel(for: index))
+          .accessibilityValue(Int(clamped * 100).formatted(.percent))
         }
       }
       .frame(height: 34, alignment: .bottom)
@@ -819,6 +822,23 @@ private struct WeeklySparkMetricRow: View {
     formatter.locale = .current
     formatter.setLocalizedDateFormatFromTemplate("EEEE d MMM")
     return "\(title), \(formatter.string(from: dayDates[index]))"
+  }
+
+  private func segmentColor(for segment: Int) -> Color {
+    let ratio = Double(segment + 1) / Double(segmentCount)
+
+    switch ratio {
+    case ..<0.34:
+      return PulseTheme.ringExercise.opacity(0.88)
+    case ..<0.51:
+      return PulseTheme.ringMove
+    case ..<0.68:
+      return PulseTheme.warning.opacity(0.92)
+    case ..<0.84:
+      return PulseTheme.warning
+    default:
+      return PulseTheme.semanticEffort
+    }
   }
 }
 

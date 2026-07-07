@@ -23,7 +23,7 @@ struct StopwatchView: View {
 
             HStack(spacing: 14) {
                 if isRunning {
-                    controlButton(title: isPaused ? "resume" : "pause", systemImage: isPaused ? "play.fill" : "pause.fill", tint: TimerKind.stopwatch.tint) {
+                    controlButton(title: isPaused ? "resume" : "pause", systemImage: isPaused ? "play.fill" : "pause.fill", tint: isPaused ? PulseTheme.playControl : PulseTheme.pauseControl) {
                         togglePause()
                     }
                     controlButton(title: "reset", systemImage: "arrow.counterclockwise", tint: PulseTheme.grouped, foreground: .primary) {
@@ -40,8 +40,8 @@ struct StopwatchView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .foregroundStyle(.black)
-                            .background(TimerKind.stopwatch.tint)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
+                            .background(PulseTheme.playControl)
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)

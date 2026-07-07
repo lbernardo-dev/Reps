@@ -4,7 +4,7 @@ import SwiftUI
 struct HealthWidgetDetailNavBar: View {
     @Environment(\.dismiss) private var dismiss
 
-    let title: String
+    let title: String?
     var domain: MetricDomain?
 
     private var tint: Color { domain?.tint ?? PulseTheme.accent }

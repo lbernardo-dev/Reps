@@ -93,8 +93,8 @@ struct WorkoutDetailView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .foregroundStyle(.black)
-                    .background(PulseTheme.accent)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
+                    .background(PulseTheme.playControl)
                     .clipShape(Capsule())
             }
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)

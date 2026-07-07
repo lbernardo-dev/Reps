@@ -9,9 +9,13 @@ struct TodayView: View {
     @State private var showFreeWorkoutStart = false
     @State private var planToEdit: WorkoutPlan?
     @State private var workoutToStart: WorkoutDay?
+    @State private var showWeatherDetail = false
+    @State private var homeWeatherDay: FitnessWeatherDay = .today
     @State private var showNotifications = false
     @State private var recommendedWorkout: WorkoutDay? = nil
+    @State private var recommendedWorkoutToConfirm: WorkoutDay?
     @Namespace private var wellnessZoom
+    @Namespace private var weatherZoom
 
     var onSelectTab: ((AppTab) -> Void)? = nil
 
@@ -273,8 +277,14 @@ struct TodayView: View {
                     activeSessionHero(activeStatus)
                         .stickyHeaderTitle(localizedString("in_progress_label"))
                 } else {
-                    focusHeroSection
+                    dailyReadinessGreeting
                         .stickyHeaderTitle(localizedString("today_3"))
+                    weatherSection
+                        .stickyHeaderTitle(localizedString("weather"))
+                    outdoorIntelligenceSection
+                        .stickyHeaderTitle("Insights")
+                    focusHeroSection
+                        .stickyHeaderTitle(localizedString("workout"))
                     if let rec = recommendedWorkout, !hasActivePlan {
                         RecommendedWorkoutCard(
                             workout: rec,
@@ -285,8 +295,7 @@ struct TodayView: View {
                             weeklyTrainingDays: store.userProfile.weeklyTrainingDays,
                             onStart: {
                                 HapticService.impact(.medium)
-                                activateRecommendedPlanIfNeeded()
-                                workoutToStart = rec
+                                recommendedWorkoutToConfirm = rec
                             }
                         )
                         .stickyHeaderTitle(localizedString("recommended_workout_title"))
@@ -328,15 +337,48 @@ struct TodayView: View {
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()
             }
+            .navigationDestination(isPresented: $showWeatherDetail) {
+                TodayWeatherDetailView(
+                    today: todayWeather,
+                    tomorrow: tomorrowWeather,
+                    insights: weatherInsights,
+                    selectedDay: homeWeatherDay
+                )
+                .navigationTransition(.zoom(sourceID: "today-weather", in: weatherZoom))
+            }
             .navigationDestination(item: $workoutToStart) { workout in
                 ActiveWorkoutView(workout: workout, origin: workout.id == freeWorkout.id ? .free : .routine)
             }
             .navigationDestination(isPresented: $showFreeWorkoutStart) {
                 FreeWorkoutStartView()
             }
+            .alert("Entreno recomendado", isPresented: recommendedWorkoutConfirmationBinding) {
+                Button("Cancelar", role: .cancel) {
+                    recommendedWorkoutToConfirm = nil
+                }
+                Button("Seleccionar y empezar") {
+                    guard let workout = recommendedWorkoutToConfirm else { return }
+                    store.activateRecommendedWorkoutPlan(from: workout)
+                    recommendedWorkoutToConfirm = nil
+                    workoutToStart = workout
+                }
+            } message: {
+                Text("Se seleccionará como plan de entrenamiento activo.")
+            }
             .toolbar(.hidden, for: .navigationBar)
             .onAppear { buildRecommendedWorkoutIfNeeded() }
         }
+    }
+
+    private var recommendedWorkoutConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { recommendedWorkoutToConfirm != nil },
+            set: { isPresented in
+                if !isPresented {
+                    recommendedWorkoutToConfirm = nil
+                }
+            }
+        )
     }
 
     private func buildRecommendedWorkoutIfNeeded() {
@@ -351,28 +393,256 @@ struct TodayView: View {
         )
     }
 
-    private func activateRecommendedPlanIfNeeded() {
-        guard !hasActivePlan else { return }
-        if let firstPlan = store.plans.first(where: { !$0.days.isEmpty }) {
-            store.activatePlan(firstPlan)
-        } else {
-            let bodyMetric = store.bodyMetrics.sorted { $0.date > $1.date }.first ?? BodyMetric(date: .now, weightKg: 70, heightCm: 170, source: .manual)
-            let newPlan = OnboardingPlanBuilder.makePlan(
-                profile: store.userProfile,
-                bodyMetric: bodyMetric,
-                sessionLengthMinutes: 45,
-                focusMuscles: ["Chest", "Back", "Legs", "Shoulders", "Core"]
-            )
-            store.addPlan(newPlan, activate: true)
-        }
-    }
-
     @ViewBuilder
     private var focusHeroSection: some View {
         if let activeStatus = store.activeWorkoutStatus {
             activeSessionHero(activeStatus)
         } else {
             dashboardWorkoutCard
+        }
+    }
+
+    private var todayWeather: FitnessWeatherSnapshot {
+        FitnessWeatherSnapshot.trainingDayPreview(now: .now, units: store.userProfile.units)
+    }
+
+    private var tomorrowWeather: FitnessWeatherSnapshot {
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now.addingTimeInterval(86_400)
+        return FitnessWeatherSnapshot.trainingDayPreview(now: tomorrow, units: store.userProfile.units)
+    }
+
+    private var latestSleepHours: Double? {
+        store.todayHealthMetric?.sleepHours
+            ?? store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours
+            ?? latestMetric?.sleepHours
+    }
+
+    private var latestHRV: Double? {
+        store.todayHealthMetric?.heartRateVariabilityMS
+            ?? store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first(where: { $0.heartRateVariabilityMS != nil })?.heartRateVariabilityMS
+    }
+
+    private var latestRestingHeartRate: Double? {
+        store.todayHealthMetric?.restingHeartRate
+            ?? store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first(where: { $0.restingHeartRate != nil })?.restingHeartRate
+    }
+
+    private var stressSummaryText: String {
+        let isSpanish = store.userProfile.preferredLanguage == "es"
+        guard let stress = latestMetric?.stress else {
+            return isSpanish ? "sin registro de estrés" : "stress not logged"
+        }
+        switch stress {
+        case 1...2:
+            return isSpanish ? "estrés bajo" : "low stress"
+        case 3:
+            return isSpanish ? "estrés estable" : "steady stress"
+        default:
+            return isSpanish ? "estrés alto" : "high stress"
+        }
+    }
+
+    private var naturalGreetingTitle: String {
+        let hour = Calendar.current.component(.hour, from: .now)
+        if store.userProfile.preferredLanguage == "es" {
+            switch hour {
+            case 5..<12: return "Buenos días"
+            case 12..<20: return "Buenas tardes"
+            default: return "Buenas noches"
+            }
+        }
+        switch hour {
+        case 5..<12: return "Good morning"
+        case 12..<20: return "Good afternoon"
+        default: return "Good evening"
+        }
+    }
+
+    private var greetingHeadline: String {
+        if let alias = store.userProfile.resolvedAlias {
+            return "\(naturalGreetingTitle), \(alias)"
+        }
+        return naturalGreetingTitle
+    }
+
+    /// Tokenizes the readiness recap into plain words plus inline metric
+    /// pills so the sentence reflows like natural text instead of sitting
+    /// in a boxed stat card.
+    private var naturalGreetingTokens: [GreetingFlowToken] {
+        let isSpanish = store.userProfile.preferredLanguage == "es"
+        var tokens: [GreetingFlowToken] = []
+
+        func words(_ phrase: String) {
+            for word in phrase.split(separator: " ") {
+                tokens.append(GreetingFlowToken(kind: .word(String(word))))
+            }
+        }
+        func pill(_ icon: String, _ value: String, _ tint: Color, _ destination: GreetingMetricDestination) {
+            tokens.append(GreetingFlowToken(kind: .pill(icon: icon, value: value, tint: tint, destination: destination)))
+        }
+
+        if isSpanish {
+            words("Descansaste")
+            if let sleep = latestSleepHours {
+                pill("moon.zzz.fill", String(format: "%.1f h", sleep), MetricDomain.sleep.tint, .sleep)
+            } else {
+                words("sin registro")
+            }
+            words("· HRV")
+            if let hrv = latestHRV {
+                pill("waveform.path.ecg", "\(Int(hrv.rounded())) ms", MetricDomain.recovery.tint, .hrv)
+            } else {
+                words("pendiente")
+            }
+            words("· FC reposo")
+            if let hr = latestRestingHeartRate {
+                pill("heart.fill", "\(Int(hr.rounded())) lpm", MetricDomain.heartRate.tint, .heartRate)
+            } else {
+                words("sin datos")
+            }
+            words("· Recuperación")
+            pill("bolt.fill", "\(batteryStatus.level)%", batteryColor, .recovery)
+            words("· \(stressSummaryText)")
+            words("·")
+            words(hasActivePlan ? "tu plan pide \(weekTargetText) sesiones esta semana." : "aún no tienes plan activo.")
+        } else {
+            words("You slept")
+            if let sleep = latestSleepHours {
+                pill("moon.zzz.fill", String(format: "%.1f h", sleep), MetricDomain.sleep.tint, .sleep)
+            } else {
+                words("no data")
+            }
+            words("· HRV")
+            if let hrv = latestHRV {
+                pill("waveform.path.ecg", "\(Int(hrv.rounded())) ms", MetricDomain.recovery.tint, .hrv)
+            } else {
+                words("pending")
+            }
+            words("· resting HR")
+            if let hr = latestRestingHeartRate {
+                pill("heart.fill", "\(Int(hr.rounded())) bpm", MetricDomain.heartRate.tint, .heartRate)
+            } else {
+                words("unavailable")
+            }
+            words("· recovery")
+            pill("bolt.fill", "\(batteryStatus.level)%", batteryColor, .recovery)
+            words("· \(stressSummaryText)")
+            words("·")
+            words(hasActivePlan ? "your plan calls for \(weekTargetText) sessions this week." : "no active plan yet.")
+        }
+
+        return tokens
+    }
+
+    private var dailyReadinessGreeting: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(greetingHeadline)
+                .font(.system(size: 29, weight: .black, design: .rounded))
+                .foregroundStyle(PulseTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+
+            GreetingFlowLayout(horizontalSpacing: 6, verticalSpacing: 8) {
+                ForEach(naturalGreetingTokens) { token in
+                    greetingTokenView(token)
+                }
+            }
+        }
+        .padding(.bottom, 10)
+    }
+
+    @ViewBuilder
+    private func greetingDestinationView(for destination: GreetingMetricDestination) -> some View {
+        switch destination {
+        case .sleep: SleepView()
+        case .hrv: HRVView()
+        case .heartRate: HeartRateView()
+        case .recovery: TrainingBatteryView()
+        }
+    }
+
+    @ViewBuilder
+    private func greetingTokenView(_ token: GreetingFlowToken) -> some View {
+        switch token.kind {
+        case .word(let text):
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(PulseTheme.secondaryText)
+        case .pill(let icon, let value, let tint, let destination):
+            NavigationLink {
+                greetingDestinationView(for: destination)
+                    .navigationTransition(.zoom(sourceID: destination.zoomID, in: wellnessZoom))
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: icon)
+                        .font(.system(size: 10, weight: .bold))
+                    Text(value)
+                        .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
+                }
+                .foregroundStyle(tint)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(tint.opacity(0.16), in: Capsule())
+                .overlay {
+                    Capsule().stroke(tint.opacity(0.22), lineWidth: 0.8)
+                }
+            }
+            .buttonStyle(.plain)
+            .matchedTransitionSource(id: destination.zoomID, in: wellnessZoom)
+        }
+    }
+
+    private var weatherSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TodaySectionHeader(
+                systemImage: "cloud.sun.fill",
+                tint: MetricDomain.weather.tint,
+                titleKey: "weather",
+                subtitleKey: "weather_fitness_subtitle"
+            )
+
+            Button {
+                HapticService.selection()
+                showWeatherDetail = true
+            } label: {
+                FitnessWeatherWidget(today: todayWeather, tomorrow: tomorrowWeather, selectedDay: $homeWeatherDay)
+                    .matchedTransitionSource(id: "today-weather", in: weatherZoom)
+            }
+            .buttonStyle(PressableCardStyle())
+        }
+    }
+
+    private var weatherInsights: [FitnessWeatherInsight] {
+        FitnessWeatherInsight.make(
+            today: todayWeather,
+            tomorrow: tomorrowWeather,
+            battery: batteryStatus,
+            hasActivePlan: hasActivePlan,
+            trainingLocation: store.userProfile.trainingLocation
+        )
+    }
+
+    private var outdoorIntelligenceSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TodaySectionHeader(
+                systemImage: "sparkles",
+                tint: PulseTheme.accent,
+                titleKey: "smart_weather_insights",
+                subtitleKey: "smart_weather_insights_subtitle"
+            )
+
+            VStack(spacing: 10) {
+                ForEach(weatherInsights) { insight in
+                    FitnessWeatherInsightRow(insight: insight)
+                }
+            }
+            .padding(14)
+            .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                    .stroke(PulseTheme.cardStroke, lineWidth: 0.8)
+            }
+            .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
         }
     }
 
@@ -535,8 +805,8 @@ struct TodayView: View {
                     Image(systemName: "play.fill")
                         .font(.headline.weight(.black))
                         .frame(width: 54, height: 54)
-                        .foregroundStyle(PulseTheme.onColor(MetricDomain.strength.tint))
-                        .background(MetricDomain.strength.tint, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
+                        .background(PulseTheme.playControl, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(playButtonTitle)
@@ -832,8 +1102,8 @@ struct TodayView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .foregroundStyle(.white)
-                        .background(Color.orange)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
+                        .background(PulseTheme.playControl)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -845,13 +1115,9 @@ struct TodayView: View {
                     Image(systemName: isPaused ? "play.fill" : "pause.fill")
                         .font(.headline.weight(.bold))
                         .frame(width: 48, height: 48)
-                        .foregroundStyle(isPaused ? PulseTheme.warning : Color.orange)
-                        .background(PulseTheme.grouped)
+                        .foregroundStyle(PulseTheme.onColor(isPaused ? PulseTheme.playControl : PulseTheme.pauseControl))
+                        .background(isPaused ? PulseTheme.playControl : PulseTheme.pauseControl)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                                .stroke(PulseTheme.separator, lineWidth: 1)
-                        )
                 }
                 .accessibilityLabel(isPaused ? "Resume workout" : "Pause workout")
 
@@ -862,8 +1128,8 @@ struct TodayView: View {
                     Image(systemName: "stop.fill")
                         .font(.headline.weight(.bold))
                         .frame(width: 48, height: 48)
-                        .foregroundStyle(PulseTheme.onColor(PulseTheme.destructive))
-                        .background(PulseTheme.destructive)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.stopControl))
+                        .background(PulseTheme.stopControl)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
                 .accessibilityLabel("stop_workout")
@@ -1529,37 +1795,74 @@ private struct TodayCoachSummaryRow: View {
     }
 }
 
-private struct ReadinessBadge: View {
-    let level: Int
-    let title: String
-    let color: Color
+private enum GreetingMetricDestination {
+    case sleep, hrv, heartRate, recovery
 
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(PulseTheme.grouped, lineWidth: 4.5)
-            Circle()
-                .trim(from: 0, to: CGFloat(level) / 100)
-                .stroke(color, style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            VStack(spacing: 0) {
-                Text("\(level)%")
-                    .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
-                    .minimumScaleFactor(0.85)
-                    .foregroundStyle(color)
-                Text(localizedKey(title))
-                    .font(.system(size: 8, weight: .bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .foregroundStyle(PulseTheme.secondaryText)
-            }
+    var zoomID: String {
+        switch self {
+        case .sleep: return "greeting-sleep"
+        case .hrv: return "greeting-hrv"
+        case .heartRate: return "greeting-heart-rate"
+        case .recovery: return "greeting-recovery"
         }
-        .frame(width: 58, height: 58)
-        .padding(6)
-        .background(PulseTheme.card)
-        .clipShape(Circle())
-        .shadow(color: PulseTheme.surfaceShadow, radius: 6, x: 0, y: 3)
-        .accessibilityLabel("\(title) \(level)%")
+    }
+}
+
+private struct GreetingFlowToken: Identifiable {
+    enum Kind {
+        case word(String)
+        case pill(icon: String, value: String, tint: Color, destination: GreetingMetricDestination)
+    }
+
+    let id = UUID()
+    let kind: Kind
+}
+
+/// Wraps mixed-width children (plain words and metric pills) left to right,
+/// overflowing to a new line like natural paragraph text, so inline data
+/// pills can sit inside a flowing sentence instead of a separate stat row.
+private struct GreetingFlowLayout: Layout {
+    var horizontalSpacing: CGFloat = 6
+    var verticalSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var lineHeight: CGFloat = 0
+        var width: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                width = max(width, x - horizontalSpacing)
+                x = 0
+                y += lineHeight + verticalSpacing
+                lineHeight = 0
+            }
+            x += size.width + horizontalSpacing
+            lineHeight = max(lineHeight, size.height)
+        }
+        width = max(width, x - horizontalSpacing)
+        return CGSize(width: min(width, maxWidth), height: y + lineHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x: CGFloat = bounds.minX
+        var y: CGFloat = bounds.minY
+        var lineHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += lineHeight + verticalSpacing
+                lineHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), anchor: .topLeading, proposal: ProposedViewSize(size))
+            x += size.width + horizontalSpacing
+            lineHeight = max(lineHeight, size.height)
+        }
     }
 }
 
@@ -2201,9 +2504,9 @@ private struct PlanMicroCard: View {
                 }
                 Image(systemName: "play.fill")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
                     .frame(width: 24, height: 24)
-                    .background(PulseTheme.accent)
+                    .background(PulseTheme.playControl)
                     .clipShape(Circle())
                     .offset(x: 5, y: 5)
             }
@@ -2284,9 +2587,9 @@ private struct VisualExerciseCard: View {
                 
                 Image(systemName: trackingIcon)
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                    .foregroundStyle(PulseTheme.onColor(trackingIcon == "play.fill" ? PulseTheme.playControl : PulseTheme.accent))
                     .frame(width: 22, height: 22)
-                    .background(PulseTheme.accent)
+                    .background(trackingIcon == "play.fill" ? PulseTheme.playControl : PulseTheme.accent)
                     .clipShape(Circle())
                     .padding(6)
             }
@@ -2543,5 +2846,748 @@ private struct UpwardTrendVisual: View {
         }
         .frame(width: 60, height: 40)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+    }
+}
+
+private enum FitnessWeatherDay: String, CaseIterable, Identifiable {
+    case today
+    case tomorrow
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .today: localizedString("today_2")
+        case .tomorrow: localizedString("tomorrow")
+        }
+    }
+}
+
+private struct FitnessWeatherHourPoint: Identifiable, Hashable {
+    let id = UUID()
+    let hour: Int
+    let temperature: Int
+    let windSpeed: Int
+    let rainProbability: Int
+    let uvIndex: Int
+
+    var label: String {
+        String(format: "%02d", hour)
+    }
+}
+
+private struct FitnessWeatherWindow: Hashable {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+}
+
+private struct FitnessWeatherSnapshot: Identifiable, Hashable {
+    let id = UUID()
+    let date: Date
+    let locationName: String
+    let conditionTitle: String
+    let conditionMessage: String
+    let systemImage: String
+    let temperatureUnit: String
+    let speedUnit: String
+    let currentTemperature: Int
+    let highTemperature: Int
+    let lowTemperature: Int
+    let rainProbability: Int
+    let humidity: Int
+    let windSpeed: Int
+    let windGusts: Int
+    let uvIndex: Int
+    let sunrise: String
+    let sunset: String
+    let hourly: [FitnessWeatherHourPoint]
+    let bestWindow: FitnessWeatherWindow
+
+    static func trainingDayPreview(now: Date, units: UserProfile.Units) -> FitnessWeatherSnapshot {
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: now)
+        let dayOffset = calendar.isDateInTomorrow(now) ? 1 : 0
+        let isImperial = units == .imperial
+        let celsius = [22, 21, 20, 21, 25, 30, 33 - dayOffset, 30 - dayOffset]
+        let windKmh = [5, 5, 4, 5, 8, 12, 14, 9]
+        let rain = [0, 0, 0, 0, 0, 0, 2 + dayOffset, 0]
+        let uv = [0, 0, 1, 4, 8, 7, 3, 0]
+        let hours = [0, 3, 6, 9, 12, 15, 18, 21]
+        let hourNow = calendar.component(.hour, from: now)
+        let closestIndex = hours.enumerated().min { lhs, rhs in
+            abs(lhs.element - hourNow) < abs(rhs.element - hourNow)
+        }?.offset ?? 2
+
+        func temp(_ value: Int) -> Int {
+            isImperial ? Int((Double(value) * 9 / 5 + 32).rounded()) : value
+        }
+
+        func speed(_ value: Int) -> Int {
+            isImperial ? Int((Double(value) * 0.621_371).rounded()) : value
+        }
+
+        let hourly = zip(hours.indices, hours).map { index, hour in
+            FitnessWeatherHourPoint(
+                hour: hour,
+                temperature: temp(celsius[index]),
+                windSpeed: speed(windKmh[index]),
+                rainProbability: rain[index],
+                uvIndex: uv[index]
+            )
+        }
+
+        let highCelsius = celsius.max() ?? 30
+        let conditionTitle = highCelsius >= 32 ? "Soleado y caluroso" : "Parcialmente nublado"
+        let conditionMessage = highCelsius >= 32
+            ? "Buena luz para moverte temprano; desde mediodía conviene bajar intensidad, hidratarte y evitar el sol directo."
+            : "Condiciones cómodas para una sesión exterior suave o una caminata larga."
+
+        return FitnessWeatherSnapshot(
+            date: dayStart,
+            locationName: "Tu zona",
+            conditionTitle: conditionTitle,
+            conditionMessage: conditionMessage,
+            systemImage: highCelsius >= 32 ? "sun.max.fill" : "cloud.sun.fill",
+            temperatureUnit: isImperial ? "°F" : "°C",
+            speedUnit: isImperial ? "mph" : "km/h",
+            currentTemperature: temp(celsius[closestIndex]),
+            highTemperature: temp(highCelsius),
+            lowTemperature: temp(celsius.min() ?? 20),
+            rainProbability: rain.max() ?? 0,
+            humidity: dayOffset == 0 ? 58 : 55,
+            windSpeed: speed(windKmh[closestIndex]),
+            windGusts: speed(32 + dayOffset * 4),
+            uvIndex: uv.max() ?? 0,
+            sunrise: dayOffset == 0 ? "06:41" : "06:42",
+            sunset: dayOffset == 0 ? "21:31" : "21:30",
+            hourly: hourly,
+            bestWindow: FitnessWeatherWindow(
+                title: dayOffset == 0 ? "Hoy, 07:00 - 09:00" : "Mañana, 08:00 - 10:00",
+                subtitle: "\(temp(dayOffset == 0 ? 21 : 22))\(isImperial ? "°F" : "°C") · \(rain.max() ?? 0)% lluvia · \(speed(5)) \(isImperial ? "mph" : "km/h")",
+                systemImage: "sunrise.fill"
+            )
+        )
+    }
+}
+
+private struct FitnessWeatherInsight: Identifiable {
+    enum Tone {
+        case good
+        case warning
+        case indoor
+    }
+
+    let id = UUID()
+    let title: String
+    let message: String
+    let systemImage: String
+    let tone: Tone
+
+    var color: Color {
+        switch tone {
+        case .good: PulseTheme.recovery
+        case .warning: PulseTheme.warning
+        case .indoor: MetricDomain.strength.tint
+        }
+    }
+
+    static func make(
+        today: FitnessWeatherSnapshot,
+        tomorrow: FitnessWeatherSnapshot,
+        battery: FitnessMetrics.TrainingBatteryStatus,
+        hasActivePlan: Bool,
+        trainingLocation: UserProfile.TrainingLocation
+    ) -> [FitnessWeatherInsight] {
+        var insights: [FitnessWeatherInsight] = []
+        let comfortableHigh = today.temperatureUnit == "°F" ? 93 : 34
+        let comfortableGusts = today.speedUnit == "mph" ? 25 : 40
+
+        if today.rainProbability <= 10 && today.windGusts < comfortableGusts && today.highTemperature < comfortableHigh {
+            insights.append(FitnessWeatherInsight(
+                title: "Buen día para salir",
+                message: "La lluvia es baja y el viento no debería molestar. Mejor ventana: \(today.bestWindow.title.lowercased()).",
+                systemImage: "figure.run",
+                tone: .good
+            ))
+        } else {
+            insights.append(FitnessWeatherInsight(
+                title: "Plan exterior con control",
+                message: "Si sales, prioriza zonas de sombra y baja el ritmo cuando suba la temperatura.",
+                systemImage: "exclamationmark.triangle.fill",
+                tone: .warning
+            ))
+        }
+
+        if today.uvIndex >= 7 {
+            insights.append(FitnessWeatherInsight(
+                title: "Sol fuerte a mediodía",
+                message: "UV \(today.uvIndex): usa protección y evita intervalos duros entre 12:00 y 17:00.",
+                systemImage: "sun.max.trianglebadge.exclamationmark.fill",
+                tone: .warning
+            ))
+        }
+
+        if battery.level < 55 || trainingLocation == .gym || trainingLocation == .home {
+            let place = trainingLocation == .home ? "en casa" : "en gym"
+            insights.append(FitnessWeatherInsight(
+                title: hasActivePlan ? "Mejor bajo techo" : "Alternativa bajo techo",
+                message: "Con recuperación al \(battery.level)%, una sesión de fuerza \(place) mantiene el progreso sin sumar calor externo.",
+                systemImage: "house.and.flag.fill",
+                tone: .indoor
+            ))
+        } else {
+            insights.append(FitnessWeatherInsight(
+                title: "Mañana también hay ventana",
+                message: "\(tomorrow.bestWindow.title) pinta estable: \(tomorrow.bestWindow.subtitle).",
+                systemImage: "calendar.badge.clock",
+                tone: .good
+            ))
+        }
+
+        return Array(insights.prefix(3))
+    }
+}
+
+private struct FitnessWeatherWidget: View {
+    let today: FitnessWeatherSnapshot
+    let tomorrow: FitnessWeatherSnapshot
+    @Binding var selectedDay: FitnessWeatherDay
+
+    private var activeSnapshot: FitnessWeatherSnapshot {
+        selectedDay == .today ? today : tomorrow
+    }
+
+    var body: some View {
+        GlassMetricCard(domain: .weather, contentPadding: 0) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(activeSnapshot.locationName)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        Text(activeSnapshot.conditionTitle)
+                            .font(.system(size: 28, weight: .black, design: .rounded))
+                            .foregroundStyle(PulseTheme.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.62)
+                        Text(activeSnapshot.conditionMessage)
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: activeSnapshot.systemImage)
+                        .font(.system(size: 48, weight: .bold))
+                        .symbolRenderingMode(.multicolor)
+                        .frame(width: 60, height: 60)
+                    Image(systemName: "chevron.right")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .padding(.top, 8)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+
+                WeatherCompactChart(points: activeSnapshot.hourly, tint: MetricDomain.weather.tint)
+                    .frame(height: 118)
+                    .padding(.horizontal, 8)
+                    .id(selectedDay)
+
+                HStack(spacing: 8) {
+                    WeatherMetricPill(value: "\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)", label: "Ahora", systemImage: "thermometer.medium", color: PulseTheme.warning)
+                    WeatherMetricPill(value: "\(activeSnapshot.windSpeed) \(activeSnapshot.speedUnit)", label: "Viento", systemImage: "location.north.fill", color: MetricDomain.weather.tint)
+                    WeatherMetricPill(value: "\(activeSnapshot.rainProbability)%", label: "Lluvia", systemImage: "cloud.rain.fill", color: Color.blue)
+                    WeatherMetricPill(value: "\(activeSnapshot.uvIndex)", label: "UV", systemImage: "sun.max.fill", color: PulseTheme.accent)
+                }
+                .padding(.horizontal, 16)
+
+                HStack(spacing: 10) {
+                    ForecastDayPill(
+                        title: localizedString("today_2"),
+                        temperature: "\(today.lowTemperature)-\(today.highTemperature)\(today.temperatureUnit)",
+                        systemImage: today.systemImage,
+                        isSelected: selectedDay == .today
+                    ) {
+                        HapticService.selection()
+                        withAnimation(.snappy(duration: 0.22)) {
+                            selectedDay = .today
+                        }
+                    }
+                    ForecastDayPill(
+                        title: localizedString("tomorrow"),
+                        temperature: "\(tomorrow.lowTemperature)-\(tomorrow.highTemperature)\(tomorrow.temperatureUnit)",
+                        systemImage: tomorrow.systemImage,
+                        isSelected: selectedDay == .tomorrow
+                    ) {
+                        HapticService.selection()
+                        withAnimation(.snappy(duration: 0.22)) {
+                            selectedDay = .tomorrow
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(localizedString("weather")), \(activeSnapshot.conditionTitle), \(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)")
+    }
+}
+
+private struct ForecastDayPill: View {
+    let title: String
+    let temperature: String
+    let systemImage: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .bold))
+                    .symbolRenderingMode(.multicolor)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(isSelected ? PulseTheme.textPrimary : PulseTheme.secondaryText)
+                    Text(temperature)
+                        .font(.system(size: 11, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background((isSelected ? MetricDomain.weather.tint : PulseTheme.secondaryText).opacity(isSelected ? 0.15 : 0.08), in: Capsule())
+            .overlay {
+                Capsule().stroke((isSelected ? MetricDomain.weather.tint : PulseTheme.separator).opacity(0.22), lineWidth: 0.8)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct WeatherMetricPill: View {
+    let value: String
+    let label: String
+    let systemImage: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(color)
+                Text(value)
+                    .font(.system(size: 12, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(PulseTheme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+            }
+            Text(label)
+                .font(.system(size: 9, weight: .bold, design: .rounded))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .background(PulseTheme.grouped.opacity(0.75), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+    }
+}
+
+private struct WeatherCompactChart: View {
+    let points: [FitnessWeatherHourPoint]
+    let tint: Color
+
+    var body: some View {
+        VStack(spacing: 6) {
+            GeometryReader { proxy in
+                ZStack(alignment: .bottom) {
+                    WeatherGrid()
+                    WeatherTemperatureArea(points: points)
+                        .fill(
+                            LinearGradient(
+                                colors: [PulseTheme.warning.opacity(0.28), tint.opacity(0.04)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                    WeatherTemperatureLine(points: points)
+                        .stroke(temperatureGradient, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                    WeatherWindLine(points: points)
+                        .stroke(tint.opacity(0.78), style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round, dash: [7, 6]))
+                }
+                .frame(width: proxy.size.width, height: proxy.size.height)
+            }
+
+            HStack {
+                ForEach(points) { point in
+                    VStack(spacing: 3) {
+                        Text(point.label)
+                            .font(.system(size: 10, weight: .bold, design: .rounded).monospacedDigit())
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        if point.uvIndex >= 7 {
+                            Image(systemName: "sun.max.fill")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(PulseTheme.warning)
+                        } else {
+                            Color.clear.frame(width: 8, height: 8)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    private var temperatureGradient: LinearGradient {
+        LinearGradient(
+            colors: [PulseTheme.warning, PulseTheme.semanticEffort],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+}
+
+private struct WeatherGrid: View {
+    var body: some View {
+        GeometryReader { proxy in
+            Path { path in
+                let horizontalLines = 3
+                for index in 0...horizontalLines {
+                    let y = proxy.size.height * CGFloat(index) / CGFloat(horizontalLines)
+                    path.move(to: CGPoint(x: 0, y: y))
+                    path.addLine(to: CGPoint(x: proxy.size.width, y: y))
+                }
+            }
+            .stroke(PulseTheme.separator.opacity(0.55), style: StrokeStyle(lineWidth: 0.8, dash: [4, 6]))
+        }
+    }
+}
+
+private struct WeatherTemperatureLine: Shape {
+    let points: [FitnessWeatherHourPoint]
+
+    func path(in rect: CGRect) -> Path {
+        weatherPath(in: rect, values: points.map(\.temperature))
+    }
+}
+
+private struct WeatherTemperatureArea: Shape {
+    let points: [FitnessWeatherHourPoint]
+
+    func path(in rect: CGRect) -> Path {
+        var path = weatherPath(in: rect, values: points.map(\.temperature))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct WeatherWindLine: Shape {
+    let points: [FitnessWeatherHourPoint]
+
+    func path(in rect: CGRect) -> Path {
+        weatherPath(in: rect.insetBy(dx: 0, dy: rect.height * 0.20), values: points.map(\.windSpeed))
+    }
+}
+
+private func weatherPath(in rect: CGRect, values: [Int]) -> Path {
+    guard values.count > 1 else { return Path() }
+    let minValue = values.min() ?? 0
+    let maxValue = values.max() ?? 1
+    let range = max(maxValue - minValue, 1)
+    let stepX = rect.width / CGFloat(values.count - 1)
+
+    var path = Path()
+    for index in values.indices {
+        let x = CGFloat(index) * stepX
+        let normalized = Double(values[index] - minValue) / Double(range)
+        let y = rect.maxY - CGFloat(normalized) * rect.height
+        index == values.startIndex ? path.move(to: CGPoint(x: x, y: y)) : path.addLine(to: CGPoint(x: x, y: y))
+    }
+    return path
+}
+
+private struct FitnessWeatherInsightRow: View {
+    let insight: FitnessWeatherInsight
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            PulseIconBadge(systemImage: insight.systemImage, tint: insight.color, size: 38, radius: PulseTheme.smallRadius)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(insight.title)
+                    .font(.subheadline.weight(.black))
+                    .foregroundStyle(PulseTheme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                Text(insight.message)
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(insight.color.opacity(0.08), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                .stroke(insight.color.opacity(0.13), lineWidth: 0.8)
+        }
+    }
+}
+
+private struct TodayWeatherDetailView: View {
+    let today: FitnessWeatherSnapshot
+    let tomorrow: FitnessWeatherSnapshot
+    let insights: [FitnessWeatherInsight]
+    @State private var selectedDay: FitnessWeatherDay
+
+    init(
+        today: FitnessWeatherSnapshot,
+        tomorrow: FitnessWeatherSnapshot,
+        insights: [FitnessWeatherInsight],
+        selectedDay: FitnessWeatherDay
+    ) {
+        self.today = today
+        self.tomorrow = tomorrow
+        self.insights = insights
+        _selectedDay = State(initialValue: selectedDay)
+    }
+
+    private var domain: MetricDomain { .weather }
+
+    private var activeSnapshot: FitnessWeatherSnapshot {
+        selectedDay == .today ? today : tomorrow
+    }
+
+    var body: some View {
+        ZStack {
+            PulseTheme.background.ignoresSafeArea()
+            DomainTintedBackground(domain: domain, height: 460)
+
+            ScrollView {
+                VStack(spacing: 18) {
+                    hero
+                    dayPicker
+                    bestWindowCard
+                    detailStats
+                    temperatureCard
+                    windCard
+                    rainUVCard
+                    insightsCard
+                }
+                .padding(.top, DetailNavigationHeaderBar.contentTopPadding - 40)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 32)
+            }
+            .overlay(alignment: .top) {
+                HealthWidgetDetailNavBar(title: nil, domain: domain)
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var hero: some View {
+        VStack(spacing: 13) {
+            Image(systemName: activeSnapshot.systemImage)
+                .font(.system(size: 88, weight: .bold))
+                .symbolRenderingMode(.multicolor)
+            VStack(spacing: 5) {
+                Text(activeSnapshot.locationName)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Text(activeSnapshot.conditionTitle)
+                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .foregroundStyle(PulseTheme.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.72)
+                Text(activeSnapshot.conditionMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: 8) {
+                WeatherMetricPill(value: "\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)", label: "Ahora", systemImage: "thermometer.medium", color: PulseTheme.warning)
+                WeatherMetricPill(value: "\(activeSnapshot.windSpeed) \(activeSnapshot.speedUnit)", label: "Viento", systemImage: "location.north.fill", color: MetricDomain.weather.tint)
+                WeatherMetricPill(value: "\(activeSnapshot.uvIndex)", label: "UV", systemImage: "sun.max.fill", color: PulseTheme.accent)
+                WeatherMetricPill(value: "\(activeSnapshot.rainProbability)%", label: "Lluvia", systemImage: "cloud.rain.fill", color: Color.blue)
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    private var dayPicker: some View {
+        HStack(spacing: 8) {
+            ForEach(FitnessWeatherDay.allCases) { day in
+                Button {
+                    HapticService.selection()
+                    withAnimation(.snappy(duration: 0.22)) {
+                        selectedDay = day
+                    }
+                } label: {
+                    Text(day.title)
+                        .font(.caption.weight(.black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .foregroundStyle(selectedDay == day ? PulseTheme.onColor(domain.tint) : domain.tint)
+                        .background(selectedDay == day ? domain.tint : domain.tint.opacity(0.12), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var bestWindowCard: some View {
+        GlassMetricCard(domain: domain) {
+            HStack(alignment: .center, spacing: 14) {
+                PulseIconBadge(systemImage: activeSnapshot.bestWindow.systemImage, tint: PulseTheme.warning, size: 52, radius: PulseTheme.mediumRadius)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Mejor momento")
+                        .font(.headline.weight(.black))
+                    Text(activeSnapshot.bestWindow.title)
+                        .font(.subheadline.weight(.bold))
+                    Text(activeSnapshot.bestWindow.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var detailStats: some View {
+        HealthStatsHeader(items: [
+            HealthStatItem(value: "\(activeSnapshot.highTemperature)\(activeSnapshot.temperatureUnit)", label: "Máxima"),
+            HealthStatItem(value: "\(activeSnapshot.humidity)%", label: "Humedad"),
+            HealthStatItem(value: "\(activeSnapshot.windGusts) \(activeSnapshot.speedUnit)", label: "Rachas")
+        ], domain: domain)
+    }
+
+    private var temperatureCard: some View {
+        GlassMetricCard(domain: domain) {
+            VStack(alignment: .leading, spacing: 14) {
+                WeatherDetailCardHeader(title: "Temperatura", systemImage: "thermometer.medium", color: PulseTheme.warning)
+                WeatherCompactChart(points: activeSnapshot.hourly, tint: domain.tint)
+                    .frame(height: 170)
+            }
+        }
+    }
+
+    private var windCard: some View {
+        GlassMetricCard(domain: domain) {
+            VStack(alignment: .leading, spacing: 14) {
+                WeatherDetailCardHeader(title: "Viento", systemImage: "location.north.fill", color: domain.tint)
+                HStack(spacing: 0) {
+                    HealthStatItem(value: "\(activeSnapshot.windSpeed)", label: activeSnapshot.speedUnit)
+                        .weatherStatCell()
+                    HealthStatItem(value: "\(activeSnapshot.windGusts)", label: "rachas")
+                        .weatherStatCell()
+                }
+                WeatherWindBars(points: activeSnapshot.hourly, color: domain.tint)
+                    .frame(height: 98)
+            }
+        }
+    }
+
+    private var rainUVCard: some View {
+        GlassMetricCard(domain: domain) {
+            VStack(alignment: .leading, spacing: 14) {
+                WeatherDetailCardHeader(title: "Lluvia y UV", systemImage: "sun.max.fill", color: PulseTheme.accent)
+                HStack(spacing: 10) {
+                    HealthMiniTile(title: "Lluvia", value: "\(activeSnapshot.rainProbability)%", subtitle: "probabilidad", systemImage: "cloud.rain.fill", color: Color.blue, domain: domain)
+                    HealthMiniTile(title: "UV", value: "\(activeSnapshot.uvIndex)", subtitle: uvLabel(activeSnapshot.uvIndex), systemImage: "sun.max.fill", color: PulseTheme.accent, domain: domain)
+                }
+                HealthInsightRow(
+                    icon: "shield.lefthalf.filled",
+                    color: activeSnapshot.uvIndex >= 7 ? PulseTheme.warning : PulseTheme.recovery,
+                    title: activeSnapshot.uvIndex >= 7 ? "Protección solar" : "UV controlado",
+                    message: activeSnapshot.uvIndex >= 7 ? "Evita los bloques más intensos a mediodía o reduce el volumen si entrenas fuera." : "Buen margen para caminar o correr suave al aire libre."
+                )
+            }
+        }
+    }
+
+    private var insightsCard: some View {
+        GlassMetricCard(domain: domain) {
+            VStack(alignment: .leading, spacing: 10) {
+                WeatherDetailCardHeader(title: "Insights fitness", systemImage: "sparkles", color: PulseTheme.accent)
+                ForEach(insights) { insight in
+                    FitnessWeatherInsightRow(insight: insight)
+                }
+            }
+        }
+    }
+
+    private func uvLabel(_ value: Int) -> String {
+        switch value {
+        case 0...2: "bajo"
+        case 3...5: "moderado"
+        case 6...7: "alto"
+        default: "muy alto"
+        }
+    }
+}
+
+private struct WeatherDetailCardHeader: View {
+    let title: String
+    let systemImage: String
+    let color: Color
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.headline.weight(.black))
+            .foregroundStyle(PulseTheme.textPrimary)
+            .labelStyle(.titleAndIcon)
+            .symbolRenderingMode(.hierarchical)
+            .tint(color)
+    }
+}
+
+private extension HealthStatItem {
+    func weatherStatCell() -> some View {
+        VStack(spacing: 3) {
+            Text(value)
+                .font(.system(size: 26, weight: .black, design: .rounded).monospacedDigit())
+                .foregroundStyle(PulseTheme.textPrimary)
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct WeatherWindBars: View {
+    let points: [FitnessWeatherHourPoint]
+    let color: Color
+
+    private var maxWind: Int {
+        max(points.map(\.windSpeed).max() ?? 1, 1)
+    }
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 7) {
+            ForEach(points) { point in
+                VStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(color.opacity(0.25 + 0.60 * (Double(point.windSpeed) / Double(maxWind))))
+                        .frame(height: max(10, CGFloat(point.windSpeed) / CGFloat(maxWind) * 68))
+                    Text(point.label)
+                        .font(.system(size: 9, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
     }
 }

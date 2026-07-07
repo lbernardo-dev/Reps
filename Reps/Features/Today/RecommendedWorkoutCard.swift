@@ -65,9 +65,9 @@ struct RecommendedWorkoutCard: View {
                         Button(action: onStart) {
                             Image(systemName: "play.fill")
                                 .font(.subheadline.weight(.black))
-                                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                                .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
                                 .frame(width: 42, height: 42)
-                                .background(PulseTheme.accent, in: Circle())
+                                .background(PulseTheme.playControl, in: Circle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("recommended_workout_cta")

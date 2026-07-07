@@ -6,15 +6,11 @@ struct FreeWorkoutStartView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(localizedString("start"))
-                        .font(.system(size: 36, weight: .black, design: .rounded))
-                    Text(localizedString("free_workout_2"))
-                        .font(.headline)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 8)
+                Text(localizedString("free_workout_2"))
+                    .font(.headline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 8)
 
                 NavigationLink {
                     ActiveWorkoutView(workout: .freeWorkout, origin: .free)
@@ -116,9 +112,9 @@ private struct FreeWorkoutStartRow: View {
 
                 Image(systemName: "play.fill")
                     .font(.system(size: 22, weight: .black))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
                     .frame(width: 58, height: 58)
-                    .background(tint, in: Circle())
+                    .background(PulseTheme.playControl, in: Circle())
             }
 
             VStack(alignment: .leading, spacing: 6) {

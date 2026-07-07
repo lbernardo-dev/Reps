@@ -179,10 +179,10 @@ struct RouteResumePrompt: View {
             Spacer()
             Button("reanudar", action: onResume)
                 .font(.caption.weight(.bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
                 .padding(.horizontal, 12)
                 .frame(height: 34)
-                .background(PulseTheme.accent)
+                .background(PulseTheme.playControl)
                 .clipShape(Capsule())
         }
         .padding(12)

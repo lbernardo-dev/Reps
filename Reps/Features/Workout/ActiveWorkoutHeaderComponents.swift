@@ -34,8 +34,9 @@ struct ActiveWorkoutPinnedHeader: View {
                         Image(systemName: isPaused ? "play.fill" : "pause.fill")
                             .font(.body.weight(.bold))
                             .frame(width: 44, height: 44)
-                            .foregroundStyle(isPaused ? PulseTheme.accent : PulseTheme.warning)
-                            .navigationGlassCircle(.secondary, tint: isPaused ? PulseTheme.accent : PulseTheme.warning)
+                            .foregroundStyle(PulseTheme.onColor(isPaused ? PulseTheme.playControl : PulseTheme.pauseControl))
+                            .background(isPaused ? PulseTheme.playControl : PulseTheme.pauseControl)
+                            .clipShape(Circle())
                     }
                     .accessibilityLabel(localizedString(isPaused ? "resume_workout" : "pause_workout"))
                 }
@@ -54,9 +55,9 @@ struct ActiveWorkoutPinnedHeader: View {
                     Button(action: onPrimaryAction) {
                         Label(localizedString("start"), systemImage: "play.fill")
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
                             .frame(width: 110, height: 44)
-                            .background(PulseTheme.accent)
+                            .background(PulseTheme.playControl)
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .disabled(!canStartWorkout)

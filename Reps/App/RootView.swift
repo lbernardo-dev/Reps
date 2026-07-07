@@ -3,6 +3,7 @@ import SwiftUI
 
 struct RootView: View {
   @Environment(AppStore.self) private var store
+  @State private var showSplash = true
 
   private var showsMainInterface: Bool {
     #if DEBUG
@@ -23,27 +24,37 @@ struct RootView: View {
 
   var body: some View {
     @Bindable var store = store
-    return Group {
-      if showsMainInterface {
-        MainTabView()
-      } else {
-        WelcomeView()
+    return ZStack {
+      Group {
+        if showsMainInterface {
+          MainTabView()
+        } else {
+          WelcomeView()
+        }
       }
-    }
-    .alert(
-      "storage_error",
-      isPresented: Binding(
-        get: { store.isUsingFallbackStorage },
-        set: { store.isUsingFallbackStorage = $0 }
-      )
-    ) {
-      Button("aceptar", role: .cancel) {}
-    } message: {
-      Text("there_was_a_problem_loading_your_saved_data_the_app_is_in_temporary_mode_and_wil")
-    }
-    .fullScreenCover(item: $store.activePaywall) { presentation in
-      PaywallView(presentation: presentation)
-        .environment(store)
+      .alert(
+        "storage_error",
+        isPresented: Binding(
+          get: { store.isUsingFallbackStorage },
+          set: { store.isUsingFallbackStorage = $0 }
+        )
+      ) {
+        Button("aceptar", role: .cancel) {}
+      } message: {
+        Text("there_was_a_problem_loading_your_saved_data_the_app_is_in_temporary_mode_and_wil")
+      }
+      .fullScreenCover(item: $store.activePaywall) { presentation in
+        PaywallView(presentation: presentation)
+          .environment(store)
+      }
+
+      if showSplash {
+        AnimatedSplashView {
+          showSplash = false
+        }
+        .transition(.identity)
+        .zIndex(1)
+      }
     }
     .preferredColorScheme(preferredColorScheme)
   }
@@ -484,6 +495,7 @@ private struct QuickMenuCloseButton: View {
       .contentShape(Capsule(style: .continuous))
     }
     .buttonStyle(.plain)
+    .destructiveGlassCapsule(.disabled)
     .accessibilityLabel(localizedString("quick_menu_close"))
   }
 }
@@ -608,11 +620,11 @@ private struct QuickActionRow: View {
 
       Image(systemName: action.systemImage)
         .font(.system(size: 17, weight: .bold))
-        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+        .foregroundStyle(PulseTheme.onColor(action == .freeWorkout ? PulseTheme.playControl : PulseTheme.accent))
         .frame(width: 44, height: 44)
-        .background(PulseTheme.accent)
+        .background(action == .freeWorkout ? PulseTheme.playControl : PulseTheme.accent)
         .clipShape(Circle())
-        .shadow(color: PulseTheme.accent.opacity(0.14), radius: 6, x: 0, y: 3)
+        .shadow(color: (action == .freeWorkout ? PulseTheme.playControl : PulseTheme.accent).opacity(0.14), radius: 6, x: 0, y: 3)
     }
     .padding(.leading, 18)
     .padding(.trailing, 6)

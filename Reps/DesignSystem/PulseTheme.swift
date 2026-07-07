@@ -30,6 +30,9 @@ enum PulseTheme {
     static let growth       = semanticHealth
     static let appleMusic   = semanticEffort
     static let fitOrange    = semanticWarning
+    static let playControl  = fitOrange
+    static let pauseControl = semanticProgress
+    static let stopControl  = destructive
 
     // MARK: HR zone colors (5-stop, shared with Watch)
     static let hrZones: [Color] = [
@@ -1136,7 +1139,7 @@ extension String {
 struct DetailNavigationHeaderBar: View {
     static let contentTopPadding: CGFloat = 104
 
-    let title: String
+    let title: String?
     var backTitle: String?
     var tint: Color = PulseTheme.accent
     var backAction: () -> Void
@@ -1148,14 +1151,16 @@ struct DetailNavigationHeaderBar: View {
                 .ignoresSafeArea(edges: .top)
                 .allowsHitTesting(false)
 
-            Text(title)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 104)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 37)
+            if let title {
+                Text(title)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 104)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 37)
+            }
 
             HStack {
                 Button {
@@ -1391,11 +1396,27 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                 VStack(alignment: .leading, spacing: 18) {
                     content
                 }
-                .frame(maxWidth: .infinity)
+                // Pins the content to the ScrollView's own width instead of
+                // `.frame(maxWidth: .infinity)`, so an off-screen child (e.g. a
+                // wide chart or unconstrained horizontal stack) can't silently
+                // expand the scroll content and introduce horizontal/diagonal
+                // drift. `containerRelativeFrame` reads this synchronously from
+                // the enclosing ScrollView, so it stays correct across devices
+                // and rotations without any measurement state.
+                .containerRelativeFrame(.horizontal, alignment: .leading) { length, _ in
+                    max(length - (PulseTheme.screenHorizontalPadding * 2), 0)
+                }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .safeAreaPadding(.top, max(topContentPadding, headerHeight + 4))
                 .padding(.bottom, PulseTheme.screenBottomContentPadding)
             }
+            // Locks the scroll gesture to vertical-only (prevents horizontal
+            // drift) without wrapping the ScrollView in an extra GeometryReader/
+            // .clipped() container — that used to stop TabView from recognizing
+            // it as the tab's scrollable root, which meant it lost its implicit
+            // bottom inset for the tab bar + tabViewBottomAccessory pill and
+            // content got clipped behind them.
+            .background(VerticalScrollAxisLock())
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .coordinateSpace(.named(StickyHeaderTitleReader.coordinateSpaceName))
             .onPreferenceChange(StickyHeaderTitlePreferenceKey.self) { markers in
@@ -1446,6 +1467,32 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
             .filter { $0.minY <= threshold }
             .max { $0.minY < $1.minY }?
             .title ?? title
+    }
+}
+
+private struct VerticalScrollAxisLock: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        DispatchQueue.main.async {
+            configureScrollView(from: view)
+        }
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            configureScrollView(from: uiView)
+        }
+    }
+
+    private func configureScrollView(from view: UIView) {
+        guard let scrollView = sequence(first: view.superview, next: { $0?.superview })
+            .first(where: { $0 is UIScrollView }) as? UIScrollView else {
+            return
+        }
+        scrollView.alwaysBounceHorizontal = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.isDirectionalLockEnabled = true
     }
 }
 
