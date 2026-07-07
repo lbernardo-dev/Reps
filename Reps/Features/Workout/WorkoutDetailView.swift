@@ -99,8 +99,7 @@ struct WorkoutDetailView: View {
                     .clipShape(Capsule())
             }
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-            .padding(.vertical, 20)
-            .padding(.bottom, 8)
+            .padding(.vertical, 12)
             .background(
                 LinearGradient(
                     colors: [PulseTheme.background.opacity(0), PulseTheme.background],

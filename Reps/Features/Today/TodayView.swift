@@ -327,7 +327,7 @@ struct TodayView: View {
                 CreatePlanView()
             }
             .sheet(item: $planToEdit) { plan in
-                EditPlanView(plan: plan)
+                CreatePlanView(existingPlan: plan)
             }
             .navigationDestination(isPresented: $showProfile) {
                 ProfileView {
@@ -1242,37 +1242,6 @@ struct TodayView: View {
                 value: daySessions.reduce(0) { $0 + valueForSession($1) },
                 isToday: calendar.isDateInToday(date)
             )
-        }
-    }
-
-    private func perform(_ action: RetentionEngine.ActivationAction?) {
-        HapticService.impact(.light)
-        guard let action else {
-            showProfile = true
-            return
-        }
-
-        switch action {
-        case .startWorkout:
-            if todaysScheduledWorkout != nil || hasActivePlan {
-                workoutToStart = focusWorkout
-            } else {
-                showFreeWorkoutStart = true
-            }
-        case .createPlan:
-            showCreatePlan = true
-        case .scheduleWorkout:
-            showScheduleWorkout = true
-        case .competitive(let competitiveAction):
-            if competitiveAction == .reviewPlan {
-                reviewActivePlan()
-                return
-            }
-            if let destination = store.executeCompetitiveAction(competitiveAction) {
-                onSelectTab?(destination)
-            }
-        case .openProgress:
-            onSelectTab?(.progress)
         }
     }
 

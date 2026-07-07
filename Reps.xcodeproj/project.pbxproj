@@ -196,7 +196,6 @@
 		F5F88861BD3CBE1BB29D96E0 /* HRVView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4606AAB13D1A50C2F1196A2 /* HRVView.swift */; };
 		F7003C108D6BC29AB768A015 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C0EA950DDAF04C644A5992BB /* InfoPlist.xcstrings */; };
 		F9B2D5537BBD3546D9D6EA03 /* CSVService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A61FC8F7F687BB47F7F6932E /* CSVService.swift */; };
-		FFE02815E21A1E15F3CCFE41 /* EditPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F2EB2D7E12EBEF1BEAD0A73 /* EditPlanView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -306,7 +305,6 @@
 		4965A295E62A8E86154C1F72 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4AD7316EF16C704B3B11D384 /* DeveloperMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperMenuView.swift; sourceTree = "<group>"; };
 		4C811B078B70CCB8A2E188B7 /* RepsStreakWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsStreakWidget.swift; sourceTree = "<group>"; };
-		4F2EB2D7E12EBEF1BEAD0A73 /* EditPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditPlanView.swift; sourceTree = "<group>"; };
 		5163BBD811D7D834ECBC728F /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		51B411BBCF8E5995A65EA8A3 /* ActiveWorkoutExercisePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutExercisePicker.swift; sourceTree = "<group>"; };
 		5207FC54AA0F20CA9E4C36D1 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
@@ -675,7 +673,6 @@
 			isa = PBXGroup;
 			children = (
 				1703D1E318433EAC1F0ADDA4 /* CreatePlanView.swift */,
-				4F2EB2D7E12EBEF1BEAD0A73 /* EditPlanView.swift */,
 				3D71F1F758BF7BEA053BE5BB /* MusicIntegrationSheet.swift */,
 				95EF4F0FCD797CF0C3006FED /* PlansView.swift */,
 				C4F220D40B58161D207B08BA /* ProgramLibraryView.swift */,
@@ -1142,7 +1139,6 @@
 				384882BC38DB05845139EA04 /* CreatePostView.swift in Sources */,
 				F5A6B1F54A464EA53A52BDFC /* DeveloperMenuView.swift in Sources */,
 				738C87B43E5EC320DE7DD2C8 /* DomainTrendCharts.swift in Sources */,
-				FFE02815E21A1E15F3CCFE41 /* EditPlanView.swift in Sources */,
 				5C561560E7F6B79FCA7A14D5 /* EditSocialProfileView.swift in Sources */,
 				0C991F173BD2110A3C6FB549 /* EquipmentRoutineWizardView.swift in Sources */,
 				0D7B71D3629F091722B2EF3A /* ExerciseBodyMuscleSelector.swift in Sources */,

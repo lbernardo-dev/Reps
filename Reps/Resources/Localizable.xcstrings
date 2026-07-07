@@ -1,6 +1,380 @@
 {
   "sourceLanguage" : "es",
   "strings" : {
+    "route_start_hint_treadmill" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap Start above to log time, steps, heart rate, kcal and distance if available."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa Iniciar arriba para registrar tiempo, pasos, pulso, kcal y distancia si está disponible."
+          }
+        }
+      }
+    },
+    "route_start_hint_outdoor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap Start above to begin recording GPS, distance and sensors."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa Iniciar arriba para empezar a registrar GPS, distancia y sensores."
+          }
+        }
+      }
+    },
+    "session_media_summary_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d session photos attached"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d fotos adjuntas de sesión"
+          }
+        }
+      }
+    },
+    "exercise_media_summary_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %d attachments"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %d adjuntos"
+          }
+        }
+      }
+    },
+    "set_tools_caption_plate_load" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended load per side with a 20 kg bar. The buttons insert special sets without ending the workout."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carga recomendada por lado con barra de 20 kg. Los botones insertan series especiales sin cerrar el entrenamiento."
+          }
+        }
+      }
+    },
+    "set_tools_caption_advanced_set" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insert warm-ups, back-offs or dropsets from the same screen and keep the set type logged."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserta calentamientos, back-off o dropsets desde la misma pantalla y deja el tipo de serie registrado."
+          }
+        }
+      }
+    },
+    "set_history_summary_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History: %d kg x %d"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Histórico: %d kg x %d"
+          }
+        }
+      }
+    },
+    "match_reason_same_muscle_group" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same muscle group"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mismo grupo muscular"
+          }
+        }
+      }
+    },
+    "match_reason_same_equipment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same equipment"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mismo equipo"
+          }
+        }
+      }
+    },
+    "match_reason_available_equipment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available with your equipment"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponible con tu equipo"
+          }
+        }
+      }
+    },
+    "match_reason_same_tracking" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same tracking"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Misma medición"
+          }
+        }
+      }
+    },
+    "match_reason_same_environment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same environment"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mismo entorno"
+          }
+        }
+      }
+    },
+    "prog_no_history" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough history yet. Start conservative and log RPE/RIR."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay historial suficiente. Empieza conservador y registra RPE/RIR."
+          }
+        }
+      }
+    },
+    "prog_deload_stalled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have had several sessions without improvement and high effort. Apply a local deload."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Llevas varias sesiones sin mejora y con esfuerzo alto. Aplica deload local."
+          }
+        }
+      }
+    },
+    "prog_completed_with_margin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You completed the target with margin. Increase weight and return to the start of the range."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completaste el objetivo con margen. Sube peso y vuelve al inicio del rango."
+          }
+        }
+      }
+    },
+    "prog_closed_rep_range" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have maxed out the rep range. Increase weight and reset reps."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has cerrado el rango de reps. Sube peso y reinicia reps."
+          }
+        }
+      }
+    },
+    "prog_maintain_add_rep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the weight and try to add one rep within the range."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén peso e intenta sumar una repetición dentro del rango."
+          }
+        }
+      }
+    },
+    "prog_high_effort_lower" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effort was high. Lower slightly to return to your target RPE."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El esfuerzo fue alto. Baja ligeramente para volver al RPE objetivo."
+          }
+        }
+      }
+    },
+    "prog_target_percent_1rm_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target calculated at %d%% of your estimated 1RM."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objetivo calculado con %d%% de tu 1RM estimada."
+          }
+        }
+      }
+    },
+    "prog_missed_min_high_effort" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You did not reach the minimum and effort was high. Apply a local deload."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No llegaste al mínimo y el esfuerzo fue alto. Aplica deload local."
+          }
+        }
+      }
+    },
+    "prog_maintain_good_technique" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the weight and aim to complete all sets with good technique."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén el peso y busca completar todas las series con buena técnica."
+          }
+        }
+      }
+    },
+    "bookmarks_count_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d bookmarks"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d marcadores"
+          }
+        }
+      }
+    },
     "" : {
 
     },

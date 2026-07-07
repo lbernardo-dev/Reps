@@ -190,7 +190,7 @@ struct PlansView: View {
                     .environment(store)
             }
             .sheet(item: $planToEdit) { plan in
-                EditPlanView(plan: plan)
+                CreatePlanView(existingPlan: plan)
             }
             .sheet(item: $selectedPlanForDetail) { plan in
                 PlanDetailSheet(plan: plan, isLocked: !canManagePlan(plan)) {

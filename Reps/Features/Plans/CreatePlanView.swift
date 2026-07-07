@@ -45,28 +45,76 @@ private struct PlanExercisePickerTarget: Identifiable {
     var id: Int { index }
 }
 
+private struct PlanExerciseBookmarkTarget: Identifiable {
+    let dayIndex: Int
+    let exerciseIndex: Int
+    var id: String { "\(dayIndex)-\(exerciseIndex)" }
+}
+
+/// Canonical editor for creating a new plan or editing an existing one.
+/// `existingPlan == nil` drives the full wizard (smart defaults, lands on
+/// the basics step); passing a plan prefills every step from it and lands
+/// directly on the sessions step for a quick edit, while still allowing
+/// back-navigation into every other step.
 struct CreatePlanView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppStore.self) private var store
 
-    @State private var step: PlanWizardStep = .basics
-    @State private var planName = localizedString("plan_name_default")
-    @State private var location: UserProfile.TrainingLocation = .gym
-    @State private var daysPerWeek = 4
-    @State private var totalWeeks = 8
+    let existingPlan: WorkoutPlan?
+
+    @State private var step: PlanWizardStep
+    @State private var planName: String
+    @State private var location: UserProfile.TrainingLocation
+    @State private var daysPerWeek: Int
+    @State private var totalWeeks: Int
+    @State private var currentWeek: Int
     @State private var activateImmediately = true
     @State private var scheduleMode: PlanScheduleMode = .cycle
     @State private var selectedWeekdays: Set<Int> = [1, 3, 5, 6]
-    @State private var days: [WorkoutDay] = [
-        WorkoutDay(title: localizedString("workout_day_a"), subtitle: localizedString("strength"), durationMinutes: 45, exercises: []),
-        WorkoutDay(title: localizedString("workout_day_b"), subtitle: localizedString("strength"), durationMinutes: 45, exercises: [])
-    ]
-    @State private var playlists: [PlanPlaylist] = []
+    @State private var days: [WorkoutDay]
+    @State private var playlists: [PlanPlaylist]
     @State private var pickerTargetDay: Int?
+    @State private var bookmarkTarget: PlanExerciseBookmarkTarget?
     @State private var showMusicConnector = false
-    @State private var hasTargetEvent = false
-    @State private var targetEventName = ""
-    @State private var targetEventDate = Calendar.current.date(byAdding: .weekOfYear, value: 8, to: .now) ?? .now
+    @State private var hasTargetEvent: Bool
+    @State private var targetEventName: String
+    @State private var targetEventDate: Date
+
+    private var isEditing: Bool { existingPlan != nil }
+
+    init(existingPlan: WorkoutPlan? = nil) {
+        self.existingPlan = existingPlan
+        let defaultEventDate = Calendar.current.date(byAdding: .weekOfYear, value: 8, to: .now) ?? .now
+
+        if let plan = existingPlan {
+            _step = State(initialValue: .sessions)
+            _planName = State(initialValue: plan.name)
+            _location = State(initialValue: plan.location)
+            _daysPerWeek = State(initialValue: plan.daysPerWeek)
+            _totalWeeks = State(initialValue: plan.totalWeeks)
+            _currentWeek = State(initialValue: plan.currentWeek)
+            _days = State(initialValue: plan.days)
+            _playlists = State(initialValue: plan.playlists)
+            _hasTargetEvent = State(initialValue: plan.targetEventName != nil)
+            _targetEventName = State(initialValue: plan.targetEventName ?? "")
+            _targetEventDate = State(initialValue: plan.targetEventDate ?? defaultEventDate)
+        } else {
+            _step = State(initialValue: .basics)
+            _planName = State(initialValue: localizedString("plan_name_default"))
+            _location = State(initialValue: .gym)
+            _daysPerWeek = State(initialValue: 4)
+            _totalWeeks = State(initialValue: 8)
+            _currentWeek = State(initialValue: 1)
+            _days = State(initialValue: [
+                WorkoutDay(title: localizedString("workout_day_a"), subtitle: localizedString("strength"), durationMinutes: 45, exercises: []),
+                WorkoutDay(title: localizedString("workout_day_b"), subtitle: localizedString("strength"), durationMinutes: 45, exercises: [])
+            ])
+            _playlists = State(initialValue: [])
+            _hasTargetEvent = State(initialValue: false)
+            _targetEventName = State(initialValue: "")
+            _targetEventDate = State(initialValue: defaultEventDate)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -92,7 +140,7 @@ struct CreatePlanView: View {
                 .scrollBounceBehavior(.basedOnSize, axes: .vertical)
                 .screenBackground()
             }
-            .navigationTitle("create_plan")
+            .navigationTitle(isEditing ? "edit_plan" : "create_plan")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -123,14 +171,32 @@ struct CreatePlanView: View {
                     .disabled(!canContinue)
                 }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                .padding(.vertical, 20)
+                .padding(.vertical, 12)
                 .background(.ultraThinMaterial)
             }
             .sheet(item: pickerBinding) { target in
-                PlanExercisePickerSheet(exercises: store.exercises) { exercise in
+                ExercisePickerSheet(title: localizedString("choose_exercise"), exercises: store.exercises, currentExercise: nil) { exercise in
                     addExercise(exercise, to: target.index)
                     pickerTargetDay = nil
                 }
+            }
+            .sheet(item: $bookmarkTarget) { target in
+                ExerciseMediaBookmarkEditor(bookmarks: Binding(
+                    get: {
+                        guard days.indices.contains(target.dayIndex),
+                              days[target.dayIndex].exercises.indices.contains(target.exerciseIndex) else {
+                            return []
+                        }
+                        return days[target.dayIndex].exercises[target.exerciseIndex].mediaBookmarks
+                    },
+                    set: { newValue in
+                        guard days.indices.contains(target.dayIndex),
+                              days[target.dayIndex].exercises.indices.contains(target.exerciseIndex) else {
+                            return
+                        }
+                        days[target.dayIndex].exercises[target.exerciseIndex].mediaBookmarks = newValue
+                    }
+                ))
             }
             .sheet(isPresented: $showMusicConnector) {
                 MusicIntegrationSheet { selectedPlaylist in
@@ -168,19 +234,21 @@ struct CreatePlanView: View {
 
     private var basicsStep: some View {
         VStack(spacing: 16) {
-            PulseCard(backgroundColor: PulseTheme.accent.opacity(0.10)) {
-                Label {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("plan_smart_defaults_title")
-                            .font(.headline)
-                        Text("plan_smart_defaults_body")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
+            if !isEditing {
+                PulseCard(backgroundColor: PulseTheme.accent.opacity(0.10)) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("plan_smart_defaults_title")
+                                .font(.headline)
+                            Text("plan_smart_defaults_body")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    } icon: {
+                        Image(systemName: "wand.and.stars")
+                            .foregroundStyle(PulseTheme.accent)
                     }
-                } icon: {
-                    Image(systemName: "wand.and.stars")
-                        .foregroundStyle(PulseTheme.accent)
                 }
             }
 
@@ -195,11 +263,13 @@ struct CreatePlanView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    Toggle("activate_on_save", isOn: $activateImmediately)
-                    Text("activate_on_save_loss_hint")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if !isEditing {
+                        Toggle("activate_on_save", isOn: $activateImmediately)
+                        Text("activate_on_save_loss_hint")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
 
@@ -256,6 +326,10 @@ struct CreatePlanView: View {
                 WizardMetricStepper(title: "days_per_week_short", value: $daysPerWeek, range: 1...7)
                 WizardMetricStepper(title: "weeks", value: $totalWeeks, range: 1...24)
             }
+
+            if isEditing {
+                WizardMetricStepper(title: "week_label", value: $currentWeek, range: 1...max(totalWeeks, 1))
+            }
         }
         .onChange(of: targetEventDate) { _, _ in
             updateWeeksFromEventDate()
@@ -263,7 +337,7 @@ struct CreatePlanView: View {
         .onChange(of: hasTargetEvent) { _, active in
             if active {
                 updateWeeksFromEventDate()
-            } else {
+            } else if !isEditing {
                 totalWeeks = 8
             }
         }
@@ -318,9 +392,16 @@ struct CreatePlanView: View {
     private var sessionsStep: some View {
         VStack(spacing: 16) {
             ForEach(days.indices, id: \.self) { index in
-                SessionBuilderCard(day: $days[index], index: index) {
-                    pickerTargetDay = index
-                }
+                SessionBuilderCard(
+                    day: $days[index],
+                    index: index,
+                    canDelete: days.count > 1,
+                    onAddExercise: { pickerTargetDay = index },
+                    onOpenBookmarks: { exerciseIndex in
+                        bookmarkTarget = PlanExerciseBookmarkTarget(dayIndex: index, exerciseIndex: exerciseIndex)
+                    },
+                    onDeleteDay: { days.remove(at: index) }
+                )
             }
 
             if !sessionsAreReady {
@@ -333,16 +414,38 @@ struct CreatePlanView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
 
-            Button { addDay() } label: {
-                Label("add_session", systemImage: "plus")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-                    .foregroundStyle(PulseTheme.accent)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                            .stroke(PulseTheme.accent.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
-                    )
+            HStack(spacing: 12) {
+                Button { addDay() } label: {
+                    Label("add_session", systemImage: "plus")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .foregroundStyle(PulseTheme.accent)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                                .stroke(PulseTheme.accent.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                        )
+                }
+
+                if !store.workoutTemplates.isEmpty {
+                    Menu {
+                        ForEach(store.workoutTemplates) { workout in
+                            Button(workout.title) {
+                                days.append(workout)
+                            }
+                        }
+                    } label: {
+                        Label("add_existing_routine", systemImage: "list.clipboard")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .foregroundStyle(PulseTheme.accent)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                                    .stroke(PulseTheme.accent.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                            )
+                    }
+                }
             }
         }
     }
@@ -434,19 +537,34 @@ struct CreatePlanView: View {
             }
             return copy
         }
-        let plan = WorkoutPlan(
-            name: planName.trimmingCharacters(in: .whitespacesAndNewlines),
-            location: location,
-            daysPerWeek: daysPerWeek,
-            currentWeek: 1,
-            totalWeeks: totalWeeks,
-            completion: 0,
-            days: preparedDays,
-            playlists: playlists,
-            targetEventName: hasTargetEvent ? (targetEventName.isEmpty ? localizedString("event_default") : targetEventName) : nil,
-            targetEventDate: hasTargetEvent ? targetEventDate : nil
-        )
-        store.addPlan(plan, activate: activateImmediately)
+
+        if let existingPlan {
+            var updated = existingPlan
+            updated.name = planName.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.location = location
+            updated.daysPerWeek = daysPerWeek
+            updated.currentWeek = min(currentWeek, totalWeeks)
+            updated.totalWeeks = totalWeeks
+            updated.days = preparedDays.isEmpty ? existingPlan.days : preparedDays
+            updated.playlists = playlists
+            updated.targetEventName = hasTargetEvent ? (targetEventName.isEmpty ? localizedString("event_default") : targetEventName) : nil
+            updated.targetEventDate = hasTargetEvent ? targetEventDate : nil
+            store.updatePlan(updated)
+        } else {
+            let plan = WorkoutPlan(
+                name: planName.trimmingCharacters(in: .whitespacesAndNewlines),
+                location: location,
+                daysPerWeek: daysPerWeek,
+                currentWeek: 1,
+                totalWeeks: totalWeeks,
+                completion: 0,
+                days: preparedDays,
+                playlists: playlists,
+                targetEventName: hasTargetEvent ? (targetEventName.isEmpty ? localizedString("event_default") : targetEventName) : nil,
+                targetEventDate: hasTargetEvent ? targetEventDate : nil
+            )
+            store.addPlan(plan, activate: activateImmediately)
+        }
         dismiss()
     }
 
@@ -545,10 +663,52 @@ private struct WizardMetricStepper: View {
     }
 }
 
+private struct ExerciseRowContext: Identifiable {
+    let id: UUID
+    let index: Int
+    let groupColor: Color?
+    let isFirstInGroup: Bool
+    let isLinkedToNext: Bool
+    let isLastInDay: Bool
+}
+
 private struct SessionBuilderCard: View {
     @Binding var day: WorkoutDay
     let index: Int
+    let canDelete: Bool
     let onAddExercise: () -> Void
+    let onOpenBookmarks: (Int) -> Void
+    let onDeleteDay: () -> Void
+
+    /// Stable color per superset group, assigned by first appearance —
+    /// mirrors ActiveExerciseOrderCard.groupColors so linked exercises read
+    /// the same way during planning as they do during a live session.
+    private var groupColors: [UUID: Color] {
+        let palette: [Color] = [.orange, .purple, .teal, .pink, .blue, .green]
+        var map: [UUID: Color] = [:]
+        for exercise in day.exercises {
+            guard let group = exercise.supersetGroup, map[group] == nil else { continue }
+            map[group] = palette[map.count % palette.count]
+        }
+        return map
+    }
+
+    private var exerciseRowContexts: [ExerciseRowContext] {
+        let colors = groupColors
+        return day.exercises.indices.map { index in
+            let group = day.exercises[index].supersetGroup
+            let prevGroup = index > 0 ? day.exercises[index - 1].supersetGroup : nil
+            let nextGroup = index < day.exercises.count - 1 ? day.exercises[index + 1].supersetGroup : nil
+            return ExerciseRowContext(
+                id: day.exercises[index].id,
+                index: index,
+                groupColor: group.flatMap { colors[$0] },
+                isFirstInGroup: group != nil && group != prevGroup,
+                isLinkedToNext: group != nil && group == nextGroup,
+                isLastInDay: index == day.exercises.count - 1
+            )
+        }
+    }
 
     var body: some View {
         PulseCard {
@@ -560,6 +720,17 @@ private struct SessionBuilderCard: View {
                     Text(localizedFormat("exercise_count_format", day.exercises.count))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(PulseTheme.secondaryText)
+                    if canDelete {
+                        Button(role: .destructive, action: onDeleteDay) {
+                            Image(systemName: "trash")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.textPrimary)
+                                .frame(width: 28, height: 28)
+                                .destructiveGlassCircle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(localizedString("delete_day_action"))
+                    }
                 }
 
                 TextField("qualification", text: $day.title)
@@ -586,10 +757,21 @@ private struct SessionBuilderCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                ForEach(day.exercises.indices, id: \.self) { exerciseIndex in
-                    EditableWorkoutExerciseRow(item: $day.exercises[exerciseIndex]) {
-                        day.exercises.remove(at: exerciseIndex)
-                    }
+                ForEach(exerciseRowContexts) { context in
+                    EditableWorkoutExerciseRow(
+                        item: $day.exercises[context.index],
+                        groupColor: context.groupColor,
+                        isFirstInGroup: context.isFirstInGroup,
+                        isLinkedToNext: context.isLinkedToNext,
+                        isLastInDay: context.isLastInDay,
+                        onToggleSuperset: {
+                            WorkoutDraftController.toggleSupersetLink(at: context.index, in: &day.exercises, supersetGroup: \WorkoutExercise.supersetGroup)
+                        },
+                        onOpenBookmarks: { onOpenBookmarks(context.index) },
+                        onDelete: {
+                            day.exercises.remove(at: context.index)
+                        }
+                    )
                 }
 
                 Button(action: onAddExercise) {
@@ -608,12 +790,24 @@ private struct SessionBuilderCard: View {
 
 private struct EditableWorkoutExerciseRow: View {
     @Binding var item: WorkoutExercise
+    let groupColor: Color?
+    let isFirstInGroup: Bool
+    let isLinkedToNext: Bool
+    let isLastInDay: Bool
+    let onToggleSuperset: () -> Void
+    let onOpenBookmarks: () -> Void
     let onDelete: () -> Void
     @Environment(AppStore.self) private var store
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
+                if let groupColor {
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(groupColor)
+                        .frame(width: 3, height: 44)
+                }
+
                 ExerciseMediaThumbnail(exercise: item.exercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                     .frame(width: 56, height: 56)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -627,9 +821,26 @@ private struct EditableWorkoutExerciseRow: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
+                    if isFirstInGroup, let groupColor {
+                        Text("superset_label")
+                            .font(.caption2.weight(.heavy))
+                            .foregroundStyle(groupColor)
+                            .textCase(.uppercase)
+                    }
                 }
 
                 Spacer()
+
+                if !isLastInDay {
+                    Button(action: onToggleSuperset) {
+                        Image(systemName: isLinkedToNext ? "link.circle.fill" : "link")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(isLinkedToNext ? (groupColor ?? PulseTheme.accent) : PulseTheme.secondaryText)
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(isLinkedToNext ? "superset_remove" : "superset_create"))
+                }
 
                 Button(role: .destructive, action: onDelete) {
                     Image(systemName: "trash")
@@ -641,6 +852,17 @@ private struct EditableWorkoutExerciseRow: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(localizedFormat("delete_exercise_format", item.exercise.name))
             }
+
+            Button(action: onOpenBookmarks) {
+                Label(localizedFormat("bookmarks_count_format", item.mediaBookmarks.count), systemImage: "bookmark.fill")
+                    .font(.caption.weight(.bold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(PulseTheme.accent.opacity(0.12))
+                    .foregroundStyle(PulseTheme.accent)
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
 
             HStack(spacing: 8) {
                 ExerciseMetricTile(
@@ -728,198 +950,6 @@ private struct ExerciseMetricTile: View {
         }
         .frame(maxWidth: .infinity)
         .sensoryFeedback(.selection, trigger: value)
-    }
-}
-
-private struct PlanExercisePickerSheet: View {
-    let exercises: [Exercise]
-    let onSelect: (Exercise) -> Void
-    @Environment(\.dismiss) private var dismiss
-    @Environment(AppStore.self) private var store
-
-    @State private var searchText = ""
-    @State private var selectedMuscle = "Todos"
-    @State private var selectedEquipment = "Todos"
-    @State private var selectedType: Exercise.ExerciseType?
-    @State private var selectedDifficulty: Exercise.Difficulty?
-    @State private var selectedEnvironment: Exercise.Environment?
-    @State private var onlyAvailableEquipment = false
-
-    private var muscles: [String] {
-        ["Todos"] + Array(Set(exercises.map(\.muscleGroup))).sorted()
-    }
-
-    private var equipment: [String] {
-        ["Todos"] + Array(Set(exercises.map(\.equipment))).sorted()
-    }
-
-    private var filtered: [Exercise] {
-        exercises.filter { exercise in
-            let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-            let searchableText = [
-                exercise.name,
-                exercise.aliases.joined(separator: " "),
-                exercise.muscleGroup,
-                exercise.secondaryMuscles.joined(separator: " "),
-                exercise.equipment,
-                exercise.requiredEquipment.joined(separator: " "),
-                exercise.tags.joined(separator: " "),
-                exercise.instructions ?? ""
-            ].joined(separator: " ")
-            let matchesQuery = query.isEmpty || searchableText.localizedCaseInsensitiveContains(query)
-            let matchesMuscle = selectedMuscle == "Todos" || exercise.muscleGroup == selectedMuscle
-            let matchesEquipment = selectedEquipment == "Todos" || exercise.equipment == selectedEquipment
-            let matchesType = selectedType == nil || exercise.exerciseType == selectedType
-            let matchesDifficulty = selectedDifficulty == nil || exercise.difficulty == selectedDifficulty
-            let matchesEnvironment = selectedEnvironment == nil || exercise.environment == selectedEnvironment || exercise.environment == .both
-            let matchesAvailableEquipment = !onlyAvailableEquipment || availableEquipmentMatches(exercise)
-            return matchesQuery && matchesMuscle && matchesEquipment && matchesType && matchesDifficulty && matchesEnvironment && matchesAvailableEquipment
-        }
-    }
-
-    var body: some View {
-        NavigationStack {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 14) {
-                    TextField("search_by_name_muscle_or_team", text: $searchText)
-                        .textFieldStyle(.roundedBorder)
-                        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            Picker("muscle", selection: $selectedMuscle) {
-                                ForEach(muscles, id: \.self) { Text($0).tag($0) }
-                            }
-                            .pickerStyle(.menu)
-                            Picker("equipo", selection: $selectedEquipment) {
-                                ForEach(equipment, id: \.self) { Text($0).tag($0) }
-                            }
-                            .pickerStyle(.menu)
-                        }
-                        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                    }
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            Picker("training_type", selection: $selectedType) {
-                                Text("all").tag(Optional<Exercise.ExerciseType>.none)
-                                ForEach(Exercise.ExerciseType.allCases) { type in
-                                    Text(type.planPickerTitle).tag(Optional(type))
-                                }
-                            }
-                            .pickerStyle(.menu)
-
-                            Picker("difficulty_2", selection: $selectedDifficulty) {
-                                Text("any").tag(Optional<Exercise.Difficulty>.none)
-                                ForEach(Exercise.Difficulty.allCases) { difficulty in
-                                    Text(difficulty.planPickerTitle).tag(Optional(difficulty))
-                                }
-                            }
-                            .pickerStyle(.menu)
-
-                            Picker("environment_2", selection: $selectedEnvironment) {
-                                Text("any").tag(Optional<Exercise.Environment>.none)
-                                ForEach(Exercise.Environment.allCases) { environment in
-                                    Text(environment.planPickerTitle).tag(Optional(environment))
-                                }
-                            }
-                            .pickerStyle(.menu)
-
-                            Toggle("mi_equipo", isOn: $onlyAvailableEquipment)
-                                .toggleStyle(.button)
-                        }
-                        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                    }
-                    .font(.subheadline.weight(.semibold))
-
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        ForEach(filtered) { exercise in
-                            Button {
-                                onSelect(exercise)
-                                dismiss()
-                            } label: {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    ExerciseMediaThumbnail(exercise: exercise, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
-                                        .frame(height: 118)
-                                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                                    Text(exercise.name)
-                                        .font(.headline)
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(2)
-                                    Text("\(exercise.muscleGroup) · \(exercise.equipment)")
-                                        .font(.caption)
-                                        .foregroundStyle(PulseTheme.secondaryText)
-                                        .lineLimit(1)
-                                }
-                                .padding(10)
-                                .background(PulseTheme.card)
-                                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                }
-                .padding(.vertical, 20)
-            }
-            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-            .screenBackground()
-            .navigationTitle("choose_exercise")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("close") { dismiss() }
-                }
-            }
-        }
-    }
-
-    private func availableEquipmentMatches(_ exercise: Exercise) -> Bool {
-        let equipment = Set(store.userProfile.availableEquipment.map(normalized))
-        guard !equipment.isEmpty else { return true }
-
-        let required = exercise.requiredEquipment.isEmpty ? [exercise.equipment] : exercise.requiredEquipment
-        let normalizedRequired = Set(required.map(normalized))
-        return normalizedRequired.contains("bodyweight")
-            || normalizedRequired.contains("body only")
-            || !normalizedRequired.isDisjoint(with: equipment)
-            || equipment.contains(normalized(exercise.equipment))
-    }
-
-    private func normalized(_ value: String) -> String {
-        value.trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .lowercased()
-    }
-}
-
-private extension Exercise.ExerciseType {
-    var planPickerTitle: String {
-        switch self {
-        case .strength: localizedString("strength")
-        case .cardio: localizedString("cardio")
-        case .mobility: localizedString("mobility")
-        case .stretching: localizedString("stretching")
-        case .hiit: "HIIT"
-        }
-    }
-}
-
-private extension Exercise.Difficulty {
-    var planPickerTitle: String {
-        switch self {
-        case .low: localizedString("beginner")
-        case .medium: localizedString("intermediate")
-        case .high: localizedString("advanced")
-        }
-    }
-}
-
-private extension Exercise.Environment {
-    var planPickerTitle: String {
-        switch self {
-        case .home: localizedString("home")
-        case .gym: localizedString("gym")
-        case .both: localizedString("home_gym_label")
-        }
     }
 }
 

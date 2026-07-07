@@ -1000,145 +1000,6 @@ enum AnalyticsEngine {
     }
 }
 
-enum RetentionEngine {
-    enum ActivationAction: Equatable {
-        case startWorkout
-        case createPlan
-        case scheduleWorkout
-        case competitive(AnalyticsEngine.CompetitiveAction)
-        case openProgress
-    }
-
-    struct ActivationStep: Identifiable, Equatable {
-        let id: String
-        let title: String
-        let message: String
-        let systemImage: String
-        let isCompleted: Bool
-        let actionTitle: String
-        let action: ActivationAction?
-    }
-
-    static func nextBestSteps(
-        sessions: [WorkoutSession],
-        activePlan: WorkoutPlan,
-        scheduledWorkouts: [ScheduledWorkout],
-        remindersEnabled: Bool,
-        competitiveSummary: AnalyticsEngine.CompetitiveSummary,
-        now: Date = .now
-    ) -> [ActivationStep] {
-        let calendar = Calendar.current
-        let hasPlan = !activePlan.days.isEmpty
-        let hasCompletedWorkout = !sessions.isEmpty
-        let hasUpcomingWorkout = scheduledWorkouts.contains { workout in
-            workout.status == .scheduled && workout.date >= calendar.startOfDay(for: now)
-        }
-        let hasTodayWorkout = scheduledWorkouts.contains { workout in
-            workout.status == .scheduled && calendar.isDate(workout.date, inSameDayAs: now)
-        }
-        let latestSession = sessions.map(\.date).max()
-        let inactiveDays = latestSession.map { calendar.dateComponents([.day], from: calendar.startOfDay(for: $0), to: calendar.startOfDay(for: now)).day ?? 0 }
-
-        var steps: [ActivationStep] = []
-
-        steps.append(ActivationStep(
-            id: "create-plan",
-            title: localizedString("act_create_plan_title"),
-            message: hasPlan ? localizedString("act_create_plan_msg_done") : localizedString("act_create_plan_msg"),
-            systemImage: "rectangle.stack.badge.plus",
-            isCompleted: hasPlan,
-            actionTitle: localizedString("act_create_plan_cta"),
-            action: hasPlan ? nil : .createPlan
-        ))
-
-        steps.append(ActivationStep(
-            id: "schedule-session",
-            title: localizedString("act_schedule_title"),
-            message: hasUpcomingWorkout ? localizedString("act_schedule_msg_done") : localizedString("act_schedule_msg"),
-            systemImage: "calendar.badge.plus",
-            isCompleted: hasUpcomingWorkout,
-            actionTitle: localizedString("act_schedule_cta"),
-            action: hasUpcomingWorkout ? nil : .scheduleWorkout
-        ))
-
-        if !hasCompletedWorkout || inactiveDays.map({ $0 >= 5 }) == true {
-            steps.append(ActivationStep(
-                id: "start-workout",
-                title: hasCompletedWorkout ? localizedString("act_regain_title") : localizedString("act_first_workout_title"),
-                message: hasCompletedWorkout ? localizedFormat("act_regain_msg_format", inactiveDays ?? 0) : localizedString("act_first_workout_msg"),
-                systemImage: "play.circle.fill",
-                isCompleted: false,
-                actionTitle: localizedString("act_train_cta"),
-                action: .startWorkout
-            ))
-        } else {
-            steps.append(ActivationStep(
-                id: "start-workout",
-                title: localizedString("act_first_value_title"),
-                message: localizedString("act_first_value_msg"),
-                systemImage: "checkmark.seal.fill",
-                isCompleted: true,
-                actionTitle: localizedString("act_see_progress_cta"),
-                action: .openProgress
-            ))
-        }
-
-        if hasTodayWorkout && competitiveSummary.completionRate < 0.75 {
-            steps.append(ActivationStep(
-                id: "protect-adherence",
-                title: localizedString("act_close_week_title"),
-                message: localizedString("act_close_week_msg"),
-                systemImage: "target",
-                isCompleted: false,
-                actionTitle: localizedString("act_start_today_cta"),
-                action: .startWorkout
-            ))
-        }
-
-        if !remindersEnabled {
-            steps.append(ActivationStep(
-                id: "enable-reminders",
-                title: localizedString("onboarding_notif_enable"),
-                message: localizedString("act_reminders_msg"),
-                systemImage: "bell.badge.fill",
-                isCompleted: false,
-                actionTitle: localizedString("act_open_profile_cta"),
-                action: nil
-            ))
-        }
-
-        for recommendation in competitiveSummary.recommendations where recommendation.action != .none {
-            guard !steps.contains(where: { $0.id == recommendation.id }) else { continue }
-            steps.append(ActivationStep(
-                id: recommendation.id,
-                title: recommendation.title,
-                message: recommendation.message,
-                systemImage: recommendation.systemImage,
-                isCompleted: false,
-                actionTitle: actionTitle(for: recommendation.action),
-                action: .competitive(recommendation.action)
-            ))
-        }
-
-        return Array(steps.prefix(5))
-    }
-
-    private static func actionTitle(for action: AnalyticsEngine.CompetitiveAction) -> String {
-        switch action {
-        case .scheduleUndertrainedMuscle:
-            return localizedString("act_schedule_focus")
-        case .scheduleDeloadExercise:
-            return localizedString("act_schedule_deload")
-        case .reviewPlan:
-            return localizedString("act_review_plan")
-        case .scheduleRecovery:
-            return localizedString("act_schedule_recovery")
-        case .none:
-            return localizedString("act_view_generic")
-        }
-    }
-}
-
 enum ProgressionEngine {
     struct Suggestion: Equatable {
         let targetWeightKg: Double
@@ -1159,7 +1020,7 @@ enum ProgressionEngine {
                 targetWeightKg: 0,
                 targetReps: repRange?.lowerBound ?? defaultLowerRep(from: item.repRange),
                 shouldDeload: false,
-                explanation: "No hay historial suficiente. Empieza conservador y registra RPE/RIR."
+                explanation: localizedString("prog_no_history")
             )
         }
 
@@ -1175,7 +1036,7 @@ enum ProgressionEngine {
                 targetWeightKg: rounded(max(lastWeight * 0.9, 0), increment: weightIncrementKg),
                 targetReps: range.lowerBound,
                 shouldDeload: true,
-                explanation: "Llevas varias sesiones sin mejora y con esfuerzo alto. Aplica deload local."
+                explanation: localizedString("prog_deload_stalled")
             )
         }
 
@@ -1186,7 +1047,7 @@ enum ProgressionEngine {
                     targetWeightKg: rounded(lastWeight + item.incrementKg, increment: weightIncrementKg),
                     targetReps: range.lowerBound,
                     shouldDeload: false,
-                    explanation: "Completaste el objetivo con margen. Sube peso y vuelve al inicio del rango."
+                    explanation: localizedString("prog_completed_with_margin")
                 )
             }
         case .doubleProgression:
@@ -1195,14 +1056,14 @@ enum ProgressionEngine {
                     targetWeightKg: rounded(lastWeight + item.incrementKg, increment: weightIncrementKg),
                     targetReps: range.lowerBound,
                     shouldDeload: false,
-                    explanation: "Has cerrado el rango de reps. Sube peso y reinicia reps."
+                    explanation: localizedString("prog_closed_rep_range")
                 )
             }
             return Suggestion(
                 targetWeightKg: rounded(lastWeight, increment: weightIncrementKg),
                 targetReps: min((completed.map(\.reps).min() ?? range.lowerBound) + 1, range.upperBound),
                 shouldDeload: false,
-                explanation: "Mantén peso e intenta sumar una repeticion dentro del rango."
+                explanation: localizedString("prog_maintain_add_rep")
             )
         case .rpeTarget:
             if highEffort {
@@ -1210,7 +1071,7 @@ enum ProgressionEngine {
                     targetWeightKg: rounded(max(lastWeight - item.incrementKg, 0), increment: weightIncrementKg),
                     targetReps: range.lowerBound,
                     shouldDeload: false,
-                    explanation: "El esfuerzo fue alto. Baja ligeramente para volver al RPE objetivo."
+                    explanation: localizedString("prog_high_effort_lower")
                 )
             }
         case .percentOneRepMax:
@@ -1222,7 +1083,7 @@ enum ProgressionEngine {
                 targetWeightKg: rounded(estimatedTrainingMax * targetPercent, increment: weightIncrementKg),
                 targetReps: range.lowerBound,
                 shouldDeload: false,
-                explanation: "Objetivo calculado con \(Int(targetPercent * 100))% de tu 1RM estimada."
+                explanation: localizedFormat("prog_target_percent_1rm_format", Int(targetPercent * 100))
             )
         case .none:
             break
@@ -1233,7 +1094,7 @@ enum ProgressionEngine {
                 targetWeightKg: rounded(max(lastWeight * 0.9, 0), increment: weightIncrementKg),
                 targetReps: range.lowerBound,
                 shouldDeload: true,
-                explanation: "No llegaste al minimo y el esfuerzo fue alto. Aplica deload local."
+                explanation: localizedString("prog_missed_min_high_effort")
             )
         }
 
@@ -1241,7 +1102,7 @@ enum ProgressionEngine {
             targetWeightKg: rounded(lastWeight, increment: weightIncrementKg),
             targetReps: range.lowerBound,
             shouldDeload: false,
-            explanation: "Mantén el peso y busca completar todas las series con buena tecnica."
+            explanation: localizedString("prog_maintain_good_technique")
         )
     }
 
@@ -1331,19 +1192,19 @@ enum ExerciseSubstitutionService {
     ) -> [String] {
         var reasons: [String] = []
         if normalized(candidate.muscleGroup) == normalized(original.muscleGroup) {
-            reasons.append("Mismo grupo muscular")
+            reasons.append(localizedString("match_reason_same_muscle_group"))
         }
         if normalized(candidate.equipment) == normalized(original.equipment) {
-            reasons.append("Mismo equipo")
+            reasons.append(localizedString("match_reason_same_equipment"))
         }
         if matchesAvailableEquipment(candidate, availableEquipment: availableEquipment) {
-            reasons.append("Disponible con tu equipo")
+            reasons.append(localizedString("match_reason_available_equipment"))
         }
         if candidate.trackingType == original.trackingType {
-            reasons.append("Misma medición")
+            reasons.append(localizedString("match_reason_same_tracking"))
         }
         if candidate.environment == original.environment || candidate.environment == .both {
-            reasons.append("Mismo entorno")
+            reasons.append(localizedString("match_reason_same_environment"))
         }
 
         return Array(reasons.prefix(3))
@@ -1791,45 +1652,59 @@ enum WorkoutDraftController {
     /// superset (or splits them apart if already linked). Adjacent linked
     /// exercises form a single group; singletons are cleared.
     static func toggleSupersetLink(at index: Int, in drafts: inout [ExerciseSessionDraft]) {
-        guard drafts.indices.contains(index), drafts.indices.contains(index + 1) else { return }
+        toggleSupersetLink(at: index, in: &drafts, supersetGroup: \.workoutExercise.supersetGroup)
+    }
 
-        let groupA = drafts[index].workoutExercise.supersetGroup
-        let groupB = drafts[index + 1].workoutExercise.supersetGroup
+    /// Any superset group left with a single member is dissolved.
+    static func normalizeSupersetSingletons(in drafts: inout [ExerciseSessionDraft]) {
+        normalizeSupersetSingletons(in: &drafts, supersetGroup: \.workoutExercise.supersetGroup)
+    }
+
+    /// Links the item at `index` with the one immediately after it into a
+    /// superset (or splits them apart if already linked). Adjacent linked
+    /// items form a single group; singletons are cleared. Generic over the
+    /// keypath to `supersetGroup` so it works both on live-session drafts
+    /// (`ExerciseSessionDraft.workoutExercise.supersetGroup`) and plan
+    /// authoring data (`WorkoutExercise.supersetGroup`) with one implementation.
+    static func toggleSupersetLink<T>(at index: Int, in items: inout [T], supersetGroup: WritableKeyPath<T, UUID?>) {
+        guard items.indices.contains(index), items.indices.contains(index + 1) else { return }
+
+        let groupA = items[index][keyPath: supersetGroup]
+        let groupB = items[index + 1][keyPath: supersetGroup]
         let alreadyLinked = groupA != nil && groupA == groupB
 
         if alreadyLinked, let group = groupA {
             // Split the run between index and index+1: everything from index+1
             // onward sharing the group moves to a fresh group.
             let newGroup = UUID()
-            for i in (index + 1)..<drafts.count {
-                guard drafts[i].workoutExercise.supersetGroup == group else { break }
-                drafts[i].workoutExercise.supersetGroup = newGroup
+            for i in (index + 1)..<items.count {
+                guard items[i][keyPath: supersetGroup] == group else { break }
+                items[i][keyPath: supersetGroup] = newGroup
             }
         } else {
             // Merge index and index+1 (and any run already attached to index+1).
             let target = groupA ?? UUID()
-            drafts[index].workoutExercise.supersetGroup = target
+            items[index][keyPath: supersetGroup] = target
             if let groupB {
-                for i in drafts.indices where drafts[i].workoutExercise.supersetGroup == groupB {
-                    drafts[i].workoutExercise.supersetGroup = target
+                for i in items.indices where items[i][keyPath: supersetGroup] == groupB {
+                    items[i][keyPath: supersetGroup] = target
                 }
             } else {
-                drafts[index + 1].workoutExercise.supersetGroup = target
+                items[index + 1][keyPath: supersetGroup] = target
             }
         }
 
-        normalizeSupersetSingletons(in: &drafts)
+        normalizeSupersetSingletons(in: &items, supersetGroup: supersetGroup)
     }
 
-    /// Any superset group left with a single member is dissolved.
-    static func normalizeSupersetSingletons(in drafts: inout [ExerciseSessionDraft]) {
+    static func normalizeSupersetSingletons<T>(in items: inout [T], supersetGroup: WritableKeyPath<T, UUID?>) {
         var counts: [UUID: Int] = [:]
-        for draft in drafts {
-            if let group = draft.workoutExercise.supersetGroup { counts[group, default: 0] += 1 }
+        for item in items {
+            if let group = item[keyPath: supersetGroup] { counts[group, default: 0] += 1 }
         }
-        for i in drafts.indices {
-            if let group = drafts[i].workoutExercise.supersetGroup, counts[group] ?? 0 < 2 {
-                drafts[i].workoutExercise.supersetGroup = nil
+        for i in items.indices {
+            if let group = items[i][keyPath: supersetGroup], counts[group] ?? 0 < 2 {
+                items[i][keyPath: supersetGroup] = nil
             }
         }
     }
@@ -1993,9 +1868,9 @@ enum SelectedExerciseContextBuilder {
         )
         let toolsCaption: String
         if plateLoadSummary != nil {
-            toolsCaption = "Carga recomendada por lado con barra de 20 kg. Los botones insertan series especiales sin cerrar el entrenamiento."
+            toolsCaption = localizedString("set_tools_caption_plate_load")
         } else if canAppendAdvancedSet {
-            toolsCaption = "Inserta calentamientos, back-off o dropsets desde la misma pantalla y deja el tipo de serie registrado."
+            toolsCaption = localizedString("set_tools_caption_advanced_set")
         } else {
             toolsCaption = localizedString("set_tools_caption")
         }
@@ -2032,7 +1907,7 @@ enum SelectedExerciseContextBuilder {
               let best = recent.max(by: { ($0.weightKg * Double($0.reps)) < ($1.weightKg * Double($1.reps)) }) else {
             return nil
         }
-        return "Histórico: \(Int(best.weightKg)) kg x \(best.reps)"
+        return localizedFormat("set_history_summary_format", Int(best.weightKg), best.reps)
     }
 
     private static func suggestionText(
@@ -2207,10 +2082,10 @@ enum WorkoutSessionBuilder {
     ) -> String? {
         let exerciseNotes = logs.compactMap { $0.notes.isEmpty ? nil : "\($0.exercise.name): \($0.notes)" }
         let global = globalNotes.trimmingCharacters(in: .whitespacesAndNewlines)
-        let sessionMediaSummary = sessionMediaAttachments.isEmpty ? nil : "\(sessionMediaAttachments.count) fotos adjuntas de sesión"
+        let sessionMediaSummary = sessionMediaAttachments.isEmpty ? nil : localizedFormat("session_media_summary_format", sessionMediaAttachments.count)
         let exerciseMediaSummary = logs
             .filter { !$0.mediaAttachments.isEmpty }
-            .map { "\($0.exercise.name): \($0.mediaAttachments.count) adjuntos" }
+            .map { localizedFormat("exercise_media_summary_format", $0.exercise.name, $0.mediaAttachments.count) }
         let allNotes = (global.isEmpty ? [] : [global]) + exerciseNotes + (sessionMediaSummary.map { [$0] } ?? []) + exerciseMediaSummary
         return allNotes.isEmpty ? nil : allNotes.joined(separator: "\n")
     }
@@ -2494,8 +2369,8 @@ enum RouteProgressBuilder {
             status: status,
             subtitle: subtitle,
             startHint: input.isTreadmill
-                ? "Pulsa Iniciar arriba para registrar tiempo, pasos, pulso, kcal y distancia si está disponible."
-                : "Pulsa Iniciar arriba para empezar a registrar GPS, distancia y sensores.",
+                ? localizedString("route_start_hint_treadmill")
+                : localizedString("route_start_hint_outdoor"),
             startHintSystemImage: input.isTreadmill ? "figure.run.treadmill" : "location.fill"
         )
     }

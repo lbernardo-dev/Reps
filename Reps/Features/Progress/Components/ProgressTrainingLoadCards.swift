@@ -158,31 +158,3 @@ struct MetricInline: View {
     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
   }
 }
-
-
-struct AnalyticsShortcutCard: View {
-  let title: LocalizedStringKey
-  let subtitle: String
-  let systemImage: String
-
-  var body: some View {
-    PulseCard(minHeight: 138, contentPadding: 16) {
-    VStack(alignment: .leading, spacing: 12) {
-      Image(systemName: systemImage)
-        .font(.headline)
-        .foregroundStyle(PulseTheme.accent)
-        .frame(width: 42, height: 42)
-        .background(PulseTheme.accent.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-      Text(localizedKey(title))
-        .font(.headline)
-        .lineLimit(2)
-        .minimumScaleFactor(0.82)
-      Text(subtitle)
-        .font(.subheadline)
-        .foregroundStyle(PulseTheme.secondaryText)
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    }
-  }
-}

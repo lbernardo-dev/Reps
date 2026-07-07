@@ -1722,68 +1722,6 @@ struct RepsTests {
         #expect(store.scheduledWorkouts.last?.workoutDay.exercises.first?.targetRPE == 6)
     }
 
-    @Test func retentionEngineGuidesNewUsersToActivation() {
-        let summary = AnalyticsEngine.competitiveSummary(
-            sessions: [],
-            activePlan: .empty,
-            exercises: SeedData.exercises,
-            since: .now,
-            now: .now
-        )
-
-        let steps = RetentionEngine.nextBestSteps(
-            sessions: [],
-            activePlan: .empty,
-            scheduledWorkouts: [],
-            remindersEnabled: false,
-            competitiveSummary: summary
-        )
-
-        #expect(steps.first?.id == "create-plan")
-        #expect(steps.contains { $0.action == .createPlan })
-        #expect(steps.contains { $0.action == .scheduleWorkout })
-        #expect(steps.contains { $0.action == .startWorkout })
-    }
-
-    @Test func retentionEngineSurfacesCompetitiveActionsForActiveUsers() {
-        let recommendation = AnalyticsEngine.CompetitiveRecommendation(
-            title: "Prioriza Chest",
-            message: "Faltan series",
-            systemImage: "target",
-            action: .scheduleUndertrainedMuscle("Chest")
-        )
-        let summary = AnalyticsEngine.CompetitiveSummary(
-            completedWorkouts: 1,
-            plannedWorkouts: 3,
-            completionRate: 0.33,
-            targetWeeklySets: 12,
-            actualWeeklySets: 4,
-            muscleTargets: [],
-            undertrainedMuscles: [],
-            overtrainedMuscles: [],
-            stalledExercises: [],
-            recommendations: [recommendation]
-        )
-        let oldSession = WorkoutSession(
-            workoutTitle: "Push",
-            date: Calendar.current.date(byAdding: .day, value: -8, to: .now) ?? .now,
-            durationMinutes: 45,
-            sets: [SetLog(setNumber: 1, weightKg: 60, reps: 8, completed: true)]
-        )
-
-        let steps = RetentionEngine.nextBestSteps(
-            sessions: [oldSession],
-            activePlan: SeedData.defaultPlans[0],
-            scheduledWorkouts: [],
-            remindersEnabled: true,
-            competitiveSummary: summary
-        )
-
-        #expect(steps.contains { $0.id == recommendation.id })
-        #expect(steps.contains { $0.action == .startWorkout })
-        #expect(!steps.contains { $0.id == "enable-reminders" })
-    }
-
     @Test func unitConversionsRoundTrip() {
         let pounds = UnitConverter.pounds(fromKilograms: 100)
         let kilograms = UnitConverter.kilograms(fromPounds: pounds)
@@ -2011,58 +1949,6 @@ struct RepsTests {
         )
 
         #expect(exercise.mediaAssetURL?.absoluteString == "https://example.com/exercises/cable%20fly/image%201.jpg")
-    }
-
-    @Test func retentionEngineAddsReminderActivationWhenDisabled() {
-        let steps = RetentionEngine.nextBestSteps(
-            sessions: [WorkoutSession(workoutTitle: "Push", date: .now, durationMinutes: 40, sets: [])],
-            activePlan: SeedData.pushPullLegsPlan,
-            scheduledWorkouts: [
-                ScheduledWorkout(date: .now.addingTimeInterval(86_400), workoutDay: SeedData.pushDay, status: .scheduled)
-            ],
-            remindersEnabled: false,
-            competitiveSummary: AnalyticsEngine.competitiveSummary(
-                sessions: [],
-                activePlan: SeedData.pushPullLegsPlan,
-                exercises: SeedData.exercises,
-                since: .now.addingTimeInterval(-604_800)
-            )
-        )
-
-        #expect(steps.contains { $0.id == "enable-reminders" && !$0.isCompleted })
-    }
-
-    @Test func retentionEngineKeepsCompetitiveActionsVisible() {
-        let recommendation = AnalyticsEngine.CompetitiveRecommendation(
-            title: "Prioriza Espalda",
-            message: "Faltan 6 series para acercarte al objetivo semanal.",
-            systemImage: "target",
-            action: .scheduleUndertrainedMuscle("Back")
-        )
-        let summary = AnalyticsEngine.CompetitiveSummary(
-            completedWorkouts: 1,
-            plannedWorkouts: 3,
-            completionRate: 0.33,
-            targetWeeklySets: 18,
-            actualWeeklySets: 8,
-            muscleTargets: [],
-            undertrainedMuscles: [],
-            overtrainedMuscles: [],
-            stalledExercises: [],
-            recommendations: [recommendation]
-        )
-
-        let steps = RetentionEngine.nextBestSteps(
-            sessions: [WorkoutSession(workoutTitle: "Pull", date: .now, durationMinutes: 42, sets: [])],
-            activePlan: SeedData.pushPullLegsPlan,
-            scheduledWorkouts: [
-                ScheduledWorkout(date: .now.addingTimeInterval(86_400), workoutDay: SeedData.pullDay, status: .scheduled)
-            ],
-            remindersEnabled: true,
-            competitiveSummary: summary
-        )
-
-        #expect(steps.contains { $0.title == recommendation.title && $0.action == .competitive(recommendation.action) })
     }
 
     @Test @MainActor func requireFeaturePresentsPaywallWhenProFeatureIsLocked() {

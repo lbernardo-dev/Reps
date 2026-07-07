@@ -562,6 +562,10 @@ final class AppStore {
         guard !isLoadingStoreKitProducts else {
             return
         }
+        guard Purchases.isConfigured else {
+            storeKitErrorMessage = localizedString("storekit_products_unavailable")
+            return
+        }
 
         isLoadingStoreKitProducts = true
         defer { isLoadingStoreKitProducts = false }
@@ -586,6 +590,10 @@ final class AppStore {
 
     @discardableResult
     func purchaseStoreKitProduct(_ package: Package) async -> Bool {
+        guard Purchases.isConfigured else {
+            storeKitErrorMessage = localizedString("storekit_products_unavailable")
+            return false
+        }
         do {
             let result = try await Purchases.shared.purchase(package: package)
             revenueCatCustomerInfo = result.customerInfo
@@ -602,6 +610,10 @@ final class AppStore {
 
     @discardableResult
     func restoreStoreKitPurchases() async -> Bool {
+        guard Purchases.isConfigured else {
+            storeKitErrorMessage = localizedString("storekit_products_unavailable")
+            return false
+        }
         do {
             let customerInfo = try await Purchases.shared.restorePurchases()
             revenueCatCustomerInfo = customerInfo
@@ -669,6 +681,9 @@ final class AppStore {
 
     @discardableResult
     func refreshRevenueCatCustomerInfo() async -> Bool {
+        guard Purchases.isConfigured else {
+            return monetization.hasProAccess
+        }
         do {
             let customerInfo = try await Purchases.shared.customerInfo()
             revenueCatCustomerInfo = customerInfo

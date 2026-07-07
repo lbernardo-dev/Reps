@@ -1117,6 +1117,7 @@ struct ExerciseDetailView: View {
     @State private var feedbackMessage: String?
     @State private var showBookmarkEditor = false
     @State private var showSecondaryEditor = false
+    @State private var showEditCustomExercise = false
 
     // History and progress state
     @State private var metric = ExerciseProgressMetric.weight
@@ -1139,6 +1140,12 @@ struct ExerciseDetailView: View {
 
     private var currentExercise: Exercise {
         store.exercises.first(where: { $0.id == exercise.id }) ?? exercise
+    }
+
+    /// Custom (user-added) exercises aren't part of the built-in catalog, so
+    /// they're the only ones safe to let the user edit in place.
+    private var isCustomExercise: Bool {
+        !SeedData.exercises.contains(where: { $0.id == currentExercise.id })
     }
 
     private var instructionSteps: [String] {
@@ -1225,6 +1232,22 @@ struct ExerciseDetailView: View {
         .navigationTitle(localizedString("Exercise"))
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
+        .toolbar {
+            if isCustomExercise {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showEditCustomExercise = true
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .accessibilityLabel(localizedString("edit"))
+                }
+            }
+        }
+        .sheet(isPresented: $showEditCustomExercise) {
+            AddCustomExerciseView(existingExercise: currentExercise)
+                .environment(store)
+        }
         .sheet(isPresented: $showAddToPlan) {
             AddExerciseToPlanView(exercise: currentExercise) {
                 feedbackMessage = localizedString("exercise_added_to_the_active_plan")
@@ -1997,12 +2020,11 @@ private struct ScheduleExerciseView: View {
     }
 }
 
-private struct ExerciseBookmarkEditor: View {
+struct ExerciseMediaBookmarkEditor: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(AppStore.self) private var store
-    let exercise: Exercise
+    @Binding var bookmarks: [ExerciseMediaBookmark]
+    var onSave: (() -> Void)? = nil
 
-    @State private var bookmarks: [ExerciseMediaBookmark]
     @State private var title = ""
     @State private var source: ExerciseMediaBookmark.Source = .youtube
     @State private var urlString = ""
@@ -2011,11 +2033,6 @@ private struct ExerciseBookmarkEditor: View {
     @State private var durationMinutes = 0
     @State private var durationSeconds = 0
     @State private var note = ""
-
-    init(exercise: Exercise) {
-        self.exercise = exercise
-        _bookmarks = State(initialValue: exercise.mediaBookmarks)
-    }
 
     var body: some View {
         NavigationStack {
@@ -2101,15 +2118,19 @@ private struct ExerciseBookmarkEditor: View {
             .navigationTitle("marcadores")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("save") {
-                        var updated = exercise
-                        updated.mediaBookmarks = bookmarks
-                        store.updateExercise(updated)
-                        dismiss()
+                if let onSave {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("cancel") { dismiss() }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("save") {
+                            onSave()
+                            dismiss()
+                        }
+                    }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("listo_2") { dismiss() }
                     }
                 }
             }
@@ -2148,7 +2169,7 @@ private struct ExerciseBookmarkEditor: View {
         case .youtubeShorts: "YouTube Shorts"
         case .tiktok: "TikTok"
         case .instagram: "Instagram"
-        case .other: "Otro"
+        case .other: localizedString("other_label")
         }
     }
 
@@ -2162,20 +2183,57 @@ private struct ExerciseBookmarkEditor: View {
     }
 }
 
+private struct ExerciseBookmarkEditor: View {
+    @Environment(AppStore.self) private var store
+    let exercise: Exercise
+    @State private var bookmarks: [ExerciseMediaBookmark]
+
+    init(exercise: Exercise) {
+        self.exercise = exercise
+        _bookmarks = State(initialValue: exercise.mediaBookmarks)
+    }
+
+    var body: some View {
+        ExerciseMediaBookmarkEditor(bookmarks: $bookmarks) {
+            var updated = exercise
+            updated.mediaBookmarks = bookmarks
+            store.updateExercise(updated)
+        }
+    }
+}
+
 struct AddCustomExerciseView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppStore.self) private var store
 
-    @State private var name = ""
-    @State private var muscleGroup = "Chest"
-    @State private var equipment = "Dumbbells"
-    @State private var trackingType: Exercise.TrackingType = .weightReps
-    @State private var mediaURL = ""
-    @State private var instructions = ""
-    @State private var notes = ""
+    let existingExercise: Exercise?
+
+    @State private var name: String
+    @State private var muscleGroup: String
+    @State private var equipment: String
+    @State private var trackingType: Exercise.TrackingType
+    @State private var mediaURL: String
+    @State private var instructions: String
+    @State private var notes: String
     @State private var customImageData: Data?
     @State private var customVideoData: Data?
     @State private var customVideoThumbnailData: Data?
+
+    private var isEditing: Bool { existingExercise != nil }
+
+    init(existingExercise: Exercise? = nil) {
+        self.existingExercise = existingExercise
+        _name = State(initialValue: existingExercise?.name ?? "")
+        _muscleGroup = State(initialValue: existingExercise?.muscleGroup ?? "Chest")
+        _equipment = State(initialValue: existingExercise?.equipment ?? "Dumbbells")
+        _trackingType = State(initialValue: existingExercise?.trackingType ?? .weightReps)
+        _mediaURL = State(initialValue: existingExercise?.mediaURL ?? "")
+        _instructions = State(initialValue: existingExercise?.instructions ?? "")
+        _notes = State(initialValue: existingExercise?.notes ?? "")
+        _customImageData = State(initialValue: existingExercise?.customImageData)
+        _customVideoData = State(initialValue: existingExercise?.customVideoData)
+        _customVideoThumbnailData = State(initialValue: existingExercise?.customVideoThumbnailData)
+    }
 
     var body: some View {
         NavigationStack {
@@ -2237,7 +2295,7 @@ struct AddCustomExerciseView: View {
                         .lineLimit(2...5)
                 }
             }
-            .navigationTitle("own_exercise")
+            .navigationTitle(isEditing ? localizedString("edit") : localizedString("own_exercise"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -2245,20 +2303,22 @@ struct AddCustomExerciseView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("save") {
-                        store.addExercise(
-                            Exercise(
-                                name: name,
-                                muscleGroup: muscleGroup,
-                                equipment: equipment,
-                                trackingType: trackingType,
-                                mediaURL: mediaURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : mediaURL,
-                                customImageData: customImageData,
-                                customVideoData: customVideoData,
-                                customVideoThumbnailData: customVideoThumbnailData,
-                                instructions: instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : instructions,
-                                notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
-                            )
-                        )
+                        var updated = existingExercise ?? Exercise(name: name, muscleGroup: muscleGroup, equipment: equipment)
+                        updated.name = name
+                        updated.muscleGroup = muscleGroup
+                        updated.equipment = equipment
+                        updated.trackingType = trackingType
+                        updated.mediaURL = mediaURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : mediaURL
+                        updated.customImageData = customImageData
+                        updated.customVideoData = customVideoData
+                        updated.customVideoThumbnailData = customVideoThumbnailData
+                        updated.instructions = instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : instructions
+                        updated.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
+                        if isEditing {
+                            store.updateExercise(updated)
+                        } else {
+                            store.addExercise(updated)
+                        }
                         dismiss()
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
