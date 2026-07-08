@@ -492,6 +492,99 @@ enum MetricDomain: String, CaseIterable, Identifiable {
     var glowColor: Color { tint.opacity(0.16) }
 }
 
+/// Canonical visual identity for individual metrics. Use this when a number is
+/// shown by itself or inline in copy, so the same parameter carries the same
+/// color, icon, and meaning across Home, Progress, Profile, and detail screens.
+enum TrackedMetric: String, CaseIterable, Identifiable {
+    case readiness
+    case hrv
+    case restingHeartRate
+    case sleep
+    case steps
+    case activeEnergy
+    case exerciseMinutes
+    case hydration
+    case vo2Max
+    case distance
+    case volume
+    case sessions
+    case bodyWeight
+    case bodyFat
+    case muscleMass
+
+    var id: String { rawValue }
+
+    var domain: MetricDomain {
+        switch self {
+        case .readiness, .hrv:
+            return .recovery
+        case .restingHeartRate:
+            return .heartRate
+        case .sleep:
+            return .sleep
+        case .steps:
+            return .activity
+        case .activeEnergy, .hydration:
+            return .nutrition
+        case .exerciseMinutes, .sessions, .volume:
+            return .strength
+        case .vo2Max, .distance:
+            return .cardio
+        case .bodyWeight, .bodyFat, .muscleMass:
+            return .body
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .readiness, .hrv:
+            return MetricDomain.recovery.tint
+        case .restingHeartRate:
+            return MetricDomain.heartRate.tint
+        case .sleep:
+            return MetricDomain.sleep.tint
+        case .steps:
+            return MetricDomain.activity.tint
+        case .activeEnergy:
+            return PulseTheme.ringMove
+        case .exerciseMinutes, .sessions:
+            return PulseTheme.ringExercise
+        case .hydration:
+            return PulseTheme.ringStand
+        case .vo2Max, .distance:
+            return MetricDomain.cardio.tint
+        case .volume:
+            return PulseTheme.ringMove
+        case .bodyWeight:
+            return MetricDomain.body.tint
+        case .bodyFat:
+            return PulseTheme.semanticWarning
+        case .muscleMass:
+            return PulseTheme.semanticHealth
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .readiness: return "bolt.fill"
+        case .hrv: return "waveform.path.ecg"
+        case .restingHeartRate: return "heart.fill"
+        case .sleep: return "moon.zzz.fill"
+        case .steps: return "figure.walk"
+        case .activeEnergy: return "flame.fill"
+        case .exerciseMinutes: return "figure.run"
+        case .hydration: return "drop.fill"
+        case .vo2Max: return "lungs.fill"
+        case .distance: return "figure.run"
+        case .volume: return "scalemass.fill"
+        case .sessions: return "checkmark.circle.fill"
+        case .bodyWeight: return "scalemass.fill"
+        case .bodyFat: return "percent"
+        case .muscleMass: return "figure.strengthtraining.traditional"
+        }
+    }
+}
+
 struct DomainTintedBackground: View {
     let domain: MetricDomain
     var height: CGFloat = 360
@@ -1291,17 +1384,21 @@ private struct DetailNavigationHeaderSurface: View {
 struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
     let subtitleKey: String?
     let backAction: (() -> Void)?
+    let showsGlobalActions: Bool
     let titleContent: TitleContent
     let accessory: Accessory
+    @Environment(AppStore.self) private var store
 
     init(
         subtitleKey: String? = nil,
         backAction: (() -> Void)? = nil,
+        showsGlobalActions: Bool = true,
         @ViewBuilder titleContent: () -> TitleContent,
         @ViewBuilder accessory: () -> Accessory
     ) {
         self.subtitleKey = subtitleKey
         self.backAction = backAction
+        self.showsGlobalActions = showsGlobalActions
         self.titleContent = titleContent()
         self.accessory = accessory()
     }
@@ -1337,6 +1434,11 @@ struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
 
                 Spacer(minLength: 12)
                 accessory
+                if showsGlobalActions {
+                    PulseHeaderGlobalActions(
+                        isSocialEnabled: store.userProfile.socialEnabled && store.userProfile.socialUsername != nil
+                    )
+                }
             }
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             .padding(.top, 10)
@@ -1376,6 +1478,40 @@ struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
     }
 }
 
+private struct PulseHeaderGlobalActions: View {
+    let isSocialEnabled: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if isSocialEnabled {
+                NavigationLink {
+                    SocialHubView()
+                } label: {
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(PulseTheme.ringStand)
+                        .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                        .navigationGlassCircle(.secondary, tint: PulseTheme.ringStand)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(localizedString("social_hub"))
+            }
+
+            NavigationLink {
+                SettingsView()
+            } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(PulseTheme.accent)
+                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                    .navigationGlassCircle(.secondary, tint: PulseTheme.accent)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(localizedString("settings"))
+        }
+    }
+}
+
 struct PulseHeaderTitleText: View {
     let title: String
 
@@ -1394,9 +1530,10 @@ extension PulseHeaderBar where TitleContent == PulseHeaderTitleText {
         title: String,
         subtitleKey: String? = nil,
         backAction: (() -> Void)? = nil,
+        showsGlobalActions: Bool = true,
         @ViewBuilder accessory: () -> Accessory
     ) {
-        self.init(subtitleKey: subtitleKey, backAction: backAction) {
+        self.init(subtitleKey: subtitleKey, backAction: backAction, showsGlobalActions: showsGlobalActions) {
             PulseHeaderTitleText(title: title)
         } accessory: {
             accessory()
@@ -1410,7 +1547,10 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
     let title: String
     let subtitle: String?
     let topContentPadding: CGFloat
+    let bottomContentPadding: CGFloat
+    let enforcesHeaderClearance: Bool
     let backAction: (() -> Void)?
+    let showsGlobalActions: Bool
     let accessory: Accessory
     let content: Content
 
@@ -1427,15 +1567,21 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
     init(
         title: String,
         subtitle: String? = nil,
-        topContentPadding: CGFloat = 86,
+        topContentPadding: CGFloat = 90,
+        bottomContentPadding: CGFloat = PulseTheme.screenBottomContentPadding,
+        enforcesHeaderClearance: Bool = false,
         backAction: (() -> Void)? = nil,
+        showsGlobalActions: Bool = true,
         @ViewBuilder accessory: () -> Accessory,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.subtitle = subtitle
         self.topContentPadding = topContentPadding
+        self.bottomContentPadding = bottomContentPadding
+        self.enforcesHeaderClearance = enforcesHeaderClearance
         self.backAction = backAction
+        self.showsGlobalActions = showsGlobalActions
         self.accessory = accessory()
         self.content = content()
         _activeTitle = State(initialValue: title)
@@ -1462,8 +1608,8 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
                     max(length - (PulseTheme.screenHorizontalPadding * 2), 0)
                 }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                .safeAreaPadding(.top, max(topContentPadding, headerHeight + 4))
-                .padding(.bottom, PulseTheme.screenBottomContentPadding)
+                .safeAreaPadding(.top, effectiveTopContentPadding)
+                .padding(.bottom, bottomContentPadding)
             }
             // Locks the scroll gesture to vertical-only (prevents horizontal
             // drift) without wrapping the ScrollView in an extra GeometryReader/
@@ -1487,8 +1633,12 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
         activeTitle == title ? localizedTitle(for: title) : activeTitle
     }
 
+    private var effectiveTopContentPadding: CGFloat {
+        enforcesHeaderClearance ? max(topContentPadding, headerHeight + 4) : topContentPadding
+    }
+
     private var stickyHeader: some View {
-        PulseHeaderBar(title: displayTitle, subtitleKey: subtitle, backAction: backAction) {
+        PulseHeaderBar(title: displayTitle, subtitleKey: subtitle, backAction: backAction, showsGlobalActions: showsGlobalActions) {
             accessory
         }
     }
@@ -2165,7 +2315,156 @@ extension View {
     }
 
     func mainTabBarHidden(_ hidden: Bool = true) -> some View {
-        preference(key: MainTabBarHiddenPreferenceKey.self, value: hidden)
+        modifier(MainTabBarHiddenModifier(hidden: hidden))
+    }
+
+    func quickActionAccessoryHidden(_ hidden: Bool = true) -> some View {
+        modifier(QuickActionAccessoryHiddenModifier(hidden: hidden))
+    }
+}
+
+private struct MainTabBarHiddenModifier: ViewModifier {
+    @Environment(AppChromeState.self) private var chromeState
+    @State private var token = UUID()
+    let hidden: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                chromeState.setTabBarHidden(token: token, hidden: hidden)
+            }
+            .onChange(of: hidden) { _, newValue in
+                chromeState.setTabBarHidden(token: token, hidden: newValue)
+            }
+            .onDisappear {
+                chromeState.setTabBarHidden(token: token, hidden: false)
+            }
+    }
+}
+
+private struct QuickActionAccessoryHiddenModifier: ViewModifier {
+    @Environment(AppChromeState.self) private var chromeState
+    @State private var token = UUID()
+    let hidden: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                chromeState.setQuickActionAccessoryHidden(token: token, hidden: hidden)
+            }
+            .onChange(of: hidden) { _, newValue in
+                chromeState.setQuickActionAccessoryHidden(token: token, hidden: newValue)
+            }
+            .onDisappear {
+                chromeState.setQuickActionAccessoryHidden(token: token, hidden: false)
+            }
+    }
+}
+
+struct InlineMetricTextToken<Destination: Hashable>: Identifiable {
+    enum Kind {
+        case word(String)
+        case pill(icon: String, value: String, tint: Color, destination: Destination)
+    }
+
+    let id = UUID()
+    let kind: Kind
+
+    static func word(_ value: String) -> Self {
+        InlineMetricTextToken(kind: .word(value))
+    }
+
+    static func pill(icon: String, value: String, tint: Color, destination: Destination) -> Self {
+        InlineMetricTextToken(kind: .pill(icon: icon, value: value, tint: tint, destination: destination))
+    }
+}
+
+struct InlineMetricText<Destination: Hashable>: View {
+    let tokens: [InlineMetricTextToken<Destination>]
+    var textFont: Font = .subheadline
+    var pillFont: Font = .system(size: 13, weight: .bold, design: .rounded).monospacedDigit()
+    var horizontalSpacing: CGFloat = 6
+    var verticalSpacing: CGFloat = 8
+
+    var body: some View {
+        InlineMetricFlowLayout(horizontalSpacing: horizontalSpacing, verticalSpacing: verticalSpacing) {
+            ForEach(tokens) { token in
+                tokenView(token)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tokenView(_ token: InlineMetricTextToken<Destination>) -> some View {
+        switch token.kind {
+        case .word(let text):
+            Text(text)
+                .font(textFont)
+                .foregroundStyle(PulseTheme.secondaryText)
+        case .pill(let icon, let value, let tint, let destination):
+            NavigationLink(value: destination) {
+                HStack(spacing: 4) {
+                    Image(systemName: icon)
+                        .font(.system(size: 10, weight: .bold))
+                    Text(value)
+                        .font(pillFont)
+                }
+                .foregroundStyle(tint)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(tint.opacity(0.16), in: Capsule())
+                .overlay {
+                    Capsule().stroke(tint.opacity(0.22), lineWidth: 0.8)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+struct InlineMetricFlowLayout: Layout {
+    var horizontalSpacing: CGFloat = 6
+    var verticalSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var lineHeight: CGFloat = 0
+        var width: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                width = max(width, x - horizontalSpacing)
+                x = 0
+                y += lineHeight + verticalSpacing
+                lineHeight = 0
+            }
+            x += size.width + horizontalSpacing
+            lineHeight = max(lineHeight, size.height)
+        }
+
+        width = max(width, x - horizontalSpacing)
+        return CGSize(width: min(width, maxWidth), height: y + lineHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x: CGFloat = bounds.minX
+        var y: CGFloat = bounds.minY
+        var lineHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += lineHeight + verticalSpacing
+                lineHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), anchor: .topLeading, proposal: ProposedViewSize(size))
+            x += size.width + horizontalSpacing
+            lineHeight = max(lineHeight, size.height)
+        }
     }
 }
 

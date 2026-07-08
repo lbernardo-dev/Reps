@@ -39,7 +39,7 @@ struct ExerciseView: View {
         store.health.latestDailyMetrics.sorted { $0.date < $1.date }.suffix(7).map { $0 }
     }
 
-    private var exerciseColor: Color { fraction >= 1.0 ? PulseTheme.ringStand : PulseTheme.accent }
+    private var exerciseColor: Color { TrackedMetric.exerciseMinutes.tint }
 
     var body: some View {
         ScrollView {
@@ -84,7 +84,7 @@ struct ExerciseView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
                             Text("\(Int(activeKcal))")
                                 .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(TrackedMetric.activeEnergy.tint)
                             Text("kcal")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -97,7 +97,7 @@ struct ExerciseView: View {
                     VStack(spacing: 2) {
                         Text("\(Int(todaySteps))")
                             .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
-                            .foregroundStyle(exerciseColor)
+                            .foregroundStyle(TrackedMetric.steps.tint)
                         Text(localizedString("steps_today"))
                             .font(.caption2)
                             .foregroundStyle(PulseTheme.secondaryText)

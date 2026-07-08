@@ -184,12 +184,16 @@ targets:
   RepsWatch Watch App:
     type: application
     platform: watchOS
-    deploymentTarget: "10.0"
+    deploymentTarget: "26.0"
     sources:
       - path: RepsWatch
       - path: RepsShared
       - path: Reps/Resources/Localizable.xcstrings
       - path: RepsWatch/InfoPlist.xcstrings
+      - path: RepsWatch/Assets.xcassets/AppIcon.appiconset/app-icon-44x44@2x.png
+        buildPhase: resources
+      - path: RepsWatch/Assets.xcassets/AppIcon.appiconset/app-icon-50x50@2x.png
+        buildPhase: resources
     info:
       path: RepsWatch/Info.plist
       properties:
@@ -202,9 +206,10 @@ targets:
         NSMotionUsageDescription: StreakRep Watch usa el movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras.
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.romerodev.repsfitness
+        UIBackgroundModes:
+          - location
         WKBackgroundModes:
           - workout-processing
-          - location
     entitlements:
       path: RepsWatch/RepsWatch.entitlements
       properties:

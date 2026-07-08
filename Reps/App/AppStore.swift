@@ -11,6 +11,11 @@ import WatchConnectivity
 @Observable
 @MainActor
 final class AppStore {
+    enum TrainingPlanState {
+        case noActivePlan(savedPlans: Int)
+        case active(WorkoutPlan)
+    }
+
     struct NotificationDestination: Equatable {
         let tab: AppTab
         let focusDate: Date?
@@ -407,6 +412,29 @@ final class AppStore {
         let weekStart = calendar.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now.addingTimeInterval(-604_800)
         let completedThisWeek = workoutSessions.filter { $0.date >= weekStart }.count
         return FitnessMetrics.weeklyCompletion(completedWorkouts: completedThisWeek, plannedWorkouts: activePlan.daysPerWeek)
+    }
+
+    var trainingPlanState: TrainingPlanState {
+        activePlan.days.isEmpty
+            ? .noActivePlan(savedPlans: plans.count)
+            : .active(activePlan)
+    }
+
+    var hasActiveTrainingPlan: Bool {
+        if case .active = trainingPlanState {
+            return true
+        }
+        return false
+    }
+
+    var activePlanExecutionSummary: FitnessMetrics.PlanExecutionSummary? {
+        guard hasActiveTrainingPlan else { return nil }
+        return FitnessMetrics.planExecutionSummary(
+            for: activePlan,
+            sessions: workoutSessions,
+            scheduledWorkouts: scheduledWorkouts,
+            exercises: exercises
+        )
     }
 
     private var latestBodyMetricByDate: BodyMetric? {
@@ -830,7 +858,7 @@ final class AppStore {
         monetization.lastEntitlementSyncDate = .now
     }
 
-    #if DEBUG
+    #if DEBUG || targetEnvironment(simulator)
     func unlockProForDebug(plan: SubscriptionBillingCycle) {
         monetization.entitlement = .pro
         monetization.status = .active
@@ -2268,6 +2296,11 @@ final class AppStore {
     }
 
     func activateRecommendedWorkoutPlan(from workout: WorkoutDay) {
+        guard monetization.hasProAccess || plans.isEmpty else {
+            presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+            return
+        }
+
         var recommendedWorkout = workout
         recommendedWorkout.title = localizedString("recommended_workout_title")
 
@@ -2280,7 +2313,7 @@ final class AppStore {
             completion: 0,
             days: [recommendedWorkout]
         )
-        addPlan(plan, activate: true, bypassPlanLimit: true)
+        addPlan(plan, activate: true)
     }
 
     func activatePlan(_ plan: WorkoutPlan) {
@@ -2592,17 +2625,18 @@ final class AppStore {
             return
         }
 
-        if let replacement = plans.first(where: { $0.id != plan.id }) {
-            activatePlan(replacement)
-        } else {
-            scheduledWorkouts.removeAll { $0.status == .scheduled }
+        if let index = plans.firstIndex(where: { $0.id == activePlan.id }) {
+            plans[index] = activePlan
         }
+        scheduledWorkouts.removeAll { $0.status == .scheduled }
+        activePlan = .empty
     }
 
     func deletePlan(_ plan: WorkoutPlan) {
         plans.removeAll { $0.id == plan.id }
         if activePlan.id == plan.id {
-            activePlan = plans.first ?? .empty
+            scheduledWorkouts.removeAll { $0.status == .scheduled }
+            activePlan = .empty
         }
     }
 

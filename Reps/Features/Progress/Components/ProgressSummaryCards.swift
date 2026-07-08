@@ -3,7 +3,6 @@ import MuscleMap
 import SwiftUI
 
 struct DailySummaryFocusCard: View {
-  let summary: String
   let readinessLevel: Int
   let todaySessions: [WorkoutSession]
   let dateOfBirth: Date?
@@ -13,6 +12,7 @@ struct DailySummaryFocusCard: View {
   let exerciseMinutesWeek: Int
   let hasHealthData: Bool
   let hasManualData: Bool
+  var onMetricTap: (SummaryMetric) -> Void = { _ in }
 
   private var readinessColor: Color {
     if readinessLevel >= 70 { return PulseTheme.ringExercise }
@@ -31,6 +31,45 @@ struct DailySummaryFocusCard: View {
       return localizedString("daily_summary_headline_reduce_load")
     }
     return localizedString("daily_summary_headline_ready")
+  }
+
+  private var workoutSummaryText: String {
+    sessionsToday > 0
+      ? localizedFormat("daily_summary_workout_count_format", sessionsToday)
+      : localizedString("daily_summary_no_workout")
+  }
+
+  private var summaryTokens: [InlineMetricTextToken<SummaryMetricRoute>] {
+    var tokens: [InlineMetricTextToken<SummaryMetricRoute>] = []
+
+    func words(_ phrase: String) {
+      for word in phrase.split(separator: " ") {
+        tokens.append(.word(String(word)))
+      }
+    }
+
+    words("\(workoutSummaryText).")
+
+    guard hasHealthData else {
+      words(localizedString("health_metrics_not_synced") + ".")
+      return tokens
+    }
+
+    tokens.append(.pill(
+      icon: TrackedMetric.steps.systemImage,
+      value: "\(stepsToday)",
+      tint: TrackedMetric.steps.tint,
+      destination: SummaryMetricRoute(metric: .steps, range: .today)
+    ))
+    words(localizedString("steps").lowercased() + ",")
+    tokens.append(.pill(
+      icon: TrackedMetric.activeEnergy.systemImage,
+      value: "\(activeEnergyToday)",
+      tint: TrackedMetric.activeEnergy.tint,
+      destination: SummaryMetricRoute(metric: .activeEnergy, range: .today)
+    ))
+    words(localizedString("active_kcal").lowercased() + ".")
+    return tokens
   }
 
   var body: some View {
@@ -59,33 +98,45 @@ struct DailySummaryFocusCard: View {
               .font(.title3.weight(.black))
               .lineLimit(2)
               .minimumScaleFactor(0.82)
-            Text(summary)
-              .font(.subheadline.weight(.semibold))
-              .foregroundStyle(PulseTheme.secondaryText)
-              .lineLimit(3)
-              .minimumScaleFactor(0.82)
+            InlineMetricText(
+              tokens: summaryTokens,
+              textFont: .subheadline.weight(.semibold),
+              pillFont: .system(size: 13, weight: .black, design: .rounded).monospacedDigit(),
+              verticalSpacing: 7
+            )
           }
         }
 
         HStack(spacing: 8) {
-          DailySignalPill(
-            title: localizedString("today_2"),
-            value: sessionsToday > 0 ? localizedFormat("short_sessions_count_format", sessionsToday) : localizedString("pending"),
-            systemImage: "checkmark.circle.fill",
-            color: sessionsToday > 0 ? PulseTheme.ringExercise : PulseTheme.warning
-          )
-          DailySignalPill(
-            title: "Health",
-            value: activeEnergyToday > 0 ? "\(activeEnergyToday) kcal" : "\(stepsToday) pasos",
-            systemImage: "heart.text.square.fill",
-            color: PulseTheme.ringMove
-          )
-          DailySignalPill(
-            title: localizedString("week"),
-            value: "\(exerciseMinutesWeek) min",
-            systemImage: "figure.run",
-            color: PulseTheme.ringStand
-          )
+          Button { onMetricTap(.sessions) } label: {
+            DailySignalPill(
+              title: localizedString("today_2"),
+              value: sessionsToday > 0 ? localizedFormat("short_sessions_count_format", sessionsToday) : localizedString("pending"),
+              systemImage: TrackedMetric.sessions.systemImage,
+              color: sessionsToday > 0 ? TrackedMetric.sessions.tint : PulseTheme.warning
+            )
+          }
+          .buttonStyle(.plain)
+
+          Button { onMetricTap(activeEnergyToday > 0 ? .activeEnergy : .steps) } label: {
+            DailySignalPill(
+              title: "Health",
+              value: activeEnergyToday > 0 ? "\(activeEnergyToday) kcal" : "\(stepsToday) pasos",
+              systemImage: activeEnergyToday > 0 ? TrackedMetric.activeEnergy.systemImage : TrackedMetric.steps.systemImage,
+              color: activeEnergyToday > 0 ? TrackedMetric.activeEnergy.tint : TrackedMetric.steps.tint
+            )
+          }
+          .buttonStyle(.plain)
+
+          Button { onMetricTap(.sessions) } label: {
+            DailySignalPill(
+              title: localizedString("week"),
+              value: "\(exerciseMinutesWeek) min",
+              systemImage: TrackedMetric.exerciseMinutes.systemImage,
+              color: TrackedMetric.exerciseMinutes.tint
+            )
+          }
+          .buttonStyle(.plain)
         }
 
         TodayZoneDistributionPanel(
@@ -465,15 +516,15 @@ struct BodyHealthFusionPanel: View {
       }
 
       LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-        SignalMetricTile(title: "Actividad", value: "\(activeKcal)", subtitle: "\(steps) pasos", systemImage: "flame.fill", color: PulseTheme.ringMove)
-        SignalMetricTile(title: "Ejercicio", value: "\(exerciseMinutes)", subtitle: "min Health", systemImage: "figure.run", color: PulseTheme.ringExercise)
-        SignalMetricTile(title: "Fuerza", value: "\(sessions)", subtitle: "\(volumeKg) kg volumen", systemImage: "dumbbell.fill", color: PulseTheme.accent)
+        SignalMetricTile(title: "Actividad", value: "\(activeKcal)", subtitle: "\(steps) pasos", systemImage: TrackedMetric.activeEnergy.systemImage, color: TrackedMetric.activeEnergy.tint)
+        SignalMetricTile(title: "Ejercicio", value: "\(exerciseMinutes)", subtitle: "min Health", systemImage: TrackedMetric.exerciseMinutes.systemImage, color: TrackedMetric.exerciseMinutes.tint)
+        SignalMetricTile(title: "Fuerza", value: "\(sessions)", subtitle: "\(volumeKg) kg volumen", systemImage: TrackedMetric.sessions.systemImage, color: TrackedMetric.sessions.tint)
         SignalMetricTile(
           title: "Recuperación",
           value: hrv.map { "\(Int($0)) ms" } ?? "--",
           subtitle: restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? "sin FC reposo",
-          systemImage: "heart.fill",
-          color: PulseTheme.ringStand
+          systemImage: TrackedMetric.hrv.systemImage,
+          color: TrackedMetric.hrv.tint
         )
       }
     }

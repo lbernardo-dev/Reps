@@ -112,6 +112,11 @@ struct PlansView: View {
                 }
             ) {
                     if hasActivePlan {
+                        activePlanSection
+                            .stickyHeaderTitle(localizedString("active_plan"))
+
+                        discoveryBanner
+                    } else {
                         if let rec = recommendedWorkout {
                             RecommendedWorkoutCard(
                                 workout: rec,
@@ -128,11 +133,6 @@ struct PlansView: View {
                             .stickyHeaderTitle(localizedString("recommended_workout_title"))
                         }
 
-                        activePlanSection
-                            .stickyHeaderTitle(localizedString("active_plan"))
-
-                        discoveryBanner
-                    } else {
                         startTrainingSection
                             .stickyHeaderTitle(localizedString("create_plan_2"))
                     }
@@ -250,7 +250,7 @@ struct PlansView: View {
     }
 
     private func buildRecommendedWorkoutIfNeeded() {
-        guard recommendedWorkout == nil, store.activeWorkoutStatus == nil else { return }
+        guard recommendedWorkout == nil, store.activeWorkoutStatus == nil, !hasActivePlan else { return }
         let undertrainedMuscles = AnalyticsEngine.competitiveSummary(
             sessions: store.workoutSessions,
             activePlan: store.activePlan,
@@ -277,7 +277,7 @@ struct PlansView: View {
     }
 
     private var hasActivePlan: Bool {
-        !store.activePlan.days.isEmpty
+        store.hasActiveTrainingPlan
     }
 
     private var librarySection: some View {
@@ -384,6 +384,7 @@ struct PlansView: View {
     private var activePlanSection: some View {
         ActivePlanCommandCard(
             plan: store.activePlan,
+            summary: store.activePlanExecutionSummary,
             locationTitle: locationTitle(store.activePlan.location),
             onEdit: { planToEdit = store.activePlan },
             onDeactivate: { store.deactivatePlan(store.activePlan) }
@@ -551,66 +552,138 @@ struct PlansView: View {
 
 private struct ActivePlanCommandCard: View {
     let plan: WorkoutPlan
+    let summary: FitnessMetrics.PlanExecutionSummary?
     let locationTitle: String
     let onEdit: () -> Void
     let onDeactivate: () -> Void
 
-    var body: some View {
-        PulseCard(contentPadding: 18) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top, spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .stroke(PulseTheme.grouped, lineWidth: 8)
-                        Circle()
-                            .trim(from: 0, to: min(max(plan.completion, 0), 1))
-                            .stroke(PulseTheme.accent, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                        Text("\(Int(plan.completion * 100))%")
-                            .font(.caption.weight(.black).monospacedDigit())
-                            .foregroundStyle(PulseTheme.accent)
-                    }
-                    .frame(width: 70, height: 70)
+    private var planProgress: Double {
+        summary?.planProgress ?? 0
+    }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("in_progress_label", systemImage: "bolt.fill")
+    private var statusTint: Color {
+        switch summary?.loadState {
+        case .onTrack:
+            return PulseTheme.recovery
+        case .behind:
+            return PulseTheme.warning
+        case .overreaching:
+            return PulseTheme.destructive
+        case .noData, .none:
+            return PulseTheme.accent
+        }
+    }
+
+    private var statusText: String {
+        switch summary?.loadState {
+        case .onTrack:
+            return localizedString("on_track")
+        case .behind:
+            return localizedString("review_plan")
+        case .overreaching:
+            return localizedString("recovery_2")
+        case .noData, .none:
+            return localizedString("in_progress_label")
+        }
+    }
+
+    private var volumeText: String {
+        guard let summary else { return "0 kg" }
+        return "\(Int(summary.volumeThisWeekKg.rounded())) kg"
+    }
+
+    private var weeklySetsText: String {
+        guard let summary else { return "0/0" }
+        return "\(summary.actualWeeklySets)/\(max(summary.targetWeeklySets, 0))"
+    }
+
+    private var adherenceText: String {
+        guard let summary else { return "0/\(plan.daysPerWeek)" }
+        return "\(summary.completedThisWeek)/\(summary.daysPerWeek)"
+    }
+
+    private var weekText: String {
+        guard plan.totalWeeks > 0 else { return "0/0" }
+        return "\(max(plan.currentWeek, 1))/\(plan.totalWeeks)"
+    }
+
+    private var compactLocationTitle: String {
+        switch plan.location {
+        case .gym:
+            return localizedString("gym")
+        case .home:
+            return localizedString("home")
+        case .both:
+            return "Casa/gym"
+        }
+    }
+
+    private var compactFrequencyTitle: String {
+        "\(plan.daysPerWeek)d/sem"
+    }
+
+    private var statusIcon: String {
+        switch summary?.loadState {
+        case .onTrack:
+            return "checkmark.circle.fill"
+        case .behind:
+            return "clock.badge.exclamationmark.fill"
+        case .overreaching:
+            return "exclamationmark.triangle.fill"
+        case .noData, .none:
+            return "bolt.fill"
+        }
+    }
+
+    var body: some View {
+        PulseCard(contentPadding: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(statusText, systemImage: statusIcon)
                             .font(.caption.weight(.black))
                             .textCase(.uppercase)
-                            .foregroundStyle(PulseTheme.accent)
+                            .foregroundStyle(statusTint)
+                            .lineLimit(1)
                         Text(plan.name)
-                            .font(.system(size: 27, weight: .black, design: .rounded))
+                            .font(.system(size: 25, weight: .black, design: .rounded))
                             .lineLimit(2)
-                            .minimumScaleFactor(0.72)
+                            .minimumScaleFactor(0.76)
+
                         HStack(spacing: 8) {
-                            Label(locationTitle, systemImage: "mappin.and.ellipse")
-                            Text("·")
-                            Label(localizedFormat("days_per_week_short_format", plan.daysPerWeek), systemImage: "calendar")
+                            PlanContextPill(title: compactLocationTitle, systemImage: "mappin.and.ellipse", tint: PulseTheme.ringStand)
+                            PlanContextPill(title: compactFrequencyTitle, systemImage: "calendar", tint: PulseTheme.accent)
+                            PlanContextPill(title: weekText, systemImage: "flag.checkered", tint: PulseTheme.recovery)
                         }
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.76)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Spacer(minLength: 0)
+                    VStack(spacing: 10) {
+                        Menu {
+                            Button("edit_plan", action: onEdit)
+                            Button("deactivate_plan", role: .destructive, action: onDeactivate)
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.subheadline.weight(.black))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .frame(width: 38, height: 38)
+                                .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                        .accessibilityLabel("plan_actions")
 
-                    Menu {
-                        Button("edit_plan", action: onEdit)
-                        Button("deactivate_plan", role: .destructive, action: onDeactivate)
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .frame(width: 42, height: 42)
-                            .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        PlanProgressDial(progress: planProgress, tint: statusTint)
+                            .frame(width: 58, height: 58)
                     }
-                    .accessibilityLabel("plan_actions")
                 }
 
-                HStack(spacing: 8) {
-                    PlanValuePill(value: "\(plan.currentWeek)/\(plan.totalWeeks)", label: "Week", systemImage: "calendar")
-                    PlanValuePill(value: "\(plan.days.count)", label: "Days", systemImage: "list.clipboard")
-                    PlanValuePill(value: "\(plan.days.reduce(0) { $0 + $1.exercises.count })", label: localizedString("exercises_2"), systemImage: "dumbbell.fill")
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
+                    PlanMetricTile(value: adherenceText, label: localizedString("this_week"), systemImage: "calendar.badge.checkmark", tint: PulseTheme.recovery)
+                    PlanMetricTile(value: volumeText, label: localizedString("volume_2"), systemImage: "scalemass.fill", tint: PulseTheme.ringStand)
+                    PlanMetricTile(value: weeklySetsText, label: localizedString("sets_3"), systemImage: "checklist.checked", tint: PulseTheme.semanticProgress)
+                }
+
+                if let summary {
+                    PlanExecutionBars(points: summary.weeklyPoints, tint: statusTint)
                 }
 
                 if let targetEventName = plan.targetEventName,
@@ -622,6 +695,61 @@ private struct ActivePlanCommandCard: View {
                 }
             }
         }
+    }
+}
+
+private struct PlanProgressDial: View {
+    let progress: Double
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [tint.opacity(0.18), PulseTheme.grouped.opacity(0.35), PulseTheme.grouped.opacity(0.18)],
+                        center: .center,
+                        startRadius: 2,
+                        endRadius: 44
+                    )
+                )
+            Circle()
+                .stroke(PulseTheme.separator.opacity(0.55), lineWidth: 7)
+                .padding(4)
+            Circle()
+                .trim(from: 0, to: min(max(progress, 0), 1))
+                .stroke(tint, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .padding(4)
+            VStack(spacing: 0) {
+                Text("\(Int(progress * 100))")
+                    .font(.system(size: 15, weight: .black, design: .rounded).monospacedDigit())
+                Text("%")
+                    .font(.system(size: 8, weight: .black, design: .rounded))
+            }
+            .foregroundStyle(tint)
+        }
+    }
+}
+
+private struct PlanContextPill: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Label {
+            Text(title)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+        } icon: {
+            Image(systemName: systemImage)
+        }
+        .font(.system(size: 11, weight: .black, design: .rounded))
+        .foregroundStyle(tint)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(tint.opacity(0.09), in: Capsule())
     }
 }
 
@@ -649,6 +777,153 @@ private struct PlanValuePill: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct PlanMetricTile: View {
+    let value: String
+    let label: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(tint)
+                    .frame(width: 24, height: 24)
+                    .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                Spacer(minLength: 0)
+            }
+            Text(value)
+                .font(.system(size: 19, weight: .black, design: .rounded).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.66)
+            Text(label)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .lineLimit(2)
+                .minimumScaleFactor(0.78)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [tint.opacity(0.15), PulseTheme.grouped.opacity(0.74)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous)
+                .stroke(tint.opacity(0.16), lineWidth: 0.8)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct PlanExecutionBars: View {
+    let points: [FitnessMetrics.PlanWeekPoint]
+    let tint: Color
+
+    private var maxVolume: Double {
+        max(points.map(\.volumeKg).max() ?? 0, 1)
+    }
+
+    private var hasAnySession: Bool {
+        points.contains { $0.sessions > 0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Ejecución real", systemImage: "chart.bar.fill")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .textCase(.uppercase)
+                Spacer()
+                if hasAnySession {
+                    Text("6 sem")
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(tint)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(tint.opacity(0.12), in: Capsule())
+                }
+            }
+
+            if hasAnySession {
+                HStack(alignment: .bottom, spacing: 8) {
+                    ForEach(points) { point in
+                        VStack(spacing: 6) {
+                            GeometryReader { proxy in
+                                let height = max(10, CGFloat(point.volumeKg / maxVolume) * proxy.size.height)
+                                ZStack(alignment: .bottom) {
+                                    Capsule()
+                                        .fill(PulseTheme.card.opacity(0.82))
+                                    Capsule()
+                                        .fill(barColor(for: point))
+                                        .frame(height: point.sessions > 0 ? height : 8)
+                                }
+                            }
+                            .frame(height: 54)
+
+                            Text("\(point.sessions)/\(point.targetSessions)")
+                                .font(.system(size: 10, weight: .black, design: .rounded).monospacedDigit())
+                                .foregroundStyle(point.sessions > 0 ? barColor(for: point) : PulseTheme.tertiaryText)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+            } else {
+                HStack(spacing: 12) {
+                    Image(systemName: "chart.bar.doc.horizontal")
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(tint)
+                        .frame(width: 34, height: 34)
+                        .background(tint.opacity(0.13), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Aún sin sesiones registradas")
+                            .font(.caption.weight(.black))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                        Text("Completa el primer entreno para ver adherencia y volumen real.")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 2)
+            }
+        }
+        .padding(12)
+        .background(
+            LinearGradient(
+                colors: [tint.opacity(0.10), PulseTheme.grouped.opacity(0.72)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous)
+                .stroke(tint.opacity(0.14), lineWidth: 0.8)
+        }
+    }
+
+    private func barColor(for point: FitnessMetrics.PlanWeekPoint) -> Color {
+        guard point.sessions > 0 else { return PulseTheme.tertiaryText.opacity(0.45) }
+        if point.targetSessions > 0, point.sessions >= point.targetSessions {
+            return PulseTheme.recovery
+        }
+        return PulseTheme.warning
     }
 }
 

@@ -157,3 +157,9 @@ enum SummaryMetric: String, Identifiable {
   var id: String { rawValue }
 }
 
+struct SummaryMetricRoute: Identifiable, Hashable {
+  let metric: SummaryMetric
+  let range: MetricDetailRange
+
+  var id: String { "\(metric.rawValue)-\(range.rawValue)" }
+}

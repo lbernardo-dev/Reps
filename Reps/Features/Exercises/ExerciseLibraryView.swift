@@ -279,10 +279,12 @@ struct ExerciseLibraryView: View {
                     case .rehab:
                         rehabPanel
                     }
+
+                    addCustomExerciseFooterButton
                 }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.top, 18)
-                .padding(.bottom, 118)
+                .padding(.bottom, 64)
             }
             .background(PulseTheme.background)
             .onChange(of: selectedMuscle) { _, newValue in
@@ -302,19 +304,6 @@ struct ExerciseLibraryView: View {
                     backAction: isTabRoot ? nil : { dismiss() }
                 ) {
                     HStack(spacing: 6) {
-                        Button {
-                            HapticService.selection()
-                            showAddCustom = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                .navigationGlassCircle(.secondary, tint: .clear)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(localizedString("add_custom_exercise"))
-
                         Button {
                             HapticService.selection()
                             showNotifications = true
@@ -372,6 +361,38 @@ struct ExerciseLibraryView: View {
             }
         }
         .mainTabBarHidden(!isTabRoot)
+    }
+
+    private var addCustomExerciseFooterButton: some View {
+        Button(action: openAddCustomExercise) {
+            HStack(spacing: 12) {
+                PulseIconBadge(systemImage: "plus", tint: PulseTheme.accent, size: 44, radius: PulseTheme.compactRadius, isFilled: true)
+
+                Text(localizedString("add_custom_exercise"))
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(PulseTheme.tertiaryText)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                    .stroke(PulseTheme.cardStroke, lineWidth: 1)
+            }
+        }
+        .buttonStyle(PressableCardStyle())
+        .accessibilityLabel(localizedString("add_custom_exercise"))
+    }
+
+    private func openAddCustomExercise() {
+        showAddCustom = true
     }
 
     private func availableEquipmentMatches(_ exercise: Exercise) -> Bool {

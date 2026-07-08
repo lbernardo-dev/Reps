@@ -48,7 +48,11 @@ struct WorkoutDetailView: View {
                 }
                 heroCard
                 exerciseListCard
-                projectionCard
+                if isSelectedWorkoutInActivePlan {
+                    dayExecutionCard
+                } else {
+                    projectionCard
+                }
                 ProgressionRecommendationCard(
                     recommendations: progressionRecommendations,
                     language: store.userProfile.preferredLanguage,
@@ -116,6 +120,32 @@ struct WorkoutDetailView: View {
 
     private var shouldShowDayStrip: Bool {
         (parentPlan?.days.count ?? 1) > 1
+    }
+
+    private var isSelectedWorkoutInActivePlan: Bool {
+        store.activePlan.days.contains { $0.id == selectedWorkout.id || $0.title == selectedWorkout.title }
+    }
+
+    private var selectedWorkoutSessions: [WorkoutSession] {
+        let selectedTitle = normalizedWorkoutText(selectedWorkout.title)
+        let selectedExerciseNames = Set(selectedWorkout.exercises.map { normalizedWorkoutText($0.exercise.name) })
+        return store.workoutSessions.filter { session in
+            guard session.origin == .routine else { return false }
+            if normalizedWorkoutText(session.workoutTitle) == selectedTitle {
+                return true
+            }
+            let logs = FitnessMetrics.completedExerciseLogs(in: session)
+            guard !logs.isEmpty else { return false }
+            let matches = logs.filter { selectedExerciseNames.contains(normalizedWorkoutText($0.exercise.name)) }.count
+            return matches >= max(1, min(logs.count, 2))
+        }
+        .sorted { $0.date < $1.date }
+    }
+
+    private func normalizedWorkoutText(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 
     private var headerSection: some View {
@@ -357,6 +387,60 @@ struct WorkoutDetailView: View {
         }
     }
 
+    private var dayExecutionCard: some View {
+        let sessions = selectedWorkoutSessions
+        let latest = sessions.last
+        let totalVolumeKg = FitnessMetrics.totalVolumeKg(for: sessions)
+        let displayedVolume = store.userProfile.units == .metric ? totalVolumeKg : UnitConverter.pounds(fromKilograms: totalVolumeKg)
+        let unit = store.userProfile.units == .metric ? "kg" : "lb"
+        let completedSets = sessions.flatMap(FitnessMetrics.completedSets(in:)).count
+        let targetSets = selectedWorkout.exercises.reduce(0) { $0 + $1.targetSets }
+
+        return PulseCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label {
+                    Text("Ejecución real del plan")
+                } icon: {
+                    Image(systemName: "chart.bar.fill")
+                }
+                .font(.headline)
+
+                if sessions.isEmpty {
+                    HStack(spacing: 10) {
+                        Image(systemName: "sparkles")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(PulseTheme.accent)
+                            .frame(width: 32, height: 32)
+                            .background(PulseTheme.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                        Text("Completa esta sesión para ver volumen, sets y evolución real de este día.")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        WorkoutDetailExecutionTile(value: "\(sessions.count)", label: "sesiones", systemImage: "checkmark.circle.fill", tint: PulseTheme.recovery)
+                        WorkoutDetailExecutionTile(value: "\(Int(displayedVolume.rounded()))", label: unit, systemImage: "scalemass", tint: PulseTheme.ringStand)
+                        WorkoutDetailExecutionTile(value: "\(completedSets)/\(max(targetSets, 1))", label: localizedString("sets_3"), systemImage: "checklist", tint: PulseTheme.accent)
+                    }
+
+                    if let latest {
+                        Label("Última vez: \(shortDateString(latest.date))", systemImage: "calendar")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                }
+            }
+        }
+    }
+
+    private func shortDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
     private var exerciseListCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 0) {
@@ -385,6 +469,34 @@ struct WorkoutDetailView: View {
     private var averageRest: Int {
         guard !selectedWorkout.exercises.isEmpty else { return 90 }
         return selectedWorkout.exercises.reduce(0) { $0 + $1.restSeconds } / selectedWorkout.exercises.count
+    }
+}
+
+private struct WorkoutDetailExecutionTile: View {
+    let value: String
+    let label: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.black))
+                .foregroundStyle(tint)
+            Text(value)
+                .font(.headline.weight(.black).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(label)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PulseTheme.grouped.opacity(0.72), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 

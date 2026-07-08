@@ -35,8 +35,8 @@ struct ExerciseBodyMuscleSelector: View {
         VStack(spacing: 10) {
             GeometryReader { proxy in
                 let bodyWidth = proxy.size.width * 0.72
-                let bodyHeight = proxy.size.height * 1.04
                 let visualScale = min(1.24, max(1.1, proxy.size.width / 360))
+                let bodyHeight = (proxy.size.height / visualScale) * 0.96
                 let sideOffset = proxy.size.width * 0.2
 
                 ZStack {
@@ -57,7 +57,7 @@ struct ExerciseBodyMuscleSelector: View {
                 .compositingGroup()
                 .clipped()
             }
-            .frame(height: 340)
+            .frame(height: 430)
             .accessibilityLabel(localizedString("tap_a_muscle_to_filter"))
 
             if selectedSegments.isEmpty {

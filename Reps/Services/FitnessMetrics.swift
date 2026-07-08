@@ -93,6 +93,55 @@ enum FitnessMetrics {
         let action: Action
     }
 
+    enum PlanTrendDirection: Equatable {
+        case up
+        case flat
+        case down
+    }
+
+    enum PlanLoadState: Equatable {
+        case onTrack
+        case behind
+        case overreaching
+        case noData
+    }
+
+    struct PlanWeekPoint: Identifiable, Equatable {
+        let id: Date
+        let weekStart: Date
+        let sessions: Int
+        let targetSessions: Int
+        let volumeKg: Double
+
+        var adherence: Double {
+            FitnessMetrics.weeklyCompletion(completedWorkouts: sessions, plannedWorkouts: targetSessions)
+        }
+    }
+
+    struct PlanExecutionSummary: Equatable {
+        let planID: UUID
+        let planName: String
+        let currentWeek: Int
+        let totalWeeks: Int
+        let daysPerWeek: Int
+        let completedThisWeek: Int
+        let scheduledThisWeek: Int
+        let adherence: Double
+        let totalCompletedSessions: Int
+        let planProgress: Double
+        let targetWeeklySets: Int
+        let actualWeeklySets: Int
+        let volumeThisWeekKg: Double
+        let volumeDeltaVsPreviousWeek: Double?
+        let estimatedOneRepMaxTrend: PlanTrendDirection
+        let loadState: PlanLoadState
+        let nextWorkout: WorkoutDay?
+        let lastCompletedWorkoutDate: Date?
+        let weeklyPoints: [PlanWeekPoint]
+        let muscleTargetPoints: [AnalyticsEngine.MuscleTargetPoint]
+        let stalledExercises: [AnalyticsEngine.ExerciseStall]
+    }
+
     static func totalVolumeKg(for sessions: [WorkoutSession]) -> Double {
         sessions.reduce(0) { partial, session in
             partial + completedSets(in: session).reduce(0) { setTotal, set in
@@ -123,6 +172,74 @@ enum FitnessMetrics {
     static func weeklyCompletion(completedWorkouts: Int, plannedWorkouts: Int) -> Double {
         guard plannedWorkouts > 0 else { return 0 }
         return min(Double(completedWorkouts) / Double(plannedWorkouts), 1)
+    }
+
+    static func planExecutionSummary(
+        for plan: WorkoutPlan,
+        sessions allSessions: [WorkoutSession],
+        scheduledWorkouts: [ScheduledWorkout],
+        exercises: [Exercise],
+        now: Date = .now
+    ) -> PlanExecutionSummary {
+        let calendar = Calendar.current
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? calendar.startOfDay(for: now)
+        let previousWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: weekStart) ?? weekStart
+        let nextWeekStart = calendar.date(byAdding: .weekOfYear, value: 1, to: weekStart) ?? now
+        let planSessions = allSessions.filter { isSession($0, attributableTo: plan) }
+        let thisWeekSessions = planSessions.filter { $0.date >= weekStart && $0.date < nextWeekStart }
+        let previousWeekSessions = planSessions.filter { $0.date >= previousWeekStart && $0.date < weekStart }
+        let scheduledThisWeek = scheduledWorkouts.filter { scheduled in
+            scheduled.date >= weekStart
+                && scheduled.date < nextWeekStart
+                && scheduled.status == .scheduled
+                && plan.days.contains { $0.id == scheduled.workoutDay.id || $0.title == scheduled.workoutDay.title }
+        }
+
+        let competitive = AnalyticsEngine.competitiveSummary(
+            sessions: thisWeekSessions,
+            activePlan: plan,
+            exercises: exercises,
+            since: weekStart,
+            now: now
+        )
+        let completedThisWeek = thisWeekSessions.count
+        let totalExpectedSessions = max(plan.totalWeeks * max(plan.daysPerWeek, 0), 1)
+        let planProgress = min(Double(planSessions.count) / Double(totalExpectedSessions), 1)
+        let volumeThisWeek = totalVolumeKg(for: thisWeekSessions)
+        let previousVolume = totalVolumeKg(for: previousWeekSessions)
+        let volumeDelta = previousVolume > 0 ? ((volumeThisWeek - previousVolume) / previousVolume) : nil
+        let adherence = weeklyCompletion(completedWorkouts: completedThisWeek, plannedWorkouts: plan.daysPerWeek)
+        let loadState = planLoadState(
+            adherence: adherence,
+            volumeThisWeek: volumeThisWeek,
+            previousVolume: previousVolume,
+            actualWeeklySets: competitive.actualWeeklySets,
+            targetWeeklySets: competitive.targetWeeklySets
+        )
+
+        return PlanExecutionSummary(
+            planID: plan.id,
+            planName: plan.name,
+            currentWeek: plan.currentWeek,
+            totalWeeks: plan.totalWeeks,
+            daysPerWeek: plan.daysPerWeek,
+            completedThisWeek: completedThisWeek,
+            scheduledThisWeek: scheduledThisWeek.count,
+            adherence: adherence,
+            totalCompletedSessions: planSessions.count,
+            planProgress: planProgress,
+            targetWeeklySets: competitive.targetWeeklySets,
+            actualWeeklySets: competitive.actualWeeklySets,
+            volumeThisWeekKg: volumeThisWeek,
+            volumeDeltaVsPreviousWeek: volumeDelta,
+            estimatedOneRepMaxTrend: oneRepMaxTrend(current: thisWeekSessions, previous: previousWeekSessions),
+            loadState: loadState,
+            nextWorkout: plan.normalizedActiveDay,
+            lastCompletedWorkoutDate: planSessions.map(\.date).max(),
+            weeklyPoints: planWeeklyPoints(for: plan, sessions: planSessions, now: now),
+            muscleTargetPoints: competitive.muscleTargets,
+            stalledExercises: competitive.stalledExercises
+        )
     }
 
     static func progressPoints(for exercise: Exercise, in sessions: [WorkoutSession]) -> [ExerciseProgressPoint] {
@@ -679,6 +796,86 @@ enum FitnessMetrics {
             default:
                 return total
             }
+        }
+    }
+
+    private static func isSession(_ session: WorkoutSession, attributableTo plan: WorkoutPlan) -> Bool {
+        guard !plan.days.isEmpty, session.origin == .routine else {
+            return false
+        }
+        let normalizedSessionTitle = normalizedPlanText(session.workoutTitle)
+        if plan.days.contains(where: { normalizedPlanText($0.title) == normalizedSessionTitle }) {
+            return true
+        }
+
+        let plannedExerciseIDs = Set(plan.days.flatMap(\.exercises).map(\.exercise.id))
+        let plannedExerciseNames = Set(plan.days.flatMap(\.exercises).map { normalizedPlanText($0.exercise.name) })
+        let sessionLogs = completedExerciseLogs(in: session)
+        let matchedExerciseCount = sessionLogs.filter { log in
+            plannedExerciseIDs.contains(log.exercise.id) || plannedExerciseNames.contains(normalizedPlanText(log.exercise.name))
+        }.count
+        return matchedExerciseCount >= max(1, min(sessionLogs.count, 2))
+    }
+
+    private static func normalizedPlanText(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    private static func planLoadState(
+        adherence: Double,
+        volumeThisWeek: Double,
+        previousVolume: Double,
+        actualWeeklySets: Int,
+        targetWeeklySets: Int
+    ) -> PlanLoadState {
+        guard volumeThisWeek > 0 || actualWeeklySets > 0 else {
+            return .noData
+        }
+        if targetWeeklySets > 0, actualWeeklySets > Int(Double(targetWeeklySets) * 1.35) {
+            return .overreaching
+        }
+        if adherence < 0.67 {
+            return .behind
+        }
+        if previousVolume > 0, volumeThisWeek < previousVolume * 0.72 {
+            return .behind
+        }
+        return .onTrack
+    }
+
+    private static func oneRepMaxTrend(current: [WorkoutSession], previous: [WorkoutSession]) -> PlanTrendDirection {
+        let currentBest = bestEstimatedOneRepMaxKg(for: current) ?? 0
+        let previousBest = bestEstimatedOneRepMaxKg(for: previous) ?? 0
+        guard currentBest > 0, previousBest > 0 else {
+            return .flat
+        }
+        if currentBest > previousBest * 1.015 {
+            return .up
+        }
+        if currentBest < previousBest * 0.985 {
+            return .down
+        }
+        return .flat
+    }
+
+    private static func planWeeklyPoints(for plan: WorkoutPlan, sessions: [WorkoutSession], now: Date) -> [PlanWeekPoint] {
+        let calendar = Calendar.current
+        let currentWeekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? calendar.startOfDay(for: now)
+        return (0..<6).compactMap { reverseOffset in
+            guard let weekStart = calendar.date(byAdding: .weekOfYear, value: reverseOffset - 5, to: currentWeekStart),
+                  let weekEnd = calendar.date(byAdding: .weekOfYear, value: 1, to: weekStart) else {
+                return nil
+            }
+            let weekSessions = sessions.filter { $0.date >= weekStart && $0.date < weekEnd }
+            return PlanWeekPoint(
+                id: weekStart,
+                weekStart: weekStart,
+                sessions: weekSessions.count,
+                targetSessions: plan.daysPerWeek,
+                volumeKg: totalVolumeKg(for: weekSessions)
+            )
         }
     }
 

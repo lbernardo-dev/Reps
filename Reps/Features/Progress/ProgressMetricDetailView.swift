@@ -14,11 +14,12 @@ struct MetricDetailPoint: Identifiable, Hashable {
 // MARK: - Range selector (local to detail screens)
 
 enum MetricDetailRange: String, CaseIterable, Identifiable {
-  case week, month, year
+  case today, week, month, year
   var id: String { rawValue }
 
   var title: LocalizedStringKey {
     switch self {
+    case .today: "today"
     case .week: "week_label"
     case .month: "month_label"
     case .year: "year_label"
@@ -27,6 +28,7 @@ enum MetricDetailRange: String, CaseIterable, Identifiable {
 
   var days: Int {
     switch self {
+    case .today: 1
     case .week: 7
     case .month: 30
     case .year: 365
@@ -35,6 +37,14 @@ enum MetricDetailRange: String, CaseIterable, Identifiable {
 
   /// Whether the main chart aggregates by month instead of by day.
   var aggregatesByMonth: Bool { self == .year }
+
+  init(progressRange: ProgressRange) {
+    switch progressRange {
+    case .week: self = .week
+    case .month: self = .month
+    case .year, .all: self = .year
+    }
+  }
 }
 
 // MARK: - Generic Apple-Fitness-style metric detail
@@ -54,14 +64,16 @@ struct ProgressMetricDetailView: View {
   /// Optional per-day goal drawn as a dashed baseline.
   let goal: Double?
   let explanation: String
+  let initialRange: MetricDetailRange
 
-  @State private var range: MetricDetailRange = .month
+  @State private var range: MetricDetailRange
 
   init(
     title: String,
     accent: Color,
     unit: String,
     points: [MetricDetailPoint],
+    initialRange: MetricDetailRange = .month,
     goal: Double? = nil,
     explanation: String,
     format: @escaping (Double) -> String = { String(Int($0.rounded())) }
@@ -70,9 +82,11 @@ struct ProgressMetricDetailView: View {
     self.accent = accent
     self.unit = unit
     self.points = points
+    self.initialRange = initialRange
     self.goal = goal
     self.explanation = explanation
     self.format = format
+    _range = State(initialValue: initialRange)
   }
 
   var body: some View {
@@ -267,6 +281,7 @@ struct ProgressMetricDetailView: View {
 
   private var rangeHeadingKey: String {
     switch range {
+    case .today: "today"
     case .week: "this_week"
     case .month: "this_month"
     case .year: "this_year"

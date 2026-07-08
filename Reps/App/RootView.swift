@@ -3,6 +3,7 @@ import SwiftUI
 
 struct RootView: View {
   @Environment(AppStore.self) private var store
+  @State private var chromeState = AppChromeState()
   @State private var showSplash = true
 
   private var showsMainInterface: Bool {
@@ -28,6 +29,7 @@ struct RootView: View {
       Group {
         if showsMainInterface {
           MainTabView()
+            .environment(chromeState)
         } else {
           WelcomeView()
         }
@@ -64,10 +66,10 @@ struct RootView: View {
 
 struct MainTabView: View {
   @Environment(AppStore.self) private var store
+  @Environment(AppChromeState.self) private var chromeState
   @Environment(\.requestReview) private var requestReview
 
   @State private var selectedTab: AppTab = .today
-  @State private var isTabBarHidden = false
   @State private var isQuickMenuExpanded = false
   @State private var presentedQuickAction: QuickAction?
   @State private var pendingWorkoutSummarySession: WorkoutSession?
@@ -154,10 +156,10 @@ struct MainTabView: View {
           requestReview()
         }
       }
-      .onPreferenceChange(MainTabBarHiddenPreferenceKey.self) { hidden in
+      .onChange(of: chromeState.isTabBarHidden) { _, hidden in
+        guard hidden else { return }
         withAnimation(.snappy(duration: 0.22)) {
-          isTabBarHidden = hidden
-          if hidden { isQuickMenuExpanded = false }
+          isQuickMenuExpanded = false
         }
       }
       .onReceive(NotificationCenter.default.publisher(for: .repsStartFreeWorkoutIntent)) { _ in
@@ -176,6 +178,13 @@ struct MainTabView: View {
 
   // MARK: Tab shell
 
+  private var showsQuickActionAccessory: Bool {
+    !isQuickMenuExpanded &&
+    presentedQuickAction == nil &&
+    !chromeState.isTabBarHidden &&
+    !chromeState.isQuickActionAccessoryHidden
+  }
+
   @ViewBuilder
   private var activeTabSurface: some View {
     if isQuickMenuExpanded || presentedQuickAction != nil {
@@ -187,13 +196,36 @@ struct MainTabView: View {
     }
   }
 
+  @ViewBuilder
   private var tabShell: some View {
+    if #available(iOS 26.1, *) {
+      tabShellBase
+        .tabViewBottomAccessory(isEnabled: showsQuickActionAccessory) {
+          QuickLogTabAccessory { toggleQuickMenu() }
+        }
+    } else {
+      tabShellBase
+        .tabViewBottomAccessory {
+          QuickLogTabAccessory { toggleQuickMenu() }
+        }
+    }
+  }
+
+  private var tabShellBase: some View {
+    tabViewContent
+      .environment(\.navigateToToday, NavigateToTodayAction {
+        select(.today)
+      })
+      .tabBarMinimizeBehavior(.onScrollDown)
+  }
+
+  private var tabViewContent: some View {
     TabView(selection: tabSelection) {
       // — Hoy: readiness + today's plan + streak. No deep analytics.
       Tab(value: AppTab.today) {
         TodayView(onSelectTab: { select($0) })
           .id(todayResetID)
-          .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+          .toolbar(chromeState.isTabBarHidden ? .hidden : .visible, for: .tabBar)
       } label: {
         AppTab.today.label
       }
@@ -202,7 +234,7 @@ struct MainTabView: View {
       Tab(value: AppTab.train) {
         PlansView()
           .id(trainResetID)
-          .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+          .toolbar(chromeState.isTabBarHidden ? .hidden : .visible, for: .tabBar)
       } label: {
         AppTab.train.label
       }
@@ -211,7 +243,7 @@ struct MainTabView: View {
       Tab(value: AppTab.progress) {
         ProgressDashboardView(onSelectTab: { select($0) })
           .id(progressResetID)
-          .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+          .toolbar(chromeState.isTabBarHidden ? .hidden : .visible, for: .tabBar)
       } label: {
         AppTab.progress.label
       }
@@ -220,7 +252,7 @@ struct MainTabView: View {
       Tab(value: AppTab.exercises) {
         ExerciseLibraryView(isTabRoot: true)
           .id(exercisesResetID)
-          .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+          .toolbar(chromeState.isTabBarHidden ? .hidden : .visible, for: .tabBar)
       } label: {
         AppTab.exercises.label
       }
@@ -232,18 +264,12 @@ struct MainTabView: View {
           ProfileView(isTabRoot: true)
         }
         .id(profileResetID)
-        .toolbar(isTabBarHidden ? .hidden : .visible, for: .tabBar)
+        .toolbar(chromeState.isTabBarHidden ? .hidden : .visible, for: .tabBar)
       } label: {
         profileTabLabel
       }
     }
     .tint(MetricDomain.strength.tint)
-    .tabViewBottomAccessory {
-      if !isQuickMenuExpanded {
-        QuickLogTabAccessory { toggleQuickMenu() }
-      }
-    }
-    .tabBarMinimizeBehavior(.onScrollDown)
   }
 
   // MARK: Quick menu
@@ -640,11 +666,57 @@ private struct QuickActionRow: View {
   }
 }
 
-// MARK: - Preference Key
+@MainActor
+@Observable
+final class AppChromeState {
+  private var tabBarHiddenTokens: Set<UUID> = []
+  private var quickActionAccessoryHiddenTokens: Set<UUID> = []
 
-struct MainTabBarHiddenPreferenceKey: PreferenceKey {
-  static let defaultValue = false
-  static func reduce(value: inout Bool, nextValue: () -> Bool) {
-    value = value || nextValue()
+  var isTabBarHidden: Bool {
+    !tabBarHiddenTokens.isEmpty
+  }
+
+  var isQuickActionAccessoryHidden: Bool {
+    !quickActionAccessoryHiddenTokens.isEmpty
+  }
+
+  func setTabBarHidden(token: UUID, hidden: Bool) {
+    if hidden {
+      tabBarHiddenTokens.insert(token)
+    } else {
+      tabBarHiddenTokens.remove(token)
+    }
+  }
+
+  func setQuickActionAccessoryHidden(token: UUID, hidden: Bool) {
+    if hidden {
+      quickActionAccessoryHiddenTokens.insert(token)
+    } else {
+      quickActionAccessoryHiddenTokens.remove(token)
+    }
+  }
+}
+
+struct NavigateToTodayAction: Sendable {
+  let action: @MainActor @Sendable () -> Void
+
+  init(_ action: @escaping @MainActor @Sendable () -> Void = {}) {
+    self.action = action
+  }
+
+  @MainActor
+  func callAsFunction() {
+    action()
+  }
+}
+
+private struct NavigateToTodayKey: EnvironmentKey {
+  static let defaultValue = NavigateToTodayAction()
+}
+
+extension EnvironmentValues {
+  var navigateToToday: NavigateToTodayAction {
+    get { self[NavigateToTodayKey.self] }
+    set { self[NavigateToTodayKey.self] = newValue }
   }
 }

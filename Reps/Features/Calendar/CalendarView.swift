@@ -278,7 +278,7 @@ struct CalendarView: View {
                     Label("this_week", systemImage: "calendar")
                         .font(.headline)
                     Spacer()
-                    Text(store.activePlan.daysPerWeek > 0 ? "\(weekSessions.count)/\(store.activePlan.daysPerWeek)" : "\(weekSessions.count)")
+                    Text(calendarWeekPlanText)
                         .font(.title2.bold())
                         .foregroundStyle(PulseTheme.accent)
                 }
@@ -323,6 +323,13 @@ struct CalendarView: View {
                 }
             }
         }
+    }
+
+    private var calendarWeekPlanText: String {
+        if let summary = store.activePlanExecutionSummary {
+            return "\(summary.completedThisWeek)/\(summary.daysPerWeek)"
+        }
+        return "\(weekSessions.count)"
     }
 
     private var weekSessions: [WorkoutSession] {

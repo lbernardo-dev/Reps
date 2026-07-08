@@ -42,46 +42,12 @@ struct ProfileView: View {
             StickyHeaderScaffold(
                 title: "profile",
                 subtitle: "body_data_and_account",
+                backAction: isTabRoot ? nil : {
+                    HapticService.selection()
+                    dismiss()
+                },
                 accessory: {
-                    HStack(spacing: 10) {
-                        if !isTabRoot {
-                            Button {
-                                HapticService.selection()
-                                dismiss()
-                            } label: {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(PulseTheme.textPrimary)
-                                    .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                    .navigationGlassCircle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        NavigationLink {
-                            SocialHubView()
-                        } label: {
-                            Image(systemName: "person.2.fill")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(PulseTheme.ringStand)
-                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                .navigationGlassCircle(.secondary, tint: PulseTheme.ringStand)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(localizedString("social_hub"))
-
-                        NavigationLink {
-                            SettingsView()
-                        } label: {
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(PulseTheme.accent)
-                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                .navigationGlassCircle(.secondary, tint: PulseTheme.accent)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(localizedString("settings"))
-                    }
+                    EmptyView()
                 }
             ) {
                 accountCard
@@ -188,7 +154,7 @@ struct ProfileView: View {
                             title: "weight",
                             value: store.hasBodyMetrics ? String(format: "%.1f", store.displayedWeight.value) : "--",
                             unit: store.hasBodyMetrics ? store.displayedWeight.unit : localizedKey("add"),
-                            color: PulseTheme.accent
+                            color: TrackedMetric.bodyWeight.tint
                         )
                     }
                     .buttonStyle(.plain)
@@ -228,8 +194,8 @@ struct ProfileView: View {
 
                 if store.hasBodyMetrics {
                     HStack(spacing: 12) {
-                        ProfileMetric(title: "IMC", value: String(format: "%.1f", store.bodyMassIndex), unit: bmiLabel, color: PulseTheme.accent)
-                        ProfileMetric(title: "basal", value: "\(Int(store.basalMetabolicRate))", unit: localizedKey("kcal_per_day"), color: PulseTheme.accent)
+                        ProfileMetric(title: "IMC", value: String(format: "%.1f", store.bodyMassIndex), unit: bmiLabel, color: TrackedMetric.bodyWeight.tint)
+                        ProfileMetric(title: "basal", value: "\(Int(store.basalMetabolicRate))", unit: localizedKey("kcal_per_day"), color: TrackedMetric.activeEnergy.tint)
                     }
 
                     VStack(spacing: 10) {
@@ -667,10 +633,10 @@ struct ProfileView: View {
 
                 if let metric = store.todayHealthMetric {
                     LazyVGrid(columns: profileToolColumns, spacing: 10) {
-                        HealthMiniMetric(title: "Pasos", value: "\(Int(metric.steps))", systemImage: "figure.walk", tint: PulseTheme.ringStand)
-                        HealthMiniMetric(title: "Ejercicio", value: "\(Int(metric.exerciseMinutes ?? 0)) min", systemImage: "figure.strengthtraining.traditional", tint: PulseTheme.ringMove)
-                        HealthMiniMetric(title: "Reposo", value: metric.restingHeartRate.map { "\(Int($0)) \(localizedString("lpm"))" } ?? "--", systemImage: "heart", tint: PulseTheme.semanticEffort)
-                        HealthMiniMetric(title: "HRV", value: metric.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--", systemImage: "waveform.path.ecg", tint: PulseTheme.ringExercise)
+                        HealthMiniMetric(title: "Pasos", value: "\(Int(metric.steps))", systemImage: TrackedMetric.steps.systemImage, tint: TrackedMetric.steps.tint)
+                        HealthMiniMetric(title: "Ejercicio", value: "\(Int(metric.exerciseMinutes ?? 0)) min", systemImage: TrackedMetric.exerciseMinutes.systemImage, tint: TrackedMetric.exerciseMinutes.tint)
+                        HealthMiniMetric(title: "Reposo", value: metric.restingHeartRate.map { "\(Int($0)) \(localizedString("lpm"))" } ?? "--", systemImage: TrackedMetric.restingHeartRate.systemImage, tint: TrackedMetric.restingHeartRate.tint)
+                        HealthMiniMetric(title: "HRV", value: metric.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--", systemImage: TrackedMetric.hrv.systemImage, tint: TrackedMetric.hrv.tint)
                     }
                 }
 

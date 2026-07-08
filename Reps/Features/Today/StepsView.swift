@@ -2,14 +2,21 @@ import SwiftUI
 
 struct StepsView: View {
     @Environment(AppStore.self) private var store
+    let initialRange: MetricDetailRange
+    @State private var range: MetricDetailRange
 
     private var stepGoal: Int { store.userProfile.dailyStepsGoal }
 
-    private var weekMetrics: [DailyHealthMetric] {
+    init(initialRange: MetricDetailRange = .week) {
+        self.initialRange = initialRange
+        _range = State(initialValue: initialRange)
+    }
+
+    private var rangeMetrics: [DailyHealthMetric] {
         let calendar = Calendar.current
-        let weekStart = calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: .now)) ?? .now
+        let start = calendar.date(byAdding: .day, value: -(range.days - 1), to: calendar.startOfDay(for: .now)) ?? .now
         return store.health.latestDailyMetrics
-            .filter { $0.date >= weekStart }
+            .filter { $0.date >= start }
             .sorted { $0.date < $1.date }
     }
 
@@ -18,20 +25,30 @@ struct StepsView: View {
     }
 
     private var dailyAvg: Int {
-        let vals = weekMetrics.map { Int($0.steps) }.filter { $0 > 0 }
+        if range == .today { return todaySteps }
+        let vals = rangeMetrics.map { Int($0.steps) }.filter { $0 > 0 }
         guard !vals.isEmpty else { return 0 }
         return vals.reduce(0, +) / vals.count
     }
 
     private var bestDay: (steps: Int, date: Date)? {
-        weekMetrics
+        rangeMetrics
             .filter { $0.steps > 0 }
             .max(by: { $0.steps < $1.steps })
             .map { (Int($0.steps), $0.date) }
     }
 
     private var daysMet: Int {
-        weekMetrics.filter { $0.steps >= Double(stepGoal) }.count
+        rangeMetrics.filter { $0.steps >= Double(stepGoal) }.count
+    }
+
+    private var rangeDayCount: Int {
+        switch range {
+        case .today: return 1
+        case .week: return 7
+        case .month: return 30
+        case .year: return 365
+        }
     }
 
     private var dayStreak: Int {
@@ -91,21 +108,22 @@ struct StepsView: View {
         return max(best, current)
     }
 
-    private var previousWeekMetrics: [DailyHealthMetric] {
+    private var previousRangeMetrics: [DailyHealthMetric] {
         let calendar = Calendar.current
-        let start = calendar.date(byAdding: .day, value: -13, to: calendar.startOfDay(for: .now)) ?? .now
-        let end = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: .now)) ?? .now
+        let today = calendar.startOfDay(for: .now)
+        let end = calendar.date(byAdding: .day, value: -range.days, to: today) ?? today
+        let start = calendar.date(byAdding: .day, value: -(range.days - 1), to: end) ?? end
         return store.health.latestDailyMetrics.filter { $0.date >= start && $0.date < end }
     }
 
-    private var previousWeekAvg: Int? {
-        let vals = previousWeekMetrics.map { Int($0.steps) }.filter { $0 > 0 }
+    private var previousRangeAvg: Int? {
+        let vals = previousRangeMetrics.map { Int($0.steps) }.filter { $0 > 0 }
         guard !vals.isEmpty else { return nil }
         return vals.reduce(0, +) / vals.count
     }
 
     private var avgTrendPercent: Double? {
-        guard let previous = previousWeekAvg, previous > 0 else { return nil }
+        guard let previous = previousRangeAvg, previous > 0 else { return nil }
         return Double(dailyAvg - previous) / Double(previous)
     }
 
@@ -144,6 +162,7 @@ struct StepsView: View {
 
                     headerStats.padding(.top, 4)
                     todayHeroCard
+                    rangePicker
                     chartCard
                     calendarCard
                     insightsCard
@@ -164,8 +183,17 @@ struct StepsView: View {
         HealthStatsHeader(items: [
             HealthStatItem(value: "\(todaySteps)", label: localizedString("today")),
             HealthStatItem(value: "\(stepGoal)", label: localizedString("goal")),
-            HealthStatItem(value: "\(daysMet)/7", label: localizedString("days_met"))
+            HealthStatItem(value: "\(daysMet)/\(rangeDayCount)", label: localizedString("days_met"))
         ], domain: domain)
+    }
+
+    private var rangePicker: some View {
+        Picker("range", selection: $range) {
+            ForEach(MetricDetailRange.allCases) { r in
+                Text(r.title).tag(r)
+            }
+        }
+        .pickerStyle(.segmented)
     }
 
     // MARK: - Weekly bar chart
@@ -173,15 +201,15 @@ struct StepsView: View {
         GlassMetricCard(domain: domain) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text(localizedString("this_week")).font(.headline)
+                    Text(localizedString(rangeHeadingKey)).font(.headline)
                     Spacer()
-                    DomainStatusPill(text: "WEEK", domain: domain, prominence: .secondary, systemImage: "calendar")
+                    DomainStatusPill(text: range.title, domain: domain, prominence: .secondary, systemImage: "calendar")
                 }
 
                 let calendar = Calendar.current
                 DomainBarTrendChart(
                     domain: domain,
-                    points: weekMetrics.map {
+                    points: rangeMetrics.map {
                         DomainTrendPoint(label: calendar.shortWeekdaySymbol(for: $0.date), date: $0.date, value: $0.steps)
                     },
                     goal: Double(stepGoal),
@@ -215,6 +243,15 @@ struct StepsView: View {
                     Spacer()
                 }
             }
+        }
+    }
+
+    private var rangeHeadingKey: String {
+        switch range {
+        case .today: "today"
+        case .week: "this_week"
+        case .month: "this_month"
+        case .year: "this_year"
         }
     }
 

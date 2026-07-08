@@ -8,7 +8,7 @@ struct ProgressDashboardView: View {
   @State private var selectedSection: ProgressSection = .muscles
   @State private var activeDestination: ProgressDestination?
   @State private var sectionDetail: ProgressSection?
-  @State private var metricDetail: SummaryMetric?
+  @State private var metricDetail: SummaryMetricRoute?
   @State private var showNotifications = false
 
   var onSelectTab: ((AppTab) -> Void)? = nil
@@ -18,7 +18,6 @@ struct ProgressDashboardView: View {
       StickyHeaderScaffold(
         title: "summary",
         subtitle: currentDateSubtitle,
-        topContentPadding: 108,
         accessory: {
             Button {
                 HapticService.selection()
@@ -68,16 +67,16 @@ struct ProgressDashboardView: View {
             weeklyDays: heroMetrics.weekActivityDays,
             weekStart: heroMetrics.weekStart,
             dailyPoints: bodyFusionChartPoints,
-            onTapMove: { handleMetricTap(.volume) },
+            onTapMove: { handleMetricTap(.volume, range: .week) },
             onTapExercise: { handleMetricTap(.sessions) },
             onTapStand: { onSelectTab?(.calendar) }
           )
 
           LazyVGrid(columns: summaryGridColumns, spacing: 12) {
-            Button { handleMetricTap(.steps) } label: {
+            Button { handleMetricTap(.steps, range: .today) } label: {
               TodayBarChartCard(
-                icon: "figure.walk",
-                color: PulseTheme.semanticProgress,
+                icon: TrackedMetric.steps.systemImage,
+                color: TrackedMetric.steps.tint,
                 title: "steps_metric",
                 value: stepsToday > 0 ? "\(stepsToday)" : "—",
                 unit: "PASOS",
@@ -87,10 +86,10 @@ struct ProgressDashboardView: View {
             }
             .buttonStyle(.plain)
 
-            Button { handleMetricTap(.distance) } label: {
+            Button { handleMetricTap(.distance, range: .today) } label: {
               TodayBarChartCard(
-                icon: "figure.run",
-                color: PulseTheme.ringStand,
+                icon: TrackedMetric.distance.systemImage,
+                color: TrackedMetric.distance.tint,
                 title: "distance_label",
                 value: distanceTodayKm > 0 ? String(format: "%.2f", distanceTodayKm) : "—",
                 unit: "KM",
@@ -100,10 +99,10 @@ struct ProgressDashboardView: View {
             }
             .buttonStyle(.plain)
 
-            Button { handleMetricTap(.activeEnergy) } label: {
+            Button { handleMetricTap(.activeEnergy, range: .today) } label: {
               TodayBarChartCard(
-                icon: "flame.fill",
-                color: PulseTheme.ringMove,
+                icon: TrackedMetric.activeEnergy.systemImage,
+                color: TrackedMetric.activeEnergy.tint,
                 title: "active_kcal",
                 value: activeEnergyToday > 0 ? "\(Int(activeEnergyToday))" : "—",
                 unit: "KCAL",
@@ -114,8 +113,8 @@ struct ProgressDashboardView: View {
             .buttonStyle(.plain)
 
             TodayMetricCard(
-              icon: "timer",
-              color: PulseTheme.ringExercise,
+              icon: TrackedMetric.sessions.systemImage,
+              color: TrackedMetric.sessions.tint,
               title: "sessions",
               value: "\(heroMetrics.sessionsThisWeek)",
               detail: "\(weekTotalMinutes) min \(localizedString("week_label").lowercased())"
@@ -139,7 +138,6 @@ struct ProgressDashboardView: View {
           }
 
           DailySummaryFocusCard(
-            summary: store.dailySummary,
             readinessLevel: store.trainingBattery.level,
             todaySessions: todaySessions,
             dateOfBirth: store.userProfile.dateOfBirth,
@@ -148,7 +146,8 @@ struct ProgressDashboardView: View {
             stepsToday: stepsToday,
             exerciseMinutesWeek: weekHealthExerciseMinutes,
             hasHealthData: !weekHealthMetrics.isEmpty,
-            hasManualData: heroMetrics.sessionsThisWeek > 0
+            hasManualData: heroMetrics.sessionsThisWeek > 0,
+            onMetricTap: { handleMetricTap($0, range: .today) }
           )
           .stickyHeaderTitle(localizedString("today"))
 
@@ -190,6 +189,9 @@ struct ProgressDashboardView: View {
       .navigationDestination(item: $metricDetail) { metric in
         metricDetailScreen(for: metric)
       }
+      .navigationDestination(for: SummaryMetricRoute.self) { route in
+        metricDetailScreen(for: route)
+      }
     }
   }
 
@@ -200,7 +202,6 @@ struct ProgressDashboardView: View {
     StickyHeaderScaffold(
       title: section.titleKey,
       subtitle: "metric_2",
-      topContentPadding: 96,
       backAction: { sectionDetail = nil },
       accessory: { EmptyView() }
     ) {
@@ -780,7 +781,7 @@ struct ProgressDashboardView: View {
     Double(weekActiveDays) / 7.0
   }
 
-  private func handleMetricTap(_ metric: SummaryMetric) {
+  private func handleMetricTap(_ metric: SummaryMetric, range: MetricDetailRange? = nil) {
     switch metric {
     case .sessions:
       openSection(.general)
@@ -792,13 +793,13 @@ struct ProgressDashboardView: View {
       }
     case .volume, .steps, .distance, .activeEnergy:
       HapticService.selection()
-      metricDetail = metric
+      metricDetail = SummaryMetricRoute(metric: metric, range: range ?? MetricDetailRange(progressRange: selectedRange))
     }
   }
 
   private func handleTrendTap(_ trend: TrendMetric) {
     guard let metric = trend.metric else { return }
-    handleMetricTap(metric)
+    handleMetricTap(metric, range: MetricDetailRange(progressRange: selectedRange))
   }
 
   private func openSection(_ section: ProgressSection) {
@@ -815,33 +816,36 @@ struct ProgressDashboardView: View {
   // MARK: - Metric detail screens (Apple-Fitness-style drill-down)
 
   @ViewBuilder
-  private func metricDetailScreen(for metric: SummaryMetric) -> some View {
-    switch metric {
+  private func metricDetailScreen(for route: SummaryMetricRoute) -> some View {
+    switch route.metric {
     case .steps:
-      StepsView()
+      StepsView(initialRange: route.range)
     case .volume:
       ProgressMetricDetailView(
         title: localizedString("volume_label"),
-        accent: PulseTheme.ringMove,
+        accent: TrackedMetric.volume.tint,
         unit: "KG",
         points: dailyVolumeSeries,
+        initialRange: route.range,
         explanation: localizedString("metric_volume_explanation")
       )
     case .distance:
       ProgressMetricDetailView(
         title: localizedString("distance_label"),
-        accent: PulseTheme.ringStand,
+        accent: TrackedMetric.distance.tint,
         unit: "KM",
         points: dailyDistanceSeries,
+        initialRange: route.range,
         explanation: localizedString("metric_distance_explanation"),
         format: { String(format: "%.1f", $0) }
       )
     case .activeEnergy:
       ProgressMetricDetailView(
         title: localizedString("active_kcal"),
-        accent: PulseTheme.ringMove,
+        accent: TrackedMetric.activeEnergy.tint,
         unit: "KCAL",
         points: dailyActiveEnergySeries,
+        initialRange: route.range,
         explanation: localizedString("metric_active_energy_explanation")
       )
     case .sessions, .streak, .oneRepMax:
@@ -969,19 +973,22 @@ struct ProgressDashboardView: View {
   }
 
   private var stepsToday: Int {
-    store.health.latestDailyMetrics.last.map { Int($0.steps) } ?? 0
+    Int(store.todayHealthMetric?.steps ?? 0)
   }
 
   private var stepsWeekData: [TodayChartPoint] {
     let cal = Calendar.current
     let today = cal.startOfDay(for: .now)
     let symbols = cal.veryShortWeekdaySymbols
-    return store.health.latestDailyMetrics.suffix(7).map { metric in
-      let weekday = cal.component(.weekday, from: metric.date)
+    let metricsByDay = Dictionary(grouping: store.health.latestDailyMetrics, by: { cal.startOfDay(for: $0.date) })
+    return (0..<7).compactMap { offset -> TodayChartPoint? in
+      guard let date = cal.date(byAdding: .day, value: -(6 - offset), to: today) else { return nil }
+      let metric = metricsByDay[date]?.last
+      let weekday = cal.component(.weekday, from: date)
       return TodayChartPoint(
         label: symbols[weekday - 1].uppercased(),
-        value: metric.steps,
-        isToday: cal.startOfDay(for: metric.date) == today
+        value: metric?.steps ?? 0,
+        isToday: date == today
       )
     }
   }
@@ -995,19 +1002,22 @@ struct ProgressDashboardView: View {
   }
 
   private var activeEnergyToday: Double {
-    store.todayHealthMetric?.activeEnergyKcal ?? store.health.latestDailyMetrics.last?.activeEnergyKcal ?? 0
+    store.todayHealthMetric?.activeEnergyKcal ?? 0
   }
 
   private var activeEnergyWeekData: [TodayChartPoint] {
     let cal = Calendar.current
     let today = cal.startOfDay(for: .now)
     let symbols = cal.veryShortWeekdaySymbols
-    return store.health.latestDailyMetrics.suffix(7).map { metric in
-      let weekday = cal.component(.weekday, from: metric.date)
+    let metricsByDay = Dictionary(grouping: store.health.latestDailyMetrics, by: { cal.startOfDay(for: $0.date) })
+    return (0..<7).compactMap { offset -> TodayChartPoint? in
+      guard let date = cal.date(byAdding: .day, value: -(6 - offset), to: today) else { return nil }
+      let metric = metricsByDay[date]?.last
+      let weekday = cal.component(.weekday, from: date)
       return TodayChartPoint(
         label: symbols[weekday - 1].uppercased(),
-        value: metric.activeEnergyKcal,
-        isToday: cal.startOfDay(for: metric.date) == today
+        value: metric?.activeEnergyKcal ?? 0,
+        isToday: date == today
       )
     }
   }

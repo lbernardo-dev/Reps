@@ -158,7 +158,7 @@ struct TodayView: View {
 
 
     private var hasActivePlan: Bool {
-        !store.activePlan.days.isEmpty
+        store.hasActiveTrainingPlan
     }
 
     private var currentDateTitle: String {
@@ -269,7 +269,6 @@ struct TodayView: View {
             StickyHeaderScaffold(
                 title: "workout",
                 subtitle: currentDateTitle,
-                topContentPadding: 104,
                 accessory: {
                     Button {
                         HapticService.selection()
@@ -396,7 +395,7 @@ struct TodayView: View {
                     VO2MaxView()
                         .navigationTransition(.zoom(sourceID: "wellness-vo2", in: wellnessZoom))
                 case .steps:
-                    StepsView()
+                    StepsView(initialRange: .today)
                         .navigationTransition(.zoom(sourceID: "wellness-steps", in: wellnessZoom))
                 case .greetingSleep:
                     SleepView()
@@ -458,7 +457,7 @@ struct TodayView: View {
     }
 
     private func buildRecommendedWorkoutIfNeeded() {
-        guard recommendedWorkout == nil, store.activeWorkoutStatus == nil else { return }
+        guard recommendedWorkout == nil, store.activeWorkoutStatus == nil, !hasActivePlan else { return }
         let undertrainedMuscles = competitiveSummary.undertrainedMuscles.map(\.muscleGroup)
         let bodyMetric = store.bodyMetrics.sorted { $0.date > $1.date }.first ?? BodyMetric(date: .now, weightKg: 70, heightCm: 170, source: .manual)
         recommendedWorkout = OnboardingPlanBuilder.makeRecommendedDay(
@@ -560,48 +559,48 @@ struct TodayView: View {
         if isSpanish {
             words("Descansaste")
             if let sleep = latestSleepHours {
-                pill("moon.zzz.fill", String(format: "%.1f h", sleep), MetricDomain.sleep.tint, .sleep)
+                pill(TrackedMetric.sleep.systemImage, String(format: "%.1f h", sleep), TrackedMetric.sleep.tint, .sleep)
             } else {
                 words("sin registro")
             }
             words("· HRV")
             if let hrv = latestHRV {
-                pill("waveform.path.ecg", "\(Int(hrv.rounded())) ms", MetricDomain.recovery.tint, .hrv)
+                pill(TrackedMetric.hrv.systemImage, "\(Int(hrv.rounded())) ms", TrackedMetric.hrv.tint, .hrv)
             } else {
                 words("pendiente")
             }
             words("· FC reposo")
             if let hr = latestRestingHeartRate {
-                pill("heart.fill", "\(Int(hr.rounded())) lpm", MetricDomain.heartRate.tint, .heartRate)
+                pill(TrackedMetric.restingHeartRate.systemImage, "\(Int(hr.rounded())) lpm", TrackedMetric.restingHeartRate.tint, .heartRate)
             } else {
                 words("sin datos")
             }
             words("· Recuperación")
-            pill("bolt.fill", "\(batteryStatus.level)%", batteryColor, .recovery)
+            pill(TrackedMetric.readiness.systemImage, "\(batteryStatus.level)%", TrackedMetric.readiness.tint, .recovery)
             words("· \(stressSummaryText)")
             words("·")
             words(hasActivePlan ? "tu plan pide \(weekTargetText) sesiones esta semana." : "aún no tienes plan activo.")
         } else {
             words("You slept")
             if let sleep = latestSleepHours {
-                pill("moon.zzz.fill", String(format: "%.1f h", sleep), MetricDomain.sleep.tint, .sleep)
+                pill(TrackedMetric.sleep.systemImage, String(format: "%.1f h", sleep), TrackedMetric.sleep.tint, .sleep)
             } else {
                 words("no data")
             }
             words("· HRV")
             if let hrv = latestHRV {
-                pill("waveform.path.ecg", "\(Int(hrv.rounded())) ms", MetricDomain.recovery.tint, .hrv)
+                pill(TrackedMetric.hrv.systemImage, "\(Int(hrv.rounded())) ms", TrackedMetric.hrv.tint, .hrv)
             } else {
                 words("pending")
             }
             words("· resting HR")
             if let hr = latestRestingHeartRate {
-                pill("heart.fill", "\(Int(hr.rounded())) bpm", MetricDomain.heartRate.tint, .heartRate)
+                pill(TrackedMetric.restingHeartRate.systemImage, "\(Int(hr.rounded())) bpm", TrackedMetric.restingHeartRate.tint, .heartRate)
             } else {
                 words("unavailable")
             }
             words("· recovery")
-            pill("bolt.fill", "\(batteryStatus.level)%", batteryColor, .recovery)
+            pill(TrackedMetric.readiness.systemImage, "\(batteryStatus.level)%", TrackedMetric.readiness.tint, .recovery)
             words("· \(stressSummaryText)")
             words("·")
             words(hasActivePlan ? "your plan calls for \(weekTargetText) sessions this week." : "no active plan yet.")
@@ -758,9 +757,9 @@ struct TodayView: View {
                     title: localizedString("health"),
                     value: store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--",
                     subtitle: localizedString("steps_today"),
-                    systemImage: "figure.walk",
-                    color: PulseTheme.ringStand,
-                    domain: .activity
+                    systemImage: TrackedMetric.steps.systemImage,
+                    color: TrackedMetric.steps.tint,
+                    domain: TrackedMetric.steps.domain
                 )
                 TrainingSignalTile(
                     title: localizedString("progress_2"),
@@ -1413,8 +1412,9 @@ struct TodayView: View {
                         title: "exercise_2",
                         value: store.todayHealthMetric.map { "\(Int($0.exerciseMinutes ?? 0)) min" } ?? "--",
                         subtitle: "apple_watch_health",
-                        systemImage: "applewatch",
-                        domain: .strength
+                        systemImage: TrackedMetric.exerciseMinutes.systemImage,
+                        domain: TrackedMetric.exerciseMinutes.domain,
+                        customTint: TrackedMetric.exerciseMinutes.tint
                     )
                     .matchedTransitionSource(id: "wellness-exercise", in: wellnessZoom)
                     .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
@@ -1427,8 +1427,9 @@ struct TodayView: View {
                         value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
                         subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en StreakRep", $0) } ?? (localizedString("no_local_log")),
                         localizesSubtitle: latestMetric?.waterLiters == nil,
-                        systemImage: "drop.fill",
-                        domain: .nutrition
+                        systemImage: TrackedMetric.hydration.systemImage,
+                        domain: TrackedMetric.hydration.domain,
+                        customTint: TrackedMetric.hydration.tint
                     )
                     .matchedTransitionSource(id: "wellness-hydration", in: wellnessZoom)
                     .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
@@ -1441,8 +1442,8 @@ struct TodayView: View {
                         value: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0))" } ?? "--",
                         subtitle: "lpm",
                         localizesSubtitle: false,
-                        systemImage: "heart.fill",
-                        domain: .heartRate
+                        systemImage: TrackedMetric.restingHeartRate.systemImage,
+                        domain: TrackedMetric.restingHeartRate.domain
                     )
                     .matchedTransitionSource(id: "wellness-heart-rate", in: wellnessZoom)
                     .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
@@ -1455,8 +1456,8 @@ struct TodayView: View {
                         value: store.todayHealthMetric?.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--",
                         subtitle: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? (localizedString("no_resting_hr")),
                         localizesSubtitle: store.todayHealthMetric?.restingHeartRate == nil,
-                        systemImage: "waveform.path.ecg",
-                        domain: .recovery
+                        systemImage: TrackedMetric.hrv.systemImage,
+                        domain: TrackedMetric.hrv.domain
                     )
                     .matchedTransitionSource(id: "wellness-hrv", in: wellnessZoom)
                     .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
@@ -1469,8 +1470,8 @@ struct TodayView: View {
                         value: store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first(where: { $0.vo2MaxMlKgMin != nil })?.vo2MaxMlKgMin.map { String(format: "%.1f", $0) } ?? "--",
                         subtitle: "ml/kg/min",
                         localizesSubtitle: false,
-                        systemImage: "lungs.fill",
-                        domain: .cardio
+                        systemImage: TrackedMetric.vo2Max.systemImage,
+                        domain: TrackedMetric.vo2Max.domain
                     )
                     .matchedTransitionSource(id: "wellness-vo2", in: wellnessZoom)
                     .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
@@ -1485,8 +1486,8 @@ struct TodayView: View {
                         title: "sleep",
                         value: todaySleep.map { String(format: "%.1fh", $0) } ?? "--",
                         subtitle: localizedString("last_recorded"),
-                        systemImage: "moon.zzz.fill",
-                        domain: .sleep
+                        systemImage: TrackedMetric.sleep.systemImage,
+                        domain: TrackedMetric.sleep.domain
                     )
                     .matchedTransitionSource(id: "wellness-sleep", in: wellnessZoom)
                     .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
@@ -1498,8 +1499,8 @@ struct TodayView: View {
                         title: "steps",
                         value: store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--",
                         subtitle: localizedFormat("goal_format", store.userProfile.dailyStepsGoal),
-                        systemImage: "figure.walk",
-                        domain: .activity
+                        systemImage: TrackedMetric.steps.systemImage,
+                        domain: TrackedMetric.steps.domain
                     )
                     .matchedTransitionSource(id: "wellness-steps", in: wellnessZoom)
                     .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
@@ -1518,20 +1519,50 @@ struct TodayView: View {
     }
 
     private var planPreview: some View {
-        PulseCard {
+        let summary = store.activePlanExecutionSummary
+        let progress = summary?.planProgress ?? 0
+        let tint = planTint(for: summary?.loadState)
+
+        return PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline) {
                     Label(store.activePlan.name, systemImage: "bolt.fill")
                         .font(.headline)
-                        .foregroundStyle(PulseTheme.accent)
+                        .foregroundStyle(tint)
                     Spacer()
-                    Text("\(Int(store.activePlan.completion * 100))%")
+                    Text("\(Int(progress * 100))%")
                         .font(.title2.bold().monospacedDigit())
+                        .foregroundStyle(tint)
                 }
 
-                ProgressView(value: store.activePlan.completion)
-                    .tint(PulseTheme.accent)
+                ProgressView(value: progress)
+                    .tint(tint)
                     .scaleEffect(x: 1, y: 1.25, anchor: .center)
+
+                HStack(spacing: 8) {
+                    PlanExecutionTile(
+                        value: summary.map { "\($0.completedThisWeek)/\($0.daysPerWeek)" } ?? "0/\(store.activePlan.daysPerWeek)",
+                        label: localizedString("this_week"),
+                        systemImage: "calendar",
+                        tint: tint
+                    )
+                    PlanExecutionTile(
+                        value: summary.map { "\(Int(displayedWeight(fromKilograms: $0.volumeThisWeekKg).rounded()))" } ?? "0",
+                        label: store.userProfile.units == .metric ? "kg" : "lb",
+                        systemImage: "scalemass",
+                        tint: PulseTheme.ringStand
+                    )
+                    PlanExecutionTile(
+                        value: summary.map { "\($0.actualWeeklySets)/\(max($0.targetWeeklySets, 0))" } ?? "0/0",
+                        label: localizedString("sets_3"),
+                        systemImage: "checklist",
+                        tint: PulseTheme.recovery
+                    )
+                }
+
+                if let summary {
+                    planExecutionStatus(summary)
+                }
 
                 if let eventName = store.activePlan.targetEventName,
                    let eventDate = store.activePlan.targetEventDate {
@@ -1615,6 +1646,52 @@ struct TodayView: View {
                 }
             }
         }
+    }
+
+    private func planTint(for state: FitnessMetrics.PlanLoadState?) -> Color {
+        switch state {
+        case .onTrack:
+            return PulseTheme.recovery
+        case .behind:
+            return PulseTheme.warning
+        case .overreaching:
+            return PulseTheme.destructive
+        case .noData, .none:
+            return PulseTheme.accent
+        }
+    }
+
+    private func planExecutionStatus(_ summary: FitnessMetrics.PlanExecutionSummary) -> some View {
+        let message: String = {
+            switch summary.loadState {
+            case .onTrack:
+                if let delta = summary.volumeDeltaVsPreviousWeek {
+                    return String(format: "Volumen %+.0f%% vs semana pasada", delta * 100)
+                }
+                return "Ejecución en línea con el plan"
+            case .behind:
+                return "Falta estímulo real frente al objetivo semanal"
+            case .overreaching:
+                return "Carga alta: prioriza recuperación y técnica"
+            case .noData:
+                return "Completa una sesión para ver evolución real"
+            }
+        }()
+
+        return HStack(spacing: 10) {
+            Image(systemName: summary.loadState == .overreaching ? "exclamationmark.triangle.fill" : "chart.line.uptrend.xyaxis")
+                .font(.caption.weight(.black))
+                .foregroundStyle(planTint(for: summary.loadState))
+                .frame(width: 28, height: 28)
+                .background(planTint(for: summary.loadState).opacity(0.14), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            Text(message)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(PulseTheme.grouped.opacity(0.72), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
     }
 
     private var smartShortcuts: some View {
@@ -2501,6 +2578,34 @@ private struct WellnessWidget: View {
             }
         }
         .opacity(hasData ? 1 : 0.86)
+    }
+}
+
+private struct PlanExecutionTile: View {
+    let value: String
+    let label: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.black))
+                .foregroundStyle(tint)
+            Text(value)
+                .font(.headline.weight(.black).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(label)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PulseTheme.grouped.opacity(0.72), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 

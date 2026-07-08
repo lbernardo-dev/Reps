@@ -27,6 +27,78 @@ struct RepsTests {
         #expect(plan.activeDayIndex == plan.days.count - 1)
     }
 
+    @Test @MainActor func deactivateLastActivePlanLeavesNoActivePlan() {
+        let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+        store.plans = []
+        store.activePlan = .empty
+        store.scheduledWorkouts = []
+        let workout = WorkoutDay(title: "Plan Test A", subtitle: "Test", durationMinutes: 30, exercises: [
+            WorkoutExercise(exercise: SeedData.bench, targetSets: 3, repRange: "8-10", previous: "-")
+        ])
+        let plan = WorkoutPlan(name: "Test Plan", location: .gym, daysPerWeek: 1, currentWeek: 1, totalWeeks: 4, completion: 0, days: [workout])
+
+        store.addPlan(plan, activate: true)
+        #expect(store.hasActiveTrainingPlan)
+
+        store.deactivatePlan(store.activePlan)
+
+        #expect(!store.hasActiveTrainingPlan)
+        #expect(store.activePlan.days.isEmpty)
+        #expect(store.plans.contains { $0.id == plan.id })
+        #expect(store.scheduledWorkouts.allSatisfy { $0.status != .scheduled })
+    }
+
+    @Test @MainActor func recommendedWorkoutDoesNotBypassFreeMultiplePlanLimit() {
+        let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+        store.plans = []
+        store.activePlan = .empty
+        store.scheduledWorkouts = []
+        let workout = WorkoutDay(title: "Saved Test", subtitle: "Test", durationMinutes: 30, exercises: [
+            WorkoutExercise(exercise: SeedData.bench, targetSets: 3, repRange: "8-10", previous: "-")
+        ])
+        let savedPlan = WorkoutPlan(name: "Saved Plan", location: .gym, daysPerWeek: 1, currentWeek: 1, totalWeeks: 4, completion: 0, days: [workout])
+        store.addPlan(savedPlan, activate: false)
+
+        store.activateRecommendedWorkoutPlan(from: workout)
+
+        #expect(store.plans.count == 1)
+        #expect(!store.hasActiveTrainingPlan)
+        #expect(store.activePaywall?.source == .multiplePlans)
+    }
+
+    @Test @MainActor func activePlanExecutionSummaryUsesPlanSessions() {
+        let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+        store.plans = []
+        store.activePlan = .empty
+        store.scheduledWorkouts = []
+        let workout = WorkoutDay(title: "Execution Test", subtitle: "Test", durationMinutes: 30, exercises: [
+            WorkoutExercise(exercise: SeedData.bench, targetSets: 3, repRange: "8-10", previous: "-")
+        ])
+        let plan = WorkoutPlan(name: "Execution Plan", location: .gym, daysPerWeek: 1, currentWeek: 1, totalWeeks: 4, completion: 0, days: [workout])
+        store.addPlan(plan, activate: true)
+        let day = store.activePlan.days[0]
+        let session = WorkoutSession(
+            workoutTitle: day.title,
+            date: .now,
+            origin: .routine,
+            durationMinutes: 45,
+            sets: [],
+            exerciseLogs: [
+                ExerciseLog(exercise: day.exercises[0].exercise, notes: "", sets: [
+                    SetLog(setNumber: 1, weightKg: 60, reps: 10, completed: true)
+                ])
+            ]
+        )
+        store.workoutSessions = [session]
+
+        let summary = store.activePlanExecutionSummary
+
+        #expect(summary?.completedThisWeek == 1)
+        #expect(summary?.totalCompletedSessions == 1)
+        #expect(summary?.volumeThisWeekKg == 600)
+        #expect((summary?.planProgress ?? 0) > 0)
+    }
+
     @Test @MainActor func suggestedPlanUsesNormalizedResistanceBandEquipment() {
         let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
         store.userProfile.preferredLanguage = "es"
