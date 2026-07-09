@@ -519,6 +519,105 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
         preferredLanguage: "es"
     )
 
+    #if DEBUG || targetEnvironment(simulator)
+    static func watchASODemo(language: String) -> SharedWorkoutSnapshot {
+        RepsLocalization.use(language)
+        let isSpanish = RepsLocalization.language == "es"
+        let exercises = [
+            SharedPlannedExercise(
+                name: isSpanish ? "Press banca" : "Bench Press",
+                trackingType: "weightReps",
+                targetSets: 4,
+                repRange: "6-8",
+                restSeconds: 120,
+                previous: isSpanish ? "92.5 kg x 6" : "92.5 kg x 6",
+                sets: [
+                    SharedPlannedSet(weightKg: 92.5, reps: 6, completed: true, setType: WatchSetTypeRaw.work),
+                    SharedPlannedSet(weightKg: 92.5, reps: 6, completed: true, setType: WatchSetTypeRaw.work),
+                    SharedPlannedSet(weightKg: 90, reps: 7, completed: false, setType: WatchSetTypeRaw.work),
+                    SharedPlannedSet(weightKg: 87.5, reps: 8, completed: false, setType: WatchSetTypeRaw.work)
+                ]
+            ),
+            SharedPlannedExercise(
+                name: isSpanish ? "Remo con barra" : "Barbell Row",
+                trackingType: "weightReps",
+                targetSets: 4,
+                repRange: "8-10",
+                restSeconds: 105,
+                previous: isSpanish ? "82.5 kg x 8" : "82.5 kg x 8",
+                sets: [
+                    SharedPlannedSet(weightKg: 82.5, reps: 8, completed: false, setType: WatchSetTypeRaw.work),
+                    SharedPlannedSet(weightKg: 82.5, reps: 8, completed: false, setType: WatchSetTypeRaw.work),
+                    SharedPlannedSet(weightKg: 80, reps: 10, completed: false, setType: WatchSetTypeRaw.work)
+                ]
+            )
+        ]
+        let exercisesData = try? JSONEncoder().encode(exercises)
+
+        return SharedWorkoutSnapshot(
+            hasActiveWorkout: false,
+            planTitle: isSpanish ? "Upper Lower 4 dias" : "Upper Lower 4-Day",
+            workoutTitle: isSpanish ? "Fuerza torso" : "Upper Strength",
+            sessionTitle: nil,
+            elapsedSeconds: 0,
+            pausedSeconds: 0,
+            completedSets: 0,
+            totalSets: 7,
+            volumeKg: 32385,
+            isPaused: false,
+            exerciseName: isSpanish ? "Press banca" : "Bench Press",
+            exerciseIndex: 1,
+            totalExercises: 6,
+            currentExerciseCompletedSets: 2,
+            currentExerciseTotalSets: 4,
+            currentSetWeightKg: 90,
+            currentSetReps: 7,
+            restSeconds: nil,
+            restDurationSeconds: 120,
+            estimatedRemainingSeconds: 2700,
+            waterLiters: 1.2,
+            musicTitle: "Heavy sets / clean reps",
+            musicArtist: "StreakRep Mix",
+            isMusicPlaying: true,
+            nextExerciseName: isSpanish ? "Remo con barra" : "Barbell Row",
+            exerciseHistorySummary: isSpanish ? "Mejor reciente: 92.5 kg x 6" : "Recent best: 92.5 kg x 6",
+            gymPassName: isSpanish ? "Gimnasio Central" : "Downtown Gym",
+            gymMembershipID: "SR-2048",
+            gymCodeValue: "SR-2048",
+            gymCodeType: "barcode",
+            heartRate: 132,
+            activeEnergyKcal: 286,
+            isRouteWorkout: false,
+            isOutdoorRoute: nil,
+            routeDistanceKm: nil,
+            routePaceSecondsPerKm: nil,
+            routeSpeedKmh: nil,
+            routePointCount: nil,
+            routeSteps: nil,
+            summary: isSpanish ? "4/4 sesiones esta semana" : "4/4 sessions this week",
+            updatedAt: .now,
+            streakDays: 18,
+            weeklyCompletion: 1.0,
+            trainingBatteryLevel: 72,
+            trainingBatteryState: "steady",
+            trainingBatteryTitle: isSpanish ? "Lista para entrenar" : "Ready to train",
+            trainingBatterySuggestion: isSpanish ? "Buen margen para fuerza; controla el RPE." : "Good margin for strength; keep RPE controlled.",
+            trainingBatterySystemImage: "battery.75percent",
+            nextWorkoutDayName: isSpanish ? "Fuerza torso" : "Upper Strength",
+            nextWorkoutDayDescription: isSpanish ? "6 ejercicios · 55 min · gimnasio" : "6 exercises · 55 min · gym",
+            widgetAccentColorName: "green",
+            preferredLanguage: RepsLocalization.language,
+            exercisesData: exercisesData,
+            estimatedMaxHeartRate: 188,
+            hasWatchAccess: true
+        )
+    }
+
+    private enum WatchSetTypeRaw {
+        static let work = "work"
+    }
+    #endif
+
     var progress: Double {
         guard totalSets > 0 else { return 0 }
         return min(max(Double(completedSets) / Double(totalSets), 0), 1)

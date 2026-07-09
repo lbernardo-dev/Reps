@@ -146,9 +146,63 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
         super.init()
         configureLocation()
         configureConnectivity()
+        #if DEBUG || targetEnvironment(simulator)
+        if let demoLanguage = Self.demoLanguageFromLaunchArguments() {
+            snapshot = SharedWorkoutSnapshot.watchASODemo(language: demoLanguage)
+            SharedWorkoutStore.save(snapshot, reloadTimelines: false)
+            if Self.demoScreenFromLaunchArguments() == "active" {
+                snapshot.hasActiveWorkout = true
+                snapshot.elapsedSeconds = 18 * 60 + 42
+                snapshot.completedSets = 2
+                snapshot.totalSets = 7
+                snapshot.volumeKg = 1110
+                snapshot.heartRate = 132
+                snapshot.activeEnergyKcal = 286
+                snapshot.updatedAt = .now
+                state = .running
+                mode = .phoneStrength
+                startedAt = snapshot.elapsedStartDate
+                elapsedSeconds = snapshot.elapsedSeconds
+                hydrateStrengthFromSnapshotIfNeeded(snapshot)
+            }
+        } else {
+            snapshot = SharedWorkoutStore.load()
+        }
+        #else
         snapshot = SharedWorkoutStore.load()
+        #endif
         recoverActiveSessionIfNeeded()
     }
+
+    #if DEBUG || targetEnvironment(simulator)
+    private static func demoLanguageFromLaunchArguments() -> String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-demoLanguage"),
+              arguments.indices.contains(arguments.index(after: index))
+        else {
+            return nil
+        }
+        let value = arguments[arguments.index(after: index)].lowercased()
+        switch value {
+        case "en", "en-us":
+            return "en"
+        case "es", "es-es":
+            return "es"
+        default:
+            return nil
+        }
+    }
+
+    private static func demoScreenFromLaunchArguments() -> String {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-watchDemoScreen"),
+              arguments.indices.contains(arguments.index(after: index))
+        else {
+            return "home"
+        }
+        return arguments[arguments.index(after: index)].lowercased()
+    }
+    #endif
 
     /// Reattaches a workout session left running by HealthKit if the app was
     /// terminated mid-workout, so the user does not lose the session.
