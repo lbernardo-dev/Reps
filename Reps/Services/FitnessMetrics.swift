@@ -2377,10 +2377,17 @@ enum ActiveWorkoutStatusBuilder {
         let routePaceSecondsPerKm: Double?
         let routeSpeedKmh: Double?
         let routePointCount: Int?
+        let routePoints: [RoutePoint]
+        let pedometerDistanceKm: Double?
+        let pedometerPaceSecondsPerKm: Double?
+        let pedometerSpeedKmh: Double?
+        let pedometerSteps: Double?
         let previousRouteDistanceKm: Double?
         let previousRoutePaceSecondsPerKm: Double?
         let previousRouteSpeedKmh: Double?
         let previousRoutePointCount: Int?
+        let previousRoutePoints: [RoutePoint]?
+        let previousRouteSteps: Double?
         let routeSteps: Double?
         let liveHeartRate: Double?
         let liveActiveEnergyKcal: Double?
@@ -2417,6 +2424,7 @@ enum ActiveWorkoutStatusBuilder {
         let routePaceSecondsPerKm: Double?
         let routeSpeedKmh: Double?
         let routePointCount: Int?
+        let routePoints: [RoutePoint]?
         let routeSteps: Double?
         let liveHeartRate: Double?
         let liveActiveEnergyKcal: Double?
@@ -2426,10 +2434,17 @@ enum ActiveWorkoutStatusBuilder {
         let allSets = input.drafts.flatMap(\.sets)
         let completedSets = allSets.filter(\.completed)
         let selectedDraft = input.drafts.indices.contains(input.selectedExerciseIndex) ? input.drafts[input.selectedExerciseIndex] : nil
-        let routeDistance = input.isOutdoorRoute ? input.routeDistanceKm : input.previousRouteDistanceKm
-        let routePace = input.isOutdoorRoute ? input.routePaceSecondsPerKm : input.previousRoutePaceSecondsPerKm
-        let routeSpeed = input.isOutdoorRoute ? input.routeSpeedKmh : input.previousRouteSpeedKmh
+        let liveDistance = max(input.routeDistanceKm ?? 0, input.pedometerDistanceKm ?? 0)
+        let routeDistance = input.isOutdoorRoute ? liveDistance : (input.pedometerDistanceKm ?? input.previousRouteDistanceKm ?? 0)
+        let routePace = input.isOutdoorRoute
+            ? (input.routePaceSecondsPerKm ?? input.pedometerPaceSecondsPerKm)
+            : (input.pedometerPaceSecondsPerKm ?? input.previousRoutePaceSecondsPerKm)
+        let routeSpeed = input.isOutdoorRoute
+            ? (input.routeSpeedKmh ?? input.pedometerSpeedKmh)
+            : (input.pedometerSpeedKmh ?? input.previousRouteSpeedKmh)
         let routePointCount = input.isOutdoorRoute ? input.routePointCount : input.previousRoutePointCount
+        let routePoints = input.isOutdoorRoute ? input.routePoints : (input.previousRoutePoints ?? [])
+        let routeSteps = input.pedometerSteps ?? input.routeSteps ?? input.previousRouteSteps
 
         return Update(
             elapsedSeconds: input.elapsedSeconds,
@@ -2458,11 +2473,12 @@ enum ActiveWorkoutStatusBuilder {
             lastPausedAt: input.lastPausedAt,
             isRouteWorkout: input.isRouteWorkout,
             isOutdoorRoute: input.isOutdoorRoute,
-            routeDistanceKm: routeDistance,
+            routeDistanceKm: routeDistance > 0 ? routeDistance : nil,
             routePaceSecondsPerKm: routePace,
             routeSpeedKmh: routeSpeed,
             routePointCount: routePointCount,
-            routeSteps: input.routeSteps,
+            routePoints: routePoints,
+            routeSteps: routeSteps,
             liveHeartRate: input.liveHeartRate,
             liveActiveEnergyKcal: input.liveActiveEnergyKcal
         )
@@ -2475,6 +2491,10 @@ enum RouteMetricsBuilder {
         let trackerPaceSecondsPerKm: Double?
         let trackerSpeedKmh: Double?
         let trackerPointCount: Int
+        let pedometerDistanceKm: Double?
+        let pedometerPaceSecondsPerKm: Double?
+        let pedometerSpeedKmh: Double?
+        let pedometerSteps: Double?
         let activeStatus: ActiveWorkoutStatus?
         let sensorSummary: WorkoutSensorSummary?
         let todayHealthMetric: DailyHealthMetric?
@@ -2493,11 +2513,11 @@ enum RouteMetricsBuilder {
     }
 
     static func metrics(from input: Input) -> Metrics {
-        let distanceKm = max(input.trackerDistanceKm, input.activeStatus?.routeDistanceKm ?? 0)
-        let paceSecondsPerKm = validPositive(input.activeStatus?.routePaceSecondsPerKm) ?? validPositive(input.trackerPaceSecondsPerKm)
-        let speedKmh = validPositive(input.activeStatus?.routeSpeedKmh) ?? validPositive(input.trackerSpeedKmh)
+        let distanceKm = max(input.trackerDistanceKm, input.pedometerDistanceKm ?? 0, input.activeStatus?.routeDistanceKm ?? 0)
+        let paceSecondsPerKm = validPositive(input.activeStatus?.routePaceSecondsPerKm) ?? validPositive(input.trackerPaceSecondsPerKm) ?? validPositive(input.pedometerPaceSecondsPerKm)
+        let speedKmh = validPositive(input.activeStatus?.routeSpeedKmh) ?? validPositive(input.trackerSpeedKmh) ?? validPositive(input.pedometerSpeedKmh)
         let pointCount = max(input.trackerPointCount, input.activeStatus?.routePointCount ?? 0)
-        let steps = input.activeStatus?.routeSteps ?? input.sensorSummary?.steps
+        let steps = input.pedometerSteps ?? input.activeStatus?.routeSteps ?? input.sensorSummary?.steps
         let heartRate = input.activeStatus?.liveHeartRate ?? input.sensorSummary?.averageHeartRate
         let activeEnergy = input.activeStatus?.liveActiveEnergyKcal ?? input.sensorSummary?.activeEnergyKcal
 
@@ -2604,7 +2624,9 @@ enum RouteProgressBuilder {
         paceText: String
     ) -> String {
         guard isSessionStarted else {
-            return "\(plannedDurationMinutes) min planificados"
+            return plannedDurationMinutes > 0
+                ? "\(plannedDurationMinutes) min planificados"
+                : localizedString("sin_tiempo_definido")
         }
 
         var parts = [

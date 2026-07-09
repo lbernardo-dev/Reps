@@ -15,6 +15,8 @@ struct TodayView: View {
     @State private var recommendedWorkout: WorkoutDay? = nil
     @State private var recommendedWorkoutToConfirm: WorkoutDay?
     @State private var showRestartConfirmation = false
+    @State private var renderModel: TodayRenderModel?
+    @State private var lastRenderSignature: TodayRenderSignature?
     @Namespace private var wellnessZoom
     @Namespace private var weatherZoom
 
@@ -22,6 +24,31 @@ struct TodayView: View {
 
     private var freeWorkout: WorkoutDay {
         WorkoutDay.freeWorkout
+    }
+
+    private var todayRenderModel: TodayRenderModel {
+        renderModel ?? makeTodayRenderModel()
+    }
+
+    private var renderSignature: TodayRenderSignature {
+        TodayRenderSignature(
+            workoutSessionCount: store.workoutSessions.count,
+            latestWorkoutDate: store.workoutSessions.map(\.date).max(),
+            bodyMetricCount: store.bodyMetrics.count,
+            latestBodyMetricDate: store.bodyMetrics.map(\.date).max(),
+            healthMetricCount: store.health.latestDailyMetrics.count,
+            latestHealthMetricDate: store.health.latestDailyMetrics.map(\.date).max(),
+            activePlanID: store.activePlan.id,
+            activePlanDayCount: store.activePlan.days.count,
+            activePlanCurrentDayIndex: store.activePlan.currentDayIndex,
+            activePlanDaysPerWeek: store.activePlan.daysPerWeek,
+            hasActivePlan: store.hasActiveTrainingPlan,
+            units: store.userProfile.units,
+            preferredLanguage: store.userProfile.preferredLanguage,
+            trainingLocation: store.userProfile.trainingLocation,
+            weightIncrementKg: store.userProfile.weightIncrementKg,
+            todayHealthMetric: store.todayHealthMetric
+        )
     }
 
     private var todaysScheduledWorkout: ScheduledWorkout? {
@@ -52,32 +79,23 @@ struct TodayView: View {
     }
 
     private var weekStart: Date {
-        Calendar.current.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now.addingTimeInterval(-604_800)
+        todayRenderModel.weekStart
     }
 
     private var weekSessions: [WorkoutSession] {
-        store.workoutSessions.filter { $0.date >= weekStart }
+        todayRenderModel.weekSessions
     }
 
     private var completedThisWeek: Int {
-        guard hasActivePlan else {
-            return weekSessions.count
-        }
-        return min(weekSessions.count, store.activePlan.daysPerWeek)
+        todayRenderModel.completedThisWeek
     }
 
     private var weekTargetText: String {
-        guard hasActivePlan else {
-            return "\(completedThisWeek)"
-        }
-        return "\(completedThisWeek)/\(store.activePlan.daysPerWeek)"
+        todayRenderModel.weekTargetText
     }
 
     private var weeklyPlanCompletionRatio: Double {
-        guard hasActivePlan, store.activePlan.daysPerWeek > 0 else {
-            return 0
-        }
-        return min(Double(completedThisWeek) / Double(store.activePlan.daysPerWeek), 1)
+        todayRenderModel.weeklyPlanCompletionRatio
     }
 
     private var weeklyPlanSummaryTint: Color {
@@ -96,7 +114,7 @@ struct TodayView: View {
     }
 
     private var lastWorkout: WorkoutSession? {
-        store.workoutSessions.sorted { $0.date > $1.date }.first
+        todayRenderModel.lastWorkout
     }
 
     private var shouldShowFirstWorkoutActivation: Bool {
@@ -104,51 +122,15 @@ struct TodayView: View {
     }
 
     private var continuitySignal: ContinuitySignal {
-        let calendar = Calendar.current
-        if let lastWorkout {
-            let daysSince = calendar.dateComponents(
-                [.day],
-                from: calendar.startOfDay(for: lastWorkout.date),
-                to: calendar.startOfDay(for: .now)
-            ).day ?? 0
-            if daysSince == 0 {
-                return ContinuitySignal(
-                    title: "Continuidad asegurada",
-                    message: "Ya sumaste hoy. Mantén el plan o recupera bien.",
-                    systemImage: "checkmark.seal.fill",
-                    tint: PulseTheme.recovery
-                )
-            }
-            if daysSince == 1 {
-                return ContinuitySignal(
-                    title: "Buen momento para seguir",
-                    message: "Vienes de entrenar ayer. Una sesión corta mantiene la semana viva.",
-                    systemImage: "flame.fill",
-                    tint: PulseTheme.accent
-                )
-            }
-            return ContinuitySignal(
-                title: "Recupera la semana sin presión",
-                message: "Han pasado \(daysSince) días. Empieza con 20 minutos y vuelve al ritmo.",
-                systemImage: "arrow.counterclockwise.circle.fill",
-                tint: PulseTheme.warning
-            )
-        }
-
-        return ContinuitySignal(
-            title: "Primer paso de la semana",
-            message: "Registra una sesión sencilla para crear tu línea base.",
-            systemImage: "figure.strengthtraining.traditional",
-            tint: PulseTheme.accent
-        )
+        todayRenderModel.continuitySignal
     }
 
     private var latestMetric: BodyMetric? {
-        store.bodyMetrics.sorted { $0.date > $1.date }.first
+        todayRenderModel.latestMetric
     }
 
     private var batteryStatus: FitnessMetrics.TrainingBatteryStatus {
-        store.trainingBattery
+        todayRenderModel.batteryStatus
     }
 
     private var batteryColor: Color {
@@ -196,26 +178,15 @@ struct TodayView: View {
     }
 
     private var competitiveSummary: AnalyticsEngine.CompetitiveSummary {
-        AnalyticsEngine.competitiveSummary(
-            sessions: store.workoutSessions,
-            activePlan: store.activePlan,
-            exercises: store.exercises,
-            since: weekStart
-        )
+        todayRenderModel.competitiveSummary
     }
 
     private var workloadSummary: AnalyticsEngine.WorkloadSummary {
-        AnalyticsEngine.workloadSummary(sessions: store.workoutSessions, bodyMetrics: store.bodyMetrics)
+        todayRenderModel.workloadSummary
     }
 
     private var dailyCoachRecommendation: FitnessMetrics.DailyCoachRecommendation {
-        FitnessMetrics.dailyCoachRecommendation(
-            battery: batteryStatus,
-            competitiveSummary: competitiveSummary,
-            hasActivePlan: hasActivePlan,
-            hasTodayWorkout: todaysScheduledWorkout != nil,
-            hasCompletedWorkout: !store.workoutSessions.isEmpty
-        )
+        todayRenderModel.dailyCoachRecommendation
     }
 
 
@@ -224,47 +195,39 @@ struct TodayView: View {
     }
 
     private var currentDateTitle: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: store.userProfile.preferredLanguage)
-        formatter.dateFormat = localizedString("eeee_d_mmmm")
-        return formatter.string(from: .now).capitalized(with: formatter.locale)
+        todayRenderModel.currentDateTitle
     }
 
     private var last30StartDate: Date {
-        let today = Calendar.current.startOfDay(for: .now)
-        return Calendar.current.date(byAdding: .day, value: -29, to: today) ?? today
+        todayRenderModel.last30StartDate
     }
 
     private var recentSessions: [WorkoutSession] {
-        store.workoutSessions.filter { $0.date >= last30StartDate }
+        todayRenderModel.recentSessions
     }
 
     private var previous30Sessions: [WorkoutSession] {
-        let calendar = Calendar.current
-        guard let previousStart = calendar.date(byAdding: .day, value: -30, to: last30StartDate) else {
-            return []
-        }
-        return store.workoutSessions.filter { $0.date >= previousStart && $0.date < last30StartDate }
+        todayRenderModel.previous30Sessions
     }
 
     private var recentCompletedSets: [SetLog] {
-        completedSets(in: recentSessions)
+        todayRenderModel.recentCompletedSets
     }
 
     private var weekCompletedSets: [SetLog] {
-        completedSets(in: weekSessions)
+        todayRenderModel.weekCompletedSets
     }
 
     private var recentVolumeKg: Double {
-        FitnessMetrics.totalVolumeKg(for: recentSessions)
+        todayRenderModel.recentVolumeKg
     }
 
     private var previous30VolumeKg: Double {
-        FitnessMetrics.totalVolumeKg(for: previous30Sessions)
+        todayRenderModel.previous30VolumeKg
     }
 
     private var displayedRecentVolume: Double {
-        displayedWeight(fromKilograms: recentVolumeKg)
+        todayRenderModel.displayedRecentVolume
     }
 
     private var displayedVolumeUnit: String {
@@ -272,58 +235,31 @@ struct TodayView: View {
     }
 
     private var recentActivityPoints: [DailyActivityPoint] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: .now)
-        let loadByDay = Dictionary(grouping: recentSessions, by: { calendar.startOfDay(for: $0.date) })
-            .mapValues { sessions in
-                sessions.reduce(0.0) { $0 + AnalyticsEngine.sessionLoad(for: $1) }
-            }
-        let maxDailyLoad = loadByDay.values.max() ?? 0
-
-        return (0..<30).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset - 29, to: today) else {
-                return nil
-            }
-            let dailyLoad = loadByDay[date] ?? 0
-            return DailyActivityPoint(
-                date: date,
-                isCompleted: dailyLoad > 0,
-                isToday: calendar.isDateInToday(date),
-                intensity: maxDailyLoad > 0 ? min(dailyLoad / maxDailyLoad, 1) : 0
-            )
-        }
+        todayRenderModel.recentActivityPoints
     }
 
     private var weeklyRepsPoints: [MiniBarPoint] {
-        weeklyPoints { session in
-            Double(completedSets(in: [session]).reduce(0) { $0 + $1.reps })
-        }
+        todayRenderModel.weeklyRepsPoints
     }
 
     private var weeklyVolumePoints: [MiniBarPoint] {
-        weeklyPoints { session in
-            displayedWeight(fromKilograms: FitnessMetrics.totalVolumeKg(for: [session]))
-        }
+        todayRenderModel.weeklyVolumePoints
     }
 
     private var weeklyVolumeValues: [Double] {
-        weeklyVolumePoints.map(\.value)
+        todayRenderModel.weeklyVolumeValues
     }
 
     private var workoutTrendText: String? {
-        trendText(current: Double(recentSessions.count), previous: Double(previous30Sessions.count))
+        todayRenderModel.workoutTrendText
     }
 
     private var volumeTrendText: String? {
-        trendText(current: recentVolumeKg, previous: previous30VolumeKg)
+        todayRenderModel.volumeTrendText
     }
 
     private var weekRepsTrendText: String? {
-        let calendar = Calendar.current
-        let previousWeekStart = calendar.date(byAdding: .day, value: -7, to: weekStart) ?? weekStart
-        let previousWeekSessions = store.workoutSessions.filter { $0.date >= previousWeekStart && $0.date < weekStart }
-        let previousReps = completedSets(in: previousWeekSessions).reduce(0) { $0 + $1.reps }
-        return trendText(current: Double(weekCompletedSets.reduce(0) { $0 + $1.reps }), previous: Double(previousReps))
+        todayRenderModel.weekRepsTrendText
     }
 
     var body: some View {
@@ -509,8 +445,157 @@ struct TodayView: View {
                 Text(localizedString("already_completed_today_message"))
             }
             .toolbar(.hidden, for: .navigationBar)
-            .onAppear { buildRecommendedWorkoutIfNeeded() }
+            .onAppear {
+                refreshRenderModelIfNeeded()
+                buildRecommendedWorkoutIfNeeded()
+            }
+            .onChange(of: renderSignature) { _, _ in
+                refreshRenderModelIfNeeded()
+            }
         }
+    }
+
+    private func refreshRenderModelIfNeeded() {
+        let signature = renderSignature
+        guard signature != lastRenderSignature || renderModel == nil else { return }
+        lastRenderSignature = signature
+        renderModel = makeTodayRenderModel()
+    }
+
+    private func makeTodayRenderModel() -> TodayRenderModel {
+        let calendar = Calendar.current
+        let now = Date()
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now.addingTimeInterval(-604_800)
+        let todayStart = calendar.startOfDay(for: now)
+        let last30StartDate = calendar.date(byAdding: .day, value: -29, to: todayStart) ?? todayStart
+        let previous30StartDate = calendar.date(byAdding: .day, value: -30, to: last30StartDate) ?? last30StartDate
+        let hasActivePlan = store.hasActiveTrainingPlan
+        let language = store.userProfile.preferredLanguage
+        let units = store.userProfile.units
+
+        let weekSessions = store.workoutSessions.filter { $0.date >= weekStart }
+        let recentSessions = store.workoutSessions.filter { $0.date >= last30StartDate }
+        let previous30Sessions = store.workoutSessions.filter { $0.date >= previous30StartDate && $0.date < last30StartDate }
+        let latestWorkout = store.workoutSessions.max { $0.date < $1.date }
+        let latestMetric = store.bodyMetrics.max { $0.date < $1.date }
+        let sortedHealthMetrics = store.health.latestDailyMetrics.sorted { $0.date > $1.date }
+        let battery = store.trainingBattery
+        let completedThisWeek = hasActivePlan ? min(weekSessions.count, store.activePlan.daysPerWeek) : weekSessions.count
+        let weekTargetText = hasActivePlan ? "\(completedThisWeek)/\(store.activePlan.daysPerWeek)" : "\(completedThisWeek)"
+        let weeklyPlanCompletionRatio = hasActivePlan && store.activePlan.daysPerWeek > 0
+            ? min(Double(completedThisWeek) / Double(store.activePlan.daysPerWeek), 1)
+            : 0
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: language)
+        dateFormatter.dateFormat = localizedString("eeee_d_mmmm")
+        let currentDateTitle = dateFormatter.string(from: now).capitalized(with: dateFormatter.locale)
+
+        let recentVolumeKg = FitnessMetrics.totalVolumeKg(for: recentSessions)
+        let previous30VolumeKg = FitnessMetrics.totalVolumeKg(for: previous30Sessions)
+        let weekCompletedSets = completedSets(in: weekSessions)
+        let previousWeekStart = calendar.date(byAdding: .day, value: -7, to: weekStart) ?? weekStart
+        let previousWeekSessions = store.workoutSessions.filter { $0.date >= previousWeekStart && $0.date < weekStart }
+        let previousReps = completedSets(in: previousWeekSessions).reduce(0) { $0 + $1.reps }
+        let currentWeekReps = weekCompletedSets.reduce(0) { $0 + $1.reps }
+
+        let loadByDay = Dictionary(grouping: recentSessions, by: { calendar.startOfDay(for: $0.date) })
+            .mapValues { sessions in
+                sessions.reduce(0.0) { $0 + AnalyticsEngine.sessionLoad(for: $1) }
+            }
+        let maxDailyLoad = loadByDay.values.max() ?? 0
+        let recentActivityPoints = (0..<30).compactMap { offset -> DailyActivityPoint? in
+            guard let date = calendar.date(byAdding: .day, value: offset - 29, to: todayStart) else { return nil }
+            let dailyLoad = loadByDay[date] ?? 0
+            return DailyActivityPoint(
+                date: date,
+                isCompleted: dailyLoad > 0,
+                isToday: calendar.isDateInToday(date),
+                intensity: maxDailyLoad > 0 ? min(dailyLoad / maxDailyLoad, 1) : 0
+            )
+        }
+
+        let dayFormatter = DateFormatter()
+        dayFormatter.locale = Locale(identifier: language)
+        dayFormatter.dateFormat = "EEEEE"
+        func displayWeight(_ kilograms: Double) -> Double {
+            units == .metric ? kilograms : UnitConverter.pounds(fromKilograms: kilograms)
+        }
+        func sets(in session: WorkoutSession) -> [SetLog] {
+            if let exerciseLogs = session.exerciseLogs, !exerciseLogs.isEmpty {
+                return exerciseLogs.flatMap { $0.sets.filter(\.completed) }
+            }
+            return session.sets.filter(\.completed)
+        }
+        func weeklyPoints(_ valueForSession: (WorkoutSession) -> Double) -> [MiniBarPoint] {
+            (0..<7).compactMap { offset in
+                guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
+                let daySessions = weekSessions.filter { calendar.isDate($0.date, inSameDayAs: date) }
+                return MiniBarPoint(
+                    id: date,
+                    label: dayFormatter.string(from: date).uppercased(),
+                    value: daySessions.reduce(0) { $0 + valueForSession($1) },
+                    isToday: calendar.isDateInToday(date)
+                )
+            }
+        }
+        let weeklyRepsPoints = weeklyPoints { Double(sets(in: $0).reduce(0) { $0 + $1.reps }) }
+        let weeklyVolumePoints = weeklyPoints { displayWeight(FitnessMetrics.totalVolumeKg(for: [$0])) }
+
+        let competitiveSummary = AnalyticsEngine.competitiveSummary(
+            sessions: store.workoutSessions,
+            activePlan: store.activePlan,
+            exercises: store.exercises,
+            since: weekStart
+        )
+        let workloadSummary = AnalyticsEngine.workloadSummary(sessions: store.workoutSessions, bodyMetrics: store.bodyMetrics)
+        let dailyCoachRecommendation = FitnessMetrics.dailyCoachRecommendation(
+            battery: battery,
+            competitiveSummary: competitiveSummary,
+            hasActivePlan: hasActivePlan,
+            hasTodayWorkout: todaysScheduledWorkout != nil,
+            hasCompletedWorkout: !store.workoutSessions.isEmpty
+        )
+
+        return TodayRenderModel(
+            weekStart: weekStart,
+            last30StartDate: last30StartDate,
+            weekSessions: weekSessions,
+            recentSessions: recentSessions,
+            previous30Sessions: previous30Sessions,
+            completedThisWeek: completedThisWeek,
+            weekTargetText: weekTargetText,
+            weeklyPlanCompletionRatio: weeklyPlanCompletionRatio,
+            lastWorkout: latestWorkout,
+            continuitySignal: Self.continuitySignal(for: latestWorkout, calendar: calendar, now: now),
+            latestMetric: latestMetric,
+            batteryStatus: battery,
+            competitiveSummary: competitiveSummary,
+            workloadSummary: workloadSummary,
+            dailyCoachRecommendation: dailyCoachRecommendation,
+            currentDateTitle: currentDateTitle,
+            recentCompletedSets: completedSets(in: recentSessions),
+            weekCompletedSets: weekCompletedSets,
+            recentVolumeKg: recentVolumeKg,
+            previous30VolumeKg: previous30VolumeKg,
+            displayedRecentVolume: displayWeight(recentVolumeKg),
+            recentActivityPoints: recentActivityPoints,
+            weeklyRepsPoints: weeklyRepsPoints,
+            weeklyVolumePoints: weeklyVolumePoints,
+            weeklyVolumeValues: weeklyVolumePoints.map(\.value),
+            workoutTrendText: Self.trendText(current: Double(recentSessions.count), previous: Double(previous30Sessions.count)),
+            volumeTrendText: Self.trendText(current: recentVolumeKg, previous: previous30VolumeKg),
+            weekRepsTrendText: Self.trendText(current: Double(currentWeekReps), previous: Double(previousReps)),
+            latestSleepHours: store.todayHealthMetric?.sleepHours
+                ?? sortedHealthMetrics.first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours
+                ?? latestMetric?.sleepHours,
+            latestHRV: store.todayHealthMetric?.heartRateVariabilityMS
+                ?? sortedHealthMetrics.first(where: { $0.heartRateVariabilityMS != nil })?.heartRateVariabilityMS,
+            latestRestingHeartRate: store.todayHealthMetric?.restingHeartRate
+                ?? sortedHealthMetrics.first(where: { $0.restingHeartRate != nil })?.restingHeartRate,
+            latestVO2Max: sortedHealthMetrics.first(where: { $0.vo2MaxMlKgMin != nil })?.vo2MaxMlKgMin,
+            latestRecordedSleepHours: sortedHealthMetrics.first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours
+        )
     }
 
     private var recommendedWorkoutConfirmationBinding: Binding<Bool> {
@@ -555,19 +640,15 @@ struct TodayView: View {
     }
 
     private var latestSleepHours: Double? {
-        store.todayHealthMetric?.sleepHours
-            ?? store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours
-            ?? latestMetric?.sleepHours
+        todayRenderModel.latestSleepHours
     }
 
     private var latestHRV: Double? {
-        store.todayHealthMetric?.heartRateVariabilityMS
-            ?? store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first(where: { $0.heartRateVariabilityMS != nil })?.heartRateVariabilityMS
+        todayRenderModel.latestHRV
     }
 
     private var latestRestingHeartRate: Double? {
-        store.todayHealthMetric?.restingHeartRate
-            ?? store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first(where: { $0.restingHeartRate != nil })?.restingHeartRate
+        todayRenderModel.latestRestingHeartRate
     }
 
     private var stressSummaryText: String {
@@ -1460,6 +1541,10 @@ struct TodayView: View {
     }
 
     private func trendText(current: Double, previous: Double) -> String? {
+        Self.trendText(current: current, previous: previous)
+    }
+
+    private static func trendText(current: Double, previous: Double) -> String? {
         guard previous > 0 else {
             return current > 0 ? "+100%" : nil
         }
@@ -1469,6 +1554,45 @@ struct TodayView: View {
             return nil
         }
         return String(format: "%+.0f%%", percentage)
+    }
+
+    private static func continuitySignal(for lastWorkout: WorkoutSession?, calendar: Calendar, now: Date) -> ContinuitySignal {
+        if let lastWorkout {
+            let daysSince = calendar.dateComponents(
+                [.day],
+                from: calendar.startOfDay(for: lastWorkout.date),
+                to: calendar.startOfDay(for: now)
+            ).day ?? 0
+            if daysSince == 0 {
+                return ContinuitySignal(
+                    title: "Continuidad asegurada",
+                    message: "Ya sumaste hoy. Mantén el plan o recupera bien.",
+                    systemImage: "checkmark.seal.fill",
+                    tint: PulseTheme.recovery
+                )
+            }
+            if daysSince == 1 {
+                return ContinuitySignal(
+                    title: "Buen momento para seguir",
+                    message: "Vienes de entrenar ayer. Una sesión corta mantiene la semana viva.",
+                    systemImage: "flame.fill",
+                    tint: PulseTheme.accent
+                )
+            }
+            return ContinuitySignal(
+                title: "Recupera la semana sin presión",
+                message: "Han pasado \(daysSince) días. Empieza con 20 minutos y vuelve al ritmo.",
+                systemImage: "arrow.counterclockwise.circle.fill",
+                tint: PulseTheme.warning
+            )
+        }
+
+        return ContinuitySignal(
+            title: "Primer paso de la semana",
+            message: "Registra una sesión sencilla para crear tu línea base.",
+            systemImage: "figure.strengthtraining.traditional",
+            tint: PulseTheme.accent
+        )
     }
 
     private func weeklyPoints(_ valueForSession: (WorkoutSession) -> Double) -> [MiniBarPoint] {
@@ -1633,7 +1757,7 @@ struct TodayView: View {
                 NavigationLink(value: TodayRoute.vo2Max) {
                     WellnessWidget(
                         title: "VO₂ Max",
-                        value: store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first(where: { $0.vo2MaxMlKgMin != nil })?.vo2MaxMlKgMin.map { String(format: "%.1f", $0) } ?? "--",
+                        value: todayRenderModel.latestVO2Max.map { String(format: "%.1f", $0) } ?? "--",
                         subtitle: "ml/kg/min",
                         localizesSubtitle: false,
                         systemImage: TrackedMetric.vo2Max.systemImage,
@@ -1645,12 +1769,9 @@ struct TodayView: View {
                 .buttonStyle(PressableCardStyle())
 
                 NavigationLink(value: TodayRoute.sleep) {
-                    let todaySleep = store.health.latestDailyMetrics
-                        .sorted { $0.date > $1.date }
-                        .first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours
                     WellnessWidget(
                         title: "sleep",
-                        value: todaySleep.map { String(format: "%.1fh", $0) } ?? "--",
+                        value: todayRenderModel.latestRecordedSleepHours.map { String(format: "%.1fh", $0) } ?? "--",
                         subtitle: localizedString("last_recorded"),
                         systemImage: TrackedMetric.sleep.systemImage,
                         domain: TrackedMetric.sleep.domain
@@ -1962,6 +2083,61 @@ struct TodayView: View {
         
         return formatter.localizedString(for: date, relativeTo: .now)
     }
+}
+
+private struct TodayRenderSignature: Equatable {
+    let workoutSessionCount: Int
+    let latestWorkoutDate: Date?
+    let bodyMetricCount: Int
+    let latestBodyMetricDate: Date?
+    let healthMetricCount: Int
+    let latestHealthMetricDate: Date?
+    let activePlanID: UUID
+    let activePlanDayCount: Int
+    let activePlanCurrentDayIndex: Int?
+    let activePlanDaysPerWeek: Int
+    let hasActivePlan: Bool
+    let units: UserProfile.Units
+    let preferredLanguage: String
+    let trainingLocation: UserProfile.TrainingLocation
+    let weightIncrementKg: Double
+    let todayHealthMetric: DailyHealthMetric?
+}
+
+private struct TodayRenderModel {
+    let weekStart: Date
+    let last30StartDate: Date
+    let weekSessions: [WorkoutSession]
+    let recentSessions: [WorkoutSession]
+    let previous30Sessions: [WorkoutSession]
+    let completedThisWeek: Int
+    let weekTargetText: String
+    let weeklyPlanCompletionRatio: Double
+    let lastWorkout: WorkoutSession?
+    let continuitySignal: ContinuitySignal
+    let latestMetric: BodyMetric?
+    let batteryStatus: FitnessMetrics.TrainingBatteryStatus
+    let competitiveSummary: AnalyticsEngine.CompetitiveSummary
+    let workloadSummary: AnalyticsEngine.WorkloadSummary
+    let dailyCoachRecommendation: FitnessMetrics.DailyCoachRecommendation
+    let currentDateTitle: String
+    let recentCompletedSets: [SetLog]
+    let weekCompletedSets: [SetLog]
+    let recentVolumeKg: Double
+    let previous30VolumeKg: Double
+    let displayedRecentVolume: Double
+    let recentActivityPoints: [DailyActivityPoint]
+    let weeklyRepsPoints: [MiniBarPoint]
+    let weeklyVolumePoints: [MiniBarPoint]
+    let weeklyVolumeValues: [Double]
+    let workoutTrendText: String?
+    let volumeTrendText: String?
+    let weekRepsTrendText: String?
+    let latestSleepHours: Double?
+    let latestHRV: Double?
+    let latestRestingHeartRate: Double?
+    let latestVO2Max: Double?
+    let latestRecordedSleepHours: Double?
 }
 
 /// Consistent icon + title/subtitle header used above the Today tab's top-level sections.

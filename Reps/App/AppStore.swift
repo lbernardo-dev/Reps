@@ -1475,7 +1475,7 @@ final class AppStore {
             sets: allSets,
             notes: logs.isEmpty ? nil : logs.map { "\($0.exercise.name): \($0.sets.count) sets" }.joined(separator: "\n"),
             exerciseLogs: logs,
-            routePoints: [],
+            routePoints: status.routePoints ?? [],
             pausedDurationSeconds: pausedSeconds
         )
         finishWorkout(session)
@@ -1606,6 +1606,7 @@ final class AppStore {
         routePaceSecondsPerKm: Double? = nil,
         routeSpeedKmh: Double? = nil,
         routePointCount: Int? = nil,
+        routePoints: [RoutePoint]? = nil,
         routeSteps: Double? = nil,
         liveHeartRate: Double? = nil,
         liveActiveEnergyKcal: Double? = nil
@@ -1647,12 +1648,16 @@ final class AppStore {
             status.routePaceSecondsPerKm = Self.bestRouteMetric(status.routePaceSecondsPerKm, routePaceSecondsPerKm)
             status.routeSpeedKmh = Self.bestRouteMetric(status.routeSpeedKmh, routeSpeedKmh)
             status.routePointCount = max(status.routePointCount ?? 0, routePointCount ?? 0)
+            if let routePoints, routePoints.count >= (status.routePoints?.count ?? 0) {
+                status.routePoints = routePoints
+            }
             status.routeSteps = Self.bestRouteMetric(status.routeSteps, routeSteps)
         } else {
             status.routeDistanceKm = nil
             status.routePaceSecondsPerKm = nil
             status.routeSpeedKmh = nil
             status.routePointCount = nil
+            status.routePoints = nil
             status.routeSteps = nil
         }
         if let liveHeartRate {
@@ -1696,6 +1701,7 @@ final class AppStore {
             routePaceSecondsPerKm: update.routePaceSecondsPerKm,
             routeSpeedKmh: update.routeSpeedKmh,
             routePointCount: update.routePointCount,
+            routePoints: update.routePoints,
             routeSteps: update.routeSteps,
             liveHeartRate: update.liveHeartRate,
             liveActiveEnergyKcal: update.liveActiveEnergyKcal

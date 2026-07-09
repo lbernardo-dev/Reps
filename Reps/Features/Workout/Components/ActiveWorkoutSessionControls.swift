@@ -64,7 +64,7 @@ struct PlannedDurationEditor: View {
             Spacer(minLength: 8)
 
             Button {
-                minutes = max(5, minutes - 5)
+                minutes = max(0, minutes - 5)
             } label: {
                 Image(systemName: "minus")
                     .font(.caption.weight(.black))
@@ -76,9 +76,11 @@ struct PlannedDurationEditor: View {
             .buttonStyle(.plain)
             .accessibilityLabel("reduce_duration")
 
-            Text("\(minutes) min")
+            Text(minutes == 0 ? localizedString("sin_tiempo_definido") : "\(minutes) min")
                 .font(.headline.weight(.black).monospacedDigit())
-                .frame(minWidth: 72)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .frame(minWidth: 96)
 
             Button {
                 minutes = min(180, minutes + 5)
@@ -168,4 +170,3 @@ struct MiniSessionPill: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
-

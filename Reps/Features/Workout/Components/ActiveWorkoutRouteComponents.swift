@@ -261,6 +261,8 @@ struct RouteMapPreview: View {
 @MainActor
 
 final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationManagerDelegate {
+    static let shared = WorkoutRouteTracker()
+
     @Published var routePoints: [RoutePoint] = []
     @Published var isTracking = false
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
@@ -313,6 +315,29 @@ final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationManagerDe
 
     func resume() {
         startUpdatingLocation()
+    }
+
+    func restoreIfNeeded(points: [RoutePoint], startedAt: Date, isPaused: Bool) {
+        guard routePoints.count < points.count else {
+            self.startedAt = self.startedAt ?? startedAt
+            return
+        }
+
+        routePoints = points
+        self.startedAt = startedAt
+        rebuildDistanceFromRoute()
+        if let last = points.last {
+            lastLocation = CLLocation(
+                coordinate: CLLocationCoordinate2D(latitude: last.latitude, longitude: last.longitude),
+                altitude: last.altitude ?? 0,
+                horizontalAccuracy: last.horizontalAccuracy ?? kCLLocationAccuracyBest,
+                verticalAccuracy: -1,
+                timestamp: last.timestamp
+            )
+        }
+        if !isPaused {
+            startUpdatingLocation()
+        }
     }
 
     private func startUpdatingLocation() {
@@ -413,6 +438,120 @@ final class WorkoutRouteTracker: NSObject, ObservableObject, CLLocationManagerDe
             return false
         }
         return true
+    }
+
+    private func rebuildDistanceFromRoute() {
+        guard routePoints.count >= 2 else {
+            totalDistanceMeters = 0
+            return
+        }
+
+        var total: CLLocationDistance = 0
+        var previous: CLLocation?
+        for point in routePoints {
+            let current = CLLocation(
+                coordinate: CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude),
+                altitude: point.altitude ?? 0,
+                horizontalAccuracy: point.horizontalAccuracy ?? kCLLocationAccuracyBest,
+                verticalAccuracy: -1,
+                timestamp: point.timestamp
+            )
+            if let previous {
+                let segment = current.distance(from: previous)
+                if segment >= 1, segment <= 250 {
+                    total += segment
+                }
+            }
+            previous = current
+        }
+        totalDistanceMeters = total
+    }
+}
+
+@MainActor
+
+final class WorkoutMotionMetricsTracker: ObservableObject {
+    static let shared = WorkoutMotionMetricsTracker()
+
+    @Published var steps: Double?
+    @Published var distanceKm: Double?
+    @Published var paceSecondsPerKm: Double?
+    @Published var speedKmh: Double?
+    @Published var cadenceStepsPerMinute: Double?
+
+    private let pedometer = CMPedometer()
+    private var startedAt: Date?
+    private var segmentStartedAt: Date?
+    private var baseSteps: Double = 0
+    private var baseDistanceKm: Double = 0
+
+    func start(startedAt: Date) {
+        guard CMPedometer.isStepCountingAvailable() else { return }
+        if self.startedAt != startedAt {
+            reset(startedAt: startedAt)
+        }
+        guard segmentStartedAt == nil else { return }
+
+        let segmentStart = (steps == nil && distanceKm == nil) ? startedAt : Date()
+        segmentStartedAt = segmentStart
+        pedometer.queryPedometerData(from: segmentStart, to: Date()) { [weak self] data, _ in
+            Task { @MainActor in
+                self?.apply(data)
+            }
+        }
+        pedometer.startUpdates(from: segmentStart) { [weak self] data, _ in
+            Task { @MainActor in
+                self?.apply(data)
+            }
+        }
+    }
+
+    func pause() {
+        baseSteps = steps ?? baseSteps
+        baseDistanceKm = distanceKm ?? baseDistanceKm
+        segmentStartedAt = nil
+        pedometer.stopUpdates()
+    }
+
+    func stop() {
+        pedometer.stopUpdates()
+        steps = nil
+        distanceKm = nil
+        paceSecondsPerKm = nil
+        speedKmh = nil
+        cadenceStepsPerMinute = nil
+        startedAt = nil
+        segmentStartedAt = nil
+        baseSteps = 0
+        baseDistanceKm = 0
+    }
+
+    private func reset(startedAt: Date) {
+        pedometer.stopUpdates()
+        self.startedAt = startedAt
+        segmentStartedAt = nil
+        baseSteps = 0
+        baseDistanceKm = 0
+        steps = nil
+        distanceKm = nil
+        paceSecondsPerKm = nil
+        speedKmh = nil
+        cadenceStepsPerMinute = nil
+    }
+
+    private func apply(_ data: CMPedometerData?) {
+        guard let data else { return }
+        steps = baseSteps + data.numberOfSteps.doubleValue
+        if let distanceMeters = data.distance?.doubleValue, distanceMeters > 0 {
+            distanceKm = baseDistanceKm + (distanceMeters / 1_000)
+        }
+        if let paceSecondsPerMeter = data.currentPace?.doubleValue, paceSecondsPerMeter > 0 {
+            paceSecondsPerKm = paceSecondsPerMeter * 1_000
+            speedKmh = 3.6 / paceSecondsPerMeter
+        }
+        if let cadenceStepsPerSecond = data.currentCadence?.doubleValue, cadenceStepsPerSecond > 0 {
+            cadenceStepsPerMinute = cadenceStepsPerSecond * 60
+        }
     }
 }
 

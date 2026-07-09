@@ -17,7 +17,8 @@ struct ActiveWorkoutView: View {
     @Environment(AppStore.self) private var store
     let workout: WorkoutDay
 
-    @StateObject private var routeTracker = WorkoutRouteTracker()
+    @StateObject private var routeTracker = WorkoutRouteTracker.shared
+    @StateObject private var motionMetrics = WorkoutMotionMetricsTracker.shared
     @StateObject private var audioRecorder = WorkoutAudioRecorder()
     @StateObject private var musicPlayer = WorkoutAppleMusicPlayer.shared
     @StateObject private var healthKit = HealthKitService.shared
@@ -83,7 +84,7 @@ struct ActiveWorkoutView: View {
     init(workout: WorkoutDay, origin: WorkoutSession.Origin = .routine) {
         self.workout = workout
         self.origin = origin
-        _plannedDurationMinutes = State(initialValue: workout.durationMinutes)
+        _plannedDurationMinutes = State(initialValue: workout.isCardioMovement ? 0 : workout.durationMinutes)
     }
 
     private var completedSets: Int {
@@ -269,6 +270,7 @@ struct ActiveWorkoutView: View {
                 if let exerciseIndex = status.exerciseIndex {
                     selectedExerciseIndex = max(0, exerciseIndex - 1)
                 }
+                restoreActiveRouteIfNeeded(from: status)
                 // Restore date-based rest state
                 if let savedRest = status.restSeconds, savedRest > 0 {
                     let dur = status.restDurationSeconds ?? savedRest
@@ -294,6 +296,9 @@ struct ActiveWorkoutView: View {
             }
             if isRouteCandidate {
                 routeTracker.requestAuthorization()
+            }
+            if isSessionStarted {
+                startLiveCardioTrackingIfNeeded()
             }
             if isSessionStarted, #unavailable(iOS 26.0) {
                 // On iOS 26+ the native HKWorkoutSession keeps the app alive.
@@ -437,8 +442,11 @@ struct ActiveWorkoutView: View {
                 restSeconds = currentRestRemainingSeconds()
                 publishActiveWorkoutStatus()
             }
-            routeTracker.stop()
-            motionResumeDetector.stop()
+            if finishedSession != nil || !isSessionStarted {
+                routeTracker.stop()
+                motionMetrics.stop()
+                motionResumeDetector.stop()
+            }
             _ = audioRecorder.stopRecording(note: nil)
             // Only stop the background task if the workout is fully done.
             if finishedSession != nil {
@@ -583,6 +591,9 @@ struct ActiveWorkoutView: View {
         if isRouteCandidate {
             routeTracker.startNewRoute(startedAt: startDate)
         }
+        if isCardioMovementCandidate {
+            motionMetrics.start(startedAt: startDate)
+        }
         if #unavailable(iOS 26.0) {
             // On iOS 26+ the native HKWorkoutSession keeps the app alive.
             WorkoutBackgroundKeepAlive.shared.startIfNeeded()
@@ -623,6 +634,7 @@ struct ActiveWorkoutView: View {
 
     private func stopWorkout() {
         routeTracker.stop()
+        motionMetrics.stop()
         motionResumeDetector.stop()
         stopRest()
         store.clearActiveWorkout()
@@ -663,6 +675,7 @@ struct ActiveWorkoutView: View {
         elapsedSeconds = elapsedWorkoutSeconds()
         let finishedAt = Date()
         routeTracker.stop()
+        motionMetrics.stop()
         motionResumeDetector.stop()
         NotificationService.cancelRestEndNotification()
         let startDate = startedAt
@@ -761,11 +774,18 @@ struct ActiveWorkoutView: View {
                 routePaceSecondsPerKm: routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds),
                 routeSpeedKmh: routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds),
                 routePointCount: routeTracker.routePoints.count,
+                routePoints: routeTracker.routePoints,
+                pedometerDistanceKm: motionMetrics.distanceKm,
+                pedometerPaceSecondsPerKm: motionMetrics.paceSecondsPerKm,
+                pedometerSpeedKmh: motionMetrics.speedKmh,
+                pedometerSteps: motionMetrics.steps,
                 previousRouteDistanceKm: store.activeWorkoutStatus?.routeDistanceKm,
                 previousRoutePaceSecondsPerKm: store.activeWorkoutStatus?.routePaceSecondsPerKm,
                 previousRouteSpeedKmh: store.activeWorkoutStatus?.routeSpeedKmh,
                 previousRoutePointCount: store.activeWorkoutStatus?.routePointCount,
-                routeSteps: workoutSensorSummary?.steps,
+                previousRoutePoints: store.activeWorkoutStatus?.routePoints,
+                previousRouteSteps: store.activeWorkoutStatus?.routeSteps,
+                routeSteps: motionMetrics.steps ?? workoutSensorSummary?.steps,
                 liveHeartRate: workoutSensorSummary?.averageHeartRate,
                 liveActiveEnergyKcal: workoutSensorSummary?.activeEnergyKcal
             )
@@ -851,6 +871,7 @@ struct ActiveWorkoutView: View {
             lastPausedAt = Date()
             if isRouteCandidate {
                 routeTracker.stop()
+                motionMetrics.pause()
                 motionResumeDetector.start()
             }
         } else {
@@ -860,6 +881,7 @@ struct ActiveWorkoutView: View {
             lastPausedAt = nil
             if isRouteCandidate {
                 routeTracker.resume()
+                motionMetrics.start(startedAt: startedAt)
                 motionResumeDetector.stop()
                 showResumeSuggestion = false
             }
@@ -872,6 +894,23 @@ struct ActiveWorkoutView: View {
     private func elapsedWorkoutSeconds(at date: Date = Date()) -> Int {
         let effectiveDate = isPaused ? (lastPausedAt ?? date) : date
         return max(Int(effectiveDate.timeIntervalSince(startedAt)) - basePausedSeconds, 0)
+    }
+
+    private func restoreActiveRouteIfNeeded(from status: ActiveWorkoutStatus) {
+        guard status.isOutdoorRoute == true else { return }
+        routeTracker.restoreIfNeeded(
+            points: status.routePoints ?? [],
+            startedAt: status.startedAt,
+            isPaused: status.isPaused
+        )
+    }
+
+    private func startLiveCardioTrackingIfNeeded() {
+        guard isCardioMovementCandidate, !isPaused else { return }
+        if isRouteCandidate {
+            routeTracker.resume()
+        }
+        motionMetrics.start(startedAt: startedAt)
     }
 
     private func currentRestRemainingSeconds(at date: Date = Date()) -> Int {
@@ -1458,6 +1497,10 @@ struct ActiveWorkoutView: View {
                 trackerPaceSecondsPerKm: routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds),
                 trackerSpeedKmh: routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds),
                 trackerPointCount: routeTracker.routePoints.count,
+                pedometerDistanceKm: motionMetrics.distanceKm,
+                pedometerPaceSecondsPerKm: motionMetrics.paceSecondsPerKm,
+                pedometerSpeedKmh: motionMetrics.speedKmh,
+                pedometerSteps: motionMetrics.steps,
                 activeStatus: store.activeWorkoutStatus,
                 sensorSummary: workoutSensorSummary,
                 todayHealthMetric: nil

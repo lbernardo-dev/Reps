@@ -774,6 +774,7 @@ struct ActiveWorkoutStatus: Identifiable, Equatable, Codable {
     var routePaceSecondsPerKm: Double?
     var routeSpeedKmh: Double?
     var routePointCount: Int?
+    var routePoints: [RoutePoint]?
     var routeSteps: Double?
     var liveHeartRate: Double?
     var liveActiveEnergyKcal: Double?
