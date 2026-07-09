@@ -71,6 +71,46 @@ SHOTS = [
         "MANTÉN RUTINA",
         "Contexto diario para entrenar de forma realista y sostenible.",
     ),
+    Shot(
+        "04-core-free-workout.png",
+        "06-exercise-search",
+        "FIND EXERCISES FAST",
+        "Jump from a free workout into a focused muscle catalog.",
+        "BUSCA EJERCICIOS RÁPIDO",
+        "Pasa del entreno libre al catálogo filtrado por músculo.",
+    ),
+    Shot(
+        "05-today-user-reference.png",
+        "07-recovery",
+        "RESPECT RECOVERY",
+        "Train harder when the signals are good and adjust when they are not.",
+        "RESPETA TU RECUPERACIÓN",
+        "Aprieta cuando las señales acompañan y ajusta cuando no.",
+    ),
+    Shot(
+        "02-current-streakrep-clean.jpg",
+        "08-quick-log",
+        "LOG WITHOUT FRICTION",
+        "Keep quick actions close so every set becomes useful data.",
+        "REGISTRA SIN FRICCIÓN",
+        "Ten acciones rápidas cerca y convierte cada serie en datos útiles.",
+    ),
+    Shot(
+        "05-today-user-reference.png",
+        "09-weekly-focus",
+        "KNOW WHAT MATTERS",
+        "Your plan, weekly target and daily context stay connected.",
+        "SABE QUÉ IMPORTA",
+        "Tu plan, objetivo semanal y contexto diario siempre conectados.",
+    ),
+    Shot(
+        "04-core-free-workout.png",
+        "10-premium-ready",
+        "BUILT TO PROGRESS",
+        "From free logging to premium insights, grow with your training.",
+        "HECHA PARA PROGRESAR",
+        "De registro libre a insights premium, crece con tu entrenamiento.",
+    ),
 ]
 
 
