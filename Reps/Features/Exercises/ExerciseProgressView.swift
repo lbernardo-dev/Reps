@@ -1022,7 +1022,7 @@ struct FatigueRatingCard: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text("fatiga")
+                    Text(localizedString("fatigue"))
                         .font(.headline)
                     Spacer()
                     Text("\(score)/4")

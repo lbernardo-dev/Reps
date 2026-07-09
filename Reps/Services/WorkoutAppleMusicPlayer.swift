@@ -37,10 +37,10 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
 
     func statusText(for playlist: PlanPlaylist) -> String {
         if isPlaying(playlist) {
-            return "Reproduciendo con Apple Music"
+            return localizedString("apple_music_playing")
         }
 
-        return message ?? "Apple Music listo"
+        return message ?? localizedString("apple_music_ready")
     }
 
     func isPlaying(_ playlist: PlanPlaylist) -> Bool {
@@ -70,12 +70,12 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
         } else if isPlaying {
             ApplicationMusicPlayer.shared.pause()
             isPlaying = false
-            message = "Pausado"
+            message = localizedString("apple_music_paused")
         } else {
             do {
                 try await ApplicationMusicPlayer.shared.play()
                 isPlaying = true
-                message = "Reproduciendo con Apple Music"
+                message = localizedString("apple_music_playing")
             } catch {
                 await play(playlist)
             }
@@ -115,7 +115,7 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
             try await verifySubscriptionIfAvailable(for: playlist)
 
             guard let musicPlaylist = try await resolvePlaylist(playlist) else {
-                message = "No pude resolver la playlist"
+                message = localizedString("apple_music_playlist_not_found")
                 return
             }
 
@@ -123,13 +123,13 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
             try await ApplicationMusicPlayer.shared.play()
             currentPlaylistID = playlist.id
             isPlaying = true
-            message = "Reproduciendo con Apple Music"
+            message = localizedString("apple_music_playing")
             updateNowPlaying()
         } catch AppleMusicPlaybackError.subscriptionRequired {
             message = localizedString("music_subscription_needed")
         } catch {
             print("Apple Music playback failed: \(error)")
-            message = "Apple Music no pudo iniciar esta playlist"
+            message = localizedString("apple_music_playlist_failed")
         }
     }
 

@@ -399,7 +399,7 @@ struct WorkoutDetailView: View {
         return PulseCard {
             VStack(alignment: .leading, spacing: 12) {
                 Label {
-                    Text("Ejecución real del plan")
+                    Text(localizedString("real_plan_execution"))
                 } icon: {
                     Image(systemName: "chart.bar.fill")
                 }

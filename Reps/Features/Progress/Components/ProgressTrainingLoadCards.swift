@@ -38,7 +38,7 @@ struct TrainingLoadOverviewCard: View {
               .minimumScaleFactor(0.78)
               .fixedSize(horizontal: false, vertical: true)
 
-            Text("\(Int(workload.fatigueScore.rounded())) fatiga · 7 días")
+            Text(localizedFormat("fatigue_7_days_format", "\(Int(workload.fatigueScore.rounded()))"))
               .font(.system(size: 13, weight: .bold))
               .foregroundStyle(PulseTheme.secondaryText)
           }

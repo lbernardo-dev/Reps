@@ -619,7 +619,7 @@ private struct ActivePlanCommandCard: View {
     }
 
     private var compactFrequencyTitle: String {
-        "\(plan.daysPerWeek)d/sem"
+        localizedFormat("days_per_week_short_format", plan.daysPerWeek)
     }
 
     private var statusIcon: String {
@@ -840,13 +840,13 @@ private struct PlanExecutionBars: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label("Ejecución real", systemImage: "chart.bar.fill")
+                Label(localizedString("real_execution"), systemImage: "chart.bar.fill")
                     .font(.caption.weight(.black))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .textCase(.uppercase)
                 Spacer()
                 if hasAnySession {
-                    Text("6 sem")
+                    Text(localizedFormat("weeks_short_count_format", "6"))
                         .font(.caption2.weight(.black))
                         .foregroundStyle(tint)
                         .padding(.horizontal, 7)

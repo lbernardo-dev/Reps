@@ -759,14 +759,14 @@ struct ProgressDashboardView: View {
     if store.activePlan.daysPerWeek > 0 {
       return localizedString("week_label").lowercased()
     }
-    return "sesiones"
+    return localizedString("sessions_2").lowercased()
   }
 
   private var sessionsGoalCaption: String {
     if store.activePlan.daysPerWeek > 0 {
-      return "objetivo semanal"
+      return localizedString("weekly_target")
     }
-    return "esta semana"
+    return localizedString("this_week").lowercased()
   }
 
   /// Weekly volume vs. last week (ring laps when you beat it).

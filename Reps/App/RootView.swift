@@ -75,6 +75,10 @@ struct MainTabView: View {
   @State private var pendingWorkoutSummarySession: WorkoutSession?
   @State private var showCalendarSheet = false
 
+  init() {
+    _selectedTab = State(initialValue: Self.initialTabFromLaunchArguments())
+  }
+
   var body: some View {
     @Bindable var store = store
     return
@@ -408,6 +412,31 @@ struct MainTabView: View {
         selectedTab = newTab
       }
     )
+  }
+
+  private static func initialTabFromLaunchArguments() -> AppTab {
+    #if DEBUG || targetEnvironment(simulator)
+    let arguments = ProcessInfo.processInfo.arguments
+    guard let index = arguments.firstIndex(of: "-initialTab"),
+          arguments.indices.contains(arguments.index(after: index))
+    else {
+      return .today
+    }
+    switch arguments[arguments.index(after: index)].lowercased() {
+    case "train", "entrenar":
+      return .train
+    case "progress", "progreso":
+      return .progress
+    case "exercises", "ejercicios":
+      return .exercises
+    case "profile", "perfil":
+      return .profile
+    default:
+      return .today
+    }
+    #else
+    return .today
+    #endif
   }
 
   private func reset(_ tab: AppTab) {

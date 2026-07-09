@@ -833,7 +833,7 @@ struct TodayView: View {
                 TrainingSignalTile(
                     title: localizedString("plan"),
                     value: weekTargetText,
-                    subtitle: "objetivo semanal",
+                    subtitle: localizedString("weekly_target"),
                     systemImage: "target",
                     color: PulseTheme.accent,
                     domain: .strength
@@ -841,7 +841,7 @@ struct TodayView: View {
                 TrainingSignalTile(
                     title: localizedString("load"),
                     value: "\(Int(workloadSummary.fatigueScore.rounded()))",
-                    subtitle: "fatiga",
+                    subtitle: localizedString("fatigue"),
                     systemImage: "waveform.path.ecg",
                     color: batteryColor,
                     domain: .recovery
@@ -857,7 +857,7 @@ struct TodayView: View {
                 TrainingSignalTile(
                     title: localizedString("progress_2"),
                     value: "\(recentSessions.count)",
-                    subtitle: "30 días",
+                    subtitle: localizedFormat("days_count_format", "30"),
                     systemImage: "chart.line.uptrend.xyaxis",
                     color: PulseTheme.ringMove,
                     domain: .cardio
@@ -1832,15 +1832,15 @@ struct TodayView: View {
             switch summary.loadState {
             case .onTrack:
                 if let delta = summary.volumeDeltaVsPreviousWeek {
-                    return String(format: "Volumen %+.0f%% vs semana pasada", delta * 100)
+                    return localizedFormat("volume_vs_last_week_format", delta * 100)
                 }
-                return "Ejecución en línea con el plan"
+                return localizedString("plan_execution_on_track")
             case .behind:
-                return "Falta estímulo real frente al objetivo semanal"
+                return localizedString("missing_real_stimulus_weekly_target")
             case .overreaching:
-                return "Carga alta: prioriza recuperación y técnica"
+                return localizedString("high_load_prioritize_recovery")
             case .noData:
-                return "Completa una sesión para ver evolución real"
+                return localizedString("complete_session_for_real_progress")
             }
         }()
 
@@ -3234,14 +3234,18 @@ private struct FitnessWeatherSnapshot: Identifiable, Hashable {
         }
 
         let highCelsius = celsius.max() ?? 30
-        let conditionTitle = highCelsius >= 32 ? "Soleado y caluroso" : "Parcialmente nublado"
+        let conditionTitle = highCelsius >= 32 ? localizedString("sunny_hot") : localizedString("moderate_clouds")
         let conditionMessage = highCelsius >= 32
-            ? "Buena luz para moverte temprano; desde mediodía conviene bajar intensidad, hidratarte y evitar el sol directo."
-            : "Condiciones cómodas para una sesión exterior suave o una caminata larga."
+            ? localizedString("sunny_hot_message")
+            : localizedString("moderate_clouds_message")
+        let dayTitle = dayOffset == 0 ? localizedString("today_2") : localizedString("tomorrow")
+        let windowTitle = "\(dayTitle), \(dayOffset == 0 ? "07:00 - 09:00" : "08:00 - 10:00")"
+        let windowRain = "\(rain.max() ?? 0)"
+        let windowSpeed = "\(speed(5)) \(isImperial ? "mph" : "km/h")"
 
         return FitnessWeatherSnapshot(
             date: dayStart,
-            locationName: "Tu zona",
+            locationName: localizedString("your_area"),
             conditionTitle: conditionTitle,
             conditionMessage: conditionMessage,
             systemImage: highCelsius >= 32 ? "sun.max.fill" : "cloud.sun.fill",
@@ -3259,8 +3263,8 @@ private struct FitnessWeatherSnapshot: Identifiable, Hashable {
             sunset: dayOffset == 0 ? "21:31" : "21:30",
             hourly: hourly,
             bestWindow: FitnessWeatherWindow(
-                title: dayOffset == 0 ? "Hoy, 07:00 - 09:00" : "Mañana, 08:00 - 10:00",
-                subtitle: "\(temp(dayOffset == 0 ? 21 : 22))\(isImperial ? "°F" : "°C") · \(rain.max() ?? 0)% lluvia · \(speed(5)) \(isImperial ? "mph" : "km/h")",
+                title: windowTitle,
+                subtitle: localizedFormat("light_rain_wind_window_subtitle_format", "\(temp(dayOffset == 0 ? 21 : 22))\(isImperial ? "°F" : "°C")", windowRain, windowSpeed),
                 systemImage: "sunrise.fill"
             )
         )
@@ -3301,15 +3305,15 @@ private struct FitnessWeatherInsight: Identifiable {
 
         if today.rainProbability <= 10 && today.windGusts < comfortableGusts && today.highTemperature < comfortableHigh {
             insights.append(FitnessWeatherInsight(
-                title: "Buen día para salir",
-                message: "La lluvia es baja y el viento no debería molestar. Mejor ventana: \(today.bestWindow.title.lowercased()).",
+                title: localizedString("good_day_to_go_out"),
+                message: localizedFormat("good_day_to_go_out_message_format", today.bestWindow.title.lowercased(with: RepsLocalization.locale)),
                 systemImage: "figure.run",
                 tone: .good
             ))
         } else {
             insights.append(FitnessWeatherInsight(
-                title: "Plan exterior con control",
-                message: "Si sales, prioriza zonas de sombra y baja el ritmo cuando suba la temperatura.",
+                title: localizedString("controlled_outdoor_plan"),
+                message: localizedString("controlled_outdoor_plan_message"),
                 systemImage: "exclamationmark.triangle.fill",
                 tone: .warning
             ))
@@ -3317,25 +3321,24 @@ private struct FitnessWeatherInsight: Identifiable {
 
         if today.uvIndex >= 7 {
             insights.append(FitnessWeatherInsight(
-                title: "Sol fuerte a mediodía",
-                message: "UV \(today.uvIndex): usa protección y evita intervalos duros entre 12:00 y 17:00.",
+                title: localizedString("strong_sun_midday"),
+                message: localizedFormat("strong_sun_midday_message_format", "\(today.uvIndex)"),
                 systemImage: "sun.max.trianglebadge.exclamationmark.fill",
                 tone: .warning
             ))
         }
 
         if battery.level < 55 || trainingLocation == .gym || trainingLocation == .home {
-            let place = trainingLocation == .home ? "en casa" : "en gym"
             insights.append(FitnessWeatherInsight(
-                title: hasActivePlan ? "Mejor bajo techo" : "Alternativa bajo techo",
-                message: "Con recuperación al \(battery.level)%, una sesión de fuerza \(place) mantiene el progreso sin sumar calor externo.",
+                title: hasActivePlan ? localizedString("better_indoors") : localizedString("indoor_alternative"),
+                message: localizedFormat("indoor_strength_recovery_message_format", "\(battery.level)"),
                 systemImage: "house.and.flag.fill",
                 tone: .indoor
             ))
         } else {
             insights.append(FitnessWeatherInsight(
-                title: "Mañana también hay ventana",
-                message: "\(tomorrow.bestWindow.title) pinta estable: \(tomorrow.bestWindow.subtitle).",
+                title: localizedString("tomorrow_window"),
+                message: localizedFormat("tomorrow_window_message_format", tomorrow.bestWindow.title, tomorrow.bestWindow.subtitle),
                 systemImage: "calendar.badge.clock",
                 tone: .good
             ))
@@ -3392,9 +3395,9 @@ private struct FitnessWeatherWidget: View {
                     .id(selectedDay)
 
                 HStack(spacing: 8) {
-                    WeatherMetricPill(value: "\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)", label: "Ahora", systemImage: "thermometer.medium", color: PulseTheme.warning)
-                    WeatherMetricPill(value: "\(activeSnapshot.windSpeed) \(activeSnapshot.speedUnit)", label: "Viento", systemImage: "location.north.fill", color: MetricDomain.weather.tint)
-                    WeatherMetricPill(value: "\(activeSnapshot.rainProbability)%", label: "Lluvia", systemImage: "cloud.rain.fill", color: Color.blue)
+                    WeatherMetricPill(value: "\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)", label: localizedString("now"), systemImage: "thermometer.medium", color: PulseTheme.warning)
+                    WeatherMetricPill(value: "\(activeSnapshot.windSpeed) \(activeSnapshot.speedUnit)", label: localizedString("wind"), systemImage: "location.north.fill", color: MetricDomain.weather.tint)
+                    WeatherMetricPill(value: "\(activeSnapshot.rainProbability)%", label: localizedString("rain"), systemImage: "cloud.rain.fill", color: Color.blue)
                     WeatherMetricPill(value: "\(activeSnapshot.uvIndex)", label: "UV", systemImage: "sun.max.fill", color: PulseTheme.accent)
                 }
                 .padding(.horizontal, 16)
@@ -3713,10 +3716,10 @@ private struct TodayWeatherDetailView: View {
             }
 
             HStack(spacing: 8) {
-                WeatherMetricPill(value: "\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)", label: "Ahora", systemImage: "thermometer.medium", color: PulseTheme.warning)
-                WeatherMetricPill(value: "\(activeSnapshot.windSpeed) \(activeSnapshot.speedUnit)", label: "Viento", systemImage: "location.north.fill", color: MetricDomain.weather.tint)
+                WeatherMetricPill(value: "\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)", label: localizedString("now"), systemImage: "thermometer.medium", color: PulseTheme.warning)
+                WeatherMetricPill(value: "\(activeSnapshot.windSpeed) \(activeSnapshot.speedUnit)", label: localizedString("wind"), systemImage: "location.north.fill", color: MetricDomain.weather.tint)
                 WeatherMetricPill(value: "\(activeSnapshot.uvIndex)", label: "UV", systemImage: "sun.max.fill", color: PulseTheme.accent)
-                WeatherMetricPill(value: "\(activeSnapshot.rainProbability)%", label: "Lluvia", systemImage: "cloud.rain.fill", color: Color.blue)
+                WeatherMetricPill(value: "\(activeSnapshot.rainProbability)%", label: localizedString("rain"), systemImage: "cloud.rain.fill", color: Color.blue)
             }
         }
         .padding(.top, 6)
@@ -3748,7 +3751,7 @@ private struct TodayWeatherDetailView: View {
             HStack(alignment: .center, spacing: 14) {
                 PulseIconBadge(systemImage: activeSnapshot.bestWindow.systemImage, tint: PulseTheme.warning, size: 52, radius: PulseTheme.mediumRadius)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Mejor momento")
+                    Text(localizedString("best_time"))
                         .font(.headline.weight(.black))
                     Text(activeSnapshot.bestWindow.title)
                         .font(.subheadline.weight(.bold))
@@ -3763,16 +3766,16 @@ private struct TodayWeatherDetailView: View {
 
     private var detailStats: some View {
         HealthStatsHeader(items: [
-            HealthStatItem(value: "\(activeSnapshot.highTemperature)\(activeSnapshot.temperatureUnit)", label: "Máxima"),
-            HealthStatItem(value: "\(activeSnapshot.humidity)%", label: "Humedad"),
-            HealthStatItem(value: "\(activeSnapshot.windGusts) \(activeSnapshot.speedUnit)", label: "Rachas")
+            HealthStatItem(value: "\(activeSnapshot.highTemperature)\(activeSnapshot.temperatureUnit)", label: localizedString("max_temperature")),
+            HealthStatItem(value: "\(activeSnapshot.humidity)%", label: localizedString("humidity")),
+            HealthStatItem(value: "\(activeSnapshot.windGusts) \(activeSnapshot.speedUnit)", label: localizedString("wind_gusts"))
         ], domain: domain)
     }
 
     private var temperatureCard: some View {
         GlassMetricCard(domain: domain) {
             VStack(alignment: .leading, spacing: 14) {
-                WeatherDetailCardHeader(title: "Temperatura", systemImage: "thermometer.medium", color: PulseTheme.warning)
+                WeatherDetailCardHeader(title: localizedString("temperature"), systemImage: "thermometer.medium", color: PulseTheme.warning)
                 WeatherCompactChart(points: activeSnapshot.hourly, tint: domain.tint)
                     .frame(height: 170)
             }
@@ -3782,11 +3785,11 @@ private struct TodayWeatherDetailView: View {
     private var windCard: some View {
         GlassMetricCard(domain: domain) {
             VStack(alignment: .leading, spacing: 14) {
-                WeatherDetailCardHeader(title: "Viento", systemImage: "location.north.fill", color: domain.tint)
+                WeatherDetailCardHeader(title: localizedString("wind"), systemImage: "location.north.fill", color: domain.tint)
                 HStack(spacing: 0) {
                     HealthStatItem(value: "\(activeSnapshot.windSpeed)", label: activeSnapshot.speedUnit)
                         .weatherStatCell()
-                    HealthStatItem(value: "\(activeSnapshot.windGusts)", label: "rachas")
+                    HealthStatItem(value: "\(activeSnapshot.windGusts)", label: localizedString("wind_gusts"))
                         .weatherStatCell()
                 }
                 WeatherWindBars(points: activeSnapshot.hourly, color: domain.tint)
@@ -3798,16 +3801,16 @@ private struct TodayWeatherDetailView: View {
     private var rainUVCard: some View {
         GlassMetricCard(domain: domain) {
             VStack(alignment: .leading, spacing: 14) {
-                WeatherDetailCardHeader(title: "Lluvia y UV", systemImage: "sun.max.fill", color: PulseTheme.accent)
+                WeatherDetailCardHeader(title: localizedString("rain_uv"), systemImage: "sun.max.fill", color: PulseTheme.accent)
                 HStack(spacing: 10) {
-                    HealthMiniTile(title: "Lluvia", value: "\(activeSnapshot.rainProbability)%", subtitle: "probabilidad", systemImage: "cloud.rain.fill", color: Color.blue, domain: domain)
+                    HealthMiniTile(title: localizedString("rain"), value: "\(activeSnapshot.rainProbability)%", subtitle: localizedString("rain_probability"), systemImage: "cloud.rain.fill", color: Color.blue, domain: domain)
                     HealthMiniTile(title: "UV", value: "\(activeSnapshot.uvIndex)", subtitle: uvLabel(activeSnapshot.uvIndex), systemImage: "sun.max.fill", color: PulseTheme.accent, domain: domain)
                 }
                 HealthInsightRow(
                     icon: "shield.lefthalf.filled",
                     color: activeSnapshot.uvIndex >= 7 ? PulseTheme.warning : PulseTheme.recovery,
-                    title: activeSnapshot.uvIndex >= 7 ? "Protección solar" : "UV controlado",
-                    message: activeSnapshot.uvIndex >= 7 ? "Evita los bloques más intensos a mediodía o reduce el volumen si entrenas fuera." : "Buen margen para caminar o correr suave al aire libre."
+                    title: activeSnapshot.uvIndex >= 7 ? localizedString("sun_protection") : localizedString("controlled_uv"),
+                    message: activeSnapshot.uvIndex >= 7 ? localizedString("sun_protection_message") : localizedString("controlled_uv_message")
                 )
             }
         }
@@ -3816,7 +3819,7 @@ private struct TodayWeatherDetailView: View {
     private var insightsCard: some View {
         GlassMetricCard(domain: domain) {
             VStack(alignment: .leading, spacing: 10) {
-                WeatherDetailCardHeader(title: "Insights fitness", systemImage: "sparkles", color: PulseTheme.accent)
+                WeatherDetailCardHeader(title: localizedString("fitness_insights"), systemImage: "sparkles", color: PulseTheme.accent)
                 ForEach(insights) { insight in
                     FitnessWeatherInsightRow(insight: insight)
                 }

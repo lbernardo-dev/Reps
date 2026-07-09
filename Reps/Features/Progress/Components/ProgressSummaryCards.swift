@@ -479,10 +479,10 @@ struct BodyHealthFusionPanel: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
       HStack {
-        Label("Health + entrenamiento", systemImage: "point.3.connected.trianglepath.dotted")
+        Label(localizedString("health_training"), systemImage: "point.3.connected.trianglepath.dotted")
           .font(.headline)
         Spacer()
-        Text("\(Int(fatigueScore.rounded())) fatiga")
+        Text(localizedFormat("fatigue_score_format", "\(Int(fatigueScore.rounded()))"))
           .font(.caption.weight(.black).monospacedDigit())
           .foregroundStyle(fatigueScore > 65 ? PulseTheme.destructive : PulseTheme.ringExercise)
           .padding(.horizontal, 9)
@@ -516,13 +516,13 @@ struct BodyHealthFusionPanel: View {
       }
 
       LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-        SignalMetricTile(title: "Actividad", value: "\(activeKcal)", subtitle: "\(steps) pasos", systemImage: TrackedMetric.activeEnergy.systemImage, color: TrackedMetric.activeEnergy.tint)
-        SignalMetricTile(title: "Ejercicio", value: "\(exerciseMinutes)", subtitle: "min Health", systemImage: TrackedMetric.exerciseMinutes.systemImage, color: TrackedMetric.exerciseMinutes.tint)
-        SignalMetricTile(title: "Fuerza", value: "\(sessions)", subtitle: "\(volumeKg) kg volumen", systemImage: TrackedMetric.sessions.systemImage, color: TrackedMetric.sessions.tint)
+        SignalMetricTile(title: localizedString("activity"), value: "\(activeKcal)", subtitle: localizedFormat("steps_count_format", steps), systemImage: TrackedMetric.activeEnergy.systemImage, color: TrackedMetric.activeEnergy.tint)
+        SignalMetricTile(title: localizedString("exercise"), value: "\(exerciseMinutes)", subtitle: "min Health", systemImage: TrackedMetric.exerciseMinutes.systemImage, color: TrackedMetric.exerciseMinutes.tint)
+        SignalMetricTile(title: localizedString("strength"), value: "\(sessions)", subtitle: "\(volumeKg) kg \(localizedString("volume").lowercased())", systemImage: TrackedMetric.sessions.systemImage, color: TrackedMetric.sessions.tint)
         SignalMetricTile(
-          title: "Recuperación",
+          title: localizedString("recovery"),
           value: hrv.map { "\(Int($0)) ms" } ?? "--",
-          subtitle: restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? "sin FC reposo",
+          subtitle: restingHeartRate.map { "\(Int($0)) \(localizedString("resting_hr"))" } ?? localizedString("no_resting_hr"),
           systemImage: TrackedMetric.hrv.systemImage,
           color: TrackedMetric.hrv.tint
         )
@@ -612,9 +612,9 @@ struct SummaryRingsHeroCard: View {
       VStack(alignment: .leading, spacing: 16) {
         HStack(alignment: .firstTextBaseline) {
           VStack(alignment: .leading, spacing: 3) {
-            Text("Resumen semanal")
+            Text(localizedString("weekly_summary"))
               .font(.headline.weight(.black))
-            Text("Rango evaluado: \(rangeText)")
+            Text(localizedFormat("weekly_range_format", rangeText))
               .font(.caption.weight(.bold))
               .foregroundStyle(PulseTheme.secondaryText)
           }
@@ -642,7 +642,7 @@ struct SummaryRingsHeroCard: View {
 
         VStack(alignment: .leading, spacing: 8) {
           HStack {
-            Text("Ritmo semanal")
+            Text(localizedString("weekly_rhythm"))
               .font(.caption.weight(.black))
               .foregroundStyle(PulseTheme.secondaryText)
             Spacer()
@@ -670,7 +670,7 @@ struct SummaryRingsHeroCard: View {
         value: moveValue,
         unit: moveGoal,
         progress: moveProgress,
-        goalCaption: "vs semana previa",
+        goalCaption: localizedString("vs_previous_week"),
         icon: "scalemass.fill",
         action: onTapMove
       )
@@ -692,7 +692,7 @@ struct SummaryRingsHeroCard: View {
         value: standValue,
         unit: standGoal,
         progress: standProgress,
-        goalCaption: "días activos",
+        goalCaption: localizedString("active_days"),
         icon: "calendar.badge.clock",
         action: onTapStand
       )
@@ -748,47 +748,47 @@ private struct WeeklyDistributionPanel: View {
 
   private var activeDaysLabel: String {
     let count = activeDays.filter { $0 }.count
-    return count == 1 ? "1 día" : "\(count) días"
+    return count == 1 ? localizedString("day_singular") : localizedFormat("days_count_format", "\(count)")
   }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(alignment: .firstTextBaseline) {
-        Text("Distribución diaria")
+        Text(localizedString("daily_distribution"))
           .font(.caption.weight(.black))
           .foregroundStyle(PulseTheme.secondaryText)
         Spacer()
-        Text("Lun-Dom")
+        Text(localizedString("week_monday_sunday"))
           .font(.caption2.weight(.black))
           .foregroundStyle(PulseTheme.tertiaryText)
       }
 
       VStack(spacing: 10) {
         WeeklySparkMetricRow(
-          title: "Volumen",
+          title: localizedString("volume"),
           total: "\(Int(normalizedPoints.map(\.volume).reduce(0, +))) kg",
           color: PulseTheme.ringMove,
           values: normalizedPoints.map { $0.volume / maxVolume },
           dayDates: normalizedPoints.map(\.date),
-          footer: "Carga registrada"
+          footer: localizedString("recorded_load")
         )
 
         WeeklySparkMetricRow(
-          title: "Sesiones",
+          title: localizedString("sessions_2"),
           total: activeDaysLabel,
           color: PulseTheme.ringExercise,
           values: sessionValues,
           dayDates: normalizedPoints.map(\.date),
-          footer: "Días con entreno"
+          footer: localizedString("workout_days")
         )
 
         WeeklySparkMetricRow(
-          title: "Actividad",
+          title: localizedString("activity"),
           total: "\(Int(normalizedPoints.map(\.activity).reduce(0, +))) kcal",
           color: PulseTheme.ringStand,
           values: normalizedPoints.map { $0.activity / maxActivity },
           dayDates: normalizedPoints.map(\.date),
-          footer: "Health semanal"
+          footer: localizedString("weekly_health")
         )
       }
     }

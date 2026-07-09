@@ -169,6 +169,15 @@ struct RepsApp: App {
                     guard !didRunStartupTask else { return }
                     didRunStartupTask = true
 
+                    #if DEBUG || targetEnvironment(simulator)
+                    if ProcessInfo.processInfo.arguments.contains("-loadPremiumDemoData") {
+                        store.loadPremiumDemoDataForDebug()
+                    }
+                    if let demoLanguage = Self.demoLanguageFromLaunchArguments() {
+                        store.userProfile.preferredLanguage = demoLanguage
+                    }
+                    #endif
+
                     RepsLocalization.use(store.userProfile.preferredLanguage)
                     PermissionService.shared.refreshAll()
                     await Task.yield()
@@ -228,4 +237,24 @@ struct RepsApp: App {
             store.handleNotificationTarget(target)
         }
     }
+
+    #if DEBUG || targetEnvironment(simulator)
+    private static func demoLanguageFromLaunchArguments() -> String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-demoLanguage"),
+              arguments.indices.contains(arguments.index(after: index))
+        else {
+            return nil
+        }
+        let value = arguments[arguments.index(after: index)].lowercased()
+        switch value {
+        case "en", "en-us":
+            return "en"
+        case "es", "es-es":
+            return "es"
+        default:
+            return nil
+        }
+    }
+    #endif
 }
