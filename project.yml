@@ -11,7 +11,7 @@ settings:
   base:
     DEVELOPMENT_TEAM: L2B56644F5
     MARKETING_VERSION: 1.0.0
-    CURRENT_PROJECT_VERSION: 100202607073
+    CURRENT_PROJECT_VERSION: 100202607091
     SWIFT_VERSION: 6.0
     LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION: "YES"
   configs:
@@ -190,10 +190,6 @@ targets:
       - path: RepsShared
       - path: Reps/Resources/Localizable.xcstrings
       - path: RepsWatch/InfoPlist.xcstrings
-      - path: RepsWatch/Assets.xcassets/AppIcon.appiconset/app-icon-44x44@2x.png
-        buildPhase: resources
-      - path: RepsWatch/Assets.xcassets/AppIcon.appiconset/app-icon-50x50@2x.png
-        buildPhase: resources
     info:
       path: RepsWatch/Info.plist
       properties:

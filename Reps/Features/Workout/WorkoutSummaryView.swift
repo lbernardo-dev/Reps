@@ -74,6 +74,14 @@ struct WorkoutSummaryView: View {
         )
     }
 
+    private var activeGoalHighlights: [Goal] {
+        store.goals
+            .filter { !$0.isAchieved }
+            .sorted { $0.progress > $1.progress }
+            .prefix(3)
+            .map { $0 }
+    }
+
     var body: some View {
         Group {
             if session.isRouteSession {
@@ -154,6 +162,11 @@ struct WorkoutSummaryView: View {
                                 durationText: durationText
                             )
                             .padding(.horizontal, 4)
+                        }
+
+                        if !activeGoalHighlights.isEmpty {
+                            PostWorkoutGoalProgressCard(goals: activeGoalHighlights)
+                                .padding(.horizontal, 4)
                         }
 
                         if !postWorkoutRecommendations.isEmpty {
@@ -344,6 +357,60 @@ struct WorkoutSummaryView: View {
                 feedComposeImage = img
                 isSharingToFeed = false
                 isShowingFeedCompose = true
+            }
+        }
+    }
+}
+
+private struct PostWorkoutGoalProgressCard: View {
+    let goals: [Goal]
+
+    var body: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "target")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                        .frame(width: 38, height: 38)
+                        .background(PulseTheme.accent, in: Circle())
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("post_workout_goals_title")
+                            .font(.headline)
+                        Text("post_workout_goals_subtitle")
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                }
+
+                ForEach(goals) { goal in
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack {
+                            Text(goal.title)
+                                .font(.subheadline.weight(.bold))
+                                .lineLimit(1)
+                            Spacer()
+                            Text("\(Int((goal.progress * 100).rounded()))%")
+                                .font(.caption.weight(.black))
+                                .foregroundStyle(PulseTheme.accent)
+                        }
+                        GeometryReader { proxy in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(PulseTheme.grouped)
+                                Capsule()
+                                    .fill(goal.isOverdue ? PulseTheme.destructive : PulseTheme.accent)
+                                    .frame(width: proxy.size.width * goal.progress)
+                            }
+                        }
+                        .frame(height: 6)
+                        Text("\(goal.current.formatted(.number.precision(.fractionLength(0...1)))) / \(goal.target.formatted(.number.precision(.fractionLength(0...1)))) \(goal.unit)")
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    if goal.id != goals.last?.id {
+                        Divider().opacity(0.12)
+                    }
+                }
             }
         }
     }

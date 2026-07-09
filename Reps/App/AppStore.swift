@@ -3091,6 +3091,11 @@ final class AppStore {
             return
         }
 
+        PerformanceSignpost.event(
+            "appStore.saveScheduled",
+            scope.map { "scope=\($0.signpostName)" } ?? "scope=all"
+        )
+
         if let scope {
             pendingSaveScopes.insert(scope)
         } else {
@@ -3141,6 +3146,19 @@ final class AppStore {
         pendingSaveScopes = []
         pendingWidgetTimelineReload = false
         guard !scopes.isEmpty else { return }
+
+        let scopeNames = scopes.signpostDescription
+        let interval = PerformanceSignpost.begin(
+            "appStore.commitPendingSave",
+            "scopes=\(scopeNames) reloadWidgets=\(reloadTimelines)"
+        )
+        defer {
+            PerformanceSignpost.end(
+                "appStore.commitPendingSave",
+                interval,
+                "scopes=\(scopeNames)"
+            )
+        }
 
         persistence.save(currentSnapshot, scopes: scopes)
 

@@ -146,8 +146,6 @@
 		AC55B17F5521F73E2EF8A159 /* SmartProgressionAdvisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFD9F5578585D85B9F2794F3 /* SmartProgressionAdvisor.swift */; };
 		ACDC7479449EBF00793E0AFB /* CreateChallengeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC3840D58A6BB64084A3784 /* CreateChallengeView.swift */; };
 		B16D6C3D6404FA08098A033F /* StreakRepFit2.icon in Resources */ = {isa = PBXBuildFile; fileRef = EE434650A618AB318510D605 /* StreakRepFit2.icon */; };
-		B18A6D15A7C94906A8E3B501 /* app-icon-44x44@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = B18A6D14A7C94906A8E3B501 /* app-icon-44x44@2x.png */; };
-		B18A6D17A7C94906A8E3B501 /* app-icon-50x50@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = B18A6D16A7C94906A8E3B501 /* app-icon-50x50@2x.png */; };
 		B244444DC91F7901D069A6E7 /* WorkoutShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF2BB82DF974745D5746570F /* WorkoutShared.swift */; };
 		B4C98D41ED857AF09B4C5C97 /* AppSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACEC4BB22C072ED9B0069C1 /* AppSnapshot.swift */; };
 		B5460ABE3BFCDB94CC695F44 /* SocialHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DAB8A3B56BCAE9A06BA4E3F /* SocialHubView.swift */; };
@@ -185,6 +183,7 @@
 		E263ED6733E166E2907C945A /* ProgressMetricDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5962CEDFB313CA8F83E353 /* ProgressMetricDetailView.swift */; };
 		E2729D508BDEA2AB59601765 /* SwiftDataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBBA5AE4E473D263E3CE2A52 /* SwiftDataModels.swift */; };
 		E2F0AAC0598EE3534790FBAB /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B31D5E2BE507A45C4B26BED6 /* InfoPlist.xcstrings */; };
+		E34A105F804B3B3009E47A47 /* PerformanceSignpost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A71DF3F8E2772F3BBE380E7 /* PerformanceSignpost.swift */; };
 		EA75BA1FF07E83CCD72524A4 /* WorkoutHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2690AE3D301DC3DD21B4F5C /* WorkoutHistoryView.swift */; };
 		ECEC0E2542C138655D968F5F /* SocialService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1E7EF4329D7247E1254E8D /* SocialService.swift */; };
 		EE68B76DFBE62E1F88D8C226 /* IntervalTimerRunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F423B7FC34DC5CB4341BE381 /* IntervalTimerRunView.swift */; };
@@ -306,6 +305,7 @@
 		467EA079553F247F75C76054 /* RepsWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsWatchApp.swift; sourceTree = "<group>"; };
 		467EA28181597EEE24DC5930 /* RehabExerciseDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RehabExerciseDetailView.swift; sourceTree = "<group>"; };
 		4965A295E62A8E86154C1F72 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		4A71DF3F8E2772F3BBE380E7 /* PerformanceSignpost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceSignpost.swift; sourceTree = "<group>"; };
 		4AD7316EF16C704B3B11D384 /* DeveloperMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperMenuView.swift; sourceTree = "<group>"; };
 		4C811B078B70CCB8A2E188B7 /* RepsStreakWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsStreakWidget.swift; sourceTree = "<group>"; };
 		5163BBD811D7D834ECBC728F /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
@@ -372,8 +372,6 @@
 		AF2BB82DF974745D5746570F /* WorkoutShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutShared.swift; sourceTree = "<group>"; };
 		AF8F85004F532C20161BD62F /* TrendLineChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendLineChart.swift; sourceTree = "<group>"; };
 		AFD9F5578585D85B9F2794F3 /* SmartProgressionAdvisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartProgressionAdvisor.swift; sourceTree = "<group>"; };
-		B18A6D14A7C94906A8E3B501 /* app-icon-44x44@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Assets.xcassets/AppIcon.appiconset/app-icon-44x44@2x.png"; sourceTree = "<group>"; };
-		B18A6D16A7C94906A8E3B501 /* app-icon-50x50@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Assets.xcassets/AppIcon.appiconset/app-icon-50x50@2x.png"; sourceTree = "<group>"; };
 		B09E9E304E3029F2065B384F /* ProgressExecutiveCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressExecutiveCards.swift; sourceTree = "<group>"; };
 		B31D5E2BE507A45C4B26BED6 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		B91792D967FC5B2EDAE59ACD /* PulseTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulseTheme.swift; sourceTree = "<group>"; };
@@ -460,8 +458,6 @@
 			isa = PBXGroup;
 			children = (
 				8E9A6FDE53836377E8092FFF /* Assets.xcassets */,
-				B18A6D14A7C94906A8E3B501 /* app-icon-44x44@2x.png */,
-				B18A6D16A7C94906A8E3B501 /* app-icon-50x50@2x.png */,
 				4965A295E62A8E86154C1F72 /* Info.plist */,
 				30127D221461543DBC3C6012 /* InfoPlist.xcstrings */,
 				439F6FCF315C65C3FD34EF0D /* RepsWatch.entitlements */,
@@ -500,6 +496,7 @@
 				E60BCBB96781635E07A7C1FA /* MetricsDiagnosticsService.swift */,
 				87CD664F776611D49CB2499E /* NotificationEngine.swift */,
 				FBE400159890F89819FDFC36 /* NotificationService.swift */,
+				4A71DF3F8E2772F3BBE380E7 /* PerformanceSignpost.swift */,
 				CCD6E9727C891B41CB538DE6 /* PermissionService.swift */,
 				A061386A12555F63FB9492CB /* RepsAppShortcuts.swift */,
 				ABAAF9BDD73A5DD3BDF7FDE9 /* ShareImageItemSource.swift */,
@@ -1044,8 +1041,6 @@
 				569BA3500A2E3B7A507C4400 /* InfoPlist.xcstrings in Resources */,
 				73E11A0A5F1B20892C3BF91D /* Localizable.xcstrings in Resources */,
 				6F5CC8058CB016D740233F29 /* PrivacyInfo.xcprivacy in Resources */,
-				B18A6D15A7C94906A8E3B501 /* app-icon-44x44@2x.png in Resources */,
-				B18A6D17A7C94906A8E3B501 /* app-icon-50x50@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1192,6 +1187,7 @@
 				5B3EC7C5D1D72EE4CEB36805 /* OnboardingResult.swift in Sources */,
 				5F9AA871BBC23C64162D14E8 /* OneRepMaxCalculatorView.swift in Sources */,
 				DE692FD7D748E7262B28A488 /* PaywallView.swift in Sources */,
+				E34A105F804B3B3009E47A47 /* PerformanceSignpost.swift in Sources */,
 				4CD65496EEC8073CAFB0BF44 /* PermissionService.swift in Sources */,
 				1F71C791F60E1732B1959289 /* PersonalRecordsView.swift in Sources */,
 				BE4CC3C3981AEEFDDF501810 /* PlanProjectionChart.swift in Sources */,
@@ -1391,7 +1387,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202607073;
+				CURRENT_PROJECT_VERSION = 100202607091;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1420,7 +1416,7 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
 		};
@@ -1458,7 +1454,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202607073;
+				CURRENT_PROJECT_VERSION = 100202607091;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1480,7 +1476,7 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};

@@ -69,6 +69,7 @@ struct ActiveWorkoutView: View {
     @State private var showExpandedRouteMap = false
     @State private var showMoreTools = false
     @State private var showExerciseDetails = false
+    @State private var setCompletionFeedback: SetCompletionFeedback?
 
     private var exerciseDrafts: [ExerciseSessionDraft] {
         get { store.activeWorkoutDrafts }
@@ -241,6 +242,16 @@ struct ActiveWorkoutView: View {
 
     var body: some View {
         activeWorkoutContent
+        .overlay(alignment: .bottom) {
+            if let feedback = setCompletionFeedback {
+                SetCompletionFeedbackBanner(feedback: feedback) {
+                    undoLastCompletedSet()
+                }
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.bottom, 18)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .onReceive(timer) { _ in
@@ -298,7 +309,13 @@ struct ActiveWorkoutView: View {
             VideoPlayerSheet(bookmark: bookmark)
         }
         .sheet(isPresented: $showAddExercise) {
-            ExercisePickerSheet(title: localizedString("add_exercise_sheet_title"), exercises: store.exercises, currentExercise: nil) { exercise in
+            ExercisePickerSheet(
+                title: addExerciseSheetTitle,
+                exercises: store.exercises,
+                currentExercise: nil,
+                initialMuscle: addExerciseInitialMuscle,
+                initialType: addExerciseInitialType
+            ) { exercise in
                 addExercise(exercise)
                 showAddExercise = false
             }
@@ -622,6 +639,18 @@ struct ActiveWorkoutView: View {
     }
 
     private func finishWorkoutAsync() async {
+        let interval = PerformanceSignpost.begin(
+            "workout.finish",
+            "drafts=\(exerciseDrafts.count) route=\(isRouteCandidate)"
+        )
+        defer {
+            PerformanceSignpost.end(
+                "workout.finish",
+                interval,
+                "drafts=\(exerciseDrafts.count)"
+            )
+        }
+
         elapsedSeconds = elapsedWorkoutSeconds()
         let finishedAt = Date()
         routeTracker.stop()
@@ -681,6 +710,20 @@ struct ActiveWorkoutView: View {
     }
 
     private func publishActiveWorkoutStatus() {
+        let draftCount = exerciseDrafts.count
+        let setCount = exerciseDrafts.reduce(0) { $0 + $1.sets.count }
+        let interval = PerformanceSignpost.begin(
+            "workout.publishStatus",
+            "drafts=\(draftCount) sets=\(setCount)"
+        )
+        defer {
+            PerformanceSignpost.end(
+                "workout.publishStatus",
+                interval,
+                "drafts=\(draftCount) sets=\(setCount)"
+            )
+        }
+
         let currentSet = selectedExerciseContext.currentWorkingSet
         let playlist = planPlaylist
         store.updateActiveWorkout(ActiveWorkoutStatusBuilder.update(
@@ -1226,9 +1269,24 @@ struct ActiveWorkoutView: View {
 
         lastSetCompletedAtSeconds = context.previousLastSetCompletedAtSeconds
         lastCompletedSetUndoContext = nil
+        setCompletionFeedback = nil
         stopRest()
         publishActiveWorkoutStatus()
         HapticService.impact(.rigid)
+    }
+
+    private func showSetCompletionFeedback(exerciseName: String, setNumber: Int) {
+        let feedback = SetCompletionFeedback(exerciseName: exerciseName, setNumber: setNumber)
+        withAnimation(.snappy(duration: 0.2)) {
+            setCompletionFeedback = feedback
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            guard setCompletionFeedback?.id == feedback.id else { return }
+            withAnimation(.snappy(duration: 0.2)) {
+                setCompletionFeedback = nil
+            }
+        }
     }
 
     private var routeProgressCard: some View {
@@ -1880,8 +1938,31 @@ struct ActiveWorkoutView: View {
                     .foregroundStyle(PulseTheme.accent)
                 Text("add_your_first_exercise")
                     .font(.title2.bold())
-                Text("free_training_starts_empty_so_you_record_only_what_you_do_today")
+                Text(emptyWorkoutPrompt)
                     .foregroundStyle(PulseTheme.secondaryText)
+
+                if workout.sessionType == .core, !coreExerciseSuggestions.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("core_suggested_exercises")
+                            .font(.subheadline.weight(.black))
+                            .foregroundStyle(PulseTheme.secondaryText)
+
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                            ForEach(coreExerciseSuggestions) { exercise in
+                                Button {
+                                    addExercise(exercise)
+                                } label: {
+                                    CoreExerciseSuggestionTile(
+                                        exercise: exercise,
+                                        language: store.userProfile.preferredLanguage
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+
                 Button {
                     showAddExercise = true
                 } label: {
@@ -1895,6 +1976,82 @@ struct ActiveWorkoutView: View {
                 }
             }
         }
+    }
+
+    private var addExerciseSheetTitle: String {
+        workout.sessionType == .core ? localizedString("core_training") : localizedString("add_exercise_sheet_title")
+    }
+
+    private var addExerciseInitialMuscle: String {
+        workout.sessionType == .core ? "Core" : "Todos"
+    }
+
+    private var addExerciseInitialType: Exercise.ExerciseType? {
+        workout.sessionType == .core ? .strength : nil
+    }
+
+    private var emptyWorkoutPrompt: LocalizedStringKey {
+        workout.sessionType == .core
+            ? "core_empty_workout_prompt"
+            : "free_training_starts_empty_so_you_record_only_what_you_do_today"
+    }
+
+    private var coreExerciseSuggestions: [Exercise] {
+        let availableEquipment = Set(store.userProfile.availableEquipment.map(normalizedCatalogValue))
+        let coreExercises = store.exercises.filter(isCoreExercise)
+        let preferred = coreExercises.filter { exercise in
+            guard !availableEquipment.isEmpty else { return true }
+            let required = exercise.requiredEquipment.isEmpty ? [exercise.equipment] : exercise.requiredEquipment
+            let normalizedRequired = Set(required.map(normalizedCatalogValue))
+            return normalizedRequired.contains("bodyweight")
+                || normalizedRequired.contains("body only")
+                || normalizedRequired.contains("none")
+                || !normalizedRequired.isDisjoint(with: availableEquipment)
+                || availableEquipment.contains(normalizedCatalogValue(exercise.equipment))
+        }
+        let source = preferred.isEmpty ? coreExercises : preferred
+        return Array(source.sorted { lhs, rhs in
+            coreSuggestionRank(lhs) == coreSuggestionRank(rhs)
+                ? lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                : coreSuggestionRank(lhs) < coreSuggestionRank(rhs)
+        }.prefix(6))
+    }
+
+    private func isCoreExercise(_ exercise: Exercise) -> Bool {
+        let values = ([exercise.name, exercise.muscleGroup, exercise.equipment]
+            + exercise.secondaryMuscles
+            + exercise.requiredEquipment
+            + exercise.tags
+            + [exercise.instructions ?? "", exercise.notes ?? ""])
+            .map(normalizedCatalogValue)
+        return values.contains("core")
+            || values.contains("abs")
+            || values.contains("abdominals")
+            || values.contains("abdomen")
+            || values.contains { value in
+                value.contains("plank")
+                    || value.contains("crunch")
+                    || value.contains("dead bug")
+                    || value.contains("mountain climber")
+                    || value.contains("hollow")
+                    || value.contains("leg raise")
+            }
+    }
+
+    private func coreSuggestionRank(_ exercise: Exercise) -> Int {
+        let name = normalizedCatalogValue(exercise.name)
+        if name.contains("plank") { return 0 }
+        if name.contains("dead bug") || name.contains("hollow") { return 1 }
+        if name.contains("crunch") || name.contains("leg raise") { return 2 }
+        if name.contains("mountain climber") { return 3 }
+        return 4
+    }
+
+    private func normalizedCatalogValue(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 
     private var nextExerciseTitle: String {
@@ -2436,6 +2593,10 @@ struct ActiveWorkoutView: View {
             betweenExercisesRestSeconds: workout.restBetweenExercisesSeconds
         )
         lastSetCompletedAtSeconds = elapsedSeconds
+        showSetCompletionFeedback(
+            exerciseName: RepsText.exerciseName(exercise.name, language: store.userProfile.preferredLanguage),
+            setNumber: setIndex + 1
+        )
 
         if let duration = outcome?.restDurationSeconds {
             startRest(duration: duration, kind: outcome?.shouldMoveToNextExercise == true ? .exerciseChange : .betweenSets)

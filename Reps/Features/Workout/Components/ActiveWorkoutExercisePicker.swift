@@ -20,12 +20,30 @@ struct ExercisePickerSheet: View {
     let onSelect: (Exercise) -> Void
 
     @State private var searchText = ""
-    @State private var selectedMuscle = "Todos"
-    @State private var selectedEquipment = "Todos"
+    @State private var selectedMuscle: String
+    @State private var selectedEquipment: String
     @State private var selectedType: Exercise.ExerciseType?
     @State private var selectedDifficulty: Exercise.Difficulty?
     @State private var selectedEnvironment: Exercise.Environment?
     @State private var onlyAvailableEquipment = false
+
+    init(
+        title: String,
+        exercises: [Exercise],
+        currentExercise: Exercise?,
+        initialMuscle: String = "Todos",
+        initialEquipment: String = "Todos",
+        initialType: Exercise.ExerciseType? = nil,
+        onSelect: @escaping (Exercise) -> Void
+    ) {
+        self.title = title
+        self.exercises = exercises
+        self.currentExercise = currentExercise
+        self.onSelect = onSelect
+        _selectedMuscle = State(initialValue: initialMuscle)
+        _selectedEquipment = State(initialValue: initialEquipment)
+        _selectedType = State(initialValue: initialType)
+    }
 
     private var muscles: [String] {
         ["Todos"] + Array(Set(exercises.map(\.muscleGroup))).sorted()
@@ -352,4 +370,3 @@ struct ReplacementExerciseRow: View {
             .lowercased()
     }
 }
-

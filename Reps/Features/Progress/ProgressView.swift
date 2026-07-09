@@ -10,6 +10,7 @@ struct ProgressDashboardView: View {
   @State private var sectionDetail: ProgressSection?
   @State private var metricDetail: SummaryMetricRoute?
   @State private var showNotifications = false
+  @State private var renderModel = ProgressDashboardRenderModel.empty
 
   var onSelectTab: ((AppTab) -> Void)? = nil
 
@@ -191,6 +192,9 @@ struct ProgressDashboardView: View {
       }
       .navigationDestination(for: SummaryMetricRoute.self) { route in
         metricDetailScreen(for: route)
+      }
+      .task(id: renderModelKey) {
+        rebuildRenderModel()
       }
     }
   }
@@ -859,63 +863,25 @@ struct ProgressDashboardView: View {
   }
 
   private var dailyVolumeSeries: [MetricDetailPoint] {
-    let cal = Calendar.current
-    let grouped = Dictionary(grouping: store.workoutSessions.filter { $0.date >= last365Start }) {
-      cal.startOfDay(for: $0.date)
-    }
-    return grouped.map { day, sessions in
-      MetricDetailPoint(date: day, value: FitnessMetrics.totalVolumeKg(for: sessions))
-    }.sorted { $0.date < $1.date }
+    renderModel.dailyVolumeSeries
   }
 
   private var dailyDistanceSeries: [MetricDetailPoint] {
-    let cal = Calendar.current
-    let grouped = Dictionary(grouping: store.combinedCardioLogs.filter { $0.date >= last365Start }) {
-      cal.startOfDay(for: $0.date)
-    }
-    return grouped.compactMap { day, logs -> MetricDetailPoint? in
-      let km = logs.compactMap(\.distanceKm).reduce(0, +)
-      return km > 0 ? MetricDetailPoint(date: day, value: km) : nil
-    }.sorted { $0.date < $1.date }
+    renderModel.dailyDistanceSeries
   }
 
   private var dailyActiveEnergySeries: [MetricDetailPoint] {
-    store.health.latestDailyMetrics
-      .filter { $0.date >= last365Start && $0.activeEnergyKcal > 0 }
-      .map { MetricDetailPoint(date: $0.date, value: $0.activeEnergyKcal) }
-      .sorted { $0.date < $1.date }
+    renderModel.dailyActiveEnergySeries
   }
 
   private var filteredSessions: [WorkoutSession] {
-    store.workoutSessions.filter { $0.date >= selectedRange.startDate }
+    renderModel.filteredSessions
   }
 
   /// At-a-glance snapshot of the current week (independent of the analytical
   /// range selector below) compared with the previous week.
   private var heroMetrics: ProgressHeroMetrics {
-    let calendar = Calendar.current
-    let now = Date()
-    let thisWeekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? calendar.startOfDay(for: now)
-    let lastWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: thisWeekStart) ?? thisWeekStart
-    let thisWeek = store.workoutSessions.filter { $0.date >= thisWeekStart }
-    let lastWeek = store.workoutSessions.filter { $0.date >= lastWeekStart && $0.date < thisWeekStart }
-    let weekActivityDays: [Bool] = (0..<7).map { offset in
-      guard let date = calendar.date(byAdding: .day, value: offset, to: thisWeekStart) else { return false }
-      let dayStart = calendar.startOfDay(for: date)
-      return thisWeek.contains { calendar.startOfDay(for: $0.date) == dayStart }
-    }
-    return ProgressHeroMetrics(
-      streak: store.streakDays,
-      adherence: store.weeklyCompletion,
-      sessionsThisWeek: thisWeek.count,
-      sessionsLastWeek: lastWeek.count,
-      volumeThisWeek: FitnessMetrics.totalVolumeKg(for: thisWeek),
-      volumeLastWeek: FitnessMetrics.totalVolumeKg(for: lastWeek),
-      totalSessions: store.workoutSessions.count,
-      totalVolumeKg: FitnessMetrics.totalVolumeKg(for: store.workoutSessions),
-      weekStart: thisWeekStart,
-      weekActivityDays: weekActivityDays
-    )
+    renderModel.heroMetrics
   }
 
   private var currentDateSubtitle: String {
@@ -925,16 +891,50 @@ struct ProgressDashboardView: View {
     return f.string(from: Date()).capitalized(with: f.locale)
   }
 
+  private var renderModelKey: ProgressDashboardRenderModel.Key {
+    ProgressDashboardRenderModel.Key(
+      range: selectedRange,
+      sessionCount: store.workoutSessions.count,
+      latestSessionDate: store.workoutSessions.map(\.date).max(),
+      cardioCount: store.combinedCardioLogs.count,
+      latestCardioDate: store.combinedCardioLogs.map(\.date).max(),
+      healthCount: store.health.latestDailyMetrics.count,
+      latestHealthDate: store.health.latestDailyMetrics.map(\.date).max(),
+      bodyMetricCount: store.bodyMetrics.count,
+      latestBodyMetricDate: store.bodyMetrics.map(\.date).max(),
+      exerciseCount: store.exercises.count,
+      goalCount: store.goals.count,
+      activePlanID: store.activePlan.id,
+      streakDays: store.streakDays,
+      weeklyCompletion: store.weeklyCompletion,
+      bestEstimatedOneRepMaxKg: store.bestEstimatedOneRepMaxKg
+    )
+  }
+
+  private func rebuildRenderModel() {
+    renderModel = ProgressDashboardRenderModel.build(
+      key: renderModelKey,
+      sessions: store.workoutSessions,
+      cardioLogs: store.combinedCardioLogs,
+      healthMetrics: store.health.latestDailyMetrics,
+      todayHealthMetric: store.todayHealthMetric,
+      bodyMetrics: store.bodyMetrics,
+      exercises: store.exercises,
+      goals: store.goals,
+      activePlan: store.activePlan
+    )
+  }
+
   private var weekTotalMinutes: Int {
-    store.workoutSessions.filter { $0.date >= heroMetrics.weekStart }.reduce(0) { $0 + $1.durationMinutes }
+    renderModel.weekTotalMinutes
   }
 
   private var weekSessions: [WorkoutSession] {
-    store.workoutSessions.filter { $0.date >= heroMetrics.weekStart }
+    renderModel.weekSessions
   }
 
   private var weekHealthMetrics: [DailyHealthMetric] {
-    store.health.latestDailyMetrics.filter { $0.date >= heroMetrics.weekStart }
+    renderModel.weekHealthMetrics
   }
 
   private var weekHealthSteps: Int {
@@ -977,20 +977,7 @@ struct ProgressDashboardView: View {
   }
 
   private var stepsWeekData: [TodayChartPoint] {
-    let cal = Calendar.current
-    let today = cal.startOfDay(for: .now)
-    let symbols = cal.veryShortWeekdaySymbols
-    let metricsByDay = Dictionary(grouping: store.health.latestDailyMetrics, by: { cal.startOfDay(for: $0.date) })
-    return (0..<7).compactMap { offset -> TodayChartPoint? in
-      guard let date = cal.date(byAdding: .day, value: -(6 - offset), to: today) else { return nil }
-      let metric = metricsByDay[date]?.last
-      let weekday = cal.component(.weekday, from: date)
-      return TodayChartPoint(
-        label: symbols[weekday - 1].uppercased(),
-        value: metric?.steps ?? 0,
-        isToday: date == today
-      )
-    }
+    renderModel.stepsWeekData
   }
 
   private var distanceTodayKm: Double {
@@ -1006,35 +993,11 @@ struct ProgressDashboardView: View {
   }
 
   private var activeEnergyWeekData: [TodayChartPoint] {
-    let cal = Calendar.current
-    let today = cal.startOfDay(for: .now)
-    let symbols = cal.veryShortWeekdaySymbols
-    let metricsByDay = Dictionary(grouping: store.health.latestDailyMetrics, by: { cal.startOfDay(for: $0.date) })
-    return (0..<7).compactMap { offset -> TodayChartPoint? in
-      guard let date = cal.date(byAdding: .day, value: -(6 - offset), to: today) else { return nil }
-      let metric = metricsByDay[date]?.last
-      let weekday = cal.component(.weekday, from: date)
-      return TodayChartPoint(
-        label: symbols[weekday - 1].uppercased(),
-        value: metric?.activeEnergyKcal ?? 0,
-        isToday: date == today
-      )
-    }
+    renderModel.activeEnergyWeekData
   }
 
   private var distanceWeekData: [TodayChartPoint] {
-    let cal = Calendar.current
-    let today = cal.startOfDay(for: .now)
-    let symbols = cal.veryShortWeekdaySymbols
-    return (0..<7).compactMap { offset -> TodayChartPoint? in
-      guard let date = cal.date(byAdding: .day, value: -(6 - offset), to: today) else { return nil }
-      let km = store.combinedCardioLogs
-        .filter { cal.startOfDay(for: $0.date) == date }
-        .compactMap(\.distanceKm)
-        .reduce(0, +)
-      let weekday = cal.component(.weekday, from: date)
-      return TodayChartPoint(label: symbols[weekday - 1].uppercased(), value: km, isToday: date == today)
-    }
+    renderModel.distanceWeekData
   }
 
   private var monthSessions: Int {
@@ -1058,150 +1021,43 @@ struct ProgressDashboardView: View {
   }
 
   private var weeklyConsistencyData: [ConsistencyPoint] {
-    let cal = Calendar.current
-    let weekStart = heroMetrics.weekStart
-    return (0..<7).compactMap { offset in
-      guard let date = cal.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
-      let dayStart = cal.startOfDay(for: date)
-      let count = store.workoutSessions.filter { cal.startOfDay(for: $0.date) == dayStart }.count
-      return ConsistencyPoint(date: date, count: count)
-    }
+    renderModel.weeklyConsistencyData
   }
 
   private var trendMetrics: [TrendMetric] {
-    let cal = Calendar.current
-    let today = cal.startOfDay(for: .now)
-    guard let recent30Start = cal.date(byAdding: .day, value: -29, to: today),
-          let prev30Start = cal.date(byAdding: .day, value: -59, to: today) else { return [] }
-
-    let recent = store.workoutSessions.filter { $0.date >= recent30Start }
-    let prev = store.workoutSessions.filter { $0.date >= prev30Start && $0.date < recent30Start }
-
-    let recentWeeklyVol = FitnessMetrics.totalVolumeKg(for: recent) / 4.0
-    let prevWeeklyVol = prev.isEmpty ? 0.0 : FitnessMetrics.totalVolumeKg(for: prev) / 4.0
-    let recentWeeklySess = Double(recent.count) / 4.0
-    let prevWeeklySess = prev.isEmpty ? 0.0 : Double(prev.count) / 4.0
-
-    var metrics: [TrendMetric] = []
-
-    let volDir: TrendMetric.Direction = recentWeeklyVol > prevWeeklyVol + 1 ? .up
-      : (recentWeeklyVol < prevWeeklyVol - 1 ? .down : .neutral)
-    metrics.append(TrendMetric(
-      title: localizedString("volume_label"),
-      value: recentWeeklyVol > 0 ? "\(Int(recentWeeklyVol))" : "—",
-      unit: "KG/SEM",
-      direction: volDir,
-      color: PulseTheme.ringMove,
-      metric: .volume
-    ))
-
-    let sessDir: TrendMetric.Direction = recentWeeklySess > prevWeeklySess + 0.1 ? .up
-      : (recentWeeklySess < prevWeeklySess - 0.1 ? .down : .neutral)
-    metrics.append(TrendMetric(
-      title: localizedString("sessions"),
-      value: recentWeeklySess > 0 ? String(format: "%.1f", recentWeeklySess) : "—",
-      unit: "SES/SEM",
-      direction: sessDir,
-      color: PulseTheme.ringExercise,
-      metric: .sessions
-    ))
-
-    let recentStepsSample = store.health.latestDailyMetrics.suffix(14).map(\.steps)
-    let prevStepsSample = store.health.latestDailyMetrics.dropLast(14).suffix(14).map(\.steps)
-    if !recentStepsSample.isEmpty {
-      let avgRecent = recentStepsSample.reduce(0, +) / Double(recentStepsSample.count)
-      let avgPrev = prevStepsSample.isEmpty ? 0.0 : prevStepsSample.reduce(0, +) / Double(prevStepsSample.count)
-      if avgRecent > 0 {
-        let stepsDir: TrendMetric.Direction = avgRecent > avgPrev + 100 ? .up : (avgRecent < avgPrev - 100 ? .down : .neutral)
-        metrics.append(TrendMetric(
-          title: localizedString("steps_metric"),
-          value: "\(Int(avgRecent))",
-          unit: "PASOS/DÍA",
-          direction: stepsDir,
-          color: PulseTheme.accent,
-          metric: .steps
-        ))
-      }
-    }
-
-    metrics.append(TrendMetric(
-      title: localizedString("streak"),
-      value: "\(store.streakDays)",
-      unit: localizedString("days").uppercased(),
-      direction: store.streakDays > 7 ? .up : (store.streakDays == 0 ? .down : .neutral),
-      color: .orange,
-      metric: .streak
-    ))
-
-    if store.bestEstimatedOneRepMaxKg > 0 {
-      metrics.append(TrendMetric(
-        title: "1RM Est.",
-        value: "\(Int(store.bestEstimatedOneRepMaxKg))",
-        unit: "KG",
-        direction: .up,
-        color: PulseTheme.accent,
-        metric: .oneRepMax
-      ))
-    }
-
-    let recentKcal = store.health.latestDailyMetrics.suffix(7).map(\.activeEnergyKcal)
-    let prevKcal = store.health.latestDailyMetrics.dropLast(7).suffix(7).map(\.activeEnergyKcal)
-    if !recentKcal.isEmpty {
-      let avgRecent = recentKcal.reduce(0, +) / Double(recentKcal.count)
-      let avgPrev = prevKcal.isEmpty ? 0.0 : prevKcal.reduce(0, +) / Double(prevKcal.count)
-      if avgRecent > 0 {
-        let kcalDir: TrendMetric.Direction = avgRecent > avgPrev + 10 ? .up : (avgRecent < avgPrev - 10 ? .down : .neutral)
-        metrics.append(TrendMetric(
-          title: localizedString("active_kcal"),
-          value: "\(Int(avgRecent))",
-          unit: "KCAL/DÍA",
-          direction: kcalDir,
-          color: PulseTheme.ringMove,
-          metric: .activeEnergy
-        ))
-      }
-    }
-
-    return metrics
+    renderModel.trendMetrics
   }
 
   private var filteredCardioLogs: [CardioLog] {
-    store.combinedCardioLogs.filter { $0.date >= selectedRange.startDate }
+    renderModel.filteredCardioLogs
   }
 
   private var workload: AnalyticsEngine.WorkloadSummary {
-    AnalyticsEngine.workloadSummary(sessions: store.workoutSessions, bodyMetrics: store.bodyMetrics)
+    renderModel.workload
   }
 
   private var competitiveSummary: AnalyticsEngine.CompetitiveSummary {
-    AnalyticsEngine.competitiveSummary(
-      sessions: store.workoutSessions,
-      activePlan: store.activePlan,
-      exercises: store.exercises,
-      since: selectedRange.startDate
-    )
+    renderModel.competitiveSummary
   }
 
   private var effectiveSetCount: Int {
-    filteredSessions.reduce(0) { $0 + AnalyticsEngine.effectiveSets(in: $1).count }
+    renderModel.effectiveSetCount
   }
 
   private var effectiveVolume: Double {
-    AnalyticsEngine.effectiveVolumeKg(for: filteredSessions)
+    renderModel.effectiveVolume
   }
 
   private var filteredCardioDistance: Double {
-    filteredCardioLogs.compactMap(\.distanceKm).reduce(0, +)
+    renderModel.filteredCardioDistance
   }
 
   private var walkingAndRunningLogs: [CardioLog] {
-    filteredCardioLogs
-      .filter { $0.activityType == .walking || $0.activityType == .outdoorRun }
-      .sorted { $0.date > $1.date }
+    renderModel.walkingAndRunningLogs
   }
 
   private var intensityDistribution: [AnalyticsEngine.IntensityBucket] {
-    AnalyticsEngine.intensityDistribution(for: filteredSessions)
+    renderModel.intensityDistribution
   }
 
   private var averageCardioRPEText: String {
@@ -1229,7 +1085,7 @@ struct ProgressDashboardView: View {
   }
 
   private var muscleVolumePoints: [FitnessMetrics.MuscleVolumePoint] {
-    FitnessMetrics.muscleVolumePoints(for: store.workoutSessions, since: selectedRange.startDate)
+    renderModel.muscleVolumePoints
   }
 
   private static let donutPalette: [Color] = [
@@ -1288,14 +1144,11 @@ struct ProgressDashboardView: View {
   }
 
   private var insightCards: [FitnessMetrics.TrainingInsight] {
-    FitnessMetrics.insightCards(
-      for: store.workoutSessions, goals: store.goals, since: selectedRange.startDate)
+    renderModel.insightCards
   }
 
   private var exercisesWithHistory: [Exercise] {
-    store.exercises.filter { exercise in
-      !FitnessMetrics.progressPoints(for: exercise, in: store.workoutSessions).isEmpty
-    }
+    renderModel.exercisesWithHistory
   }
 
   private func sectionValue(for section: ProgressSection) -> String {
@@ -1381,36 +1234,11 @@ struct ProgressDashboardView: View {
   }
 
   private var bodyFusionChartPoints: [BodyFusionPoint] {
-    let calendar = Calendar.current
-    let healthByDay = Dictionary(grouping: weekHealthMetrics) { calendar.startOfDay(for: $0.date) }
-    let sessionsByDay = Dictionary(grouping: weekSessions) { calendar.startOfDay(for: $0.date) }
-    return (0..<7).compactMap { offset in
-      guard let date = calendar.date(byAdding: .day, value: offset, to: heroMetrics.weekStart) else { return nil }
-      let day = calendar.startOfDay(for: date)
-      let health = healthByDay[day]?.first
-      let sessions = sessionsByDay[day] ?? []
-      return BodyFusionPoint(
-        date: day,
-        activity: health?.activeEnergyKcal ?? 0,
-        volume: FitnessMetrics.totalVolumeKg(for: sessions)
-      )
-    }
+    renderModel.bodyFusionChartPoints
   }
 
   private var consistencyData: [ConsistencyPoint] {
-    let calendar = Calendar.current
-    let start = selectedRange.startDate
-    let grouped = Dictionary(grouping: filteredSessions) { session in
-      calendar.startOfDay(for: session.date)
-    }
-
-    return (0..<selectedRange.days).compactMap { offset in
-      guard let date = calendar.date(byAdding: .day, value: offset, to: start) else {
-        return nil
-      }
-      return ConsistencyPoint(
-        date: date, count: grouped[calendar.startOfDay(for: date)]?.count ?? 0)
-    }
+    renderModel.consistencyData
   }
 
   private func perform(_ action: AnalyticsEngine.CompetitiveAction) {
@@ -1435,5 +1263,382 @@ private extension CardioLog.ActivityType {
     case .hiit: "hiit_label"
     case .other: "other_label"
     }
+  }
+}
+
+struct ProgressDashboardRenderModel {
+  struct Key: Equatable {
+    let range: ProgressRange
+    let sessionCount: Int
+    let latestSessionDate: Date?
+    let cardioCount: Int
+    let latestCardioDate: Date?
+    let healthCount: Int
+    let latestHealthDate: Date?
+    let bodyMetricCount: Int
+    let latestBodyMetricDate: Date?
+    let exerciseCount: Int
+    let goalCount: Int
+    let activePlanID: UUID
+    let streakDays: Int
+    let weeklyCompletion: Double
+    let bestEstimatedOneRepMaxKg: Double
+  }
+
+  let key: Key?
+  let heroMetrics: ProgressHeroMetrics
+  let dailyVolumeSeries: [MetricDetailPoint]
+  let dailyDistanceSeries: [MetricDetailPoint]
+  let dailyActiveEnergySeries: [MetricDetailPoint]
+  let filteredSessions: [WorkoutSession]
+  let weekSessions: [WorkoutSession]
+  let weekHealthMetrics: [DailyHealthMetric]
+  let weekTotalMinutes: Int
+  let stepsWeekData: [TodayChartPoint]
+  let distanceWeekData: [TodayChartPoint]
+  let activeEnergyWeekData: [TodayChartPoint]
+  let weeklyConsistencyData: [ConsistencyPoint]
+  let trendMetrics: [TrendMetric]
+  let filteredCardioLogs: [CardioLog]
+  let workload: AnalyticsEngine.WorkloadSummary
+  let competitiveSummary: AnalyticsEngine.CompetitiveSummary
+  let effectiveSetCount: Int
+  let effectiveVolume: Double
+  let filteredCardioDistance: Double
+  let walkingAndRunningLogs: [CardioLog]
+  let intensityDistribution: [AnalyticsEngine.IntensityBucket]
+  let muscleVolumePoints: [FitnessMetrics.MuscleVolumePoint]
+  let insightCards: [FitnessMetrics.TrainingInsight]
+  let exercisesWithHistory: [Exercise]
+  let bodyFusionChartPoints: [BodyFusionPoint]
+  let consistencyData: [ConsistencyPoint]
+
+  static let empty = ProgressDashboardRenderModel(
+    key: nil,
+    heroMetrics: ProgressHeroMetrics(
+      streak: 0,
+      adherence: 0,
+      sessionsThisWeek: 0,
+      sessionsLastWeek: 0,
+      volumeThisWeek: 0,
+      volumeLastWeek: 0,
+      weekStart: Calendar.current.startOfDay(for: .now),
+      weekActivityDays: Array(repeating: false, count: 7)
+    ),
+    dailyVolumeSeries: [],
+    dailyDistanceSeries: [],
+    dailyActiveEnergySeries: [],
+    filteredSessions: [],
+    weekSessions: [],
+    weekHealthMetrics: [],
+    weekTotalMinutes: 0,
+    stepsWeekData: [],
+    distanceWeekData: [],
+    activeEnergyWeekData: [],
+    weeklyConsistencyData: [],
+    trendMetrics: [],
+    filteredCardioLogs: [],
+    workload: AnalyticsEngine.WorkloadSummary(acuteLoad: 0, chronicLoad: 0, acwr: 0, fatigueScore: 0),
+    competitiveSummary: AnalyticsEngine.CompetitiveSummary(
+      completedWorkouts: 0,
+      plannedWorkouts: 0,
+      completionRate: 0,
+      targetWeeklySets: 0,
+      actualWeeklySets: 0,
+      muscleTargets: [],
+      undertrainedMuscles: [],
+      overtrainedMuscles: [],
+      stalledExercises: [],
+      recommendations: []
+    ),
+    effectiveSetCount: 0,
+    effectiveVolume: 0,
+    filteredCardioDistance: 0,
+    walkingAndRunningLogs: [],
+    intensityDistribution: AnalyticsEngine.intensityDistribution(for: []),
+    muscleVolumePoints: [],
+    insightCards: [],
+    exercisesWithHistory: [],
+    bodyFusionChartPoints: [],
+    consistencyData: []
+  )
+
+  static func build(
+    key: Key,
+    sessions: [WorkoutSession],
+    cardioLogs: [CardioLog],
+    healthMetrics: [DailyHealthMetric],
+    todayHealthMetric: DailyHealthMetric?,
+    bodyMetrics: [BodyMetric],
+    exercises: [Exercise],
+    goals: [Goal],
+    activePlan: WorkoutPlan
+  ) -> ProgressDashboardRenderModel {
+    let interval = PerformanceSignpost.begin(
+      "progress.renderModel",
+      "sessions=\(sessions.count) cardio=\(cardioLogs.count) health=\(healthMetrics.count) range=\(key.range.rawValue)"
+    )
+    defer {
+      PerformanceSignpost.end("progress.renderModel", interval)
+    }
+
+    let calendar = Calendar.current
+    let today = calendar.startOfDay(for: .now)
+    let rangeStart = key.range.startDate
+    let last365Start = calendar.date(byAdding: .day, value: -364, to: today) ?? today
+    let thisWeekStart = calendar.dateInterval(of: .weekOfYear, for: today)?.start ?? today
+    let lastWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: thisWeekStart) ?? thisWeekStart
+
+    let filteredSessions = sessions.filter { $0.date >= rangeStart }
+    let filteredCardioLogs = cardioLogs.filter { $0.date >= rangeStart }
+    let weekSessions = sessions.filter { $0.date >= thisWeekStart }
+    let lastWeekSessions = sessions.filter { $0.date >= lastWeekStart && $0.date < thisWeekStart }
+    let weekHealthMetrics = healthMetrics.filter { $0.date >= thisWeekStart }
+    let healthByDay = Dictionary(grouping: healthMetrics) { calendar.startOfDay(for: $0.date) }
+    let cardioByDay = Dictionary(grouping: cardioLogs) { calendar.startOfDay(for: $0.date) }
+    let sessionsByDay = Dictionary(grouping: sessions) { calendar.startOfDay(for: $0.date) }
+
+    let weekActivityDays: [Bool] = (0..<7).map { offset in
+      guard let date = calendar.date(byAdding: .day, value: offset, to: thisWeekStart) else { return false }
+      return !(sessionsByDay[calendar.startOfDay(for: date)] ?? []).isEmpty
+    }
+
+    let heroMetrics = ProgressHeroMetrics(
+      streak: key.streakDays,
+      adherence: key.weeklyCompletion,
+      sessionsThisWeek: weekSessions.count,
+      sessionsLastWeek: lastWeekSessions.count,
+      volumeThisWeek: FitnessMetrics.totalVolumeKg(for: weekSessions),
+      volumeLastWeek: FitnessMetrics.totalVolumeKg(for: lastWeekSessions),
+      totalSessions: sessions.count,
+      totalVolumeKg: FitnessMetrics.totalVolumeKg(for: sessions),
+      weekStart: thisWeekStart,
+      weekActivityDays: weekActivityDays
+    )
+
+    let dailyVolumeSeries = Dictionary(grouping: sessions.filter { $0.date >= last365Start }) {
+      calendar.startOfDay(for: $0.date)
+    }
+    .map { day, sessions in
+      MetricDetailPoint(date: day, value: FitnessMetrics.totalVolumeKg(for: sessions))
+    }
+    .sorted { $0.date < $1.date }
+
+    let dailyDistanceSeries = Dictionary(grouping: cardioLogs.filter { $0.date >= last365Start }) {
+      calendar.startOfDay(for: $0.date)
+    }
+    .compactMap { day, logs -> MetricDetailPoint? in
+      let km = logs.compactMap(\.distanceKm).reduce(0, +)
+      return km > 0 ? MetricDetailPoint(date: day, value: km) : nil
+    }
+    .sorted { $0.date < $1.date }
+
+    let dailyActiveEnergySeries = healthMetrics
+      .filter { $0.date >= last365Start && $0.activeEnergyKcal > 0 }
+      .map { MetricDetailPoint(date: $0.date, value: $0.activeEnergyKcal) }
+      .sorted { $0.date < $1.date }
+
+    let symbols = calendar.veryShortWeekdaySymbols
+    let healthWeekSeries: ((DailyHealthMetric?) -> Double) -> [TodayChartPoint] = { value in
+      (0..<7).compactMap { offset -> TodayChartPoint? in
+        guard let date = calendar.date(byAdding: .day, value: -(6 - offset), to: today) else { return nil }
+        let metric = healthByDay[date]?.last
+        let weekday = calendar.component(.weekday, from: date)
+        return TodayChartPoint(label: symbols[weekday - 1].uppercased(), value: value(metric), isToday: date == today)
+      }
+    }
+    let stepsWeekData = healthWeekSeries { $0?.steps ?? 0 }
+    let activeEnergyWeekData = healthWeekSeries { $0?.activeEnergyKcal ?? 0 }
+    let distanceWeekData = (0..<7).compactMap { offset -> TodayChartPoint? in
+      guard let date = calendar.date(byAdding: .day, value: -(6 - offset), to: today) else { return nil }
+      let day = calendar.startOfDay(for: date)
+      let km = (cardioByDay[day] ?? []).compactMap(\.distanceKm).reduce(0, +)
+      let weekday = calendar.component(.weekday, from: date)
+      return TodayChartPoint(label: symbols[weekday - 1].uppercased(), value: km, isToday: day == today)
+    }
+
+    let weeklyConsistencyData = (0..<7).compactMap { offset -> ConsistencyPoint? in
+      guard let date = calendar.date(byAdding: .day, value: offset, to: thisWeekStart) else { return nil }
+      let day = calendar.startOfDay(for: date)
+      return ConsistencyPoint(date: date, count: sessionsByDay[day]?.count ?? 0)
+    }
+
+    let trendMetrics = buildTrendMetrics(
+      sessions: sessions,
+      healthMetrics: healthMetrics,
+      streakDays: key.streakDays,
+      bestEstimatedOneRepMaxKg: key.bestEstimatedOneRepMaxKg,
+      today: today,
+      calendar: calendar
+    )
+
+    let workload = AnalyticsEngine.workloadSummary(sessions: sessions, bodyMetrics: bodyMetrics)
+    let competitiveSummary = AnalyticsEngine.competitiveSummary(
+      sessions: sessions,
+      activePlan: activePlan,
+      exercises: exercises,
+      since: rangeStart
+    )
+    let effectiveSetCount = filteredSessions.reduce(0) { $0 + AnalyticsEngine.effectiveSets(in: $1).count }
+    let effectiveVolume = AnalyticsEngine.effectiveVolumeKg(for: filteredSessions)
+    let filteredCardioDistance = filteredCardioLogs.compactMap(\.distanceKm).reduce(0, +)
+    let walkingAndRunningLogs = filteredCardioLogs
+      .filter { $0.activityType == .walking || $0.activityType == .outdoorRun }
+      .sorted { $0.date > $1.date }
+    let intensityDistribution = AnalyticsEngine.intensityDistribution(for: filteredSessions)
+    let muscleVolumePoints = FitnessMetrics.muscleVolumePoints(for: sessions, since: rangeStart)
+    let insightCards = FitnessMetrics.insightCards(for: sessions, goals: goals, since: rangeStart)
+    let exercisesWithHistory = exercises.filter { exercise in
+      !FitnessMetrics.progressPoints(for: exercise, in: sessions).isEmpty
+    }
+
+    let weekSessionsByDay = Dictionary(grouping: weekSessions) { calendar.startOfDay(for: $0.date) }
+    let weekHealthByDay = Dictionary(grouping: weekHealthMetrics) { calendar.startOfDay(for: $0.date) }
+    let bodyFusionChartPoints = (0..<7).compactMap { offset -> BodyFusionPoint? in
+      guard let date = calendar.date(byAdding: .day, value: offset, to: thisWeekStart) else { return nil }
+      let day = calendar.startOfDay(for: date)
+      let health = weekHealthByDay[day]?.first
+      return BodyFusionPoint(
+        date: day,
+        activity: health?.activeEnergyKcal ?? 0,
+        volume: FitnessMetrics.totalVolumeKg(for: weekSessionsByDay[day] ?? [])
+      )
+    }
+
+    let rangeGroupedSessions = Dictionary(grouping: filteredSessions) { calendar.startOfDay(for: $0.date) }
+    let consistencyData = (0..<key.range.days).compactMap { offset -> ConsistencyPoint? in
+      guard let date = calendar.date(byAdding: .day, value: offset, to: rangeStart) else { return nil }
+      return ConsistencyPoint(date: date, count: rangeGroupedSessions[calendar.startOfDay(for: date)]?.count ?? 0)
+    }
+
+    return ProgressDashboardRenderModel(
+      key: key,
+      heroMetrics: heroMetrics,
+      dailyVolumeSeries: dailyVolumeSeries,
+      dailyDistanceSeries: dailyDistanceSeries,
+      dailyActiveEnergySeries: dailyActiveEnergySeries,
+      filteredSessions: filteredSessions,
+      weekSessions: weekSessions,
+      weekHealthMetrics: weekHealthMetrics,
+      weekTotalMinutes: weekSessions.reduce(0) { $0 + $1.durationMinutes },
+      stepsWeekData: stepsWeekData,
+      distanceWeekData: distanceWeekData,
+      activeEnergyWeekData: activeEnergyWeekData,
+      weeklyConsistencyData: weeklyConsistencyData,
+      trendMetrics: trendMetrics,
+      filteredCardioLogs: filteredCardioLogs,
+      workload: workload,
+      competitiveSummary: competitiveSummary,
+      effectiveSetCount: effectiveSetCount,
+      effectiveVolume: effectiveVolume,
+      filteredCardioDistance: filteredCardioDistance,
+      walkingAndRunningLogs: walkingAndRunningLogs,
+      intensityDistribution: intensityDistribution,
+      muscleVolumePoints: muscleVolumePoints,
+      insightCards: insightCards,
+      exercisesWithHistory: exercisesWithHistory,
+      bodyFusionChartPoints: bodyFusionChartPoints,
+      consistencyData: consistencyData
+    )
+  }
+
+  private static func buildTrendMetrics(
+    sessions: [WorkoutSession],
+    healthMetrics: [DailyHealthMetric],
+    streakDays: Int,
+    bestEstimatedOneRepMaxKg: Double,
+    today: Date,
+    calendar: Calendar
+  ) -> [TrendMetric] {
+    guard let recent30Start = calendar.date(byAdding: .day, value: -29, to: today),
+          let prev30Start = calendar.date(byAdding: .day, value: -59, to: today) else { return [] }
+
+    let recent = sessions.filter { $0.date >= recent30Start }
+    let previous = sessions.filter { $0.date >= prev30Start && $0.date < recent30Start }
+    let recentWeeklyVol = FitnessMetrics.totalVolumeKg(for: recent) / 4.0
+    let previousWeeklyVol = previous.isEmpty ? 0.0 : FitnessMetrics.totalVolumeKg(for: previous) / 4.0
+    let recentWeeklySessions = Double(recent.count) / 4.0
+    let previousWeeklySessions = previous.isEmpty ? 0.0 : Double(previous.count) / 4.0
+
+    var metrics: [TrendMetric] = []
+    let volumeDirection: TrendMetric.Direction = recentWeeklyVol > previousWeeklyVol + 1 ? .up
+      : (recentWeeklyVol < previousWeeklyVol - 1 ? .down : .neutral)
+    metrics.append(TrendMetric(
+      title: localizedString("volume_label"),
+      value: recentWeeklyVol > 0 ? "\(Int(recentWeeklyVol))" : "—",
+      unit: "KG/SEM",
+      direction: volumeDirection,
+      color: PulseTheme.ringMove,
+      metric: .volume
+    ))
+
+    let sessionsDirection: TrendMetric.Direction = recentWeeklySessions > previousWeeklySessions + 0.1 ? .up
+      : (recentWeeklySessions < previousWeeklySessions - 0.1 ? .down : .neutral)
+    metrics.append(TrendMetric(
+      title: localizedString("sessions"),
+      value: recentWeeklySessions > 0 ? String(format: "%.1f", recentWeeklySessions) : "—",
+      unit: "SES/SEM",
+      direction: sessionsDirection,
+      color: PulseTheme.ringExercise,
+      metric: .sessions
+    ))
+
+    let recentStepsSample = healthMetrics.suffix(14).map(\.steps)
+    let previousStepsSample = healthMetrics.dropLast(14).suffix(14).map(\.steps)
+    if !recentStepsSample.isEmpty {
+      let avgRecent = recentStepsSample.reduce(0, +) / Double(recentStepsSample.count)
+      let avgPrevious = previousStepsSample.isEmpty ? 0.0 : previousStepsSample.reduce(0, +) / Double(previousStepsSample.count)
+      if avgRecent > 0 {
+        let direction: TrendMetric.Direction = avgRecent > avgPrevious + 100 ? .up : (avgRecent < avgPrevious - 100 ? .down : .neutral)
+        metrics.append(TrendMetric(
+          title: localizedString("steps_metric"),
+          value: "\(Int(avgRecent))",
+          unit: "PASOS/DÍA",
+          direction: direction,
+          color: PulseTheme.accent,
+          metric: .steps
+        ))
+      }
+    }
+
+    metrics.append(TrendMetric(
+      title: localizedString("streak"),
+      value: "\(streakDays)",
+      unit: localizedString("days").uppercased(),
+      direction: streakDays > 7 ? .up : (streakDays == 0 ? .down : .neutral),
+      color: .orange,
+      metric: .streak
+    ))
+
+    if bestEstimatedOneRepMaxKg > 0 {
+      metrics.append(TrendMetric(
+        title: "1RM Est.",
+        value: "\(Int(bestEstimatedOneRepMaxKg))",
+        unit: "KG",
+        direction: .up,
+        color: PulseTheme.accent,
+        metric: .oneRepMax
+      ))
+    }
+
+    let recentKcal = healthMetrics.suffix(7).map(\.activeEnergyKcal)
+    let previousKcal = healthMetrics.dropLast(7).suffix(7).map(\.activeEnergyKcal)
+    if !recentKcal.isEmpty {
+      let avgRecent = recentKcal.reduce(0, +) / Double(recentKcal.count)
+      let avgPrevious = previousKcal.isEmpty ? 0.0 : previousKcal.reduce(0, +) / Double(previousKcal.count)
+      if avgRecent > 0 {
+        let direction: TrendMetric.Direction = avgRecent > avgPrevious + 10 ? .up : (avgRecent < avgPrevious - 10 ? .down : .neutral)
+        metrics.append(TrendMetric(
+          title: localizedString("active_kcal"),
+          value: "\(Int(avgRecent))",
+          unit: "KCAL/DÍA",
+          direction: direction,
+          color: PulseTheme.ringMove,
+          metric: .activeEnergy
+        ))
+      }
+    }
+
+    return metrics
   }
 }

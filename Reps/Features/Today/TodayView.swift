@@ -81,6 +81,50 @@ struct TodayView: View {
         store.workoutSessions.sorted { $0.date > $1.date }.first
     }
 
+    private var shouldShowFirstWorkoutActivation: Bool {
+        store.workoutSessions.isEmpty
+    }
+
+    private var continuitySignal: ContinuitySignal {
+        let calendar = Calendar.current
+        if let lastWorkout {
+            let daysSince = calendar.dateComponents(
+                [.day],
+                from: calendar.startOfDay(for: lastWorkout.date),
+                to: calendar.startOfDay(for: .now)
+            ).day ?? 0
+            if daysSince == 0 {
+                return ContinuitySignal(
+                    title: "Continuidad asegurada",
+                    message: "Ya sumaste hoy. Mantén el plan o recupera bien.",
+                    systemImage: "checkmark.seal.fill",
+                    tint: PulseTheme.recovery
+                )
+            }
+            if daysSince == 1 {
+                return ContinuitySignal(
+                    title: "Buen momento para seguir",
+                    message: "Vienes de entrenar ayer. Una sesión corta mantiene la semana viva.",
+                    systemImage: "flame.fill",
+                    tint: PulseTheme.accent
+                )
+            }
+            return ContinuitySignal(
+                title: "Recupera la semana sin presión",
+                message: "Han pasado \(daysSince) días. Empieza con 20 minutos y vuelve al ritmo.",
+                systemImage: "arrow.counterclockwise.circle.fill",
+                tint: PulseTheme.warning
+            )
+        }
+
+        return ContinuitySignal(
+            title: "Primer paso de la semana",
+            message: "Registra una sesión sencilla para crear tu línea base.",
+            systemImage: "figure.strengthtraining.traditional",
+            tint: PulseTheme.accent
+        )
+    }
+
     private var latestMetric: BodyMetric? {
         store.bodyMetrics.sorted { $0.date > $1.date }.first
     }
@@ -302,8 +346,14 @@ struct TodayView: View {
                         .stickyHeaderTitle(localizedString("weather"))
                     outdoorIntelligenceSection
                         .stickyHeaderTitle("Insights")
+                    if shouldShowFirstWorkoutActivation {
+                        firstWorkoutActivationCard
+                            .stickyHeaderTitle("Primer entreno")
+                    }
                     focusHeroSection
                         .stickyHeaderTitle(localizedString("workout"))
+                    continuityCard
+                        .stickyHeaderTitle(localizedString("consistency"))
                     if let rec = recommendedWorkout, !hasActivePlan {
                         RecommendedWorkoutCard(
                             workout: rec,
@@ -777,6 +827,79 @@ struct TodayView: View {
                     .stroke(PulseTheme.cardStroke, lineWidth: 0.8)
             )
             .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
+        }
+    }
+
+    private var continuityCard: some View {
+        Button {
+            HapticService.selection()
+            startFocusWorkout()
+        } label: {
+            PulseCard {
+                HStack(spacing: 12) {
+                    Image(systemName: continuitySignal.systemImage)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(continuitySignal.tint)
+                        .frame(width: 42, height: 42)
+                        .background(continuitySignal.tint.opacity(0.12), in: Circle())
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(continuitySignal.title)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text(continuitySignal.message)
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "play.fill")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                        .frame(width: 34, height: 34)
+                        .background(PulseTheme.accent, in: Circle())
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var firstWorkoutActivationCard: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    Image(systemName: "bolt.fill")
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                        .frame(width: 44, height: 44)
+                        .background(PulseTheme.accent, in: Circle())
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("first_workout_activation_title")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text("first_workout_activation_subtitle")
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Button {
+                    HapticService.impact(.medium)
+                    startFocusWorkout()
+                } label: {
+                    Label("start_now", systemImage: "play.fill")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -3719,6 +3842,13 @@ private struct WeatherWindBars: View {
             }
         }
     }
+}
+
+private struct ContinuitySignal {
+    let title: String
+    let message: String
+    let systemImage: String
+    let tint: Color
 }
 
 private enum TodayRoute: Hashable {

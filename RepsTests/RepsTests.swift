@@ -66,6 +66,15 @@ struct RepsTests {
         #expect(store.activePaywall?.source == .multiplePlans)
     }
 
+    @Test @MainActor func exerciseCatalogSelectionRemainsAvailableForFreeUsers() {
+        let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+
+        #expect(!store.monetization.hasProAccess)
+        #expect(store.hasFeatureAccess(.exerciseLibrary))
+        #expect(store.requireFeature(.exerciseLibrary, source: .programLibrary))
+        #expect(store.activePaywall == nil)
+    }
+
     @Test @MainActor func activePlanExecutionSummaryUsesPlanSessions() {
         let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
         store.plans = []
@@ -284,6 +293,135 @@ struct RepsTests {
         let distribution = AnalyticsEngine.intensityDistribution(for: [session])
 
         #expect(distribution.map(\.count) == [1, 1, 1, 1])
+    }
+
+    @Test func calendarMonthRenderModelIndexesSessionsScheduledAndVolumeByDay() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let monthStart = try #require(calendar.date(from: DateComponents(year: 2026, month: 7, day: 1)))
+        let dayA = try #require(calendar.date(from: DateComponents(year: 2026, month: 7, day: 9, hour: 10)))
+        let dayB = try #require(calendar.date(from: DateComponents(year: 2026, month: 7, day: 10, hour: 10)))
+        let outsideMonth = try #require(calendar.date(from: DateComponents(year: 2026, month: 8, day: 1, hour: 10)))
+        let sessionA = WorkoutSession(
+            workoutTitle: "Push",
+            date: dayA,
+            durationMinutes: 45,
+            sets: [SetLog(setNumber: 1, weightKg: 60, reps: 10, completed: true)]
+        )
+        let sessionB = WorkoutSession(
+            workoutTitle: "Run",
+            date: dayB,
+            location: .outdoor,
+            durationMinutes: 30,
+            sets: [],
+            distanceKm: 5
+        )
+        let scheduled = ScheduledWorkout(date: dayA, workoutDay: SeedData.pushDay, status: .scheduled)
+        let model = CalendarMonthRenderModel.build(
+            key: CalendarMonthRenderModel.Key(
+                monthStart: monthStart,
+                sessionCount: 3,
+                latestSessionDate: outsideMonth,
+                scheduledCount: 1,
+                latestScheduledDate: dayA
+            ),
+            sessions: [
+                sessionA,
+                sessionB,
+                WorkoutSession(workoutTitle: "Outside", date: outsideMonth, durationMinutes: 10, sets: [])
+            ],
+            scheduled: [scheduled],
+            calendar: calendar
+        )
+
+        #expect(model.monthSessions.count == 2)
+        #expect(model.sessions(on: dayA, calendar: calendar).map(\.workoutTitle) == ["Push"])
+        #expect(model.scheduled(on: dayA, calendar: calendar).map(\.workoutDay.title) == [SeedData.pushDay.title])
+        #expect(model.volumeKg(on: dayA, calendar: calendar) == 600)
+        #expect(model.routeDistanceKm(on: dayB, calendar: calendar) == 5)
+        #expect(model.maxDayVolume == 600)
+        #expect(model.monthCells.compactMap { $0 }.count == 31)
+    }
+
+    @Test func exerciseLibrarySearchIndexNormalizesAliasesAndAccents() {
+        let exercise = Exercise(
+            name: "Press Francés",
+            aliases: ["Skull Crusher"],
+            muscleGroup: "Arms",
+            equipment: "Cable",
+            instructions: "Extiende el codo con control"
+        )
+        let index = ExerciseLibrarySearchIndex(exercises: [exercise])
+
+        #expect(index.matches(exercise, query: ExerciseLibrarySearchIndex.normalized("frances")))
+        #expect(index.matches(exercise, query: ExerciseLibrarySearchIndex.normalized("skull")))
+        #expect(index.matches(exercise, query: ExerciseLibrarySearchIndex.normalized("codo")))
+        #expect(!index.matches(exercise, query: ExerciseLibrarySearchIndex.normalized("sentadilla")))
+    }
+
+    @Test func progressDashboardRenderModelPrecomputesRangeAndWeeklyMetrics() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let today = calendar.startOfDay(for: .now)
+        let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: today))
+        let oldDate = try #require(calendar.date(byAdding: .day, value: -40, to: today))
+        let recentSession = WorkoutSession(
+            workoutTitle: "Push",
+            date: yesterday,
+            durationMinutes: 45,
+            sets: [SetLog(setNumber: 1, weightKg: 80, reps: 5, completed: true, rpe: 8)]
+        )
+        let oldSession = WorkoutSession(
+            workoutTitle: "Old",
+            date: oldDate,
+            durationMinutes: 30,
+            sets: [SetLog(setNumber: 1, weightKg: 40, reps: 10, completed: true)]
+        )
+        let health = DailyHealthMetric(
+            date: today,
+            steps: 8_000,
+            activeEnergyKcal: 500,
+            dietaryEnergyKcal: 0,
+            waterLiters: 0,
+            exerciseMinutes: 30
+        )
+        let key = ProgressDashboardRenderModel.Key(
+            range: .week,
+            sessionCount: 2,
+            latestSessionDate: yesterday,
+            cardioCount: 0,
+            latestCardioDate: nil,
+            healthCount: 1,
+            latestHealthDate: today,
+            bodyMetricCount: 0,
+            latestBodyMetricDate: nil,
+            exerciseCount: 1,
+            goalCount: 0,
+            activePlanID: SeedData.pushPullLegsPlan.id,
+            streakDays: 2,
+            weeklyCompletion: 0.5,
+            bestEstimatedOneRepMaxKg: 100
+        )
+
+        let model = ProgressDashboardRenderModel.build(
+            key: key,
+            sessions: [recentSession, oldSession],
+            cardioLogs: [],
+            healthMetrics: [health],
+            todayHealthMetric: health,
+            bodyMetrics: [],
+            exercises: [SeedData.bench],
+            goals: [],
+            activePlan: SeedData.pushPullLegsPlan
+        )
+
+        #expect(model.filteredSessions.map(\.workoutTitle) == ["Push"])
+        #expect(model.heroMetrics.sessionsThisWeek >= 1)
+        #expect(model.heroMetrics.streak == 2)
+        #expect(model.weekTotalMinutes >= 45)
+        #expect(model.dailyVolumeSeries.count == 2)
+        #expect(model.stepsWeekData.count == 7)
+        #expect(model.activeEnergyWeekData.last?.value == 500)
     }
 
     @Test func trainingBatteryDropsWithHighFatigueAndRecoversWithRest() {

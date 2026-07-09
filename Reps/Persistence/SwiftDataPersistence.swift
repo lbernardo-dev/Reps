@@ -20,6 +20,33 @@ enum PersistenceScope: CaseIterable, Hashable, Sendable {
     case rehabLogs
 
     static let all = Set(PersistenceScope.allCases)
+
+    var signpostName: String {
+        switch self {
+        case .profile: "profile"
+        case .monetization: "monetization"
+        case .health: "health"
+        case .exerciseLibrary: "exerciseLibrary"
+        case .plans: "plans"
+        case .workoutTemplates: "workoutTemplates"
+        case .scheduledWorkouts: "scheduledWorkouts"
+        case .workoutSessions: "workoutSessions"
+        case .cardioLogs: "cardioLogs"
+        case .bodyMetrics: "bodyMetrics"
+        case .progressPhotos: "progressPhotos"
+        case .gymPasses: "gymPasses"
+        case .gymVisits: "gymVisits"
+        case .goals: "goals"
+        case .savedShareCards: "savedShareCards"
+        case .rehabLogs: "rehabLogs"
+        }
+    }
+}
+
+extension Set where Element == PersistenceScope {
+    var signpostDescription: String {
+        map(\.signpostName).sorted().joined(separator: ",")
+    }
 }
 
 @MainActor
@@ -161,6 +188,19 @@ final class SwiftDataPersistence {
     /// Rewrites only the record types covered by `scopes`, leaving the rest of
     /// the store untouched. Defaults to a full rewrite for restore/import flows.
     func save(_ snapshot: AppSnapshot, scopes: Set<PersistenceScope> = PersistenceScope.all) {
+        let scopeNames = scopes.signpostDescription
+        let interval = PerformanceSignpost.begin(
+            "swiftData.save",
+            "scopes=\(scopeNames)"
+        )
+        defer {
+            PerformanceSignpost.end(
+                "swiftData.save",
+                interval,
+                "scopes=\(scopeNames)"
+            )
+        }
+
         for scope in PersistenceScope.allCases where scopes.contains(scope) {
             replace(scope, with: snapshot)
         }

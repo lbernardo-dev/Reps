@@ -9,6 +9,7 @@ struct CalendarView: View {
     @State private var selectedDate = Date()
     @State private var showNotifications = false
     @State private var notificationWorkout: WorkoutDay?
+    @State private var monthRenderModel = CalendarMonthRenderModel.empty
 
     var body: some View {
         NavigationStack {
@@ -224,6 +225,9 @@ struct CalendarView: View {
                 ActiveWorkoutView(workout: workout)
             }
             .toolbar(.hidden, for: .navigationBar)
+            .task(id: monthRenderModelKey) {
+                rebuildMonthRenderModel()
+            }
         }
         .onAppear {
             applyFocusedDate(store.calendarFocusedDate)
@@ -267,8 +271,7 @@ struct CalendarView: View {
     }
 
     private var monthSessions: [WorkoutSession] {
-        guard let interval = Calendar.current.dateInterval(of: .month, for: visibleMonth) else { return [] }
-        return store.workoutSessions.filter { interval.contains($0.date) }
+        monthRenderModel.monthSessions
     }
 
     private var calendarCommandCard: some View {
@@ -343,19 +346,7 @@ struct CalendarView: View {
     }
 
     private var monthCells: [Date?] {
-        let calendar = Calendar.current
-        guard let interval = calendar.dateInterval(of: .month, for: visibleMonth),
-              let range = calendar.range(of: .day, in: .month, for: visibleMonth) else {
-            return []
-        }
-
-        let firstWeekday = calendar.component(.weekday, from: interval.start)
-        let leadingBlanks = (firstWeekday + 5) % 7
-        let days = range.compactMap { day in
-            calendar.date(byAdding: .day, value: day - 1, to: interval.start)
-        }
-
-        return Array(repeating: nil, count: leadingBlanks) + days
+        monthRenderModel.monthCells
     }
 
     private func formattedMonth(_ date: Date) -> String {
@@ -373,19 +364,11 @@ struct CalendarView: View {
     }
 
     private func loggedWorkouts(on date: Date) -> [WorkoutSession] {
-        let calendar = Calendar.current
-        return store.workoutSessions
-            .filter {
-            calendar.isDate($0.date, inSameDayAs: date)
-            }
-            .sorted { $0.date > $1.date }
-        }
+        monthRenderModel.sessions(on: date)
+    }
 
     private func scheduledWorkouts(on date: Date) -> [ScheduledWorkout] {
-        let calendar = Calendar.current
-        return store.scheduledWorkouts
-            .filter { calendar.isDate($0.date, inSameDayAs: date) }
-            .sorted { $0.date < $1.date }
+        monthRenderModel.scheduled(on: date)
     }
 
     private func dayExerciseCount(on date: Date) -> Int {
@@ -393,7 +376,7 @@ struct CalendarView: View {
     }
 
     private func dayRouteDistanceKm(on date: Date) -> Double {
-        loggedWorkouts(on: date).compactMap(\.distanceKm).reduce(0, +)
+        monthRenderModel.routeDistanceKm(on: date)
     }
 
     private func exerciseCount(for session: WorkoutSession) -> Int {
@@ -424,21 +407,34 @@ struct CalendarView: View {
     }
 
     private func sessionVolumeKg(on date: Date) -> Double {
-        FitnessMetrics.totalVolumeKg(for: loggedWorkouts(on: date))
+        monthRenderModel.volumeKg(on: date)
     }
 
     private var maxDayVolume: Double {
-        guard let interval = Calendar.current.dateInterval(of: .month, for: visibleMonth),
-              let range = Calendar.current.range(of: .day, in: .month, for: visibleMonth) else { return 1 }
-        let start = interval.start
-        return range.compactMap { d -> Double? in
-            guard let date = Calendar.current.date(byAdding: .day, value: d - 1, to: start) else { return nil }
-            let vol = sessionVolumeKg(on: date)
-            return vol > 0 ? vol : nil
-        }.max() ?? 1
+        monthRenderModel.maxDayVolume
+    }
+
+    private var monthRenderModelKey: CalendarMonthRenderModel.Key {
+        let monthStart = Calendar.current.dateInterval(of: .month, for: visibleMonth)?.start ?? Calendar.current.startOfDay(for: visibleMonth)
+        return CalendarMonthRenderModel.Key(
+            monthStart: monthStart,
+            sessionCount: store.workoutSessions.count,
+            latestSessionDate: store.workoutSessions.map(\.date).max(),
+            scheduledCount: store.scheduledWorkouts.count,
+            latestScheduledDate: store.scheduledWorkouts.map(\.date).max()
+        )
+    }
+
+    private func rebuildMonthRenderModel() {
+        monthRenderModel = CalendarMonthRenderModel.build(
+            key: monthRenderModelKey,
+            sessions: store.workoutSessions,
+            scheduled: store.scheduledWorkouts
+        )
     }
 
     private func changeMonth(by value: Int) {
+        PerformanceSignpost.event("calendar.changeMonth", "offset=\(value)")
         let nextMonth = Calendar.current.date(byAdding: .month, value: value, to: visibleMonth) ?? visibleMonth
         visibleMonth = nextMonth
         selectedDate = Calendar.current.dateInterval(of: .month, for: nextMonth)?.start ?? nextMonth
@@ -462,6 +458,99 @@ struct CalendarView: View {
 
         notificationWorkout = scheduled.workoutDay
         store.calendarWorkoutToOpenID = nil
+    }
+}
+
+struct CalendarMonthRenderModel {
+    struct Key: Equatable {
+        let monthStart: Date
+        let sessionCount: Int
+        let latestSessionDate: Date?
+        let scheduledCount: Int
+        let latestScheduledDate: Date?
+    }
+
+    let key: Key?
+    let monthCells: [Date?]
+    let monthSessions: [WorkoutSession]
+    let sessionsByDay: [Date: [WorkoutSession]]
+    let scheduledByDay: [Date: [ScheduledWorkout]]
+    let volumeByDay: [Date: Double]
+    let routeDistanceByDay: [Date: Double]
+    let maxDayVolume: Double
+
+    static let empty = CalendarMonthRenderModel(
+        key: nil,
+        monthCells: [],
+        monthSessions: [],
+        sessionsByDay: [:],
+        scheduledByDay: [:],
+        volumeByDay: [:],
+        routeDistanceByDay: [:],
+        maxDayVolume: 1
+    )
+
+    static func build(
+        key: Key,
+        sessions: [WorkoutSession],
+        scheduled: [ScheduledWorkout],
+        calendar: Calendar = .current
+    ) -> CalendarMonthRenderModel {
+        let interval = PerformanceSignpost.begin(
+            "calendar.monthRenderModel",
+            "sessions=\(sessions.count) scheduled=\(scheduled.count)"
+        )
+        defer {
+            PerformanceSignpost.end("calendar.monthRenderModel", interval)
+        }
+
+        guard let monthInterval = calendar.dateInterval(of: .month, for: key.monthStart),
+              let dayRange = calendar.range(of: .day, in: .month, for: key.monthStart) else {
+            return .empty
+        }
+
+        let monthSessions = sessions
+            .filter { monthInterval.contains($0.date) }
+            .sorted { $0.date > $1.date }
+        let monthScheduled = scheduled
+            .filter { monthInterval.contains($0.date) }
+            .sorted { $0.date < $1.date }
+        let sessionsByDay = Dictionary(grouping: monthSessions) { calendar.startOfDay(for: $0.date) }
+        let scheduledByDay = Dictionary(grouping: monthScheduled) { calendar.startOfDay(for: $0.date) }
+        let volumeByDay = sessionsByDay.mapValues { FitnessMetrics.totalVolumeKg(for: $0) }
+        let routeDistanceByDay = sessionsByDay.mapValues { $0.compactMap(\.distanceKm).reduce(0, +) }
+        let firstWeekday = calendar.component(.weekday, from: monthInterval.start)
+        let leadingBlanks = (firstWeekday + 5) % 7
+        let days = dayRange.compactMap { day in
+            calendar.date(byAdding: .day, value: day - 1, to: monthInterval.start)
+        }
+
+        return CalendarMonthRenderModel(
+            key: key,
+            monthCells: Array(repeating: nil, count: leadingBlanks) + days,
+            monthSessions: monthSessions,
+            sessionsByDay: sessionsByDay,
+            scheduledByDay: scheduledByDay,
+            volumeByDay: volumeByDay,
+            routeDistanceByDay: routeDistanceByDay,
+            maxDayVolume: volumeByDay.values.filter { $0 > 0 }.max() ?? 1
+        )
+    }
+
+    func sessions(on date: Date, calendar: Calendar = .current) -> [WorkoutSession] {
+        sessionsByDay[calendar.startOfDay(for: date)] ?? []
+    }
+
+    func scheduled(on date: Date, calendar: Calendar = .current) -> [ScheduledWorkout] {
+        scheduledByDay[calendar.startOfDay(for: date)] ?? []
+    }
+
+    func volumeKg(on date: Date, calendar: Calendar = .current) -> Double {
+        volumeByDay[calendar.startOfDay(for: date), default: 0]
+    }
+
+    func routeDistanceKm(on date: Date, calendar: Calendar = .current) -> Double {
+        routeDistanceByDay[calendar.startOfDay(for: date), default: 0]
     }
 }
 

@@ -74,11 +74,6 @@ struct MainTabView: View {
   @State private var presentedQuickAction: QuickAction?
   @State private var pendingWorkoutSummarySession: WorkoutSession?
   @State private var showCalendarSheet = false
-  @State private var todayResetID = UUID()
-  @State private var trainResetID = UUID()
-  @State private var progressResetID = UUID()
-  @State private var exercisesResetID = UUID()
-  @State private var profileResetID = UUID()
 
   var body: some View {
     @Bindable var store = store
@@ -224,7 +219,6 @@ struct MainTabView: View {
       // — Hoy: readiness + today's plan + streak. No deep analytics.
       Tab(value: AppTab.today) {
         TodayView(onSelectTab: { select($0) })
-          .id(todayResetID)
           .toolbar(chromeState.isTabBarHidden ? .hidden : .visible, for: .tabBar)
       } label: {
         AppTab.today.label
@@ -233,7 +227,6 @@ struct MainTabView: View {
       // — Entrenar: quick start, plans/routines, library, tools, schedule.
       Tab(value: AppTab.train) {
         PlansView()
-          .id(trainResetID)
           .toolbar(chromeState.isTabBarHidden ? .hidden : .visible, for: .tabBar)
       } label: {
         AppTab.train.label
@@ -242,7 +235,6 @@ struct MainTabView: View {
       // — Progreso: analytics, trends, records, history.
       Tab(value: AppTab.progress) {
         ProgressDashboardView(onSelectTab: { select($0) })
-          .id(progressResetID)
           .toolbar(chromeState.isTabBarHidden ? .hidden : .visible, for: .tabBar)
       } label: {
         AppTab.progress.label
@@ -251,7 +243,6 @@ struct MainTabView: View {
       // — Ejercicios: browse and manage the exercise library.
       Tab(value: AppTab.exercises) {
         ExerciseLibraryView(isTabRoot: true)
-          .id(exercisesResetID)
           .toolbar(chromeState.isTabBarHidden ? .hidden : .visible, for: .tabBar)
       } label: {
         AppTab.exercises.label
@@ -263,7 +254,6 @@ struct MainTabView: View {
         NavigationStack {
           ProfileView(isTabRoot: true)
         }
-        .id(profileResetID)
         .toolbar(chromeState.isTabBarHidden ? .hidden : .visible, for: .tabBar)
       } label: {
         profileTabLabel
@@ -421,14 +411,10 @@ struct MainTabView: View {
   }
 
   private func reset(_ tab: AppTab) {
-    switch tab {
-    case .today: todayResetID = UUID()
-    case .train: trainResetID = UUID()
-    case .progress: progressResetID = UUID()
-    case .exercises: exercisesResetID = UUID()
-    case .profile: profileResetID = UUID()
-    case .calendar: break
-    }
+    TelemetryService.shared.log(.mainTabSelected, parameters: [
+      "tab": tab.telemetryName,
+      "source": "reselect",
+    ])
   }
 
   @ViewBuilder

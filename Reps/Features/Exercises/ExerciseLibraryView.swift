@@ -23,6 +23,7 @@ struct ExerciseLibraryView: View {
     @State private var onlyAvailableEquipment = false
     @State private var showAddCustom = false
     @State private var showNotifications = false
+    @State private var searchIndex = ExerciseLibrarySearchIndex.empty
 
     private var muscles: [String] {
         ["All"] + Array(Set(store.exercises.map(\.muscleGroup))).sorted()
@@ -33,11 +34,16 @@ struct ExerciseLibraryView: View {
     }
 
     private var filteredExercises: [Exercise] {
-        store.exercises.filter { exercise in
-            // Cheap field comparisons first so the expensive text-search join
-            // below only runs for exercises that already passed every other
-            // filter — with 800+ exercises, building that string for every
-            // item on every render (e.g. each keystroke) was the slow part.
+        let interval = PerformanceSignpost.begin(
+            "exerciseLibrary.filteredExercises",
+            "exercises=\(store.exercises.count) search=\(searchText.count)"
+        )
+        defer {
+            PerformanceSignpost.end("exerciseLibrary.filteredExercises", interval)
+        }
+
+        let normalizedQuery = ExerciseLibrarySearchIndex.normalized(searchText)
+        return store.exercises.filter { exercise in
             if selectedPath == .muscles, !selectedMuscleSegments.isEmpty {
                 guard !Set(MuscleLoadCalculator.segments(for: exercise)).isDisjoint(with: selectedMuscleSegments) else { return false }
             } else if selectedPath == .filters {
@@ -49,23 +55,20 @@ struct ExerciseLibraryView: View {
             guard selectedEnvironment == nil || exercise.environment == selectedEnvironment || exercise.environment == .both else { return false }
             guard selectedCategory.matches(exercise) else { return false }
             guard !onlyAvailableEquipment || availableEquipmentMatches(exercise) else { return false }
-            guard !searchText.isEmpty else { return true }
-
-            let searchableText = [
-                exercise.name,
-                exercise.aliases.joined(separator: " "),
-                exercise.muscleGroup,
-                exercise.equipment,
-                exercise.requiredEquipment.joined(separator: " "),
-                exercise.tags.joined(separator: " "),
-                exercise.instructions ?? "",
-                exercise.notes ?? ""
-            ].joined(separator: " ")
-            return searchableText.localizedStandardContains(searchText)
+            guard !normalizedQuery.isEmpty else { return true }
+            return searchIndex.matches(exercise, query: normalizedQuery)
         }
     }
 
     private func groupedExercises(from exercises: [Exercise]) -> [(String, [Exercise])] {
+        let interval = PerformanceSignpost.begin(
+            "exerciseLibrary.groupedExercises",
+            "exercises=\(exercises.count)"
+        )
+        defer {
+            PerformanceSignpost.end("exerciseLibrary.groupedExercises", interval)
+        }
+
         let grouped = Dictionary(grouping: exercises, by: \.muscleGroup)
         return grouped.keys.sorted().map { ($0, grouped[$0, default: []].sorted { $0.name < $1.name }) }
     }
@@ -287,6 +290,12 @@ struct ExerciseLibraryView: View {
                 .padding(.bottom, 64)
             }
             .background(PulseTheme.background)
+            .task(id: store.exercises.count) {
+                rebuildSearchIndex()
+            }
+            .onChange(of: store.exercises.map(\.id)) { _, _ in
+                rebuildSearchIndex()
+            }
             .onChange(of: selectedMuscle) { _, newValue in
                 if newValue != "All" { selectedMuscleSegments.removeAll() }
             }
@@ -437,6 +446,57 @@ struct ExerciseLibraryView: View {
         selectedDifficulty?.localizedDisplayName ?? localizedString("any_difficulty")
     }
 
+    private func rebuildSearchIndex() {
+        searchIndex = ExerciseLibrarySearchIndex(exercises: store.exercises)
+    }
+
+}
+
+struct ExerciseLibrarySearchIndex {
+    private let entriesByID: [Exercise.ID: String]
+
+    static let empty = ExerciseLibrarySearchIndex(entriesByID: [:])
+
+    init(exercises: [Exercise]) {
+        let interval = PerformanceSignpost.begin(
+            "exerciseLibrary.searchIndex",
+            "exercises=\(exercises.count)"
+        )
+        defer {
+            PerformanceSignpost.end("exerciseLibrary.searchIndex", interval)
+        }
+
+        entriesByID = Dictionary(uniqueKeysWithValues: exercises.map { exercise in
+            (
+                exercise.id,
+                Self.normalized([
+                    exercise.name,
+                    exercise.aliases.joined(separator: " "),
+                    exercise.muscleGroup,
+                    exercise.equipment,
+                    exercise.requiredEquipment.joined(separator: " "),
+                    exercise.tags.joined(separator: " "),
+                    exercise.instructions ?? "",
+                    exercise.notes ?? ""
+                ].joined(separator: " "))
+            )
+        })
+    }
+
+    private init(entriesByID: [Exercise.ID: String]) {
+        self.entriesByID = entriesByID
+    }
+
+    func matches(_ exercise: Exercise, query: String) -> Bool {
+        entriesByID[exercise.id]?.contains(query) == true
+    }
+
+    static func normalized(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
 }
 
 private enum ExerciseLibraryPath: String, CaseIterable, Identifiable {
