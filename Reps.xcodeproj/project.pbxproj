@@ -118,6 +118,7 @@
 		80862DB167042E5D727DAE0B /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 993ED47C6A26814D8131BB84 /* Localizable.xcstrings */; };
 		80E4137799DDA4ADDDAD999B /* HealthWidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9480501C300BC8B602E9E5C /* HealthWidgetShared.swift */; };
 		83AF69C94818232122523FB3 /* HealthGoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B8FF299038EA7A589C76288 /* HealthGoalsView.swift */; };
+		86BD58FDAE3EE68E73D1F5B1 /* DemoPremiumSeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D5FAA371B69CDD85C562A0 /* DemoPremiumSeedData.swift */; };
 		87D69B64759C6D1C74B943F7 /* PlansView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95EF4F0FCD797CF0C3006FED /* PlansView.swift */; };
 		886DA0D283D11E89C485C8E7 /* TrendLineChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF8F85004F532C20161BD62F /* TrendLineChart.swift */; };
 		8B77A758E15EBD5CCD8D16E2 /* RepsWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFAF43FA22D0DA2672A1E51 /* RepsWidgetsBundle.swift */; };
@@ -270,6 +271,7 @@
 		16CCCA765D3E74E7270004A7 /* CodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeScannerView.swift; sourceTree = "<group>"; };
 		1703D1E318433EAC1F0ADDA4 /* CreatePlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePlanView.swift; sourceTree = "<group>"; };
 		17B4F317A78692C50588DEC0 /* StepsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepsView.swift; sourceTree = "<group>"; };
+		19D5FAA371B69CDD85C562A0 /* DemoPremiumSeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoPremiumSeedData.swift; sourceTree = "<group>"; };
 		1AACCD6E1BE104C3FD7B706C /* ProfileDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileDetailView.swift; sourceTree = "<group>"; };
 		1AF6D7787CCEFB75A1719EB0 /* StopwatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopwatchView.swift; sourceTree = "<group>"; };
 		1B33244C64642C7FC7A82750 /* WorkoutAppleMusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAppleMusicPlayer.swift; sourceTree = "<group>"; };
@@ -600,6 +602,7 @@
 		5D2AA826BBC44B991346427B /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				19D5FAA371B69CDD85C562A0 /* DemoPremiumSeedData.swift */,
 				0B97E952AF94341517324563 /* Models.swift */,
 				8BA1565353516FCB4247FD1D /* Monetization.swift */,
 				EDB63ED77235B1CED8E61C04 /* NotificationEvent.swift */,
@@ -1143,6 +1146,7 @@
 				ACDC7479449EBF00793E0AFB /* CreateChallengeView.swift in Sources */,
 				75653B59456C5C8924F633A7 /* CreatePlanView.swift in Sources */,
 				384882BC38DB05845139EA04 /* CreatePostView.swift in Sources */,
+				86BD58FDAE3EE68E73D1F5B1 /* DemoPremiumSeedData.swift in Sources */,
 				F5A6B1F54A464EA53A52BDFC /* DeveloperMenuView.swift in Sources */,
 				738C87B43E5EC320DE7DD2C8 /* DomainTrendCharts.swift in Sources */,
 				5C561560E7F6B79FCA7A14D5 /* EditSocialProfileView.swift in Sources */,

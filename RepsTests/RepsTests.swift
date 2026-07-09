@@ -1955,6 +1955,65 @@ struct RepsTests {
         #expect(loaded?.goals.count == snapshot.goals.count)
     }
 
+    @Test @MainActor func premiumDemoSeedSpansOneYearAndGrantsProAccess() {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 9, hour: 12))!
+
+        let snapshot = DemoPremiumSeedData.snapshot(now: now, calendar: calendar)
+        let firstSessionDate = snapshot.workoutSessions.map(\.date).min()
+        let lastSessionDate = snapshot.workoutSessions.map(\.date).max()
+        let coveredDays = firstSessionDate.flatMap { first in
+            lastSessionDate.flatMap { last in
+                calendar.dateComponents([.day], from: first, to: last).day
+            }
+        } ?? 0
+
+        #expect(snapshot.userProfile.onboardingCompleted)
+        #expect(snapshot.userProfile.displayName == "Alex Romero")
+        #expect(snapshot.monetization.hasProAccess)
+        #expect(coveredDays >= 340)
+        #expect(snapshot.workoutSessions.count >= 180)
+        #expect(snapshot.health.latestDailyMetrics.count >= 360)
+        #expect(snapshot.bodyMetrics.count >= 50)
+        #expect(snapshot.progressPhotos.count >= 6)
+        #expect(snapshot.progressPhotos.allSatisfy { !$0.imageData.isEmpty })
+        #expect(snapshot.gymPasses.first?.invoices.count == 12)
+        #expect(snapshot.goals.contains { $0.kind == .bodyWeight && $0.unit == "kg perdidos" && $0.current < $0.target })
+        #expect(snapshot.scheduledWorkouts.contains { $0.status == .scheduled && $0.date >= calendar.startOfDay(for: now) })
+    }
+
+    @Test @MainActor func premiumDemoSeedPersistsThroughSwiftData() {
+        let persistence = SwiftDataPersistence(inMemory: true)
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 9, hour: 12))!
+        let snapshot = DemoPremiumSeedData.snapshot(now: now, calendar: calendar)
+
+        persistence.save(snapshot)
+
+        let loaded = persistence.loadSnapshot()
+        #expect(loaded?.monetization.hasProAccess == true)
+        #expect(loaded?.workoutSessions.count == snapshot.workoutSessions.count)
+        #expect(loaded?.health.latestDailyMetrics.count == snapshot.health.latestDailyMetrics.count)
+        #expect(loaded?.progressPhotos.first?.imageData.isEmpty == false)
+        #expect(loaded?.gymPasses.first?.invoices.first?.attachmentData?.isEmpty == false)
+    }
+
+    @Test @MainActor func swiftDataPersistenceDeduplicatesIncomingPlans() {
+        let persistence = SwiftDataPersistence(inMemory: true)
+        var snapshot = AppSnapshot.seed
+        var plan = SeedData.upperLower4DayPlan
+        plan.name = "Duplicated incoming plan"
+        snapshot.activePlan = plan
+        snapshot.plans = [plan, plan]
+
+        persistence.save(snapshot)
+        persistence.save(snapshot)
+
+        let loaded = persistence.loadSnapshot()
+        #expect(loaded?.plans.filter { $0.id == plan.id }.count == 1)
+        #expect(loaded?.activePlan.id == plan.id)
+    }
+
     @Test @MainActor func swiftDataPersistenceRoundTripsAdvancedFields() {
         let persistence = SwiftDataPersistence(inMemory: true)
         var snapshot = AppSnapshot.seed

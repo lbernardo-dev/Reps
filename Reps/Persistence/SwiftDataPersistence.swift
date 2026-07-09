@@ -392,8 +392,20 @@ final class SwiftDataPersistence {
         makeRecord: (Domain) -> Record,
         deleteRecord: (Record) -> Void
     ) {
-        var existingByID = Dictionary(uniqueKeysWithValues: existing.map { (recordID($0), $0) })
+        var existingByID: [UUID: Record] = [:]
+        for record in existing {
+            let id = recordID(record)
+            if existingByID[id] == nil {
+                existingByID[id] = record
+            } else {
+                deleteRecord(record)
+            }
+        }
+        var seenIncomingIDs = Set<UUID>()
         for item in domainItems {
+            guard seenIncomingIDs.insert(id(item)).inserted else {
+                continue
+            }
             if let match = existingByID.removeValue(forKey: id(item)) {
                 if !contentEquals(domainOf(match), item) {
                     deleteRecord(match)
@@ -410,8 +422,19 @@ final class SwiftDataPersistence {
     /// it lives on the record, not on the `WorkoutPlan` domain struct, so a
     /// pure content diff would miss "same plan, but activation changed".
     private func reconcilePlans(_ persistedPlans: [WorkoutPlan], activePlanID: UUID, activePlan: WorkoutPlan) {
-        var existingByID = Dictionary(uniqueKeysWithValues: fetch(WorkoutPlanRecord.self).map { ($0.id, $0) })
+        var existingByID: [UUID: WorkoutPlanRecord] = [:]
+        for record in fetch(WorkoutPlanRecord.self) {
+            if existingByID[record.id] == nil {
+                existingByID[record.id] = record
+            } else {
+                deleteGraph(record)
+            }
+        }
+        var seenIncomingPlanIDs = Set<UUID>()
         for plan in persistedPlans {
+            guard seenIncomingPlanIDs.insert(plan.id).inserted else {
+                continue
+            }
             let isActive = plan.id == activePlanID
             let resolvedPlan = isActive ? activePlan : plan
             if let match = existingByID.removeValue(forKey: plan.id) {

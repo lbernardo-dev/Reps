@@ -870,6 +870,15 @@ final class AppStore {
     func resetProAccessForDebug() {
         monetization = MonetizationState()
     }
+
+    func loadPremiumDemoDataForDebug(now: Date = .now) {
+        restore(DemoPremiumSeedData.snapshot(now: now))
+        TelemetryService.shared.log(.backupImported, parameters: [
+            "source": "debug_premium_demo",
+            "session_count": workoutSessions.count,
+            "body_metric_count": bodyMetrics.count
+        ])
+    }
     #endif
 
     func completeOnboarding(profile: UserProfile) {
@@ -3494,6 +3503,9 @@ final class AppStore {
     }
 
     private func performAutomaticHealthSyncIfNeeded(force: Bool = false, reason: String) async {
+        #if DEBUG || targetEnvironment(simulator)
+        guard health.message != DemoPremiumSeedData.healthMessage else { return }
+        #endif
         health.isAvailable = HKHealthStore.isHealthDataAvailable()
         guard health.isAvailable, health.isAuthorized else { return }
         startHealthKitWorkoutObserverIfAuthorized()

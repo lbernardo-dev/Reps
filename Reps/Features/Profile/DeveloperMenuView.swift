@@ -7,6 +7,7 @@ struct DeveloperMenuView: View {
 
     @State private var showDeleteAllConfirmation = false
     @State private var showRestartOnboardingConfirmation = false
+    @State private var showPremiumDemoConfirmation = false
     @State private var localPaywall: PaywallPresentation?
 
     var body: some View {
@@ -63,6 +64,13 @@ struct DeveloperMenuView: View {
                 }
 
                 Section {
+                    Button {
+                        HapticService.selection()
+                        showPremiumDemoConfirmation = true
+                    } label: {
+                        Text("Cargar demo premium realista")
+                    }
+
                     Toggle("dev_simulate_storage_error", isOn: Binding(
                         get: { store.isUsingFallbackStorage },
                         set: { store.isUsingFallbackStorage = $0 }
@@ -91,6 +99,18 @@ struct DeveloperMenuView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("ok") { dismiss() }
                 }
+            }
+            .confirmationDialog(
+                "Cargar demo premium realista",
+                isPresented: $showPremiumDemoConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Reemplazar datos locales", role: .destructive) {
+                    store.loadPremiumDemoDataForDebug()
+                }
+                Button("cancel", role: .cancel) {}
+            } message: {
+                Text("Se reemplazara el estado local por un perfil Pro con 12 meses de entrenos, salud, fotos, gimnasio, objetivos y calendario.")
             }
             .confirmationDialog(
                 "delete_all_data",

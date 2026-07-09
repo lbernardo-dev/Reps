@@ -59,6 +59,7 @@ struct ActiveWorkoutView: View {
     @State private var showSessionFeedback = false
     @State private var showProPreferences = false
     @State private var showMissingExerciseAlert = false
+    @State private var showStartSessionRequiredAlert = false
     @State private var lastStatusPublishSecond = -1
     @State private var workoutSensorSummary: WorkoutSensorSummary?
     @State private var isFinishingWorkout = false
@@ -421,6 +422,14 @@ struct ActiveWorkoutView: View {
             Button("cancel", role: .cancel) {}
         } message: {
             Text("cannot_start_a_session_without_exercises")
+        }
+        .alert("Inicia el entrenamiento", isPresented: $showStartSessionRequiredAlert) {
+            Button("Iniciar ahora") {
+                startPreparedSession()
+            }
+            Button("cancel", role: .cancel) {}
+        } message: {
+            Text("Para registrar series, primero pulsa Empezar. Asi el temporizador, descansos, Watch y resumen final quedan sincronizados.")
         }
         .onDisappear {
             if finishedSession == nil {
@@ -1522,7 +1531,7 @@ struct ActiveWorkoutView: View {
                             Label("skip_exercise", systemImage: "forward.end")
                         }
 
-                        if hasIncompleteSetsForSelectedExercise {
+                        if hasIncompleteSetsForSelectedExercise && isSessionStarted {
                             Button {
                                 completeAllSetsForSelectedExercise()
                             } label: {
@@ -1546,6 +1555,15 @@ struct ActiveWorkoutView: View {
 
                 if exerciseDrafts.indices.contains(selectedExerciseIndex) {
                     let sets = exerciseDrafts.indices.contains(selectedExerciseIndex) ? exerciseDrafts[selectedExerciseIndex].sets : []
+                    if !isSessionStarted {
+                        Label("Pulsa Empezar para registrar series", systemImage: "lock.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.warning)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(PulseTheme.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
                     ActiveSetRowsList(
                         setIndices: Array(sets.indices),
                         trackingType: selectedDraft?.workoutExercise.exercise.trackingType ?? .weightReps,
@@ -2162,6 +2180,12 @@ struct ActiveWorkoutView: View {
                       exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
                     return
                 }
+                let previous = exerciseDrafts[selectedExerciseIndex].sets[setIndex]
+                guard isSessionStarted || newValue.completed == previous.completed else {
+                    showStartSessionRequiredAlert = true
+                    HapticService.notification(.warning)
+                    return
+                }
                 exerciseDrafts[selectedExerciseIndex].sets[setIndex] = newValue
             }
         )
@@ -2169,6 +2193,11 @@ struct ActiveWorkoutView: View {
 
     private func completeSelectedSetIfNeeded(setIndex: Int, completed: Bool) {
         guard completed else { return }
+        guard isSessionStarted else {
+            showStartSessionRequiredAlert = true
+            HapticService.notification(.warning)
+            return
+        }
         handleSetCompleted(exerciseIndex: selectedExerciseIndex, setIndex: setIndex)
     }
 
@@ -2217,8 +2246,8 @@ struct ActiveWorkoutView: View {
 
     private func completeNextAvailableSet() {
         guard isSessionStarted else {
-            HapticService.impact(.medium)
-            startPreparedSession()
+            showStartSessionRequiredAlert = true
+            HapticService.notification(.warning)
             return
         }
         guard let next = nextIncompleteSet else {
@@ -2444,6 +2473,11 @@ struct ActiveWorkoutView: View {
     }
 
     private func completeAllSetsForSelectedExercise() {
+        guard isSessionStarted else {
+            showStartSessionRequiredAlert = true
+            HapticService.notification(.warning)
+            return
+        }
         guard exerciseDrafts.indices.contains(selectedExerciseIndex) else { return }
         let pendingSetIndices = exerciseDrafts[selectedExerciseIndex].sets.indices.filter {
             !exerciseDrafts[selectedExerciseIndex].sets[$0].completed
@@ -2570,6 +2604,11 @@ struct ActiveWorkoutView: View {
     }
 
     private func handleSetCompleted(exerciseIndex: Int, setIndex: Int) {
+        guard isSessionStarted else {
+            showStartSessionRequiredAlert = true
+            HapticService.notification(.warning)
+            return
+        }
         guard exerciseDrafts.indices.contains(exerciseIndex),
               exerciseDrafts[exerciseIndex].sets.indices.contains(setIndex) else {
             return

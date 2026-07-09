@@ -73,6 +73,24 @@ struct TodayView: View {
         return "\(completedThisWeek)/\(store.activePlan.daysPerWeek)"
     }
 
+    private var weeklyPlanCompletionRatio: Double {
+        guard hasActivePlan, store.activePlan.daysPerWeek > 0 else {
+            return 0
+        }
+        return min(Double(completedThisWeek) / Double(store.activePlan.daysPerWeek), 1)
+    }
+
+    private var weeklyPlanSummaryTint: Color {
+        switch weeklyPlanCompletionRatio {
+        case 1...:
+            return PulseTheme.recovery
+        case 0.5..<1:
+            return PulseTheme.warning
+        default:
+            return PulseTheme.destructive
+        }
+    }
+
     private var streakDays: Int {
         store.streakDays
     }
@@ -605,6 +623,9 @@ struct TodayView: View {
         func pill(_ icon: String, _ value: String, _ tint: Color, _ destination: GreetingMetricDestination) {
             tokens.append(GreetingFlowToken(kind: .pill(icon: icon, value: value, tint: tint, destination: destination)))
         }
+        func highlight(_ value: String, _ tint: Color) {
+            tokens.append(GreetingFlowToken(kind: .highlight(value: value, tint: tint)))
+        }
 
         if isSpanish {
             words("Descansaste")
@@ -629,7 +650,13 @@ struct TodayView: View {
             pill(TrackedMetric.readiness.systemImage, "\(batteryStatus.level)%", TrackedMetric.readiness.tint, .recovery)
             words("· \(stressSummaryText)")
             words("·")
-            words(hasActivePlan ? "tu plan pide \(weekTargetText) sesiones esta semana." : "aún no tienes plan activo.")
+            if hasActivePlan {
+                words("tu plan pide")
+                highlight(weekTargetText, weeklyPlanSummaryTint)
+                words("sesiones esta semana.")
+            } else {
+                words("aún no tienes plan activo.")
+            }
         } else {
             words("You slept")
             if let sleep = latestSleepHours {
@@ -653,7 +680,13 @@ struct TodayView: View {
             pill(TrackedMetric.readiness.systemImage, "\(batteryStatus.level)%", TrackedMetric.readiness.tint, .recovery)
             words("· \(stressSummaryText)")
             words("·")
-            words(hasActivePlan ? "your plan calls for \(weekTargetText) sessions this week." : "no active plan yet.")
+            if hasActivePlan {
+                words("your plan calls for")
+                highlight(weekTargetText, weeklyPlanSummaryTint)
+                words("sessions this week.")
+            } else {
+                words("no active plan yet.")
+            }
         }
 
         return tokens
@@ -720,6 +753,16 @@ struct TodayView: View {
             }
             .buttonStyle(.plain)
             .matchedTransitionSource(id: destination.zoomID, in: wellnessZoom)
+        case .highlight(let value, let tint):
+            Text(value)
+                .font(.system(size: 15, weight: .black, design: .rounded).monospacedDigit())
+                .foregroundStyle(tint)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 3)
+                .background(tint.opacity(0.16), in: Capsule())
+                .overlay {
+                    Capsule().stroke(tint.opacity(0.24), lineWidth: 0.8)
+                }
         }
     }
 
@@ -2036,6 +2079,7 @@ private struct GreetingFlowToken: Identifiable {
     enum Kind {
         case word(String)
         case pill(icon: String, value: String, tint: Color, destination: GreetingMetricDestination)
+        case highlight(value: String, tint: Color)
     }
 
     let id = UUID()
