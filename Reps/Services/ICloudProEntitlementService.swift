@@ -40,24 +40,35 @@ final class ICloudProEntitlementService: @unchecked Sendable {
         static let environmentKey = "REPS_PRO_ICLOUD_RECORD_ID_HASHES"
     }
 
-    private let container: CKContainer
+    private let containerFactory: () -> CKContainer
+    // Constructing a CKContainer (even with an explicit identifier, and even
+    // for .default()) crashes immediately on unsigned/simulator runs that
+    // lack a real iCloud provisioning profile. Defer creation until a code
+    // path that actually needs it runs, so the simulator early-return in
+    // evaluateCurrentAccount() below never touches CloudKit at all.
+    private lazy var container: CKContainer = containerFactory()
     private let bundle: Bundle
     private let environment: [String: String]
     private let fileManager: FileManager
 
     init(
-        container: CKContainer = .default(),
+        container containerFactory: @escaping () -> CKContainer = { CKContainer(identifier: "iCloud.com.romerodev.repsfitness") },
         bundle: Bundle = .main,
         environment: [String: String] = ProcessInfo.processInfo.environment,
         fileManager: FileManager = .default
     ) {
-        self.container = container
+        self.containerFactory = containerFactory
         self.bundle = bundle
         self.environment = environment
         self.fileManager = fileManager
     }
 
     func evaluateCurrentAccount() async throws -> ICloudProEntitlementSnapshot {
+        #if targetEnvironment(simulator)
+        // CloudKit containers are not provisioned for unsigned simulator runs;
+        // entitlement evaluation must degrade to the normal StoreKit path.
+        throw ICloudProEntitlementError.noICloudAccount
+        #else
         do {
             let status = try await accountStatus()
             guard status == .available else {
@@ -83,6 +94,7 @@ final class ICloudProEntitlementService: @unchecked Sendable {
 
             throw error
         }
+        #endif
     }
 
     private func ubiquityIdentityTokenSnapshot() throws -> ICloudProEntitlementSnapshot? {

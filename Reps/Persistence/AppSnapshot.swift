@@ -120,6 +120,76 @@ struct AppSnapshot: Codable {
 }
 
 extension AppSnapshot {
+    /// Snapshot used by the automatic iCloud mirror.
+    ///
+    /// HealthKit/body/routing data is deliberately excluded. Apple permits an
+    /// app to use iCloud for operational data, but prohibits storing personal
+    /// health information there (App Review Guideline 5.1.3(ii)). Full exports
+    /// remain available through the user-initiated JSON export path.
+    var iCloudSafe: AppSnapshot {
+        var safeProfile = userProfile
+        safeProfile.avatarImageData = nil
+
+        let safeSessions = workoutSessions.map { session in
+            WorkoutSession(
+                id: session.id,
+                workoutTitle: session.workoutTitle,
+                date: session.date,
+                startedAt: session.startedAt,
+                endedAt: session.endedAt,
+                origin: session.origin,
+                location: session.location,
+                contextTag: session.contextTag,
+                durationMinutes: session.durationMinutes,
+                sets: session.sets,
+                notes: session.notes,
+                exerciseLogs: session.exerciseLogs,
+                sessionRPE: session.sessionRPE,
+                energyBefore: session.energyBefore,
+                energyAfter: session.energyAfter,
+                estimatedCalories: nil,
+                mediaAttachments: [],
+                routePoints: [],
+                pausedDurationSeconds: session.pausedDurationSeconds,
+                distanceKm: nil,
+                averagePaceSecondsPerKm: nil,
+                steps: nil,
+                activeEnergyKcal: nil,
+                heartRateBefore: nil,
+                heartRateAfter: nil,
+                healthKitUUIDString: nil,
+                isImportedFromHealth: false,
+                healthKitActivityTypes: [],
+                averageHeartRate: nil,
+                maxHeartRate: nil
+            )
+        }
+
+        return AppSnapshot(
+            userProfile: safeProfile,
+            monetization: monetization,
+            activePlan: activePlan,
+            plans: plans,
+            workoutTemplates: workoutTemplates,
+            exercises: exercises,
+            scheduledWorkouts: scheduledWorkouts,
+            workoutSessions: safeSessions,
+            // Cardio and body collections can contain HealthKit-derived values.
+            cardioLogs: [],
+            bodyMetrics: [],
+            progressPhotos: [],
+            gymPasses: gymPasses,
+            gymVisits: gymVisits,
+            goals: goals,
+            health: HealthSyncState(),
+            activeWorkout: nil,
+            activeWorkoutDrafts: nil,
+            activeWorkoutStatus: nil,
+            savedShareCards: [],
+            rehabLogs: []
+        )
+    }
+
     static var empty: AppSnapshot {
         AppSnapshot(
             userProfile: UserProfile(),

@@ -699,11 +699,9 @@ struct ProfileSetupView: View {
     private func primaryAction() {
         switch step {
         case .ready:
-            if store.monetization.hasProAccess {
-                finishOnboarding()
-            } else {
-                store.presentPaywall(source: .onboarding, feature: nil, trigger: .onboarding)
-            }
+            // The first generated plan is the free activation moment. Pro is
+            // offered contextually from the preview, never before first value.
+            finishOnboarding()
         default:
             moveForward()
         }
@@ -750,7 +748,7 @@ struct ProfileSetupView: View {
             profile: profile,
             bodyMetric: bodyMetric,
             plan: plan,
-            activatePlan: store.monetization.hasProAccess
+            activatePlan: true
         )
     }
 

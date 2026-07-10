@@ -140,6 +140,7 @@
 		9E3B20EF6E7C2E6FFBAD49CD /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 91AA2875B14DE153E12AF1C6 /* RevenueCat */; };
 		9F6D0433BC46DF7D9D6FCCBC /* ProgressProInsightsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB58EC48831AF89BE4E6A7E9 /* ProgressProInsightsCard.swift */; };
 		A1EE8255CBAF7C557CE9A4BC /* MuscleVolume.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0A97C79C7E907579CBFCBD /* MuscleVolume.swift */; };
+		A30E158195688DBDD478062A /* SocialAgeGateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51C33031F6FE64648B717B6 /* SocialAgeGateService.swift */; };
 		A3472399B3A3FE456881EAB2 /* RepsWidgetConfigurationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542BD8688B577CF24924B7C3 /* RepsWidgetConfigurationIntent.swift */; };
 		A431702EC9FA27884190F60F /* ActiveWorkoutFeedbackPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13EF4F5A4D286C5E6639121F /* ActiveWorkoutFeedbackPanel.swift */; };
 		AAA169C25E42B20113ABE29A /* ProgressInsightCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EE59F3B756E904BCDD46735 /* ProgressInsightCards.swift */; };
@@ -376,6 +377,7 @@
 		AFD9F5578585D85B9F2794F3 /* SmartProgressionAdvisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartProgressionAdvisor.swift; sourceTree = "<group>"; };
 		B09E9E304E3029F2065B384F /* ProgressExecutiveCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressExecutiveCards.swift; sourceTree = "<group>"; };
 		B31D5E2BE507A45C4B26BED6 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		B51C33031F6FE64648B717B6 /* SocialAgeGateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialAgeGateService.swift; sourceTree = "<group>"; };
 		B91792D967FC5B2EDAE59ACD /* PulseTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulseTheme.swift; sourceTree = "<group>"; };
 		BB82ABA8904E988BFDD6832E /* MetronomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeView.swift; sourceTree = "<group>"; };
 		BC2E966C3D2F2713A83D63E5 /* ActiveWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutView.swift; sourceTree = "<group>"; };
@@ -503,6 +505,7 @@
 				A061386A12555F63FB9492CB /* RepsAppShortcuts.swift */,
 				ABAAF9BDD73A5DD3BDF7FDE9 /* ShareImageItemSource.swift */,
 				AFD9F5578585D85B9F2794F3 /* SmartProgressionAdvisor.swift */,
+				B51C33031F6FE64648B717B6 /* SocialAgeGateService.swift */,
 				1F1E7EF4329D7247E1254E8D /* SocialService.swift */,
 				0ECBBCF60B8C5057CAB72E32 /* TelemetryService.swift */,
 				1B33244C64642C7FC7A82750 /* WorkoutAppleMusicPlayer.swift */,
@@ -1233,6 +1236,7 @@
 				7CDC4AEC438036B0D3153A73 /* ShareImageItemSource.swift in Sources */,
 				44292EBA25710C4E03974E19 /* SleepView.swift in Sources */,
 				AC55B17F5521F73E2EF8A159 /* SmartProgressionAdvisor.swift in Sources */,
+				A30E158195688DBDD478062A /* SocialAgeGateService.swift in Sources */,
 				B5460ABE3BFCDB94CC695F44 /* SocialHubView.swift in Sources */,
 				44295E89D16DD70BC73628C0 /* SocialOnboardingView.swift in Sources */,
 				726FF8016C151D1036C0EEC9 /* SocialProfileDetailView.swift in Sources */,

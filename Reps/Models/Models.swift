@@ -129,12 +129,29 @@ struct UserProfile: Codable {
     var socialLocation: String = ""
     var autoShareWorkouts: Bool = true
     var socialNotificationsEnabled: Bool = true
+    var socialAgeGateStatus: SocialAgeGateStatus = .unknown
+    var socialAgeGateCheckedAt: Date?
     // Usernames the local user is following — stored locally so we can fetch
     // their profiles without a CKQuery index.
     var socialFollowingUsernames: [String] = []
+    /// Users hidden locally after a moderation block. This is intentionally
+    /// local-first so a block takes effect before the next CloudKit refresh.
+    var socialBlockedUsernames: [String] = []
 
     var activeThemeMode: ThemeMode {
         themeMode ?? .dark
+    }
+
+    var socialCapabilitiesAllowed: Bool {
+        socialAgeGateStatus == .allowed13Plus
+    }
+
+    enum SocialAgeGateStatus: String, Codable {
+        case unknown
+        case allowed13Plus
+        case blockedUnder13
+        case sharingDeclined
+        case unavailable
     }
 }
 

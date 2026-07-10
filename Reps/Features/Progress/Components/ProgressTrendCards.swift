@@ -23,19 +23,19 @@ struct TrendHighlightsCard: View {
 
   private var headline: String {
     if positiveCount >= max(2, metrics.count / 2) {
-      return "Buen bloque: varias senales suben"
+      return localizedString("trend_good_block_headline")
     }
     if let attentionMetric {
-      return "Prioridad: \(attentionMetric.title)"
+      return localizedFormat("trend_priority_headline_format", attentionMetric.title)
     }
-    return "Tendencias listas para comparar"
+    return localizedString("trend_ready_to_compare_headline")
   }
 
   private var detail: String {
     if let attentionMetric, attentionMetric.direction != .up {
-      return "\(attentionMetric.title) necesita mas datos o una semana mas estable para confirmar direccion."
+      return localizedFormat("trend_needs_more_data_format", attentionMetric.title)
     }
-    return "Compara las ultimas semanas con tu base reciente y separa actividad, fuerza y consistencia."
+    return localizedString("trend_compare_recent_weeks_detail")
   }
 
   var body: some View {

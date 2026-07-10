@@ -28,41 +28,77 @@ struct PaywallView: View {
     }
 
     var body: some View {
-        RevenueCatUI.PaywallView(displayCloseButton: true)
-            .tint(PulseTheme.accent)
-            .onPurchaseCompleted { customerInfo in
-                store.handleRevenueCatCustomerInfo(customerInfo)
-                close(reason: .system)
-            }
-            .onRestoreCompleted { customerInfo in
-                store.handleRevenueCatCustomerInfo(customerInfo)
-                storeKitInfoMessage = customerInfo.entitlements.all[RevenueCatConfiguration.proEntitlementID]?.isActive == true
-                    ? localizedString("licenses_restored_success")
-                    : localizedString("no_active_license_to_restore")
-                showStoreKitInfo = true
-            }
-            .onPurchaseFailure { error in
-                storeKitInfoMessage = error.localizedDescription
-                showStoreKitInfo = true
-            }
-            .onRestoreFailure { error in
-                storeKitInfoMessage = error.localizedDescription
-                showStoreKitInfo = true
-            }
-            .onRequestedDismissal {
-                close(reason: .close)
-            }
-            .task {
-                await store.refreshStoreKitProducts()
-                await store.refreshRevenueCatCustomerInfo()
-            }
-            .alert("revenuecat", isPresented: $showStoreKitInfo) {
-                Button("aceptar", role: .cancel) {}
-            } message: {
-                Text(storeKitInfoMessage)
-            }
+        VStack(spacing: 0) {
+            contextualHeader
+            RevenueCatUI.PaywallView(displayCloseButton: true)
+                .tint(PulseTheme.accent)
+                .onPurchaseCompleted { customerInfo in
+                    store.handleRevenueCatCustomerInfo(customerInfo)
+                    close(reason: .system)
+                }
+                .onRestoreCompleted { customerInfo in
+                    store.handleRevenueCatCustomerInfo(customerInfo)
+                    storeKitInfoMessage = customerInfo.entitlements.all[RevenueCatConfiguration.proEntitlementID]?.isActive == true
+                        ? localizedString("licenses_restored_success")
+                        : localizedString("no_active_license_to_restore")
+                    showStoreKitInfo = true
+                }
+                .onPurchaseFailure { error in
+                    storeKitInfoMessage = error.localizedDescription
+                    showStoreKitInfo = true
+                }
+                .onRestoreFailure { error in
+                    storeKitInfoMessage = error.localizedDescription
+                    showStoreKitInfo = true
+                }
+                .onRequestedDismissal {
+                    close(reason: .close)
+                }
+                .task {
+                    await store.refreshStoreKitProducts()
+                    await store.refreshRevenueCatCustomerInfo()
+                }
+                .alert("revenuecat", isPresented: $showStoreKitInfo) {
+                    Button("aceptar", role: .cancel) {}
+                } message: {
+                    Text(storeKitInfoMessage)
+                }
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .screenBackground()
+    }
+
+    private var contextualHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: presentation.feature?.systemImage ?? "bolt.heart.fill")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                    .frame(width: 34, height: 34)
+                    .background(PulseTheme.accent)
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(presentation.source.title)
+                        .font(.headline.weight(.bold))
+                    Text(presentation.source.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            Text(presentation.source.previewTitle)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(PulseTheme.accent)
+                .lineLimit(2)
+        }
+        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
+        .background(PulseTheme.grouped)
     }
 
     private var paywallHero: some View {

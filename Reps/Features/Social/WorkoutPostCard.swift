@@ -83,14 +83,35 @@ struct WorkoutPostCard: View {
 
             Spacer()
 
-            if isRecent {
-                Text("LIVE")
-                    .font(.system(size: 9, weight: .black, design: .rounded))
-                    .tracking(1)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.red, in: Capsule())
+            HStack(spacing: 10) {
+                if isRecent {
+                    Text("LIVE")
+                        .font(.system(size: 9, weight: .black, design: .rounded))
+                        .tracking(1)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.red, in: Capsule())
+                }
+
+                Menu {
+                    Button {
+                        Task { _ = await store.reportSocialPost(post) }
+                    } label: {
+                        Label(localizedString("social_report_post"), systemImage: "flag")
+                    }
+                    Button(role: .destructive) {
+                        Task { _ = await store.blockSocialUser(post.ownerUsername) }
+                    } label: {
+                        Label(localizedString("social_block_user"), systemImage: "person.crop.circle.badge.xmark")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .frame(width: 36, height: 36)
+                }
+                .accessibilityLabel(localizedString("social_moderation_actions"))
             }
         }
         .padding(.horizontal, 14)

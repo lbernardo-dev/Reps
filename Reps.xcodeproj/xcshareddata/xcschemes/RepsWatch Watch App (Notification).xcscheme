@@ -46,9 +46,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0416157AB6A2DD4CDDAF81C0"
-            BuildableName = "Reps.app"
-            BlueprintName = "Reps"
+            BlueprintIdentifier = "61B5331B7F00A92F8997BA95"
+            BuildableName = "RepsWatch Watch App.app"
+            BlueprintName = "RepsWatch Watch App"
             ReferencedContainer = "container:Reps.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -69,9 +69,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0416157AB6A2DD4CDDAF81C0"
-            BuildableName = "Reps.app"
-            BlueprintName = "Reps"
+            BlueprintIdentifier = "61B5331B7F00A92F8997BA95"
+            BuildableName = "RepsWatch Watch App.app"
+            BlueprintName = "RepsWatch Watch App"
             ReferencedContainer = "container:Reps.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -86,9 +86,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0416157AB6A2DD4CDDAF81C0"
-            BuildableName = "Reps.app"
-            BlueprintName = "Reps"
+            BlueprintIdentifier = "61B5331B7F00A92F8997BA95"
+            BuildableName = "RepsWatch Watch App.app"
+            BlueprintName = "RepsWatch Watch App"
             ReferencedContainer = "container:Reps.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

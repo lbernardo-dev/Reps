@@ -221,7 +221,9 @@ struct WorkoutSummaryView: View {
                         }
                         .padding(.horizontal, 4)
 
-                        if store.userProfile.socialEnabled, store.userProfile.socialUsername != nil {
+                        if store.userProfile.socialEnabled,
+                           store.userProfile.socialCapabilitiesAllowed,
+                           store.userProfile.socialUsername != nil {
                             Button {
                                 composeFeedPost()
                             } label: {
@@ -350,6 +352,7 @@ struct WorkoutSummaryView: View {
     }
 
     private func composeFeedPost() {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         isSharingToFeed = true
         Task {
             let img = await WorkoutShareImageRenderer.renderForFeed(session: session)

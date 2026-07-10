@@ -412,20 +412,20 @@ struct WorkoutDetailView: View {
                             .foregroundStyle(PulseTheme.accent)
                             .frame(width: 32, height: 32)
                             .background(PulseTheme.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                        Text("Completa esta sesión para ver volumen, sets y evolución real de este día.")
+                        Text(localizedString("workout_detail_no_sessions_message"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
                     HStack(spacing: 8) {
-                        WorkoutDetailExecutionTile(value: "\(sessions.count)", label: "sesiones", systemImage: "checkmark.circle.fill", tint: PulseTheme.recovery)
+                        WorkoutDetailExecutionTile(value: "\(sessions.count)", label: localizedString("sesiones"), systemImage: "checkmark.circle.fill", tint: PulseTheme.recovery)
                         WorkoutDetailExecutionTile(value: "\(Int(displayedVolume.rounded()))", label: unit, systemImage: "scalemass", tint: PulseTheme.ringStand)
                         WorkoutDetailExecutionTile(value: "\(completedSets)/\(max(targetSets, 1))", label: localizedString("sets_3"), systemImage: "checklist", tint: PulseTheme.accent)
                     }
 
                     if let latest {
-                        Label("Última vez: \(shortDateString(latest.date))", systemImage: "calendar")
+                        Label(localizedFormat("workout_detail_last_time_format", shortDateString(latest.date)), systemImage: "calendar")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }

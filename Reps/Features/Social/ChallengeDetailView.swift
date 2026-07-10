@@ -20,7 +20,7 @@ struct ChallengeDetailView: View {
             VStack(alignment: .leading, spacing: 20) {
                 headerCard
                 if !participants.isEmpty { leaderboardCard }
-                if !isParticipating { joinCard }
+                if store.userProfile.socialCapabilitiesAllowed, !isParticipating { joinCard }
                 if let e = joinError {
                     Text(e).font(.caption).foregroundStyle(.red).padding(.horizontal)
                 }
@@ -197,12 +197,14 @@ struct ChallengeDetailView: View {
     }
 
     private func loadParticipants() async {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         isLoading = true
         participants = await SocialService.shared.fetchParticipants(challengeID: challenge.id)
         isLoading = false
     }
 
     private func joinChallenge() async {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         guard let uname = myUsername else { return }
         let dname = store.userProfile.displayName ?? uname
         isJoining = true

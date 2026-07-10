@@ -17,17 +17,22 @@ struct SocialOnboardingView: View {
     @State private var availabilityStatus: AvailabilityStatus = .idle
     @State private var isCheckingICloud = true
     @State private var iCloudIssue: SocialICloudAccountIssue?
+    @State private var isCheckingAge = false
 
     private enum AvailabilityStatus {
         case idle, checking, available, taken, tooShort, checkFailed, iCloudUnavailable
     }
 
     private var canContinue: Bool {
-        iCloudIssue == nil && !isCheckingICloud && availabilityStatus == .available && !isSaving
+        store.userProfile.socialCapabilitiesAllowed && iCloudIssue == nil && !isCheckingICloud && availabilityStatus == .available && !isSaving
     }
 
     private var isICloudBlocked: Bool {
         isCheckingICloud || iCloudIssue != nil
+    }
+
+    private var isSetupBlocked: Bool {
+        isICloudBlocked || !store.userProfile.socialCapabilitiesAllowed
     }
 
     var body: some View {
@@ -35,6 +40,7 @@ struct SocialOnboardingView: View {
             ScrollView {
                 VStack(spacing: 28) {
                     headerSection
+                    ageRequirementCard
                     iCloudRequirementCard
                     usernameSection
                     optionalFieldsSection
@@ -72,7 +78,10 @@ struct SocialOnboardingView: View {
                 }
             }
         }
-        .task { await refreshICloudStatus() }
+        .task {
+            await refreshAgeStatus()
+            await refreshICloudStatus()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .CKAccountChanged)) { _ in
             Task { await refreshICloudStatus() }
         }
@@ -102,6 +111,69 @@ struct SocialOnboardingView: View {
             }
         }
         .padding(.top, 12)
+    }
+
+    @ViewBuilder
+    private var ageRequirementCard: some View {
+        if !store.userProfile.socialCapabilitiesAllowed {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(PulseTheme.accent.opacity(0.12))
+                        .frame(width: 34, height: 34)
+                    if isCheckingAge {
+                        ProgressView()
+                            .tint(PulseTheme.accent)
+                            .scaleEffect(0.75)
+                    } else {
+                        Image(systemName: "person.badge.shield.checkmark")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(PulseTheme.accent)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(localizedString("social_age_gate_title"))
+                        .font(.subheadline.weight(.bold))
+                    Text(localizedString(socialAgeGateMessageKey))
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        Task { await refreshAgeStatus() }
+                    } label: {
+                        Label(localizedString("social_age_gate_verify"), systemImage: "checkmark.shield")
+                            .font(.caption.weight(.bold))
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(PulseTheme.accent)
+                    .disabled(isCheckingAge)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .background(PulseTheme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(PulseTheme.accent.opacity(0.22), lineWidth: 1)
+            )
+        }
+    }
+
+    private var socialAgeGateMessageKey: String {
+        switch store.userProfile.socialAgeGateStatus {
+        case .blockedUnder13:
+            "social_age_gate_under_13_message"
+        case .sharingDeclined:
+            "social_age_gate_declined_message"
+        case .unavailable:
+            "social_age_gate_unavailable_message"
+        case .unknown, .allowed13Plus:
+            "social_age_gate_message"
+        }
     }
 
     @ViewBuilder
@@ -189,8 +261,8 @@ struct SocialOnboardingView: View {
 
             statusLabel
         }
-        .disabled(isICloudBlocked)
-        .opacity(isICloudBlocked ? 0.58 : 1)
+        .disabled(isSetupBlocked)
+        .opacity(isSetupBlocked ? 0.58 : 1)
     }
 
     @ViewBuilder
@@ -307,8 +379,8 @@ struct SocialOnboardingView: View {
                     .padding(.horizontal, 4)
             }
         }
-        .disabled(isICloudBlocked)
-        .opacity(isICloudBlocked ? 0.58 : 1)
+        .disabled(isSetupBlocked)
+        .opacity(isSetupBlocked ? 0.58 : 1)
     }
 
     private var privacyNote: some View {
@@ -356,9 +428,16 @@ struct SocialOnboardingView: View {
         }
     }
 
+    private func refreshAgeStatus() async {
+        guard !store.userProfile.socialCapabilitiesAllowed else { return }
+        isCheckingAge = true
+        _ = await store.ensureSocialAgeEligibility()
+        isCheckingAge = false
+    }
+
     private func scheduleAvailabilityCheck() {
-        guard !isICloudBlocked else {
-            availabilityStatus = .iCloudUnavailable
+        guard !isSetupBlocked else {
+            availabilityStatus = isICloudBlocked ? .iCloudUnavailable : .idle
             return
         }
         let u = username

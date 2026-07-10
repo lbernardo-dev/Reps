@@ -7,10 +7,9 @@ import StoreKit
 import MapKit
 import CoreLocation
 
-// TODO: Replace with real URLs before App Store submission
 private enum AppLegalLinks {
-    static let privacyPolicy = "https://repsapp.com/privacy"
-    static let termsOfService = "https://repsapp.com/terms"
+    static let privacyPolicy = "https://romerodev.com/streakrep/privacy"
+    static let termsOfService = "https://romerodev.com/streakrep/terms"
 }
 
 struct ProfileView: View {
@@ -36,6 +35,7 @@ struct ProfileView: View {
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var localPaywall: PaywallPresentation?
     @State private var activeDestination: ProfileDestination?
+    @State private var isCheckingSocialAge = false
 
     var body: some View {
         applyProfileModifiers(
@@ -367,7 +367,7 @@ struct ProfileView: View {
                     Text(localizedString("community"))
                         .font(.headline)
                     Spacer()
-                    if store.userProfile.socialEnabled {
+                    if store.userProfile.socialEnabled, store.userProfile.socialCapabilitiesAllowed {
                         NavigationLink {
                             SocialHubView()
                         } label: {
@@ -384,6 +384,7 @@ struct ProfileView: View {
                 }
 
                 if store.userProfile.socialEnabled,
+                   store.userProfile.socialCapabilitiesAllowed,
                    let uname = store.userProfile.socialUsername {
                     HStack(spacing: 12) {
                         ZStack {
@@ -434,6 +435,8 @@ struct ProfileView: View {
                     }
                     .padding(.vertical, 2)
 
+                } else if !store.userProfile.socialCapabilitiesAllowed {
+                    socialAgeGatePrompt
                 } else {
                     HStack(spacing: 12) {
                         ZStack {
@@ -453,20 +456,94 @@ struct ProfileView: View {
                         }
                         Spacer()
                         Button {
-                            activeSheet = .socialOnboarding
+                            Task { await openSocialOnboardingAfterAgeCheck() }
                         } label: {
-                            Text(localizedString("activate"))
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(PulseTheme.accent)
-                                .clipShape(Capsule())
+                            if isCheckingSocialAge {
+                                ProgressView()
+                                    .tint(PulseTheme.onColor(PulseTheme.accent))
+                                    .frame(width: 48, height: 28)
+                                    .background(PulseTheme.accent)
+                                    .clipShape(Capsule())
+                            } else {
+                                Text(localizedString("activate"))
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(PulseTheme.accent)
+                                    .clipShape(Capsule())
+                            }
                         }
                         .buttonStyle(.plain)
+                        .disabled(isCheckingSocialAge)
                     }
                 }
             }
+        }
+    }
+
+    private var socialAgeGatePrompt: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(PulseTheme.accent.opacity(0.10))
+                    .frame(width: 40, height: 40)
+                Image(systemName: "person.badge.shield.checkmark")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(PulseTheme.accent)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(localizedString("social_age_gate_title"))
+                    .font(.subheadline.weight(.semibold))
+                Text(localizedString(socialAgeGateMessageKey))
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            Spacer()
+            Button {
+                Task { await openSocialOnboardingAfterAgeCheck() }
+            } label: {
+                if isCheckingSocialAge {
+                    ProgressView()
+                        .tint(PulseTheme.onColor(PulseTheme.accent))
+                        .frame(width: 74, height: 30)
+                        .background(PulseTheme.accent)
+                        .clipShape(Capsule())
+                } else {
+                    Text(localizedString("social_age_gate_verify"))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(PulseTheme.accent)
+                        .clipShape(Capsule())
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(isCheckingSocialAge)
+        }
+    }
+
+    private var socialAgeGateMessageKey: String {
+        switch store.userProfile.socialAgeGateStatus {
+        case .blockedUnder13:
+            "social_age_gate_under_13_message"
+        case .sharingDeclined:
+            "social_age_gate_declined_message"
+        case .unavailable:
+            "social_age_gate_unavailable_message"
+        case .unknown, .allowed13Plus:
+            "social_age_gate_message"
+        }
+    }
+
+    private func openSocialOnboardingAfterAgeCheck() async {
+        guard !isCheckingSocialAge else { return }
+        isCheckingSocialAge = true
+        let allowed = await store.ensureSocialAgeEligibility()
+        isCheckingSocialAge = false
+        if allowed {
+            activeSheet = .socialOnboarding
         }
     }
 

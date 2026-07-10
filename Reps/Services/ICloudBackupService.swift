@@ -1,8 +1,17 @@
 import Foundation
 
 enum ICloudBackupService {
+    /// Automatic mirror is allowed because `save` always projects the snapshot
+    /// through `AppSnapshot.iCloudSafe` before encoding.
+    static let automaticBackupEnabled = true
     private static let containerIdentifier = "iCloud.com.romerodev.repsfitness"
     private static let backupFileName = "reps-backup.json"
+    private static let backupFormatVersion = 1
+
+    private struct BackupEnvelope: Codable {
+        let formatVersion: Int
+        let snapshot: AppSnapshot
+    }
 
     // Returns nil on unsigned builds or when no iCloud account is available.
     static var containerURL: URL? {
@@ -23,7 +32,11 @@ enum ICloudBackupService {
                 )
                 let encoder = JSONEncoder()
                 encoder.dateEncodingStrategy = .iso8601
-                let data = try encoder.encode(snapshot)
+                let envelope = BackupEnvelope(
+                    formatVersion: backupFormatVersion,
+                    snapshot: snapshot.iCloudSafe
+                )
+                let data = try encoder.encode(envelope)
                 let fileURL = dir.appendingPathComponent(backupFileName)
                 try data.write(to: fileURL, options: .atomic)
             } catch {
@@ -43,7 +56,9 @@ enum ICloudBackupService {
                 let data = try Data(contentsOf: fileURL)
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
-                return try decoder.decode(AppSnapshot.self, from: data)
+                let envelope = try decoder.decode(BackupEnvelope.self, from: data)
+                guard envelope.formatVersion == backupFormatVersion else { return nil }
+                return envelope.snapshot
             } catch {
                 return nil
             }

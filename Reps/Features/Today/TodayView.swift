@@ -117,10 +117,6 @@ struct TodayView: View {
         todayRenderModel.lastWorkout
     }
 
-    private var shouldShowFirstWorkoutActivation: Bool {
-        store.workoutSessions.isEmpty
-    }
-
     private var continuitySignal: ContinuitySignal {
         todayRenderModel.continuitySignal
     }
@@ -300,10 +296,6 @@ struct TodayView: View {
                         .stickyHeaderTitle(localizedString("weather"))
                     outdoorIntelligenceSection
                         .stickyHeaderTitle("Insights")
-                    if shouldShowFirstWorkoutActivation {
-                        firstWorkoutActivationCard
-                            .stickyHeaderTitle("Primer entreno")
-                    }
                     focusHeroSection
                         .stickyHeaderTitle(localizedString("workout"))
                     continuityCard
@@ -610,7 +602,7 @@ struct TodayView: View {
     }
 
     private func buildRecommendedWorkoutIfNeeded() {
-        guard recommendedWorkout == nil, store.activeWorkoutStatus == nil, !hasActivePlan else { return }
+        guard store.monetization.hasProAccess, recommendedWorkout == nil, store.activeWorkoutStatus == nil, !hasActivePlan else { return }
         let undertrainedMuscles = competitiveSummary.undertrainedMuscles.map(\.muscleGroup)
         let bodyMetric = store.bodyMetrics.sorted { $0.date > $1.date }.first ?? BodyMetric(date: .now, weightKg: 70, heightCm: 170, source: .manual)
         recommendedWorkout = OnboardingPlanBuilder.makeRecommendedDay(
@@ -988,43 +980,6 @@ struct TodayView: View {
             }
         }
         .buttonStyle(.plain)
-    }
-
-    private var firstWorkoutActivationCard: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    Image(systemName: "bolt.fill")
-                        .font(.title3.weight(.black))
-                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
-                        .frame(width: 44, height: 44)
-                        .background(PulseTheme.accent, in: Circle())
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("first_workout_activation_title")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Text("first_workout_activation_subtitle")
-                            .font(.subheadline)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                Button {
-                    HapticService.impact(.medium)
-                    startFocusWorkout()
-                } label: {
-                    Label("start_now", systemImage: "play.fill")
-                        .font(.headline.weight(.black))
-                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
-                .buttonStyle(.plain)
-            }
-        }
     }
 
     private var dashboardWorkoutCard: some View {
@@ -1565,31 +1520,31 @@ struct TodayView: View {
             ).day ?? 0
             if daysSince == 0 {
                 return ContinuitySignal(
-                    title: "Continuidad asegurada",
-                    message: "Ya sumaste hoy. Mantén el plan o recupera bien.",
+                    title: localizedString("today_continuity_secured_title"),
+                    message: localizedString("today_continuity_secured_message"),
                     systemImage: "checkmark.seal.fill",
                     tint: PulseTheme.recovery
                 )
             }
             if daysSince == 1 {
                 return ContinuitySignal(
-                    title: "Buen momento para seguir",
-                    message: "Vienes de entrenar ayer. Una sesión corta mantiene la semana viva.",
+                    title: localizedString("today_continuity_keep_going_title"),
+                    message: localizedString("today_continuity_keep_going_message"),
                     systemImage: "flame.fill",
                     tint: PulseTheme.accent
                 )
             }
             return ContinuitySignal(
-                title: "Recupera la semana sin presión",
-                message: "Han pasado \(daysSince) días. Empieza con 20 minutos y vuelve al ritmo.",
+                title: localizedString("today_continuity_recover_title"),
+                message: localizedFormat("today_continuity_recover_message_format", daysSince),
                 systemImage: "arrow.counterclockwise.circle.fill",
                 tint: PulseTheme.warning
             )
         }
 
         return ContinuitySignal(
-            title: "Primer paso de la semana",
-            message: "Registra una sesión sencilla para crear tu línea base.",
+            title: localizedString("today_continuity_first_step_title"),
+            message: localizedString("today_continuity_first_step_message"),
             systemImage: "figure.strengthtraining.traditional",
             tint: PulseTheme.accent
         )

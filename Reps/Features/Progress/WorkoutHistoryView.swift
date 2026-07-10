@@ -411,6 +411,7 @@ struct WorkoutSessionDetailView: View {
 
     private func shareToFeed() {
         guard store.userProfile.socialEnabled,
+              store.userProfile.socialCapabilitiesAllowed,
               let uname = store.userProfile.socialUsername else { return }
         let dname = store.userProfile.displayName ?? uname
         isSharingToFeed = true
@@ -494,7 +495,9 @@ struct RouteWorkoutSummaryView: View {
                         RouteWorkoutNotesCard(notes: notes)
                     }
 
-                    if store.userProfile.socialEnabled, let action = shareToFeedAction {
+                    if store.userProfile.socialEnabled,
+                       store.userProfile.socialCapabilitiesAllowed,
+                       let action = shareToFeedAction {
                         WorkoutFeedShareButton(
                             isSharing: isSharingToFeed,
                             isShared: feedShared,
@@ -571,7 +574,9 @@ struct StrengthWorkoutSummaryView: View {
                         RouteWorkoutNotesCard(notes: notes)
                     }
 
-                    if store.userProfile.socialEnabled, let action = shareToFeedAction {
+                    if store.userProfile.socialEnabled,
+                       store.userProfile.socialCapabilitiesAllowed,
+                       let action = shareToFeedAction {
                         WorkoutFeedShareButton(
                             isSharing: isSharingToFeed,
                             isShared: feedShared,

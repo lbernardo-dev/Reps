@@ -428,13 +428,13 @@ struct ActiveWorkoutView: View {
         } message: {
             Text("cannot_start_a_session_without_exercises")
         }
-        .alert("Inicia el entrenamiento", isPresented: $showStartSessionRequiredAlert) {
-            Button("Iniciar ahora") {
+        .alert("start_session_required_alert_title", isPresented: $showStartSessionRequiredAlert) {
+            Button("start_session_required_alert_action") {
                 startPreparedSession()
             }
             Button("cancel", role: .cancel) {}
         } message: {
-            Text("Para registrar series, primero pulsa Empezar. Asi el temporizador, descansos, Watch y resumen final quedan sincronizados.")
+            Text("start_session_required_alert_message")
         }
         .onDisappear {
             if finishedSession == nil {

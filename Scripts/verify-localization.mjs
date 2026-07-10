@@ -20,7 +20,12 @@ function walk(dir, files = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (![".git", "DerivedData"].includes(entry.name)) walk(fullPath, files);
+      // Never audit generated Xcode/SwiftPM artifacts: they contain copied
+      // sources and stale catalogs that are outside this product's release
+      // surface and create thousands of false positives.
+      if (![".git", "DerivedData", ".derivedData", "SourcePackages", "build", ".build", "Pods"].includes(entry.name)) {
+        walk(fullPath, files);
+      }
     } else if (entry.name.endsWith(".swift")) {
       files.push(fullPath);
     }

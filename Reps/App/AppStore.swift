@@ -149,6 +149,9 @@ final class AppStore {
     @ObservationIgnored private var hasStartedBackgroundServices = false
     @ObservationIgnored private var isAutomaticHealthSyncInProgress = false
     @ObservationIgnored private var lastAutomaticHealthRefreshDate: Date?
+    /// Prevents a write to iCloud Documents on every set/keystroke. Local
+    /// persistence remains immediate; the operational cloud mirror is batched.
+    @ObservationIgnored private var lastAutomaticICloudBackupDate: Date?
     @ObservationIgnored private var lastForegroundActivationDate: Date?
     @ObservationIgnored let seenAchievementsKey = "reps_seenAchievementKeys_v1"
     @ObservationIgnored var seenAchievementKeys: Set<String> = []
@@ -243,6 +246,51 @@ final class AppStore {
         reconcileNotificationStateIfNeeded()
     }
 
+    @discardableResult
+    func ensureSocialAgeEligibility() async -> Bool {
+        if userProfile.socialCapabilitiesAllowed {
+            return true
+        }
+
+        let result = await SocialAgeGateService.requestSocialMediaEligibility()
+        userProfile.socialAgeGateCheckedAt = .now
+
+        switch result {
+        case .allowed13Plus:
+            userProfile.socialAgeGateStatus = .allowed13Plus
+            return true
+        case .blockedUnder13:
+            disableSocialCapabilitiesForAgeGate()
+            userProfile.socialAgeGateStatus = .blockedUnder13
+            health.message = localizedString("social_age_gate_under_13_message")
+            return false
+        case .sharingDeclined:
+            disableSocialCapabilitiesForAgeGate()
+            userProfile.socialAgeGateStatus = .sharingDeclined
+            health.message = localizedString("social_age_gate_declined_message")
+            return false
+        case .unavailable:
+            disableSocialCapabilitiesForAgeGate()
+            userProfile.socialAgeGateStatus = .unavailable
+            health.message = localizedString("social_age_gate_unavailable_message")
+            return false
+        }
+    }
+
+    func resetSocialAgeGateForRetest() {
+        userProfile.socialAgeGateStatus = .unknown
+        userProfile.socialAgeGateCheckedAt = nil
+    }
+
+    private func disableSocialCapabilitiesForAgeGate() {
+        userProfile.socialEnabled = false
+        userProfile.autoShareWorkouts = false
+        feedPosts = []
+        commentSummaries = [:]
+        unreadFeedCount = 0
+        activeChallenges = []
+    }
+
     func handleForegroundActivation(drainNotificationTargets: @escaping @MainActor () -> Void) {
         let now = Date()
         if let lastForegroundActivationDate,
@@ -268,7 +316,7 @@ final class AppStore {
             self.runEngagementChecks()
             await self.refreshStoreKitEntitlements()
             await self.refreshICloudProEntitlement()
-            if let username, socialEnabled {
+            if let username, socialEnabled, self.userProfile.socialCapabilitiesAllowed {
                 await SocialService.shared.pingActivity(myUsername: username)
                 await self.flushPendingComments()
             }
@@ -692,6 +740,9 @@ final class AppStore {
     // On fresh install (no local sessions/plans), silently restore from iCloud if a
     // PRO backup exists. This prevents data loss when the user reinstalls the app.
     private func restoreFromICloudIfNeeded() async {
+        // ICloudBackupService restores only the privacy-safe operational subset;
+        // HealthKit/body/routes remain local unless the user exports them.
+        guard ICloudBackupService.automaticBackupEnabled else { return }
         guard workoutSessions.isEmpty && plans.isEmpty else { return }
         guard let snapshot = await ICloudBackupService.load() else { return }
         // Only restore if the backup actually has data worth restoring.
@@ -921,11 +972,14 @@ final class AppStore {
         userProfile.onboardingCompleted = true
         bodyMetrics.append(result.bodyMetric)
         if let plan = result.plan {
-            addPlan(plan, activate: result.activatePlan && monetization.hasProAccess)
+            // The first generated plan is the activation path for every user.
+            // Free users get one active plan; Pro limits still apply to
+            // additional plans created later via `addPlan`/`activatePlan`.
+            addPlan(plan, activate: true)
             TelemetryService.shared.log(.onboardingCompleted, parameters: [
                 "source": "profile_setup",
                 "has_plan": true,
-                "plan_activated": result.activatePlan,
+                "plan_activated": true,
                 "days_per_week": plan.daysPerWeek,
                 "plan_days": plan.days.count
             ])
@@ -1153,6 +1207,7 @@ final class AppStore {
 
         // Publish to CloudKit feed if the user has social enabled and auto-share on.
         if userProfile.socialEnabled,
+           userProfile.socialCapabilitiesAllowed,
            userProfile.autoShareWorkouts,
            let uname = userProfile.socialUsername {
             let dname = userProfile.displayName ?? uname
@@ -1172,7 +1227,7 @@ final class AppStore {
         }
 
         // Update progress for any active social challenges this user is participating in.
-        if userProfile.socialEnabled, let uname = userProfile.socialUsername {
+        if userProfile.socialEnabled, userProfile.socialCapabilitiesAllowed, let uname = userProfile.socialUsername {
             let allSessions = workoutSessions
             let allPRs = workoutSessions.flatMap { s in
                 (s.exerciseLogs ?? []).filter { log in log.sets.contains(where: { $0.isPersonalRecord }) }
@@ -2224,7 +2279,9 @@ final class AppStore {
                 preferredLanguage: userProfile.preferredLanguage,
                 exercisesData: nil,
                 estimatedMaxHeartRate: watchEstimatedMaxHeartRate,
-                hasWatchAccess: monetization.hasProAccess
+                // Basic workout logging on Apple Watch is part of the free core loop.
+                // Pro continues to gate advanced analytics and progression on iPhone.
+                hasWatchAccess: true
             )
         }
 
@@ -2285,12 +2342,16 @@ final class AppStore {
             preferredLanguage: userProfile.preferredLanguage,
             exercisesData: status.isRouteWorkout ? nil : watchExercisesData(),
             estimatedMaxHeartRate: watchEstimatedMaxHeartRate,
-            hasWatchAccess: monetization.hasProAccess
+            // Keep the Watch companion useful before purchase; advanced entitlements
+            // remain enforced by the iPhone feature gates.
+            hasWatchAccess: true
         )
     }
 
     func addPlan(_ plan: WorkoutPlan, activate: Bool, fromCatalog: Bool = false, bypassPlanLimit: Bool = false) {
-        guard bypassPlanLimit || monetization.hasProAccess || (!fromCatalog && plans.isEmpty) else {
+        // Free tier gets exactly one plan slot, whether it's hand-built or picked
+        // from the program catalog — only the second+ plan requires Pro.
+        guard bypassPlanLimit || monetization.hasProAccess || plans.isEmpty else {
             presentPaywall(source: fromCatalog ? .planActivation : .multiplePlans, feature: nil, trigger: .featureGate)
             return
         }
@@ -2311,7 +2372,7 @@ final class AppStore {
     }
 
     func activateRecommendedWorkoutPlan(from workout: WorkoutDay) {
-        guard monetization.hasProAccess || plans.isEmpty else {
+        guard monetization.hasProAccess else {
             presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
             return
         }
@@ -3182,8 +3243,13 @@ final class AppStore {
         SharedWorkoutStore.save(snapshot, reloadTimelines: reloadTimelines)
         WatchSyncService.shared.publish(snapshot: snapshot)
 
-        // Mirror to iCloud for PRO users so data survives reinstalls.
-        if monetization.hasProAccess {
+        // Mirror only the privacy-safe operational projection for PRO users so
+        // plans and workout logging survive reinstalls without HealthKit data.
+        let shouldMirrorToICloud = monetization.hasProAccess &&
+            ICloudBackupService.automaticBackupEnabled &&
+            (lastAutomaticICloudBackupDate == nil || Date().timeIntervalSince(lastAutomaticICloudBackupDate!) >= 20)
+        if shouldMirrorToICloud {
+            lastAutomaticICloudBackupDate = .now
             let appSnapshot = currentSnapshot
             Task.detached(priority: .background) { [weak self] in
                 await ICloudBackupService.save(appSnapshot)
@@ -4219,7 +4285,12 @@ final class AppStore {
     }
 
     func loadFeed() async {
-        guard !isFeedLoading else { return }
+        guard userProfile.socialCapabilitiesAllowed, !isFeedLoading else {
+            feedPosts = []
+            commentSummaries = [:]
+            unreadFeedCount = 0
+            return
+        }
         var usernames = userProfile.socialFollowingUsernames
         if let own = userProfile.socialUsername { usernames.append(own.lowercased()) }
         guard !usernames.isEmpty else { return }
@@ -4228,7 +4299,8 @@ final class AppStore {
         isFeedLoading = true
         do {
             let posts = try await SocialService.shared.fetchFeed(followingUsernames: usernames)
-            feedPosts = posts
+            let blocked = Set(userProfile.socialBlockedUsernames.map { $0.lowercased() })
+            feedPosts = posts.filter { !blocked.contains($0.ownerUsername.lowercased()) }
             let lastCheck = lastFeedCheckDate
             unreadFeedCount = posts.filter { $0.createdAt > lastCheck }.count
         } catch {}
@@ -4240,6 +4312,41 @@ final class AppStore {
         }
     }
 
+    func reportSocialPost(_ post: WorkoutPost, reason: String = "user_report") async -> Bool {
+        guard userProfile.socialCapabilitiesAllowed,
+              let reporter = userProfile.socialUsername else { return false }
+        do {
+            try await SocialService.shared.reportContent(
+                contentID: post.id,
+                contentType: "post",
+                ownerUsername: post.ownerUsername,
+                reason: reason,
+                reporterUsername: reporter
+            )
+            return true
+        } catch {
+            TelemetryService.shared.record(error, context: "social_report_post")
+            return false
+        }
+    }
+
+    func blockSocialUser(_ username: String) async -> Bool {
+        guard userProfile.socialCapabilitiesAllowed,
+              let blocker = userProfile.socialUsername else { return false }
+        let normalized = username.lowercased()
+        if !userProfile.socialBlockedUsernames.contains(normalized) {
+            userProfile.socialBlockedUsernames.append(normalized)
+        }
+        feedPosts.removeAll { $0.ownerUsername.lowercased() == normalized }
+        do {
+            try await SocialService.shared.blockUser(username: normalized, blockerUsername: blocker)
+            return true
+        } catch {
+            TelemetryService.shared.record(error, context: "social_block_user")
+            return false
+        }
+    }
+
     /// Refreshes a single post's comment digest after the user comments, so the
     /// feed card reflects the new count/preview immediately.
     func refreshCommentSummary(postID: String) async {
@@ -4248,18 +4355,21 @@ final class AppStore {
 
     /// Flushes queued (offline) comments. Called on foreground.
     func flushPendingComments() async {
+        guard userProfile.socialCapabilitiesAllowed else { return }
         await SocialService.shared.flushOutbox()
     }
 
     func loadChallenges() async {
-        guard userProfile.socialEnabled, !isChallengesLoading else { return }
+        guard userProfile.socialEnabled, userProfile.socialCapabilitiesAllowed, !isChallengesLoading else { return }
         isChallengesLoading = true
         activeChallenges = await SocialService.shared.fetchActiveChallenges()
         isChallengesLoading = false
     }
 
     func checkLeaderboardChanges(following: [SocialProfile]) async {
-        guard let myUsername = userProfile.socialUsername, userProfile.socialEnabled else { return }
+        guard let myUsername = userProfile.socialUsername,
+              userProfile.socialEnabled,
+              userProfile.socialCapabilitiesAllowed else { return }
         let myXP = GamificationEngine.totalXP(
             sessions: workoutSessions,
             cardioLogs: combinedCardioLogs,

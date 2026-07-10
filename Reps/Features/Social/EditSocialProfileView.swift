@@ -126,6 +126,7 @@ struct EditSocialProfileView: View {
     }
 
     private func save() {
+        guard store.userProfile.socialCapabilitiesAllowed else { dismiss(); return }
         isSaving = true
         let bioVal = bio.trimmingCharacters(in: .whitespacesAndNewlines)
         let locVal = location.trimmingCharacters(in: .whitespacesAndNewlines)

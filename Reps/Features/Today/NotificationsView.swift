@@ -147,7 +147,7 @@ struct NotificationsView: View {
                     }
                     .padding(14)
 
-                    if store.userProfile.socialEnabled {
+                    if store.userProfile.socialEnabled, store.userProfile.socialCapabilitiesAllowed {
                         Divider().padding(.leading, 14)
 
                         // Social activity notifications

@@ -40,7 +40,9 @@ struct CommentsView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Divider()
-            inputBar
+            if store.userProfile.socialCapabilitiesAllowed {
+                inputBar
+            }
         }
         .screenBackground()
         .presentationDetents([.medium, .large])
@@ -92,6 +94,34 @@ struct CommentsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
+
+            Menu {
+                Button {
+                    Task {
+                        guard let reporter = store.userProfile.socialUsername else { return }
+                        try? await SocialService.shared.reportContent(
+                            contentID: comment.id,
+                            contentType: "comment",
+                            ownerUsername: comment.ownerUsername,
+                            reason: "user_report",
+                            reporterUsername: reporter
+                        )
+                    }
+                } label: {
+                    Label(localizedString("social_report_comment"), systemImage: "flag")
+                }
+                Button(role: .destructive) {
+                    Task { _ = await store.blockSocialUser(comment.ownerUsername) }
+                } label: {
+                    Label(localizedString("social_block_user"), systemImage: "person.crop.circle.badge.xmark")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.tertiaryText)
+                    .frame(width: 32, height: 32)
+            }
+            .accessibilityLabel(localizedString("social_moderation_actions"))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -163,6 +193,11 @@ struct CommentsView: View {
     // MARK: - Async actions
 
     private func loadComments() async {
+        guard store.userProfile.socialCapabilitiesAllowed else {
+            comments = []
+            isLoading = false
+            return
+        }
         // Instant first paint from the local cache (works fully offline)…
         let cached = await SocialService.shared.cachedComments(postID: post.id)
         comments = cached
@@ -173,6 +208,7 @@ struct CommentsView: View {
     }
 
     private func sendComment(_ text: String) async {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let uname = store.userProfile.socialUsername else { return }
         isSending = true

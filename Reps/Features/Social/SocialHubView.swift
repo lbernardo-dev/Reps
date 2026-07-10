@@ -40,24 +40,30 @@ struct SocialHubView: View {
     // MARK: - Body
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 20) {
-                myProfileCard
-                tabPicker
+        Group {
+            if store.userProfile.socialCapabilitiesAllowed {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        myProfileCard
+                        tabPicker
 
-                switch tab {
-                case .feed: feedSection
-                case .friends: friendsSection
-                case .challenges: challengesSection
-                case .discover: discoverSection
+                        switch tab {
+                        case .feed: feedSection
+                        case .friends: friendsSection
+                        case .challenges: challengesSection
+                        case .discover: discoverSection
+                        }
+
+                        Spacer(minLength: 40)
+                    }
+                    .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                    .padding(.bottom, 124)
                 }
-
-                Spacer(minLength: 40)
+                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            } else {
+                socialAgeBlockedView
             }
-            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-            .padding(.bottom, 124)
         }
-        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top) {
@@ -151,16 +157,61 @@ struct SocialHubView: View {
         }
     }
 
+    private var socialAgeBlockedView: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            PulseEmptyState(
+                title: "social_age_gate_title",
+                message: LocalizedStringKey(socialAgeGateMessageKey),
+                systemImage: "person.badge.shield.checkmark"
+            )
+            Button {
+                Task {
+                    if await store.ensureSocialAgeEligibility() {
+                        await loadInitialDataIfNeeded()
+                    }
+                }
+            } label: {
+                Label(localizedString("social_age_gate_verify"), systemImage: "checkmark.shield")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(PulseTheme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            Spacer()
+        }
+        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+    }
+
+    private var socialAgeGateMessageKey: String {
+        switch store.userProfile.socialAgeGateStatus {
+        case .blockedUnder13:
+            "social_age_gate_under_13_message"
+        case .sharingDeclined:
+            "social_age_gate_declined_message"
+        case .unavailable:
+            "social_age_gate_unavailable_message"
+        case .unknown, .allowed13Plus:
+            "social_age_gate_message"
+        }
+    }
+
     // MARK: - Header
 
     private var socialHeaderActions: some View {
         HStack(spacing: 6) {
             Button {
                 HapticService.selection()
-                if store.userProfile.socialUsername == nil {
-                    showSocialOnboarding = true
-                } else {
-                    showCreatePost = true
+                Task {
+                    guard await store.ensureSocialAgeEligibility() else { return }
+                    if store.userProfile.socialUsername == nil {
+                        showSocialOnboarding = true
+                    } else {
+                        showCreatePost = true
+                    }
                 }
             } label: {
                 Image(systemName: "square.and.pencil")
@@ -186,7 +237,11 @@ struct SocialHubView: View {
             } else {
                 Button {
                     HapticService.selection()
-                    showSocialOnboarding = true
+                    Task {
+                        if await store.ensureSocialAgeEligibility() {
+                            showSocialOnboarding = true
+                        }
+                    }
                 } label: {
                     Image(systemName: "person.badge.plus")
                         .font(.system(size: 16, weight: .semibold))
@@ -1175,6 +1230,7 @@ struct SocialHubView: View {
     // MARK: - Data loading
 
     private func loadInitialDataIfNeeded() async {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         guard !didLoadInitialData else { return }
         didLoadInitialData = true
 
@@ -1192,6 +1248,7 @@ struct SocialHubView: View {
     }
 
     private func loadSuggested() async {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         isLoadingSuggested = true
         do {
             let profiles = try await SocialService.shared.fetchSuggested(
@@ -1205,8 +1262,10 @@ struct SocialHubView: View {
     }
 
     private func loadExplore() async {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         isLoadingExplore = true
         var excluded = Set(store.userProfile.socialFollowingUsernames.map { $0.lowercased() })
+        excluded.formUnion(store.userProfile.socialBlockedUsernames.map { $0.lowercased() })
         if let mine = store.userProfile.socialUsername { excluded.insert(mine.lowercased()) }
         explorePosts = await SocialService.shared.fetchExplorePosts(excluding: excluded)
         isLoadingExplore = false
@@ -1223,6 +1282,7 @@ struct SocialHubView: View {
 
 
     private func toggleLike(post: WorkoutPost) {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         let wasLiked = likedPostIDs.contains(post.id)
         likingInProgress.insert(post.id)
         if wasLiked {
@@ -1248,6 +1308,7 @@ struct SocialHubView: View {
     }
 
     private func loadFollowing() async {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         isLoadingFollowing = true
         do {
             let usernames = store.userProfile.socialFollowingUsernames
@@ -1277,6 +1338,11 @@ struct SocialHubView: View {
     }
 
     private func scheduleSearch() {
+        guard store.userProfile.socialCapabilitiesAllowed else {
+            searchResults = []
+            isSearching = false
+            return
+        }
         let q = searchText
         searchTask?.cancel()
         guard !q.isEmpty else {
@@ -1304,6 +1370,7 @@ struct SocialHubView: View {
     }
 
     private func toggleFollow(profile: SocialProfile) {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         let alreadyFollowing = following.contains(where: { $0.id == profile.id })
         followingInProgress.insert(profile.id)
         Task {

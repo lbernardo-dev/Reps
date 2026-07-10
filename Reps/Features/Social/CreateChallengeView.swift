@@ -56,7 +56,7 @@ struct CreateChallengeView: View {
                     Button(localizedString("challenge_publish")) {
                         Task { await createChallenge() }
                     }
-                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || isCreating)
+                    .disabled(!store.userProfile.socialCapabilitiesAllowed || title.trimmingCharacters(in: .whitespaces).isEmpty || isCreating)
                     .overlay {
                         if isCreating { ProgressView().scaleEffect(0.8) }
                     }
@@ -66,6 +66,7 @@ struct CreateChallengeView: View {
     }
 
     private func createChallenge() async {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         guard let uname = store.userProfile.socialUsername else { return }
         let dname = store.userProfile.displayName ?? uname
         isCreating = true

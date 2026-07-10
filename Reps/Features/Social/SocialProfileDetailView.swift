@@ -361,6 +361,13 @@ struct SocialProfileDetailView: View {
     // MARK: - Data
 
     private func load() async {
+        guard store.userProfile.socialCapabilitiesAllowed else {
+            profile = nil
+            posts = []
+            followerCount = 0
+            isLoading = false
+            return
+        }
         isLoading = true
         async let profileTask = SocialService.shared.fetchMyProfile(username: username)
         async let postsTask = SocialService.shared.fetchPosts(username: username)
@@ -372,6 +379,7 @@ struct SocialProfileDetailView: View {
     }
 
     private func toggleFollow() async {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         guard let profile else { return }
         isFollowActionInProgress = true
         do {
@@ -446,6 +454,7 @@ private struct PostDetailSheet: View {
             }
         }
         .task {
+            guard store.userProfile.socialCapabilitiesAllowed else { return }
             isLiked = (try? await SocialService.shared.isLiked(post)) ?? false
             commentSummary = await SocialService.shared.commentSummaries(forPosts: [post.id])[post.id]
         }
@@ -455,6 +464,7 @@ private struct PostDetailSheet: View {
     }
 
     private func toggleLike() {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         let wasLiked = isLiked
         isLiking = true
         isLiked = !wasLiked

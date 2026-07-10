@@ -21,7 +21,8 @@ struct ProgramLibraryView: View {
                         programCount: filteredPlans.count,
                         totalPrograms: SeedData.defaultPlans.count,
                         selectedCategory: selectedCategory,
-                        activationRequiresPro: !store.monetization.hasProAccess
+                        activationRequiresPro: !store.monetization.hasProAccess && !store.plans.isEmpty,
+                        isFreeFirstPlan: !store.monetization.hasProAccess && store.plans.isEmpty
                     )
                     categoryFilter
                     programList
@@ -182,9 +183,13 @@ struct ProgramDetailView: View {
         }
     }
 
+    private var requiresPro: Bool {
+        !store.monetization.hasProAccess && !store.plans.isEmpty
+    }
+
     private var activateButton: some View {
         Button {
-            guard store.monetization.hasProAccess else {
+            guard !requiresPro else {
                 HapticService.selection()
                 store.presentPaywall(source: .planActivation, feature: nil, trigger: .featureGate)
                 return
@@ -198,10 +203,10 @@ struct ProgramDetailView: View {
             onActivated()
         } label: {
             HStack(spacing: 8) {
-                if !store.monetization.hasProAccess {
+                if requiresPro {
                     Image(systemName: "lock.fill")
                 }
-                Text(localizedString(store.monetization.hasProAccess ? "activate_program_button" : "unlock_with_pro_button"))
+                Text(localizedString(requiresPro ? "unlock_with_pro_button" : "activate_program_button"))
             }
             .font(.headline)
             .frame(maxWidth: .infinity)
@@ -222,6 +227,7 @@ private struct ProgramLibraryHero: View {
     let totalPrograms: Int
     let selectedCategory: SeedData.ProgramMetadata.Category?
     let activationRequiresPro: Bool
+    let isFreeFirstPlan: Bool
 
     var body: some View {
         PulseCard(contentPadding: 18) {
@@ -234,13 +240,19 @@ private struct ProgramLibraryHero: View {
                         .background(PulseTheme.fitActionGradient, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(selectedCategory?.displayName ?? "Choose a proven block for your current goal.")
+                        Text(selectedCategory?.displayName ?? localizedString("program_library_default_subtitle"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        if activationRequiresPro {
-                            Label("Explora gratis. Activar programas requiere Pro.", systemImage: "lock.open.fill")
+                        if isFreeFirstPlan {
+                            Label(localizedString("program_library_first_plan_free_banner"), systemImage: "gift.fill")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(PulseTheme.accent)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.82)
+                        } else if activationRequiresPro {
+                            Label(localizedString("program_library_activation_requires_pro_banner"), systemImage: "lock.fill")
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(PulseTheme.accent)
                                 .lineLimit(2)
@@ -320,8 +332,8 @@ private struct ProgramCard: View {
                             .offset(x: -4, y: -4)
                     }
 
-                    if !store.monetization.hasProAccess {
-                        Text("Pro al activar")
+                    if !store.monetization.hasProAccess && !store.plans.isEmpty {
+                        Text(localizedString("program_card_pro_on_activate_badge"))
                             .font(.system(size: 7, weight: .black, design: .rounded))
                             .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .padding(.horizontal, 5)

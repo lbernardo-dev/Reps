@@ -1643,10 +1643,17 @@ struct RepsTests {
                 routePaceSecondsPerKm: nil,
                 routeSpeedKmh: nil,
                 routePointCount: nil,
+                routePoints: [],
+                pedometerDistanceKm: nil,
+                pedometerPaceSecondsPerKm: nil,
+                pedometerSpeedKmh: nil,
+                pedometerSteps: nil,
                 previousRouteDistanceKm: 2.4,
                 previousRoutePaceSecondsPerKm: 360,
                 previousRouteSpeedKmh: 10,
                 previousRoutePointCount: 24,
+                previousRoutePoints: nil,
+                previousRouteSteps: 3_000,
                 routeSteps: 3_000,
                 liveHeartRate: 128,
                 liveActiveEnergyKcal: 64
@@ -1715,6 +1722,10 @@ struct RepsTests {
                 trackerPaceSecondsPerKm: 400,
                 trackerSpeedKmh: 9.2,
                 trackerPointCount: 40,
+                pedometerDistanceKm: nil,
+                pedometerPaceSecondsPerKm: nil,
+                pedometerSpeedKmh: nil,
+                pedometerSteps: nil,
                 activeStatus: status,
                 sensorSummary: sensor,
                 todayHealthMetric: today
@@ -1755,6 +1766,10 @@ struct RepsTests {
                 trackerPaceSecondsPerKm: 450,
                 trackerSpeedKmh: 8,
                 trackerPointCount: 18,
+                pedometerDistanceKm: nil,
+                pedometerPaceSecondsPerKm: nil,
+                pedometerSpeedKmh: nil,
+                pedometerSteps: nil,
                 activeStatus: nil,
                 sensorSummary: sensor,
                 todayHealthMetric: today
@@ -2409,5 +2424,21 @@ struct RepsTests {
             "gymRenewal",
             "achievementUnlocked"
         ]))
+    }
+
+    @Test func iCloudSafeSnapshotExcludesSensitiveCollectionsAndFields() {
+        var snapshot = AppSnapshot.empty
+        snapshot.bodyMetrics = [BodyMetric(date: .now, weightKg: 80, heightCm: 180, source: .manual)]
+        snapshot.progressPhotos = [ProgressPhoto(date: .now, imageData: Data([1, 2, 3]), weightKg: nil, note: nil)]
+        snapshot.cardioLogs = [CardioLog(activityType: .outdoorRun, date: .now, durationMinutes: 30, routePoints: [])]
+        snapshot.health.latestDailyMetrics = [DailyHealthMetric(date: .now, steps: 1, activeEnergyKcal: 2, dietaryEnergyKcal: 3, waterLiters: 4)]
+        snapshot.userProfile.avatarImageData = Data([9, 9])
+
+        let safe = snapshot.iCloudSafe
+        #expect(safe.bodyMetrics.isEmpty)
+        #expect(safe.progressPhotos.isEmpty)
+        #expect(safe.cardioLogs.isEmpty)
+        #expect(safe.health.latestDailyMetrics.isEmpty)
+        #expect(safe.userProfile.avatarImageData == nil)
     }
 }

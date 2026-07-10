@@ -40,8 +40,9 @@ struct PlansView: View {
         planToEdit = plan
     }
 
-    /// Browsing the catalog (search, filter, read details) is always free —
-    /// only activating a program is gated. See ProgramDetailView.activateButton.
+    /// Browsing the catalog (search, filter, read details) is always free.
+    /// Activating a program only requires Pro once the free first-plan slot
+    /// (`store.plans.isEmpty`) is already used. See ProgramLibraryView.requiresPro.
     private func tryOpenProgramLibrary() {
         showProgramLibrary = true
     }
@@ -250,7 +251,7 @@ struct PlansView: View {
     }
 
     private func buildRecommendedWorkoutIfNeeded() {
-        guard recommendedWorkout == nil, store.activeWorkoutStatus == nil, !hasActivePlan else { return }
+        guard store.monetization.hasProAccess, recommendedWorkout == nil, store.activeWorkoutStatus == nil, !hasActivePlan else { return }
         let undertrainedMuscles = AnalyticsEngine.competitiveSummary(
             sessions: store.workoutSessions,
             activePlan: store.activePlan,
@@ -520,7 +521,7 @@ struct PlansView: View {
                             tryOpenCreatePlan()
                         } label: {
                             Label(
-                                store.monetization.hasProAccess ? localizedString("create_plan") : "Crear plan Pro",
+                                store.monetization.hasProAccess ? localizedString("create_plan") : localizedString("create_plan_pro_locked"),
                                 systemImage: store.monetization.hasProAccess ? "plus" : "lock.fill"
                             )
                                 .font(.subheadline.weight(.bold))
@@ -888,11 +889,11 @@ private struct PlanExecutionBars: View {
                         .frame(width: 34, height: 34)
                         .background(tint.opacity(0.13), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Aún sin sesiones registradas")
+                        Text("plan_no_sessions_yet_title")
                             .font(.caption.weight(.black))
                             .lineLimit(1)
                             .minimumScaleFactor(0.82)
-                        Text("Completa el primer entreno para ver adherencia y volumen real.")
+                        Text("plan_no_sessions_yet_message")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .lineLimit(2)
@@ -1224,12 +1225,12 @@ private struct PlanCard: View {
                         Button {
                             onActivate()
                         } label: {
-                            Label(isLocked ? "Activar con Pro" : localizedString("activate_plan"), systemImage: isLocked ? "lock.fill" : "bolt.fill")
+                            Label(isLocked ? localizedString("activate_plan_pro_locked") : localizedString("activate_plan"), systemImage: isLocked ? "lock.fill" : "bolt.fill")
                         }
                         Button {
                             onEdit()
                         } label: {
-                            Label(isLocked ? "Editar con Pro" : localizedString("edit_plan"), systemImage: isLocked ? "lock.fill" : "pencil")
+                            Label(isLocked ? localizedString("edit_plan_pro_locked") : localizedString("edit_plan"), systemImage: isLocked ? "lock.fill" : "pencil")
                         }
                         Button(role: .destructive) {
                             onDelete()
@@ -1258,12 +1259,12 @@ private struct PlanCard: View {
             Button {
                 onActivate()
             } label: {
-                Label(isLocked ? "Activar con Pro" : localizedString("activate_plan"), systemImage: isLocked ? "lock.fill" : "bolt.fill")
+                Label(isLocked ? localizedString("activate_plan_pro_locked") : localizedString("activate_plan"), systemImage: isLocked ? "lock.fill" : "bolt.fill")
             }
             Button {
                 onEdit()
             } label: {
-                Label(isLocked ? "Editar con Pro" : localizedString("edit_plan"), systemImage: isLocked ? "lock.fill" : "pencil")
+                Label(isLocked ? localizedString("edit_plan_pro_locked") : localizedString("edit_plan"), systemImage: isLocked ? "lock.fill" : "pencil")
             }
             Button(role: .destructive) {
                 onDelete()
@@ -1372,7 +1373,7 @@ private struct PlanDetailSheet: View {
             .safeAreaInset(edge: .bottom) {
                 Button(action: onActivate) {
                     Label(
-                        isLocked ? "Activar con Pro" : localizedString("activate_plan"),
+                        isLocked ? localizedString("activate_plan_pro_locked") : localizedString("activate_plan"),
                         systemImage: isLocked ? "lock.fill" : "bolt.fill"
                     )
                         .font(.headline.weight(.black))

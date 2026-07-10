@@ -2,9 +2,9 @@ import SwiftUI
 import UIKit
 
 private enum SettingsLegalLinks {
-    static let privacyPolicy = "https://repsapp.com/privacy"
-    static let termsOfService = "https://repsapp.com/terms"
-    static let subscriptionTerms = "https://repsapp.com/subscription-terms"
+    static let privacyPolicy = "https://romerodev.com/streakrep/privacy"
+    static let termsOfService = "https://romerodev.com/streakrep/terms"
+    static let subscriptionTerms = "https://romerodev.com/streakrep/subscription-terms"
 }
 
 private enum SettingsTypography {

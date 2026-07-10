@@ -27,7 +27,7 @@ struct CreatePostView: View {
     }
 
     private var canPost: Bool {
-        !isPosting && (!caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !selectedImages.isEmpty)
+        store.userProfile.socialCapabilitiesAllowed && !isPosting && (!caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !selectedImages.isEmpty)
     }
 
     var body: some View {
@@ -183,6 +183,7 @@ struct CreatePostView: View {
     }
 
     private func publish() {
+        guard store.userProfile.socialCapabilitiesAllowed else { return }
         guard let uname = store.userProfile.socialUsername else { return }
         let dname = store.userProfile.displayName ?? uname
         let text = caption.trimmingCharacters(in: .whitespacesAndNewlines)

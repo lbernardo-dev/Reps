@@ -39,7 +39,10 @@ final class UserProfileRecord {
     var socialLocation: String?
     var autoShareWorkouts: Bool?
     var socialNotificationsEnabled: Bool?
+    var socialAgeGateStatus: String?
+    var socialAgeGateCheckedAt: Date?
     var socialFollowingUsernamesData: Data?
+    var socialBlockedUsernamesData: Data?
 
     init(profile: UserProfile, id: String = "current") {
         self.id = id
@@ -74,7 +77,10 @@ final class UserProfileRecord {
         socialLocation = profile.socialLocation
         autoShareWorkouts = profile.autoShareWorkouts
         socialNotificationsEnabled = profile.socialNotificationsEnabled
+        socialAgeGateStatus = profile.socialAgeGateStatus.rawValue
+        socialAgeGateCheckedAt = profile.socialAgeGateCheckedAt
         socialFollowingUsernamesData = encodeStrings(profile.socialFollowingUsernames)
+        socialBlockedUsernamesData = encodeStrings(profile.socialBlockedUsernames)
     }
 
     var domain: UserProfile {
@@ -110,7 +116,10 @@ final class UserProfileRecord {
             socialLocation: socialLocation ?? "",
             autoShareWorkouts: autoShareWorkouts ?? true,
             socialNotificationsEnabled: socialNotificationsEnabled ?? true,
-            socialFollowingUsernames: decodeStrings(socialFollowingUsernamesData)
+            socialAgeGateStatus: socialAgeGateStatus.flatMap(UserProfile.SocialAgeGateStatus.init(rawValue:)) ?? .unknown,
+            socialAgeGateCheckedAt: socialAgeGateCheckedAt,
+            socialFollowingUsernames: decodeStrings(socialFollowingUsernamesData),
+            socialBlockedUsernames: decodeStrings(socialBlockedUsernamesData)
         )
     }
 }

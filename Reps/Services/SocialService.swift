@@ -781,6 +781,46 @@ actor SocialService {
         }
     }
 
+    // MARK: Moderation
+
+    /// Writes a moderation report to the public database. Reports are
+    /// append-only and intentionally do not expose reporter identity in the UI;
+    /// the owner record is retained for timely operator follow-up.
+    func reportContent(
+        contentID: String,
+        contentType: String,
+        ownerUsername: String,
+        reason: String,
+        reporterUsername: String
+    ) async throws {
+        try await requireICloudAccount()
+        let myID = try await myRecordID()
+        let record = CKRecord(recordType: "SocialReport")
+        record["contentID"] = contentID as CKRecordValue
+        record["contentType"] = contentType as CKRecordValue
+        record["ownerUsername"] = ownerUsername.lowercased() as CKRecordValue
+        record["reason"] = reason as CKRecordValue
+        record["reporterUsername"] = reporterUsername.lowercased() as CKRecordValue
+        record["reporterOwnerName"] = myID.recordName as CKRecordValue
+        record["reportedAt"] = Date() as CKRecordValue
+        try await publicDB.save(record)
+    }
+
+    /// Persists a block relationship in CloudKit. The local profile is updated
+    /// by AppStore before/alongside this call so the block is immediate offline.
+    func blockUser(username: String, blockerUsername: String) async throws {
+        try await requireICloudAccount()
+        let myID = try await myRecordID()
+        let normalized = username.lowercased()
+        let rid = CKRecord.ID(recordName: "SocialBlock_(myID.recordName)_(normalized)")
+        let record = CKRecord(recordType: "SocialBlock", recordID: rid)
+        record["blockerOwnerName"] = myID.recordName as CKRecordValue
+        record["blockerUsername"] = blockerUsername.lowercased() as CKRecordValue
+        record["blockedUsername"] = normalized as CKRecordValue
+        record["createdAt"] = Date() as CKRecordValue
+        try await publicDB.save(record)
+    }
+
     // MARK: - Comments (offline-first, deferred sync)
     //
     // WorkoutComment recordName: "WorkoutComment_<postID>_<uuid>"

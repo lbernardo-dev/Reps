@@ -1436,7 +1436,7 @@ struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
                 accessory
                 if showsGlobalActions {
                     PulseHeaderGlobalActions(
-                        isSocialEnabled: store.userProfile.socialEnabled && store.userProfile.socialUsername != nil
+                        isSocialEnabled: store.userProfile.socialEnabled && store.userProfile.socialCapabilitiesAllowed && store.userProfile.socialUsername != nil
                     )
                 }
             }
