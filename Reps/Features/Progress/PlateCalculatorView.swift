@@ -50,9 +50,9 @@ struct PlateCalculatorView: View {
     }
 
     private struct PlateStackItem: Identifiable {
-        let id = UUID()
         let weight: Double
         let count: Int
+        var id: Double { weight }
         
         var color: Color {
             switch weight {

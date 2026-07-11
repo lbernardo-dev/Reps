@@ -150,7 +150,7 @@ struct CalendarView: View {
                                         let exercisesWord = localizedString("exercises_2")
                                         CalendarSummaryPill(title: "\(dayExerciseCount(on: selectedDate))", subtitle: LocalizedStringKey(exercisesWord), systemImage: "dumbbell")
                                     }
-                                    let volume = Int(FitnessMetrics.totalVolumeKg(for: daySessions))
+                                    let volume = Int(sessionVolumeKg(on: selectedDate))
                                     CalendarSummaryPill(title: volume > 0 ? "\(volume)" : "\(daySessions.reduce(0) { $0 + $1.durationMinutes })", subtitle: volume > 0 ? "kg" : "min", systemImage: volume > 0 ? "scalemass" : "timer")
                                 }
                             }
@@ -252,7 +252,7 @@ struct CalendarView: View {
     private var selectedDayVolumeCard: some View {
         let sessions = loggedWorkouts(on: selectedDate)
         if !sessions.isEmpty {
-            let dayVolume = FitnessMetrics.totalVolumeKg(for: sessions)
+            let dayVolume = sessionVolumeKg(on: selectedDate)
             if dayVolume > 0 {
                 HStack {
                     Image(systemName: "scalemass.fill")
@@ -299,7 +299,7 @@ struct CalendarView: View {
                 HStack(spacing: 10) {
                     let scheduledWord = localizedString("scheduled_3")
                     CalendarSummaryPill(title: "\(weekScheduled.count)", subtitle: LocalizedStringKey(scheduledWord), systemImage: "calendar.badge.clock")
-                    CalendarSummaryPill(title: "\(Int(FitnessMetrics.totalVolumeKg(for: weekSessions)))", subtitle: "kg", systemImage: "scalemass")
+                    CalendarSummaryPill(title: "\(Int(weekVolumeKg))", subtitle: "kg", systemImage: "scalemass")
                     CalendarSummaryPill(title: "\(weekSessions.reduce(0) { $0 + $1.durationMinutes })", subtitle: "min", systemImage: "timer")
                 }
                 if !monthSessions.isEmpty {
@@ -308,7 +308,7 @@ struct CalendarView: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                         Spacer()
-                        Text(localizedFormat("volume_kg_format", Int(FitnessMetrics.totalVolumeKg(for: monthSessions))))
+                        Text(localizedFormat("volume_kg_format", Int(monthVolumeKg)))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -338,6 +338,14 @@ struct CalendarView: View {
     private var weekSessions: [WorkoutSession] {
         guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: selectedDate) else { return [] }
         return store.workoutSessions.filter { interval.contains($0.date) }
+    }
+
+    private var weekVolumeKg: Double {
+        FitnessMetrics.totalVolumeKg(for: weekSessions)
+    }
+
+    private var monthVolumeKg: Double {
+        FitnessMetrics.totalVolumeKg(for: monthSessions)
     }
 
     private var weekScheduled: [ScheduledWorkout] {

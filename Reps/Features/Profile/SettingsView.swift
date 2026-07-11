@@ -1019,9 +1019,9 @@ private struct SettingsSummaryMetric: View {
 }
 
 private struct SettingsInfoSection: Identifiable {
-    let id = UUID()
     let title: String
     let rows: [String]
+    var id: String { title }
 }
 
 private struct SettingsInfoScreen: View {

@@ -3,24 +3,23 @@ import MuscleMap
 import SwiftUI
 
 struct TodayChartPoint: Identifiable {
-  let id = UUID()
   let label: String
   let value: Double
   let isToday: Bool
+  var id: String { label }
 }
 
 
 struct BodyFusionPoint: Identifiable {
-  let id = UUID()
   let date: Date
   let activity: Double
   let volume: Double
+  var id: Date { date }
 }
 
 
 struct TrendMetric: Identifiable {
   enum Direction: Equatable { case up, down, neutral }
-  let id = UUID()
   let title: String
   let value: String
   let unit: String
@@ -28,6 +27,7 @@ struct TrendMetric: Identifiable {
   let color: Color
   /// When set, the tile is tappable and drills into the matching metric.
   var metric: SummaryMetric? = nil
+  var id: String { title }
 }
 
 enum ProgressSection: String, CaseIterable, Identifiable {

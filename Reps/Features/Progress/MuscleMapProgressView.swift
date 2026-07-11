@@ -824,13 +824,13 @@ private struct MuscleDailyPoint: Identifiable {
 }
 
 private struct MuscleExerciseContribution: Identifiable {
-    let id = UUID()
     let exercise: Exercise
     let date: Date
     let completedSets: Int
     let effectiveSets: Double
     let repText: String
     let isDirect: Bool
+    var id: String { "\(exercise.id)-\(date.timeIntervalSince1970)-\(isDirect)" }
 
     var effectiveSetsText: String {
         if effectiveSets.rounded() == effectiveSets {

@@ -1777,9 +1777,9 @@ private enum ProfileSheet: Identifiable {
 }
 
 private struct SupportInfoSection: Identifiable {
-    let id = UUID()
     let title: String
     let rows: [String]
+    var id: String { title }
 }
 
 private struct SupportInfoScreen: View {

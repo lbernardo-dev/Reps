@@ -358,12 +358,12 @@ private struct HeroRouteMapColorScheme: ViewModifier {
 }
 
 struct RouteSplit: Identifiable, Hashable {
-    let id = UUID()
     let index: Int
     let distanceMeters: CLLocationDistance
     let elapsedSeconds: TimeInterval
     var averageHeartRate: Double? = nil
     var cadenceSpm: Double? = nil
+    var id: Int { index }
 
     var paceSecondsPerKm: TimeInterval {
         guard distanceMeters > 0 else { return 0 }

@@ -3,9 +3,9 @@ import MuscleMap
 import SwiftUI
 
 struct ConsistencyPoint: Identifiable {
-  let id = UUID()
   let date: Date
   let count: Int
+  var id: Date { date }
 }
 
 

@@ -21,10 +21,10 @@ struct OneRepMaxCalculatorView: View {
   }
 
   private struct RepPercentage: Identifiable {
-    let id = UUID()
     let percentage: Int
     let reps: Int
     let weight: Double
+    var id: Int { percentage }
   }
 
   private var percentageBreakdown: [RepPercentage] {

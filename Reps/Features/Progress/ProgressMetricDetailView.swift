@@ -6,9 +6,9 @@ import SwiftUI
 /// A single day's value for a summary metric. Series are expected to be
 /// chronological and cover up to the last 365 days (gaps allowed).
 struct MetricDetailPoint: Identifiable, Hashable {
-  let id = UUID()
   let date: Date
   let value: Double
+  var id: Date { date }
 }
 
 // MARK: - Range selector (local to detail screens)
@@ -256,9 +256,9 @@ struct ProgressMetricDetailView: View {
   }
 
   private struct ChartBar: Identifiable {
-    let id = UUID()
     let label: String
     let value: Double
+    var id: String { label }
   }
 
   private var chartBars: [ChartBar] {

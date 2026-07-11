@@ -5,12 +5,12 @@ struct PersonalRecordsView: View {
     @Environment(\.dismiss) private var dismiss
     
     struct PersonalRecordItem: Identifiable {
-        let id = UUID()
         let exercise: Exercise
         let maxWeight: Double
         let maxReps: Int
         let oneRepMax: Double
         let date: Date
+        var id: UUID { exercise.id }
     }
     
     private var personalRecords: [PersonalRecordItem] {

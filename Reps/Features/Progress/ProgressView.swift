@@ -950,10 +950,7 @@ struct ProgressDashboardView: View {
   }
 
   private var weekCardioDistanceKm: Double {
-    store.combinedCardioLogs
-      .filter { $0.date >= heroMetrics.weekStart }
-      .compactMap(\.distanceKm)
-      .reduce(0, +)
+    renderModel.weekCardioDistanceKm
   }
 
   private var weekCompletedSets: Int {
@@ -961,11 +958,7 @@ struct ProgressDashboardView: View {
   }
 
   private var weekAverageHeartRate: Double? {
-    let values = store.combinedCardioLogs
-      .filter { $0.date >= heroMetrics.weekStart }
-      .compactMap(\.averageHeartRate)
-    guard !values.isEmpty else { return nil }
-    return values.reduce(0, +) / Double(values.count)
+    renderModel.weekAverageHeartRate
   }
 
   private var summaryGridColumns: [GridItem] {
@@ -981,11 +974,7 @@ struct ProgressDashboardView: View {
   }
 
   private var distanceTodayKm: Double {
-    let today = Calendar.current.startOfDay(for: .now)
-    return store.combinedCardioLogs
-      .filter { Calendar.current.startOfDay(for: $0.date) == today }
-      .compactMap(\.distanceKm)
-      .reduce(0, +)
+    renderModel.distanceTodayKm
   }
 
   private var activeEnergyToday: Double {
@@ -1001,23 +990,19 @@ struct ProgressDashboardView: View {
   }
 
   private var monthSessions: Int {
-    let start = Calendar.current.date(byAdding: .day, value: -29, to: Calendar.current.startOfDay(for: .now)) ?? .now
-    return store.workoutSessions.filter { $0.date >= start }.count
+    renderModel.monthSessions
   }
 
   private var monthVolumeKg: Int {
-    let start = Calendar.current.date(byAdding: .day, value: -29, to: Calendar.current.startOfDay(for: .now)) ?? .now
-    return Int(FitnessMetrics.totalVolumeKg(for: store.workoutSessions.filter { $0.date >= start }))
+    renderModel.monthVolumeKg
   }
 
   private var yearSessions: Int {
-    let start = Calendar.current.date(byAdding: .day, value: -364, to: Calendar.current.startOfDay(for: .now)) ?? .now
-    return store.workoutSessions.filter { $0.date >= start }.count
+    renderModel.yearSessions
   }
 
   private var yearVolumeKg: Int {
-    let start = Calendar.current.date(byAdding: .day, value: -364, to: Calendar.current.startOfDay(for: .now)) ?? .now
-    return Int(FitnessMetrics.totalVolumeKg(for: store.workoutSessions.filter { $0.date >= start }))
+    renderModel.yearVolumeKg
   }
 
   private var weeklyConsistencyData: [ConsistencyPoint] {
@@ -1312,6 +1297,14 @@ struct ProgressDashboardRenderModel {
   let exercisesWithHistory: [Exercise]
   let bodyFusionChartPoints: [BodyFusionPoint]
   let consistencyData: [ConsistencyPoint]
+  // Supplementary stats computed once per rebuild
+  let monthSessions: Int
+  let monthVolumeKg: Int
+  let yearSessions: Int
+  let yearVolumeKg: Int
+  let weekCardioDistanceKm: Double
+  let weekAverageHeartRate: Double?
+  let distanceTodayKm: Double
 
   static let empty = ProgressDashboardRenderModel(
     key: nil,
@@ -1360,7 +1353,14 @@ struct ProgressDashboardRenderModel {
     insightCards: [],
     exercisesWithHistory: [],
     bodyFusionChartPoints: [],
-    consistencyData: []
+    consistencyData: [],
+    monthSessions: 0,
+    monthVolumeKg: 0,
+    yearSessions: 0,
+    yearVolumeKg: 0,
+    weekCardioDistanceKm: 0,
+    weekAverageHeartRate: nil,
+    distanceTodayKm: 0
   )
 
   static func build(
@@ -1511,6 +1511,15 @@ struct ProgressDashboardRenderModel {
       return ConsistencyPoint(date: date, count: rangeGroupedSessions[calendar.startOfDay(for: date)]?.count ?? 0)
     }
 
+    // Supplementary stats
+    let monthStart = calendar.date(byAdding: .day, value: -29, to: today) ?? today
+    let yearStart = calendar.date(byAdding: .day, value: -364, to: today) ?? today
+    let monthSessionsList = sessions.filter { $0.date >= monthStart }
+    let yearSessionsList = sessions.filter { $0.date >= yearStart }
+    let weekCardioLogs = cardioLogs.filter { $0.date >= thisWeekStart }
+    let todayCardioLogs = cardioLogs.filter { calendar.startOfDay(for: $0.date) == today }
+    let weekHRValues = weekCardioLogs.compactMap(\.averageHeartRate)
+
     return ProgressDashboardRenderModel(
       key: key,
       heroMetrics: heroMetrics,
@@ -1538,7 +1547,14 @@ struct ProgressDashboardRenderModel {
       insightCards: insightCards,
       exercisesWithHistory: exercisesWithHistory,
       bodyFusionChartPoints: bodyFusionChartPoints,
-      consistencyData: consistencyData
+      consistencyData: consistencyData,
+      monthSessions: monthSessionsList.count,
+      monthVolumeKg: Int(FitnessMetrics.totalVolumeKg(for: monthSessionsList)),
+      yearSessions: yearSessionsList.count,
+      yearVolumeKg: Int(FitnessMetrics.totalVolumeKg(for: yearSessionsList)),
+      weekCardioDistanceKm: weekCardioLogs.compactMap(\.distanceKm).reduce(0, +),
+      weekAverageHeartRate: weekHRValues.isEmpty ? nil : weekHRValues.reduce(0, +) / Double(weekHRValues.count),
+      distanceTodayKm: todayCardioLogs.compactMap(\.distanceKm).reduce(0, +)
     )
   }
 

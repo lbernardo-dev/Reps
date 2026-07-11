@@ -2,7 +2,6 @@ import SwiftUI
 import PhotosUI
 
 struct AchievementBadge: Identifiable {
-    let id = UUID()
     let titleKey: String
     let descKey: String
     let systemImage: String
@@ -11,6 +10,7 @@ struct AchievementBadge: Identifiable {
     let progressValue: Double?
     let progressTarget: Double?
     var xpReward: Int = 0
+    var id: String { titleKey }
 
     var title: String { localizedString(titleKey) }
     var description: String { localizedString(descKey) }
