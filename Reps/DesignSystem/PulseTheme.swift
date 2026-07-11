@@ -2133,7 +2133,7 @@ enum ExerciseVisualResolver {
 
     static func hasValidCustomImage(_ data: Data?) -> Bool {
         guard let data else { return false }
-        return UIImage(data: data) != nil
+        return !data.isEmpty
     }
 
     static func hasValidCustomVideo(_ data: Data?) -> Bool {

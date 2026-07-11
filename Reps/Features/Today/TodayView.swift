@@ -3,6 +3,377 @@ import SwiftUI
 
 struct TodayView: View {
     @Environment(AppStore.self) private var store
+    var onSelectTab: ((AppTab) -> Void)? = nil
+
+    var body: some View {
+        let model = makeTodayRenderModel()
+        TodayViewContent(model: model, store: store, onSelectTab: onSelectTab)
+    }
+
+    private var todaysScheduledWorkout: ScheduledWorkout? {
+        store.scheduledWorkouts.first { Calendar.current.isDateInToday($0.date) && $0.status != .skipped }
+    }
+
+    private func completedSets(in sessions: [WorkoutSession]) -> [SetLog] {
+        sessions.flatMap { session in
+            if let exerciseLogs = session.exerciseLogs, !exerciseLogs.isEmpty {
+                return exerciseLogs.flatMap { $0.sets.filter(\.completed) }
+            }
+            return session.sets.filter(\.completed)
+        }
+    }
+
+    private static func trendText(current: Double, previous: Double) -> String? {
+        guard previous > 0 else {
+            return current > 0 ? "+100%" : nil
+        }
+
+        let percentage = ((current - previous) / previous) * 100
+        guard abs(percentage) >= 1 else {
+            return nil
+        }
+        return String(format: "%+.0f%%", percentage)
+    }
+
+    private static func continuitySignal(for lastWorkout: WorkoutSession?, calendar: Calendar, now: Date) -> ContinuitySignal {
+        if let lastWorkout {
+            let daysSince = calendar.dateComponents(
+                [.day],
+                from: calendar.startOfDay(for: lastWorkout.date),
+                to: calendar.startOfDay(for: now)
+            ).day ?? 0
+            if daysSince == 0 {
+                return ContinuitySignal(
+                    title: localizedString("today_continuity_secured_title"),
+                    message: localizedString("today_continuity_secured_message"),
+                    systemImage: "checkmark.seal.fill",
+                    tint: PulseTheme.recovery
+                )
+            }
+            if daysSince == 1 {
+                return ContinuitySignal(
+                    title: localizedString("today_continuity_keep_going_title"),
+                    message: localizedString("today_continuity_keep_going_message"),
+                    systemImage: "flame.fill",
+                    tint: PulseTheme.accent
+                )
+            }
+            return ContinuitySignal(
+                title: localizedString("today_continuity_recover_title"),
+                message: localizedFormat("today_continuity_recover_message_format", daysSince),
+                systemImage: "arrow.counterclockwise.circle.fill",
+                tint: PulseTheme.warning
+            )
+        }
+
+        return ContinuitySignal(
+            title: localizedString("today_continuity_first_step_title"),
+            message: localizedString("today_continuity_first_step_message"),
+            systemImage: "figure.strengthtraining.traditional",
+            tint: PulseTheme.accent
+        )
+    }
+
+    private func hydratedExercise(_ exercise: Exercise, catalog: [Exercise]) -> Exercise {
+        if exercise.customImageData != nil || (exercise.mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false) {
+            return exercise
+        }
+
+        return catalog.first { candidate in
+            candidate.id == exercise.id
+                || (candidate.sourceID != nil && candidate.sourceID == exercise.sourceID)
+                || normalizedExerciseName(candidate.name) == normalizedExerciseName(exercise.name)
+                || candidate.aliases.contains { normalizedExerciseName($0) == normalizedExerciseName(exercise.name) }
+        } ?? exercise
+    }
+
+    private func normalizedExerciseName(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    private func makeTodayRenderModel() -> TodayRenderModel {
+        let calendar = Calendar.current
+        let now = Date()
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now.addingTimeInterval(-604_800)
+        let todayStart = calendar.startOfDay(for: now)
+        let last30StartDate = calendar.date(byAdding: .day, value: -29, to: todayStart) ?? todayStart
+        let previous30StartDate = calendar.date(byAdding: .day, value: -30, to: last30StartDate) ?? last30StartDate
+        let hasActivePlan = store.hasActiveTrainingPlan
+        let language = store.userProfile.preferredLanguage
+        let units = store.userProfile.units
+
+        let weekSessions = store.workoutSessions.filter { $0.date >= weekStart }
+        let recentSessions = store.workoutSessions.filter { $0.date >= last30StartDate }
+        let previous30Sessions = store.workoutSessions.filter { $0.date >= previous30StartDate && $0.date < last30StartDate }
+        let latestWorkout = store.workoutSessions.max { $0.date < $1.date }
+        let latestMetric = store.bodyMetrics.max { $0.date < $1.date }
+        let sortedHealthMetrics = store.health.latestDailyMetrics.sorted { $0.date > $1.date }
+        let battery = store.trainingBattery
+        let completedThisWeek = hasActivePlan ? min(weekSessions.count, store.activePlan.daysPerWeek) : weekSessions.count
+        let weekTargetText = hasActivePlan ? "\(completedThisWeek)/\(store.activePlan.daysPerWeek)" : "\(completedThisWeek)"
+        let weeklyPlanCompletionRatio = hasActivePlan && store.activePlan.daysPerWeek > 0
+            ? min(Double(completedThisWeek) / Double(store.activePlan.daysPerWeek), 1)
+            : 0
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: language)
+        dateFormatter.dateFormat = localizedString("eeee_d_mmmm")
+        let currentDateTitle = dateFormatter.string(from: now).capitalized(with: dateFormatter.locale)
+
+        let recentVolumeKg = FitnessMetrics.totalVolumeKg(for: recentSessions)
+        let previous30VolumeKg = FitnessMetrics.totalVolumeKg(for: previous30Sessions)
+        let weekCompletedSets = completedSets(in: weekSessions)
+        let previousWeekStart = calendar.date(byAdding: .day, value: -7, to: weekStart) ?? weekStart
+        let previousWeekSessions = store.workoutSessions.filter { $0.date >= previousWeekStart && $0.date < weekStart }
+        let previousReps = completedSets(in: previousWeekSessions).reduce(0) { $0 + $1.reps }
+        let currentWeekReps = weekCompletedSets.reduce(0) { $0 + $1.reps }
+
+        let loadByDay = Dictionary(grouping: recentSessions, by: { calendar.startOfDay(for: $0.date) })
+            .mapValues { sessions in
+                sessions.reduce(0.0) { $0 + AnalyticsEngine.sessionLoad(for: $1) }
+            }
+        let maxDailyLoad = loadByDay.values.max() ?? 0
+        let recentActivityPoints = (0..<30).compactMap { offset -> DailyActivityPoint? in
+            guard let date = calendar.date(byAdding: .day, value: offset - 29, to: todayStart) else { return nil }
+            let dailyLoad = loadByDay[date] ?? 0
+            return DailyActivityPoint(
+                date: date,
+                isCompleted: dailyLoad > 0,
+                isToday: calendar.isDateInToday(date),
+                intensity: maxDailyLoad > 0 ? min(dailyLoad / maxDailyLoad, 1) : 0
+            )
+        }
+
+        let dayFormatter = DateFormatter()
+        dayFormatter.locale = Locale(identifier: language)
+        dayFormatter.dateFormat = "EEEEE"
+        func displayWeight(_ kilograms: Double) -> Double {
+            units == .metric ? kilograms : UnitConverter.pounds(fromKilograms: kilograms)
+        }
+        func sets(in session: WorkoutSession) -> [SetLog] {
+            if let exerciseLogs = session.exerciseLogs, !exerciseLogs.isEmpty {
+                return exerciseLogs.flatMap { $0.sets.filter(\.completed) }
+            }
+            return session.sets.filter(\.completed)
+        }
+        func weeklyPoints(_ valueForSession: (WorkoutSession) -> Double) -> [MiniBarPoint] {
+            (0..<7).compactMap { offset in
+                guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
+                let daySessions = weekSessions.filter { calendar.isDate($0.date, inSameDayAs: date) }
+                return MiniBarPoint(
+                    id: date,
+                    label: dayFormatter.string(from: date).uppercased(),
+                    value: daySessions.reduce(0) { $0 + valueForSession($1) },
+                    isToday: calendar.isDateInToday(date)
+                )
+            }
+        }
+        let weeklyRepsPoints = weeklyPoints { Double(sets(in: $0).reduce(0) { $0 + $1.reps }) }
+        let weeklyVolumePoints = weeklyPoints { displayWeight(FitnessMetrics.totalVolumeKg(for: [$0])) }
+
+        let competitiveSummary = AnalyticsEngine.competitiveSummary(
+            sessions: store.workoutSessions,
+            activePlan: store.activePlan,
+            exercises: store.exercises,
+            since: weekStart
+        )
+        let workloadSummary = AnalyticsEngine.workloadSummary(sessions: store.workoutSessions, bodyMetrics: store.bodyMetrics)
+        let todaysScheduledWorkout = store.scheduledWorkouts.first {
+            Calendar.current.isDateInToday($0.date) && $0.status != .skipped
+        }
+        let dailyCoachRecommendation = FitnessMetrics.dailyCoachRecommendation(
+            battery: battery,
+            competitiveSummary: competitiveSummary,
+            hasActivePlan: hasActivePlan,
+            hasTodayWorkout: todaysScheduledWorkout != nil,
+            hasCompletedWorkout: !store.workoutSessions.isEmpty
+        )
+
+        // ── Focus Workout ──────────────────────────────────────────────────
+        let focusWorkout: WorkoutDay = todaysScheduledWorkout?.workoutDay ?? store.todaysWorkout
+        let focusWorkoutTitle = focusWorkout.title
+        let focusWorkoutAlreadyCompletedToday: Bool = {
+            if todaysScheduledWorkout?.status == .completed { return true }
+            return store.workoutSessions.contains {
+                Calendar.current.isDateInToday($0.date) && $0.workoutTitle == focusWorkoutTitle
+            }
+        }()
+        let nextScheduledWorkout = store.scheduledWorkouts
+            .filter { $0.date >= Calendar.current.startOfDay(for: now) && $0.status == .scheduled }
+            .sorted { $0.date < $1.date }
+            .first
+
+        let catalog = store.exercises
+        let withImages = catalog.filter { ($0.mediaURL ?? "").isEmpty == false }
+        let featuredExercises = Array((withImages.isEmpty ? catalog : withImages).prefix(8))
+        let planned = focusWorkout.exercises.map(\.exercise)
+        let focusPreviewExercises = Array((planned.isEmpty ? featuredExercises : planned).prefix(3))
+        let focusMediaExercises = focusWorkout.exercises.map { hydratedExercise($0.exercise, catalog: catalog) }
+        let focusProgressionRecommendations = SmartProgressionAdvisor.recommendations(
+            for: focusWorkout,
+            sessions: store.workoutSessions,
+            weightIncrementKg: store.userProfile.weightIncrementKg,
+            limit: 3
+        )
+
+        // ── Greeting ──────────────────────────────────────────────────────────
+        let isSpanish = language == "es"
+        let hour = Calendar.current.component(.hour, from: now)
+        let greeting: String
+        if isSpanish {
+            switch hour {
+            case 5..<12: greeting = "Buenos d\u{ED}as"
+            case 12..<20: greeting = "Buenas tardes"
+            default: greeting = "Buenas noches"
+            }
+        } else {
+            switch hour {
+            case 5..<12: greeting = "Good morning"
+            case 12..<20: greeting = "Good afternoon"
+            default: greeting = "Good evening"
+            }
+        }
+        let greetingHeadline: String
+        if let alias = store.userProfile.resolvedAlias {
+            greetingHeadline = "\(greeting), \(alias)"
+        } else {
+            greetingHeadline = greeting
+        }
+
+        let latestSleepHours: Double? = store.todayHealthMetric?.sleepHours
+            ?? sortedHealthMetrics.first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours
+            ?? latestMetric?.sleepHours
+        let latestHRV: Double? = store.todayHealthMetric?.heartRateVariabilityMS
+            ?? sortedHealthMetrics.first(where: { $0.heartRateVariabilityMS != nil })?.heartRateVariabilityMS
+        let latestRestingHeartRate: Double? = store.todayHealthMetric?.restingHeartRate
+            ?? sortedHealthMetrics.first(where: { $0.restingHeartRate != nil })?.restingHeartRate
+
+        let weeklyPlanSummaryTint: Color
+        switch weeklyPlanCompletionRatio {
+        case 1...: weeklyPlanSummaryTint = PulseTheme.recovery
+        case 0.5..<1: weeklyPlanSummaryTint = PulseTheme.warning
+        default: weeklyPlanSummaryTint = PulseTheme.destructive
+        }
+
+        let stressText: String = {
+            guard let stress = latestMetric?.stress else {
+                return isSpanish ? "sin registro de estr\u{E9}s" : "stress not logged"
+            }
+            switch stress {
+            case 1...2: return isSpanish ? "estr\u{E9}s bajo" : "low stress"
+            case 3: return isSpanish ? "estr\u{E9}s estable" : "steady stress"
+            default: return isSpanish ? "estr\u{E9}s alto" : "high stress"
+            }
+        }()
+
+        var greetingTokens: [GreetingFlowToken] = []
+        func gWords(_ phrase: String) {
+            for word in phrase.split(separator: " ") {
+                greetingTokens.append(GreetingFlowToken(kind: .word(String(word))))
+            }
+        }
+        func gPill(_ icon: String, _ value: String, _ tint: Color, _ dest: GreetingMetricDestination) {
+            greetingTokens.append(GreetingFlowToken(kind: .pill(icon: icon, value: value, tint: tint, destination: dest)))
+        }
+        func gHighlight(_ value: String, _ tint: Color) {
+            greetingTokens.append(GreetingFlowToken(kind: .highlight(value: value, tint: tint)))
+        }
+        if isSpanish {
+            gWords("Descansaste")
+            if let s = latestSleepHours { gPill(TrackedMetric.sleep.systemImage, String(format: "%.1f h", s), TrackedMetric.sleep.tint, .sleep) } else { gWords("sin registro") }
+            gWords("\u{B7} HRV")
+            if let h = latestHRV { gPill(TrackedMetric.hrv.systemImage, "\(Int(h.rounded())) ms", TrackedMetric.hrv.tint, .hrv) } else { gWords("pendiente") }
+            gWords("\u{B7} FC reposo")
+            if let r = latestRestingHeartRate { gPill(TrackedMetric.restingHeartRate.systemImage, "\(Int(r.rounded())) lpm", TrackedMetric.restingHeartRate.tint, .heartRate) } else { gWords("sin datos") }
+            gWords("\u{B7} Recuperaci\u{F3}n")
+            gPill(TrackedMetric.readiness.systemImage, "\(battery.level)%", TrackedMetric.readiness.tint, .recovery)
+            gWords("\u{B7} \(stressText) \u{B7}")
+            if hasActivePlan { gWords("tu plan pide"); gHighlight(weekTargetText, weeklyPlanSummaryTint); gWords("sesiones esta semana.") } else { gWords("a\u{FA}n no tienes plan activo.") }
+        } else {
+            gWords("You slept")
+            if let s = latestSleepHours { gPill(TrackedMetric.sleep.systemImage, String(format: "%.1f h", s), TrackedMetric.sleep.tint, .sleep) } else { gWords("no data") }
+            gWords("\u{B7} HRV")
+            if let h = latestHRV { gPill(TrackedMetric.hrv.systemImage, "\(Int(h.rounded())) ms", TrackedMetric.hrv.tint, .hrv) } else { gWords("pending") }
+            gWords("\u{B7} resting HR")
+            if let r = latestRestingHeartRate { gPill(TrackedMetric.restingHeartRate.systemImage, "\(Int(r.rounded())) bpm", TrackedMetric.restingHeartRate.tint, .heartRate) } else { gWords("unavailable") }
+            gWords("\u{B7} recovery")
+            gPill(TrackedMetric.readiness.systemImage, "\(battery.level)%", TrackedMetric.readiness.tint, .recovery)
+            gWords("\u{B7} \(stressText) \u{B7}")
+            if hasActivePlan { gWords("your plan calls for"); gHighlight(weekTargetText, weeklyPlanSummaryTint); gWords("sessions this week.") } else { gWords("no active plan yet.") }
+        }
+
+        // ── Weather ───────────────────────────────────────────────────────────
+        let todayWeather = FitnessWeatherSnapshot.trainingDayPreview(now: now, units: units)
+        let tomorrowDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now.addingTimeInterval(86_400)
+        let tomorrowWeather = FitnessWeatherSnapshot.trainingDayPreview(now: tomorrowDate, units: units)
+        let weatherInsights = FitnessWeatherInsight.make(
+            today: todayWeather,
+            tomorrow: tomorrowWeather,
+            battery: battery,
+            hasActivePlan: hasActivePlan,
+            trainingLocation: store.userProfile.trainingLocation
+        )
+
+        return TodayRenderModel(
+            weekStart: weekStart,
+            last30StartDate: last30StartDate,
+            weekSessions: weekSessions,
+            recentSessions: recentSessions,
+            previous30Sessions: previous30Sessions,
+            completedThisWeek: completedThisWeek,
+            weekTargetText: weekTargetText,
+            weeklyPlanCompletionRatio: weeklyPlanCompletionRatio,
+            streakDays: store.streakDays,
+            lastWorkout: latestWorkout,
+            continuitySignal: Self.continuitySignal(for: latestWorkout, calendar: calendar, now: now),
+            latestMetric: latestMetric,
+            batteryStatus: battery,
+            hasActivePlan: hasActivePlan,
+            units: units,
+            focusWorkout: focusWorkout,
+            focusWorkoutAlreadyCompletedToday: focusWorkoutAlreadyCompletedToday,
+            todaysScheduledWorkout: todaysScheduledWorkout,
+            nextScheduledWorkout: nextScheduledWorkout,
+            focusPreviewExercises: focusPreviewExercises,
+            focusMediaExercises: focusMediaExercises,
+            focusProgressionRecommendations: focusProgressionRecommendations,
+            competitiveSummary: competitiveSummary,
+            workloadSummary: workloadSummary,
+            dailyCoachRecommendation: dailyCoachRecommendation,
+            currentDateTitle: currentDateTitle,
+            recentCompletedSets: completedSets(in: recentSessions),
+            weekCompletedSets: weekCompletedSets,
+            recentVolumeKg: recentVolumeKg,
+            previous30VolumeKg: previous30VolumeKg,
+            displayedRecentVolume: displayWeight(recentVolumeKg),
+            recentActivityPoints: recentActivityPoints,
+            weeklyRepsPoints: weeklyRepsPoints,
+            weeklyVolumePoints: weeklyVolumePoints,
+            weeklyVolumeValues: weeklyVolumePoints.map(\.value),
+            workoutTrendText: Self.trendText(current: Double(recentSessions.count), previous: Double(previous30Sessions.count)),
+            volumeTrendText: Self.trendText(current: recentVolumeKg, previous: previous30VolumeKg),
+            weekRepsTrendText: Self.trendText(current: Double(currentWeekReps), previous: Double(previousReps)),
+            latestSleepHours: latestSleepHours,
+            latestHRV: latestHRV,
+            latestRestingHeartRate: latestRestingHeartRate,
+            latestVO2Max: sortedHealthMetrics.first(where: { $0.vo2MaxMlKgMin != nil })?.vo2MaxMlKgMin,
+            latestRecordedSleepHours: sortedHealthMetrics.first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours,
+            greetingHeadline: greetingHeadline,
+            naturalGreetingTokens: greetingTokens,
+            todayWeather: todayWeather,
+            tomorrowWeather: tomorrowWeather,
+            weatherInsights: weatherInsights
+        )
+    }
+}
+
+private struct TodayViewContent: View {
+    let model: TodayRenderModel
+    let store: AppStore
+    var onSelectTab: ((AppTab) -> Void)? = nil
+
     @State private var showScheduleWorkout = false
     @State private var showCreatePlan = false
     @State private var showProfile = false
@@ -15,59 +386,19 @@ struct TodayView: View {
     @State private var recommendedWorkout: WorkoutDay? = nil
     @State private var recommendedWorkoutToConfirm: WorkoutDay?
     @State private var showRestartConfirmation = false
-    @State private var renderModel: TodayRenderModel?
-    @State private var lastRenderSignature: TodayRenderSignature?
     @Namespace private var wellnessZoom
     @Namespace private var weatherZoom
-
-    var onSelectTab: ((AppTab) -> Void)? = nil
 
     private var freeWorkout: WorkoutDay {
         WorkoutDay.freeWorkout
     }
 
-    private var todayRenderModel: TodayRenderModel {
-        renderModel ?? makeTodayRenderModel()
-    }
-
-    private var renderSignature: TodayRenderSignature {
-        TodayRenderSignature(
-            workoutSessionCount: store.workoutSessions.count,
-            latestWorkoutDate: store.workoutSessions.map(\.date).max(),
-            bodyMetricCount: store.bodyMetrics.count,
-            latestBodyMetricDate: store.bodyMetrics.map(\.date).max(),
-            healthMetricCount: store.health.latestDailyMetrics.count,
-            latestHealthMetricDate: store.health.latestDailyMetrics.map(\.date).max(),
-            activePlanID: store.activePlan.id,
-            activePlanDayCount: store.activePlan.days.count,
-            activePlanCurrentDayIndex: store.activePlan.currentDayIndex,
-            activePlanDaysPerWeek: store.activePlan.daysPerWeek,
-            hasActivePlan: store.hasActiveTrainingPlan,
-            units: store.userProfile.units,
-            preferredLanguage: store.userProfile.preferredLanguage,
-            trainingLocation: store.userProfile.trainingLocation,
-            weightIncrementKg: store.userProfile.weightIncrementKg,
-            todayHealthMetric: store.todayHealthMetric
-        )
-    }
-
-    private var todaysScheduledWorkout: ScheduledWorkout? {
-        store.scheduledWorkouts.first { Calendar.current.isDateInToday($0.date) && $0.status != .skipped }
-    }
-
     private var focusWorkout: WorkoutDay {
-        todaysScheduledWorkout?.workoutDay ?? store.todaysWorkout
+        model.focusWorkout
     }
 
-    /// True once today's session for `focusWorkout` is already logged — pressing
-    /// play again would otherwise silently start a brand-new, all-zero session
-    /// instead of warning the user their prior progress isn't resumable.
     private var focusWorkoutAlreadyCompletedToday: Bool {
-        if todaysScheduledWorkout?.status == .completed { return true }
-        let title = focusWorkout.title
-        return store.workoutSessions.contains {
-            Calendar.current.isDateInToday($0.date) && $0.workoutTitle == title
-        }
+        model.focusWorkoutAlreadyCompletedToday
     }
 
     private func startFocusWorkout() {
@@ -78,26 +409,11 @@ struct TodayView: View {
         showRestartConfirmation = true
     }
 
-    private var weekStart: Date {
-        todayRenderModel.weekStart
-    }
-
-    private var weekSessions: [WorkoutSession] {
-        todayRenderModel.weekSessions
-    }
-
-    private var completedThisWeek: Int {
-        todayRenderModel.completedThisWeek
-    }
-
-    private var weekTargetText: String {
-        todayRenderModel.weekTargetText
-    }
-
-    private var weeklyPlanCompletionRatio: Double {
-        todayRenderModel.weeklyPlanCompletionRatio
-    }
-
+    private var weekStart: Date { model.weekStart }
+    private var weekSessions: [WorkoutSession] { model.weekSessions }
+    private var completedThisWeek: Int { model.completedThisWeek }
+    private var weekTargetText: String { model.weekTargetText }
+    private var weeklyPlanCompletionRatio: Double { model.weeklyPlanCompletionRatio }
     private var weeklyPlanSummaryTint: Color {
         switch weeklyPlanCompletionRatio {
         case 1...:
@@ -108,154 +424,89 @@ struct TodayView: View {
             return PulseTheme.destructive
         }
     }
-
-    private var streakDays: Int {
-        store.streakDays
-    }
-
-    private var lastWorkout: WorkoutSession? {
-        todayRenderModel.lastWorkout
-    }
-
-    private var continuitySignal: ContinuitySignal {
-        todayRenderModel.continuitySignal
-    }
-
-    private var latestMetric: BodyMetric? {
-        todayRenderModel.latestMetric
-    }
-
-    private var batteryStatus: FitnessMetrics.TrainingBatteryStatus {
-        todayRenderModel.batteryStatus
-    }
-
+    private var streakDays: Int { model.streakDays }
+    private var lastWorkout: WorkoutSession? { model.lastWorkout }
+    private var continuitySignal: ContinuitySignal { model.continuitySignal }
+    private var latestMetric: BodyMetric? { model.latestMetric }
+    private var batteryStatus: FitnessMetrics.TrainingBatteryStatus { model.batteryStatus }
     private var batteryColor: Color {
         switch batteryStatus.state {
-        case .charged:
-            return PulseTheme.recovery
-        case .steady:
-            return PulseTheme.accent
-        case .low:
-            return PulseTheme.warning
-        case .critical:
-            return PulseTheme.destructive
+        case .charged: return PulseTheme.recovery
+        case .steady: return PulseTheme.accent
+        case .low: return PulseTheme.warning
+        case .critical: return PulseTheme.destructive
         }
     }
-
-
-    private var nextScheduledWorkout: ScheduledWorkout? {
-        store.scheduledWorkouts
-            .filter { $0.date >= Calendar.current.startOfDay(for: .now) && $0.status == .scheduled }
-            .sorted { $0.date < $1.date }
-            .first
+    private var nextScheduledWorkout: ScheduledWorkout? { model.nextScheduledWorkout }
+    private var focusPreviewExercises: [Exercise] { model.focusPreviewExercises }
+    private var focusMediaExercises: [Exercise] { model.focusMediaExercises }
+    private var focusProgressionRecommendations: [SmartProgressionAdvisor.Recommendation] { model.focusProgressionRecommendations }
+    private var competitiveSummary: AnalyticsEngine.CompetitiveSummary { model.competitiveSummary }
+    private var workloadSummary: AnalyticsEngine.WorkloadSummary { model.workloadSummary }
+    private var dailyCoachRecommendation: FitnessMetrics.DailyCoachRecommendation { model.dailyCoachRecommendation }
+    private var hasActivePlan: Bool { model.hasActivePlan }
+    private var currentDateTitle: String { model.currentDateTitle }
+    private var last30StartDate: Date { model.last30StartDate }
+    private var recentSessions: [WorkoutSession] { model.recentSessions }
+    private var previous30Sessions: [WorkoutSession] { model.previous30Sessions }
+    private var recentCompletedSets: [SetLog] { model.recentCompletedSets }
+    private var weekCompletedSets: [SetLog] { model.weekCompletedSets }
+    private var recentVolumeKg: Double { model.recentVolumeKg }
+    private var previous30VolumeKg: Double { model.previous30VolumeKg }
+    private var displayedRecentVolume: Double { model.displayedRecentVolume }
+    private var displayedVolumeUnit: String {
+        model.units == .metric ? "kg" : "lb"
     }
+    private var recentActivityPoints: [DailyActivityPoint] { model.recentActivityPoints }
+    private var weeklyRepsPoints: [MiniBarPoint] { model.weeklyRepsPoints }
+    private var weeklyVolumePoints: [MiniBarPoint] { model.weeklyVolumePoints }
+    private var weeklyVolumeValues: [Double] { model.weeklyVolumeValues }
+    private var workoutTrendText: String? { model.workoutTrendText }
+    private var volumeTrendText: String? { model.volumeTrendText }
+    private var weekRepsTrendText: String? { model.weekRepsTrendText }
+    private var latestSleepHours: Double? { model.latestSleepHours }
+    private var latestHRV: Double? { model.latestHRV }
+    private var latestRestingHeartRate: Double? { model.latestRestingHeartRate }
+    private var greetingHeadline: String { model.greetingHeadline }
+    private var naturalGreetingTokens: [GreetingFlowToken] { model.naturalGreetingTokens }
+    private var todayWeather: FitnessWeatherSnapshot { model.todayWeather }
+    private var tomorrowWeather: FitnessWeatherSnapshot { model.tomorrowWeather }
+    private var weatherInsights: [FitnessWeatherInsight] { model.weatherInsights }
+    private var todaysScheduledWorkout: ScheduledWorkout? { model.todaysScheduledWorkout }
 
-    private var featuredExercises: [Exercise] {
-        let withImages = store.exercises.filter { ($0.mediaURL ?? "").isEmpty == false }
-        return Array((withImages.isEmpty ? store.exercises : withImages).prefix(8))
-    }
-
-    private var focusPreviewExercises: [Exercise] {
-        let planned = focusWorkout.exercises.map(\.exercise)
-        return Array((planned.isEmpty ? featuredExercises : planned).prefix(3))
-    }
-
-    private var focusMediaExercises: [Exercise] {
-        focusWorkout.exercises.map { hydratedExercise($0.exercise) }
-    }
-
-    private var focusProgressionRecommendations: [SmartProgressionAdvisor.Recommendation] {
-        SmartProgressionAdvisor.recommendations(
-            for: focusWorkout,
-            sessions: store.workoutSessions,
-            weightIncrementKg: store.userProfile.weightIncrementKg,
-            limit: 3
+    private var recommendedWorkoutConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { recommendedWorkoutToConfirm != nil },
+            set: { isPresented in
+                if !isPresented {
+                    recommendedWorkoutToConfirm = nil
+                }
+            }
         )
     }
 
-    private var competitiveSummary: AnalyticsEngine.CompetitiveSummary {
-        todayRenderModel.competitiveSummary
+    private func buildRecommendedWorkoutIfNeeded() {
+        guard store.monetization.hasProAccess, recommendedWorkout == nil, store.activeWorkoutStatus == nil, !hasActivePlan else { return }
+        let undertrainedMuscles = competitiveSummary.undertrainedMuscles.map(\.muscleGroup)
+        let bodyMetric = store.bodyMetrics.sorted { $0.date > $1.date }.first ?? BodyMetric(date: .now, weightKg: 70, heightCm: 170, source: .manual)
+        recommendedWorkout = OnboardingPlanBuilder.makeRecommendedDay(
+            profile: store.userProfile,
+            bodyMetric: bodyMetric,
+            batteryLevel: batteryStatus.level,
+            undertrainedMuscles: undertrainedMuscles
+        )
     }
 
-    private var workloadSummary: AnalyticsEngine.WorkloadSummary {
-        todayRenderModel.workloadSummary
-    }
+    private func consumePendingSystemWorkoutStart() {
+        guard store.pendingSystemWorkoutStart else { return }
+        store.pendingSystemWorkoutStart = false
 
-    private var dailyCoachRecommendation: FitnessMetrics.DailyCoachRecommendation {
-        todayRenderModel.dailyCoachRecommendation
-    }
-
-
-    private var hasActivePlan: Bool {
-        store.hasActiveTrainingPlan
-    }
-
-    private var currentDateTitle: String {
-        todayRenderModel.currentDateTitle
-    }
-
-    private var last30StartDate: Date {
-        todayRenderModel.last30StartDate
-    }
-
-    private var recentSessions: [WorkoutSession] {
-        todayRenderModel.recentSessions
-    }
-
-    private var previous30Sessions: [WorkoutSession] {
-        todayRenderModel.previous30Sessions
-    }
-
-    private var recentCompletedSets: [SetLog] {
-        todayRenderModel.recentCompletedSets
-    }
-
-    private var weekCompletedSets: [SetLog] {
-        todayRenderModel.weekCompletedSets
-    }
-
-    private var recentVolumeKg: Double {
-        todayRenderModel.recentVolumeKg
-    }
-
-    private var previous30VolumeKg: Double {
-        todayRenderModel.previous30VolumeKg
-    }
-
-    private var displayedRecentVolume: Double {
-        todayRenderModel.displayedRecentVolume
-    }
-
-    private var displayedVolumeUnit: String {
-        store.userProfile.units == .metric ? "kg" : "lb"
-    }
-
-    private var recentActivityPoints: [DailyActivityPoint] {
-        todayRenderModel.recentActivityPoints
-    }
-
-    private var weeklyRepsPoints: [MiniBarPoint] {
-        todayRenderModel.weeklyRepsPoints
-    }
-
-    private var weeklyVolumePoints: [MiniBarPoint] {
-        todayRenderModel.weeklyVolumePoints
-    }
-
-    private var weeklyVolumeValues: [Double] {
-        todayRenderModel.weeklyVolumeValues
-    }
-
-    private var workoutTrendText: String? {
-        todayRenderModel.workoutTrendText
-    }
-
-    private var volumeTrendText: String? {
-        todayRenderModel.volumeTrendText
-    }
-
-    private var weekRepsTrendText: String? {
-        todayRenderModel.weekRepsTrendText
+        if let activeWorkout = store.activeWorkout,
+           store.activeWorkoutStatus != nil {
+            workoutToStart = activeWorkout
+        } else {
+            workoutToStart = store.todaysWorkout
+        }
     }
 
     var body: some View {
@@ -438,7 +689,6 @@ struct TodayView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .onAppear {
-                refreshRenderModelIfNeeded()
                 buildRecommendedWorkoutIfNeeded()
                 consumePendingSystemWorkoutStart()
             }
@@ -446,188 +696,7 @@ struct TodayView: View {
                 guard shouldStart else { return }
                 consumePendingSystemWorkoutStart()
             }
-            .onChange(of: renderSignature) { _, _ in
-                refreshRenderModelIfNeeded()
-            }
         }
-    }
-
-    private func refreshRenderModelIfNeeded() {
-        let signature = renderSignature
-        guard signature != lastRenderSignature || renderModel == nil else { return }
-        lastRenderSignature = signature
-        renderModel = makeTodayRenderModel()
-    }
-
-    private func consumePendingSystemWorkoutStart() {
-        guard store.pendingSystemWorkoutStart else { return }
-        store.pendingSystemWorkoutStart = false
-
-        if let activeWorkout = store.activeWorkout,
-           store.activeWorkoutStatus != nil {
-            workoutToStart = activeWorkout
-        } else {
-            workoutToStart = store.todaysWorkout
-        }
-    }
-
-    private func makeTodayRenderModel() -> TodayRenderModel {
-        let calendar = Calendar.current
-        let now = Date()
-        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now.addingTimeInterval(-604_800)
-        let todayStart = calendar.startOfDay(for: now)
-        let last30StartDate = calendar.date(byAdding: .day, value: -29, to: todayStart) ?? todayStart
-        let previous30StartDate = calendar.date(byAdding: .day, value: -30, to: last30StartDate) ?? last30StartDate
-        let hasActivePlan = store.hasActiveTrainingPlan
-        let language = store.userProfile.preferredLanguage
-        let units = store.userProfile.units
-
-        let weekSessions = store.workoutSessions.filter { $0.date >= weekStart }
-        let recentSessions = store.workoutSessions.filter { $0.date >= last30StartDate }
-        let previous30Sessions = store.workoutSessions.filter { $0.date >= previous30StartDate && $0.date < last30StartDate }
-        let latestWorkout = store.workoutSessions.max { $0.date < $1.date }
-        let latestMetric = store.bodyMetrics.max { $0.date < $1.date }
-        let sortedHealthMetrics = store.health.latestDailyMetrics.sorted { $0.date > $1.date }
-        let battery = store.trainingBattery
-        let completedThisWeek = hasActivePlan ? min(weekSessions.count, store.activePlan.daysPerWeek) : weekSessions.count
-        let weekTargetText = hasActivePlan ? "\(completedThisWeek)/\(store.activePlan.daysPerWeek)" : "\(completedThisWeek)"
-        let weeklyPlanCompletionRatio = hasActivePlan && store.activePlan.daysPerWeek > 0
-            ? min(Double(completedThisWeek) / Double(store.activePlan.daysPerWeek), 1)
-            : 0
-
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: language)
-        dateFormatter.dateFormat = localizedString("eeee_d_mmmm")
-        let currentDateTitle = dateFormatter.string(from: now).capitalized(with: dateFormatter.locale)
-
-        let recentVolumeKg = FitnessMetrics.totalVolumeKg(for: recentSessions)
-        let previous30VolumeKg = FitnessMetrics.totalVolumeKg(for: previous30Sessions)
-        let weekCompletedSets = completedSets(in: weekSessions)
-        let previousWeekStart = calendar.date(byAdding: .day, value: -7, to: weekStart) ?? weekStart
-        let previousWeekSessions = store.workoutSessions.filter { $0.date >= previousWeekStart && $0.date < weekStart }
-        let previousReps = completedSets(in: previousWeekSessions).reduce(0) { $0 + $1.reps }
-        let currentWeekReps = weekCompletedSets.reduce(0) { $0 + $1.reps }
-
-        let loadByDay = Dictionary(grouping: recentSessions, by: { calendar.startOfDay(for: $0.date) })
-            .mapValues { sessions in
-                sessions.reduce(0.0) { $0 + AnalyticsEngine.sessionLoad(for: $1) }
-            }
-        let maxDailyLoad = loadByDay.values.max() ?? 0
-        let recentActivityPoints = (0..<30).compactMap { offset -> DailyActivityPoint? in
-            guard let date = calendar.date(byAdding: .day, value: offset - 29, to: todayStart) else { return nil }
-            let dailyLoad = loadByDay[date] ?? 0
-            return DailyActivityPoint(
-                date: date,
-                isCompleted: dailyLoad > 0,
-                isToday: calendar.isDateInToday(date),
-                intensity: maxDailyLoad > 0 ? min(dailyLoad / maxDailyLoad, 1) : 0
-            )
-        }
-
-        let dayFormatter = DateFormatter()
-        dayFormatter.locale = Locale(identifier: language)
-        dayFormatter.dateFormat = "EEEEE"
-        func displayWeight(_ kilograms: Double) -> Double {
-            units == .metric ? kilograms : UnitConverter.pounds(fromKilograms: kilograms)
-        }
-        func sets(in session: WorkoutSession) -> [SetLog] {
-            if let exerciseLogs = session.exerciseLogs, !exerciseLogs.isEmpty {
-                return exerciseLogs.flatMap { $0.sets.filter(\.completed) }
-            }
-            return session.sets.filter(\.completed)
-        }
-        func weeklyPoints(_ valueForSession: (WorkoutSession) -> Double) -> [MiniBarPoint] {
-            (0..<7).compactMap { offset in
-                guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
-                let daySessions = weekSessions.filter { calendar.isDate($0.date, inSameDayAs: date) }
-                return MiniBarPoint(
-                    id: date,
-                    label: dayFormatter.string(from: date).uppercased(),
-                    value: daySessions.reduce(0) { $0 + valueForSession($1) },
-                    isToday: calendar.isDateInToday(date)
-                )
-            }
-        }
-        let weeklyRepsPoints = weeklyPoints { Double(sets(in: $0).reduce(0) { $0 + $1.reps }) }
-        let weeklyVolumePoints = weeklyPoints { displayWeight(FitnessMetrics.totalVolumeKg(for: [$0])) }
-
-        let competitiveSummary = AnalyticsEngine.competitiveSummary(
-            sessions: store.workoutSessions,
-            activePlan: store.activePlan,
-            exercises: store.exercises,
-            since: weekStart
-        )
-        let workloadSummary = AnalyticsEngine.workloadSummary(sessions: store.workoutSessions, bodyMetrics: store.bodyMetrics)
-        let dailyCoachRecommendation = FitnessMetrics.dailyCoachRecommendation(
-            battery: battery,
-            competitiveSummary: competitiveSummary,
-            hasActivePlan: hasActivePlan,
-            hasTodayWorkout: todaysScheduledWorkout != nil,
-            hasCompletedWorkout: !store.workoutSessions.isEmpty
-        )
-
-        return TodayRenderModel(
-            weekStart: weekStart,
-            last30StartDate: last30StartDate,
-            weekSessions: weekSessions,
-            recentSessions: recentSessions,
-            previous30Sessions: previous30Sessions,
-            completedThisWeek: completedThisWeek,
-            weekTargetText: weekTargetText,
-            weeklyPlanCompletionRatio: weeklyPlanCompletionRatio,
-            lastWorkout: latestWorkout,
-            continuitySignal: Self.continuitySignal(for: latestWorkout, calendar: calendar, now: now),
-            latestMetric: latestMetric,
-            batteryStatus: battery,
-            competitiveSummary: competitiveSummary,
-            workloadSummary: workloadSummary,
-            dailyCoachRecommendation: dailyCoachRecommendation,
-            currentDateTitle: currentDateTitle,
-            recentCompletedSets: completedSets(in: recentSessions),
-            weekCompletedSets: weekCompletedSets,
-            recentVolumeKg: recentVolumeKg,
-            previous30VolumeKg: previous30VolumeKg,
-            displayedRecentVolume: displayWeight(recentVolumeKg),
-            recentActivityPoints: recentActivityPoints,
-            weeklyRepsPoints: weeklyRepsPoints,
-            weeklyVolumePoints: weeklyVolumePoints,
-            weeklyVolumeValues: weeklyVolumePoints.map(\.value),
-            workoutTrendText: Self.trendText(current: Double(recentSessions.count), previous: Double(previous30Sessions.count)),
-            volumeTrendText: Self.trendText(current: recentVolumeKg, previous: previous30VolumeKg),
-            weekRepsTrendText: Self.trendText(current: Double(currentWeekReps), previous: Double(previousReps)),
-            latestSleepHours: store.todayHealthMetric?.sleepHours
-                ?? sortedHealthMetrics.first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours
-                ?? latestMetric?.sleepHours,
-            latestHRV: store.todayHealthMetric?.heartRateVariabilityMS
-                ?? sortedHealthMetrics.first(where: { $0.heartRateVariabilityMS != nil })?.heartRateVariabilityMS,
-            latestRestingHeartRate: store.todayHealthMetric?.restingHeartRate
-                ?? sortedHealthMetrics.first(where: { $0.restingHeartRate != nil })?.restingHeartRate,
-            latestVO2Max: sortedHealthMetrics.first(where: { $0.vo2MaxMlKgMin != nil })?.vo2MaxMlKgMin,
-            latestRecordedSleepHours: sortedHealthMetrics.first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours
-        )
-    }
-
-    private var recommendedWorkoutConfirmationBinding: Binding<Bool> {
-        Binding(
-            get: { recommendedWorkoutToConfirm != nil },
-            set: { isPresented in
-                if !isPresented {
-                    recommendedWorkoutToConfirm = nil
-                }
-            }
-        )
-    }
-
-    private func buildRecommendedWorkoutIfNeeded() {
-        guard store.monetization.hasProAccess, recommendedWorkout == nil, store.activeWorkoutStatus == nil, !hasActivePlan else { return }
-        let undertrainedMuscles = competitiveSummary.undertrainedMuscles.map(\.muscleGroup)
-        let bodyMetric = store.bodyMetrics.sorted { $0.date > $1.date }.first ?? BodyMetric(date: .now, weightKg: 70, heightCm: 170, source: .manual)
-        recommendedWorkout = OnboardingPlanBuilder.makeRecommendedDay(
-            profile: store.userProfile,
-            bodyMetric: bodyMetric,
-            batteryLevel: batteryStatus.level,
-            undertrainedMuscles: undertrainedMuscles
-        )
     }
 
     @ViewBuilder
@@ -639,148 +708,7 @@ struct TodayView: View {
         }
     }
 
-    private var todayWeather: FitnessWeatherSnapshot {
-        FitnessWeatherSnapshot.trainingDayPreview(now: .now, units: store.userProfile.units)
-    }
 
-    private var tomorrowWeather: FitnessWeatherSnapshot {
-        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now.addingTimeInterval(86_400)
-        return FitnessWeatherSnapshot.trainingDayPreview(now: tomorrow, units: store.userProfile.units)
-    }
-
-    private var latestSleepHours: Double? {
-        todayRenderModel.latestSleepHours
-    }
-
-    private var latestHRV: Double? {
-        todayRenderModel.latestHRV
-    }
-
-    private var latestRestingHeartRate: Double? {
-        todayRenderModel.latestRestingHeartRate
-    }
-
-    private var stressSummaryText: String {
-        let isSpanish = store.userProfile.preferredLanguage == "es"
-        guard let stress = latestMetric?.stress else {
-            return isSpanish ? "sin registro de estrés" : "stress not logged"
-        }
-        switch stress {
-        case 1...2:
-            return isSpanish ? "estrés bajo" : "low stress"
-        case 3:
-            return isSpanish ? "estrés estable" : "steady stress"
-        default:
-            return isSpanish ? "estrés alto" : "high stress"
-        }
-    }
-
-    private var naturalGreetingTitle: String {
-        let hour = Calendar.current.component(.hour, from: .now)
-        if store.userProfile.preferredLanguage == "es" {
-            switch hour {
-            case 5..<12: return "Buenos días"
-            case 12..<20: return "Buenas tardes"
-            default: return "Buenas noches"
-            }
-        }
-        switch hour {
-        case 5..<12: return "Good morning"
-        case 12..<20: return "Good afternoon"
-        default: return "Good evening"
-        }
-    }
-
-    private var greetingHeadline: String {
-        if let alias = store.userProfile.resolvedAlias {
-            return "\(naturalGreetingTitle), \(alias)"
-        }
-        return naturalGreetingTitle
-    }
-
-    /// Tokenizes the readiness recap into plain words plus inline metric
-    /// pills so the sentence reflows like natural text instead of sitting
-    /// in a boxed stat card.
-    private var naturalGreetingTokens: [GreetingFlowToken] {
-        let isSpanish = store.userProfile.preferredLanguage == "es"
-        var tokens: [GreetingFlowToken] = []
-
-        func words(_ phrase: String) {
-            for word in phrase.split(separator: " ") {
-                tokens.append(GreetingFlowToken(kind: .word(String(word))))
-            }
-        }
-        func pill(_ icon: String, _ value: String, _ tint: Color, _ destination: GreetingMetricDestination) {
-            tokens.append(GreetingFlowToken(kind: .pill(icon: icon, value: value, tint: tint, destination: destination)))
-        }
-        func highlight(_ value: String, _ tint: Color) {
-            tokens.append(GreetingFlowToken(kind: .highlight(value: value, tint: tint)))
-        }
-
-        if isSpanish {
-            words("Descansaste")
-            if let sleep = latestSleepHours {
-                pill(TrackedMetric.sleep.systemImage, String(format: "%.1f h", sleep), TrackedMetric.sleep.tint, .sleep)
-            } else {
-                words("sin registro")
-            }
-            words("· HRV")
-            if let hrv = latestHRV {
-                pill(TrackedMetric.hrv.systemImage, "\(Int(hrv.rounded())) ms", TrackedMetric.hrv.tint, .hrv)
-            } else {
-                words("pendiente")
-            }
-            words("· FC reposo")
-            if let hr = latestRestingHeartRate {
-                pill(TrackedMetric.restingHeartRate.systemImage, "\(Int(hr.rounded())) lpm", TrackedMetric.restingHeartRate.tint, .heartRate)
-            } else {
-                words("sin datos")
-            }
-            words("· Recuperación")
-            pill(TrackedMetric.readiness.systemImage, "\(batteryStatus.level)%", TrackedMetric.readiness.tint, .recovery)
-            words("· \(stressSummaryText)")
-            words("·")
-            if hasActivePlan {
-                words("tu plan pide")
-                highlight(weekTargetText, weeklyPlanSummaryTint)
-                words("sesiones esta semana.")
-            } else {
-                words("aún no tienes plan activo.")
-            }
-        } else {
-            words("You slept")
-            if let sleep = latestSleepHours {
-                pill(TrackedMetric.sleep.systemImage, String(format: "%.1f h", sleep), TrackedMetric.sleep.tint, .sleep)
-            } else {
-                words("no data")
-            }
-            words("· HRV")
-            if let hrv = latestHRV {
-                pill(TrackedMetric.hrv.systemImage, "\(Int(hrv.rounded())) ms", TrackedMetric.hrv.tint, .hrv)
-            } else {
-                words("pending")
-            }
-            words("· resting HR")
-            if let hr = latestRestingHeartRate {
-                pill(TrackedMetric.restingHeartRate.systemImage, "\(Int(hr.rounded())) bpm", TrackedMetric.restingHeartRate.tint, .heartRate)
-            } else {
-                words("unavailable")
-            }
-            words("· recovery")
-            pill(TrackedMetric.readiness.systemImage, "\(batteryStatus.level)%", TrackedMetric.readiness.tint, .recovery)
-            words("· \(stressSummaryText)")
-            words("·")
-            if hasActivePlan {
-                words("your plan calls for")
-                highlight(weekTargetText, weeklyPlanSummaryTint)
-                words("sessions this week.")
-            } else {
-                words("no active plan yet.")
-            }
-        }
-
-        return tokens
-    }
 
     private var dailyReadinessGreeting: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -876,15 +804,7 @@ struct TodayView: View {
         }
     }
 
-    private var weatherInsights: [FitnessWeatherInsight] {
-        FitnessWeatherInsight.make(
-            today: todayWeather,
-            tomorrow: tomorrowWeather,
-            battery: batteryStatus,
-            hasActivePlan: hasActivePlan,
-            trainingLocation: store.userProfile.trainingLocation
-        )
-    }
+
 
     private var outdoorIntelligenceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1729,7 +1649,7 @@ struct TodayView: View {
                 NavigationLink(value: TodayRoute.vo2Max) {
                     WellnessWidget(
                         title: "VO₂ Max",
-                        value: todayRenderModel.latestVO2Max.map { String(format: "%.1f", $0) } ?? "--",
+                        value: model.latestVO2Max.map { String(format: "%.1f", $0) } ?? "--",
                         subtitle: "ml/kg/min",
                         localizesSubtitle: false,
                         systemImage: TrackedMetric.vo2Max.systemImage,
@@ -1743,7 +1663,7 @@ struct TodayView: View {
                 NavigationLink(value: TodayRoute.sleep) {
                     WellnessWidget(
                         title: "sleep",
-                        value: todayRenderModel.latestRecordedSleepHours.map { String(format: "%.1fh", $0) } ?? "--",
+                        value: model.latestRecordedSleepHours.map { String(format: "%.1fh", $0) } ?? "--",
                         subtitle: localizedString("last_recorded"),
                         systemImage: TrackedMetric.sleep.systemImage,
                         domain: TrackedMetric.sleep.domain
@@ -2077,39 +1997,66 @@ private struct TodayRenderSignature: Equatable {
 }
 
 private struct TodayRenderModel {
+    // ── Dates & Sessions ────────────────────────────────────────────────
     let weekStart: Date
     let last30StartDate: Date
     let weekSessions: [WorkoutSession]
     let recentSessions: [WorkoutSession]
     let previous30Sessions: [WorkoutSession]
+    // ── Weekly Progress ─────────────────────────────────────────────────
     let completedThisWeek: Int
     let weekTargetText: String
     let weeklyPlanCompletionRatio: Double
+    let streakDays: Int
+    // ── Training State ──────────────────────────────────────────────────
     let lastWorkout: WorkoutSession?
     let continuitySignal: ContinuitySignal
     let latestMetric: BodyMetric?
     let batteryStatus: FitnessMetrics.TrainingBatteryStatus
+    let hasActivePlan: Bool
+    let units: UserProfile.Units
+    // ── Focus Workout ───────────────────────────────────────────────────
+    let focusWorkout: WorkoutDay
+    let focusWorkoutAlreadyCompletedToday: Bool
+    let todaysScheduledWorkout: ScheduledWorkout?
+    let nextScheduledWorkout: ScheduledWorkout?
+    let focusPreviewExercises: [Exercise]
+    let focusMediaExercises: [Exercise]
+    let focusProgressionRecommendations: [SmartProgressionAdvisor.Recommendation]
+    // ── Analytics ───────────────────────────────────────────────────────
     let competitiveSummary: AnalyticsEngine.CompetitiveSummary
     let workloadSummary: AnalyticsEngine.WorkloadSummary
     let dailyCoachRecommendation: FitnessMetrics.DailyCoachRecommendation
+    // ── UI Labels ───────────────────────────────────────────────────────
     let currentDateTitle: String
+    // ── Volume & Sets ───────────────────────────────────────────────────
     let recentCompletedSets: [SetLog]
     let weekCompletedSets: [SetLog]
     let recentVolumeKg: Double
     let previous30VolumeKg: Double
     let displayedRecentVolume: Double
+    // ── Chart Data ──────────────────────────────────────────────────────
     let recentActivityPoints: [DailyActivityPoint]
     let weeklyRepsPoints: [MiniBarPoint]
     let weeklyVolumePoints: [MiniBarPoint]
     let weeklyVolumeValues: [Double]
+    // ── Trend Strings ───────────────────────────────────────────────────
     let workoutTrendText: String?
     let volumeTrendText: String?
     let weekRepsTrendText: String?
+    // ── Health Metrics ──────────────────────────────────────────────────
     let latestSleepHours: Double?
     let latestHRV: Double?
     let latestRestingHeartRate: Double?
     let latestVO2Max: Double?
     let latestRecordedSleepHours: Double?
+    // ── Greeting ────────────────────────────────────────────────────────
+    let greetingHeadline: String
+    let naturalGreetingTokens: [GreetingFlowToken]
+    // ── Weather ─────────────────────────────────────────────────────────
+    let todayWeather: FitnessWeatherSnapshot
+    let tomorrowWeather: FitnessWeatherSnapshot
+    let weatherInsights: [FitnessWeatherInsight]
 }
 
 /// Consistent icon + title/subtitle header used above the Today tab's top-level sections.
@@ -2230,8 +2177,17 @@ private struct GreetingFlowToken: Identifiable {
         case highlight(value: String, tint: Color)
     }
 
-    let id = UUID()
     let kind: Kind
+
+    /// Deterministic ID derived from content so SwiftUI can diff tokens
+    /// without destroying and recreating views on every store update.
+    var id: String {
+        switch kind {
+        case .word(let text): return "w-\(text)"
+        case .pill(_, let value, _, let dest): return "p-\(dest.zoomID)-\(value)"
+        case .highlight(let value, _): return "h-\(value)"
+        }
+    }
 }
 
 /// Wraps mixed-width children (plain words and metric pills) left to right,
@@ -3308,12 +3264,14 @@ private enum FitnessWeatherDay: String, CaseIterable, Identifiable {
 }
 
 private struct FitnessWeatherHourPoint: Identifiable, Hashable {
-    let id = UUID()
     let hour: Int
     let temperature: Int
     let windSpeed: Int
     let rainProbability: Int
     let uvIndex: Int
+
+    /// Stable identity: hour is unique within a forecast snapshot.
+    var id: Int { hour }
 
     var label: String {
         String(format: "%02d", hour)
@@ -3327,7 +3285,6 @@ private struct FitnessWeatherWindow: Hashable {
 }
 
 private struct FitnessWeatherSnapshot: Identifiable, Hashable {
-    let id = UUID()
     let date: Date
     let locationName: String
     let conditionTitle: String
@@ -3347,6 +3304,10 @@ private struct FitnessWeatherSnapshot: Identifiable, Hashable {
     let sunset: String
     let hourly: [FitnessWeatherHourPoint]
     let bestWindow: FitnessWeatherWindow
+
+    /// Stable identity keyed on calendar day so the weather card
+    /// is not recreated when unrelated store updates happen.
+    var id: Date { date }
 
     static func trainingDayPreview(now: Date, units: UserProfile.Units) -> FitnessWeatherSnapshot {
         let calendar = Calendar.current
@@ -3426,11 +3387,13 @@ private struct FitnessWeatherInsight: Identifiable {
         case indoor
     }
 
-    let id = UUID()
     let title: String
     let message: String
     let systemImage: String
     let tone: Tone
+
+    /// Stable identity: title text is unique per insight within a snapshot.
+    var id: String { title }
 
     var color: Color {
         switch tone {
