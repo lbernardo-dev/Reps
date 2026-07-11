@@ -46,6 +46,12 @@ enum RepsLocalization {
 
     private static let localizedFallbacks: [String: [String: String]] = [
         "en": [
+            "support": "Support",
+            "support_subtitle": "Help center and contact",
+            "faq": "FAQ",
+            "faq_subtitle": "Frequently asked questions",
+            "subscription_terms": "Subscription terms",
+            "subscription_terms_subtitle": "Billing, renewal, and Pro conditions",
             "active_days": "active days",
             "apple_music_ready": "Apple Music ready",
             "apple_music_playing": "Playing with Apple Music",
@@ -126,6 +132,12 @@ enum RepsLocalization {
             "your_area": "Your area"
         ],
         "es": [
+            "support": "Soporte",
+            "support_subtitle": "Centro de ayuda y contacto",
+            "faq": "Preguntas frecuentes",
+            "faq_subtitle": "Preguntas frecuentes y respuestas rápidas",
+            "subscription_terms": "Condiciones de suscripción",
+            "subscription_terms_subtitle": "Facturación, renovación y condiciones Pro",
             "active_days": "días activos",
             "apple_music_ready": "Apple Music listo",
             "apple_music_playing": "Reproduciendo con Apple Music",
@@ -219,6 +231,38 @@ enum RepsLocalization {
         Locale.preferredLanguages
             .compactMap { $0.split(separator: "-").first?.lowercased() }
             .first { ["en", "es"].contains($0) } ?? "en"
+    }
+}
+
+struct RepsLegalUrls {
+    static var privacyPolicy: String {
+        RepsLocalization.language == "es"
+            ? "https://lbernardo-dev.github.io/apps/es/casos/reps/privacidad/"
+            : "https://lbernardo-dev.github.io/apps/en/case-studies/reps/privacy/"
+    }
+
+    static var termsOfService: String {
+        RepsLocalization.language == "es"
+            ? "https://lbernardo-dev.github.io/apps/es/casos/reps/terminos/"
+            : "https://lbernardo-dev.github.io/apps/en/case-studies/reps/terms/"
+    }
+
+    static var subscriptionTerms: String {
+        RepsLocalization.language == "es"
+            ? "https://lbernardo-dev.github.io/apps/es/casos/reps/suscripciones/"
+            : "https://lbernardo-dev.github.io/apps/en/case-studies/reps/subscriptions/"
+    }
+
+    static var support: String {
+        RepsLocalization.language == "es"
+            ? "https://lbernardo-dev.github.io/apps/es/casos/reps/soporte/"
+            : "https://lbernardo-dev.github.io/apps/en/case-studies/reps/support/"
+    }
+
+    static var faq: String {
+        RepsLocalization.language == "es"
+            ? "https://lbernardo-dev.github.io/apps/es/casos/reps/preguntas-frecuentes/"
+            : "https://lbernardo-dev.github.io/apps/en/case-studies/reps/faq/"
     }
 }
 

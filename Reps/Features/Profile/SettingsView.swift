@@ -2,9 +2,11 @@ import SwiftUI
 import UIKit
 
 private enum SettingsLegalLinks {
-    static let privacyPolicy = "https://romerodev.com/streakrep/privacy"
-    static let termsOfService = "https://romerodev.com/streakrep/terms"
-    static let subscriptionTerms = "https://romerodev.com/streakrep/subscription-terms"
+    static var privacyPolicy: String { RepsLegalUrls.privacyPolicy }
+    static var termsOfService: String { RepsLegalUrls.termsOfService }
+    static var subscriptionTerms: String { RepsLegalUrls.subscriptionTerms }
+    static var support: String { RepsLegalUrls.support }
+    static var faq: String { RepsLegalUrls.faq }
 }
 
 private enum SettingsTypography {
@@ -153,6 +155,20 @@ struct SettingsView: View {
                     systemImage: "doc.badge.gearshape.fill",
                     tint: .gray
                 ) { openLegalURL(SettingsLegalLinks.subscriptionTerms, event: "subscription_terms") }
+                SettingsDivider()
+                SettingsNavigationRow(
+                    title: "support",
+                    subtitle: "support_subtitle",
+                    systemImage: "questionmark.bubble.fill",
+                    tint: .blue
+                ) { openLegalURL(SettingsLegalLinks.support, event: "support") }
+                SettingsDivider()
+                SettingsNavigationRow(
+                    title: "faq",
+                    subtitle: "faq_subtitle",
+                    systemImage: "questionmark.circle.fill",
+                    tint: .orange
+                ) { openLegalURL(SettingsLegalLinks.faq, event: "faq") }
             }
             .stickyHeaderTitle(settingsDisplayText("about"))
 
@@ -1178,6 +1194,10 @@ private let settingsEnglishFallbacks: [String: String] = [
     "settings_app_version_format": "%@ version %@",
     "settings_build_value_format": "Build %@",
     "settings_version_value_format": "Version %@",
+    "support": "Support",
+    "support_subtitle": "Help center and contact",
+    "faq": "FAQ",
+    "faq_subtitle": "Frequently asked questions",
     "subscription_terms": "Subscription terms",
     "subscription_terms_subtitle": "Billing, renewal, cancellation, and Pro conditions",
     "tell_us_what_to_improve": "Tell us what to improve",
@@ -1211,6 +1231,10 @@ private let settingsSpanishFallbacks: [String: String] = [
     "settings_app_version_format": "%@ versión %@",
     "settings_build_value_format": "Compilación %@",
     "settings_version_value_format": "Versión %@",
+    "support": "Soporte",
+    "support_subtitle": "Centro de ayuda y contacto",
+    "faq": "Preguntas frecuentes",
+    "faq_subtitle": "Preguntas frecuentes y respuestas rápidas",
     "subscription_terms": "Condiciones de suscripción",
     "subscription_terms_subtitle": "Facturación, renovación, cancelación y condiciones Pro",
     "tell_us_what_to_improve": "Cuéntanos qué mejorar",

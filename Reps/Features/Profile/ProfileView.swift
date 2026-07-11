@@ -8,8 +8,11 @@ import MapKit
 import CoreLocation
 
 private enum AppLegalLinks {
-    static let privacyPolicy = "https://romerodev.com/streakrep/privacy"
-    static let termsOfService = "https://romerodev.com/streakrep/terms"
+    static var privacyPolicy: String { RepsLegalUrls.privacyPolicy }
+    static var termsOfService: String { RepsLegalUrls.termsOfService }
+    static var subscriptionTerms: String { RepsLegalUrls.subscriptionTerms }
+    static var support: String { RepsLegalUrls.support }
+    static var faq: String { RepsLegalUrls.faq }
 }
 
 struct ProfileView: View {
@@ -1099,6 +1102,18 @@ struct ProfileView: View {
                             activeSheet = .feedback
                         }
 
+                        ProfileToolButton(
+                            title: "support",
+                            subtitle: "support_subtitle",
+                            systemImage: "questionmark.bubble",
+                            color: PulseTheme.accent
+                        ) {
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "support_web"])
+                            if let url = URL(string: AppLegalLinks.support) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+
                         ShareLink(
                             item: WorkoutReceiptDeepLink.appStoreURL,
                             message: Text(localizedKey("share_app_subtitle"))
@@ -1118,13 +1133,15 @@ struct ProfileView: View {
                 ProfileToolSection(title: "product") {
                     LazyVGrid(columns: profileToolColumns, spacing: 12) {
                         ProfileToolButton(
-                            title: "help",
-                            subtitle: "quick_questions",
+                            title: "faq",
+                            subtitle: "faq_subtitle",
                             systemImage: "questionmark.circle",
                             color: PulseTheme.ringStand
                         ) {
-                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "help"])
-                            activeDestination = .help
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "faq"])
+                            if let url = URL(string: AppLegalLinks.faq) {
+                                UIApplication.shared.open(url)
+                            }
                         }
 
                         ProfileToolButton(
@@ -1192,6 +1209,18 @@ struct ProfileView: View {
                         ) {
                             TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "terms_of_service"])
                             if let url = URL(string: AppLegalLinks.termsOfService) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+
+                        ProfileToolButton(
+                            title: "subscription_terms",
+                            subtitle: "subscription_terms_subtitle",
+                            systemImage: "doc.badge.gearshape",
+                            color: .gray
+                        ) {
+                            TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": "subscription_terms"])
+                            if let url = URL(string: AppLegalLinks.subscriptionTerms) {
                                 UIApplication.shared.open(url)
                             }
                         }
