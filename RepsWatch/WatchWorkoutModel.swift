@@ -299,6 +299,10 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 resetRouteMetrics()
                 prepareSnapshotForCompanionLaunch(configuration: configuration, startedAt: startDate)
 
+                try? await workoutBuilder.addMetadata([
+                    HKMetadataKeyWorkoutBrandName: "Reps",
+                    HKMetadataKeyCoachedWorkout: false
+                ])
                 workoutSession.startActivity(with: startDate)
                 try await workoutBuilder.beginCollection(at: startDate)
                 try? await workoutSession.startMirroringToCompanionDevice()
@@ -431,6 +435,10 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 workoutBuilder.delegate = self
                 session = workoutSession
                 builder = workoutBuilder
+                try? await workoutBuilder.addMetadata([
+                    HKMetadataKeyWorkoutBrandName: "Reps",
+                    HKMetadataKeyCoachedWorkout: false
+                ])
                 workoutSession.startActivity(with: startDate)
                 try await workoutBuilder.beginCollection(at: startDate)
                 if mirror {
@@ -612,6 +620,10 @@ final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDele
                 standaloneWorkoutID = UUID()
                 resetRouteMetrics()
 
+                try? await workoutBuilder.addMetadata([
+                    HKMetadataKeyWorkoutBrandName: "Reps",
+                    HKMetadataKeyCoachedWorkout: false
+                ])
                 workoutSession.startActivity(with: .now)
                 try await workoutBuilder.beginCollection(at: .now)
                 try? await workoutSession.startMirroringToCompanionDevice()

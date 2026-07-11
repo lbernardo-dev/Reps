@@ -11,7 +11,7 @@ settings:
   base:
     DEVELOPMENT_TEAM: L2B56644F5
     MARKETING_VERSION: 1.0.0
-    CURRENT_PROJECT_VERSION: 100202607092
+    CURRENT_PROJECT_VERSION: 100202607101
     SWIFT_VERSION: 6.0
     LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION: "YES"
   configs:
@@ -97,7 +97,6 @@ targets:
       properties:
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.background-delivery: true
-        com.apple.developer.declared-age-range: true
         com.apple.developer.icloud-container-identifiers:
           - iCloud.com.romerodev.repsfitness
         com.apple.developer.icloud-services:

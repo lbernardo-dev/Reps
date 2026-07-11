@@ -204,6 +204,7 @@ struct RepsApp: App {
                     drainNotificationTargets()
                 }
                 .onOpenURL { url in
+                    if store.handleAppDeepLink(url) { return }
                     if store.handleSocialDeepLink(url) { return }
                     _ = store.handleReceiptDeepLink(url)
                 }

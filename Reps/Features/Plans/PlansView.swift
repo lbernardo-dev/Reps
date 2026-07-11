@@ -221,11 +221,11 @@ struct PlansView: View {
             .fullScreenCover(isPresented: $showCalendar) {
                 CalendarView()
             }
-            .alert("Entreno recomendado", isPresented: recommendedWorkoutConfirmationBinding) {
+            .alert("recommended_workout_alert_title", isPresented: recommendedWorkoutConfirmationBinding) {
                 Button("Cancelar", role: .cancel) {
                     recommendedWorkoutToConfirm = nil
                 }
-                Button("Seleccionar y empezar") {
+                Button("recommended_workout_alert_confirm") {
                     guard let workout = recommendedWorkoutToConfirm else { return }
                     store.activateRecommendedWorkoutPlan(from: workout)
                     recommendedWorkoutToConfirm = nil

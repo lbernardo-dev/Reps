@@ -111,6 +111,9 @@ final class AppStore {
     /// Set by flows that want the main tab bar to switch after they finish
     /// (e.g. closing the post-workout summary jumps to Progress).
     var pendingMainTabSelection: AppTab?
+    /// Set by Siri/Shortcuts deep links and consumed by TodayView once its
+    /// presentation hierarchy is ready.
+    var pendingSystemWorkoutStart = false
     var pendingAchievementUnlocks: [AchievementUnlockBanner] = []
     var activePaywall: PaywallPresentation? {
         didSet {
@@ -219,8 +222,6 @@ final class AppStore {
         cleanupJunkHealthWorkoutsIfNeeded()
         _ = loadActivityEvents()
 
-        iCloudBackupDate = ICloudBackupService.lastBackupDate()
-
         if startsBackgroundServices {
             startBackgroundServicesIfNeeded()
         }
@@ -328,6 +329,7 @@ final class AppStore {
         hasStartedBackgroundServices = true
 
         Task {
+            iCloudBackupDate = await ICloudBackupService.lastBackupDateAsync()
             await refreshStoreKitProducts()
             await refreshRevenueCatCustomerInfo()
             await refreshICloudProEntitlement()
@@ -418,6 +420,26 @@ final class AppStore {
 
     func consumeNotificationDestination() {
         notificationDestination = nil
+    }
+
+    @discardableResult
+    func handleAppDeepLink(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "reps" else { return false }
+
+        switch url.host?.lowercased() {
+        case "progress":
+            pendingMainTabSelection = .progress
+            return true
+        case "today":
+            pendingMainTabSelection = .today
+            return true
+        case "workout" where url.path.lowercased() == "/recommended":
+            pendingMainTabSelection = .today
+            pendingSystemWorkoutStart = true
+            return true
+        default:
+            return false
+        }
     }
 
     var todaysWorkout: WorkoutDay {
@@ -743,7 +765,12 @@ final class AppStore {
         // ICloudBackupService restores only the privacy-safe operational subset;
         // HealthKit/body/routes remain local unless the user exports them.
         guard ICloudBackupService.automaticBackupEnabled else { return }
-        guard workoutSessions.isEmpty && plans.isEmpty else { return }
+        // A fresh installation already contains bundled seed plans, so checking
+        // `plans.isEmpty` prevented every real reinstall from restoring. The
+        // absence of user state is the reliable signal.
+        guard workoutSessions.isEmpty,
+              activePlan.days.isEmpty,
+              !userProfile.onboardingCompleted else { return }
         guard let snapshot = await ICloudBackupService.load() else { return }
         // Only restore if the backup actually has data worth restoring.
         guard !snapshot.workoutSessions.isEmpty || !snapshot.plans.isEmpty else { return }
@@ -1346,6 +1373,11 @@ final class AppStore {
     private func writeSessionToHealthIfNeeded(_ session: WorkoutSession) {
         guard HKHealthStore.isHealthDataAvailable(), health.isAuthorized else { return }
         guard !session.isImportedFromHealth, session.healthKitUUIDString == nil else { return }
+        // The live iPhone/Watch builder is already creating the canonical
+        // HealthKit workout. Writing the same session again here would show two
+        // workouts in Apple Fitness. The observer will attach the canonical UUID
+        // and enrich this local session when HealthKit publishes it.
+        guard nativeWorkoutSessionService?.isRecordingWorkout != true else { return }
 
         Task { @MainActor in
             do {
@@ -3419,7 +3451,7 @@ final class AppStore {
     
     // MARK: - HealthKit Synchronization & Background Observers
     
-    private let healthStore = HKHealthStore()
+    private var healthStore: HKHealthStore { healthKitService.healthStore }
     private var healthKitWorkoutObserverStarted = false
     private var healthKitDailyMetricsObserverStarted = false
     private var healthKitWorkoutObserverQuery: HKObserverQuery?
@@ -3595,11 +3627,21 @@ final class AppStore {
         lastAutomaticHealthRefreshDate = now
         defer { isAutomaticHealthSyncInProgress = false }
 
+        let interval = PerformanceSignpost.begin(
+            "health.sync",
+            "reason=\(reason) force=\(force)"
+        )
+        defer { PerformanceSignpost.end("health.sync", interval, "reason=\(reason)") }
+
         do {
-            let dailyMetrics = try await healthKitService.fetchDailyMetrics()
+            // Daily aggregates and workout import are independent HealthKit
+            // pipelines. Let HealthKit execute both while the app remains
+            // responsive, then publish the aggregate state once.
+            async let dailyMetricsTask = healthKitService.fetchDailyMetrics()
+            await syncWorkoutsFromHealthKit()
+            let dailyMetrics = try await dailyMetricsTask
             health.latestDailyMetrics = dailyMetrics
             health.lastSyncDate = .now
-            await syncWorkoutsFromHealthKit()
         } catch {
             TelemetryService.shared.record(error, context: "healthkit_automatic_sync_\(reason)")
             TelemetryService.shared.log(.nonFatalError, parameters: ["context": "healthkit_automatic_sync"])
@@ -3651,24 +3693,44 @@ final class AppStore {
         // 1c. Workouts Reps itself wrote back to Health are already represented by a
         // local session; tag that session's UUID if needed and never re-import.
         if workout.metadata?[HKMetadataKeyWorkoutBrandName] as? String == "Reps" {
-            if let index = workoutSessions.firstIndex(where: {
-                $0.healthKitUUIDString == nil
-                    && abs(($0.startedAt ?? $0.date).timeIntervalSince(workout.startDate)) < 180
-            }) {
+            let externalSessionID = (workout.metadata?[HKMetadataKeyExternalUUID] as? String)
+                .flatMap(UUID.init(uuidString:))
+            let index = workoutSessions.firstIndex(where: { session in
+                guard session.healthKitUUIDString == nil else { return false }
+                if let externalSessionID, session.id == externalSessionID { return true }
+                return abs((session.startedAt ?? session.date).timeIntervalSince(workout.startDate)) < 180
+            })
+            if let index {
                 workoutSessions[index].healthKitUUIDString = uuidString
+                await refreshExistingHealthKitRouteIfNeeded(for: workout, uuidString: uuidString)
             }
             return
         }
 
-        // Obtener datos del pulso
-        let heartRate = await heartRateSummary(for: workout)
-        let routePoints = await workoutRoutePoints(for: workout)
+        let interval = PerformanceSignpost.begin(
+            "health.processWorkout",
+            "activity=\(workout.workoutActivityType.rawValue)"
+        )
+        defer { PerformanceSignpost.end("health.processWorkout", interval) }
+
+        // These queries are independent and HealthKit can service them in
+        // parallel. This is the dominant latency when importing a Watch workout.
+        async let heartRateTask = heartRateSummary(for: workout)
+        async let routePointsTask = workoutRoutePoints(for: workout)
+        async let stepsTask = workoutQuantitySum(for: workout, type: HKQuantityType(.stepCount), unit: .count())
+        async let sensorsTask: WorkoutSensorSummary? = try? await healthKitService.fetchWorkoutSensorSummary(
+            start: workout.startDate,
+            end: workout.endDate
+        )
+
+        let (heartRate, routePoints, steps, sensors) = await (
+            heartRateTask,
+            routePointsTask,
+            stepsTask,
+            sensorsTask
+        )
         let distanceKm = workout.totalDistance?.doubleValue(for: .meterUnit(with: .kilo))
         let averagePaceSecondsPerKm = Self.averagePaceSecondsPerKm(duration: workout.duration, distanceKm: distanceKm)
-        let steps = await workoutQuantitySum(for: workout, type: HKQuantityType(.stepCount), unit: .count())
-        // Full sensor window (HR before/after, steps, active energy) so summary
-        // fields like HR recovery and cadence aren't left blank.
-        let sensors = try? await healthKitService.fetchWorkoutSensorSummary(start: workout.startDate, end: workout.endDate)
 
         // Obtener actividades
         var activities: [String] = []
@@ -4006,8 +4068,9 @@ final class AppStore {
     private func enrichRoutePoints(_ points: [RoutePoint], for workout: HKWorkout) async -> [RoutePoint] {
         guard !points.isEmpty else { return points }
 
-        let heartRates = await heartRateSamples(for: workout)
-        let cadences = await cadenceSamples(for: workout)
+        async let heartRatesTask = heartRateSamples(for: workout)
+        async let cadencesTask = cadenceSamples(for: workout)
+        let (heartRates, cadences) = await (heartRatesTask, cadencesTask)
         guard !heartRates.isEmpty || !cadences.isEmpty else { return points }
 
         return points.map { point in
@@ -4694,6 +4757,7 @@ final class NativeWorkoutSessionService: NSObject {
     }
     private var activeStatusID: UUID?
     private var pendingFallbackStartTask: Task<Void, Never>?
+    private var primaryStartTask: Task<Void, Never>?
     private var isStartingPrimarySession = false
     private var isEndingFromAppState = false
     private var metricsHandler: (@MainActor @Sendable (NativeWorkoutMetrics) -> Void)?
@@ -4701,6 +4765,8 @@ final class NativeWorkoutSessionService: NSObject {
     private var endedHandler: (@MainActor @Sendable () -> Void)?
     private var companionLaunchStatusID: UUID?
     private var isLaunchingCompanionWorkout = false
+
+    var isRecordingWorkout: Bool { session != nil }
 
     func configure(
         metricsHandler: (@MainActor @Sendable (NativeWorkoutMetrics) -> Void)?,
@@ -4744,6 +4810,10 @@ final class NativeWorkoutSessionService: NSObject {
         guard let status else {
             pendingFallbackStartTask?.cancel()
             pendingFallbackStartTask = nil
+            primaryStartTask?.cancel()
+            primaryStartTask = nil
+            activeStatusID = nil
+            isStartingPrimarySession = false
             companionLaunchStatusID = nil
             isLaunchingCompanionWorkout = false
             endCurrentSession(notifyApp: false)
@@ -4780,6 +4850,8 @@ final class NativeWorkoutSessionService: NSObject {
         Task {
             do {
                 try await requestAuthorization()
+                try Task.checkCancellation()
+                guard activeStatusID == status.id else { return }
                 healthStore.startWatchApp(with: configuration) { [weak self] success, error in
                     Task { @MainActor in
                         guard let self else { return }
@@ -4821,14 +4893,22 @@ final class NativeWorkoutSessionService: NSObject {
         guard session == nil, !isStartingPrimarySession else { return }
         isStartingPrimarySession = true
 
-        Task {
+        primaryStartTask?.cancel()
+        primaryStartTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                self.isStartingPrimarySession = false
+                self.primaryStartTask = nil
+            }
             do {
-                try await requestAuthorization()
+                try await self.requestAuthorization()
+                try Task.checkCancellation()
+                guard self.activeStatusID == status.id else { return }
                 let configuration = Self.configuration(status: status, workout: workout)
-                let workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
+                let workoutSession = try HKWorkoutSession(healthStore: self.healthStore, configuration: configuration)
                 let workoutBuilder = workoutSession.associatedWorkoutBuilder()
                 workoutBuilder.dataSource = HKLiveWorkoutDataSource(
-                    healthStore: healthStore,
+                    healthStore: self.healthStore,
                     workoutConfiguration: configuration
                 )
                 workoutSession.delegate = self
@@ -4837,15 +4917,22 @@ final class NativeWorkoutSessionService: NSObject {
                 session = workoutSession
                 builder = workoutBuilder
                 let startDate = status.startedAt == .distantPast ? Date() : status.startedAt
+                try await workoutBuilder.addMetadata([
+                    HKMetadataKeyWorkoutBrandName: "Reps",
+                    HKMetadataKeyCoachedWorkout: false
+                ])
+                try Task.checkCancellation()
+                guard self.activeStatusID == status.id else { return }
                 workoutSession.startActivity(with: startDate)
                 try await workoutBuilder.beginCollection(at: startDate)
                 if status.isPaused {
                     workoutSession.pause()
                 }
+            } catch is CancellationError {
+                // Expected when the workout ends or a newer session replaces it.
             } catch {
                 TelemetryService.shared.record(error, context: "healthkit_start_native_workout")
             }
-            isStartingPrimarySession = false
         }
     }
 
@@ -4898,6 +4985,8 @@ final class NativeWorkoutSessionService: NSObject {
         builderStorage = nil
         activeStatusID = nil
         isStartingPrimarySession = false
+        primaryStartTask?.cancel()
+        primaryStartTask = nil
     }
 
     private func requestAuthorization() async throws {

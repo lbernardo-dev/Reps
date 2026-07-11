@@ -2300,6 +2300,25 @@ struct RepsTests {
         }
     }
 
+    @Test @MainActor func systemDeepLinksRouteToProgressAndRecommendedWorkout() throws {
+        let store = AppStore(
+            persistence: SwiftDataPersistence(inMemory: true),
+            startsBackgroundServices: false
+        )
+
+        let progressURL = try #require(URL(string: "reps://progress"))
+        #expect(store.handleAppDeepLink(progressURL))
+        #expect(store.pendingMainTabSelection == .progress)
+
+        let workoutURL = try #require(URL(string: "reps://workout/recommended"))
+        #expect(store.handleAppDeepLink(workoutURL))
+        #expect(store.pendingMainTabSelection == .today)
+        #expect(store.pendingSystemWorkoutStart)
+
+        let unknownURL = try #require(URL(string: "https://example.com"))
+        #expect(!store.handleAppDeepLink(unknownURL))
+    }
+
     @Test @MainActor func notificationLogWorkoutActionPreservesScheduledWorkoutDestination() {
         let store = AppStore(
             persistence: SwiftDataPersistence(inMemory: true),

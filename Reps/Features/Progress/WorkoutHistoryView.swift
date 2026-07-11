@@ -2,11 +2,30 @@ import SwiftUI
 
 struct WorkoutHistoryView: View {
     let sessions: [WorkoutSession]
+
+    private struct MonthGroup: Identifiable {
+        let monthDate: Date
+        let month: String
+        let sessions: [WorkoutSession]
+        var id: Date { monthDate }
+    }
     
     @State private var searchText = ""
     @State private var selectedLocationFilter: LocationFilter = .all
     @State private var selectedOriginFilter: OriginFilter = .all
     @State private var selectedTypeFilter: TypeFilter = .all
+    @State private var renderedGroups: [MonthGroup]
+
+    init(sessions: [WorkoutSession]) {
+        self.sessions = sessions
+        _renderedGroups = State(initialValue: Self.makeGroups(
+            sessions: sessions,
+            searchText: "",
+            location: .all,
+            origin: .all,
+            type: .all
+        ))
+    }
 
     private var activeDomain: MetricDomain {
         switch selectedTypeFilter {
@@ -47,10 +66,16 @@ struct WorkoutHistoryView: View {
         }
     }
 
-    // Group and filter workouts
-    private var filteredAndGroupedSessions: [(month: String, sessions: [WorkoutSession])] {
+    private static func makeGroups(
+        sessions: [WorkoutSession],
+        searchText: String,
+        location: LocationFilter,
+        origin: OriginFilter,
+        type: TypeFilter
+    ) -> [MonthGroup] {
         var filtered: [WorkoutSession] = []
-        for session in self.sessions {
+        filtered.reserveCapacity(sessions.count)
+        for session in sessions {
             // Search text filter
             let matchesSearch = searchText.isEmpty ||
                 session.workoutTitle.localizedCaseInsensitiveContains(searchText) ||
@@ -58,7 +83,7 @@ struct WorkoutHistoryView: View {
 
             // Location filter
             let matchesLocation: Bool
-            switch selectedLocationFilter {
+            switch location {
             case .all: matchesLocation = true
             case .gym: matchesLocation = session.location == .gym
             case .home: matchesLocation = session.location == .home
@@ -66,7 +91,7 @@ struct WorkoutHistoryView: View {
 
             // Origin filter
             let matchesOrigin: Bool
-            switch selectedOriginFilter {
+            switch origin {
             case .all: matchesOrigin = true
             case .routine: matchesOrigin = session.origin == .routine
             case .free: matchesOrigin = session.origin == .free
@@ -74,7 +99,7 @@ struct WorkoutHistoryView: View {
 
             // Type filter
             let matchesType: Bool
-            switch selectedTypeFilter {
+            switch type {
             case .all:
                 matchesType = true
             case .strength:
@@ -88,26 +113,37 @@ struct WorkoutHistoryView: View {
             }
         }
         
-        // Group by month
+        // Group by a stable calendar date. Sorting/parsing localized month
+        // strings on every body evaluation made typing and filter animations
+        // increasingly expensive as history grew.
+        let calendar = Calendar.current
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "LLLL yyyy"
         dateFormatter.locale = RepsLocalization.locale
-        
-        let grouped = Dictionary(grouping: filtered) { session -> String in
-            dateFormatter.string(from: session.date).capitalized
+
+        let grouped = Dictionary(grouping: filtered) { session -> Date in
+            let components = calendar.dateComponents([.year, .month], from: session.date)
+            return calendar.date(from: components) ?? calendar.startOfDay(for: session.date)
         }
-        
-        // Sort groups by date
-        return grouped.map { key, value in
-            (month: key, sessions: value.sorted { $0.date > $1.date })
+
+        return grouped.map { monthDate, value in
+            MonthGroup(
+                monthDate: monthDate,
+                month: dateFormatter.string(from: monthDate).capitalized,
+                sessions: value.sorted { $0.date > $1.date }
+            )
         }
-        .sorted { group1, group2 in
-            guard let date1 = dateFormatter.date(from: group1.month.lowercased()),
-                  let date2 = dateFormatter.date(from: group2.month.lowercased()) else {
-                return false
-            }
-            return date1 > date2
-        }
+        .sorted { $0.monthDate > $1.monthDate }
+    }
+
+    private func refreshRenderedGroups() {
+        renderedGroups = Self.makeGroups(
+            sessions: sessions,
+            searchText: searchText,
+            location: selectedLocationFilter,
+            origin: selectedOriginFilter,
+            type: selectedTypeFilter
+        )
     }
 
     var body: some View {
@@ -214,7 +250,7 @@ struct WorkoutHistoryView: View {
             
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
-                    if filteredAndGroupedSessions.isEmpty {
+                    if renderedGroups.isEmpty {
                         GlassMetricCard(domain: activeDomain) {
                             PulseEmptyState(
                                 title: searchText.isEmpty && selectedLocationFilter == .all && selectedOriginFilter == .all ? "no_workouts_logged" : "no_results",
@@ -224,7 +260,7 @@ struct WorkoutHistoryView: View {
                         }
                         .padding(.top, 20)
                     } else {
-                        ForEach(filteredAndGroupedSessions, id: \.month) { group in
+                        ForEach(renderedGroups) { group in
                             VStack(alignment: .leading, spacing: 10) {
                                 Text(group.month)
                                     .font(.subheadline.weight(.black))
@@ -257,6 +293,11 @@ struct WorkoutHistoryView: View {
         .navigationTitle("history")
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
+        .onChange(of: searchText) { _, _ in refreshRenderedGroups() }
+        .onChange(of: selectedLocationFilter) { _, _ in refreshRenderedGroups() }
+        .onChange(of: selectedOriginFilter) { _, _ in refreshRenderedGroups() }
+        .onChange(of: selectedTypeFilter) { _, _ in refreshRenderedGroups() }
+        .onChange(of: sessions.count) { _, _ in refreshRenderedGroups() }
     }
 }
 
@@ -359,11 +400,11 @@ enum WorkoutHistoryFormat {
     }
 
     static func localizedDecimal(_ value: Double, fractionDigits: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = fractionDigits
-        formatter.maximumFractionDigits = fractionDigits
-        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.\(fractionDigits)f", value)
+        value.formatted(
+            .number
+                .locale(RepsLocalization.locale)
+                .precision(.fractionLength(fractionDigits))
+        )
     }
 }
 
@@ -454,6 +495,10 @@ struct RouteWorkoutSummaryView: View {
     }
 
     var body: some View {
+        let hasHeartRateSeries = session.routePoints.contains { $0.heartRate != nil }
+        let hasElevationSeries = session.routePoints.contains { $0.altitude != nil }
+        let splits = session.routeSplits
+
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 0) {
                 RouteWorkoutHero(
@@ -468,21 +513,21 @@ struct RouteWorkoutSummaryView: View {
 
                     RouteWorkoutDetailsCard(session: session)
 
-                    if session.averageHeartRate != nil || !session.hrTimeSeries.isEmpty {
+                    if session.averageHeartRate != nil || hasHeartRateSeries {
                         WorkoutHeartRateCard(session: session)
                     }
 
-                    if !session.hrTimeSeries.isEmpty {
+                    if hasHeartRateSeries {
                         WorkoutHeartRateZonesCard(session: session, maxHR: estimatedMaxHR)
                         WorkoutEnduranceFocusCard(session: session, maxHR: estimatedMaxHR)
                     }
 
-                    if !session.elevationTimeSeries.isEmpty {
+                    if hasElevationSeries {
                         WorkoutElevationCard(session: session)
                     }
 
-                    if !session.routeSplits.isEmpty {
-                        RouteWorkoutSplitsCard(splits: session.routeSplits)
+                    if !splits.isEmpty {
+                        RouteWorkoutSplitsCard(splits: splits)
                     }
 
                     if session.isOutdoorRouteSession {

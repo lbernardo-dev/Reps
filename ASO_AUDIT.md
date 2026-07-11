@@ -1,5 +1,43 @@
 # StreakRep ASO Audit
 
+## Execution Update - 2026-07-10
+
+- App Store Connect app: `6775801149` (`StreakRep Fit`).
+- Bundle ID: `com.romerodev.repsfitness`.
+- Version: `1.0.0`.
+- App Store version ID: `0c1e0276-0689-43c3-9c94-8c92a4b43d74`.
+- State after this execution: `PREPARE_FOR_SUBMISSION`.
+- No App Store review submission exists.
+- Uploaded and attached build: `100202607101`.
+- Build ID: `13b0a93d-0e5c-4639-88a5-79827c1171ee`.
+- Build processing state: `VALID`.
+- Encryption declaration: `usesNonExemptEncryption=false`.
+- Archive: `.asc/artifacts/Reps-1.0.0-100202607101.xcarchive`.
+- IPA: `.asc/artifacts/Reps-1.0.0-100202607101.ipa`.
+
+ASO applied remotely:
+
+- Spanish and English app-info metadata synced.
+- Spanish and English version metadata synced.
+- Metadata validation: 0 errors, 0 warnings.
+- iPhone 6.7 screenshots: 10 `en-US`, 10 `es-ES`, all `COMPLETE`.
+- Apple Watch Series 10 screenshots: 5 `en-US`, 5 `es-ES`, all `COMPLETE`.
+- The screenshot generator was adjusted to avoid unverified claims, remove community promises while the age-range entitlement is unavailable, keep status chrome clean, and align copy with the Apple Health/Fitness positioning.
+
+Current ASO positioning:
+
+- Competes with Strong, Hevy and Fitbod on fast workout logging, strength progress and Apple Watch support.
+- Differentiates through Apple Health/Fitness integration, recovery context, routes, muscle load and progress views that Apple Fitness does not expose for strength users.
+- Follows Apple's product page guidance: the first screenshots focus on the highest-conversion claims, keywords avoid repeated title terms and competitor names, and both localizations are fully adapted rather than literal clones.
+
+Remaining manual/App Store Connect actions:
+
+- Do not submit the app yet unless you are ready for review.
+- `Reps Pro Lifetime` is now `READY_TO_SUBMIT`; submit it together with the app when you decide to send the release.
+- The weekly, monthly and annual subscriptions still report Apple's opaque `MISSING_METADATA` state, while all public API checks are complete: group localizations, subscription localizations, review screenshots, availability and price records. Open each subscription in App Store Connect, review the UI-only checklist, save any prompted field, then re-run validation.
+- Confirm App Privacy in App Store Connect. The public API cannot verify its published state.
+- To restore community age verification later, enable Declared Age Range for `com.romerodev.repsfitness` in the Apple Developer portal, regenerate the distribution profile, restore the entitlement in `project.yml` and `Reps/Reps.entitlements`, then rebuild.
+
 ## Scope
 
 - New App Store Connect app: `6775801149`

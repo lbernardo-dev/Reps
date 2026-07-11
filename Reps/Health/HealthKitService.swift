@@ -5,7 +5,10 @@ import HealthKit
 @MainActor
 final class HealthKitService: ObservableObject {
     static let shared = HealthKitService()
-    private let healthStore = HKHealthStore()
+    /// One store per app process. AppStore reuses it for observer queries so
+    /// authorization, background delivery and one-shot reads share one HealthKit
+    /// connection instead of creating parallel XPC clients.
+    let healthStore = HKHealthStore()
 
     var isAvailable: Bool {
         HKHealthStore.isHealthDataAvailable()
@@ -126,51 +129,64 @@ final class HealthKitService: ObservableObject {
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? date
 
-        let bodyFat = try await latestQuantity(
+        async let bodyFatTask = latestQuantity(
             for: HKQuantityType(.bodyFatPercentage),
             unit: .percent()
-        ).map { $0 * 100 }
-        let waist = try await latestQuantity(
+        )
+        async let waistTask = latestQuantity(
             for: HKQuantityType(.waistCircumference),
             unit: .meterUnit(with: .centi)
         )
-        let sleepHours = try await sleepHours(from: startOfDay, to: endOfDay)
-        let water = try await cumulativeValue(
+        async let sleepHoursTask = sleepHours(from: startOfDay, to: endOfDay)
+        async let waterTask = cumulativeValue(
             for: HKQuantityType(.dietaryWater),
             unit: .liter(),
             from: startOfDay,
             to: endOfDay
         )
-        let dietaryEnergy = try await cumulativeValue(
+        async let dietaryEnergyTask = cumulativeValue(
             for: HKQuantityType(.dietaryEnergyConsumed),
             unit: .kilocalorie(),
             from: startOfDay,
             to: endOfDay
         )
-        let activeEnergy = try await cumulativeValue(
+        async let activeEnergyTask = cumulativeValue(
             for: HKQuantityType(.activeEnergyBurned),
             unit: .kilocalorie(),
             from: startOfDay,
             to: endOfDay
         )
-        let exerciseMinutes = try await cumulativeValue(
+        async let exerciseMinutesTask = cumulativeValue(
             for: HKQuantityType(.appleExerciseTime),
             unit: .minute(),
             from: startOfDay,
             to: endOfDay
         )
-        let restingHeartRate = try await averageValue(
+        async let restingHeartRateTask = averageValue(
             for: HKQuantityType(.restingHeartRate),
             unit: HKUnit.count().unitDivided(by: .minute()),
             from: startOfDay,
             to: endOfDay
         )
-        let heartRateVariability = try await averageValue(
+        async let heartRateVariabilityTask = averageValue(
             for: HKQuantityType(.heartRateVariabilitySDNN),
             unit: .secondUnit(with: .milli),
             from: startOfDay,
             to: endOfDay
         )
+
+        let (bodyFatRaw, waist, sleepHours, water, dietaryEnergy, activeEnergy, exerciseMinutes, restingHeartRate, heartRateVariability) = try await (
+            bodyFatTask,
+            waistTask,
+            sleepHoursTask,
+            waterTask,
+            dietaryEnergyTask,
+            activeEnergyTask,
+            exerciseMinutesTask,
+            restingHeartRateTask,
+            heartRateVariabilityTask
+        )
+        let bodyFat = bodyFatRaw.map { $0 * 100 }
 
         return BodyWellnessDefaults(
             bodyFatPercentage: bodyFat,
@@ -202,27 +218,39 @@ final class HealthKitService: ObservableObject {
     func fetchDailyMetrics(days: Int = 30) async throws -> [DailyHealthMetric] {
         guard isAvailable else { throw HealthKitError.unavailable }
 
-        let steps = try await dailyCumulativeValues(for: HKQuantityType(.stepCount), unit: .count(), days: days)
-        let activeEnergy = try await dailyCumulativeValues(for: HKQuantityType(.activeEnergyBurned), unit: .kilocalorie(), days: days)
-        let exerciseMinutes = try await dailyCumulativeValues(for: HKQuantityType(.appleExerciseTime), unit: .minute(), days: days)
-        let dietaryEnergy = try await dailyCumulativeValues(for: HKQuantityType(.dietaryEnergyConsumed), unit: .kilocalorie(), days: days)
-        let water = try await dailyCumulativeValues(for: HKQuantityType(.dietaryWater), unit: .liter(), days: days)
-        let restingHeartRate = try await dailyAverageValues(
+        async let stepsTask = dailyCumulativeValues(for: HKQuantityType(.stepCount), unit: .count(), days: days)
+        async let activeEnergyTask = dailyCumulativeValues(for: HKQuantityType(.activeEnergyBurned), unit: .kilocalorie(), days: days)
+        async let exerciseMinutesTask = dailyCumulativeValues(for: HKQuantityType(.appleExerciseTime), unit: .minute(), days: days)
+        async let dietaryEnergyTask = dailyCumulativeValues(for: HKQuantityType(.dietaryEnergyConsumed), unit: .kilocalorie(), days: days)
+        async let waterTask = dailyCumulativeValues(for: HKQuantityType(.dietaryWater), unit: .liter(), days: days)
+        async let restingHeartRateTask = dailyAverageValues(
             for: HKQuantityType(.restingHeartRate),
             unit: HKUnit.count().unitDivided(by: .minute()),
             days: days
         )
-        let heartRateVariability = try await dailyAverageValues(
+        async let heartRateVariabilityTask = dailyAverageValues(
             for: HKQuantityType(.heartRateVariabilitySDNN),
             unit: .secondUnit(with: .milli),
             days: days
         )
-        let vo2Max = try await dailyAverageValues(
+        async let vo2MaxTask = dailyAverageValues(
             for: HKQuantityType(.vo2Max),
             unit: HKUnit(from: "ml/kg*min"),
             days: days
         )
-        let sleepPerDay = try await dailySleepBreakdowns(days: days)
+        async let sleepPerDayTask = dailySleepBreakdowns(days: days)
+
+        let (steps, activeEnergy, exerciseMinutes, dietaryEnergy, water, restingHeartRate, heartRateVariability, vo2Max, sleepPerDay) = try await (
+            stepsTask,
+            activeEnergyTask,
+            exerciseMinutesTask,
+            dietaryEnergyTask,
+            waterTask,
+            restingHeartRateTask,
+            heartRateVariabilityTask,
+            vo2MaxTask,
+            sleepPerDayTask
+        )
 
         let calendar = Calendar.current
         let dates = Set(steps.keys)
@@ -352,14 +380,14 @@ final class HealthKitService: ObservableObject {
         guard isAvailable else { throw HealthKitError.unavailable }
 
         let normalizedEnd = max(end, start.addingTimeInterval(60))
-        let heartRate = try await heartRateSummary(from: start, to: normalizedEnd)
-        let steps = try await cumulativeValue(
+        async let heartRateTask = heartRateSummary(from: start, to: normalizedEnd)
+        async let stepsTask = cumulativeValue(
             for: HKQuantityType(.stepCount),
             unit: .count(),
             from: start,
             to: normalizedEnd
         )
-        let activeEnergy = try await cumulativeValue(
+        async let activeEnergyTask = cumulativeValue(
             for: HKQuantityType(.activeEnergyBurned),
             unit: .kilocalorie(),
             from: start,
@@ -368,23 +396,34 @@ final class HealthKitService: ObservableObject {
         let beforeWindowStart = start.addingTimeInterval(-15 * 60)
         let afterWindowEnd = normalizedEnd.addingTimeInterval(15 * 60)
 
+        async let heartRateBeforeTask = averageValue(
+            for: HKQuantityType(.heartRate),
+            unit: HKUnit.count().unitDivided(by: .minute()),
+            from: beforeWindowStart,
+            to: start
+        )
+        async let heartRateAfterTask = averageValue(
+            for: HKQuantityType(.heartRate),
+            unit: HKUnit.count().unitDivided(by: .minute()),
+            from: normalizedEnd,
+            to: afterWindowEnd
+        )
+
+        let (heartRate, steps, activeEnergy, heartRateBefore, heartRateAfter) = try await (
+            heartRateTask,
+            stepsTask,
+            activeEnergyTask,
+            heartRateBeforeTask,
+            heartRateAfterTask
+        )
+
         return WorkoutSensorSummary(
             steps: positive(steps),
             activeEnergyKcal: positive(activeEnergy),
             averageHeartRate: heartRate.average,
             maxHeartRate: heartRate.max,
-            heartRateBefore: try await averageValue(
-                for: HKQuantityType(.heartRate),
-                unit: HKUnit.count().unitDivided(by: .minute()),
-                from: beforeWindowStart,
-                to: start
-            ),
-            heartRateAfter: try await averageValue(
-                for: HKQuantityType(.heartRate),
-                unit: HKUnit.count().unitDivided(by: .minute()),
-                from: normalizedEnd,
-                to: afterWindowEnd
-            )
+            heartRateBefore: heartRateBefore,
+            heartRateAfter: heartRateAfter
         )
     }
 
@@ -417,7 +456,8 @@ final class HealthKitService: ObservableObject {
         let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: .local())
         try await builder.addMetadata([
             HKMetadataKeyWorkoutBrandName: "Reps",
-            HKMetadataKeyCoachedWorkout: false
+            HKMetadataKeyCoachedWorkout: false,
+            HKMetadataKeyExternalUUID: session.id.uuidString
         ])
         try await builder.beginCollection(at: start)
 

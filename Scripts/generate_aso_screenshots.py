@@ -157,10 +157,10 @@ SHOTS = [
         "09-track-your-body",
         "TRACK",
         "BODY CHANGES",
-        "Weight, goals, community and advanced metrics stay together.",
+        "Weight, goals, wellness and advanced metrics stay together.",
         "SIGUE",
         "TU CAMBIO FÍSICO",
-        "Peso, objetivos, comunidad y métricas avanzadas unidos.",
+        "Peso, objetivos, bienestar y métricas avanzadas unidos.",
         "79.1",
         "kg logged",
         "kg registrados",
@@ -175,9 +175,9 @@ SHOTS = [
         "CREA",
         "CONSTANCIA",
         "Contexto diario y registro rápido para mantener el hábito.",
-        "365",
-        "days seeded",
-        "días demo",
+        "1×",
+        "quick logging",
+        "registro rápido",
     ),
 ]
 
@@ -202,10 +202,22 @@ BODY = font(38, False)
 BADGE_VALUE = font(66, True)
 BADGE_LABEL = font(30, True)
 FOOTER = font(31, True)
+STATUS = font(27, True)
 
 
 def fit_source(path: Path, size: tuple[int, int]) -> Image.Image:
     src = Image.open(path).convert("RGB")
+    # Exclude transient notification content from the seeded progress capture.
+    if path.name == "02-progress-summary.jpg":
+        src = src.crop((0, min(420, src.height // 6), src.width, src.height))
+        scale = size[0] / src.width
+        resized = src.resize(
+            (size[0], int(src.height * scale)),
+            Image.Resampling.LANCZOS,
+        )
+        clean = Image.new("RGB", size, "#171A19")
+        clean.paste(resized, (0, max(0, (size[1] - resized.height) // 2)))
+        return clean
     scale = max(size[0] / src.width, size[1] / src.height)
     resized = src.resize((int(src.width * scale), int(src.height * scale)), Image.Resampling.LANCZOS)
     left = (resized.width - size[0]) // 2
@@ -261,6 +273,16 @@ def draw_phone(canvas: Image.Image, source: Path) -> None:
     screen = fit_source(source, screen_size)
     canvas.paste(screen, (PHONE_X + SCREEN_PAD, PHONE_Y + SCREEN_PAD), rounded_mask(screen_size, 56))
 
+    # Remove the simulator's return-to-previous-app breadcrumb while keeping a
+    # deterministic status bar suitable for App Store presentation.
+    status_x = PHONE_X + SCREEN_PAD
+    status_y = PHONE_Y + SCREEN_PAD
+    draw.rectangle(
+        (status_x, status_y, status_x + screen_size[0], status_y + 86),
+        fill="#171A19",
+    )
+    draw.text((status_x + 28, status_y + 18), "9:41", font=STATUS, fill=WHITE)
+
     island_w, island_h = 254, 70
     island_x = PHONE_X + (PHONE_W - island_w) // 2
     island_y = PHONE_Y + 38
@@ -300,7 +322,7 @@ def render(shot: Shot, locale: str) -> None:
     draw_phone(canvas, source)
     draw_badge(canvas, shot, locale)
 
-    footer = "Real premium data. No empty states." if locale == "en-US" else "Datos premium reales. Sin pantallas vacías."
+    footer = "PLAN • TRAIN • PROGRESS" if locale == "en-US" else "PLANIFICA • ENTRENA • PROGRESA"
     draw.rounded_rectangle((96, 2570, 1194, 2682), radius=56, fill=shot.accent)
     draw_centered(draw, footer, 2606, FOOTER, INK)
 

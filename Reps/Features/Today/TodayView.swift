@@ -415,11 +415,11 @@ struct TodayView: View {
                     WorkoutLibraryView()
                 }
             }
-            .alert("Entreno recomendado", isPresented: recommendedWorkoutConfirmationBinding) {
+            .alert("recommended_workout_alert_title", isPresented: recommendedWorkoutConfirmationBinding) {
                 Button("Cancelar", role: .cancel) {
                     recommendedWorkoutToConfirm = nil
                 }
-                Button("Seleccionar y empezar") {
+                Button("recommended_workout_alert_confirm") {
                     guard let workout = recommendedWorkoutToConfirm else { return }
                     store.activateRecommendedWorkoutPlan(from: workout)
                     recommendedWorkoutToConfirm = nil
@@ -440,6 +440,11 @@ struct TodayView: View {
             .onAppear {
                 refreshRenderModelIfNeeded()
                 buildRecommendedWorkoutIfNeeded()
+                consumePendingSystemWorkoutStart()
+            }
+            .onChange(of: store.pendingSystemWorkoutStart) { _, shouldStart in
+                guard shouldStart else { return }
+                consumePendingSystemWorkoutStart()
             }
             .onChange(of: renderSignature) { _, _ in
                 refreshRenderModelIfNeeded()
@@ -452,6 +457,18 @@ struct TodayView: View {
         guard signature != lastRenderSignature || renderModel == nil else { return }
         lastRenderSignature = signature
         renderModel = makeTodayRenderModel()
+    }
+
+    private func consumePendingSystemWorkoutStart() {
+        guard store.pendingSystemWorkoutStart else { return }
+        store.pendingSystemWorkoutStart = false
+
+        if let activeWorkout = store.activeWorkout,
+           store.activeWorkoutStatus != nil {
+            workoutToStart = activeWorkout
+        } else {
+            workoutToStart = store.todaysWorkout
+        }
     }
 
     private func makeTodayRenderModel() -> TodayRenderModel {

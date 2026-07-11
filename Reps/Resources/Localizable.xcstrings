@@ -29605,6 +29605,23 @@
         }
       }
     },
+    "active_days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "active days"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "días activos"
+          }
+        }
+      }
+    },
     "active_energy_kcal" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -59780,6 +59797,23 @@
         }
       }
     },
+    "on_track" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On Track"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En objetivo"
+          }
+        }
+      }
+    },
     "onboarding" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -64456,6 +64490,23 @@
         }
       }
     },
+    "perfil" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "profile"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "perfil"
+          }
+        }
+      }
+    },
     "performance" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -68135,6 +68186,23 @@
         }
       }
     },
+    "progreso" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "progress"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "progreso"
+          }
+        }
+      }
+    },
     "progress" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -69877,6 +69945,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Progresión estimada"
+          }
+        }
+      }
+    },
+    "recommended_workout_alert_confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select and start"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleccionar y empezar"
+          }
+        }
+      }
+    },
+    "recommended_workout_alert_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entreno recomendado"
           }
         }
       }
@@ -80096,6 +80198,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cuéntanos qué mejorarías o qué flujo te resultó confuso."
+          }
+        }
+      }
+    },
+    "temperature" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temperature"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temperatura"
           }
         }
       }

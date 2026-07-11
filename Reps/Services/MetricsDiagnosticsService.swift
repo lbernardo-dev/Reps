@@ -42,7 +42,24 @@ final class MetricsDiagnosticsService: NSObject, @unchecked Sendable {
         }
     }
 
+    private func handleMetricPayloads(_ payloads: [MXMetricPayload], source: String) {
+        guard !payloads.isEmpty else { return }
+        for payload in payloads {
+            let data = payload.jsonRepresentation()
+            persist(data: data, prefix: "metric", source: source)
+
+            #if canImport(FirebaseCrashlytics)
+            Crashlytics.crashlytics().setCustomValue(data.count, forKey: "metrickit_payload_bytes")
+            Crashlytics.crashlytics().log("metrickit.metric.\(source)")
+            #endif
+        }
+    }
+
     private func persist(payload: MXDiagnosticPayload, source: String) {
+        persist(data: payload.jsonRepresentation(), prefix: "diagnostic", source: source)
+    }
+
+    private func persist(data: Data, prefix: String, source: String) {
         let directory = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first?
@@ -53,8 +70,8 @@ final class MetricsDiagnosticsService: NSObject, @unchecked Sendable {
 
         let timestamp = isoFormatter.string(from: Date())
             .replacingOccurrences(of: ":", with: "-")
-        let url = directory.appendingPathComponent("diagnostic-\(source)-\(timestamp).json")
-        try? payload.jsonRepresentation().write(to: url, options: [.atomic, .completeFileProtection])
+        let url = directory.appendingPathComponent("\(prefix)-\(source)-\(timestamp).json")
+        try? data.write(to: url, options: [.atomic, .completeFileProtection])
     }
 
     private func recordDiagnostic(payload: MXDiagnosticPayload, source: String) {
@@ -80,6 +97,10 @@ final class MetricsDiagnosticsService: NSObject, @unchecked Sendable {
 
 #if canImport(MetricKit)
 extension MetricsDiagnosticsService: MXMetricManagerSubscriber {
+    func didReceive(_ payloads: [MXMetricPayload]) {
+        handleMetricPayloads(payloads, source: "live")
+    }
+
     func didReceive(_ payloads: [MXDiagnosticPayload]) {
         handleDiagnosticPayloads(payloads, source: "live")
     }

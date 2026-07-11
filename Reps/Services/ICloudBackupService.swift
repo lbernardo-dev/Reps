@@ -71,4 +71,12 @@ enum ICloudBackupService {
         let fileURL = dir.appendingPathComponent(backupFileName)
         return (try? FileManager.default.attributesOfItem(atPath: fileURL.path))?[.modificationDate] as? Date
     }
+
+    /// Resolving an ubiquity container can involve an XPC/iCloud round trip.
+    /// Keep it away from app construction and the first frame.
+    static func lastBackupDateAsync() async -> Date? {
+        await Task.detached(priority: .background) {
+            lastBackupDate()
+        }.value
+    }
 }
