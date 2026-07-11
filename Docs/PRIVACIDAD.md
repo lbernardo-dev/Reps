@@ -1,8 +1,8 @@
 # Política de privacidad de Reps
 
-**Última actualización:** 10 de julio de 2026  
-**Responsable:** RomeroDev / [NOMBRE LEGAL DE LA ENTIDAD]  
-**Contacto:** [EMAIL DE PRIVACIDAD]
+**Última actualización:** 11 de julio de 2026  
+**Responsable:** RomeroDev  
+**Contacto:** romerodev.app+streakreps@gmail.com
 
 Esta política explica cómo Reps (también denominada “StreakRep” en algunas pantallas y metadatos) trata la información cuando utilizas la aplicación móvil, sus widgets, la aplicación para Apple Watch y las funciones sociales.
 
@@ -64,13 +64,13 @@ La comunidad está destinada a personas de **13 años o más**. Si detectamos qu
 
 ## 6. Conservación y eliminación
 
-Conservamos los datos mientras mantengas una cuenta o mientras sean necesarios para prestar el servicio, resolver disputas, cumplir obligaciones legales o proteger la seguridad. Puedes eliminar los datos locales desde la aplicación y solicitar la eliminación de datos asociados a servicios remotos escribiendo a [EMAIL DE PRIVACIDAD].
+Conservamos los datos mientras mantengas una cuenta o mientras sean necesarios para prestar el servicio, resolver disputas, cumplir obligaciones legales o proteger la seguridad. Puedes eliminar los datos locales desde la aplicación y solicitar la eliminación de datos asociados a servicios remotos escribiendo a romerodev.app+streakreps@gmail.com.
 
 Las copias exportadas que guardes en iCloud Drive, Archivos, copias de seguridad del dispositivo u otros servicios quedan bajo tu control y debes eliminarlas desde esos servicios si quieres retirarlas.
 
 ## 7. Tus derechos
 
-Según tu lugar de residencia, puedes solicitar acceso, rectificación, eliminación, limitación, oposición, portabilidad o retirada del consentimiento. También puedes reclamar ante la autoridad de protección de datos competente. Para ejercer derechos, escribe a [EMAIL DE PRIVACIDAD] indicando el correo o identificador asociado a la solicitud.
+Según tu lugar de residencia, puedes solicitar acceso, rectificación, eliminación, limitación, oposición, portabilidad o retirada del consentimiento. También puedes reclamar ante la autoridad de protección de datos competente. Para ejercer derechos, escribe a romerodev.app+streakreps@gmail.com indicando el correo o identificador asociado a la solicitud.
 
 ## 8. Seguridad
 
@@ -84,8 +84,6 @@ Podemos actualizar esta política para reflejar cambios legales, técnicos o fun
 
 Para preguntas de privacidad, solicitudes de derechos o reportes relacionados con datos personales:
 
-**[NOMBRE LEGAL DE LA ENTIDAD]**  
-**[DIRECCIÓN POSTAL]**  
-**[EMAIL DE PRIVACIDAD]**
-
-Esta política debe ser revisada y completada con los datos legales reales de la entidad responsable antes de publicarse.
+**RomeroDev**  
+**Calle Madre Juana María Condesa Lluch 6, Valencia**  
+**romerodev.app+streakreps@gmail.com**

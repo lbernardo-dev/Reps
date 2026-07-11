@@ -1,8 +1,8 @@
 # Términos de uso de Reps
 
-**Última actualización:** 10 de julio de 2026  
-**Responsable:** RomeroDev / [NOMBRE LEGAL DE LA ENTIDAD]  
-**Contacto:** [EMAIL DE SOPORTE]
+**Última actualización:** 11 de julio de 2026  
+**Responsable:** RomeroDev  
+**Contacto:** romerodev.app+streakreps@gmail.com
 
 Estos términos regulan el uso de Reps, sus funciones de entrenamiento, Apple Watch, widgets, exportaciones y comunidad.
 
@@ -44,7 +44,7 @@ Reps no garantiza que los datos capturados por sensores, GPS, Apple Watch o Heal
 
 ## 6. Propiedad intelectual
 
-Reps, su marca, diseño, software, textos, catálogo, gráficos y materiales propios pertenecen a [NOMBRE LEGAL DE LA ENTIDAD] o a sus licenciantes. Estos términos no te transfieren derechos de propiedad intelectual. Solo recibes una licencia personal, limitada, revocable y no transferible para utilizar la aplicación conforme a estos términos.
+Reps, su marca, diseño, software, textos, catálogo, gráficos y materiales propios pertenecen a RomeroDev o a sus licenciantes. Estos términos no te transfieren derechos de propiedad intelectual. Solo recibes una licencia personal, limitada, revocable y no transferible para utilizar la aplicación conforme a estos términos.
 
 ## 7. Disponibilidad y cambios
 
@@ -68,10 +68,8 @@ Si descargas Reps desde la App Store, Apple es un tercero beneficiario de estos 
 
 ## 11. Ley aplicable y contacto
 
-Estos términos se regirán por las leyes de **[PAÍS/COMUNIDAD AUTÓNOMA]**, sin perjuicio de los derechos imperativos del consumidor. Las controversias se someterán a los tribunales legalmente competentes.
+Estos términos se regirán por las leyes de **España, Comunidad Valenciana**, sin perjuicio de los derechos imperativos del consumidor. Las controversias se someterán a los tribunales legalmente competentes.
 
-Contacto: **[EMAIL DE SOPORTE]**  
-Entidad: **[NOMBRE LEGAL DE LA ENTIDAD]**  
-Dirección: **[DIRECCIÓN POSTAL]**
-
-Debes completar los campos entre corchetes y revisar este documento con asesoría jurídica antes de publicarlo.
+Contacto: **romerodev.app+streakreps@gmail.com**  
+Entidad: **RomeroDev**  
+Dirección: **Calle Madre Juana María Condesa Lluch 6, Valencia**

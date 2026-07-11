@@ -1,6 +1,6 @@
 # Condiciones de suscripción Pro de Reps
 
-**Última actualización:** 10 de julio de 2026  
+**Última actualización:** 11 de julio de 2026  
 Estas condiciones complementan los [Términos de uso](./TERMINOS_DE_USO.md) y la [Política de privacidad](./PRIVACIDAD.md).
 
 ## 1. Qué es Pro
@@ -59,8 +59,6 @@ Las funciones sociales pueden estar sujetas a disponibilidad, edad mínima, cuen
 
 ## 10. Contacto
 
-Soporte: **[EMAIL DE SOPORTE]**  
-Entidad responsable: **[NOMBRE LEGAL DE LA ENTIDAD]**  
-Dirección: **[DIRECCIÓN POSTAL]**
-
-Antes de publicar este documento, completa los campos entre corchetes y verifica que el texto coincide exactamente con las ofertas, precios, periodos de prueba y productos configurados en App Store Connect y RevenueCat.
+Soporte: **romerodev.app+streakreps@gmail.com**  
+Entidad responsable: **RomeroDev**  
+Dirección: **Calle Madre Juana María Condesa Lluch 6, Valencia**
