@@ -479,6 +479,21 @@ final class WorkoutMotionMetricsTracker: ObservableObject {
     @Published var speedKmh: Double?
     @Published var cadenceStepsPerMinute: Double?
 
+    private struct PedometerSample: Sendable {
+        let steps: Double
+        let distanceMeters: Double?
+        let paceSecondsPerMeter: Double?
+        let cadenceStepsPerSecond: Double?
+
+        init?(_ data: CMPedometerData?) {
+            guard let data else { return nil }
+            steps = data.numberOfSteps.doubleValue
+            distanceMeters = data.distance?.doubleValue
+            paceSecondsPerMeter = data.currentPace?.doubleValue
+            cadenceStepsPerSecond = data.currentCadence?.doubleValue
+        }
+    }
+
     private let pedometer = CMPedometer()
     private var startedAt: Date?
     private var segmentStartedAt: Date?
@@ -494,16 +509,9 @@ final class WorkoutMotionMetricsTracker: ObservableObject {
 
         let segmentStart = (steps == nil && distanceKm == nil) ? startedAt : Date()
         segmentStartedAt = segmentStart
-        pedometer.queryPedometerData(from: segmentStart, to: Date()) { [weak self] data, _ in
-            Task { @MainActor in
-                self?.apply(data)
-            }
-        }
-        pedometer.startUpdates(from: segmentStart) { [weak self] data, _ in
-            Task { @MainActor in
-                self?.apply(data)
-            }
-        }
+        let handler = Self.makePedometerHandler(for: self)
+        pedometer.queryPedometerData(from: segmentStart, to: Date(), withHandler: handler)
+        pedometer.startUpdates(from: segmentStart, withHandler: handler)
     }
 
     func pause() {
@@ -539,17 +547,25 @@ final class WorkoutMotionMetricsTracker: ObservableObject {
         cadenceStepsPerMinute = nil
     }
 
-    private func apply(_ data: CMPedometerData?) {
-        guard let data else { return }
-        steps = baseSteps + data.numberOfSteps.doubleValue
-        if let distanceMeters = data.distance?.doubleValue, distanceMeters > 0 {
+    nonisolated private static func makePedometerHandler(for tracker: WorkoutMotionMetricsTracker) -> CMPedometerHandler {
+        { [weak tracker] data, _ in
+            guard let sample = PedometerSample(data) else { return }
+            Task { @MainActor [weak tracker] in
+                tracker?.apply(sample)
+            }
+        }
+    }
+
+    private func apply(_ sample: PedometerSample) {
+        steps = baseSteps + sample.steps
+        if let distanceMeters = sample.distanceMeters, distanceMeters > 0 {
             distanceKm = baseDistanceKm + (distanceMeters / 1_000)
         }
-        if let paceSecondsPerMeter = data.currentPace?.doubleValue, paceSecondsPerMeter > 0 {
+        if let paceSecondsPerMeter = sample.paceSecondsPerMeter, paceSecondsPerMeter > 0 {
             paceSecondsPerKm = paceSecondsPerMeter * 1_000
             speedKmh = 3.6 / paceSecondsPerMeter
         }
-        if let cadenceStepsPerSecond = data.currentCadence?.doubleValue, cadenceStepsPerSecond > 0 {
+        if let cadenceStepsPerSecond = sample.cadenceStepsPerSecond, cadenceStepsPerSecond > 0 {
             cadenceStepsPerMinute = cadenceStepsPerSecond * 60
         }
     }
