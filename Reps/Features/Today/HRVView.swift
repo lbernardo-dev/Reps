@@ -60,10 +60,18 @@ struct HRVView: View {
     @State private var selectedStyle: HRVGaugeStyle = .signal
 
     private var latestHRV: Double? {
-        store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.heartRateVariabilityMS
+        store.health.latestDailyMetrics
+            .sorted { $0.date > $1.date }
+            .lazy
+            .compactMap { $0.heartRateVariabilityMS }
+            .first
     }
     private var latestResting: Double? {
-        store.health.latestDailyMetrics.sorted { $0.date > $1.date }.first?.restingHeartRate
+        store.health.latestDailyMetrics
+            .sorted { $0.date > $1.date }
+            .lazy
+            .compactMap { $0.restingHeartRate }
+            .first
     }
     private var zone: HRVZone { latestHRV.map { HRVZone(ms: $0) } ?? .low }
 

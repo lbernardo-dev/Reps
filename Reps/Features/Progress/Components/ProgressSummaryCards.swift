@@ -748,7 +748,7 @@ private struct WeeklyDistributionPanel: View {
 
   private var activeDaysLabel: String {
     let count = activeDays.filter { $0 }.count
-    return count == 1 ? localizedString("day_singular") : localizedFormat("days_count_format", "\(count)")
+    return count == 1 ? localizedString("day_singular") : localizedFormat("days_count_format", count)
   }
 
   var body: some View {

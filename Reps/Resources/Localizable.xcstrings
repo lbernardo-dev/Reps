@@ -38091,6 +38091,23 @@
         }
       }
     },
+    "collapse_insights" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapse insights"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraer insights"
+          }
+        }
+      }
+    },
     "compare_and_compete" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -41890,6 +41907,23 @@
         }
       }
     },
+    "dismiss_insight" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismiss insight"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descartar insight"
+          }
+        }
+      }
+    },
     "display_styles" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -45103,6 +45137,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d/%d ejercicios"
+          }
+        }
+      }
+    },
+    "expand_insights" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand insights"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expandir insights"
           }
         }
       }
@@ -59049,6 +59100,125 @@
         }
       }
     },
+    "notif_category_achievements" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achievements"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logros"
+          }
+        }
+      }
+    },
+    "notif_category_achievements_desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personal records and goals reached"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récords personales y objetivos cumplidos"
+          }
+        }
+      }
+    },
+    "notif_category_coaching" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coaching tips"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consejos de entrenamiento"
+          }
+        }
+      }
+    },
+    "notif_category_coaching_desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weekly recaps and training suggestions"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resúmenes semanales y sugerencias de entrenamiento"
+          }
+        }
+      }
+    },
+    "notif_category_social_desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New followers, comments and likes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuevos seguidores, comentarios y me gusta"
+          }
+        }
+      }
+    },
+    "notif_category_workout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workouts"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrenamientos"
+          }
+        }
+      }
+    },
+    "notif_category_workout_desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed sessions and streaks"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesiones completadas y rachas"
+          }
+        }
+      }
+    },
     "notif_daily_summary_body" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -59593,6 +59763,74 @@
         }
       }
     },
+    "notification_settings_categories_footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose which activity shows up in your notifications inbox."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige qué actividad aparece en tu panel de notificaciones."
+          }
+        }
+      }
+    },
+    "notification_settings_categories_header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inbox categories"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categorías del panel"
+          }
+        }
+      }
+    },
+    "notification_settings_push_header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Push reminders"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recordatorios push"
+          }
+        }
+      }
+    },
+    "notification_settings_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configuración de notificaciones"
+          }
+        }
+      }
+    },
     "notifications" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -59606,6 +59844,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notificaciones"
+          }
+        }
+      }
+    },
+    "notifications_delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar"
+          }
+        }
+      }
+    },
+    "notifications_delete_read" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete read notifications"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar notificaciones leídas"
           }
         }
       }
@@ -59657,6 +59929,125 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "notifications_enable_reminders"
+          }
+        }
+      }
+    },
+    "notifications_mark_all_read" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark all as read"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcar todas como leídas"
+          }
+        }
+      }
+    },
+    "notifications_mark_read" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as read"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcar como leída"
+          }
+        }
+      }
+    },
+    "notifications_mark_unread" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as unread"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcar como no leída"
+          }
+        }
+      }
+    },
+    "notifications_pending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pending"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pendientes"
+          }
+        }
+      }
+    },
+    "notifications_read" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leídas"
+          }
+        }
+      }
+    },
+    "notifications_read_empty_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications you've read will show up here."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las notificaciones que hayas leído aparecerán aquí."
+          }
+        }
+      }
+    },
+    "notifications_read_empty_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No read notifications"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin notificaciones leídas"
           }
         }
       }
@@ -84750,6 +85141,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pronóstico de hoy para entrenar"
+          }
+        }
+      }
+    },
+    "weather_insights_all_clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All clear for now"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo despejado por ahora"
+          }
+        }
+      }
+    },
+    "weather_insights_more_count_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%d more"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%d más"
+          }
+        }
+      }
+    },
+    "weather_insights_restore_hidden_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show %d hidden insight(s)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar %d insight(s) ocultos"
           }
         }
       }

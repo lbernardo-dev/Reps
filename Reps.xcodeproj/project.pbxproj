@@ -153,6 +153,7 @@
 		B5460ABE3BFCDB94CC695F44 /* SocialHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DAB8A3B56BCAE9A06BA4E3F /* SocialHubView.swift */; };
 		B5F42E50161D32803CDFDC11 /* WorkoutShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF2BB82DF974745D5746570F /* WorkoutShared.swift */; };
 		B73247E3664F97B0132752EF /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41FBFABFEA51C00FB4F35A72 /* NotificationsView.swift */; };
+		99F1FE5FA99A910523B9272C /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2F896D99A99D8F423FF84F /* NotificationSettingsView.swift */; };
 		B866407CB30BA1AB3A0D8235 /* ICloudBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C69B0543BC4F024E364CD79A /* ICloudBackupService.swift */; };
 		BA4800865878C9E782D83E6D /* RehabExerciseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467EA28181597EEE24DC5930 /* RehabExerciseDetailView.swift */; };
 		BBAC1E9D145041FFB460414A /* RepsWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 860264EAF0E928C5E69888F7 /* RepsWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -301,6 +302,7 @@
 		3EC3840D58A6BB64084A3784 /* CreateChallengeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateChallengeView.swift; sourceTree = "<group>"; };
 		400A6010F746F41604278B7E /* ActiveWorkoutSetRowComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutSetRowComponents.swift; sourceTree = "<group>"; };
 		41FBFABFEA51C00FB4F35A72 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
+		4A2F896D99A99D8F423FF84F /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		428488EF1075B17B97043B62 /* ActiveWorkoutMediaComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutMediaComponents.swift; sourceTree = "<group>"; };
 		439F6FCF315C65C3FD34EF0D /* RepsWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RepsWatch.entitlements; sourceTree = "<group>"; };
 		4407E6AEF4185D34A4371EB1 /* GymPassEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymPassEditorView.swift; sourceTree = "<group>"; };
@@ -791,6 +793,7 @@
 				3890B5B335FA0BD8905783CF /* HeartRateView.swift */,
 				C4606AAB13D1A50C2F1196A2 /* HRVView.swift */,
 				2FA27C6B92EEB455ED32A9B9 /* HydrationView.swift */,
+				4A2F896D99A99D8F423FF84F /* NotificationSettingsView.swift */,
 				41FBFABFEA51C00FB4F35A72 /* NotificationsView.swift */,
 				9F46F2BED043321408AACF2D /* RecommendedWorkoutCard.swift */,
 				3CCA3265A727CA7F80DE9B96 /* SleepView.swift */,
@@ -1189,6 +1192,7 @@
 				EFC8205E5A14BCDE2AF90623 /* NotificationEngine.swift in Sources */,
 				4D6A80C8D80A441DB672714F /* NotificationEvent.swift in Sources */,
 				4DD5973D7549AC9555F81FA2 /* NotificationService.swift in Sources */,
+				99F1FE5FA99A910523B9272C /* NotificationSettingsView.swift in Sources */,
 				B73247E3664F97B0132752EF /* NotificationsView.swift in Sources */,
 				3196D1F3E7AF631330E28B13 /* OnboardingLocationCatalog.swift in Sources */,
 				5B3EC7C5D1D72EE4CEB36805 /* OnboardingResult.swift in Sources */,

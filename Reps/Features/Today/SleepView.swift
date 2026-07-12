@@ -72,8 +72,8 @@ struct SleepView: View {
     private var verdictMessage: String? {
         guard let avg = weeklyAvg else { return nil }
         return avg >= sleepGoalHours
-            ? String(format: localizedString("sleep_insight_great_duration_body"), String(format: "%.1f", avg), Int(sleepGoalHours))
-            : String(format: localizedString("sleep_insight_below_goal_body"), String(format: "%.1f", avg), Int(sleepGoalHours))
+            ? String(format: localizedString("sleep_insight_great_duration_body"), String(format: "%.1f", avg), Int(sleepGoalHours.rounded()))
+            : String(format: localizedString("sleep_insight_below_goal_body"), String(format: "%.1f", avg), Int(sleepGoalHours.rounded()))
     }
 
     // MARK: - Sleep score (duration + consistency + restorative, when available)
@@ -356,18 +356,18 @@ struct SleepView: View {
                     if avg >= sleepGoalHours {
                         HealthInsightRow(icon: "checkmark.seal.fill", color: PulseTheme.recovery,
                                          title: localizedString("sleep_insight_great_duration_title"),
-                                         message: String(format: localizedString("sleep_insight_great_duration_body"), String(format: "%.1f", avg), Int(sleepGoalHours)))
+                                         message: String(format: localizedString("sleep_insight_great_duration_body"), String(format: "%.1f", avg), Int(sleepGoalHours.rounded())))
                     } else {
                         HealthInsightRow(icon: "exclamationmark.triangle.fill", color: PulseTheme.warning,
                                          title: localizedString("sleep_insight_below_goal_title"),
-                                         message: String(format: localizedString("sleep_insight_below_goal_body"), String(format: "%.1f", avg), Int(sleepGoalHours)))
+                                         message: String(format: localizedString("sleep_insight_below_goal_body"), String(format: "%.1f", avg), Int(sleepGoalHours.rounded())))
                     }
                 }
 
                 if totalNightsWithData > 0 {
                     HealthInsightRow(icon: "moon.stars.fill", color: domain.tint,
                                      title: localizedString("sleep_insight_goal_progress_title"),
-                                     message: String(format: localizedString("sleep_insight_goal_progress_body"), goodNights, totalNightsWithData, Int(sleepGoalHours)))
+                                     message: String(format: localizedString("sleep_insight_goal_progress_body"), goodNights, totalNightsWithData, Int(sleepGoalHours.rounded())))
                 }
 
                 if let best = weekMetrics.compactMap({ m -> (Double, Date)? in

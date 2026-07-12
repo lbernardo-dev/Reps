@@ -82,6 +82,15 @@ final class AppStore {
     var isFeedLoading: Bool = false
     var activeChallenges: [SocialChallenge] = []
     var isChallengesLoading: Bool = false
+    /// True when the current account is flagged as a moderator. There's no
+    /// backend, so this flag is granted out-of-band by the developer in the
+    /// CloudKit Dashboard (a SocialModerator record) — nothing in the app can
+    /// grant it. Gates client-side-only "delete others' content" / "ban" UI.
+    var isSocialModerator: Bool = false
+    /// Usernames banned by a moderator, hidden from every client. Enforcement
+    /// is client-side only (no backend to enforce it server-side), refreshed
+    /// alongside `isSocialModerator`.
+    private(set) var bannedUsernames: Set<String> = []
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
     var pendingMilestonePaywall: Bool = false
@@ -210,7 +219,10 @@ final class AppStore {
             }
         )
         self.nativeWorkoutSessionService = nativeWorkoutSessionService
-        restore(.empty)
+        // Placeholder only — must not persist. The real snapshot loads just
+        // below on the next run loop tick; writing this empty state to disk
+        // first would wipe the user's saved data before it's ever read back.
+        restore(.empty, persistImmediately: false)
         Task {
             if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
                 restore(snapshot)
@@ -249,9 +261,16 @@ final class AppStore {
         reconcileNotificationStateIfNeeded()
     }
 
+    /// Runs Apple's on-device age check at most once. Only a *confirmed*
+    /// under-13 result disables Community — there's no backend to adjudicate
+    /// a declined or unavailable check, so those outcomes stay the user's
+    /// responsibility and never block functionality.
     @discardableResult
     func ensureSocialAgeEligibility() async -> Bool {
-        if userProfile.socialCapabilitiesAllowed {
+        if userProfile.socialAgeGateStatus == .blockedUnder13 {
+            return false
+        }
+        if userProfile.socialAgeGateCheckedAt != nil {
             return true
         }
 
@@ -268,15 +287,11 @@ final class AppStore {
             health.message = localizedString("social_age_gate_under_13_message")
             return false
         case .sharingDeclined:
-            disableSocialCapabilitiesForAgeGate()
             userProfile.socialAgeGateStatus = .sharingDeclined
-            health.message = localizedString("social_age_gate_declined_message")
-            return false
+            return true
         case .unavailable:
-            disableSocialCapabilitiesForAgeGate()
             userProfile.socialAgeGateStatus = .unavailable
-            health.message = localizedString("social_age_gate_unavailable_message")
-            return false
+            return true
         }
     }
 
@@ -1294,7 +1309,8 @@ final class AppStore {
             title: sessionTitle,
             subtitle: localizedFormat("session_completed_subtitle", durationMin),
             date: session.date,
-            destination: .session(id: session.id.uuidString)
+            destination: .session(id: session.id.uuidString),
+            category: .workout
         )
 
         // Streak milestone badge
@@ -1306,7 +1322,8 @@ final class AppStore {
                 title: localizedFormat("streak_milestone_title", currentStreak),
                 subtitle: localizedString("streak_milestone_subtitle"),
                 date: session.date,
-                destination: .workoutHistory
+                destination: .workoutHistory,
+                category: .achievement
             )
         }
 
@@ -3416,7 +3433,7 @@ final class AppStore {
         }
     }
 
-    private func restore(_ snapshot: AppSnapshot) {
+    private func restore(_ snapshot: AppSnapshot, persistImmediately: Bool = true) {
         isRestoring = true
         userProfile = snapshot.userProfile
         monetization = snapshot.monetization
@@ -3443,7 +3460,9 @@ final class AppStore {
 
         isRestoring = false
         updateTrainingBattery()
-        persistence.save(currentSnapshot)
+        if persistImmediately {
+            persistence.save(currentSnapshot)
+        }
 
         // Keep shared widgets & watch in sync after database restore
         let widgetSnapshot = sharedWorkoutSnapshot()
@@ -4300,14 +4319,80 @@ final class AppStore {
         hasUnreadBell = false
     }
 
-    func saveActivityEvent(icon: String, colorName: String, title: String, subtitle: String, date: Date, destination: InboxDestination? = nil) {
-        let event = NotificationEvent(icon: icon, colorName: colorName, title: title, subtitle: subtitle, date: date, destination: destination)
+    /// Whether the user still wants events of this category, driven by the
+    /// per-category toggles in the notification settings panel.
+    func isCategoryNotificationsEnabled(_ category: NotificationCategory) -> Bool {
+        switch category {
+        case .workout: return userProfile.notifyWorkoutActivity
+        case .achievement: return userProfile.notifyAchievements
+        case .coaching: return userProfile.notifyCoachingTips
+        case .social: return userProfile.socialNotificationsEnabled
+        }
+    }
+
+    func setCategoryNotificationsEnabled(_ category: NotificationCategory, _ enabled: Bool) {
+        switch category {
+        case .workout: userProfile.notifyWorkoutActivity = enabled
+        case .achievement: userProfile.notifyAchievements = enabled
+        case .coaching: userProfile.notifyCoachingTips = enabled
+        case .social: userProfile.socialNotificationsEnabled = enabled
+        }
+    }
+
+    /// Muted categories are still recorded (so unmuting later shows their
+    /// history) but land pre-read and never light up the bell.
+    var pendingActivityEvents: [NotificationEvent] {
+        activityEvents.filter { !$0.isRead && isCategoryNotificationsEnabled($0.category) }
+    }
+
+    var readActivityEvents: [NotificationEvent] {
+        activityEvents.filter { $0.isRead || !isCategoryNotificationsEnabled($0.category) }
+    }
+
+    func saveActivityEvent(icon: String, colorName: String, title: String, subtitle: String, date: Date, destination: InboxDestination? = nil, category: NotificationCategory) {
+        let muted = !isCategoryNotificationsEnabled(category)
+        let event = NotificationEvent(icon: icon, colorName: colorName, title: title, subtitle: subtitle, date: date, destination: destination, category: category, isRead: muted)
         activityEvents.insert(event, at: 0)
         activityEvents = Array(activityEvents.prefix(30))
+        persistActivityEvents()
+        if !muted { hasUnreadBell = true }
+    }
+
+    func markActivityEventAsRead(_ id: String) {
+        guard let idx = activityEvents.firstIndex(where: { $0.id == id }), !activityEvents[idx].isRead else { return }
+        activityEvents[idx].isRead = true
+        persistActivityEvents()
+    }
+
+    func markActivityEventAsUnread(_ id: String) {
+        guard let idx = activityEvents.firstIndex(where: { $0.id == id }), activityEvents[idx].isRead else { return }
+        activityEvents[idx].isRead = false
+        persistActivityEvents()
+    }
+
+    func markAllActivityEventsAsRead() {
+        var changed = false
+        for idx in activityEvents.indices where !activityEvents[idx].isRead {
+            activityEvents[idx].isRead = true
+            changed = true
+        }
+        if changed { persistActivityEvents() }
+    }
+
+    func deleteActivityEvent(_ id: String) {
+        activityEvents.removeAll { $0.id == id }
+        persistActivityEvents()
+    }
+
+    func deleteReadActivityEvents() {
+        activityEvents.removeAll { $0.isRead || !isCategoryNotificationsEnabled($0.category) }
+        persistActivityEvents()
+    }
+
+    private func persistActivityEvents() {
         if let data = try? JSONEncoder().encode(activityEvents) {
             UserDefaults.standard.set(data, forKey: Self.activityEventsKey)
         }
-        hasUnreadBell = true
     }
 
     /// Persists an activity event straight to disk without a live AppStore
@@ -4335,8 +4420,12 @@ final class AppStore {
         guard let data = UserDefaults.standard.data(forKey: Self.activityEventsKey),
               let onDisk = try? JSONDecoder().decode([NotificationEvent].self, from: data) else { return }
         guard onDisk.first?.id != activityEvents.first?.id else { return }
+        let existingIDs = Set(activityEvents.map(\.id))
+        let newItems = onDisk.filter { !existingIDs.contains($0.id) }
         activityEvents = onDisk
-        hasUnreadBell = true
+        if newItems.contains(where: { isCategoryNotificationsEnabled($0.category) }) {
+            hasUnreadBell = true
+        }
     }
 
     @discardableResult
@@ -4365,7 +4454,7 @@ final class AppStore {
         do {
             let posts = try await SocialService.shared.fetchFeed(followingUsernames: usernames)
             let blocked = Set(userProfile.socialBlockedUsernames.map { $0.lowercased() })
-            feedPosts = posts.filter { !blocked.contains($0.ownerUsername.lowercased()) }
+            feedPosts = posts.filter { !blocked.contains($0.ownerUsername.lowercased()) && !bannedUsernames.contains($0.ownerUsername.lowercased()) }
             let lastCheck = lastFeedCheckDate
             unreadFeedCount = posts.filter { $0.createdAt > lastCheck }.count
         } catch {}
@@ -4416,6 +4505,64 @@ final class AppStore {
     /// feed card reflects the new count/preview immediately.
     func refreshCommentSummary(postID: String) async {
         commentSummaries[postID] = await SocialService.shared.cachedSummary(postID: postID)
+    }
+
+    // MARK: - Moderator (developer-flagged, client-side enforcement only)
+
+    /// Refreshes `isSocialModerator` and the global `bannedUsernames` set.
+    /// Called once when Community first loads.
+    func refreshModerationState() async {
+        guard let username = userProfile.socialUsername else {
+            isSocialModerator = false
+            return
+        }
+        async let moderator = SocialService.shared.isModerator(username: username)
+        async let banned = SocialService.shared.fetchBannedUsernames()
+        isSocialModerator = await moderator
+        bannedUsernames = await banned
+    }
+
+    /// Moderator-only: removes another account's comment. Only shown in the UI
+    /// to accounts flagged as moderators in the CloudKit Dashboard.
+    func moderatorDeleteComment(_ comment: WorkoutComment, postID: String) async -> Bool {
+        guard isSocialModerator else { return false }
+        do {
+            try await SocialService.shared.deleteComment(commentID: comment.id, postID: postID)
+            await refreshCommentSummary(postID: postID)
+            return true
+        } catch {
+            TelemetryService.shared.record(error, context: "moderator_delete_comment")
+            return false
+        }
+    }
+
+    /// Moderator-only: removes another account's post.
+    func moderatorDeletePost(_ post: WorkoutPost) async -> Bool {
+        guard isSocialModerator else { return false }
+        do {
+            try await SocialService.shared.deletePost(postID: post.id)
+            feedPosts.removeAll { $0.id == post.id }
+            return true
+        } catch {
+            TelemetryService.shared.record(error, context: "moderator_delete_post")
+            return false
+        }
+    }
+
+    /// Moderator-only: hides a user's content for everyone, not just this
+    /// device (unlike `blockSocialUser`, which is a personal filter).
+    func moderatorBanUser(_ username: String) async -> Bool {
+        guard isSocialModerator, let moderator = userProfile.socialUsername else { return false }
+        let normalized = username.lowercased()
+        do {
+            try await SocialService.shared.banUser(username: normalized, bannedByUsername: moderator)
+            bannedUsernames.insert(normalized)
+            feedPosts.removeAll { $0.ownerUsername.lowercased() == normalized }
+            return true
+        } catch {
+            TelemetryService.shared.record(error, context: "moderator_ban_user")
+            return false
+        }
     }
 
     /// Flushes queued (offline) comments. Called on foreground.

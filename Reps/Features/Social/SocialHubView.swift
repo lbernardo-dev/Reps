@@ -134,6 +134,10 @@ struct SocialHubView: View {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                                 commentsPost = post
                             }
+                        },
+                        onModeratorAction: {
+                            explorePosts.removeAll { $0.id == post.id }
+                            selectedExplorePost = nil
                         }
                     )
                     .padding(.horizontal, PulseTheme.screenHorizontalPadding)
@@ -623,9 +627,8 @@ struct SocialHubView: View {
         }
 
         if store.isChallengesLoading {
-            PulseCard {
-                HStack { Spacer(); ProgressView().tint(PulseTheme.accent); Spacer() }
-                    .padding(.vertical, 20)
+            ForEach(0..<2, id: \.self) { _ in
+                PulseCard { PulseSkeleton(height: 60) }
             }
         } else if store.activeChallenges.isEmpty {
             PulseCard {
@@ -706,10 +709,8 @@ struct SocialHubView: View {
     @ViewBuilder
     private var friendsSection: some View {
         if isLoadingFollowing {
-            PulseCard {
-                HStack { Spacer(); ProgressView().tint(PulseTheme.accent); Spacer() }
-                    .padding(.vertical, 20)
-            }
+            PulseCard { PulseSkeleton(height: 140) }
+            PulseCard { PulseSkeleton(height: 180) }
         } else if following.isEmpty {
             PulseCard {
                 PulseEmptyState(
@@ -984,6 +985,8 @@ struct SocialHubView: View {
                 // Suggested athletes
                 if !suggestedProfiles.isEmpty {
                     suggestedSection
+                } else if isLoadingSuggested {
+                    PulseCard { PulseSkeleton(height: 60) }
                 } else if recentSearches.isEmpty {
                     PulseCard {
                         PulseEmptyState(
@@ -1014,8 +1017,12 @@ struct SocialHubView: View {
                 }
             }
 
-            if searchText.isEmpty && !explorePosts.isEmpty {
-                exploreSection
+            if searchText.isEmpty {
+                if !explorePosts.isEmpty {
+                    exploreSection
+                } else if isLoadingExplore {
+                    exploreSkeletonSection
+                }
             }
         }
     }
@@ -1042,6 +1049,25 @@ struct SocialHubView: View {
                         explorePostTile(post)
                     }
                     .buttonStyle(.plain)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        }
+    }
+
+    private var exploreSkeletonSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localizedString("social_explore_posts"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .padding(.horizontal, 4)
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)], spacing: 2) {
+                ForEach(0..<6, id: \.self) { _ in
+                    GeometryReader { proxy in
+                        PulseSkeleton(height: proxy.size.width, cornerRadius: 0)
+                    }
+                    .aspectRatio(1, contentMode: .fit)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
@@ -1238,6 +1264,7 @@ struct SocialHubView: View {
             group.addTask { await loadFollowing() }
             group.addTask { await loadSuggested() }
             group.addTask { await loadExplore() }
+            group.addTask { await store.refreshModerationState() }
             if store.feedPosts.isEmpty {
                 group.addTask { await store.loadFeed() }
             }
@@ -1266,6 +1293,7 @@ struct SocialHubView: View {
         isLoadingExplore = true
         var excluded = Set(store.userProfile.socialFollowingUsernames.map { $0.lowercased() })
         excluded.formUnion(store.userProfile.socialBlockedUsernames.map { $0.lowercased() })
+        excluded.formUnion(store.bannedUsernames)
         if let mine = store.userProfile.socialUsername { excluded.insert(mine.lowercased()) }
         explorePosts = await SocialService.shared.fetchExplorePosts(excluding: excluded)
         isLoadingExplore = false

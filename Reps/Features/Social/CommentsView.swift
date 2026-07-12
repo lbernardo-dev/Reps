@@ -115,6 +115,23 @@ struct CommentsView: View {
                 } label: {
                     Label(localizedString("social_block_user"), systemImage: "person.crop.circle.badge.xmark")
                 }
+                if store.isSocialModerator {
+                    Divider()
+                    Button(role: .destructive) {
+                        Task {
+                            if await store.moderatorDeleteComment(comment, postID: post.id) {
+                                comments.removeAll { $0.id == comment.id }
+                            }
+                        }
+                    } label: {
+                        Label(localizedString("social_moderator_delete_comment"), systemImage: "trash")
+                    }
+                    Button(role: .destructive) {
+                        Task { _ = await store.moderatorBanUser(comment.ownerUsername) }
+                    } label: {
+                        Label(localizedString("social_moderator_ban_user"), systemImage: "hand.raised.fill")
+                    }
+                }
             } label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.subheadline)

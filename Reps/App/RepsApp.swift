@@ -115,7 +115,8 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
                         title: localizedString("notif_new_follower_title"),
                         subtitle: "@\(actor.username)",
                         date: .now,
-                        destination: .socialProfile(username: actor.username)
+                        destination: .socialProfile(username: actor.username),
+                        category: .social
                     )
                 case "comment":
                     NotificationEvent(
@@ -124,7 +125,8 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
                         title: localizedString("notif_new_comment_title"),
                         subtitle: "@\(actor.username)",
                         date: .now,
-                        destination: .socialProfile(username: actor.username)
+                        destination: .socialProfile(username: actor.username),
+                        category: .social
                     )
                 default: // "like"
                     NotificationEvent(
@@ -133,7 +135,8 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
                         title: localizedString("notif_new_like_title"),
                         subtitle: "@\(actor.username)",
                         date: .now,
-                        destination: .socialProfile(username: actor.username)
+                        destination: .socialProfile(username: actor.username),
+                        category: .social
                     )
                 }
                 AppStore.persistActivityEventFromBackground(event)

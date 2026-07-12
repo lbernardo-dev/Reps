@@ -49,6 +49,7 @@ private struct ConfettiEmitterView: UIViewRepresentable {
             cells.append(squareCell(color: color, birthRate: 7, delay: Double(i) * 0.04))
             cells.append(ribbonCell(color: color, birthRate: 3, delay: Double(i) * 0.06))
             cells.append(circleCell(color: color, birthRate: 4, delay: Double(i) * 0.05))
+            cells.append(streamerCell(color: color, birthRate: 2, delay: Double(i) * 0.07))
         }
         return cells
     }
@@ -88,6 +89,28 @@ private struct ConfettiEmitterView: UIViewRepresentable {
         cell.yAcceleration  = 130
         cell.xAcceleration  = CGFloat(Float.random(in: -18...18))
         cell.alphaSpeed     = -0.10
+        return cell
+    }
+
+    /// Long twisting streamer ("serpentina") — sparser and larger than the small ribbon
+    /// confetti, with a wide emission spread and heavy random spin so each one tumbles
+    /// on its own unpredictable arc instead of falling in sync with the rest.
+    private func streamerCell(color: UIColor, birthRate: Float, delay: Double) -> CAEmitterCell {
+        let cell = CAEmitterCell()
+        cell.contents       = makeImage(size: CGSize(width: 4, height: 34), color: color)
+        cell.birthRate      = birthRate
+        cell.lifetime       = 7.5
+        cell.lifetimeRange  = 2.5
+        cell.velocity       = 190
+        cell.velocityRange  = 120
+        cell.emissionRange  = .pi / 1.8
+        cell.spin           = 7.0
+        cell.spinRange      = 6.0
+        cell.scale          = 0.24
+        cell.scaleRange     = 0.12
+        cell.yAcceleration  = 105
+        cell.xAcceleration  = CGFloat(Float.random(in: -45...45))
+        cell.alphaSpeed     = -0.08
         return cell
     }
 
@@ -136,6 +159,7 @@ private struct AchievementUnlockCard: View {
     let remainingCount: Int
     let onDismiss: () -> Void
     let onShare: () -> Void
+    let onDismissAll: () -> Void
 
     @State private var appeared   = false
     @State private var iconBounce = false
@@ -231,6 +255,17 @@ private struct AchievementUnlockCard: View {
                 .buttonStyle(.plain)
                 .padding(.top, 14)
             }
+
+            // Close-all shortcut — only worth showing when the queue is long enough to be tiring
+            if remainingCount > 1 {
+                Button(action: onDismissAll) {
+                    Text(localizedFormat("achievement_close_all_format", remainingCount + 1))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(PulseTheme.mediaText.opacity(0.75))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 10)
+            }
         }
         .padding(.bottom, 24)
         .frame(maxWidth: 360)
@@ -280,6 +315,7 @@ struct AchievementUnlockOverlay: View {
     @State private var currentBanner: AchievementUnlockBanner?
     @State private var shareItem: String? = nil
     @State private var isSharing  = false
+    @State private var showClosedAllToast = false
 
     var body: some View {
         ZStack {
@@ -295,7 +331,8 @@ struct AchievementUnlockOverlay: View {
                     banner: banner,
                     remainingCount: max(0, store.pendingAchievementUnlocks.count - 1),
                     onDismiss: dismiss,
-                    onShare: { isSharing = true }
+                    onShare: { isSharing = true },
+                    onDismissAll: dismissAll
                 )
                 .padding(.horizontal, 24)
                 .transition(.scale(scale: 0.8, anchor: .center).combined(with: .opacity))
@@ -308,8 +345,25 @@ struct AchievementUnlockOverlay: View {
                     .zIndex(2)
                     .id(banner.id) // restart emitter each new achievement
             }
+
+            if showClosedAllToast {
+                VStack {
+                    Spacer()
+                    Text(localizedString("achievement_close_all_toast"))
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.mediaText))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(PulseTheme.mediaText, in: Capsule())
+                        .padding(.bottom, 60)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(3)
+            }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.80), value: showCard)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showClosedAllToast)
         .onChange(of: store.pendingAchievementUnlocks) { _, unlocks in
             if currentBanner == nil, let first = unlocks.first {
                 presentBanner(first)
@@ -347,6 +401,21 @@ struct AchievementUnlockOverlay: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                     presentBanner(next)
                 }
+            }
+        }
+    }
+
+    private func dismissAll() {
+        HapticService.notification(.success)
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            showCard = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            store.dequeueAllAchievementUnlocks()
+            currentBanner = nil
+            showClosedAllToast = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                showClosedAllToast = false
             }
         }
     }

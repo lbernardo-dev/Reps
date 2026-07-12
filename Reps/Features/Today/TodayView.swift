@@ -313,7 +313,8 @@ struct TodayView: View {
             tomorrow: tomorrowWeather,
             battery: battery,
             hasActivePlan: hasActivePlan,
-            trainingLocation: store.userProfile.trainingLocation
+            trainingLocation: store.userProfile.trainingLocation,
+            now: now
         )
 
         return TodayRenderModel(
@@ -382,12 +383,12 @@ private struct TodayViewContent: View {
     @State private var workoutToStart: WorkoutDay?
     @State private var showWeatherDetail = false
     @State private var homeWeatherDay: FitnessWeatherDay = .today
+    @State private var isOutdoorInsightsExpanded = true
     @State private var showNotifications = false
     @State private var recommendedWorkout: WorkoutDay? = nil
     @State private var recommendedWorkoutToConfirm: WorkoutDay?
     @State private var showRestartConfirmation = false
     @Namespace private var wellnessZoom
-    @Namespace private var weatherZoom
 
     private var freeWorkout: WorkoutDay {
         WorkoutDay.freeWorkout
@@ -612,7 +613,6 @@ private struct TodayViewContent: View {
                     insights: weatherInsights,
                     selectedDay: homeWeatherDay
                 )
-                .navigationTransition(.zoom(sourceID: "today-weather", in: weatherZoom))
             }
             .navigationDestination(item: $workoutToStart) { workout in
                 ActiveWorkoutView(workout: workout, origin: workout.id == freeWorkout.id ? .free : .routine)
@@ -662,8 +662,6 @@ private struct TodayViewContent: View {
                     ActiveWorkoutView(workout: store.activeWorkout ?? focusWorkout)
                 case .workoutDetail(let day):
                     WorkoutDetailView(workout: day)
-                case .exerciseLibrary:
-                    ExerciseLibraryView()
                 case .workoutLibrary:
                     WorkoutLibraryView()
                 }
@@ -743,7 +741,7 @@ private struct TodayViewContent: View {
         WeeklyProgressHeroCard(
             streakDays: streakDays,
             completedThisWeek: completedThisWeek,
-            weeklyTarget: store.userProfile.weeklyTrainingDays,
+            weeklyTarget: hasActivePlan ? store.activePlan.daysPerWeek : store.userProfile.weeklyTrainingDays,
             weeklyVolumeKg: FitnessMetrics.totalVolumeKg(for: weekSessions),
             weeklyVolumeUnit: displayedVolumeUnit,
             barPoints: weeklyProgressBarPoints
@@ -838,7 +836,6 @@ private struct TodayViewContent: View {
                 showWeatherDetail = true
             } label: {
                 FitnessWeatherWidget(today: todayWeather, tomorrow: tomorrowWeather, selectedDay: $homeWeatherDay)
-                    .matchedTransitionSource(id: "today-weather", in: weatherZoom)
             }
             .buttonStyle(PressableCardStyle())
         }
@@ -848,25 +845,25 @@ private struct TodayViewContent: View {
 
     private var outdoorIntelligenceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TodaySectionHeader(
-                systemImage: "sparkles",
-                tint: PulseTheme.accent,
-                titleKey: "smart_weather_insights",
-                subtitleKey: "smart_weather_insights_subtitle"
-            )
+            HStack(alignment: .top, spacing: 8) {
+                TodaySectionHeader(
+                    systemImage: "sparkles",
+                    tint: PulseTheme.accent,
+                    titleKey: "smart_weather_insights",
+                    subtitleKey: "smart_weather_insights_subtitle"
+                )
+                Spacer(minLength: 8)
+                WeatherInsightsCollapseToggle(isExpanded: $isOutdoorInsightsExpanded)
+            }
 
-            VStack(spacing: 10) {
-                ForEach(weatherInsights) { insight in
-                    FitnessWeatherInsightRow(insight: insight)
+            WeatherInsightsPanel(insights: weatherInsights, isExpanded: $isOutdoorInsightsExpanded)
+                .padding(14)
+                .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                        .stroke(PulseTheme.cardStroke, lineWidth: 0.8)
                 }
-            }
-            .padding(14)
-            .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                    .stroke(PulseTheme.cardStroke, lineWidth: 0.8)
-            }
-            .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
+                .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
         }
     }
 
@@ -907,7 +904,7 @@ private struct TodayViewContent: View {
                 TrainingSignalTile(
                     title: localizedString("progress_2"),
                     value: "\(recentSessions.count)",
-                    subtitle: localizedFormat("days_count_format", "30"),
+                    subtitle: localizedFormat("days_count_format", 30),
                     systemImage: "chart.line.uptrend.xyaxis",
                     color: PulseTheme.ringMove,
                     domain: .cardio
@@ -1922,7 +1919,10 @@ private struct TodayViewContent: View {
                 subtitleKey: "smart_shortcuts_subtitle"
             )
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                NavigationLink(value: TodayRoute.exerciseLibrary) {
+                Button {
+                    HapticService.selection()
+                    onSelectTab?(.exercises)
+                } label: {
                     ShortcutTile(
                         title: "library",
                         subtitle: LocalizedStringKey(localizedFormat("exercises_count_format", store.exercises.count)),
@@ -3322,6 +3322,8 @@ private struct FitnessWeatherWindow: Hashable {
     let title: String
     let subtitle: String
     let systemImage: String
+    /// Hour (0-23) this window closes, used to detect a "today" window that has already elapsed.
+    let endHour: Int
 }
 
 private struct FitnessWeatherSnapshot: Identifiable, Hashable {
@@ -3388,6 +3390,7 @@ private struct FitnessWeatherSnapshot: Identifiable, Hashable {
             ? localizedString("sunny_hot_message")
             : localizedString("moderate_clouds_message")
         let dayTitle = dayOffset == 0 ? localizedString("today_2") : localizedString("tomorrow")
+        let windowEndHour = dayOffset == 0 ? 9 : 10
         let windowTitle = "\(dayTitle), \(dayOffset == 0 ? "07:00 - 09:00" : "08:00 - 10:00")"
         let windowRain = "\(rain.max() ?? 0)"
         let windowSpeed = "\(speed(5)) \(isImperial ? "mph" : "km/h")"
@@ -3414,7 +3417,8 @@ private struct FitnessWeatherSnapshot: Identifiable, Hashable {
             bestWindow: FitnessWeatherWindow(
                 title: windowTitle,
                 subtitle: localizedFormat("light_rain_wind_window_subtitle_format", "\(temp(dayOffset == 0 ? 21 : 22))\(isImperial ? "°F" : "°C")", windowRain, windowSpeed),
-                systemImage: "sunrise.fill"
+                systemImage: "sunrise.fill",
+                endHour: windowEndHour
             )
         )
     }
@@ -3448,19 +3452,39 @@ private struct FitnessWeatherInsight: Identifiable {
         tomorrow: FitnessWeatherSnapshot,
         battery: FitnessMetrics.TrainingBatteryStatus,
         hasActivePlan: Bool,
-        trainingLocation: UserProfile.TrainingLocation
+        trainingLocation: UserProfile.TrainingLocation,
+        now: Date = Date()
     ) -> [FitnessWeatherInsight] {
         var insights: [FitnessWeatherInsight] = []
+        var suggestedTomorrowWindow = false
         let comfortableHigh = today.temperatureUnit == "°F" ? 93 : 34
         let comfortableGusts = today.speedUnit == "mph" ? 25 : 40
 
+        let calendar = Calendar.current
+        let nowFraction = Double(calendar.component(.hour, from: now)) + Double(calendar.component(.minute, from: now)) / 60
+        // The mocked "best window" is a fixed morning slot; once its end hour has
+        // passed, recommending it as "today" would be a stale, already-elapsed tip.
+        let todayWindowHasPassed = nowFraction >= Double(today.bestWindow.endHour)
+        // Matches the 12:00-17:00 window referenced in strong_sun_midday_message_format.
+        let uvPeakHasPassed = nowFraction >= 17
+
         if today.rainProbability <= 10 && today.windGusts < comfortableGusts && today.highTemperature < comfortableHigh {
-            insights.append(FitnessWeatherInsight(
-                title: localizedString("good_day_to_go_out"),
-                message: localizedFormat("good_day_to_go_out_message_format", today.bestWindow.title.lowercased(with: RepsLocalization.locale)),
-                systemImage: "figure.run",
-                tone: .good
-            ))
+            if todayWindowHasPassed {
+                insights.append(FitnessWeatherInsight(
+                    title: localizedString("tomorrow_window"),
+                    message: localizedFormat("tomorrow_window_message_format", tomorrow.bestWindow.title, tomorrow.bestWindow.subtitle),
+                    systemImage: "clock.arrow.circlepath",
+                    tone: .indoor
+                ))
+                suggestedTomorrowWindow = true
+            } else {
+                insights.append(FitnessWeatherInsight(
+                    title: localizedString("good_day_to_go_out"),
+                    message: localizedFormat("good_day_to_go_out_message_format", today.bestWindow.title.lowercased(with: RepsLocalization.locale)),
+                    systemImage: "figure.run",
+                    tone: .good
+                ))
+            }
         } else {
             insights.append(FitnessWeatherInsight(
                 title: localizedString("controlled_outdoor_plan"),
@@ -3470,7 +3494,7 @@ private struct FitnessWeatherInsight: Identifiable {
             ))
         }
 
-        if today.uvIndex >= 7 {
+        if today.uvIndex >= 7 && !uvPeakHasPassed {
             insights.append(FitnessWeatherInsight(
                 title: localizedString("strong_sun_midday"),
                 message: localizedFormat("strong_sun_midday_message_format", "\(today.uvIndex)"),
@@ -3486,7 +3510,7 @@ private struct FitnessWeatherInsight: Identifiable {
                 systemImage: "house.and.flag.fill",
                 tone: .indoor
             ))
-        } else {
+        } else if !suggestedTomorrowWindow {
             insights.append(FitnessWeatherInsight(
                 title: localizedString("tomorrow_window"),
                 message: localizedFormat("tomorrow_window_message_format", tomorrow.bestWindow.title, tomorrow.bestWindow.subtitle),
@@ -3767,6 +3791,7 @@ private func weatherPath(in rect: CGRect, values: [Int]) -> Path {
 
 private struct FitnessWeatherInsightRow: View {
     let insight: FitnessWeatherInsight
+    var onDismiss: (() -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -3783,6 +3808,17 @@ private struct FitnessWeatherInsightRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
+            if let onDismiss {
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .padding(6)
+                        .background(PulseTheme.secondaryText.opacity(0.1), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(localizedString("dismiss_insight"))
+            }
         }
         .padding(12)
         .background(insight.color.opacity(0.08), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
@@ -3793,11 +3829,162 @@ private struct FitnessWeatherInsightRow: View {
     }
 }
 
+/// Persists which insights the user has hidden "for today" — dismissals reset
+/// automatically once the day rolls over since insights are regenerated daily.
+private enum WeatherInsightDismissalStore {
+    private static func key(for date: Date) -> String {
+        let day = Calendar.current.startOfDay(for: date)
+        return "weatherInsights.dismissed.\(Int(day.timeIntervalSince1970))"
+    }
+
+    static func dismissedIDs(for date: Date = Date()) -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: key(for: date)) ?? [])
+    }
+
+    static func dismiss(_ id: String, for date: Date = Date()) {
+        var ids = dismissedIDs(for: date)
+        ids.insert(id)
+        UserDefaults.standard.set(Array(ids), forKey: key(for: date))
+    }
+
+    static func restoreAll(for date: Date = Date()) {
+        UserDefaults.standard.removeObject(forKey: key(for: date))
+    }
+}
+
+/// Shared body for weather insight sections: expand/collapse into a one-line
+/// summary, and per-insight hide/show with a restore affordance once any are hidden.
+private struct WeatherInsightsPanel: View {
+    let insights: [FitnessWeatherInsight]
+    @Binding var isExpanded: Bool
+    @State private var dismissedIDs: Set<String>
+
+    init(insights: [FitnessWeatherInsight], isExpanded: Binding<Bool>) {
+        self.insights = insights
+        _isExpanded = isExpanded
+        _dismissedIDs = State(initialValue: WeatherInsightDismissalStore.dismissedIDs())
+    }
+
+    private var visibleInsights: [FitnessWeatherInsight] {
+        insights.filter { !dismissedIDs.contains($0.id) }
+    }
+
+    private var hiddenCount: Int { insights.count - visibleInsights.count }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if isExpanded {
+                if visibleInsights.isEmpty {
+                    allClearRow
+                } else {
+                    ForEach(visibleInsights) { insight in
+                        FitnessWeatherInsightRow(insight: insight) {
+                            dismiss(insight)
+                        }
+                        .transition(.asymmetric(
+                            insertion: .opacity,
+                            removal: .move(edge: .trailing).combined(with: .opacity)
+                        ))
+                    }
+                }
+                if hiddenCount > 0 {
+                    restoreButton
+                }
+            } else {
+                collapsedSummary
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.72), value: isExpanded)
+        .animation(.spring(response: 0.35, dampingFraction: 0.72), value: dismissedIDs)
+    }
+
+    private func dismiss(_ insight: FitnessWeatherInsight) {
+        HapticService.impact(.medium)
+        dismissedIDs.insert(insight.id)
+        WeatherInsightDismissalStore.dismiss(insight.id)
+    }
+
+    private var restoreButton: some View {
+        Button {
+            HapticService.selection()
+            dismissedIDs.removeAll()
+            WeatherInsightDismissalStore.restoreAll()
+        } label: {
+            Label(localizedFormat("weather_insights_restore_hidden_format", hiddenCount), systemImage: "arrow.uturn.backward")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(PulseTheme.accent)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var allClearRow: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(PulseTheme.recovery)
+            Text(localizedString("weather_insights_all_clear"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var collapsedSummary: some View {
+        HStack(spacing: 8) {
+            if let first = visibleInsights.first {
+                Image(systemName: first.systemImage)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(first.color)
+                Text(first.title)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(PulseTheme.textPrimary)
+                    .lineLimit(1)
+                if visibleInsights.count > 1 {
+                    Text(localizedFormat("weather_insights_more_count_format", visibleInsights.count - 1))
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(PulseTheme.secondaryText.opacity(0.12), in: Capsule())
+                }
+            } else {
+                Text(localizedString("weather_insights_all_clear"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+/// Chevron toggle shared by both weather insight sections (home + detail sheet).
+private struct WeatherInsightsCollapseToggle: View {
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        Button {
+            HapticService.selection()
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                isExpanded.toggle()
+            }
+        } label: {
+            Image(systemName: "chevron.down")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .rotationEffect(.degrees(isExpanded ? 0 : -90))
+                .padding(7)
+                .background(PulseTheme.secondaryText.opacity(0.08), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isExpanded ? localizedString("collapse_insights") : localizedString("expand_insights"))
+    }
+}
+
 private struct TodayWeatherDetailView: View {
     let today: FitnessWeatherSnapshot
     let tomorrow: FitnessWeatherSnapshot
     let insights: [FitnessWeatherInsight]
     @State private var selectedDay: FitnessWeatherDay
+    @State private var isInsightsExpanded = true
 
     init(
         today: FitnessWeatherSnapshot,
@@ -3970,10 +4157,12 @@ private struct TodayWeatherDetailView: View {
     private var insightsCard: some View {
         GlassMetricCard(domain: domain) {
             VStack(alignment: .leading, spacing: 10) {
-                WeatherDetailCardHeader(title: localizedString("fitness_insights"), systemImage: "sparkles", color: PulseTheme.accent)
-                ForEach(insights) { insight in
-                    FitnessWeatherInsightRow(insight: insight)
+                HStack(alignment: .top, spacing: 8) {
+                    WeatherDetailCardHeader(title: localizedString("fitness_insights"), systemImage: "sparkles", color: PulseTheme.accent)
+                    Spacer(minLength: 8)
+                    WeatherInsightsCollapseToggle(isExpanded: $isInsightsExpanded)
                 }
+                WeatherInsightsPanel(insights: insights, isExpanded: $isInsightsExpanded)
             }
         }
     }
@@ -4064,7 +4253,6 @@ private enum TodayRoute: Hashable {
     case greetingRecovery
     case activeWorkout
     case workoutDetail(WorkoutDay)
-    case exerciseLibrary
     case workoutLibrary
 }
 
@@ -4154,11 +4342,10 @@ struct WeeklyProgressHeroCard: View {
                                 VStack {
                                     Spacer()
                                     RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                        .fill(point.isToday
-                                            ? PulseTheme.accent
-                                            : (point.hasActivity
-                                                ? PulseTheme.accent.opacity(0.50)
-                                                : PulseTheme.grouped.opacity(0.50))
+                                        .fill(barFill(for: point))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                                .strokeBorder(PulseTheme.accentOnCard.opacity(point.isToday ? 0.9 : 0), lineWidth: 1.5)
                                         )
                                         .frame(
                                             height: barsAnimated
@@ -4190,6 +4377,24 @@ struct WeeklyProgressHeroCard: View {
                 barsAnimated = true
             }
         }
+    }
+
+    /// Vertical gradient whose hue reflects the day's share of the week's peak
+    /// volume — cool (cyan/green) for light days, hot (orange/red) for the
+    /// biggest ones — instead of a single flat green, so the row reads as a
+    /// heatmap of effort at a glance. Rest days stay neutral gray.
+    private func barFill(for point: WeeklyBarPoint) -> LinearGradient {
+        guard point.hasActivity else {
+            return LinearGradient(
+                colors: [PulseTheme.grouped.opacity(0.5), PulseTheme.grouped.opacity(0.5)],
+                startPoint: .top, endPoint: .bottom
+            )
+        }
+        let base = PulseTheme.magnitudeColor(point.normalizedHeight)
+        return LinearGradient(
+            colors: [base.opacity(point.isToday ? 0.85 : 0.62), base],
+            startPoint: .top, endPoint: .bottom
+        )
     }
 }
 

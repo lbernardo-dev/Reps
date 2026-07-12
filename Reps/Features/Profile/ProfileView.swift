@@ -554,8 +554,7 @@ struct ProfileView: View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text("gimnasios")
-                        .font(.headline)
+                    CardTitle("gyms")
                     Spacer()
                     Button { activeSheet = .addGymPass } label: {
                         Image(systemName: "qrcode")
@@ -612,10 +611,24 @@ struct ProfileView: View {
 
                 if !store.gymVisits.isEmpty {
                     Divider()
-                    Text("visit_timeline")
-                        .font(.subheadline.weight(.semibold))
-                    ForEach(store.gymVisits.sorted { $0.date > $1.date }.prefix(5)) { visit in
-                        GymVisitRow(visit: visit)
+                    HStack {
+                        Text("visit_timeline")
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                        NavigationLink {
+                            GymVisitTimelineView()
+                        } label: {
+                            HStack(spacing: 3) {
+                                Text("Ver más")
+                                Image(systemName: "chevron.right")
+                            }
+                            .font(.caption.weight(.bold))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(PulseTheme.accent)
+                    }
+                    if let latestVisit = store.gymVisits.max(by: { $0.date < $1.date }) {
+                        GymVisitRow(visit: latestVisit)
                     }
                 }
             }
@@ -2197,6 +2210,8 @@ private struct GymPassPreview: View {
 
 private struct GymVisitRow: View {
     let visit: GymVisit
+    var linkedSessions: [WorkoutSession] = []
+    var showsSessionLinks = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -2214,11 +2229,244 @@ private struct GymVisitRow: View {
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
                 if let workoutTitle = visit.workoutTitle, !workoutTitle.isEmpty {
-                    Label(workoutTitle, systemImage: "dumbbell.fill")
-                        .font(.caption)
-                        .foregroundStyle(PulseTheme.accent)
+                    if showsSessionLinks, !linkedSessions.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(linkedSessions) { session in
+                                NavigationLink {
+                                    WorkoutSessionDetailView(session: session)
+                                } label: {
+                                    Label(session.workoutTitle, systemImage: "dumbbell.fill")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.accent)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    } else {
+                        Label(workoutTitle, systemImage: "dumbbell.fill")
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.accent)
+                    }
                 }
             }
+        }
+    }
+}
+
+private struct GymVisitTimelineView: View {
+    @Environment(AppStore.self) private var store
+    @State private var searchText = ""
+    @State private var sortOrder: SortOrder = .newestFirst
+    @State private var sessionFilter: SessionFilter = .all
+
+    private struct DayGroup: Identifiable {
+        let date: Date
+        let title: String
+        let visits: [GymVisit]
+        var id: Date { date }
+    }
+
+    private enum SortOrder: String, CaseIterable, Identifiable {
+        case newestFirst
+        case oldestFirst
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .newestFirst: "Recientes"
+            case .oldestFirst: "Antiguas"
+            }
+        }
+    }
+
+    private enum SessionFilter: String, CaseIterable, Identifiable {
+        case all
+        case withSession
+        case withoutSession
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .all: localizedString("all").capitalizingFirstLetter()
+            case .withSession: "Con sesión"
+            case .withoutSession: "Sin sesión"
+            }
+        }
+    }
+
+    private var groups: [DayGroup] {
+        let filteredVisits = store.gymVisits
+            .filter(matchesSearch)
+            .filter(matchesSessionFilter)
+            .sorted { lhs, rhs in
+                switch sortOrder {
+                case .newestFirst: lhs.date > rhs.date
+                case .oldestFirst: lhs.date < rhs.date
+                }
+            }
+
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        formatter.locale = RepsLocalization.locale
+
+        let grouped = Dictionary(grouping: filteredVisits) { visit in
+            calendar.startOfDay(for: visit.date)
+        }
+
+        return grouped.map { date, visits in
+            DayGroup(
+                date: date,
+                title: formatter.string(from: date).capitalizingFirstLetter(),
+                visits: visits.sorted { lhs, rhs in
+                    switch sortOrder {
+                    case .newestFirst: lhs.date > rhs.date
+                    case .oldestFirst: lhs.date < rhs.date
+                    }
+                }
+            )
+        }
+        .sorted { lhs, rhs in
+            switch sortOrder {
+            case .newestFirst: lhs.date > rhs.date
+            case .oldestFirst: lhs.date < rhs.date
+            }
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            controls
+
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: 14) {
+                    if groups.isEmpty {
+                        PulseCard {
+                            PulseEmptyState(
+                                title: "no_results",
+                                message: "completed_sessions_match_message",
+                                systemImage: "calendar.badge.exclamationmark"
+                            )
+                        }
+                    } else {
+                        ForEach(groups) { group in
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(verbatim: group.title)
+                                    .font(.subheadline.weight(.black))
+                                    .foregroundStyle(PulseTheme.accent)
+                                    .padding(.horizontal, 6)
+
+                                LazyVStack(spacing: 10) {
+                                    ForEach(group.visits) { visit in
+                                        PulseCard {
+                                            GymVisitRow(
+                                                visit: visit,
+                                                linkedSessions: linkedSessions(for: visit),
+                                                showsSessionLinks: true
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.top, 14)
+                .padding(.bottom, 116)
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+        }
+        .screenBackground()
+        .navigationTitle("visit_timeline")
+        .navigationBarTitleDisplayMode(.inline)
+        .mainTabBarHidden()
+    }
+
+    private var controls: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(PulseTheme.secondaryText)
+                TextField("search_by_title_or_notes", text: $searchText)
+                    .font(.subheadline)
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(PulseTheme.accent.opacity(0.18), lineWidth: 0.8)
+            }
+
+            HStack(spacing: 10) {
+                Picker("Orden", selection: $sortOrder) {
+                    ForEach(SortOrder.allCases) { order in
+                        Text(order.title).tag(order)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Menu {
+                    Picker("Filtro", selection: $sessionFilter) {
+                        ForEach(SessionFilter.allCases) { filter in
+                            Text(filter.title).tag(filter)
+                        }
+                    }
+                } label: {
+                    Label(sessionFilter.title, systemImage: "line.3.horizontal.decrease.circle")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.accent)
+                        .padding(.horizontal, 12)
+                        .frame(height: 34)
+                        .background(PulseTheme.grouped, in: Capsule(style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+        .padding(.top, 10)
+        .padding(.bottom, 12)
+        .background(PulseTheme.background)
+    }
+
+    private func linkedSessions(for visit: GymVisit) -> [WorkoutSession] {
+        let ids = Set(visit.workoutSessionIDs)
+        guard !ids.isEmpty else { return [] }
+        return store.workoutSessions
+            .filter { ids.contains($0.id) }
+            .sorted { $0.date > $1.date }
+    }
+
+    private func matchesSearch(_ visit: GymVisit) -> Bool {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return true }
+        return visit.gymName.localizedCaseInsensitiveContains(query)
+            || (visit.address ?? "").localizedCaseInsensitiveContains(query)
+            || (visit.locationNote ?? "").localizedCaseInsensitiveContains(query)
+            || (visit.workoutTitle ?? "").localizedCaseInsensitiveContains(query)
+    }
+
+    private func matchesSessionFilter(_ visit: GymVisit) -> Bool {
+        switch sessionFilter {
+        case .all:
+            true
+        case .withSession:
+            !visit.workoutSessionIDs.isEmpty
+        case .withoutSession:
+            visit.workoutSessionIDs.isEmpty
         }
     }
 }

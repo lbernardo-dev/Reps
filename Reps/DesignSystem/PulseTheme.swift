@@ -2,6 +2,14 @@ import CryptoKit
 import MuscleMap
 import SwiftUI
 
+private extension UIColor {
+    var rgbaComponents: (red: Double, green: Double, blue: Double, alpha: Double) {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        return (Double(red), Double(green), Double(blue), Double(alpha))
+    }
+}
+
 // MARK: - Design Tokens
 
 enum PulseTheme {
@@ -57,6 +65,35 @@ enum PulseTheme {
     static func hrZoneColor(_ zone: Int?) -> Color {
         guard let zone, (1...5).contains(zone) else { return tertiaryText }
         return hrZones[zone - 1]
+    }
+
+    /// Continuous cool→hot stops for magnitude-based data viz (e.g. a bar's
+    /// share of its own weekly max), distinct from `hrZones` which indexes
+    /// discrete heart-rate zones.
+    private static let magnitudeStops: [Color] = [semanticProgress, semanticHealth, semanticAction, semanticWarning, semanticEffort]
+
+    /// Interpolated color for a normalized magnitude `t` (0...1) across `magnitudeStops`,
+    /// so bars/marks read low→high as cyan→green→lime→orange→red instead of one flat hue.
+    static func magnitudeColor(_ t: Double) -> Color {
+        let stops = magnitudeStops
+        let clamped = min(max(t, 0), 1)
+        let scaled = clamped * Double(stops.count - 1)
+        let lowerIndex = Int(scaled)
+        let upperIndex = min(lowerIndex + 1, stops.count - 1)
+        return blend(stops[lowerIndex], stops[upperIndex], scaled - Double(lowerIndex))
+    }
+
+    /// Linear RGBA blend between two colors, `amount` clamped to 0...1.
+    static func blend(_ from: Color, _ to: Color, _ amount: Double) -> Color {
+        let amount = max(0, min(1, amount))
+        let f = UIColor(from).rgbaComponents
+        let t = UIColor(to).rgbaComponents
+        return Color(
+            red: f.red + (t.red - f.red) * amount,
+            green: f.green + (t.green - f.green) * amount,
+            blue: f.blue + (t.blue - f.blue) * amount,
+            opacity: f.alpha + (t.alpha - f.alpha) * amount
+        )
     }
 
     // MARK: Surface colors

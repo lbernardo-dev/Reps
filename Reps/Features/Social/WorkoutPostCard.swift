@@ -19,6 +19,11 @@ struct WorkoutPostCard: View {
     var onProfileTap: () -> Void
     var onLike: () -> Void
     var onComment: () -> Void
+    /// Called after a moderator successfully deletes or bans from this card,
+    /// so callers holding their own local post list (explore grid, profile
+    /// grid) can remove it too. The main feed doesn't need this — it reads
+    /// `store.feedPosts` directly, which AppStore already updates.
+    var onModeratorAction: (() -> Void)? = nil
 
     @State private var showLikeBurst = false
 
@@ -104,6 +109,23 @@ struct WorkoutPostCard: View {
                         Task { _ = await store.blockSocialUser(post.ownerUsername) }
                     } label: {
                         Label(localizedString("social_block_user"), systemImage: "person.crop.circle.badge.xmark")
+                    }
+                    if store.isSocialModerator {
+                        Divider()
+                        Button(role: .destructive) {
+                            Task {
+                                if await store.moderatorDeletePost(post) { onModeratorAction?() }
+                            }
+                        } label: {
+                            Label(localizedString("social_moderator_delete_post"), systemImage: "trash")
+                        }
+                        Button(role: .destructive) {
+                            Task {
+                                if await store.moderatorBanUser(post.ownerUsername) { onModeratorAction?() }
+                            }
+                        } label: {
+                            Label(localizedString("social_moderator_ban_user"), systemImage: "hand.raised.fill")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")

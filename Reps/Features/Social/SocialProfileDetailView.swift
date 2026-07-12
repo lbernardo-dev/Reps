@@ -59,8 +59,10 @@ struct SocialProfileDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .sheet(item: $selectedPost) { post in
-            PostDetailSheet(post: post, onProfileTap: {})
-                .environment(store)
+            PostDetailSheet(post: post, onProfileTap: {}, onModeratorDelete: {
+                posts.removeAll { $0.id == post.id }
+            })
+            .environment(store)
         }
     }
 
@@ -412,6 +414,7 @@ private struct PostDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     let post: WorkoutPost
     var onProfileTap: () -> Void
+    var onModeratorDelete: (() -> Void)? = nil
 
     @State private var isLiked = false
     @State private var isLiking = false
@@ -419,9 +422,10 @@ private struct PostDetailSheet: View {
     @State private var commentSummary: CommentSummary?
     @State private var showComments = false
 
-    init(post: WorkoutPost, onProfileTap: @escaping () -> Void) {
+    init(post: WorkoutPost, onProfileTap: @escaping () -> Void, onModeratorDelete: (() -> Void)? = nil) {
         self.post = post
         self.onProfileTap = onProfileTap
+        self.onModeratorDelete = onModeratorDelete
         _likeCount = State(initialValue: post.likeCount)
     }
 
@@ -441,7 +445,11 @@ private struct PostDetailSheet: View {
                     commentSummary: commentSummary,
                     onProfileTap: onProfileTap,
                     onLike: toggleLike,
-                    onComment: { showComments = true }
+                    onComment: { showComments = true },
+                    onModeratorAction: {
+                        onModeratorDelete?()
+                        dismiss()
+                    }
                 )
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.top, 16)

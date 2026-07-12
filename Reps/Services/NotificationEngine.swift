@@ -53,7 +53,8 @@ extension AppStore {
             colorName: "orange",
             title: localizedString("notif_inactivity_title"),
             subtitle: localizedFormat("notif_inactivity_body_format", days),
-            date: now
+            date: now,
+            category: .coaching
         )
 
         guard userProfile.remindersEnabled else { return }
@@ -90,7 +91,8 @@ extension AppStore {
             title: localizedString("inbox_weekly_recap_title"),
             subtitle: localizedFormat("inbox_weekly_recap_subtitle_format", lastWeekSessions.count, volumeText),
             date: now,
-            destination: .workoutHistory
+            destination: .workoutHistory,
+            category: .coaching
         )
 
         // Evolution: volume trend vs the week before that.
@@ -105,7 +107,8 @@ extension AppStore {
                         title: localizedString("inbox_volume_up_title"),
                         subtitle: localizedFormat("inbox_volume_up_subtitle_format", delta),
                         date: now,
-                        destination: .workoutHistory
+                        destination: .workoutHistory,
+                        category: .coaching
                     )
                 }
             }
@@ -126,7 +129,8 @@ extension AppStore {
             colorName: "yellow",
             title: localizedString("notif_deload_title"),
             subtitle: localizedString("notif_deload_body"),
-            date: now
+            date: now,
+            category: .coaching
         )
 
         guard userProfile.remindersEnabled else { return }
@@ -153,7 +157,8 @@ extension AppStore {
                 colorName: "primaryBright",
                 title: localizedString("notif_goal_reached_title"),
                 subtitle: localizedFormat("notif_goal_reached_body_format", goal.title),
-                date: now
+                date: now,
+                category: .achievement
             )
 
             guard userProfile.remindersEnabled else { continue }
@@ -173,7 +178,8 @@ extension AppStore {
             title: localizedString("inbox_pr_title"),
             subtitle: localizedFormat("notif_pr_body_format", exerciseName),
             date: date,
-            destination: .personalRecords
+            destination: .personalRecords,
+            category: .achievement
         )
     }
 

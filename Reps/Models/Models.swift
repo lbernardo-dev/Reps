@@ -129,6 +129,11 @@ struct UserProfile: Codable {
     var socialLocation: String = ""
     var autoShareWorkouts: Bool = true
     var socialNotificationsEnabled: Bool = true
+    /// Panel-level category toggles for the in-app notifications inbox
+    /// (distinct from `remindersEnabled`, which governs system push nudges).
+    var notifyWorkoutActivity: Bool = true
+    var notifyAchievements: Bool = true
+    var notifyCoachingTips: Bool = true
     var socialAgeGateStatus: SocialAgeGateStatus = .unknown
     var socialAgeGateCheckedAt: Date?
     // Usernames the local user is following — stored locally so we can fetch
@@ -142,8 +147,13 @@ struct UserProfile: Codable {
         themeMode ?? .dark
     }
 
+    /// Community features are only disabled when Apple's on-device age check
+    /// *confirms* the account is under 13 — a legal requirement. There is no
+    /// backend to adjudicate the other outcomes (declined sharing, API
+    /// unavailable), so those are treated as user responsibility rather than
+    /// a product-level block.
     var socialCapabilitiesAllowed: Bool {
-        socialAgeGateStatus == .allowed13Plus
+        socialAgeGateStatus != .blockedUnder13
     }
 
     enum SocialAgeGateStatus: String, Codable {

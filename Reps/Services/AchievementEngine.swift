@@ -13,6 +13,12 @@ extension AppStore {
         pendingAchievementUnlocks.removeFirst()
     }
 
+    /// Called by AchievementUnlockOverlay when the user taps "Close all" to skip the rest of the queue at once.
+    /// The unlocks stay recorded (already marked as seen) and remain reviewable from the profile's achievements list.
+    func dequeueAllAchievementUnlocks() {
+        pendingAchievementUnlocks.removeAll()
+    }
+
     // MARK: - Hydration achievements
 
     func evaluateHydrationAchievements(isFirstEverLog: Bool, logHour: Int) {
