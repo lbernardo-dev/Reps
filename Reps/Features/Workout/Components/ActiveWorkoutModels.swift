@@ -33,13 +33,25 @@ struct SetCompletionFeedbackBanner: View {
     let feedback: SetCompletionFeedback
     let onUndo: () -> Void
 
+    @State private var appeared = false
+    @State private var checkPulse = false
+
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.title3.weight(.bold))
-                .foregroundStyle(PulseTheme.growth)
-                .frame(width: 34, height: 34)
-                .background(PulseTheme.growth.opacity(0.14), in: Circle())
+            ZStack {
+                Circle()
+                    .fill(PulseTheme.growth.opacity(checkPulse ? 0.28 : 0.14))
+                    .frame(width: 38, height: 38)
+                    .scaleEffect(checkPulse ? 1.18 : 1.0)
+                    .animation(.easeInOut(duration: 0.36).repeatCount(2, autoreverses: true), value: checkPulse)
+
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(PulseTheme.growth)
+                    .scaleEffect(checkPulse ? 1.12 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.55).repeatCount(2, autoreverses: true), value: checkPulse)
+            }
+            .frame(width: 38, height: 38)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("set_registered_feedback_title")
@@ -64,10 +76,20 @@ struct SetCompletionFeedbackBanner: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                .stroke(PulseTheme.cardStroke, lineWidth: 1)
+                .stroke(PulseTheme.growth.opacity(appeared ? 0.40 : 0.10), lineWidth: 1.2)
         }
+        .shadow(color: PulseTheme.growth.opacity(appeared ? 0.22 : 0.0), radius: 14, y: 6)
         .shadow(color: .black.opacity(0.18), radius: 18, y: 10)
+        .scaleEffect(appeared ? 1.0 : 0.72)
+        .opacity(appeared ? 1.0 : 0.0)
+        .animation(.spring(response: 0.42, dampingFraction: 0.58), value: appeared)
         .accessibilityElement(children: .combine)
+        .onAppear {
+            appeared = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                checkPulse = true
+            }
+        }
     }
 }
 

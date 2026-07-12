@@ -4,7 +4,7 @@ import WatchKit
 // MARK: - Root router
 
 struct WatchWorkoutView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
 
     private var isActive: Bool {
         model.mode != .none || model.snapshot.hasActiveWorkout
@@ -25,7 +25,7 @@ struct WatchWorkoutView: View {
 // MARK: - Start launcher
 
 struct WatchStartView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
 
     private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
 
@@ -118,7 +118,7 @@ private struct WatchProLockedView: View {
 // MARK: - Home dashboard (general + today progress)
 
 private struct WatchProgressDashboard: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
 
     private var weekly: Double { min(max(model.snapshot.weeklyCompletion, 0), 1) }
     private var batteryLevel: Int { model.snapshot.trainingBatteryLevel }
@@ -172,7 +172,7 @@ private struct WatchProgressDashboard: View {
 }
 
 private struct WatchTodaySessionCard: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
     private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
 
     var body: some View {
@@ -390,7 +390,7 @@ private struct WatchStartRowLabel: View {
 }
 
 private struct WatchIntervalPickerView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
 
     var body: some View {
         ScrollView {
@@ -431,7 +431,7 @@ private struct WatchIntervalPickerView: View {
 // MARK: - Active workout container
 
 struct WatchActiveWorkoutView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
     @State private var page = 0
 
     var body: some View {
@@ -479,7 +479,7 @@ struct WatchActiveWorkoutView: View {
 // MARK: - Route: now page
 
 struct WatchRouteNowView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
     @State private var showStopConfirmation = false
 
     private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
@@ -574,7 +574,7 @@ struct WatchRouteNowView: View {
 // MARK: - Route: summary page
 
 struct WatchRouteSummaryView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
 
     var body: some View {
         ScrollView {
@@ -601,7 +601,7 @@ struct WatchRouteSummaryView: View {
 // MARK: - Strength: now page (set logging)
 
 struct WatchStrengthNowView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
     @State private var showStopConfirmation = false
 
     private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
@@ -848,7 +848,7 @@ struct WatchStrengthNowView: View {
 // MARK: - Strength: summary page
 
 struct WatchStrengthSummaryView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
     private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
 
     var body: some View {
@@ -918,7 +918,7 @@ struct WatchStrengthSummaryView: View {
 // MARK: - Interval: now page
 
 struct WatchIntervalNowView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
     @State private var showStopConfirmation = false
 
     private var phaseColor: Color { model.intervalIsWork ? .red : WatchTheme.success }
@@ -998,7 +998,7 @@ struct WatchIntervalNowView: View {
 // MARK: - Interval: summary page
 
 struct WatchIntervalSummaryView: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
 
     var body: some View {
         ScrollView {
@@ -1033,7 +1033,7 @@ struct WatchIntervalSummaryView: View {
 // MARK: - Metrics page (shared middle tab)
 
 struct WatchMetricsPage: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
     private var accent: Color { WatchTheme.accent(for: model.snapshot.widgetAccentColorName) }
 
     var body: some View {
@@ -1278,7 +1278,7 @@ struct WatchTag: View {
 }
 
 struct WatchEndButton: View {
-    @EnvironmentObject private var model: WatchWorkoutModel
+    @Environment(WatchWorkoutModel.self) private var model
     @State private var showConfirmation = false
 
     var body: some View {

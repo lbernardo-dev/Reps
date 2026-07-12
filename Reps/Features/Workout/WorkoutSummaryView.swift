@@ -17,6 +17,9 @@ struct WorkoutSummaryView: View {
     @State private var feedComposeImage: UIImage?
     @State private var isShowingFeedCompose = false
 
+    // MARK: – Staged reveal
+    @State private var revealedStep: Int = 0
+
     private var completedSets: [SetLog] {
         FitnessMetrics.completedSets(in: session)
     }
@@ -89,19 +92,25 @@ struct WorkoutSummaryView: View {
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 20) {
+
+                        // ── Step 0: Receipt ───────────────────────────────────────
                         WorkoutReceiptView(session: session)
                             .padding(.horizontal, 4)
+                            .revealStep(0, current: revealedStep)
 
+                        // ── Step 1: PRs ───────────────────────────────────────────
                         if !sessionPRs.isEmpty {
                             PulseCard {
                                 VStack(alignment: .leading, spacing: 12) {
                                     HStack(spacing: 10) {
-                                        Image(systemName: "trophy.fill")
-                                            .font(.headline.weight(.bold))
-                                            .foregroundStyle(.black)
-                                            .frame(width: 38, height: 38)
-                                            .background(PulseTheme.accent)
-                                            .clipShape(Circle())
+                                        ZStack {
+                                            Circle()
+                                                .fill(PulseTheme.accent)
+                                                .frame(width: 38, height: 38)
+                                            Image(systemName: "trophy.fill")
+                                                .font(.headline.weight(.bold))
+                                                .foregroundStyle(.black)
+                                        }
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(localizedString("new_personal_records"))
                                                 .font(.headline)
@@ -152,8 +161,10 @@ struct WorkoutSummaryView: View {
                                 }
                             }
                             .padding(.horizontal, 4)
+                            .revealStep(1, current: revealedStep)
                         }
 
+                        // ── Step 2: Muscle summary ────────────────────────────────
                         if workedMuscleCount > 0 {
                             SessionMuscleSummaryCard(
                                 loads: weeklyLoads,
@@ -162,13 +173,17 @@ struct WorkoutSummaryView: View {
                                 durationText: durationText
                             )
                             .padding(.horizontal, 4)
+                            .revealStep(2, current: revealedStep)
                         }
 
+                        // ── Step 3: Goals ─────────────────────────────────────────
                         if !activeGoalHighlights.isEmpty {
                             PostWorkoutGoalProgressCard(goals: activeGoalHighlights)
                                 .padding(.horizontal, 4)
+                                .revealStep(3, current: revealedStep)
                         }
 
+                        // ── Step 4: Progressions ──────────────────────────────────
                         if !postWorkoutRecommendations.isEmpty {
                             ProgressionRecommendationCard(
                                 recommendations: postWorkoutRecommendations,
@@ -176,8 +191,10 @@ struct WorkoutSummaryView: View {
                                 title: "progression_plan"
                             )
                             .padding(.horizontal, 4)
+                            .revealStep(4, current: revealedStep)
                         }
 
+                        // ── Step 5: Share buttons ─────────────────────────────────
                         HStack(spacing: 12) {
                             Button(action: shareSession) {
                                 HStack {
@@ -220,6 +237,7 @@ struct WorkoutSummaryView: View {
                             .buttonStyle(.plain)
                         }
                         .padding(.horizontal, 4)
+                        .revealStep(5, current: revealedStep)
 
                         if store.userProfile.socialEnabled,
                            store.userProfile.socialCapabilitiesAllowed,
@@ -253,8 +271,10 @@ struct WorkoutSummaryView: View {
                             .buttonStyle(.plain)
                             .disabled(isSharingToFeed || feedShared)
                             .padding(.horizontal, 4)
+                            .revealStep(5, current: revealedStep)
                         }
 
+                        // ── Step 6: Notes ─────────────────────────────────────────
                         PulseCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 CardTitle("detalles_adicionales")
@@ -272,6 +292,7 @@ struct WorkoutSummaryView: View {
                                 }
                             }
                         }
+                        .revealStep(6, current: revealedStep)
                     }
                     .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                     .padding(.vertical, 16)
@@ -294,8 +315,19 @@ struct WorkoutSummaryView: View {
                     .padding(.trailing, 16)
                     .accessibilityLabel("close_summary")
                 }
+                .task {
+                    // Staged reveal: cada paso aparece con un delay incremental
+                    let steps = 7
+                    for step in 0..<steps {
+                        try? await Task.sleep(for: .milliseconds(step == 0 ? 80 : 280))
+                        withAnimation(.spring(response: 0.50, dampingFraction: 0.72)) {
+                            revealedStep = step
+                        }
+                    }
+                }
             }
         }
+
         .sheet(isPresented: $isShowingShareSheet) {
             if let image = generatedImage {
                 ActivityViewController(activityItems: [

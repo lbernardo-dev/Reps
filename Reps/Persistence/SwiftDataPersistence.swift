@@ -221,7 +221,12 @@ final class SwiftDataPersistence {
         case .profile:
             deleteAll(UserProfileRecord.self)
             let profileRecord = UserProfileRecord(profile: snapshot.userProfile)
-            profileRecord.activeWorkoutStatusData = try? JSONEncoder().encode(snapshot.activeWorkoutStatus)
+            
+            // Strip heavy route points array from the persisted active workout state to avoid main-actor SQLite lags
+            var statusToPersist = snapshot.activeWorkoutStatus
+            statusToPersist?.routePoints = nil
+            
+            profileRecord.activeWorkoutStatusData = try? JSONEncoder().encode(statusToPersist)
             profileRecord.activeWorkoutData = try? JSONEncoder().encode(snapshot.activeWorkout)
             profileRecord.activeWorkoutDraftsData = try? JSONEncoder().encode(snapshot.activeWorkoutDrafts)
             context.insert(profileRecord)

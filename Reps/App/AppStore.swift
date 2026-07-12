@@ -210,20 +210,22 @@ final class AppStore {
             }
         )
         self.nativeWorkoutSessionService = nativeWorkoutSessionService
-        if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
-            restore(snapshot)
-        } else {
-            restore(.empty)
-            persistence.save(currentSnapshot)
-            SharedWorkoutStore.save(sharedWorkoutSnapshot())
-        }
-        RepsLocalization.use(userProfile.preferredLanguage)
-        evaluateExistingAchievementUnlocks()
-        cleanupJunkHealthWorkoutsIfNeeded()
-        _ = loadActivityEvents()
+        restore(.empty)
+        Task {
+            if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
+                restore(snapshot)
+            } else {
+                persistence.save(currentSnapshot)
+                SharedWorkoutStore.save(sharedWorkoutSnapshot())
+            }
+            RepsLocalization.use(userProfile.preferredLanguage)
+            evaluateExistingAchievementUnlocks()
+            cleanupJunkHealthWorkoutsIfNeeded()
+            _ = loadActivityEvents()
 
-        if startsBackgroundServices {
-            startBackgroundServicesIfNeeded()
+            if startsBackgroundServices {
+                startBackgroundServicesIfNeeded()
+            }
         }
     }
 
@@ -5232,9 +5234,10 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
         context["estimatedMaxHeartRate"] = snapshot.estimatedMaxHeartRate
         context["hasWatchAccess"] = snapshot.hasWatchAccess
 
-        try? session.updateApplicationContext(context)
         if session.isReachable {
             session.sendMessage(context, replyHandler: nil)
+        } else {
+            try? session.updateApplicationContext(context)
         }
     }
 

@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import Observation
 import CoreMotion
 import HealthKit
 import WatchConnectivity
@@ -79,38 +80,39 @@ struct WatchIntervalPreset: Identifiable, Hashable {
     ]
 }
 
+@Observable
 @MainActor
-final class WatchWorkoutModel: NSObject, ObservableObject, CLLocationManagerDelegate {
+final class WatchWorkoutModel: NSObject, CLLocationManagerDelegate {
     enum State {
         case idle
         case running
         case paused
     }
 
-    @Published var snapshot = SharedWorkoutSnapshot.empty
-    @Published var state: State = .idle
-    @Published var heartRate: Double?
-    @Published var activeEnergy: Double = 0
-    @Published var routeDistanceKm: Double?
-    @Published var routeSteps: Double?
-    @Published var routePaceSecondsPerKm: Double?
-    @Published var routeSpeedKmh: Double?
-    @Published var elapsedSeconds = 0
-    @Published var message: String?
-    @Published var routePointCount = 0
-    @Published var isStandaloneRouteWorkout = false
+    var snapshot = SharedWorkoutSnapshot.empty
+    var state: State = .idle
+    var heartRate: Double?
+    var activeEnergy: Double = 0
+    var routeDistanceKm: Double?
+    var routeSteps: Double?
+    var routePaceSecondsPerKm: Double?
+    var routeSpeedKmh: Double?
+    var elapsedSeconds = 0
+    var message: String?
+    var routePointCount = 0
+    var isStandaloneRouteWorkout = false
 
     // MARK: Local strength / interval state
-    @Published var mode: WatchWorkoutMode = .none
-    @Published var exercises: [WatchExercise] = []
-    @Published var currentExerciseIndex = 0
-    @Published var intervalPreset: WatchIntervalPreset?
-    @Published var intervalRound = 0          // 0-based current round
-    @Published var intervalIsWork = true
-    @Published var intervalPhaseRemaining = 0
-    @Published var intervalFinished = false
+    var mode: WatchWorkoutMode = .none
+    var exercises: [WatchExercise] = []
+    var currentExerciseIndex = 0
+    var intervalPreset: WatchIntervalPreset?
+    var intervalRound = 0          // 0-based current round
+    var intervalIsWork = true
+    var intervalPhaseRemaining = 0
+    var intervalFinished = false
     /// Local rest countdown after a set in a standalone strength session.
-    @Published var localRestEndDate: Date?
+    var localRestEndDate: Date?
 
     /// Structural signature of the last phone-driven hydration, so live edits
     /// aren't clobbered by routine snapshot republishes.

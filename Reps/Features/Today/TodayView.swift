@@ -543,6 +543,8 @@ private struct TodayViewContent: View {
                 } else {
                     dailyReadinessGreeting
                         .stickyHeaderTitle(localizedString("today_3"))
+                    weeklyProgressHero
+                        .stickyHeaderTitle(localizedString("weekly_target"))
                     weatherSection
                         .stickyHeaderTitle(localizedString("weather"))
                     outdoorIntelligenceSection
@@ -708,7 +710,45 @@ private struct TodayViewContent: View {
         }
     }
 
+    // MARK: - Weekly Progress Hero
 
+    private var weeklyProgressBarPoints: [WeeklyBarPoint] {
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: store.userProfile.preferredLanguage)
+        formatter.dateFormat = "EEEEE"
+
+        let maxVolume = (0..<7).compactMap { offset -> Double? in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
+            let daySessions = weekSessions.filter { calendar.isDate($0.date, inSameDayAs: date) }
+            return FitnessMetrics.totalVolumeKg(for: daySessions)
+        }.max() ?? 1.0
+
+        return (0..<7).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
+            let daySessions = weekSessions.filter { calendar.isDate($0.date, inSameDayAs: date) }
+            let vol = FitnessMetrics.totalVolumeKg(for: daySessions)
+            return WeeklyBarPoint(
+                id: date,
+                dayLabel: formatter.string(from: date),
+                normalizedHeight: maxVolume > 0 ? min(vol / maxVolume, 1.0) : 0,
+                hasActivity: !daySessions.isEmpty,
+                isToday: calendar.isDateInToday(date)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var weeklyProgressHero: some View {
+        WeeklyProgressHeroCard(
+            streakDays: streakDays,
+            completedThisWeek: completedThisWeek,
+            weeklyTarget: store.userProfile.weeklyTrainingDays,
+            weeklyVolumeKg: FitnessMetrics.totalVolumeKg(for: weekSessions),
+            weeklyVolumeUnit: displayedVolumeUnit,
+            barPoints: weeklyProgressBarPoints
+        )
+    }
 
     private var dailyReadinessGreeting: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -4026,4 +4066,137 @@ private enum TodayRoute: Hashable {
     case workoutDetail(WorkoutDay)
     case exerciseLibrary
     case workoutLibrary
+}
+
+// MARK: - Weekly Progress Hero Card
+
+/// Tarjeta hero de progreso semanal. Muestra racha, sesiones y volumen con barras
+/// de actividad diaria animadas. Visible en TodayView cuando no hay sesión activa,
+/// justo debajo del saludo — diseñada para motivar al usuario con datos de progreso
+/// real de un solo vistazo.
+struct WeeklyProgressHeroCard: View {
+    let streakDays: Int
+    let completedThisWeek: Int
+    let weeklyTarget: Int
+    let weeklyVolumeKg: Double
+    let weeklyVolumeUnit: String
+    let barPoints: [WeeklyBarPoint]
+
+    @State private var barsAnimated = false
+
+    var body: some View {
+        DomainHeroCard(domain: .strength, minHeight: 156) {
+            VStack(alignment: .leading, spacing: 14) {
+
+                // ── Top row: streak + sessions ─────────────────────────────
+                HStack(spacing: 16) {
+                    // Streak
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 5) {
+                            Image(systemName: "flame.fill")
+                                .font(.caption.weight(.black))
+                                .foregroundStyle(PulseTheme.warning)
+                            Text("\(streakDays)")
+                                .font(.system(size: 26, weight: .black, design: .rounded).monospacedDigit())
+                                .foregroundStyle(.primary)
+                        }
+                        Text("days_in_a_row")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .textCase(.uppercase)
+                            .tracking(0.5)
+                    }
+
+                    Divider()
+                        .frame(height: 36)
+                        .opacity(0.25)
+
+                    // Sessions this week
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 5) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption.weight(.black))
+                                .foregroundStyle(PulseTheme.growth)
+                            Text("\(completedThisWeek)/\(weeklyTarget)")
+                                .font(.system(size: 26, weight: .black, design: .rounded).monospacedDigit())
+                                .foregroundStyle(.primary)
+                        }
+                        Text("sessions_2")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .textCase(.uppercase)
+                            .tracking(0.5)
+                    }
+
+                    Spacer()
+
+                    // Volume
+                    VStack(alignment: .trailing, spacing: 3) {
+                        let volDisplay = weeklyVolumeKg >= 1000
+                            ? String(format: "%.1fk", weeklyVolumeKg / 1000)
+                            : String(format: "%.0f", weeklyVolumeKg)
+                        Text(volDisplay)
+                            .font(.system(size: 22, weight: .black, design: .rounded).monospacedDigit())
+                            .foregroundStyle(.primary)
+                        Text(weeklyVolumeUnit)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .textCase(.uppercase)
+                            .tracking(0.5)
+                    }
+                }
+
+                // ── Bar chart: 7-day activity ──────────────────────────────
+                HStack(alignment: .bottom, spacing: 6) {
+                    ForEach(barPoints) { point in
+                        VStack(spacing: 4) {
+                            GeometryReader { geo in
+                                VStack {
+                                    Spacer()
+                                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                        .fill(point.isToday
+                                            ? PulseTheme.accent
+                                            : (point.hasActivity
+                                                ? PulseTheme.accent.opacity(0.50)
+                                                : PulseTheme.grouped.opacity(0.50))
+                                        )
+                                        .frame(
+                                            height: barsAnimated
+                                                ? max(4, geo.size.height * point.normalizedHeight)
+                                                : 4
+                                        )
+                                        .animation(
+                                            .spring(response: 0.55, dampingFraction: 0.70)
+                                                .delay(Double(barPoints.firstIndex(where: { $0.id == point.id }) ?? 0) * 0.06),
+                                            value: barsAnimated
+                                        )
+                                }
+                            }
+                            .frame(height: 36)
+
+                            Text(point.dayLabel)
+                                .font(.system(size: 8, weight: .bold, design: .rounded))
+                                .foregroundStyle(point.isToday ? PulseTheme.accent : PulseTheme.tertiaryText)
+                                .textCase(.uppercase)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                barsAnimated = true
+            }
+        }
+    }
+}
+
+struct WeeklyBarPoint: Identifiable {
+    let id: Date
+    let dayLabel: String
+    let normalizedHeight: Double   // 0.0 – 1.0
+    let hasActivity: Bool
+    let isToday: Bool
 }

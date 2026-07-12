@@ -25,13 +25,13 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
 
 @main
 struct RepsWatchApp: App {
-    @StateObject private var model = WatchWorkoutModel()
+    @State private var model = WatchWorkoutModel()
     @WKApplicationDelegateAdaptor(WatchAppDelegate.self) private var appDelegate
 
     var body: some Scene {
         WindowGroup {
             WatchWorkoutView()
-                .environmentObject(model)
+                .environment(model)
                 .onAppear {
                     appDelegate.attach(model: model)
                 }

@@ -15,6 +15,7 @@ import WidgetKit
 #if canImport(SwiftUI)
 enum RepsLocalization {
     nonisolated(unsafe) private static var activeLanguage: String = Self.preferredSupportedLanguage()
+    nonisolated(unsafe) private static var cachedBundle: Bundle? = nil
 
     static var language: String {
         activeLanguage
@@ -27,12 +28,23 @@ enum RepsLocalization {
     @discardableResult
     static func use(_ language: String?) -> Locale {
         activeLanguage = normalizedSupportedLanguage(language)
+        if let path = Bundle.main.path(forResource: activeLanguage, ofType: "lproj") {
+            cachedBundle = Bundle(path: path)
+        } else {
+            cachedBundle = nil
+        }
         return locale
     }
 
     static func string(_ key: String) -> String {
-        if let path = Bundle.main.path(forResource: activeLanguage, ofType: "lproj"),
-           let languageBundle = Bundle(path: path) {
+        if let languageBundle = cachedBundle {
+            let localized = languageBundle.localizedString(forKey: key, value: nil, table: nil)
+            if localized != key {
+                return localized
+            }
+        } else if let path = Bundle.main.path(forResource: activeLanguage, ofType: "lproj"),
+                  let languageBundle = Bundle(path: path) {
+            cachedBundle = languageBundle
             let localized = languageBundle.localizedString(forKey: key, value: nil, table: nil)
             if localized != key {
                 return localized

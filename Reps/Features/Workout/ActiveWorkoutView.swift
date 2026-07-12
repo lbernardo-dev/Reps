@@ -1608,7 +1608,7 @@ struct ActiveWorkoutView: View {
                             .background(PulseTheme.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                     ActiveSetRowsList(
-                        setIndices: Array(sets.indices),
+                        sets: sets,
                         trackingType: selectedDraft?.workoutExercise.exercise.trackingType ?? .weightReps,
                         isSessionStarted: isSessionStarted,
                         setBinding: selectedSetBinding,
@@ -1671,7 +1671,7 @@ struct ActiveWorkoutView: View {
                     if exerciseDrafts.indices.contains(selectedExerciseIndex) {
                         let sets = exerciseDrafts.indices.contains(selectedExerciseIndex) ? exerciseDrafts[selectedExerciseIndex].sets : []
                         ActiveAdvancedSetFieldsList(
-                            setIndices: Array(sets.indices),
+                            sets: sets,
                             showSetType: store.userProfile.showSetType,
                             showRPE: store.userProfile.showRPE,
                             showRIR: store.userProfile.showRIR,
@@ -2209,18 +2209,18 @@ struct ActiveWorkoutView: View {
         WorkoutDraftController.nextIncompleteSet(in: exerciseDrafts)
     }
 
-    private func selectedSetBinding(at setIndex: Int) -> Binding<SetLog> {
+    private func selectedSetBinding(id: SetLog.ID) -> Binding<SetLog> {
         Binding(
             get: {
                 guard exerciseDrafts.indices.contains(selectedExerciseIndex),
-                      exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
-                    return SetLog(setNumber: setIndex + 1, weightKg: 0, reps: 0, completed: false)
+                      let setIndex = exerciseDrafts[selectedExerciseIndex].sets.firstIndex(where: { $0.id == id }) else {
+                    return SetLog(setNumber: 1, weightKg: 0, reps: 0, completed: false)
                 }
                 return exerciseDrafts[selectedExerciseIndex].sets[setIndex]
             },
             set: { newValue in
                 guard exerciseDrafts.indices.contains(selectedExerciseIndex),
-                      exerciseDrafts[selectedExerciseIndex].sets.indices.contains(setIndex) else {
+                      let setIndex = exerciseDrafts[selectedExerciseIndex].sets.firstIndex(where: { $0.id == id }) else {
                     return
                 }
                 let previous = exerciseDrafts[selectedExerciseIndex].sets[setIndex]
@@ -2234,11 +2234,15 @@ struct ActiveWorkoutView: View {
         )
     }
 
-    private func completeSelectedSetIfNeeded(setIndex: Int, completed: Bool) {
+    private func completeSelectedSetIfNeeded(id: SetLog.ID, completed: Bool) {
         guard completed else { return }
         guard isSessionStarted else {
             showStartSessionRequiredAlert = true
             HapticService.notification(.warning)
+            return
+        }
+        guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+              let setIndex = exerciseDrafts[selectedExerciseIndex].sets.firstIndex(where: { $0.id == id }) else {
             return
         }
         handleSetCompleted(exerciseIndex: selectedExerciseIndex, setIndex: setIndex)
@@ -2548,7 +2552,11 @@ struct ActiveWorkoutView: View {
         }
     }
 
-    private func deleteSetFromSelectedExercise(at setIndex: Int) {
+    private func deleteSetFromSelectedExercise(id: SetLog.ID) {
+        guard exerciseDrafts.indices.contains(selectedExerciseIndex),
+              let setIndex = exerciseDrafts[selectedExerciseIndex].sets.firstIndex(where: { $0.id == id }) else {
+            return
+        }
         withAnimation(.snappy(duration: 0.25)) {
             _ = WorkoutDraftController.removeSet(from: &store.activeWorkoutDrafts, exerciseIndex: selectedExerciseIndex, setIndex: setIndex)
             syncActiveWorkoutExercises()

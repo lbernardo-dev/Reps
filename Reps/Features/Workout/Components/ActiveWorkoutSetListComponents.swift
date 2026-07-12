@@ -96,20 +96,20 @@ struct SwipeToDeleteView<Content: View>: View {
 }
 
 struct ActiveSetRowsList: View {
-    let setIndices: [Int]
+    let sets: [SetLog]
     let trackingType: Exercise.TrackingType
     let isSessionStarted: Bool
-    let setBinding: (Int) -> Binding<SetLog>
-    let onCompletionChanged: (Int, Bool) -> Void
-    let onDeleteSet: (Int) -> Void
+    let setBinding: (SetLog.ID) -> Binding<SetLog>
+    let onCompletionChanged: (SetLog.ID, Bool) -> Void
+    let onDeleteSet: (SetLog.ID) -> Void
 
     var body: some View {
-        ForEach(setIndices, id: \.self) { setIndex in
+        ForEach(sets) { set in
             SwipeToDeleteView(onDelete: {
-                onDeleteSet(setIndex)
+                onDeleteSet(set.id)
             }) {
-                SetRow(set: setBinding(setIndex), trackingType: trackingType) { completed in
-                    onCompletionChanged(setIndex, completed)
+                SetRow(set: setBinding(set.id), trackingType: trackingType) { completed in
+                    onCompletionChanged(set.id, completed)
                 }
             }
             .disabled(!isSessionStarted)
@@ -119,18 +119,18 @@ struct ActiveSetRowsList: View {
 
 
 struct ActiveAdvancedSetFieldsList: View {
-    let setIndices: [Int]
+    let sets: [SetLog]
     let showSetType: Bool
     let showRPE: Bool
     let showRIR: Bool
     let showTempo: Bool
-    let setBinding: (Int) -> Binding<SetLog>
+    let setBinding: (SetLog.ID) -> Binding<SetLog>
 
     var body: some View {
         VStack(spacing: 10) {
-            ForEach(setIndices, id: \.self) { setIndex in
+            ForEach(sets) { set in
                 AdvancedSetFields(
-                    set: setBinding(setIndex),
+                    set: setBinding(set.id),
                     showSetType: showSetType,
                     showRPE: showRPE,
                     showRIR: showRIR,

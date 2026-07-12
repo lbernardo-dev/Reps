@@ -21,7 +21,10 @@ final class MetricsDiagnosticsService: NSObject, @unchecked Sendable {
         guard !isSubscribed else { return }
         isSubscribed = true
         MXMetricManager.shared.add(self)
-        handleDiagnosticPayloads(MXMetricManager.shared.pastDiagnosticPayloads, source: "past")
+        let pastPayloads = MXMetricManager.shared.pastDiagnosticPayloads
+        Task.detached(priority: .background) { [weak self] in
+            self?.handleDiagnosticPayloads(pastPayloads, source: "past")
+        }
         #endif
     }
 

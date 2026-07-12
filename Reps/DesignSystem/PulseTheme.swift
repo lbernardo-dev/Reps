@@ -271,6 +271,20 @@ extension View {
     func destructiveGlassCircle(_ prominence: NavigationGlassProminence = .secondary) -> some View {
         navigationGlassCircle(prominence, tint: PulseTheme.destructive)
     }
+
+    /// Reveals the view with a spring+offset animation when `current` reaches `step`.
+    /// Used for staged reveals in summary/celebration screens.
+    func revealStep(_ step: Int, current: Int) -> some View {
+        let revealed = current >= step
+        return self
+            .offset(y: revealed ? 0 : 22)
+            .opacity(revealed ? 1.0 : 0.0)
+            .animation(
+                .spring(response: 0.50, dampingFraction: 0.72)
+                    .delay(0),
+                value: revealed
+            )
+    }
 }
 
 private struct NavigationGlassCapsuleModifier: ViewModifier {
@@ -1624,6 +1638,14 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
             stickyHeader
         }
         .screenBackground()
+        .onPreferenceChange(StickyHeaderTitlePreferenceKey.self) { markers in
+            let newTitle = titleForVisibleSection(markers)
+            if activeTitle != newTitle {
+                withAnimation(.easeOut(duration: 0.15)) {
+                    activeTitle = newTitle
+                }
+            }
+        }
         .onChange(of: locale) { _, _ in
             activeTitle = title
         }
@@ -2311,7 +2333,7 @@ extension View {
     }
 
     func stickyHeaderTitle(_ title: String) -> some View {
-        self
+        background(StickyHeaderTitleReader(title: title))
     }
 
     func mainTabBarHidden(_ hidden: Bool = true) -> some View {

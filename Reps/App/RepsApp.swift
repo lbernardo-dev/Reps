@@ -44,8 +44,6 @@ private enum RevenueCatBootstrap {
 @MainActor
 final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
     override init() {
-        FirebaseBootstrap.configureIfNeeded()
-        RevenueCatBootstrap.configureIfNeeded()
         super.init()
     }
 
@@ -61,16 +59,22 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        TelemetryService.shared.configure()
-        MetricsDiagnosticsService.shared.start()
+        FirebaseBootstrap.configureIfNeeded()
         RevenueCatBootstrap.configureIfNeeded()
-        TelemetryService.shared.breadcrumb("app.did_finish_launching")
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
         NotificationService.registerCategories()
         // Required for CloudKit subscription (silent) push delivery. This does
         // not prompt the user — the alert prompt is the separate authorization
         // request — it only obtains the APNs token CloudKit needs to route pushes.
         application.registerForRemoteNotifications()
+
+        // Deferir telemetría y diagnósticos no críticos para liberar el hilo principal de renderizado
+        Task {
+            TelemetryService.shared.configure()
+            TelemetryService.shared.breadcrumb("app.did_finish_launching")
+            MetricsDiagnosticsService.shared.start()
+        }
+
         return true
     }
 
@@ -151,11 +155,6 @@ struct RepsApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
-        FirebaseBootstrap.configureIfNeeded()
-        RevenueCatBootstrap.configureIfNeeded()
-        TelemetryService.shared.configure()
-        MetricsDiagnosticsService.shared.start()
-        UNUserNotificationCenter.current().delegate = NotificationRouter.shared
         _store = State(initialValue: AppStore(startsBackgroundServices: false))
     }
 
