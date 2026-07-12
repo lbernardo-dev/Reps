@@ -165,6 +165,7 @@
 		C62CF23AA5D5F7BA45E5ECEB /* MetricDonutChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E32C43D45A7E3E330D94DFB /* MetricDonutChart.swift */; };
 		C647E740F4B4039A0C59E761 /* ProgressExecutiveCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = B09E9E304E3029F2065B384F /* ProgressExecutiveCards.swift */; };
 		C83E1AAE831ADA571410CCF7 /* AchievementEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09815E3E60DE5C7C1DCDE2CE /* AchievementEngine.swift */; };
+		C8FCE871B9A5F9B3694ED44D /* RepsAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4C3A919E9AFDC7DF54602B /* RepsAppIntents.swift */; };
 		CBEEF64AF9E4EF7F914D7A49 /* TimersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9133DB946FB1648980C9F29D /* TimersView.swift */; };
 		CC5A027A2328DE6801F006AC /* ActiveWorkoutRestComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7CB9DE9B048BBFADD9E6E61 /* ActiveWorkoutRestComponents.swift */; };
 		CE4EB6F85085FE6AD0295425 /* CodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16CCCA765D3E74E7270004A7 /* CodeScannerView.swift */; };
@@ -437,6 +438,7 @@
 		FB859CD37FC951A9954F1D23 /* CommentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsView.swift; sourceTree = "<group>"; };
 		FBE400159890F89819FDFC36 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		FDFC62FC1D5EA20A03DAE8C8 /* RepsTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RepsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FF4C3A919E9AFDC7DF54602B /* RepsAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsAppIntents.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -502,6 +504,7 @@
 				FBE400159890F89819FDFC36 /* NotificationService.swift */,
 				4A71DF3F8E2772F3BBE380E7 /* PerformanceSignpost.swift */,
 				CCD6E9727C891B41CB538DE6 /* PermissionService.swift */,
+				FF4C3A919E9AFDC7DF54602B /* RepsAppIntents.swift */,
 				A061386A12555F63FB9492CB /* RepsAppShortcuts.swift */,
 				ABAAF9BDD73A5DD3BDF7FDE9 /* ShareImageItemSource.swift */,
 				AFD9F5578585D85B9F2794F3 /* SmartProgressionAdvisor.swift */,
@@ -1227,6 +1230,7 @@
 				54C873DB2A63D9898DB1B184 /* RehabModels.swift in Sources */,
 				65F1DBC1506432DD8334A700 /* RehabSeedData.swift in Sources */,
 				0837DD9FE86B93DE22FC986A /* RepsApp.swift in Sources */,
+				C8FCE871B9A5F9B3694ED44D /* RepsAppIntents.swift in Sources */,
 				60D2E8A9440F68F85D0C3044 /* RepsAppShortcuts.swift in Sources */,
 				F16D25D57E7760BCC1E40052 /* RepsLoadingView.swift in Sources */,
 				A3472399B3A3FE456881EAB2 /* RepsWidgetConfigurationIntent.swift in Sources */,
@@ -1395,7 +1399,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202607121;
+				CURRENT_PROJECT_VERSION = 100202607122;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1462,7 +1466,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202607121;
+				CURRENT_PROJECT_VERSION = 100202607122;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_NS_ASSERTIONS = NO;
