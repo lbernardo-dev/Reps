@@ -99,6 +99,8 @@ struct UserProfile: Codable {
     /// can permanently silence this from the in-workout "don't ask again"
     /// checkbox, or re-enable it later from Settings.
     var confirmBeforeEndingWorkout: Bool = true
+    /// Short audible cues for workout countdowns and phase transitions.
+    var audibleWorkoutCuesEnabled: Bool = true
     var onboardingCompleted = false
     var themeMode: ThemeMode?
     var targetEventName: String?

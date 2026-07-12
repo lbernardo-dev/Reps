@@ -610,6 +610,22 @@ private struct WorkoutSessionSettingsScreen: View {
                     .foregroundStyle(PulseTheme.secondaryText)
             }
 
+            SettingsControlCard(title: "audible_workout_cues", systemImage: "speaker.wave.2.fill") {
+                Toggle(localizedString("audible_workout_cues"), isOn: Binding(
+                    get: { store.userProfile.audibleWorkoutCuesEnabled },
+                    set: { enabled in
+                        store.userProfile.audibleWorkoutCuesEnabled = enabled
+                        HapticService.selection()
+                        TimerSoundCue.phaseChange(enabled: enabled)
+                    }
+                ))
+                .font(SettingsTypography.rowTitle)
+                .tint(PulseTheme.accent)
+                Text(localizedString("audible_workout_cues_subtitle"))
+                    .font(SettingsTypography.rowSubtitle)
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+
             NavigationLink {
                 ProPreferencesView(onShowPaywall: onShowPaywall)
             } label: {

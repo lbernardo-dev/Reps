@@ -129,7 +129,23 @@ enum TimerConfigStore {
 /// Short system-sound cues for phase/round transitions — kept deliberately minimal
 /// (no bundled audio assets) since haptics via `HapticService` carry the primary feedback.
 enum TimerSoundCue {
-    static func tick() { AudioServicesPlaySystemSound(1057) }
-    static func phaseChange() { AudioServicesPlaySystemSound(1013) }
-    static func finish() { AudioServicesPlaySystemSound(1025) }
+    static func start(enabled: Bool = true) {
+        guard enabled else { return }
+        AudioServicesPlaySystemSound(1113)
+    }
+
+    static func tick(enabled: Bool = true) {
+        guard enabled else { return }
+        AudioServicesPlaySystemSound(1057)
+    }
+
+    static func phaseChange(enabled: Bool = true) {
+        guard enabled else { return }
+        AudioServicesPlaySystemSound(1013)
+    }
+
+    static func finish(enabled: Bool = true) {
+        guard enabled else { return }
+        AudioServicesPlaySystemSound(1025)
+    }
 }

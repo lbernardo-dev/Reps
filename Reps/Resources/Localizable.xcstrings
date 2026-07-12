@@ -38921,6 +38921,40 @@
         }
       }
     },
+    "audible_workout_cues" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workout sounds"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sonidos de entrenamiento"
+          }
+        }
+      }
+    },
+    "audible_workout_cues_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play short cues when a workout starts or ends, rests begin, and countdowns reach the final seconds."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduce señales breves al iniciar o terminar, al empezar descansos y cuando las cuentas atrás llegan a los últimos segundos."
+          }
+        }
+      }
+    },
     "confirm_before_ending_workout" : {
       "extractionState" : "manual",
       "localizations" : {

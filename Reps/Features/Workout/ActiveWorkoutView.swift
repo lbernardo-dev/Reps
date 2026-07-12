@@ -37,6 +37,7 @@ struct ActiveWorkoutView: View {
     @State private var restStartedAt: Date? = nil   // ← date-based rest timing
     @State private var restDuration = 0              // duration when rest started
     @State private var restKind: RestPhaseKind = .betweenSets
+    @State private var lastAudibleRestSecond: Int?
     @State private var finishedSession: WorkoutSession?
     @State private var selectedExerciseIndex = 0
     @State private var showAdvancedFields = false
@@ -588,6 +589,7 @@ struct ActiveWorkoutView: View {
         hasShownDurationAlert = false
         workoutSensorSummary = nil
         store.startPreparedActiveWorkout(workout, drafts: exerciseDrafts, startedAt: startDate)
+        TimerSoundCue.start(enabled: store.userProfile.audibleWorkoutCuesEnabled)
         if isRouteCandidate {
             routeTracker.startNewRoute(startedAt: startDate)
         }
@@ -678,6 +680,7 @@ struct ActiveWorkoutView: View {
         motionMetrics.stop()
         motionResumeDetector.stop()
         NotificationService.cancelRestEndNotification()
+        TimerSoundCue.finish(enabled: store.userProfile.audibleWorkoutCuesEnabled)
         let startDate = startedAt
         let sensorSummary = try? await healthKit.fetchWorkoutSensorSummary(start: startDate, end: finishedAt)
         workoutSensorSummary = sensorSummary
@@ -834,9 +837,12 @@ struct ActiveWorkoutView: View {
             if let rsa = restStartedAt {
                 let elapsed = Int(Date().timeIntervalSince(rsa))
                 let remaining = max(restDuration - elapsed, 0)
+                playRestCountdownCueIfNeeded(remaining: remaining)
                 if remaining == 0 {
                     restSeconds = 0
                     restStartedAt = nil
+                    lastAudibleRestSecond = nil
+                    TimerSoundCue.finish(enabled: store.userProfile.audibleWorkoutCuesEnabled)
                     if restKind == .exerciseChange {
                         HapticService.exerciseChangeTimerEnded()
                         advanceToNextExerciseAfterTransition()
@@ -855,6 +861,7 @@ struct ActiveWorkoutView: View {
             elapsedSeconds = currentElapsed
             hasShownDurationAlert = true
             showDurationExhaustedAlert = true
+            TimerSoundCue.finish(enabled: store.userProfile.audibleWorkoutCuesEnabled)
             NotificationService.scheduleWorkoutDurationExhaustedNotification(plannedMinutes: plannedDurationMinutes)
         }
 
@@ -2703,6 +2710,8 @@ struct ActiveWorkoutView: View {
         restDuration  = duration
         restStartedAt = Date()
         restSeconds   = duration
+        lastAudibleRestSecond = nil
+        TimerSoundCue.phaseChange(enabled: store.userProfile.audibleWorkoutCuesEnabled)
         let isNextExerciseDifferent = nextIncompleteSet?.exerciseIndex != selectedExerciseIndex
         NotificationService.scheduleRestEndNotification(
             after: duration,
@@ -2715,7 +2724,18 @@ struct ActiveWorkoutView: View {
         restStartedAt = nil
         restDuration  = 0
         restKind      = .betweenSets
+        lastAudibleRestSecond = nil
         NotificationService.cancelRestEndNotification()
+    }
+
+    private func playRestCountdownCueIfNeeded(remaining: Int) {
+        guard store.userProfile.audibleWorkoutCuesEnabled,
+              (1...3).contains(remaining),
+              lastAudibleRestSecond != remaining else {
+            return
+        }
+        lastAudibleRestSecond = remaining
+        TimerSoundCue.tick()
     }
 
     /// Called when the exercise-change timer reaches zero: auto-advance to
