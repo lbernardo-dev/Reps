@@ -938,7 +938,7 @@ final class AppStore {
         monetization.lastEntitlementSyncDate = .now
     }
 
-    #if DEBUG || targetEnvironment(simulator)
+    #if DEBUG
     func unlockProForDebug(plan: SubscriptionBillingCycle) {
         monetization.entitlement = .pro
         monetization.status = .active
@@ -3609,7 +3609,7 @@ final class AppStore {
     }
 
     private func performAutomaticHealthSyncIfNeeded(force: Bool = false, reason: String) async {
-        #if DEBUG || targetEnvironment(simulator)
+        #if DEBUG
         guard health.message != DemoPremiumSeedData.healthMessage else { return }
         #endif
         health.isAvailable = HKHealthStore.isHealthDataAvailable()

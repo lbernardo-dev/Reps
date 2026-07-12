@@ -415,7 +415,7 @@ struct MainTabView: View {
   }
 
   private static func initialTabFromLaunchArguments() -> AppTab {
-    #if DEBUG || targetEnvironment(simulator)
+    #if DEBUG
     let arguments = ProcessInfo.processInfo.arguments
     guard let index = arguments.firstIndex(of: "-initialTab"),
           arguments.indices.contains(arguments.index(after: index))

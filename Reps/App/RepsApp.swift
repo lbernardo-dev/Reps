@@ -168,7 +168,7 @@ struct RepsApp: App {
                     guard !didRunStartupTask else { return }
                     didRunStartupTask = true
 
-                    #if DEBUG || targetEnvironment(simulator)
+                    #if DEBUG
                     if ProcessInfo.processInfo.arguments.contains("-loadPremiumDemoData") {
                         store.loadPremiumDemoDataForDebug()
                     }
@@ -238,7 +238,7 @@ struct RepsApp: App {
         }
     }
 
-    #if DEBUG || targetEnvironment(simulator)
+    #if DEBUG
     private static func demoLanguageFromLaunchArguments() -> String? {
         let arguments = ProcessInfo.processInfo.arguments
         guard let index = arguments.firstIndex(of: "-demoLanguage"),
