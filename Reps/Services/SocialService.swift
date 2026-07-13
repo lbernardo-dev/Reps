@@ -132,6 +132,22 @@ enum SocialICloudAccountIssue: Equatable, Sendable {
     }
 }
 
+private extension CKError {
+    /// True for failures caused by CloudKit's own session/service still
+    /// settling (e.g. right after a cold app launch) rather than a real,
+    /// stable outcome like a permission or schema problem.
+    var isTransient: Bool {
+        if retryAfterSeconds != nil { return true }
+        switch code {
+        case .networkUnavailable, .networkFailure, .serviceUnavailable,
+             .zoneBusy, .requestRateLimited, .notAuthenticated:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
 enum SocialServiceError: LocalizedError, Equatable, Sendable {
     case iCloudUnavailable(SocialICloudAccountIssue)
     case usernameTaken
@@ -351,6 +367,30 @@ actor SocialService {
         } catch { }
     }
 
+    // Retries transient CloudKit failures (the account/token session is still
+    // warming up right after a cold app launch, so the first network call of
+    // the process can fail even though the account is valid). Errors that
+    // reflect a real, non-transient outcome (permission, unknown item, taken
+    // username, etc.) are rethrown immediately without retrying.
+    private func withTransientRetry<T: Sendable>(
+        attempts: Int = 3,
+        _ operation: @Sendable () async throws -> T
+    ) async throws -> T {
+        var lastError: Error = SocialServiceError.malformedChallengeRecord
+        for attempt in 0..<attempts {
+            do {
+                return try await operation()
+            } catch let ck as CKError where ck.isTransient {
+                lastError = ck
+                if attempt < attempts - 1 {
+                    let delayNanos = UInt64((ck.retryAfterSeconds ?? Double(attempt + 1) * 0.5) * 1_000_000_000)
+                    try? await Task.sleep(nanoseconds: delayNanos)
+                }
+            }
+        }
+        throw lastError
+    }
+
     func createOrUpdateProfile(
         username: String,
         displayName: String,
@@ -365,6 +405,40 @@ actor SocialService {
         totalVolumeKg: Double,
         followingUsernames: [String] = [],
         avatarImageData: Data? = nil
+    ) async throws {
+        try await withTransientRetry {
+            try await self.saveProfile(
+                username: username,
+                displayName: displayName,
+                bio: bio,
+                location: location,
+                activePlanName: activePlanName,
+                level: level,
+                levelTitle: levelTitle,
+                totalXP: totalXP,
+                totalSessions: totalSessions,
+                streakDays: streakDays,
+                totalVolumeKg: totalVolumeKg,
+                followingUsernames: followingUsernames,
+                avatarImageData: avatarImageData
+            )
+        }
+    }
+
+    private func saveProfile(
+        username: String,
+        displayName: String,
+        bio: String,
+        location: String,
+        activePlanName: String,
+        level: Int,
+        levelTitle: String,
+        totalXP: Int,
+        totalSessions: Int,
+        streakDays: Int,
+        totalVolumeKg: Double,
+        followingUsernames: [String],
+        avatarImageData: Data?
     ) async throws {
         try await requireICloudAccount()
         let myID = try await myRecordID()

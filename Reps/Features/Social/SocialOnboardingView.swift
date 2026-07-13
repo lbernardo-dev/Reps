@@ -1,9 +1,12 @@
 import CloudKit
+import OSLog
 import SwiftUI
 
 #if canImport(UIKit)
 import UIKit
 #endif
+
+private let socialOnboardingLogger = Logger(subsystem: "com.romerodev.repsfitness", category: "SocialOnboarding")
 
 struct SocialOnboardingView: View {
     @Environment(AppStore.self) private var store
@@ -535,6 +538,14 @@ struct SocialOnboardingView: View {
                 errorMessage = socialError.localizedDescription
             }
         } else {
+            if let ckError = error as? CKError {
+                socialOnboardingLogger.error("Profile activation failed: CKError code=\(ckError.code.rawValue, privacy: .public) (\(String(describing: ckError.code), privacy: .public)) underlying=\(ckError.localizedDescription, privacy: .public)")
+                if let retryAfter = ckError.retryAfterSeconds {
+                    socialOnboardingLogger.error("CKError retryAfterSeconds=\(retryAfter, privacy: .public)")
+                }
+            } else {
+                socialOnboardingLogger.error("Profile activation failed: non-CKError \(String(describing: error), privacy: .public)")
+            }
             errorMessage = localizedString("social_profile_save_failed")
         }
     }
