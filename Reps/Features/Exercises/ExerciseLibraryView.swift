@@ -23,7 +23,12 @@ struct ExerciseLibraryView: View {
     @State private var onlyAvailableEquipment = false
     @State private var showAddCustom = false
     @State private var showNotifications = false
+    @State private var showEditLayout = false
     @State private var searchIndex = ExerciseLibrarySearchIndex.empty
+    @State private var preparedFilteredExercises: [Exercise] = []
+    @State private var isPreparingExerciseResults = false
+    @State private var hasPreparedExerciseResults = false
+    @State private var exerciseResultTask: Task<Void, Never>?
 
     private var muscles: [String] {
         ["All"] + Array(Set(store.exercises.map(\.muscleGroup))).sorted()
@@ -33,7 +38,35 @@ struct ExerciseLibraryView: View {
         ["All"] + Array(Set(store.exercises.map(\.equipment))).sorted()
     }
 
-    private var filteredExercises: [Exercise] {
+    private var filterState: ExerciseLibraryFilterState {
+        ExerciseLibraryFilterState(
+            selectedPath: selectedPath,
+            searchText: searchText,
+            selectedMuscle: selectedMuscle,
+            selectedMuscleSegments: selectedMuscleSegments,
+            selectedEquipment: selectedEquipment,
+            selectedType: selectedType,
+            selectedDifficulty: selectedDifficulty,
+            selectedEnvironment: selectedEnvironment,
+            selectedCategory: selectedCategory,
+            onlyAvailableEquipment: onlyAvailableEquipment,
+            exerciseIDs: store.exercises.map(\.id),
+            availableEquipment: store.userProfile.availableEquipment
+        )
+    }
+
+    private var shouldPrepareFilteredExercises: Bool {
+        switch selectedPath {
+        case .muscles:
+            return !selectedMuscleSegments.isEmpty
+        case .filters:
+            return hasActiveFeatureFilter
+        case .rehab:
+            return false
+        }
+    }
+
+    private func makeFilteredExercises() -> [Exercise] {
         let interval = PerformanceSignpost.begin(
             "exerciseLibrary.filteredExercises",
             "exercises=\(store.exercises.count) search=\(searchText.count)"
@@ -57,6 +90,59 @@ struct ExerciseLibraryView: View {
             guard !onlyAvailableEquipment || availableEquipmentMatches(exercise) else { return false }
             guard !normalizedQuery.isEmpty else { return true }
             return searchIndex.matches(exercise, query: normalizedQuery)
+        }
+    }
+
+    private var exerciseResultLoadingMessages: [String] {
+        if RepsLocalization.language == "es" {
+            return [
+                "Preparando ejercicios...",
+                "Aplicando filtros musculares...",
+                "Agrupando resultados..."
+            ]
+        }
+
+        return [
+            "Preparing exercises...",
+            "Applying muscle filters...",
+            "Grouping results..."
+        ]
+    }
+
+    @MainActor
+    private func refreshPreparedExerciseResults(showLoading: Bool = true) {
+        exerciseResultTask?.cancel()
+
+        guard shouldPrepareFilteredExercises else {
+            preparedFilteredExercises = []
+            isPreparingExerciseResults = false
+            hasPreparedExerciseResults = false
+            return
+        }
+
+        if showLoading {
+            withAnimation(.snappy(duration: 0.18)) {
+                isPreparingExerciseResults = true
+                hasPreparedExerciseResults = false
+            }
+        }
+
+        exerciseResultTask = Task { @MainActor in
+            if showLoading {
+                try? await Task.sleep(for: .milliseconds(110))
+            } else {
+                await Task.yield()
+            }
+
+            guard !Task.isCancelled else { return }
+            let filtered = makeFilteredExercises()
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.snappy(duration: 0.22)) {
+                preparedFilteredExercises = filtered
+                isPreparingExerciseResults = false
+                hasPreparedExerciseResults = true
+            }
         }
     }
 
@@ -178,7 +264,7 @@ struct ExerciseLibraryView: View {
     private var categoryScroller: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(ExerciseLibraryCategory.allCases) { category in
+                ForEach([ExerciseLibraryCategory.all] + resolvedExerciseCategories.visible) { category in
                     Button {
                         selectedCategory = category
                     } label: {
@@ -234,6 +320,16 @@ struct ExerciseLibraryView: View {
         }
     }
 
+    private var exerciseResultsLoadingPanel: some View {
+        RepsLoadingView(
+            messages: exerciseResultLoadingMessages,
+            progress: nil,
+            layout: .panel,
+            showsPercentage: false
+        )
+        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+    }
+
     private var filterDivider: some View {
         Divider()
             .overlay(PulseTheme.separator)
@@ -259,42 +355,67 @@ struct ExerciseLibraryView: View {
 
                     switch selectedPath {
                     case .muscles:
-                        let exercises = filteredExercises
                         MuscleCatalogPanel(
                             gender: store.userProfile.muscleMapGender,
                             selectedSegments: $selectedMuscleSegments,
-                            resultCount: exercises.count
+                            resultCount: preparedFilteredExercises.count,
+                            isLoadingResults: isPreparingExerciseResults || !hasPreparedExerciseResults
                         )
 
                         if selectedMuscleSegments.isEmpty {
-                            MuscleShortcutGrid(selectedSegments: $selectedMuscleSegments)
+                            MuscleShortcutGrid(segments: resolvedMuscleShortcuts.visible, selectedSegments: $selectedMuscleSegments)
+                        } else if isPreparingExerciseResults || !hasPreparedExerciseResults {
+                            exerciseResultsLoadingPanel
                         } else {
-                            exerciseResults(for: exercises)
+                            exerciseResults(for: preparedFilteredExercises)
                         }
                     case .filters:
                         featureFiltersPanel
 
                         if !hasActiveFeatureFilter {
                             FeatureFilterPrompt()
+                        } else if isPreparingExerciseResults || !hasPreparedExerciseResults {
+                            exerciseResultsLoadingPanel
                         } else {
-                            exerciseResults(for: filteredExercises)
+                            exerciseResults(for: preparedFilteredExercises)
                         }
                     case .rehab:
                         rehabPanel
                     }
 
                     addCustomExerciseFooterButton
+
+                    SecondaryButton("edit_layout", systemImage: "slider.horizontal.3") {
+                        HapticService.selection()
+                        showEditLayout = true
+                    }
                 }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
                 .padding(.top, 18)
                 .padding(.bottom, 64)
             }
             .background(PulseTheme.background)
+            .sheet(isPresented: $showEditLayout) {
+                ExerciseFilterLayoutEditorSheet(
+                    visibleCategories: resolvedExerciseCategories.visible,
+                    hiddenCategories: resolvedExerciseCategories.hiddenAvailable,
+                    visibleMuscles: resolvedMuscleShortcuts.visible,
+                    hiddenMuscles: resolvedMuscleShortcuts.hiddenAvailable
+                ) { categoryOrder, hiddenCategoryIDs, muscleOrder, hiddenMuscleIDs in
+                    store.userProfile.exercisesCategoryOrder = categoryOrder
+                    store.userProfile.exercisesHiddenCategoryIDs = hiddenCategoryIDs
+                    store.userProfile.exercisesMuscleShortcutOrder = muscleOrder
+                    store.userProfile.exercisesHiddenMuscleShortcutIDs = hiddenMuscleIDs
+                }
+            }
             .task(id: store.exercises.count) {
                 rebuildSearchIndex()
             }
             .onChange(of: store.exercises.map(\.id)) { _, _ in
                 rebuildSearchIndex()
+            }
+            .onChange(of: filterState) { _, _ in
+                refreshPreparedExerciseResults()
             }
             .onChange(of: selectedMuscle) { _, newValue in
                 if newValue != "All" { selectedMuscleSegments.removeAll() }
@@ -368,6 +489,12 @@ struct ExerciseLibraryView: View {
             .sheet(isPresented: $showAddCustom) {
                 AddCustomExerciseView()
             }
+            .task {
+                refreshPreparedExerciseResults(showLoading: false)
+            }
+            .onDisappear {
+                exerciseResultTask?.cancel()
+            }
         }
         .mainTabBarHidden(!isTabRoot)
     }
@@ -398,6 +525,24 @@ struct ExerciseLibraryView: View {
         }
         .buttonStyle(PressableCardStyle())
         .accessibilityLabel(localizedString("add_custom_exercise"))
+    }
+
+    // MARK: - Layout customization
+
+    private var resolvedExerciseCategories: (visible: [ExerciseLibraryCategory], hiddenAvailable: [ExerciseLibraryCategory]) {
+        SectionLayoutResolver.resolve(
+            allCases: ExerciseLibraryCategory.allCases.filter { $0 != .all },
+            storedOrder: store.userProfile.exercisesCategoryOrder,
+            storedHidden: store.userProfile.exercisesHiddenCategoryIDs
+        )
+    }
+
+    private var resolvedMuscleShortcuts: (visible: [MuscleSegment], hiddenAvailable: [MuscleSegment]) {
+        SectionLayoutResolver.resolve(
+            allCases: MuscleShortcutGrid.defaultSegments,
+            storedOrder: store.userProfile.exercisesMuscleShortcutOrder,
+            storedHidden: store.userProfile.exercisesHiddenMuscleShortcutIDs
+        )
     }
 
     private func openAddCustomExercise() {
@@ -539,6 +684,21 @@ private enum ExerciseLibraryPath: String, CaseIterable, Identifiable {
     }
 }
 
+private struct ExerciseLibraryFilterState: Equatable {
+    let selectedPath: ExerciseLibraryPath
+    let searchText: String
+    let selectedMuscle: String
+    let selectedMuscleSegments: Set<MuscleSegment>
+    let selectedEquipment: String
+    let selectedType: Exercise.ExerciseType?
+    let selectedDifficulty: Exercise.Difficulty?
+    let selectedEnvironment: Exercise.Environment?
+    let selectedCategory: ExerciseLibraryCategory
+    let onlyAvailableEquipment: Bool
+    let exerciseIDs: [Exercise.ID]
+    let availableEquipment: [String]
+}
+
 private struct ExercisePathSwitcher: View {
     @Binding var selection: ExerciseLibraryPath
 
@@ -646,6 +806,7 @@ private struct MuscleCatalogPanel: View {
     let gender: BodyGender
     @Binding var selectedSegments: Set<MuscleSegment>
     let resultCount: Int
+    let isLoadingResults: Bool
 
     var body: some View {
         VStack(spacing: 16) {
@@ -683,9 +844,15 @@ private struct MuscleCatalogPanel: View {
     }
 
     private var resultSummary: String {
-        selectedSegments.isEmpty
-            ? localizedString("Select one or more muscles")
-            : localizedFormat("exercises_count_format", resultCount)
+        if selectedSegments.isEmpty {
+            return localizedString("Select one or more muscles")
+        }
+
+        if isLoadingResults {
+            return RepsLocalization.language == "es" ? "Preparando resultados..." : "Preparing results..."
+        }
+
+        return localizedFormat("exercises_count_format", resultCount)
     }
 }
 
@@ -744,6 +911,7 @@ private struct RehabFocusTile: View {
 }
 
 private struct MuscleShortcutGrid: View {
+    let segments: [MuscleSegment]
     @Binding var selectedSegments: Set<MuscleSegment>
 
     private let columns = [
@@ -759,7 +927,7 @@ private struct MuscleShortcutGrid: View {
                 .foregroundStyle(.primary)
 
             LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(primarySegments) { segment in
+                ForEach(segments) { segment in
                     Button {
                         HapticService.selection()
                         withAnimation(.snappy(duration: 0.22)) {
@@ -792,8 +960,116 @@ private struct MuscleShortcutGrid: View {
         }
     }
 
-    private var primarySegments: [MuscleSegment] {
-        [.chest, .deltoids, .upperBack, .biceps, .triceps, .abs, .quads, .glutes, .calves]
+    static let defaultSegments: [MuscleSegment] = [
+        .chest, .deltoids, .upperBack, .biceps, .triceps, .abs, .quads, .glutes, .calves
+    ]
+}
+
+extension MuscleSegment: CustomizableSection {
+    var systemImage: String {
+        switch preferredSide {
+        case .back: "figure.strengthtraining.traditional"
+        case .front: "figure.core.training"
+        }
+    }
+}
+
+/// Exercises' "lighter" Edit Layout: reorder/hide the category filter chips and
+/// the muscle shortcut tiles together, in one sheet. `.all` isn't included here —
+/// it's the no-filter default and stays pinned first in `categoryScroller`.
+private struct ExerciseFilterLayoutEditorSheet: View {
+    let onSave: (
+        _ categoryOrder: [String], _ hiddenCategoryIDs: [String],
+        _ muscleOrder: [String], _ hiddenMuscleIDs: [String]
+    ) -> Void
+
+    @State private var visibleCategories: [ExerciseLibraryCategory]
+    @State private var hiddenCategories: [ExerciseLibraryCategory]
+    @State private var visibleMuscles: [MuscleSegment]
+    @State private var hiddenMuscles: [MuscleSegment]
+    // A real `@State` binding, not `.constant(.active)` — see SectionCustomization.swift.
+    @State private var editMode: EditMode = .active
+    @Environment(\.dismiss) private var dismiss
+
+    init(
+        visibleCategories: [ExerciseLibraryCategory],
+        hiddenCategories: [ExerciseLibraryCategory],
+        visibleMuscles: [MuscleSegment],
+        hiddenMuscles: [MuscleSegment],
+        onSave: @escaping (
+            _ categoryOrder: [String], _ hiddenCategoryIDs: [String],
+            _ muscleOrder: [String], _ hiddenMuscleIDs: [String]
+        ) -> Void
+    ) {
+        self.onSave = onSave
+        _visibleCategories = State(initialValue: visibleCategories)
+        _hiddenCategories = State(initialValue: hiddenCategories)
+        _visibleMuscles = State(initialValue: visibleMuscles)
+        _hiddenMuscles = State(initialValue: hiddenMuscles)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section(localizedString("category_filters")) {
+                    ForEach(visibleCategories) { category in
+                        Label(category.title, systemImage: category.systemImage)
+                    }
+                    .onMove { visibleCategories.move(fromOffsets: $0, toOffset: $1) }
+                    .onDelete { indices in
+                        hiddenCategories.append(contentsOf: indices.map { visibleCategories[$0] })
+                        visibleCategories.remove(atOffsets: indices)
+                    }
+                }
+
+                Section(localizedString("Muscle groups")) {
+                    ForEach(visibleMuscles) { segment in
+                        Label(segment.title, systemImage: segment.systemImage)
+                    }
+                    .onMove { visibleMuscles.move(fromOffsets: $0, toOffset: $1) }
+                    .onDelete { indices in
+                        hiddenMuscles.append(contentsOf: indices.map { visibleMuscles[$0] })
+                        visibleMuscles.remove(atOffsets: indices)
+                    }
+                }
+            }
+            .environment(\.editMode, $editMode)
+            // Both "More" panels live outside the editing List — see
+            // SectionCustomization.swift's SectionLayoutEditorSheet for why.
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 12) {
+                    if !hiddenCategories.isEmpty {
+                        MoreSectionPanel(hidden: hiddenCategories) { category in
+                            HapticService.selection()
+                            hiddenCategories.removeAll { $0.id == category.id }
+                            visibleCategories.append(category)
+                        }
+                    }
+                    if !hiddenMuscles.isEmpty {
+                        MoreSectionPanel(hidden: hiddenMuscles) { segment in
+                            HapticService.selection()
+                            hiddenMuscles.removeAll { $0.id == segment.id }
+                            visibleMuscles.append(segment)
+                        }
+                    }
+                }
+                .padding(.bottom, (hiddenCategories.isEmpty && hiddenMuscles.isEmpty) ? 0 : 4)
+            }
+            .navigationTitle(localizedString("edit_layout"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(localizedString("done")) {
+                        onSave(
+                            visibleCategories.map(\.id), hiddenCategories.map(\.id),
+                            visibleMuscles.map(\.id), hiddenMuscles.map(\.id)
+                        )
+                        dismiss()
+                    }
+                    .fontWeight(.bold)
+                }
+            }
+        }
     }
 }
 
@@ -871,7 +1147,7 @@ private struct ExerciseGroupCard: View {
     }
 }
 
-private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable {
+private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable, CustomizableSection {
     case all
     case home
     case gym
@@ -882,15 +1158,15 @@ private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: LocalizedStringKey {
+    var title: String {
         switch self {
-        case .all: "All"
-        case .home: "Home"
-        case .gym: "Gym"
-        case .bodyweight: "Bodyweight"
-        case .freeWeights: "Free weights"
-        case .machines: "Machines"
-        case .cardio: "Cardio"
+        case .all: localizedString("All")
+        case .home: localizedString("Home")
+        case .gym: localizedString("Gym")
+        case .bodyweight: localizedString("Bodyweight")
+        case .freeWeights: localizedString("Free weights")
+        case .machines: localizedString("Machines")
+        case .cardio: localizedString("Cardio")
         }
     }
 

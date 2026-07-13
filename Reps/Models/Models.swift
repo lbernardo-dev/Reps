@@ -108,6 +108,20 @@ struct UserProfile: Codable {
     /// Raw value of WidgetColor — synced to the App Group so all widgets read it
     var widgetAccentColorName: String = "system"
 
+    // ── Home screen layout customization (Apple Fitness-style Edit Layout).
+    // Empty arrays mean "use the default order / nothing hidden". Ids come from
+    // the per-screen `CustomizableSection` enums (see SectionCustomization.swift).
+    var todaySectionOrder: [String] = []
+    var todayHiddenSectionIDs: [String] = []
+    var trainSectionOrder: [String] = []
+    var trainHiddenSectionIDs: [String] = []
+    var progressSectionOrder: [String] = []
+    var progressHiddenSectionIDs: [String] = []
+    var exercisesCategoryOrder: [String] = []
+    var exercisesHiddenCategoryIDs: [String] = []
+    var exercisesMuscleShortcutOrder: [String] = []
+    var exercisesHiddenMuscleShortcutIDs: [String] = []
+
     // ── Health goals
     enum CalorieGoalType: String, CaseIterable, Codable, Identifiable {
         case fatLoss       = "calorie_goal_fat_loss"

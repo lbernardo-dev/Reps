@@ -1,6 +1,36 @@
 import MuscleMap
 import SwiftUI
 
+// MARK: - Layout customization
+
+/// The optional, reorderable/hideable cards on Train, including the plan-state
+/// hero (`.planHero`, first by default — active plan card or the "start
+/// training" empty-state depending on app state, but reorderable/hideable like
+/// every other card).
+private enum TrainSection: String, CustomizableSection {
+    case planHero, library, tools, yourPlans
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .planHero: localizedString("plan_3")
+        case .library: localizedString("libraries")
+        case .tools: localizedString("tools")
+        case .yourPlans: localizedString("your_plans")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .planHero: "bolt.fill"
+        case .library: "books.vertical.fill"
+        case .tools: "wrench.and.screwdriver.fill"
+        case .yourPlans: "square.stack.3d.up.fill"
+        }
+    }
+}
+
 struct PlansView: View {
     @Environment(AppStore.self) private var store
     @State private var showCreatePlan = false
@@ -55,6 +85,7 @@ struct PlansView: View {
     @State private var recommendedWorkout: WorkoutDay? = nil
     @State private var recommendedWorkoutToConfirm: WorkoutDay?
     @State private var workoutToStart: WorkoutDay?
+    @State private var showEditLayout = false
 
     /// A few exercises spanning distinct muscle groups, for the library collage.
     private var collageExercises: [Exercise] {
@@ -112,76 +143,25 @@ struct PlansView: View {
                     }
                 }
             ) {
-                    if hasActivePlan {
-                        activePlanSection
-                            .stickyHeaderTitle(localizedString("active_plan"))
-
-                        discoveryBanner
-                    } else {
-                        if let rec = recommendedWorkout {
-                            RecommendedWorkoutCard(
-                                workout: rec,
-                                batteryLevel: store.trainingBattery.level,
-                                language: store.userProfile.preferredLanguage,
-                                experience: store.userProfile.experience,
-                                mainGoal: store.userProfile.mainGoal,
-                                weeklyTrainingDays: store.userProfile.weeklyTrainingDays,
-                                onStart: {
-                                    HapticService.impact(.medium)
-                                    recommendedWorkoutToConfirm = rec
-                                }
-                            )
-                            .stickyHeaderTitle(localizedString("recommended_workout_title"))
-                        }
-
-                        startTrainingSection
-                            .stickyHeaderTitle(localizedString("create_plan_2"))
+                    ForEach(resolvedTrainSections.visible) { section in
+                        trainSectionView(for: section)
                     }
 
-                    librarySection
-                        .stickyHeaderTitle(localizedString("libraries"))
-
-                    toolsSection
-                        .stickyHeaderTitle(localizedString("tools"))
-
-                    HStack {
-                        SectionHeader(title: "your_plans_header")
-                        Spacer()
-                        Button {
-                            tryOpenProgramLibrary()
-                        } label: {
-                            Label(localizedString("browse_programs_button"), systemImage: "magnifyingglass")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.accent)
-                        }
-                        .buttonStyle(.plain)
+                    SecondaryButton("edit_layout", systemImage: "slider.horizontal.3") {
+                        HapticService.selection()
+                        showEditLayout = true
                     }
-                    .stickyHeaderTitle(localizedString("your_plans"))
-
-                    let inactivePlans = store.plans.filter { $0.id != store.activePlan.id }
-                    if inactivePlans.isEmpty {
-                        PulseCard {
-                            PulseEmptyState(
-                                title: "no_saved_plans",
-                                message: "create_plan_from_templates",
-                                systemImage: "square.stack.3d.up"
-                            )
-                        }
-                    } else {
-                        LazyVStack(spacing: 10) {
-                            ForEach(inactivePlans) { plan in
-                                PlanCard(plan: plan, isLocked: !canManagePlan(plan)) {
-                                    selectedPlanForDetail = plan
-                                } onActivate: {
-                                    tryActivateSavedPlan(plan)
-                                } onEdit: {
-                                    tryEditPlan(plan)
-                                } onDelete: {
-                                    store.deletePlan(plan)
-                                }
-                            }
-                        }
-                    }
+            }
+            .sheet(isPresented: $showEditLayout) {
+                let resolved = resolvedTrainSections
+                SectionLayoutEditorSheet(
+                    title: localizedString("edit_layout"),
+                    visible: resolved.visible,
+                    hidden: resolved.hiddenAvailable
+                ) { order, hiddenIDs in
+                    store.userProfile.trainSectionOrder = order
+                    store.userProfile.trainHiddenSectionIDs = hiddenIDs
+                }
             }
             .sheet(isPresented: $showCreatePlan) {
                 CreatePlanView()
@@ -279,6 +259,99 @@ struct PlansView: View {
 
     private var hasActivePlan: Bool {
         store.hasActiveTrainingPlan
+    }
+
+    // MARK: - Layout customization
+
+    private var resolvedTrainSections: (visible: [TrainSection], hiddenAvailable: [TrainSection]) {
+        SectionLayoutResolver.resolve(
+            storedOrder: store.userProfile.trainSectionOrder,
+            storedHidden: store.userProfile.trainHiddenSectionIDs
+        )
+    }
+
+    @ViewBuilder
+    private var planHeroSection: some View {
+        if hasActivePlan {
+            activePlanSection
+            discoveryBanner
+        } else {
+            if let rec = recommendedWorkout {
+                RecommendedWorkoutCard(
+                    workout: rec,
+                    batteryLevel: store.trainingBattery.level,
+                    language: store.userProfile.preferredLanguage,
+                    experience: store.userProfile.experience,
+                    mainGoal: store.userProfile.mainGoal,
+                    weeklyTrainingDays: store.userProfile.weeklyTrainingDays,
+                    onStart: {
+                        HapticService.impact(.medium)
+                        recommendedWorkoutToConfirm = rec
+                    }
+                )
+            }
+            startTrainingSection
+        }
+    }
+
+    @ViewBuilder
+    private func trainSectionView(for section: TrainSection) -> some View {
+        switch section {
+        case .planHero:
+            planHeroSection
+                .stickyHeaderTitle(hasActivePlan ? localizedString("active_plan") : localizedString("create_plan_2"))
+        case .library:
+            librarySection
+                .stickyHeaderTitle(section.title)
+        case .tools:
+            toolsSection
+                .stickyHeaderTitle(section.title)
+        case .yourPlans:
+            yourPlansSection
+                .stickyHeaderTitle(section.title)
+        }
+    }
+
+    private var yourPlansSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                SectionHeader(title: "your_plans_header")
+                Spacer()
+                Button {
+                    tryOpenProgramLibrary()
+                } label: {
+                    Label(localizedString("browse_programs_button"), systemImage: "magnifyingglass")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.accent)
+                }
+                .buttonStyle(.plain)
+            }
+
+            let inactivePlans = store.plans.filter { $0.id != store.activePlan.id }
+            if inactivePlans.isEmpty {
+                PulseCard {
+                    PulseEmptyState(
+                        title: "no_saved_plans",
+                        message: "create_plan_from_templates",
+                        systemImage: "square.stack.3d.up"
+                    )
+                }
+            } else {
+                LazyVStack(spacing: 10) {
+                    ForEach(inactivePlans) { plan in
+                        PlanCard(plan: plan, isLocked: !canManagePlan(plan)) {
+                            selectedPlanForDetail = plan
+                        } onActivate: {
+                            tryActivateSavedPlan(plan)
+                        } onEdit: {
+                            tryEditPlan(plan)
+                        } onDelete: {
+                            store.deletePlan(plan)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private var librarySection: some View {

@@ -806,9 +806,11 @@ private struct WeeklySparkMetricRow: View {
   let footer: String
 
   private let segmentCount = 6
+  private let chartHeight: CGFloat = 34
+  private let dayLabelHeight: CGFloat = 13
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 5) {
+    VStack(alignment: .leading, spacing: 7) {
       HStack(alignment: .firstTextBaseline) {
         VStack(alignment: .leading, spacing: 1) {
           Text(title)
@@ -844,16 +846,20 @@ private struct WeeklySparkMetricRow: View {
           .accessibilityValue(Int(clamped * 100).formatted(.percent))
         }
       }
-      .frame(height: 34, alignment: .bottom)
+      .frame(height: chartHeight, alignment: .bottom)
 
       HStack(spacing: 5) {
         ForEach(Array(dayDates.enumerated()), id: \.offset) { index, date in
           Text(dayInitial(for: date))
             .font(.system(size: 8, weight: .black, design: .rounded))
             .foregroundStyle(index == todayIndex ? color : PulseTheme.tertiaryText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .frame(maxWidth: .infinity)
         }
       }
+      .frame(height: dayLabelHeight, alignment: .top)
+      .padding(.top, 1)
     }
   }
 
@@ -864,7 +870,9 @@ private struct WeeklySparkMetricRow: View {
 
   private func dayInitial(for date: Date) -> String {
     let weekday = Calendar.current.component(.weekday, from: date)
-    return ["D", "L", "M", "X", "J", "V", "S"][max(0, min(weekday - 1, 6))]
+    let symbols = Calendar.current.veryShortWeekdaySymbols
+    guard symbols.indices.contains(weekday - 1) else { return "" }
+    return symbols[weekday - 1].uppercased()
   }
 
   private func dayLabel(for index: Int) -> String {

@@ -1,6 +1,52 @@
 import MuscleMap
 import SwiftUI
 
+// MARK: - Layout customization
+
+/// The optional, reorderable/hideable cards on Today, including the primary
+/// workout hero (`.hero`, first by default) — fully reorderable/hideable like
+/// every other card, per explicit request rather than pinned Apple-Rings-style.
+private enum TodaySection: String, CustomizableSection {
+    case hero, greeting, weeklyProgress, weather, insights, continuity, recommendedWorkout
+    case progression, signals, wellness, plan, shortcuts
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .hero: localizedString("workout")
+        case .greeting: localizedString("daily_greeting")
+        case .weeklyProgress: localizedString("weekly_target")
+        case .weather: localizedString("weather")
+        case .insights: localizedString("smart_weather_insights")
+        case .continuity: localizedString("consistency")
+        case .recommendedWorkout: localizedString("recommended_workout_title")
+        case .progression: localizedString("progression")
+        case .signals: localizedString("today_signals")
+        case .wellness: localizedString("recovery_2")
+        case .plan: localizedString("plan_3")
+        case .shortcuts: localizedString("shortcuts")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .hero: "bolt.fill"
+        case .greeting: "sun.max.fill"
+        case .weeklyProgress: "chart.bar.fill"
+        case .weather: "cloud.sun.fill"
+        case .insights: "sparkles"
+        case .continuity: "flame.fill"
+        case .recommendedWorkout: "wand.and.stars"
+        case .progression: "arrow.up.right.circle.fill"
+        case .signals: "gauge.with.dots.needle.67percent"
+        case .wellness: "heart.text.square.fill"
+        case .plan: "bolt.fill"
+        case .shortcuts: "square.grid.2x2.fill"
+        }
+    }
+}
+
 struct TodayView: View {
     @Environment(AppStore.self) private var store
     var onSelectTab: ((AppTab) -> Void)? = nil
@@ -388,6 +434,7 @@ private struct TodayViewContent: View {
     @State private var recommendedWorkout: WorkoutDay? = nil
     @State private var recommendedWorkoutToConfirm: WorkoutDay?
     @State private var showRestartConfirmation = false
+    @State private var showEditLayout = false
     @Namespace private var wellnessZoom
 
     private var freeWorkout: WorkoutDay {
@@ -538,56 +585,25 @@ private struct TodayViewContent: View {
                     .accessibilityLabel("notifications")
                 }
             ) {
-                if let activeStatus = store.activeWorkoutStatus {
-                    activeSessionHero(activeStatus)
-                        .stickyHeaderTitle(localizedString("in_progress_label"))
-                } else {
-                    dailyReadinessGreeting
-                        .stickyHeaderTitle(localizedString("today_3"))
-                    weeklyProgressHero
-                        .stickyHeaderTitle(localizedString("weekly_target"))
-                    weatherSection
-                        .stickyHeaderTitle(localizedString("weather"))
-                    outdoorIntelligenceSection
-                        .stickyHeaderTitle("Insights")
-                    focusHeroSection
-                        .stickyHeaderTitle(localizedString("workout"))
-                    continuityCard
-                        .stickyHeaderTitle(localizedString("consistency"))
-                    if let rec = recommendedWorkout, !hasActivePlan {
-                        RecommendedWorkoutCard(
-                            workout: rec,
-                            batteryLevel: batteryStatus.level,
-                            language: store.userProfile.preferredLanguage,
-                            experience: store.userProfile.experience,
-                            mainGoal: store.userProfile.mainGoal,
-                            weeklyTrainingDays: store.userProfile.weeklyTrainingDays,
-                            onStart: {
-                                HapticService.impact(.medium)
-                                recommendedWorkoutToConfirm = rec
-                            }
-                        )
-                        .stickyHeaderTitle(localizedString("recommended_workout_title"))
-                    }
+                ForEach(resolvedTodaySections.visible) { section in
+                    todaySectionView(for: section)
                 }
-                if !focusProgressionRecommendations.isEmpty {
-                    ProgressionRecommendationCard(
-                        recommendations: focusProgressionRecommendations,
-                        language: store.userProfile.preferredLanguage,
-                        title: "what_to_progress_today"
-                    )
-                    .stickyHeaderTitle(localizedString("progression"))
+
+                SecondaryButton("edit_layout", systemImage: "slider.horizontal.3") {
+                    HapticService.selection()
+                    showEditLayout = true
                 }
-                relationshipSignalBoard
-                    .stickyHeaderTitle("Señales")
-                wellnessWidgets
-                    .stickyHeaderTitle(localizedString("recovery_2"))
-                if hasActivePlan {
-                    planSection
-                        .stickyHeaderTitle(localizedString("plan_3"))
+            }
+            .sheet(isPresented: $showEditLayout) {
+                let resolved = resolvedTodaySections
+                SectionLayoutEditorSheet(
+                    title: localizedString("edit_layout"),
+                    visible: resolved.visible,
+                    hidden: resolved.hiddenAvailable
+                ) { order, hiddenIDs in
+                    store.userProfile.todaySectionOrder = order
+                    store.userProfile.todayHiddenSectionIDs = hiddenIDs
                 }
-                smartShortcuts
-                    .stickyHeaderTitle(localizedString("shortcuts"))
             }
             .sheet(isPresented: $showScheduleWorkout) {
                 ScheduleWorkoutView()
@@ -705,6 +721,92 @@ private struct TodayViewContent: View {
             activeSessionHero(activeStatus)
         } else {
             dashboardWorkoutCard
+        }
+    }
+
+    // MARK: - Layout customization
+
+    private func isTodaySectionAvailable(_ section: TodaySection) -> Bool {
+        switch section {
+        case .hero:
+            return true
+        case .greeting, .weeklyProgress, .weather, .insights, .continuity:
+            return store.activeWorkoutStatus == nil
+        case .recommendedWorkout:
+            return store.activeWorkoutStatus == nil && recommendedWorkout != nil && !hasActivePlan
+        case .progression:
+            return !focusProgressionRecommendations.isEmpty
+        case .signals, .wellness, .shortcuts:
+            return true
+        case .plan:
+            return hasActivePlan
+        }
+    }
+
+    private var resolvedTodaySections: (visible: [TodaySection], hiddenAvailable: [TodaySection]) {
+        SectionLayoutResolver.resolve(
+            storedOrder: store.userProfile.todaySectionOrder,
+            storedHidden: store.userProfile.todayHiddenSectionIDs,
+            available: isTodaySectionAvailable
+        )
+    }
+
+    @ViewBuilder
+    private func todaySectionView(for section: TodaySection) -> some View {
+        switch section {
+        case .hero:
+            focusHeroSection
+                .stickyHeaderTitle(store.activeWorkoutStatus != nil ? localizedString("in_progress_label") : section.title)
+        case .greeting:
+            dailyReadinessGreeting
+                .stickyHeaderTitle(section.title)
+        case .weeklyProgress:
+            weeklyProgressHero
+                .stickyHeaderTitle(section.title)
+        case .weather:
+            weatherSection
+                .stickyHeaderTitle(section.title)
+        case .insights:
+            outdoorIntelligenceSection
+                .stickyHeaderTitle(section.title)
+        case .continuity:
+            continuityCard
+                .stickyHeaderTitle(section.title)
+        case .recommendedWorkout:
+            if let rec = recommendedWorkout {
+                RecommendedWorkoutCard(
+                    workout: rec,
+                    batteryLevel: batteryStatus.level,
+                    language: store.userProfile.preferredLanguage,
+                    experience: store.userProfile.experience,
+                    mainGoal: store.userProfile.mainGoal,
+                    weeklyTrainingDays: store.userProfile.weeklyTrainingDays,
+                    onStart: {
+                        HapticService.impact(.medium)
+                        recommendedWorkoutToConfirm = rec
+                    }
+                )
+                .stickyHeaderTitle(section.title)
+            }
+        case .progression:
+            ProgressionRecommendationCard(
+                recommendations: focusProgressionRecommendations,
+                language: store.userProfile.preferredLanguage,
+                title: "what_to_progress_today"
+            )
+            .stickyHeaderTitle(section.title)
+        case .signals:
+            relationshipSignalBoard
+                .stickyHeaderTitle(section.title)
+        case .wellness:
+            wellnessWidgets
+                .stickyHeaderTitle(section.title)
+        case .plan:
+            planSection
+                .stickyHeaderTitle(section.title)
+        case .shortcuts:
+            smartShortcuts
+                .stickyHeaderTitle(section.title)
         }
     }
 
@@ -4271,9 +4373,12 @@ struct WeeklyProgressHeroCard: View {
     let barPoints: [WeeklyBarPoint]
 
     @State private var barsAnimated = false
+    private let chartPlotHeight: CGFloat = 32
+    private let dayLabelHeight: CGFloat = 15
+    private let barLabelGap: CGFloat = 9
 
     var body: some View {
-        DomainHeroCard(domain: .strength, minHeight: 156) {
+        DomainHeroCard(domain: .strength, minHeight: 168) {
             VStack(alignment: .leading, spacing: 14) {
 
                 // ── Top row: streak + sessions ─────────────────────────────
@@ -4337,38 +4442,43 @@ struct WeeklyProgressHeroCard: View {
                 // ── Bar chart: 7-day activity ──────────────────────────────
                 HStack(alignment: .bottom, spacing: 6) {
                     ForEach(barPoints) { point in
-                        VStack(spacing: 4) {
-                            GeometryReader { geo in
-                                VStack {
-                                    Spacer()
-                                    RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                        .fill(barFill(for: point))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                                .strokeBorder(PulseTheme.accentOnCard.opacity(point.isToday ? 0.9 : 0), lineWidth: 1.5)
-                                        )
-                                        .frame(
-                                            height: barsAnimated
-                                                ? max(4, geo.size.height * point.normalizedHeight)
-                                                : 4
-                                        )
-                                        .animation(
-                                            .spring(response: 0.55, dampingFraction: 0.70)
-                                                .delay(Double(barPoints.firstIndex(where: { $0.id == point.id }) ?? 0) * 0.06),
-                                            value: barsAnimated
-                                        )
-                                }
+                        VStack(spacing: 0) {
+                            ZStack(alignment: .bottom) {
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .fill(barFill(for: point))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                            .strokeBorder(PulseTheme.accentOnCard.opacity(point.isToday ? 0.9 : 0), lineWidth: 1.5)
+                                    )
+                                    .frame(
+                                        height: barsAnimated
+                                            ? max(5, chartPlotHeight * point.normalizedHeight)
+                                            : 5
+                                    )
+                                    .animation(
+                                        .spring(response: 0.55, dampingFraction: 0.70)
+                                            .delay(Double(barPoints.firstIndex(where: { $0.id == point.id }) ?? 0) * 0.06),
+                                        value: barsAnimated
+                                    )
                             }
-                            .frame(height: 36)
+                            .frame(height: chartPlotHeight, alignment: .bottom)
+                            .clipped()
 
+                            Spacer(minLength: barLabelGap)
+                                .frame(height: barLabelGap)
+                            
                             Text(point.dayLabel)
-                                .font(.system(size: 8, weight: .bold, design: .rounded))
+                                .font(.system(size: 10, weight: point.isToday ? .black : .bold, design: .rounded))
                                 .foregroundStyle(point.isToday ? PulseTheme.accent : PulseTheme.tertiaryText)
                                 .textCase(.uppercase)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                                .frame(height: dayLabelHeight, alignment: .center)
                         }
                         .frame(maxWidth: .infinity)
                     }
                 }
+                .frame(height: chartPlotHeight + barLabelGap + dayLabelHeight, alignment: .bottom)
             }
             .padding(16)
         }

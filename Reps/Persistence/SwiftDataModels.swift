@@ -43,6 +43,17 @@ final class UserProfileRecord {
     var socialAgeGateCheckedAt: Date?
     var socialFollowingUsernamesData: Data?
     var socialBlockedUsernamesData: Data?
+    // Home screen layout customization (Apple Fitness-style Edit Layout)
+    var todaySectionOrderData: Data?
+    var todayHiddenSectionIDsData: Data?
+    var trainSectionOrderData: Data?
+    var trainHiddenSectionIDsData: Data?
+    var progressSectionOrderData: Data?
+    var progressHiddenSectionIDsData: Data?
+    var exercisesCategoryOrderData: Data?
+    var exercisesHiddenCategoryIDsData: Data?
+    var exercisesMuscleShortcutOrderData: Data?
+    var exercisesHiddenMuscleShortcutIDsData: Data?
 
     init(profile: UserProfile, id: String = "current") {
         self.id = id
@@ -81,9 +92,34 @@ final class UserProfileRecord {
         socialAgeGateCheckedAt = profile.socialAgeGateCheckedAt
         socialFollowingUsernamesData = encodeStrings(profile.socialFollowingUsernames)
         socialBlockedUsernamesData = encodeStrings(profile.socialBlockedUsernames)
+        todaySectionOrderData = encodeStrings(profile.todaySectionOrder)
+        todayHiddenSectionIDsData = encodeStrings(profile.todayHiddenSectionIDs)
+        trainSectionOrderData = encodeStrings(profile.trainSectionOrder)
+        trainHiddenSectionIDsData = encodeStrings(profile.trainHiddenSectionIDs)
+        progressSectionOrderData = encodeStrings(profile.progressSectionOrder)
+        progressHiddenSectionIDsData = encodeStrings(profile.progressHiddenSectionIDs)
+        exercisesCategoryOrderData = encodeStrings(profile.exercisesCategoryOrder)
+        exercisesHiddenCategoryIDsData = encodeStrings(profile.exercisesHiddenCategoryIDs)
+        exercisesMuscleShortcutOrderData = encodeStrings(profile.exercisesMuscleShortcutOrder)
+        exercisesHiddenMuscleShortcutIDsData = encodeStrings(profile.exercisesHiddenMuscleShortcutIDs)
     }
 
     var domain: UserProfile {
+        var profile = baseProfile
+        profile.todaySectionOrder = decodeStrings(todaySectionOrderData)
+        profile.todayHiddenSectionIDs = decodeStrings(todayHiddenSectionIDsData)
+        profile.trainSectionOrder = decodeStrings(trainSectionOrderData)
+        profile.trainHiddenSectionIDs = decodeStrings(trainHiddenSectionIDsData)
+        profile.progressSectionOrder = decodeStrings(progressSectionOrderData)
+        profile.progressHiddenSectionIDs = decodeStrings(progressHiddenSectionIDsData)
+        profile.exercisesCategoryOrder = decodeStrings(exercisesCategoryOrderData)
+        profile.exercisesHiddenCategoryIDs = decodeStrings(exercisesHiddenCategoryIDsData)
+        profile.exercisesMuscleShortcutOrder = decodeStrings(exercisesMuscleShortcutOrderData)
+        profile.exercisesHiddenMuscleShortcutIDs = decodeStrings(exercisesHiddenMuscleShortcutIDsData)
+        return profile
+    }
+
+    private var baseProfile: UserProfile {
         UserProfile(
             displayName: displayName,
             email: email,

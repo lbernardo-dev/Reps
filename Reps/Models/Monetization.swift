@@ -165,7 +165,7 @@ enum SubscriptionBillingCycle: String, Codable, CaseIterable, Identifiable {
         case .weekly:   return localizedString("weekly_billing_title")
         case .monthly:  return localizedString("monthly_billing_title")
         case .yearly:   return localizedString("annual_billing_title")
-        case .lifetime: return localizedString("Lifetime")
+        case .lifetime: return localizedString("lifetime_billing_title")
         }
     }
 

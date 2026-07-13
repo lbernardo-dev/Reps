@@ -276,9 +276,9 @@ struct SubscriptionCenterView: View {
                 VStack(spacing: 18) {
                     PulseCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(store.monetization.statusLabel)
+                            Text(verbatim: store.monetization.statusLabel)
                                 .font(.title3.bold())
-                            Text(store.monetization.hasProAccess ? localizedString("pro_access_active_on_device") : localizedString("currently_on_reps_free"))
+                            Text(verbatim: store.monetization.hasProAccess ? localizedString("pro_access_active_on_device") : localizedString("currently_on_reps_free"))
                                 .foregroundStyle(PulseTheme.secondaryText)
 
                             if let cycle = store.monetization.billingCycle, store.monetization.hasProAccess {
@@ -290,7 +290,7 @@ struct SubscriptionCenterView: View {
 
                     PulseCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("incluye_reps_pro")
+                            Text(verbatim: localizedString("incluye_reps_pro"))
                                 .font(.headline)
                             ForEach([
                                 ProductFeature.configurableProgression,
@@ -322,7 +322,7 @@ struct SubscriptionCenterView: View {
                         Button {
                             presentingCustomerCenter = true
                         } label: {
-                            Label("manage_subscription", systemImage: "person.crop.circle.badge.checkmark")
+                            Label(localizedString("manage_subscription"), systemImage: "person.crop.circle.badge.checkmark")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 52)
@@ -339,7 +339,7 @@ struct SubscriptionCenterView: View {
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle("subscription")
+            .navigationTitle(localizedString("subscription"))
             .navigationBarTitleDisplayMode(.inline)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

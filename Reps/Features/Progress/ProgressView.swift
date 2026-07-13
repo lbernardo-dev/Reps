@@ -2,6 +2,35 @@ import Charts
 import MuscleMap
 import SwiftUI
 
+// MARK: - Layout customization
+
+/// The optional, reorderable/hideable cards on Progress, including the overview
+/// bundle (`.overview`, first by default — training load + rings hero + today's
+/// metric grid), fully reorderable/hideable like every other card.
+private enum ProgressDashboardSection: String, CustomizableSection {
+    case overview, trends, todayFocus, explore
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .overview: localizedString("load")
+        case .trends: localizedString("trends")
+        case .todayFocus: localizedString("today")
+        case .explore: localizedString("explore")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .overview: "bolt.fill"
+        case .trends: "chart.line.uptrend.xyaxis"
+        case .todayFocus: "sun.max.fill"
+        case .explore: "square.grid.2x2.fill"
+        }
+    }
+}
+
 struct ProgressDashboardView: View {
   @Environment(AppStore.self) private var store
   @State private var selectedRange: ProgressRange = .week
@@ -10,6 +39,7 @@ struct ProgressDashboardView: View {
   @State private var sectionDetail: ProgressSection?
   @State private var metricDetail: SummaryMetricRoute?
   @State private var showNotifications = false
+  @State private var showEditLayout = false
   @State private var renderModel = ProgressDashboardRenderModel.empty
 
   var onSelectTab: ((AppTab) -> Void)? = nil
@@ -43,132 +73,26 @@ struct ProgressDashboardView: View {
         }
       ) {
 
-          TrainingLoadOverviewCard(
-            battery: store.trainingBattery,
-            workload: workload,
-            onTap: { openSection(.load) }
-          )
-          .stickyHeaderTitle(localizedString("load"))
-
-          // ── HOY: Anillos + métricas clave, inspirado en Fitness ───────────────
-          SummaryRingsHeroCard(
-            moveProgress: ringVolumeProgress,
-            exerciseProgress: ringSessionsProgress,
-            standProgress: ringConsistencyProgress,
-            moveLabel: localizedString("volume_label").uppercased(),
-            moveValue: "\(Int(heroMetrics.volumeThisWeek))",
-            moveGoal: "kg",
-            exerciseLabel: localizedString("sessions").uppercased(),
-            exerciseValue: sessionsGoalDisplay,
-            exerciseGoal: sessionsGoalSubtitle,
-            exerciseCaption: sessionsGoalCaption,
-            standLabel: localizedString("consistency").uppercased(),
-            standValue: "\(weekActiveDays)/7",
-            standGoal: localizedString("days").lowercased(),
-            weeklyDays: heroMetrics.weekActivityDays,
-            weekStart: heroMetrics.weekStart,
-            dailyPoints: bodyFusionChartPoints,
-            onTapMove: { handleMetricTap(.volume, range: .week) },
-            onTapExercise: { handleMetricTap(.sessions) },
-            onTapStand: { onSelectTab?(.calendar) }
-          )
-
-          LazyVGrid(columns: summaryGridColumns, spacing: 12) {
-            Button { handleMetricTap(.steps, range: .today) } label: {
-              TodayBarChartCard(
-                icon: TrackedMetric.steps.systemImage,
-                color: TrackedMetric.steps.tint,
-                title: "steps_metric",
-                value: stepsToday > 0 ? "\(stepsToday)" : "—",
-                unit: "PASOS",
-                chartData: stepsWeekData,
-                showsChevron: true
-              )
-            }
-            .buttonStyle(.plain)
-
-            Button { handleMetricTap(.distance, range: .today) } label: {
-              TodayBarChartCard(
-                icon: TrackedMetric.distance.systemImage,
-                color: TrackedMetric.distance.tint,
-                title: "distance_label",
-                value: distanceTodayKm > 0 ? String(format: "%.2f", distanceTodayKm) : "—",
-                unit: "KM",
-                chartData: distanceWeekData,
-                showsChevron: true
-              )
-            }
-            .buttonStyle(.plain)
-
-            Button { handleMetricTap(.activeEnergy, range: .today) } label: {
-              TodayBarChartCard(
-                icon: TrackedMetric.activeEnergy.systemImage,
-                color: TrackedMetric.activeEnergy.tint,
-                title: "active_kcal",
-                value: activeEnergyToday > 0 ? "\(Int(activeEnergyToday))" : "—",
-                unit: "KCAL",
-                chartData: activeEnergyWeekData,
-                showsChevron: true
-              )
-            }
-            .buttonStyle(.plain)
-
-            TodayMetricCard(
-              icon: TrackedMetric.sessions.systemImage,
-              color: TrackedMetric.sessions.tint,
-              title: "sessions",
-              value: "\(heroMetrics.sessionsThisWeek)",
-              detail: "\(weekTotalMinutes) min \(localizedString("week_label").lowercased())"
-            )
+          ForEach(resolvedProgressSections.visible) { section in
+            progressSectionView(for: section)
           }
 
-          // ── TENDENCIAS (90 días vs 365, estilo Apple Fitness) ─
-          if !trendMetrics.isEmpty {
-            TrendHighlightsCard(
-              metrics: trendMetrics,
-              sessionsThisWeek: heroMetrics.sessionsThisWeek,
-              sessionsGoal: weeklySessionGoal,
-              volumeThisWeek: Int(heroMetrics.volumeThisWeek),
-              weekDays: heroMetrics.weekActivityDays
-            )
-            .stickyHeaderTitle(localizedString("trends"))
-
-            TrendsGridView(metrics: trendMetrics) { metric in
-              handleTrendTap(metric)
-            }
+          SecondaryButton("edit_layout", systemImage: "slider.horizontal.3") {
+            HapticService.selection()
+            showEditLayout = true
           }
 
-          DailySummaryFocusCard(
-            readinessLevel: store.trainingBattery.level,
-            todaySessions: todaySessions,
-            dateOfBirth: store.userProfile.dateOfBirth,
-            sessionsToday: todaySessionsCount,
-            activeEnergyToday: Int(activeEnergyToday),
-            stepsToday: stepsToday,
-            exerciseMinutesWeek: weekHealthExerciseMinutes,
-            hasHealthData: !weekHealthMetrics.isEmpty,
-            hasManualData: heroMetrics.sessionsThisWeek > 0,
-            onMetricTap: { handleMetricTap($0, range: .today) }
-          )
-          .stickyHeaderTitle(localizedString("today"))
-
-          // ── EXPLORAR: pantallas de análisis detallado ────────
-          VStack(spacing: 10) {
-            ForEach(ProgressSection.allCases) { section in
-              Button { openSection(section) } label: {
-                ProgressSectionTile(
-                  section: section,
-                  isSelected: false,
-                  value: sectionValue(for: section),
-                  isLocked: section == .load && !store.hasFeatureAccess(.advancedAnalytics),
-                  showsChevron: true
-                )
-              }
-              .buttonStyle(.plain)
-            }
-          }
-          .stickyHeaderTitle(localizedString("explore"))
-
+      }
+      .sheet(isPresented: $showEditLayout) {
+        let resolved = resolvedProgressSections
+        SectionLayoutEditorSheet(
+          title: localizedString("edit_layout"),
+          visible: resolved.visible,
+          hidden: resolved.hiddenAvailable
+        ) { order, hiddenIDs in
+          store.userProfile.progressSectionOrder = order
+          store.userProfile.progressHiddenSectionIDs = hiddenIDs
+        }
       }
       .toolbar(.hidden, for: .navigationBar)
       .navigationDestination(isPresented: $showNotifications) {
@@ -196,6 +120,155 @@ struct ProgressDashboardView: View {
       .task(id: renderModelKey) {
         rebuildRenderModel()
       }
+    }
+  }
+
+  // MARK: - Layout customization
+
+  private var resolvedProgressSections: (visible: [ProgressDashboardSection], hiddenAvailable: [ProgressDashboardSection]) {
+    SectionLayoutResolver.resolve(
+      storedOrder: store.userProfile.progressSectionOrder,
+      storedHidden: store.userProfile.progressHiddenSectionIDs
+    ) { section in
+      switch section {
+      case .overview, .todayFocus, .explore: true
+      case .trends: !trendMetrics.isEmpty
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var overviewSection: some View {
+    TrainingLoadOverviewCard(
+      battery: store.trainingBattery,
+      workload: workload,
+      onTap: { openSection(.load) }
+    )
+
+    // ── HOY: Anillos + métricas clave, inspirado en Fitness ───────────────
+    SummaryRingsHeroCard(
+      moveProgress: ringVolumeProgress,
+      exerciseProgress: ringSessionsProgress,
+      standProgress: ringConsistencyProgress,
+      moveLabel: localizedString("volume_label").uppercased(),
+      moveValue: "\(Int(heroMetrics.volumeThisWeek))",
+      moveGoal: "kg",
+      exerciseLabel: localizedString("sessions").uppercased(),
+      exerciseValue: sessionsGoalDisplay,
+      exerciseGoal: sessionsGoalSubtitle,
+      exerciseCaption: sessionsGoalCaption,
+      standLabel: localizedString("consistency").uppercased(),
+      standValue: "\(weekActiveDays)/7",
+      standGoal: localizedString("days").lowercased(),
+      weeklyDays: heroMetrics.weekActivityDays,
+      weekStart: heroMetrics.weekStart,
+      dailyPoints: bodyFusionChartPoints,
+      onTapMove: { handleMetricTap(.volume, range: .week) },
+      onTapExercise: { handleMetricTap(.sessions) },
+      onTapStand: { onSelectTab?(.calendar) }
+    )
+
+    LazyVGrid(columns: summaryGridColumns, spacing: 12) {
+      Button { handleMetricTap(.steps, range: .today) } label: {
+        TodayBarChartCard(
+          icon: TrackedMetric.steps.systemImage,
+          color: TrackedMetric.steps.tint,
+          title: "steps_metric",
+          value: stepsToday > 0 ? "\(stepsToday)" : "—",
+          unit: "PASOS",
+          chartData: stepsWeekData,
+          showsChevron: true
+        )
+      }
+      .buttonStyle(.plain)
+
+      Button { handleMetricTap(.distance, range: .today) } label: {
+        TodayBarChartCard(
+          icon: TrackedMetric.distance.systemImage,
+          color: TrackedMetric.distance.tint,
+          title: "distance_label",
+          value: distanceTodayKm > 0 ? String(format: "%.2f", distanceTodayKm) : "—",
+          unit: "KM",
+          chartData: distanceWeekData,
+          showsChevron: true
+        )
+      }
+      .buttonStyle(.plain)
+
+      Button { handleMetricTap(.activeEnergy, range: .today) } label: {
+        TodayBarChartCard(
+          icon: TrackedMetric.activeEnergy.systemImage,
+          color: TrackedMetric.activeEnergy.tint,
+          title: "active_kcal",
+          value: activeEnergyToday > 0 ? "\(Int(activeEnergyToday))" : "—",
+          unit: "KCAL",
+          chartData: activeEnergyWeekData,
+          showsChevron: true
+        )
+      }
+      .buttonStyle(.plain)
+
+      TodayMetricCard(
+        icon: TrackedMetric.sessions.systemImage,
+        color: TrackedMetric.sessions.tint,
+        title: "sessions",
+        value: "\(heroMetrics.sessionsThisWeek)",
+        detail: "\(weekTotalMinutes) min \(localizedString("week_label").lowercased())"
+      )
+    }
+  }
+
+  @ViewBuilder
+  private func progressSectionView(for section: ProgressDashboardSection) -> some View {
+    switch section {
+    case .overview:
+      overviewSection
+        .stickyHeaderTitle(section.title)
+    case .trends:
+      // ── TENDENCIAS (90 días vs 365, estilo Apple Fitness) ─
+      TrendHighlightsCard(
+        metrics: trendMetrics,
+        sessionsThisWeek: heroMetrics.sessionsThisWeek,
+        sessionsGoal: weeklySessionGoal,
+        volumeThisWeek: Int(heroMetrics.volumeThisWeek),
+        weekDays: heroMetrics.weekActivityDays
+      )
+      .stickyHeaderTitle(section.title)
+
+      TrendsGridView(metrics: trendMetrics) { metric in
+        handleTrendTap(metric)
+      }
+    case .todayFocus:
+      DailySummaryFocusCard(
+        readinessLevel: store.trainingBattery.level,
+        todaySessions: todaySessions,
+        dateOfBirth: store.userProfile.dateOfBirth,
+        sessionsToday: todaySessionsCount,
+        activeEnergyToday: Int(activeEnergyToday),
+        stepsToday: stepsToday,
+        exerciseMinutesWeek: weekHealthExerciseMinutes,
+        hasHealthData: !weekHealthMetrics.isEmpty,
+        hasManualData: heroMetrics.sessionsThisWeek > 0,
+        onMetricTap: { handleMetricTap($0, range: .today) }
+      )
+      .stickyHeaderTitle(section.title)
+    case .explore:
+      // ── EXPLORAR: pantallas de análisis detallado ────────
+      VStack(spacing: 10) {
+        ForEach(ProgressSection.allCases) { section in
+          Button { openSection(section) } label: {
+            ProgressSectionTile(
+              section: section,
+              isSelected: false,
+              value: sectionValue(for: section),
+              isLocked: section == .load && !store.hasFeatureAccess(.advancedAnalytics),
+              showsChevron: true
+            )
+          }
+          .buttonStyle(.plain)
+        }
+      }
+      .stickyHeaderTitle(section.title)
     }
   }
 
