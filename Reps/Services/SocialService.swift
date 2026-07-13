@@ -1268,6 +1268,85 @@ actor SocialService {
             return nil
         }
     }
+
+    // MARK: - Account deletion
+    //
+    // App Store Review Guideline 5.1.1(v): an app that offers account
+    // creation must offer account deletion, not just local data reset.
+    // `SocialProfile`/`WorkoutPost`/etc. are a real public CloudKit account,
+    // so this removes every record owned by it, not just the profile.
+    //
+    // Every step below is best-effort (`try?`): a single record failing to
+    // delete — most often because a query needs a Dashboard index that was
+    // never provisioned — must never block the rest of the deletion. The
+    // profile record itself is deleted last, once content cleanup has been
+    // attempted, so a partial failure never leaves a "ghost" profile that
+    // looks alive while its content is gone.
+
+    /// Deletes the public CloudKit account for `username`: profile, posts,
+    /// comments, outgoing/incoming follows, likes, blocks, and push
+    /// subscriptions. Local caches are cleared afterward. Throws only if
+    /// iCloud is unavailable or the profile record itself can't be removed.
+    func deleteAccount(username: String) async throws {
+        try await requireICloudAccount()
+        let myID = try await myRecordID()
+        let normalized = username.lowercased()
+
+        for post in await fetchPosts(username: normalized, limit: 1000) {
+            _ = try? await publicDB.deleteRecord(withID: CKRecord.ID(recordName: post.id))
+        }
+
+        await deleteRecords(
+            type: "WorkoutComment",
+            predicate: NSPredicate(format: "ownerUsername == %@", normalized)
+        )
+        await deleteRecords(
+            type: "WorkoutLike",
+            predicate: NSPredicate(format: "likerOwnerName == %@", myID.recordName)
+        )
+        await deleteRecords(
+            type: "SocialBlock",
+            predicate: NSPredicate(format: "blockerOwnerName == %@", myID.recordName)
+        )
+
+        // Outgoing follows use deterministic IDs, so no query/index is needed.
+        if let profile = try? await fetchMyProfile(username: normalized) {
+            for followed in profile.followingUsernames {
+                let fid = followRecordID(followerOwner: myID.recordName, followingUsername: followed)
+                _ = try? await publicDB.deleteRecord(withID: fid)
+            }
+        }
+        // Incoming follows (other accounts following this one) need a query.
+        await deleteRecords(
+            type: "SocialFollow",
+            predicate: NSPredicate(format: "followingUsername == %@", normalized)
+        )
+
+        for subscriptionID in ["new-follower-\(normalized)", "new-like-\(normalized)", "new-comment-\(normalized)"] {
+            _ = try? await publicDB.deleteSubscription(withID: subscriptionID)
+        }
+
+        // Profile record last — see note above on ordering.
+        try await publicDB.deleteRecord(withID: profileRecordID(username: normalized))
+
+        UserDefaults.standard.removeObject(forKey: Self.postCacheKey)
+        UserDefaults.standard.removeObject(forKey: Self.commentIndexKey)
+        commentsCache = [:]
+        outbox = []
+        if let url = commentsCacheURL { try? FileManager.default.removeItem(at: url) }
+        if let url = outboxURL { try? FileManager.default.removeItem(at: url) }
+    }
+
+    /// Best-effort bulk delete: queries `type` for `predicate` and removes every
+    /// match. Silently does nothing if the query needs an index that isn't
+    /// provisioned yet, consistent with how every other query in this file degrades.
+    private func deleteRecords(type: String, predicate: NSPredicate) async {
+        let query = CKQuery(recordType: type, predicate: predicate)
+        guard let result = try? await publicDB.records(matching: query, resultsLimit: 1000) else { return }
+        for (recordID, _) in result.matchResults {
+            _ = try? await publicDB.deleteRecord(withID: recordID)
+        }
+    }
 }
 
 // MARK: - Challenge Models

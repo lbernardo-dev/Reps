@@ -12,6 +12,7 @@ enum NotificationService {
         case streakAtRisk
         case achievementUnlocked
         case gymRenewal
+        case completeImportedWorkout
     }
 
     /// User-tappable action surfaced on the notification (long-press / Notification Center).
@@ -60,6 +61,7 @@ enum NotificationService {
     private static let dailySummaryIdentifier = "daily-summary"
     private static let batterySuggestionIdentifier = "battery-recovery-suggestion"
     private static let retentionNudgePrefix = "retention-nudge-"
+    private static let completeImportedWorkoutPrefix = "complete-imported-workout-"
     private static let personalRecordPrefix = "personal-record-"
     private static let streakAtRiskIdentifier = "streak-at-risk"
     private static let achievementPrefix = "achievement-"
@@ -224,6 +226,43 @@ enum NotificationService {
             trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         )
         try await UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Nudges the user, once, to fill in the sets/reps/weight for a workout
+    /// that arrived from HealthKit with no strength data. Identifier is keyed
+    /// only by session id (no timestamp) so it can be cancelled by id once
+    /// the user completes the workout, and re-scheduling naturally replaces
+    /// any pending copy instead of stacking duplicates.
+    static func scheduleCompleteImportedWorkoutNudge(sessionID: String, title: String, body: String, date: Date, now: Date = .now) async throws {
+        guard date > now.addingTimeInterval(60) else {
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.threadIdentifier = "complete-imported-workout"
+        content.userInfo = [
+            kindKey: Kind.completeImportedWorkout.rawValue
+        ]
+
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: date
+        )
+        let request = UNNotificationRequest(
+            identifier: "\(completeImportedWorkoutPrefix)\(sessionID)",
+            content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        )
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    static func cancelCompleteImportedWorkoutNudge(sessionID: String) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: ["\(completeImportedWorkoutPrefix)\(sessionID)"]
+        )
     }
 
     /// Celebrates a freshly-achieved personal record. Fires a few seconds later

@@ -600,6 +600,10 @@ struct StrengthWorkoutSummaryView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     WorkoutDetailsSectionTitle()
 
+                    if session.needsHealthKitCompletion {
+                        ImportedWorkoutCompletionBanner(session: session)
+                    }
+
                     StrengthWorkoutDetailsCard(session: session, exerciseCount: exerciseLogs.count)
 
                     if session.averageHeartRate != nil || !session.hrTimeSeries.isEmpty {

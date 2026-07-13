@@ -145,8 +145,17 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
         }
     }
 
-    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {}
-    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {}
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        TelemetryService.shared.breadcrumb("notif.did_register_for_remote")
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        // Most commonly a missing `aps-environment` entitlement (Push Notifications
+        // capability not enabled) or no network at first launch. CloudKit silent
+        // push for social activity (new-follower/new-like/new-comment
+        // subscriptions in SocialService) will never deliver until this succeeds.
+        TelemetryService.shared.record(error, context: "notif.did_fail_to_register_for_remote")
+    }
 }
 
 @main

@@ -727,6 +727,13 @@ extension WorkoutSession {
         )
     }
 
+    /// True when this session was imported from HealthKit but carries no
+    /// strength data at all (no sets, no exercise logs) and isn't a cardio
+    /// route session — i.e. only the user can supply what's missing.
+    var needsHealthKitCompletion: Bool {
+        isImportedFromHealth && !isRouteSession && sets.isEmpty && (exerciseLogs?.isEmpty ?? true)
+    }
+
     var routeKindTitle: String {
         let normalizedTitle = workoutTitle.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
         if normalizedTitle.localizedCaseInsensitiveContains("carrera") ||

@@ -32,6 +32,9 @@ struct ProfileView: View {
     @State private var showImportCSV = false
     @State private var showStrongImport = false
     @State private var showDeleteAllConfirmation = false
+    @State private var showDeleteSocialAccountConfirmation = false
+    @State private var isDeletingSocialAccount = false
+    @State private var showSocialHubFromDeepLink = false
     @State private var csvExportURL: URL?
     @State private var backupExportURL: URL?
     @State private var shareImageURL: URL?
@@ -1048,6 +1051,18 @@ struct ProfileView: View {
                             )
                         }
 
+                        if store.userProfile.socialUsername != nil {
+                            ProfileToolButton(
+                                title: "delete_social_profile",
+                                subtitle: isDeletingSocialAccount ? "deleting" : "delete_social_profile_subtitle",
+                                systemImage: "person.crop.circle.badge.xmark",
+                                color: .red
+                            ) {
+                                guard !isDeletingSocialAccount else { return }
+                                showDeleteSocialAccountConfirmation = true
+                            }
+                        }
+
                         ProfileToolButton(
                             title: "delete_data",
                             subtitle: "reset_app",
@@ -1614,6 +1629,16 @@ struct ProfileView: View {
             .sheet(item: $activeSheet) { sheet in
                 profileSheetDestination(sheet)
             }
+            .navigationDestination(isPresented: $showSocialHubFromDeepLink) {
+                SocialHubView()
+            }
+            .onChange(of: store.pendingSocialHubPresentation) { _, isPending in
+                guard isPending else { return }
+                store.pendingSocialHubPresentation = false
+                if store.userProfile.socialEnabled, store.userProfile.socialCapabilitiesAllowed {
+                    showSocialHubFromDeepLink = true
+                }
+            }
             .fileImporter(isPresented: $showImportBackup, allowedContentTypes: [.json]) { result in
                 handleBackupImport(result)
             }
@@ -1634,6 +1659,25 @@ struct ProfileView: View {
                 Button("cancel", role: .cancel) {}
             } message: {
                 Text("workouts_routines_metrics_photos_cards_and_local_settings_will_be_removed_export")
+            }
+            .confirmationDialog(
+                "delete_social_profile_confirm_title",
+                isPresented: $showDeleteSocialAccountConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("delete_social_profile_confirm_button", role: .destructive) {
+                    isDeletingSocialAccount = true
+                    Task {
+                        let success = await store.deleteSocialAccount()
+                        isDeletingSocialAccount = false
+                        store.health.message = localizedString(
+                            success ? "delete_social_profile_success" : "delete_social_profile_failed"
+                        )
+                    }
+                }
+                Button("cancel", role: .cancel) {}
+            } message: {
+                Text("delete_social_profile_message")
             }
             .fullScreenCover(item: $localPaywall) { presentation in
                 PaywallView(presentation: presentation) { reason in
@@ -2290,8 +2334,8 @@ private struct GymVisitTimelineView: View {
         var title: String {
             switch self {
             case .all: localizedString("all").capitalizingFirstLetter()
-            case .withSession: "Con sesión"
-            case .withoutSession: "Sin sesión"
+            case .withSession: localizedString("session_filter_with_session")
+            case .withoutSession: localizedString("session_filter_without_session")
             }
         }
     }

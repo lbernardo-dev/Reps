@@ -1606,7 +1606,7 @@ struct ActiveWorkoutView: View {
                 if exerciseDrafts.indices.contains(selectedExerciseIndex) {
                     let sets = exerciseDrafts.indices.contains(selectedExerciseIndex) ? exerciseDrafts[selectedExerciseIndex].sets : []
                     if !isSessionStarted {
-                        Label("Pulsa Empezar para registrar series", systemImage: "lock.fill")
+                        Label(localizedString("tap_start_to_log_sets"), systemImage: "lock.fill")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.warning)
                             .padding(.horizontal, 12)

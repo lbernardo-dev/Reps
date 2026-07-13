@@ -69,6 +69,9 @@ final class AppStore {
     var exerciseLibrarySyncMessage: String?
     var iCloudBackupDate: Date? = nil
     var pendingSocialSearch: String? = nil
+    /// Set by `reps://social` (no username) — the Friends widget's tap target.
+    /// Consumed by ProfileView to push SocialHubView once Profile is on screen.
+    var pendingSocialHubPresentation = false
     var unreadFeedCount: Int = 0
     var hasUnreadBell: Bool = false
     /// In-app notification inbox (bell). Single source of truth so the list and
@@ -453,6 +456,13 @@ final class AppStore {
         case "workout" where url.path.lowercased() == "/recommended":
             pendingMainTabSelection = .today
             pendingSystemWorkoutStart = true
+            return true
+        case "social" where url.path.isEmpty:
+            // Friends widget tap target ("reps://social", no username). A
+            // username-specific link ("reps://social/@user") has a non-empty
+            // path and falls through to handleSocialDeepLink instead.
+            pendingMainTabSelection = .profile
+            pendingSocialHubPresentation = true
             return true
         default:
             return false
@@ -1384,6 +1394,38 @@ final class AppStore {
         // during this session is celebrated without waiting for the next launch.
         runEngagementChecks()
         evaluateWorkoutAchievements()
+    }
+
+    /// Fills in the sets/exercises for a session that was auto-imported from
+    /// HealthKit with no strength data (see `needsHealthKitCompletion`).
+    /// Unlike `finishWorkout`, this only patches an existing session — no
+    /// paywall/streak/social side effects, since the workout already happened
+    /// and was already counted.
+    func completeImportedWorkout(sessionID: UUID, exerciseLogs: [ExerciseLog]) {
+        guard let index = workoutSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+
+        var updated = workoutSessions[index]
+        let taggedLogs = exerciseLogs.map { log -> ExerciseLog in
+            var log = log
+            log.sets = log.sets.map { set in
+                var set = set
+                set.isPersonalRecord = ExerciseHistoryAnalyzer.isPersonalRecord(set, for: log.exercise, in: workoutSessions)
+                return set
+            }
+            return log
+        }
+        updated.exerciseLogs = taggedLogs
+        updated.sets = taggedLogs.flatMap(\.sets)
+        workoutSessions[index] = updated
+
+        saveReceiptCard(for: updated, replacingExisting: true)
+        cancelImportCompletionNudge(for: sessionID.uuidString)
+
+        if let prExerciseName = taggedLogs.first(where: { log in
+            log.sets.contains { $0.isPersonalRecord && $0.completed }
+        })?.exercise.name {
+            recordPersonalRecordEvent(exerciseName: prExerciseName, date: updated.date)
+        }
     }
 
     /// Writes a freshly-finished, phone-logged session to Apple Health (if it did
@@ -3903,6 +3945,10 @@ final class AppStore {
 
         // También generar recibo para la galería de este entreno importado de salud
         saveReceiptCard(for: importedSession)
+
+        if importedSession.needsHealthKitCompletion {
+            scheduleImportCompletionNudge(for: importedSession)
+        }
     }
 
     private func refreshExistingHealthKitRouteIfNeeded(for workout: HKWorkout, uuidString: String) async {
@@ -4563,6 +4609,35 @@ final class AppStore {
             TelemetryService.shared.record(error, context: "moderator_ban_user")
             return false
         }
+    }
+
+    /// Deletes the public CloudKit social account (profile, posts, comments,
+    /// follows, likes, blocks) and clears local social state. Unlike
+    /// `resetAllData()`, this leaves workouts/plans/metrics untouched — it only
+    /// removes the account a user created for Community. Returns `true` when
+    /// there was nothing to delete or deletion succeeded.
+    @discardableResult
+    func deleteSocialAccount() async -> Bool {
+        guard let username = userProfile.socialUsername else { return true }
+        do {
+            try await SocialService.shared.deleteAccount(username: username)
+        } catch {
+            TelemetryService.shared.record(error, context: "social_delete_account")
+            return false
+        }
+        userProfile.socialUsername = nil
+        userProfile.socialBio = ""
+        userProfile.socialLocation = ""
+        userProfile.socialEnabled = false
+        userProfile.autoShareWorkouts = false
+        userProfile.socialFollowingUsernames = []
+        userProfile.socialBlockedUsernames = []
+        feedPosts = []
+        commentSummaries = [:]
+        unreadFeedCount = 0
+        activeChallenges = []
+        isSocialModerator = false
+        return true
     }
 
     /// Flushes queued (offline) comments. Called on foreground.

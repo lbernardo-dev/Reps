@@ -251,7 +251,7 @@ private struct TodayZoneDistributionPanel: View {
         VStack(alignment: .leading, spacing: 2) {
           Text("Zonas de hoy")
             .font(.subheadline.weight(.black))
-          Text(isUsingHeartRate ? "Frecuencia cardiaca" : "Carga estimada por sesión")
+          Text(localizedString(isUsingHeartRate ? "heart_rate_zone_label" : "estimated_load_per_session"))
             .font(.caption2.weight(.bold))
             .foregroundStyle(PulseTheme.secondaryText)
         }

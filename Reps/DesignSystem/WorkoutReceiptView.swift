@@ -369,11 +369,17 @@ struct WorkoutReceiptView: View {
                     .padding(.bottom, 2)
                 
                 statRow(title: "duration_2", value: "\(sharePayload.durationMinutes) MIN")
+                if let session, let kcal = session.estimatedCalories ?? session.activeEnergyKcal, kcal > 0 {
+                    statRow(title: "calories_2", value: "\(Int(kcal)) KCAL")
+                }
                 if !isRouteReceipt || totalVolume > 0 {
                     statRow(title: "total_volume", value: "\(totalVolume) KG")
                 }
                 if !isRouteReceipt || completedSetsCount > 0 {
                     statRow(title: "completed_sets", value: "\(completedSetsCount) SRS")
+                }
+                if let session, let heartRate = session.averageHeartRate {
+                    statRow(title: "avg_hr_2", value: "\(Int(heartRate)) LPM")
                 }
                 if isRouteReceipt, let session {
                     if let distanceKm = session.distanceKm {
@@ -384,9 +390,6 @@ struct WorkoutReceiptView: View {
                     }
                     if let steps = session.steps {
                         statRow(title: "steps_2", value: "\(Int(steps))")
-                    }
-                    if let heartRate = session.averageHeartRate {
-                        statRow(title: "avg_hr_2", value: "\(Int(heartRate)) LPM")
                     }
                     if let before = session.heartRateBefore, let after = session.heartRateAfter {
                         statRow(title: "before_after", value: "\(Int(before))/\(Int(after)) LPM")

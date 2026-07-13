@@ -169,6 +169,50 @@ extension AppStore {
         }
     }
 
+    // MARK: - Compliance — HealthKit import missing strength data
+
+    /// Called right after a strength workout is auto-imported from
+    /// HealthKit with no sets/exercises attached (Watch's own Fitness app
+    /// can't record those). Surfaces an in-app inbox card immediately, and
+    /// — at most once — a same-day push a few hours later if the user still
+    /// hasn't filled it in. Both are cancelled from `cancelImportCompletionNudge`
+    /// as soon as the session is completed.
+    func scheduleImportCompletionNudge(for session: WorkoutSession, now: Date = .now) {
+        let sessionID = session.id.uuidString
+
+        saveActivityEvent(
+            icon: "square.and.pencil",
+            colorName: "orange",
+            title: localizedString("notif_complete_import_title"),
+            subtitle: localizedFormat("notif_complete_import_body_format", session.workoutTitle),
+            date: now,
+            destination: .session(id: sessionID),
+            category: .workout
+        )
+
+        guard userProfile.remindersEnabled, isCategoryNotificationsEnabled(.workout) else { return }
+        let fireDate = now.addingTimeInterval(3 * 3600)
+        let title = localizedString("notif_complete_import_title")
+        let body = localizedFormat("notif_complete_import_body_format", session.workoutTitle)
+        Task {
+            try? await NotificationService.scheduleCompleteImportedWorkoutNudge(
+                sessionID: sessionID,
+                title: title,
+                body: body,
+                date: fireDate
+            )
+        }
+    }
+
+    /// Call once the user fills in sets/exercises for a previously incomplete
+    /// HealthKit import — cancels the pending push and clears its inbox card.
+    func cancelImportCompletionNudge(for sessionID: String) {
+        NotificationService.cancelCompleteImportedWorkoutNudge(sessionID: sessionID)
+        if let event = activityEvents.first(where: { $0.destination == .session(id: sessionID) }) {
+            deleteActivityEvent(event.id)
+        }
+    }
+
     // MARK: - Evolution — personal record (called at workout-finish time)
 
     func recordPersonalRecordEvent(exerciseName: String, date: Date) {
