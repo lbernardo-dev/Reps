@@ -1057,7 +1057,7 @@ enum AnalyticsEngine {
             guard target >= 4, actual < Int(Double(target) * 0.75) else { return nil }
             return MuscleTargetPoint(muscleGroup: muscle, kind: localizedString("muscle_target_kind_missing"), sets: target - actual)
         }
-        .sorted { $0.sets > $1.sets }
+        .sorted { $0.sets != $1.sets ? $0.sets > $1.sets : $0.muscleGroup < $1.muscleGroup }
 
         let overtrained = allMuscles.compactMap { muscle -> MuscleTargetPoint? in
             let target = targetByMuscle[muscle, default: 0]
@@ -1065,7 +1065,7 @@ enum AnalyticsEngine {
             guard target > 0, actual > Int(Double(target) * 1.35) else { return nil }
             return MuscleTargetPoint(muscleGroup: muscle, kind: localizedString("muscle_target_kind_excess"), sets: actual - target)
         }
-        .sorted { $0.sets > $1.sets }
+        .sorted { $0.sets != $1.sets ? $0.sets > $1.sets : $0.muscleGroup < $1.muscleGroup }
 
         let stalled = stalledExercises(in: exercises, sessions: sessions)
         let recommendations = competitiveRecommendations(
