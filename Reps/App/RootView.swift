@@ -74,6 +74,9 @@ struct MainTabView: View {
   @State private var presentedQuickAction: QuickAction?
   @State private var pendingWorkoutSummarySession: WorkoutSession?
   @State private var showCalendarSheet = false
+  @State private var evaluatedPromotionTabs: Set<AppTab> = []
+  @State private var activePromotion: VitalsPathPromotion?
+  @AppStorage("vitalspathPromotionPermanentlyHidden") private var isVitalsPathPromotionPermanentlyHidden = false
 
   init() {
     _selectedTab = State(initialValue: Self.initialTabFromLaunchArguments())
@@ -93,6 +96,9 @@ struct MainTabView: View {
           AchievementUnlockOverlay()
             .environment(store)
         }
+      }
+      .overlay {
+        promotionOverlay
       }
       .ignoresSafeArea(.keyboard, edges: .bottom)
       .sheet(
@@ -173,6 +179,102 @@ struct MainTabView: View {
         select(tab)
         store.pendingMainTabSelection = nil
       }
+      .task(id: selectedTab) {
+        await evaluateVitalsPathPromotion(for: selectedTab)
+      }
+  }
+
+  // MARK: VitalsPath promotion
+
+  @ViewBuilder
+  private var promotionOverlay: some View {
+    if let activePromotion,
+       activePromotion.tab == selectedTab,
+       !isVitalsPathPromotionPermanentlyHidden,
+       !isQuickMenuExpanded,
+       presentedQuickAction == nil,
+       !chromeState.isTabBarHidden,
+       store.finishedSessionForSummary == nil {
+      GeometryReader { proxy in
+        VitalsPathPromotionBanner(
+          isPremium: store.hasProAccess,
+          dismissCurrent: dismissCurrentPromotion,
+          dismissPermanently: dismissPromotionPermanently
+        )
+        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+        .padding(.top, activePromotion.placement == .top ? proxy.safeAreaInsets.top + 56 : 0)
+        .padding(.bottom, activePromotion.placement == .bottom ? proxy.safeAreaInsets.bottom + 118 : 0)
+        .frame(
+          maxWidth: .infinity,
+          maxHeight: .infinity,
+          alignment: activePromotion.placement.alignment
+        )
+        .transition(
+          .move(edge: activePromotion.placement.transitionEdge)
+            .combined(with: .opacity)
+        )
+      }
+      .allowsHitTesting(true)
+    }
+  }
+
+  private func evaluateVitalsPathPromotion(for tab: AppTab) async {
+    guard !isVitalsPathPromotionPermanentlyHidden,
+          !evaluatedPromotionTabs.contains(tab) else { return }
+
+    do {
+      try await Task.sleep(for: .seconds(1.2))
+    } catch {
+      return
+    }
+
+    guard selectedTab == tab else { return }
+    evaluatedPromotionTabs.insert(tab)
+
+    let promotion: VitalsPathPromotion?
+    #if DEBUG
+      if ProcessInfo.processInfo.arguments.contains("-showVitalsPathPromotion") {
+        promotion = VitalsPathPromotion(tab: tab, placement: .top)
+      } else {
+        promotion = VitalsPathPromotionPolicy.promotion(
+          for: tab,
+          appearanceRoll: .random(in: 0..<1),
+          placementRoll: .random(in: 0..<1)
+        )
+      }
+    #else
+      promotion = VitalsPathPromotionPolicy.promotion(
+        for: tab,
+        appearanceRoll: .random(in: 0..<1),
+        placementRoll: .random(in: 0..<1)
+      )
+    #endif
+
+    guard let promotion else { return }
+    withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
+      activePromotion = promotion
+    }
+    TelemetryService.shared.breadcrumb(
+      "vitalspath_promo.impression",
+      ["tab": tab.telemetryName]
+    )
+  }
+
+  private func dismissCurrentPromotion() {
+    guard store.hasProAccess else { return }
+    withAnimation(.easeOut(duration: 0.2)) {
+      activePromotion = nil
+    }
+    TelemetryService.shared.breadcrumb("vitalspath_promo.dismiss_current")
+  }
+
+  private func dismissPromotionPermanently() {
+    guard store.hasProAccess else { return }
+    isVitalsPathPromotionPermanentlyHidden = true
+    withAnimation(.easeOut(duration: 0.2)) {
+      activePromotion = nil
+    }
+    TelemetryService.shared.breadcrumb("vitalspath_promo.dismiss_permanently")
   }
 
   // MARK: Tab shell

@@ -2,6 +2,177 @@ import CoreLocation
 import Foundation
 import HealthKit
 
+struct ExternalActivitySample: Equatable, Sendable {
+    enum Kind: Equatable, Sendable {
+        case heartRate
+        case exerciseMinutes
+        case activeEnergy
+        case distance
+        case steps
+    }
+
+    let kind: Kind
+    let startDate: Date
+    let endDate: Date
+    let value: Double
+    let sourceName: String?
+    let sourceBundleIdentifier: String?
+    let deviceName: String?
+}
+
+struct ExternalActivitySnapshot: Equatable, Sendable {
+    enum Confidence: Equatable, Sendable {
+        case possible
+        case strong
+    }
+
+    let estimatedStartDate: Date
+    let latestSignalDate: Date
+    let confidence: Confidence
+    let verifiedSourceName: String?
+    let latestHeartRate: Double?
+    let averageHeartRate: Double?
+    let activeEnergyKcal: Double?
+    let distanceKm: Double?
+    let steps: Double?
+}
+
+enum ExternalActivityDetector {
+    private static let liveHeartRateWindow: TimeInterval = 2 * 60
+    private static let recentSignalWindow: TimeInterval = 3 * 60
+    private static let maximumHeartRateGap: TimeInterval = 2 * 60
+
+    static func detect(samples: [ExternalActivitySample], now: Date) -> ExternalActivitySnapshot? {
+        let heartRates = samples
+            .filter { $0.kind == .heartRate && $0.endDate <= now.addingTimeInterval(30) }
+            .sorted { $0.endDate < $1.endDate }
+        guard let latestHeartRate = heartRates.last,
+              now.timeIntervalSince(latestHeartRate.endDate) <= recentSignalWindow else {
+            return nil
+        }
+
+        let liveHeartRates = heartRates.filter {
+            $0.endDate >= now.addingTimeInterval(-liveHeartRateWindow)
+        }
+        let liveHeartRateSpan = (liveHeartRates.last?.endDate.timeIntervalSince(liveHeartRates.first?.endDate ?? now)) ?? 0
+        let hasWorkoutCadence = liveHeartRates.count >= 4 && liveHeartRateSpan >= 20
+
+        let latestExercise = latestRecentSample(of: .exerciseMinutes, in: samples, now: now)
+        let latestEnergy = latestRecentSample(of: .activeEnergy, in: samples, now: now)
+        let latestDistance = latestRecentSample(of: .distance, in: samples, now: now)
+        let latestSteps = latestRecentSample(of: .steps, in: samples, now: now)
+
+        let hasExerciseSignal = latestExercise != nil
+        let hasEnergySignal = latestEnergy != nil
+        let hasMotionSignal = latestDistance != nil || latestSteps != nil
+        let supportingSignalCount = [hasExerciseSignal, hasEnergySignal, hasMotionSignal].filter { $0 }.count
+
+        // A high-frequency HR stream plus one independent movement/effort signal is
+        // a strong workout hint. Without workout HR cadence, require both exercise
+        // minutes and energy so an isolated pulse/step update never activates the UI.
+        guard (hasWorkoutCadence && supportingSignalCount >= 1)
+                || (hasExerciseSignal && hasEnergySignal && liveHeartRates.count >= 1) else {
+            return nil
+        }
+
+        let heartRateCluster = contiguousHeartRateCluster(heartRates)
+        let estimatedStartDate = min(
+            heartRateCluster.first?.startDate ?? latestHeartRate.startDate,
+            latestExercise?.startDate ?? latestHeartRate.startDate
+        )
+        let activityHeartRates = heartRates.filter { $0.endDate >= estimatedStartDate }
+        let latestSignalDate = [latestHeartRate, latestExercise, latestEnergy, latestDistance, latestSteps]
+            .compactMap { $0?.endDate }
+            .max() ?? latestHeartRate.endDate
+        let evidence = [latestHeartRate, latestExercise, latestEnergy, latestDistance, latestSteps]
+            .compactMap { $0 }
+
+        return ExternalActivitySnapshot(
+            estimatedStartDate: estimatedStartDate,
+            latestSignalDate: latestSignalDate,
+            confidence: hasWorkoutCadence && supportingSignalCount >= 2 ? .strong : .possible,
+            verifiedSourceName: verifiedSourceName(from: evidence),
+            latestHeartRate: latestHeartRate.value,
+            averageHeartRate: average(activityHeartRates.map(\.value)),
+            activeEnergyKcal: positiveSum(of: .activeEnergy, in: samples, since: estimatedStartDate),
+            distanceKm: positiveSum(of: .distance, in: samples, since: estimatedStartDate),
+            steps: positiveSum(of: .steps, in: samples, since: estimatedStartDate)
+        )
+    }
+
+    private static func latestRecentSample(
+        of kind: ExternalActivitySample.Kind,
+        in samples: [ExternalActivitySample],
+        now: Date
+    ) -> ExternalActivitySample? {
+        samples
+            .filter {
+                $0.kind == kind
+                    && $0.endDate <= now.addingTimeInterval(30)
+                    && now.timeIntervalSince($0.endDate) <= recentSignalWindow
+            }
+            .max { $0.endDate < $1.endDate }
+    }
+
+    private static func contiguousHeartRateCluster(
+        _ samples: [ExternalActivitySample]
+    ) -> [ExternalActivitySample] {
+        guard let latest = samples.last else { return [] }
+        var cluster = [latest]
+
+        for sample in samples.dropLast().reversed() {
+            guard let first = cluster.first,
+                  first.startDate.timeIntervalSince(sample.endDate) <= maximumHeartRateGap else {
+                break
+            }
+            cluster.insert(sample, at: 0)
+        }
+        return cluster
+    }
+
+    private static func positiveSum(
+        of kind: ExternalActivitySample.Kind,
+        in samples: [ExternalActivitySample],
+        since startDate: Date
+    ) -> Double? {
+        let total = samples
+            .filter { $0.kind == kind && $0.endDate >= startDate }
+            .reduce(0) { $0 + max($1.value, 0) }
+        return total > 0 ? total : nil
+    }
+
+    private static func average(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    /// HealthKit may expose either the producing app or just the device. Only
+    /// surface a name when every independent piece of evidence agrees.
+    private static func verifiedSourceName(from samples: [ExternalActivitySample]) -> String? {
+        guard samples.count >= 2 else { return nil }
+
+        let sourceNames = samples.compactMap { normalized($0.sourceName) }
+        let sourceIDs = samples.compactMap { normalized($0.sourceBundleIdentifier) }
+        if sourceNames.count == samples.count,
+           sourceIDs.count == samples.count,
+           Set(sourceNames).count == 1,
+           Set(sourceIDs).count == 1 {
+            return sourceNames.first
+        }
+
+        let deviceNames = samples.compactMap { normalized($0.deviceName) }
+        if deviceNames.count == samples.count, Set(deviceNames).count == 1 {
+            return deviceNames.first
+        }
+        return nil
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        let normalized = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return normalized?.isEmpty == false ? normalized : nil
+    }
+}
+
 @MainActor
 final class HealthKitService: ObservableObject {
     static let shared = HealthKitService()
@@ -427,6 +598,65 @@ final class HealthKitService: ObservableObject {
         )
     }
 
+    /// Best-effort foreground detection for activity being recorded outside Reps.
+    /// HealthKit doesn't expose another app's live workout session, so this only
+    /// returns a snapshot when multiple recently-published signals agree.
+    func fetchPossibleExternalActivity(now: Date = .now) async throws -> ExternalActivitySnapshot? {
+        guard isAvailable else { throw HealthKitError.unavailable }
+
+        let startDate = now.addingTimeInterval(-3 * 60 * 60)
+        async let heartRateTask = externalActivitySamples(
+            kind: .heartRate,
+            type: HKQuantityType(.heartRate),
+            unit: HKUnit.count().unitDivided(by: .minute()),
+            from: startDate,
+            to: now,
+            limit: 2_000
+        )
+        async let exerciseTask = externalActivitySamples(
+            kind: .exerciseMinutes,
+            type: HKQuantityType(.appleExerciseTime),
+            unit: .minute(),
+            from: startDate,
+            to: now,
+            limit: 500
+        )
+        async let energyTask = externalActivitySamples(
+            kind: .activeEnergy,
+            type: HKQuantityType(.activeEnergyBurned),
+            unit: .kilocalorie(),
+            from: startDate,
+            to: now,
+            limit: 1_000
+        )
+        async let distanceTask = externalActivitySamples(
+            kind: .distance,
+            type: HKQuantityType(.distanceWalkingRunning),
+            unit: .meterUnit(with: .kilo),
+            from: startDate,
+            to: now,
+            limit: 1_000
+        )
+        async let stepsTask = externalActivitySamples(
+            kind: .steps,
+            type: HKQuantityType(.stepCount),
+            unit: .count(),
+            from: startDate,
+            to: now,
+            limit: 1_000
+        )
+
+        let (heartRates, exercise, energy, distance, steps) = try await (
+            heartRateTask,
+            exerciseTask,
+            energyTask,
+            distanceTask,
+            stepsTask
+        )
+        let samples = heartRates + exercise + energy + distance + steps
+        return ExternalActivityDetector.detect(samples: samples, now: now)
+    }
+
     /// Writes a workout logged inside Reps back to HealthKit so it appears in
     /// Apple Health / Fitness like any standard workout. Returns the created
     /// workout's UUID string so the caller can tag the session and prevent the
@@ -697,6 +927,41 @@ final class HealthKitService: ObservableObject {
         }
 
         return values
+    }
+
+    private func externalActivitySamples(
+        kind: ExternalActivitySample.Kind,
+        type: HKQuantityType,
+        unit: HKUnit,
+        from startDate: Date,
+        to endDate: Date,
+        limit: Int
+    ) async throws -> [ExternalActivitySample] {
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.quantitySample(type: type, predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.endDate, order: .forward)],
+            limit: limit
+        )
+        let ownSource = HKSource.default()
+        let samples = try await descriptor.result(for: healthStore)
+
+        return samples.compactMap { sample in
+            let source = sample.sourceRevision.source
+            let isRepsSource = source.bundleIdentifier == ownSource.bundleIdentifier
+                || source.name.localizedCaseInsensitiveContains("reps")
+            guard !isRepsSource else { return nil }
+
+            return ExternalActivitySample(
+                kind: kind,
+                startDate: sample.startDate,
+                endDate: sample.endDate,
+                value: sample.quantity.doubleValue(for: unit),
+                sourceName: source.name,
+                sourceBundleIdentifier: source.bundleIdentifier,
+                deviceName: sample.device?.name
+            )
+        }
     }
 
     /// Per-night sleep stage breakdown, bucketed from the same category

@@ -65,6 +65,9 @@ final class AppStore {
     let rehabCatalog: [RehabExercise] = RehabSeedData.exercises
     var rehabLogs: [RehabSessionLog] = [] { didSet { save(scope: .rehabLogs) } }
     var health = HealthSyncState() { didSet { save(scope: .health); updateTrainingBattery() } }
+    /// Ephemeral, conservative indication of activity being recorded outside Reps.
+    /// It is never persisted and never becomes a WorkoutSession by itself.
+    private(set) var possibleExternalActivity: ExternalActivitySnapshot?
     var isSyncingExerciseLibrary = false
     var exerciseLibrarySyncMessage: String?
     var iCloudBackupDate: Date? = nil
@@ -100,6 +103,9 @@ final class AppStore {
     var pendingReviewRequest: Bool = false
     var activeWorkoutStatus: ActiveWorkoutStatus? {
         didSet {
+            if activeWorkoutStatus != nil {
+                possibleExternalActivity = nil
+            }
             let shouldReloadWidgets = shouldReloadWidgetTimelines(from: oldValue, to: activeWorkoutStatus)
             save(reloadWidgetTimelines: shouldReloadWidgets, scope: .profile)
             let snapshot = sharedWorkoutSnapshot()
@@ -160,6 +166,7 @@ final class AppStore {
     @ObservationIgnored private var pendingPaywallDismissReason: PaywallDismissReason?
     @ObservationIgnored private var transactionUpdatesTask: Task<Void, Never>?
     @ObservationIgnored private var foregroundRefreshTask: Task<Void, Never>?
+    @ObservationIgnored private var externalActivityMonitorTask: Task<Void, Never>?
     @ObservationIgnored private var backgroundFlushTask: UIBackgroundTaskIdentifier = .invalid
     @ObservationIgnored private var hasStartedBackgroundServices = false
     @ObservationIgnored private var isAutomaticHealthSyncInProgress = false
@@ -247,6 +254,7 @@ final class AppStore {
     deinit {
         transactionUpdatesTask?.cancel()
         foregroundRefreshTask?.cancel()
+        externalActivityMonitorTask?.cancel()
         if let liveActivityCommandObserver {
             NotificationCenter.default.removeObserver(liveActivityCommandObserver)
         }
@@ -313,6 +321,7 @@ final class AppStore {
     }
 
     func handleForegroundActivation(drainNotificationTargets: @escaping @MainActor () -> Void) {
+        startPossibleExternalActivityMonitoring()
         let now = Date()
         if let lastForegroundActivationDate,
            now.timeIntervalSince(lastForegroundActivationDate) < 30 {
@@ -360,6 +369,7 @@ final class AppStore {
         startHealthKitWorkoutObserverIfAuthorized()
         nativeWorkoutSessionService?.startMirroringListener()
         refreshHealthKitDataIfNeeded(reason: "launch")
+        startPossibleExternalActivityMonitoring()
 
         liveActivityCommandObserver = NotificationCenter.default.addObserver(
             forName: LiveActivityCommandBridge.notificationName,
@@ -3533,6 +3543,56 @@ final class AppStore {
             HKCategoryType(.sleepAnalysis)
         ]
     }
+
+    func startPossibleExternalActivityMonitoring() {
+        guard externalActivityMonitorTask == nil else { return }
+
+        externalActivityMonitorTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                await self.refreshPossibleExternalActivity()
+                do {
+                    try await Task.sleep(for: .seconds(20))
+                } catch {
+                    return
+                }
+            }
+        }
+    }
+
+    func stopPossibleExternalActivityMonitoring() {
+        externalActivityMonitorTask?.cancel()
+        externalActivityMonitorTask = nil
+        possibleExternalActivity = nil
+    }
+
+    private func refreshPossibleExternalActivity() async {
+        guard health.isAvailable,
+              health.isAuthorized,
+              activeWorkoutStatus == nil else {
+            possibleExternalActivity = nil
+            return
+        }
+
+        do {
+            guard let snapshot = try await healthKitService.fetchPossibleExternalActivity() else {
+                possibleExternalActivity = nil
+                return
+            }
+
+            // Once HealthKit publishes the finished workout, the historical import
+            // becomes canonical and this tentative live notice must disappear.
+            let isAlreadyFinished = workoutSessions.contains { session in
+                let endDate = session.endedAt ?? session.date
+                return endDate >= snapshot.estimatedStartDate
+                    && endDate >= snapshot.latestSignalDate.addingTimeInterval(-5 * 60)
+            }
+            possibleExternalActivity = isAlreadyFinished ? nil : snapshot
+        } catch {
+            possibleExternalActivity = nil
+            TelemetryService.shared.record(error, context: "healthkit_external_activity_detection")
+        }
+    }
     
     func startHealthKitWorkoutObserverIfAuthorized() {
         health.isAvailable = HKHealthStore.isHealthDataAvailable()
@@ -3942,6 +4002,7 @@ final class AppStore {
         )
 
         workoutSessions.append(importedSession)
+        possibleExternalActivity = nil
 
         // También generar recibo para la galería de este entreno importado de salud
         saveReceiptCard(for: importedSession)

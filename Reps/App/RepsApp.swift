@@ -227,6 +227,7 @@ struct RepsApp: App {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background || newPhase == .inactive {
                 store.flushPendingSave()
+                store.stopPossibleExternalActivityMonitoring()
             }
             if newPhase == .active {
                 guard didHandleInitialActivePhase else {

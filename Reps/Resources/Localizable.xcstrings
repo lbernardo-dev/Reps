@@ -1,6 +1,126 @@
 {
   "sourceLanguage" : "es",
   "strings" : {
+    "vitalspath_promo_accessibility" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open VitalsPath, supplement and family health tracking" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir VitalsPath, registro de suplementos y salud familiar" } }
+      }
+    },
+    "vitalspath_promo_close" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Promotion display options" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Opciones de visualización de la promoción" } }
+      }
+    },
+    "vitalspath_promo_close_message" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "As a Premium member, you can hide this recommendation for now or permanently." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Como miembro Premium, puedes ocultar esta recomendación ahora o permanentemente." } }
+      }
+    },
+    "vitalspath_promo_close_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hide VitalsPath recommendation?" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "¿Ocultar la recomendación de VitalsPath?" } }
+      }
+    },
+    "vitalspath_promo_eyebrow" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recommended app" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "App recomendada" } }
+      }
+    },
+    "vitalspath_promo_hide_forever" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Don't show again" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No volver a mostrar" } }
+      }
+    },
+    "vitalspath_promo_hide_now" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hide for now" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ocultar por ahora" } }
+      }
+    },
+    "vitalspath_promo_message" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Track sports supplements and take care of your health." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Registra tus suplementos deportivos y cuida tu salud." } }
+      }
+    },
+    "vitalspath_promo_open_hint" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Opens the app if installed, or its App Store page." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre la app si está instalada o su ficha en App Store." } }
+      }
+    },
+    "vitalspath_promo_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Complete your routine with VitalsPath" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Completa tu rutina con VitalsPath" } }
+      }
+    },
+    "possible_activity_section_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Activity detected" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Actividad detectada" } }
+      }
+    },
+    "possible_activity_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Possible activity in progress" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Posible actividad en curso" } }
+      }
+    },
+    "possible_activity_source_format" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recent signals identified as coming from %@." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Señales recientes identificadas como procedentes de %@." } }
+      }
+    },
+    "possible_activity_question" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Are you recording a workout in Apple Fitness or another app?" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "¿Estás registrando un entreno en Apple Fitness o en otra app?" } }
+      }
+    },
+    "possible_activity_import_notice" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "StreakReps can't access another app's live session. If it is saved to Apple Health, its final data will be imported automatically when the workout ends." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "StreakReps no puede acceder a la sesión en directo de otra app. Si se guarda en Apple Salud, los datos finales se importarán automáticamente al terminar." } }
+      }
+    },
+    "possible_activity_estimates_note" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recent HealthKit signals; values are estimates and may arrive with a delay." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Señales recientes de HealthKit; los valores son estimados y pueden llegar con retraso." } }
+      }
+    },
+    "possible_activity_duration" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Estimated time" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tiempo estimado" } }
+      }
+    },
+    "possible_activity_heart_rate" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recent heart rate" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pulso reciente" } }
+      }
+    },
+    "possible_activity_energy" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Active energy" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Energía activa" } }
+      }
+    },
+    "possible_activity_distance" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Distance" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Distancia" } }
+      }
+    },
     "session_filter_with_session" : {
       "localizations" : {
         "en" : {

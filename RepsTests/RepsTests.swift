@@ -10,6 +10,32 @@ struct RepsTests {
         RepsLocalization.use("es")
     }
 
+    @Test func vitalsPathPromotionPolicyLimitsEligibleTabsAndChoosesPlacement() {
+        let topPromotion = VitalsPathPromotionPolicy.promotion(
+            for: .today,
+            appearanceRoll: 0,
+            placementRoll: 0.49
+        )
+        let bottomPromotion = VitalsPathPromotionPolicy.promotion(
+            for: .progress,
+            appearanceRoll: 0,
+            placementRoll: 0.5
+        )
+
+        #expect(topPromotion?.placement == .top)
+        #expect(bottomPromotion?.placement == .bottom)
+        #expect(VitalsPathPromotionPolicy.promotion(
+            for: .calendar,
+            appearanceRoll: 0,
+            placementRoll: 0
+        ) == nil)
+        #expect(VitalsPathPromotionPolicy.promotion(
+            for: .today,
+            appearanceRoll: VitalsPathPromotionPolicy.appearanceProbability,
+            placementRoll: 0
+        ) == nil)
+    }
+
     @Test func weeklyCompletionCapsAtOne() async throws {
         let store = await AppStore(persistence: SwiftDataPersistence(inMemory: true))
         let completion = await store.weeklyCompletion
@@ -2459,5 +2485,102 @@ struct RepsTests {
         #expect(safe.cardioLogs.isEmpty)
         #expect(safe.health.latestDailyMetrics.isEmpty)
         #expect(safe.userProfile.avatarImageData == nil)
+    }
+
+    @Test func externalActivityDetectorRequiresIndependentSignals() {
+        let now = Date(timeIntervalSince1970: 10_000)
+        let heartRates = [90.0, 94, 97, 99].enumerated().map { index, bpm in
+            ExternalActivitySample(
+                kind: .heartRate,
+                startDate: now.addingTimeInterval(Double(index * 25 - 90)),
+                endDate: now.addingTimeInterval(Double(index * 25 - 90)),
+                value: bpm,
+                sourceName: "Apple Watch",
+                sourceBundleIdentifier: "com.apple.health",
+                deviceName: "Apple Watch"
+            )
+        }
+
+        #expect(ExternalActivityDetector.detect(samples: heartRates, now: now) == nil)
+    }
+
+    @Test func externalActivityDetectorBuildsStrongReadOnlySnapshot() throws {
+        let now = Date(timeIntervalSince1970: 20_000)
+        let sourceName = "Example Fitness"
+        let sourceID = "com.example.fitness"
+        var samples = stride(from: -100.0, through: -10.0, by: 30).map { offset in
+            ExternalActivitySample(
+                kind: .heartRate,
+                startDate: now.addingTimeInterval(offset),
+                endDate: now.addingTimeInterval(offset),
+                value: 105 + offset / -20,
+                sourceName: sourceName,
+                sourceBundleIdentifier: sourceID,
+                deviceName: nil
+            )
+        }
+        samples.append(contentsOf: [
+            ExternalActivitySample(
+                kind: .exerciseMinutes,
+                startDate: now.addingTimeInterval(-120),
+                endDate: now.addingTimeInterval(-15),
+                value: 2,
+                sourceName: sourceName,
+                sourceBundleIdentifier: sourceID,
+                deviceName: nil
+            ),
+            ExternalActivitySample(
+                kind: .activeEnergy,
+                startDate: now.addingTimeInterval(-40),
+                endDate: now.addingTimeInterval(-5),
+                value: 8,
+                sourceName: sourceName,
+                sourceBundleIdentifier: sourceID,
+                deviceName: nil
+            ),
+            ExternalActivitySample(
+                kind: .distance,
+                startDate: now.addingTimeInterval(-40),
+                endDate: now.addingTimeInterval(-5),
+                value: 0.12,
+                sourceName: sourceName,
+                sourceBundleIdentifier: sourceID,
+                deviceName: nil
+            )
+        ])
+
+        let snapshot = try #require(ExternalActivityDetector.detect(samples: samples, now: now))
+        #expect(snapshot.confidence == .strong)
+        #expect(snapshot.verifiedSourceName == sourceName)
+        #expect(snapshot.latestHeartRate != nil)
+        #expect(snapshot.activeEnergyKcal == 8)
+        #expect(snapshot.distanceKm == 0.12)
+    }
+
+    @Test func externalActivityDetectorHidesConflictingSourceNames() throws {
+        let now = Date(timeIntervalSince1970: 30_000)
+        var samples = stride(from: -90.0, through: -15.0, by: 25).map { offset in
+            ExternalActivitySample(
+                kind: .heartRate,
+                startDate: now.addingTimeInterval(offset),
+                endDate: now.addingTimeInterval(offset),
+                value: 110,
+                sourceName: "Apple Watch",
+                sourceBundleIdentifier: "com.apple.health",
+                deviceName: "Apple Watch"
+            )
+        }
+        samples.append(ExternalActivitySample(
+            kind: .activeEnergy,
+            startDate: now.addingTimeInterval(-30),
+            endDate: now.addingTimeInterval(-5),
+            value: 5,
+            sourceName: "Another App",
+            sourceBundleIdentifier: "com.example.other",
+            deviceName: nil
+        ))
+
+        let snapshot = try #require(ExternalActivityDetector.detect(samples: samples, now: now))
+        #expect(snapshot.verifiedSourceName == nil)
     }
 }

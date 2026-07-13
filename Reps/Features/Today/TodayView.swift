@@ -585,6 +585,15 @@ private struct TodayViewContent: View {
                     .accessibilityLabel("notifications")
                 }
             ) {
+                if let activity = store.possibleExternalActivity,
+                   store.activeWorkoutStatus == nil {
+                    ExternalActivityNoticeCard(
+                        snapshot: activity,
+                        distanceUnit: store.userProfile.distanceUnit
+                    )
+                    .stickyHeaderTitle(localizedString("possible_activity_section_title"))
+                }
+
                 ForEach(resolvedTodaySections.visible) { section in
                     todaySectionView(for: section)
                 }
@@ -2225,6 +2234,174 @@ private struct TodaySectionHeader: View {
             }
         }
         .padding(.horizontal, 2)
+    }
+}
+
+/// Read-only notice for strong HealthKit signals that may belong to a workout
+/// being recorded by another app. It intentionally offers no session controls.
+private struct ExternalActivityNoticeCard: View {
+    let snapshot: ExternalActivitySnapshot
+    let distanceUnit: UserProfile.DistanceUnit
+
+    private var tint: Color { MetricDomain.cardio.tint }
+
+    private var sourceDescription: String {
+        if let sourceName = snapshot.verifiedSourceName {
+            return localizedFormat("possible_activity_source_format", sourceName)
+        }
+        return localizedString("possible_activity_question")
+    }
+
+    private var displayedDistance: (value: String, unit: String)? {
+        guard let distanceKm = snapshot.distanceKm, distanceKm > 0 else { return nil }
+        switch distanceUnit {
+        case .kilometers:
+            return (String(format: "%.2f", distanceKm), "km")
+        case .miles:
+            return (String(format: "%.2f", distanceKm / 1.609_344), "mi")
+        }
+    }
+
+    var body: some View {
+        PulseCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(tint.opacity(0.14))
+                        Image(systemName: "figure.walk.motion")
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(tint)
+                    }
+                    .frame(width: 48, height: 48)
+                    .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(localizedString("possible_activity_section_title"))
+                            .font(.caption2.weight(.black))
+                            .tracking(1.2)
+                            .textCase(.uppercase)
+                            .foregroundStyle(tint)
+                        Text(localizedString("possible_activity_title"))
+                            .font(.title3.weight(.black))
+                            .foregroundStyle(PulseTheme.textPrimary)
+                        Text(sourceDescription)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: snapshot.confidence == .strong ? "checkmark.shield.fill" : "waveform.path.ecg")
+                        .font(.title3)
+                        .foregroundStyle(tint)
+                        .accessibilityHidden(true)
+                }
+
+                Text(localizedString("possible_activity_import_notice"))
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 8) {
+                    ExternalActivityMetric(
+                        value: snapshot.estimatedStartDate,
+                        labelKey: "possible_activity_duration",
+                        systemImage: "timer"
+                    )
+
+                    if let heartRate = snapshot.latestHeartRate {
+                        ExternalActivityMetric(
+                            value: "\(Int(heartRate.rounded()))",
+                            unit: "bpm",
+                            labelKey: "possible_activity_heart_rate",
+                            systemImage: "heart.fill"
+                        )
+                    }
+
+                    if let activeEnergy = snapshot.activeEnergyKcal, activeEnergy > 0 {
+                        ExternalActivityMetric(
+                            value: "\(Int(activeEnergy.rounded()))",
+                            unit: "kcal",
+                            labelKey: "possible_activity_energy",
+                            systemImage: "flame.fill"
+                        )
+                    }
+
+                    if let displayedDistance {
+                        ExternalActivityMetric(
+                            value: displayedDistance.value,
+                            unit: displayedDistance.unit,
+                            labelKey: "possible_activity_distance",
+                            systemImage: "location.fill"
+                        )
+                    }
+                }
+
+                Label(localizedString("possible_activity_estimates_note"), systemImage: "info.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.tertiaryText)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(localizedString("possible_activity_title"))
+        .accessibilityValue("\(sourceDescription). \(localizedString("possible_activity_import_notice"))")
+    }
+}
+
+private struct ExternalActivityMetric: View {
+    private enum MetricValue {
+        case text(String)
+        case timer(Date)
+    }
+
+    private let value: MetricValue
+    private let unit: String?
+    private let labelKey: String
+    private let systemImage: String
+
+    init(value: String, unit: String? = nil, labelKey: String, systemImage: String) {
+        self.value = .text(value)
+        self.unit = unit
+        self.labelKey = labelKey
+        self.systemImage = systemImage
+    }
+
+    init(value: Date, labelKey: String, systemImage: String) {
+        self.value = .timer(value)
+        self.unit = nil
+        self.labelKey = labelKey
+        self.systemImage = systemImage
+    }
+
+    var body: some View {
+        VStack(spacing: 3) {
+            HStack(spacing: 3) {
+                Image(systemName: systemImage)
+                    .font(.caption2.weight(.bold))
+                switch value {
+                case .text(let text):
+                    Text(text)
+                case .timer(let startDate):
+                    Text(startDate, style: .timer)
+                }
+                if let unit {
+                    Text(unit)
+                        .font(.caption2.weight(.bold))
+                }
+            }
+            .font(.callout.weight(.black).monospacedDigit())
+            .foregroundStyle(PulseTheme.textPrimary)
+
+            Text(localizedString(labelKey))
+                .font(.caption2)
+                .foregroundStyle(PulseTheme.tertiaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 9)
+        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
     }
 }
 
