@@ -420,7 +420,11 @@ struct ExerciseLibraryView: View {
                         )
 
                         if selectedMuscleSegments.isEmpty {
-                            MuscleShortcutGrid(segments: resolvedMuscleShortcuts.visible, selectedSegments: $selectedMuscleSegments)
+                            MuscleShortcutGrid(
+                                segments: resolvedMuscleShortcuts.visible,
+                                selectedSegments: $selectedMuscleSegments,
+                                gender: store.userProfile.muscleMapGender
+                            )
                         } else if isPreparingExerciseResults || !hasPreparedExerciseResults {
                             exerciseResultsLoadingPanel
                         } else {
@@ -999,6 +1003,7 @@ private struct RehabFocusTile: View {
 private struct MuscleShortcutGrid: View {
     let segments: [MuscleSegment]
     @Binding var selectedSegments: Set<MuscleSegment>
+    let gender: BodyGender
 
     private let columns = [
         GridItem(.flexible(), spacing: 10),
@@ -1021,12 +1026,10 @@ private struct MuscleShortcutGrid: View {
                         }
                     } label: {
                         VStack(spacing: 8) {
-                            PulseIconBadge(
-                                systemImage: segment.systemImage,
-                                tint: PulseTheme.accent,
-                                size: 64,
-                                radius: 18,
-                                isFilled: true
+                            MuscleGroupAnatomyThumbnail(
+                                segment: segment,
+                                gender: gender,
+                                size: 64
                             )
                             Text(segment.title)
                                 .font(.subheadline.weight(.bold))

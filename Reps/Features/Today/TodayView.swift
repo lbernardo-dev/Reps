@@ -2827,15 +2827,21 @@ private struct TrainingSignalTile: View {
     var domain: MetricDomain? = nil
 
     private var tileTint: Color { domain?.tint ?? color }
+    private var hasData: Bool { value != "--" && !value.trimmingCharacters(in: .whitespaces).isEmpty }
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            PulseIconBadge(systemImage: systemImage, tint: tileTint, size: 34, radius: PulseTheme.smallRadius)
+            PulseIconBadge(
+                systemImage: systemImage,
+                tint: hasData ? tileTint : PulseTheme.secondaryText.opacity(0.4),
+                size: 34,
+                radius: PulseTheme.smallRadius
+            )
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(value)
+                Text(hasData ? value : "–")
                     .font(.system(size: 20, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(PulseTheme.textPrimary)
+                    .foregroundStyle(hasData ? PulseTheme.textPrimary : PulseTheme.tertiaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
                 Text(title)
@@ -2856,12 +2862,13 @@ private struct TrainingSignalTile: View {
         .frame(minHeight: 82)
         .background {
             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                .fill(tileTint.opacity(0.06))
+                .fill(tileTint.opacity(hasData ? 0.06 : 0.03))
                 .overlay(
                     RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
-                        .stroke(tileTint.opacity(0.18), lineWidth: 0.8)
+                        .stroke(tileTint.opacity(hasData ? 0.18 : 0.09), lineWidth: 0.8)
                 )
         }
+        .opacity(hasData ? 1.0 : 0.82)
     }
 }
 
@@ -4146,6 +4153,8 @@ private struct FitnessWeatherInsightRow: View {
     let insight: FitnessWeatherInsight
     var onDismiss: (() -> Void)?
 
+    @State private var dragOffset: CGFloat = 0
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             PulseIconBadge(systemImage: insight.systemImage, tint: insight.color, size: 38, radius: PulseTheme.smallRadius)
@@ -4179,6 +4188,31 @@ private struct FitnessWeatherInsightRow: View {
             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
                 .stroke(insight.color.opacity(0.13), lineWidth: 0.8)
         }
+        .offset(x: dragOffset)
+        .gesture(
+            DragGesture()
+                .onChanged { gesture in
+                    if onDismiss != nil && gesture.translation.width < 0 {
+                        dragOffset = gesture.translation.width
+                    }
+                }
+                .onEnded { gesture in
+                    guard onDismiss != nil else { return }
+                    if gesture.translation.width < -100 {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            dragOffset = -400
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            onDismiss?()
+                            dragOffset = 0
+                        }
+                    } else {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            dragOffset = 0
+                        }
+                    }
+                }
+        )
     }
 }
 
@@ -4688,6 +4722,28 @@ struct WeeklyProgressHeroCard: View {
                             .textCase(.uppercase)
                             .tracking(0.5)
                     }
+                }
+
+                // Weekly progress bar
+                if weeklyTarget > 0 {
+                    let completionRatio = min(Double(completedThisWeek) / Double(weeklyTarget), 1.0)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(PulseTheme.grouped.opacity(0.4))
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [PulseTheme.growth, PulseTheme.growth.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: geo.size.width * completionRatio)
+                        }
+                    }
+                    .frame(height: 4)
+                    .padding(.vertical, 2)
                 }
 
                 // ── Bar chart: 7-day activity ──────────────────────────────

@@ -8,7 +8,7 @@ import SwiftUI
 /// training" empty-state depending on app state, but reorderable/hideable like
 /// every other card).
 private enum TrainSection: String, CustomizableSection {
-    case planHero, library, tools, yourPlans
+    case planHero, library, tools, yourPlans, calendar
 
     var id: String { rawValue }
 
@@ -18,6 +18,7 @@ private enum TrainSection: String, CustomizableSection {
         case .library: localizedString("libraries")
         case .tools: localizedString("tools")
         case .yourPlans: localizedString("your_plans")
+        case .calendar: localizedString("Calendar")
         }
     }
 
@@ -27,6 +28,7 @@ private enum TrainSection: String, CustomizableSection {
         case .library: "books.vertical.fill"
         case .tools: "wrench.and.screwdriver.fill"
         case .yourPlans: "square.stack.3d.up.fill"
+        case .calendar: "calendar"
         }
     }
 }
@@ -107,19 +109,6 @@ struct PlansView: View {
                 subtitle: "create_and_tune_your_routine",
                 accessory: {
                     HStack(spacing: 6) {
-                        Button {
-                            HapticService.selection()
-                            showCalendar = true
-                        } label: {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                                .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
-                                .navigationGlassCircle(.secondary, tint: .clear)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("schedule")
-
                         Button {
                             HapticService.selection()
                             showNotifications = true
@@ -309,6 +298,9 @@ struct PlansView: View {
         case .yourPlans:
             yourPlansSection
                 .stickyHeaderTitle(section.title)
+        case .calendar:
+            calendarSection
+                .stickyHeaderTitle(section.title)
         }
     }
 
@@ -316,15 +308,6 @@ struct PlansView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 SectionHeader(title: "your_plans_header")
-                Spacer()
-                Button {
-                    tryOpenProgramLibrary()
-                } label: {
-                    Label(localizedString("browse_programs_button"), systemImage: "magnifyingglass")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.accent)
-                }
-                .buttonStyle(.plain)
             }
 
             let inactivePlans = store.plans.filter { $0.id != store.activePlan.id }
@@ -351,7 +334,61 @@ struct PlansView: View {
                     }
                 }
             }
+
+            Button {
+                HapticService.selection()
+                tryOpenProgramLibrary()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill")
+                    Text(localizedString("browse_programs_button"))
+                }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(PulseTheme.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(PulseTheme.grouped.opacity(0.3), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                        .stroke(PulseTheme.accent.opacity(0.3), lineWidth: 1.0)
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
         }
+    }
+
+    private var calendarSection: some View {
+        Button {
+            HapticService.selection()
+            showCalendar = true
+        } label: {
+            PulseCard {
+                HStack(spacing: 12) {
+                    Image(systemName: "calendar")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                        .frame(width: 42, height: 42)
+                        .background(PulseTheme.accent, in: Circle())
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(localizedString("Calendar"))
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text(localizedString("view_day_in_calendar"))
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private var librarySection: some View {
@@ -1104,21 +1141,39 @@ private struct LibraryShortcut: View {
     let systemImage: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            PulseIconBadge(systemImage: systemImage, tint: PulseTheme.ringStand, size: 36, radius: PulseTheme.smallRadius)
-            Text(localizedKey(title))
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(PulseTheme.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
-            Text(localizedKey(subtitle))
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(PulseTheme.secondaryText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
+        let components = subtitle.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: true)
+        let firstWord = components.first.map(String.init) ?? ""
+        let isDigit = firstWord.allSatisfy(\.isNumber) && !firstWord.isEmpty
+
+        let countText = isDigit ? firstWord : ""
+        let labelText = isDigit ? (components.count > 1 ? String(components[1]) : "") : subtitle
+
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center) {
+                PulseIconBadge(systemImage: systemImage, tint: PulseTheme.ringStand, size: 32, radius: PulseTheme.smallRadius)
+                Spacer()
+                if !countText.isEmpty {
+                    Text(countText)
+                        .font(.system(size: 24, weight: .black, design: .rounded))
+                        .foregroundStyle(PulseTheme.ringStand)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(localizedKey(title))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(PulseTheme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                Text(isDigit ? labelText.capitalized : localizedKey(subtitle))
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
         }
         .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 106, alignment: .leading)
         .background(PulseTheme.grouped.opacity(0.72), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
@@ -1230,12 +1285,12 @@ private struct PlanCard: View {
 
                     if isLocked {
                         Image(systemName: "lock.fill")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 18, height: 18)
-                            .background(.ultraThinMaterial, in: Circle())
-                            .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
-                            .shadow(color: .black.opacity(0.2), radius: 2)
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(Color(red: 1.0, green: 0.84, blue: 0.0)) // Gold color
+                            .frame(width: 16, height: 16)
+                            .background(Color.black.opacity(0.6), in: Circle())
+                            .overlay(Circle().stroke(Color(red: 1.0, green: 0.84, blue: 0.0).opacity(0.4), lineWidth: 1.0))
+                            .shadow(color: .black.opacity(0.3), radius: 2)
                             .offset(x: 4, y: 4)
                     }
                 }
