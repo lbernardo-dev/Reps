@@ -2244,6 +2244,11 @@ private struct ExternalActivityNoticeCard: View {
     let snapshot: ExternalActivitySnapshot
     let distanceUnit: UserProfile.DistanceUnit
 
+    @State private var animateRipple = false
+    @State private var animateBounce = false
+    @State private var animateTilt = false
+    @State private var animateLiveDot = false
+
     private var tint: Color { MetricDomain.cardio.tint }
 
     private var sourceDescription: String {
@@ -2251,6 +2256,19 @@ private struct ExternalActivityNoticeCard: View {
             return localizedFormat("possible_activity_source_format", sourceName)
         }
         return localizedString("possible_activity_question")
+    }
+
+    private var isLikelyRunning: Bool {
+        guard let distance = snapshot.distanceKm,
+              let activeEnergy = snapshot.activeEnergyKcal else { return false }
+        return (activeEnergy / max(distance, 0.1)) > 75
+    }
+
+    private var activityIcon: String {
+        if isLikelyRunning {
+            return "figure.run"
+        }
+        return "figure.walk"
     }
 
     private var displayedDistance: (value: String, unit: String)? {
@@ -2269,20 +2287,46 @@ private struct ExternalActivityNoticeCard: View {
                 HStack(alignment: .top, spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(tint.opacity(0.14))
-                        Image(systemName: "figure.walk.motion")
+                            .fill(tint.opacity(0.12))
+                        
+                        Circle()
+                            .stroke(tint.opacity(0.24), lineWidth: 1.5)
+                            .scaleEffect(animateRipple ? 1.48 : 1.0)
+                            .opacity(animateRipple ? 0.0 : 1.0)
+                        
+                        Image(systemName: activityIcon)
                             .font(.title3.weight(.bold))
                             .foregroundStyle(tint)
+                            .offset(y: animateBounce ? -3 : 0)
+                            .rotationEffect(.degrees(animateTilt ? 5 : -5))
                     }
                     .frame(width: 48, height: 48)
                     .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(localizedString("possible_activity_section_title"))
-                            .font(.caption2.weight(.black))
-                            .tracking(1.2)
-                            .textCase(.uppercase)
-                            .foregroundStyle(tint)
+                        HStack(spacing: 6) {
+                            Text(localizedString("possible_activity_section_title"))
+                                .font(.caption2.weight(.black))
+                                .tracking(1.2)
+                                .textCase(.uppercase)
+                                .foregroundStyle(tint)
+                            
+                            // Pulse dot for live feedback
+                            HStack(spacing: 3) {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 5, height: 5)
+                                    .opacity(animateLiveDot ? 0.35 : 1.0)
+                                    .scaleEffect(animateLiveDot ? 1.3 : 1.0)
+                                Text("LIVE")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundStyle(.red)
+                            }
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color.red.opacity(0.12), in: Capsule())
+                        }
+
                         Text(localizedString("possible_activity_title"))
                             .font(.title3.weight(.black))
                             .foregroundStyle(PulseTheme.textPrimary)
@@ -2316,7 +2360,8 @@ private struct ExternalActivityNoticeCard: View {
                             value: "\(Int(heartRate.rounded()))",
                             unit: "bpm",
                             labelKey: "possible_activity_heart_rate",
-                            systemImage: "heart.fill"
+                            systemImage: "heart.fill",
+                            pulseFrequency: heartRate
                         )
                     }
 
@@ -2347,6 +2392,20 @@ private struct ExternalActivityNoticeCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(localizedString("possible_activity_title"))
         .accessibilityValue("\(sourceDescription). \(localizedString("possible_activity_import_notice"))")
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) {
+                animateRipple = true
+            }
+            withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
+                animateBounce = true
+            }
+            withAnimation(.easeInOut(duration: 0.75).repeatForever(autoreverses: true)) {
+                animateTilt = true
+            }
+            withAnimation(.easeInOut(duration: 0.95).repeatForever(autoreverses: true)) {
+                animateLiveDot = true
+            }
+        }
     }
 }
 
@@ -2360,12 +2419,16 @@ private struct ExternalActivityMetric: View {
     private let unit: String?
     private let labelKey: String
     private let systemImage: String
+    private let pulseFrequency: Double?
 
-    init(value: String, unit: String? = nil, labelKey: String, systemImage: String) {
+    @State private var pulseScale: CGFloat = 1.0
+
+    init(value: String, unit: String? = nil, labelKey: String, systemImage: String, pulseFrequency: Double? = nil) {
         self.value = .text(value)
         self.unit = unit
         self.labelKey = labelKey
         self.systemImage = systemImage
+        self.pulseFrequency = pulseFrequency
     }
 
     init(value: Date, labelKey: String, systemImage: String) {
@@ -2373,6 +2436,7 @@ private struct ExternalActivityMetric: View {
         self.unit = nil
         self.labelKey = labelKey
         self.systemImage = systemImage
+        self.pulseFrequency = nil
     }
 
     var body: some View {
@@ -2380,6 +2444,8 @@ private struct ExternalActivityMetric: View {
             HStack(spacing: 3) {
                 Image(systemName: systemImage)
                     .font(.caption2.weight(.bold))
+                    .foregroundStyle(systemImage == "heart.fill" ? Color.red : PulseTheme.textPrimary)
+                    .scaleEffect(pulseScale)
                 switch value {
                 case .text(let text):
                     Text(text)
@@ -2403,6 +2469,15 @@ private struct ExternalActivityMetric: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 9)
         .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+        .onAppear {
+            if let pulseFrequency, pulseFrequency > 0, systemImage == "heart.fill" {
+                // Determine pulse duration based on heart rate frequency
+                let duration = 60.0 / pulseFrequency
+                withAnimation(.easeInOut(duration: duration * 0.4).repeatForever(autoreverses: true)) {
+                    pulseScale = 1.22
+                }
+            }
+        }
     }
 }
 

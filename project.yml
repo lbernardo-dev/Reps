@@ -71,6 +71,7 @@ targets:
           - audio
           - location
           - remote-notification
+          - workout-processing
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
           UISceneConfigurations:

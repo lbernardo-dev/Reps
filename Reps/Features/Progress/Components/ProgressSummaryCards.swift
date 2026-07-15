@@ -981,7 +981,7 @@ struct TodayMetricCard: View {
 
   var body: some View {
     PulseCard(contentPadding: 14) {
-      VStack(alignment: .leading, spacing: 10) {
+      VStack(alignment: .leading, spacing: 8) {
         HStack {
           Image(systemName: icon)
             .font(.system(size: 15, weight: .black))
@@ -1016,7 +1016,7 @@ struct TodayMetricCard: View {
           .frame(height: 8)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      .frame(minHeight: 144)
+      .frame(height: 148)
     }
   }
 }
@@ -1036,7 +1036,7 @@ struct TodayBarChartCard: View {
     let maxValue = max(chartData.map(\.value).max() ?? 0, 1)
 
     PulseCard(contentPadding: 14) {
-      VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: 8) {
         HStack(spacing: 7) {
           Image(systemName: icon)
             .font(.system(size: 13, weight: .black))
@@ -1055,19 +1055,21 @@ struct TodayBarChartCard: View {
           }
         }
 
-        HStack(alignment: .firstTextBaseline, spacing: 5) {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
           Text(value)
-            .font(.system(size: 34, weight: .black, design: .rounded).monospacedDigit())
+            .font(.system(size: 32, weight: .black, design: .rounded).monospacedDigit())
             .foregroundStyle(.primary)
             .lineLimit(1)
             .minimumScaleFactor(0.60)
           Text(unit)
-            .font(.system(size: 13, weight: .bold))
+            .font(.system(size: 12, weight: .bold))
             .foregroundStyle(PulseTheme.secondaryText)
             .lineLimit(1)
             .minimumScaleFactor(0.70)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+
+        Spacer(minLength: 0)
 
         Group {
           if hasVisibleData {
@@ -1075,9 +1077,9 @@ struct TodayBarChartCard: View {
               BarMark(
                 x: .value("day", point.label),
                 y: .value("val", point.value)
-	              )
-	              .foregroundStyle(point.isToday ? color : color.opacity(0.28))
-	              .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
+              )
+              .foregroundStyle(point.isToday ? color : color.opacity(0.28))
+              .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
             }
             .allowsHitTesting(false)
             .chartYScale(domain: 0...(maxValue * 1.18))
@@ -1097,9 +1099,10 @@ struct TodayBarChartCard: View {
             EmptyMetricBars(color: color, labels: chartData.map(\.label))
           }
         }
-        .frame(height: 72)
+        .frame(height: 48)
       }
-      .frame(minHeight: 144, alignment: .top)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .frame(height: 148)
     }
   }
 }

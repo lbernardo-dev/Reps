@@ -3877,6 +3877,7 @@ final class AppStore {
 
         // 2. Comprobar si hay un entrenamiento en progreso coincidente para finalizar o mezclar
         if let activeStatus = activeWorkoutStatus,
+           workout.endDate > activeStatus.startedAt,
            abs(activeStatus.startedAt.timeIntervalSince(workout.startDate)) < 5400, // Margen de 1.5 horas
            incomingIsCardioMovement == (activeWorkout?.isCardioMovement ?? (activeStatus.isOutdoorRoute ?? false)) {
             
