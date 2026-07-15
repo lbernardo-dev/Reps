@@ -183,10 +183,16 @@ struct ProgressSectionTile: View {
 	  var body: some View {
 	    HStack(spacing: 10) {
 	      Image(systemName: isLocked ? "lock.fill" : section.systemImage)
-	        .font(.headline.weight(.black))
-	        .foregroundStyle(section.tint)
-	        .frame(width: 42, height: 42)
-	        .background(section.tint.opacity(isSelected ? 0.18 : 0.12), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
+        .font(.headline.weight(.bold))
+        .foregroundStyle(isLocked ? Color(red: 1.0, green: 0.84, blue: 0.0) : section.tint)
+        .frame(width: 42, height: 42)
+        .background(isLocked ? Color.black.opacity(0.6) : section.tint.opacity(isSelected ? 0.18 : 0.12), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
+        .overlay {
+            if isLocked {
+                RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous)
+                    .stroke(Color(red: 1.0, green: 0.84, blue: 0.0).opacity(0.4), lineWidth: 1.0)
+            }
+        }
 
       VStack(alignment: .leading, spacing: 3) {
         Text(localizedKey(section.title))

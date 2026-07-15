@@ -14,6 +14,7 @@ import SwiftUI
 struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(AppStore.self) private var store
     let workout: WorkoutDay
 
@@ -340,6 +341,43 @@ struct ActiveWorkoutView: View {
         .sheet(isPresented: $showProPreferences) {
             ProPreferencesView()
         }
+        .sheet(isPresented: $showSessionFeedback) {
+            NavigationStack {
+                ScrollView {
+                    SessionFeedbackPanel(
+                        isExpanded: .constant(true),
+                        title: "document_session",
+                        systemImage: "camera.on.rectangle.fill",
+                        notesPrompt: isTreadmillCandidate ? localizedString("treadmill_notes_prompt") : localizedString("route_notes_prompt"),
+                        audioIdleTitle: "Nota de voz",
+                        audioRecordingTitle: "Guardar audio",
+                        sessionRPE: $sessionRPE,
+                        energyBefore: $energyBefore,
+                        energyAfter: $energyAfter,
+                        notes: $sessionNotes,
+                        photoItems: $sessionPhotoItems,
+                        attachments: sessionMediaAttachments,
+                        isRecordingAudio: audioRecorder.isRecording,
+                        onToggleAudio: toggleSessionAudioNote,
+                        onCameraCapture: appendSessionCameraImage,
+                        onVideoCapture: appendSessionVideo
+                    )
+                    .padding()
+                }
+                .navigationTitle(localizedString("document_session"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") {
+                            HapticService.selection()
+                            showSessionFeedback = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
         .sensoryFeedback(.success, trigger: completedSets)
         .mainTabBarHidden()
         .onReceive(NotificationCenter.default.publisher(for: WatchCommand.musicToggle.notificationName)) { _ in
@@ -479,7 +517,7 @@ struct ActiveWorkoutView: View {
                             batteryCard
                                 .frame(width: contentWidth)
                             if isSessionStarted {
-                                routeSessionFeedbackCard
+                                documentSessionShortcutCard
                                     .frame(width: contentWidth)
                             }
                         } else if exerciseDrafts.isEmpty {
@@ -515,7 +553,7 @@ struct ActiveWorkoutView: View {
                                 .frame(width: contentWidth)
                             // Document the session: notes, voice, photo, video
                             // and per-attachment sharing (collapsed disclosure).
-                            sessionFeedbackCard
+                            documentSessionShortcutCard
                                 .frame(width: contentWidth)
                             // Secondary tools, collapsed by default so the
                             // logging loop stays the focus of the screen.
@@ -1344,6 +1382,42 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    private var estimatedMaxHR: Double {
+        if let birthDate = store.userProfile.dateOfBirth {
+            let calendar = Calendar.current
+            let age = calendar.dateComponents([.year], from: birthDate, to: Date()).year ?? 30
+            return 220.0 - Double(age)
+        }
+        return 190.0
+    }
+
+    private var currentHeartRate: Double? {
+        store.activeWorkoutStatus?.liveHeartRate
+    }
+
+    private struct HeartRateZoneInfo {
+        let number: Int
+        let name: String
+        let color: Color
+    }
+
+    private func activeHeartRateZone(for bpm: Double) -> HeartRateZoneInfo {
+        let maxHR = estimatedMaxHR
+        let pct = bpm / maxHR
+        
+        if pct < 0.60 {
+            return HeartRateZoneInfo(number: 1, name: "Z1", color: PulseTheme.hrZones[0])
+        } else if pct < 0.70 {
+            return HeartRateZoneInfo(number: 2, name: "Z2", color: PulseTheme.hrZones[1])
+        } else if pct < 0.80 {
+            return HeartRateZoneInfo(number: 3, name: "Z3", color: PulseTheme.hrZones[2])
+        } else if pct < 0.90 {
+            return HeartRateZoneInfo(number: 4, name: "Z4", color: PulseTheme.hrZones[3])
+        } else {
+            return HeartRateZoneInfo(number: 5, name: "Z5", color: PulseTheme.hrZones[4])
+        }
+    }
+
     private var routeProgressCard: some View {
         let progress = routeProgressSnapshot
         let progressColor = routeProgressColor(for: progress.visualState)
@@ -1362,10 +1436,16 @@ struct ActiveWorkoutView: View {
                         Image(systemName: progress.icon)
                             .font(.title2.weight(.bold))
                             .foregroundStyle(progressColor)
+                            .contentTransition(.symbolEffect(.replace.downUp))
+                            .symbolEffect(
+                                .wiggle.forward.byLayer,
+                                options: .repeat(.periodic(delay: 0.8)),
+                                isActive: isSessionStarted && !isPaused && !reduceMotion
+                            )
                     }
                     .frame(width: 68, height: 68)
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(progress.status)
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .tracking(1.6)
@@ -1381,13 +1461,41 @@ struct ActiveWorkoutView: View {
                             )
                         } else {
                             Text("00:00")
-                                .font(.system(size: 42, weight: .black, design: .rounded).monospacedDigit())
+                                .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
                         }
 
-                        Text(progress.subtitle)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(alignment: .center, spacing: 6) {
+                            Text(progress.subtitle) // "0.47 km · --"
+                            
+                            if isSessionStarted {
+                                Text("·")
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(Color.red)
+                                    .symbolEffect(
+                                        .breathe.pulse.wholeSymbol,
+                                        options: .repeat(.periodic(delay: 0.4)),
+                                        isActive: currentHeartRate != nil && !isPaused && !reduceMotion
+                                    )
+                                
+                                if let bpm = currentHeartRate {
+                                    Text("\(Int(bpm)) lpm")
+                                        .foregroundStyle(Color.primary)
+                                    
+                                    let zoneInfo = activeHeartRateZone(for: bpm)
+                                    Text(zoneInfo.name)
+                                        .font(.system(size: 8, weight: .black, design: .rounded))
+                                        .foregroundStyle(Color.black)
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 1.5)
+                                        .background(zoneInfo.color, in: Capsule())
+                                } else {
+                                    Text("-- lpm")
+                                }
+                            }
+                        }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
                     }
 
                     Spacer()
@@ -1797,14 +1905,14 @@ struct ActiveWorkoutView: View {
                 SessionControlHeader(
                     title: "session_control_center",
                     systemImage: "applewatch.radiowaves.left.and.right",
-                    statusTitle: "Sync Watch",
+                    statusTitle: localizedString("sync_watch_label"),
                     statusImage: "arrow.triangle.2.circlepath",
                     statusColor: PulseTheme.accent
                 )
 
                 SessionMetricStrip(metrics: [
                     .init(title: "remaining_time", value: timeString(estimatedRemainingSeconds), icon: "hourglass"),
-                    .init(title: "active_kcal", value: store.todayHealthMetric.map { "\(Int($0.activeEnergyKcal))" } ?? "--", icon: "flame.fill")
+                    .init(title: "active_kcal", value: store.todayHealthMetric.map { "\(Int($0.activeEnergyKcal))" } ?? "--", icon: "flame.fill", tintColor: .orange)
                 ])
 
                 HStack(spacing: 10) {
@@ -1850,15 +1958,25 @@ struct ActiveWorkoutView: View {
                 }
 
                 SessionMetricStrip(metrics: [
-                    .init(title: "Tiempo", value: timeString(elapsedSeconds), icon: "timer"),
-                    .init(title: "Distancia", value: String(format: "%.2f km", displayedRouteMetrics.distanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up"),
-                    .init(title: "Ritmo", value: displayedRouteMetrics.paceText, icon: "speedometer")
+                    .init(title: "Tiempo", value: timeString(elapsedSeconds), icon: "timer", tintColor: PulseTheme.accent),
+                    .init(title: "Distancia", value: String(format: "%.2f km", displayedRouteMetrics.distanceKm), icon: "point.topleft.down.curvedto.point.bottomright.up", tintColor: Color.cyan),
+                    .init(title: "Ritmo", value: displayedRouteMetrics.paceText, icon: "speedometer", tintColor: Color.yellow)
                 ])
 
+                let energyVal: String = {
+                    if let liveKcal = store.activeWorkoutStatus?.liveActiveEnergyKcal {
+                        return "\(Int(liveKcal)) kcal"
+                    } else if let estKcal = store.estimatedCaloriesBurned {
+                        return "~\(Int(estKcal)) kcal"
+                    } else {
+                        return "--"
+                    }
+                }()
+
                 SessionMetricStrip(metrics: [
-                    .init(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill"),
-                    .init(title: "Kcal", value: displayedRouteMetrics.energyText, icon: "flame.fill"),
-                    .init(title: "Pulso", value: displayedRouteMetrics.heartRateText, icon: "heart.fill")
+                    .init(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill", tintColor: Color.blue),
+                    .init(title: "Kcal", value: energyVal, icon: "flame.fill", tintColor: Color.orange),
+                    .init(title: "Pulso", value: displayedRouteMetrics.heartRateText, icon: "heart.fill", tintColor: Color.red)
                 ])
 
                 // Pause/resume already lives in the pinned header; this card
@@ -1876,27 +1994,34 @@ struct ActiveWorkoutView: View {
         }
     }
 
-    private var routeSessionFeedbackCard: some View {
-        PulseCard {
-            SessionFeedbackPanel(
-                isExpanded: $showSessionFeedback,
-                title: "document_session",
-                systemImage: "camera.on.rectangle.fill",
-                notesPrompt: isTreadmillCandidate ? "Notas de cinta, ritmo o sensaciones" : "Notas de ruta, molestias o terreno",
-                audioIdleTitle: "Nota de voz",
-                audioRecordingTitle: "Guardar audio",
-                sessionRPE: $sessionRPE,
-                energyBefore: $energyBefore,
-                energyAfter: $energyAfter,
-                notes: $sessionNotes,
-                photoItems: $sessionPhotoItems,
-                attachments: sessionMediaAttachments,
-                isRecordingAudio: audioRecorder.isRecording,
-                onToggleAudio: toggleSessionAudioNote,
-                onCameraCapture: appendSessionCameraImage,
-                onVideoCapture: appendSessionVideo
-            )
+    private var documentSessionShortcutCard: some View {
+        Button {
+            HapticService.selection()
+            showSessionFeedback = true
+        } label: {
+            HStack(spacing: 12) {
+                PulseIconBadge(systemImage: "camera.on.rectangle.fill", tint: PulseTheme.accent, size: 44, radius: 12, isFilled: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(localizedString("document_session"))
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.primary)
+                    Text(sessionNotes.isEmpty && sessionMediaAttachments.isEmpty ? "Añadir notas, fotos o audio" : "Notas y multimedia adjuntas")
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            .padding(12)
+            .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                    .stroke(PulseTheme.cardStroke, lineWidth: 1)
+            }
         }
+        .buttonStyle(.plain)
     }
 
     private var executionSummaryStrip: some View {
@@ -1976,26 +2101,7 @@ struct ActiveWorkoutView: View {
     }
 
     private var sessionFeedbackCard: some View {
-        PulseCard {
-            SessionFeedbackPanel(
-                isExpanded: $showSessionFeedback,
-                title: "document_session",
-                systemImage: "camera.on.rectangle.fill",
-                notesPrompt: localizedString("notes_prompt"),
-                audioIdleTitle: localizedString("record_audio_note"),
-                audioRecordingTitle: localizedString("save_audio_note"),
-                sessionRPE: $sessionRPE,
-                energyBefore: $energyBefore,
-                energyAfter: $energyAfter,
-                notes: $sessionNotes,
-                photoItems: $sessionPhotoItems,
-                attachments: sessionMediaAttachments,
-                isRecordingAudio: audioRecorder.isRecording,
-                onToggleAudio: toggleSessionAudioNote,
-                onCameraCapture: appendSessionCameraImage,
-                onVideoCapture: appendSessionVideo
-            )
-        }
+        EmptyView()
     }
 
     private var emptyFreeWorkoutCard: some View {

@@ -88,6 +88,8 @@ struct ActiveWorkoutPinnedHeader: View {
 }
 
 struct ActiveWorkoutProgressSummary: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let completedSets: Int
     let totalSets: Int
     let setCompletion: Double
@@ -186,6 +188,13 @@ struct ActiveWorkoutProgressSummary: View {
                 HStack(spacing: 10) {
                     Image(systemName: completedSets == totalSets ? "checkmark.circle.fill" : "arrow.right.circle.fill")
                         .font(.title3.weight(.bold))
+                        .contentTransition(.symbolEffect(.replace.downUp))
+                        .symbolEffect(
+                            .bounce.up.byLayer,
+                            options: .nonRepeating,
+                            value: reduceMotion ? 0 : completedSets
+                        )
+                        .symbolEffectsRemoved(reduceMotion)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(completedSets == totalSets ? localizedString("completed_3") : localizedString("next_set"))
                             .font(.headline.weight(.bold))

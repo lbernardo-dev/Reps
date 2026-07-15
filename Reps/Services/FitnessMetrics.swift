@@ -2557,8 +2557,8 @@ enum RouteMetricsBuilder {
         let speedKmh = validPositive(input.activeStatus?.routeSpeedKmh) ?? validPositive(input.trackerSpeedKmh) ?? validPositive(input.pedometerSpeedKmh)
         let pointCount = max(input.trackerPointCount, input.activeStatus?.routePointCount ?? 0)
         let steps = input.pedometerSteps ?? input.activeStatus?.routeSteps ?? input.sensorSummary?.steps
-        let heartRate = input.activeStatus?.liveHeartRate ?? input.sensorSummary?.averageHeartRate
-        let activeEnergy = input.activeStatus?.liveActiveEnergyKcal ?? input.sensorSummary?.activeEnergyKcal
+        let heartRate = input.activeStatus?.liveHeartRate
+        let activeEnergy = input.activeStatus?.liveActiveEnergyKcal
 
         return Metrics(
             distanceKm: distanceKm,

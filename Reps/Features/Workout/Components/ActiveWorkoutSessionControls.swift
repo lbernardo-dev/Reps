@@ -36,6 +36,7 @@ struct SessionMetricStrip: View {
         let title: String
         let value: String
         let icon: String
+        var tintColor: Color? = nil
 
         var id: String { title }
     }
@@ -45,7 +46,7 @@ struct SessionMetricStrip: View {
     var body: some View {
         HStack(spacing: 10) {
             ForEach(metrics) { metric in
-                MiniSessionPill(title: metric.title, value: metric.value, icon: metric.icon)
+                MiniSessionPill(title: metric.title, value: metric.value, icon: metric.icon, tintColor: metric.tintColor)
             }
         }
     }
@@ -145,11 +146,12 @@ struct MiniSessionPill: View {
     let title: String
     let value: String
     let icon: String
+    var tintColor: Color? = nil
 
     var body: some View {
         HStack(spacing: 7) {
             Image(systemName: icon)
-                .foregroundStyle(PulseTheme.accent)
+                .foregroundStyle(tintColor ?? PulseTheme.accent)
                 .layoutPriority(1)
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)

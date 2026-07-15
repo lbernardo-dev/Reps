@@ -332,7 +332,7 @@ struct TodayView: View {
             gWords("\u{B7} HRV")
             if let h = latestHRV { gPill(TrackedMetric.hrv.systemImage, "\(Int(h.rounded())) ms", TrackedMetric.hrv.tint, .hrv) } else { gWords("pendiente") }
             gWords("\u{B7} FC reposo")
-            if let r = latestRestingHeartRate { gPill(TrackedMetric.restingHeartRate.systemImage, "\(Int(r.rounded())) lpm", TrackedMetric.restingHeartRate.tint, .heartRate) } else { gWords("sin datos") }
+            if let r = latestRestingHeartRate { gPill(TrackedMetric.restingHeartRate.systemImage, "\(Int(r.rounded())) lpm", TrackedMetric.restingHeartRate.tint, .heartRate) } else { gWords(localizedString("no_data")) }
             gWords("\u{B7} Recuperaci\u{F3}n")
             gPill(TrackedMetric.readiness.systemImage, "\(battery.level)%", TrackedMetric.readiness.tint, .recovery)
             gWords("\u{B7} \(stressText) \u{B7}")
@@ -4739,7 +4739,8 @@ struct WeeklyProgressHeroCard: View {
                                         endPoint: .trailing
                                     )
                                 )
-                                .frame(width: geo.size.width * completionRatio)
+                                .frame(width: geo.size.width * completionRatio * (barsAnimated ? 1.0 : 0.0))
+                                .animation(.spring(response: 0.65, dampingFraction: 0.75).delay(0.1), value: barsAnimated)
                         }
                     }
                     .frame(height: 4)

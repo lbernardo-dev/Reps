@@ -66,7 +66,7 @@ struct LiveRouteMapPanel: View {
                 Label("mapa_en_vivo", systemImage: "map.fill")
                     .font(.headline)
                 Spacer()
-                Text(routePoints.isEmpty ? "Esperando GPS" : "\(routePoints.count) puntos")
+                Text(routePoints.isEmpty ? localizedString("gps_awaiting") : localizedFormat("gps_route_points_format", routePoints.count))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(PulseTheme.secondaryText)
             }

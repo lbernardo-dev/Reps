@@ -463,7 +463,7 @@ final class AppStore {
         case "today":
             pendingMainTabSelection = .today
             return true
-        case "workout" where url.path.lowercased() == "/recommended":
+        case "workout":
             pendingMainTabSelection = .today
             pendingSystemWorkoutStart = true
             return true
@@ -2252,7 +2252,17 @@ final class AppStore {
     }
 
     private func handleNativeWorkoutEnded() {
-        guard activeWorkoutStatus != nil else { return }
+        guard let status = activeWorkoutStatus else { return }
+        // Safeguard: If the native session fails or stops within 15 seconds of starting,
+        // it is a startup/initialization failure (e.g. HealthKit permission error or watch companion launch issue).
+        // Check both effective elapsed time AND real wall-clock time since start to cover
+        // the edge case where the user paused immediately (effectiveElapsedSeconds would be 0,
+        // but wall-clock could be longer — or vice versa).
+        let effectiveElapsed = status.effectiveElapsedSeconds()
+        let wallClockElapsed = Date().timeIntervalSince(status.startedAt)
+        guard effectiveElapsed > 15 || wallClockElapsed > 15 else {
+            return
+        }
         _ = finishActiveWorkoutFromSummaryCard()
         refreshHealthKitDataIfNeeded(force: true, reason: "native_workout_ended")
     }
@@ -2318,6 +2328,52 @@ final class AppStore {
             )
         }
         return try? JSONEncoder().encode(planned)
+    }
+
+    var estimatedCaloriesBurned: Double? {
+        guard let status = activeWorkoutStatus, status.liveActiveEnergyKcal == nil else { return nil }
+        
+        let weight = bodyMetrics.sorted(by: { $0.date < $1.date }).last?.weightKg ?? 70.0
+        let elapsed = Double(status.effectiveElapsedSeconds())
+        let durationMinutes = elapsed / 60.0
+        
+        let met: Double
+        if let workout = activeWorkout {
+            switch workout.sessionType {
+            case .cardioRun:
+                // Use actual GPS speed when available for a more accurate MET estimate.
+                // MET ≈ 0.0014 × speed² + 0.071 × speed + 1.0 (approximated from ACSM tables, speed in km/h).
+                // Clamp to [4.0, 18.0] to avoid absurd values from GPS noise.
+                if let distKm = status.routeDistanceKm, distKm > 0.05, elapsed > 60 {
+                    let speedKmh = (distKm / elapsed) * 3600.0
+                    let clampedSpeed = max(4.0, min(speedKmh, 22.0))
+                    met = 0.0014 * clampedSpeed * clampedSpeed + 0.071 * clampedSpeed + 1.0
+                } else {
+                    met = 8.0 // fallback for typical running pace (~10 km/h)
+                }
+            case .cardioWalk:
+                // Similarly derive MET from pace for walking if available.
+                if let distKm = status.routeDistanceKm, distKm > 0.02, elapsed > 60 {
+                    let speedKmh = (distKm / elapsed) * 3600.0
+                    let clampedSpeed = max(2.0, min(speedKmh, 8.0))
+                    // Walking MET: roughly linear 2.0–5.0 in the 3–7 km/h range.
+                    met = 0.35 * clampedSpeed + 1.0
+                } else {
+                    met = 3.8
+                }
+            case .free:
+                met = 4.5
+            case .mobility:
+                met = 2.5
+            default:
+                met = 4.0
+            }
+        } else {
+            met = 4.0
+        }
+        
+        // Standard metabolic formula: kcal/min = MET × 3.5 × weightKg / 200
+        return met * 3.5 * weight / 200.0 * durationMinutes
     }
 
     private func sharedWorkoutSnapshot() -> SharedWorkoutSnapshot {
@@ -2421,8 +2477,8 @@ final class AppStore {
             gymMembershipID: status.gymMembershipID ?? gymPasses.first?.membershipID,
             gymCodeValue: status.gymCodeValue ?? gymPasses.first?.codeValue,
             gymCodeType: status.gymCodeType ?? gymPasses.first?.codeType.rawValue,
-            heartRate: status.liveHeartRate ?? todayHealthMetric?.restingHeartRate,
-            activeEnergyKcal: status.liveActiveEnergyKcal ?? todayHealthMetric?.activeEnergyKcal,
+            heartRate: status.liveHeartRate,
+            activeEnergyKcal: status.liveActiveEnergyKcal ?? estimatedCaloriesBurned,
             isRouteWorkout: status.isRouteWorkout,
             isOutdoorRoute: status.isOutdoorRoute,
             routeDistanceKm: status.routeDistanceKm,
@@ -3618,7 +3674,9 @@ final class AppStore {
 
         let query = HKObserverQuery(sampleType: workoutType, predicate: nil) { [weak self] _, completionHandler, error in
             if let error = error {
+                #if DEBUG
                 print("Error de observador de HealthKit: \(error.localizedDescription)")
+                #endif
                 completionHandler()
                 return
             }
@@ -3642,7 +3700,9 @@ final class AppStore {
         // Habilitar envío en segundo plano
         healthStore.enableBackgroundDelivery(for: workoutType, frequency: .immediate) { success, error in
             if let error = error {
+                #if DEBUG
                 print("No se pudo habilitar el envío en segundo plano de HealthKit: \(error.localizedDescription)")
+                #endif
                 Task { @MainActor in
                     TelemetryService.shared.record(error, context: "healthkit_enable_background_delivery")
                 }
@@ -3790,7 +3850,9 @@ final class AppStore {
                 await processHealthKitWorkout(workout)
             }
         } catch {
+            #if DEBUG
             print("Error al consultar entrenamientos de HealthKit: \(error.localizedDescription)")
+            #endif
             TelemetryService.shared.record(error, context: "healthkit_sync_workouts")
             TelemetryService.shared.log(.nonFatalError, parameters: ["context": "healthkit_sync_workouts"])
         }

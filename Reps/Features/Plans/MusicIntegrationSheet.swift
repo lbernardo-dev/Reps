@@ -368,7 +368,9 @@ struct MusicIntegrationSheet: View {
                 await MainActor.run {
                     self.isLoadingAppleMusicLibrary = false
                 }
+                #if DEBUG
                 print("Error loading library playlists: \(error)")
+                #endif
             }
         }
     }
@@ -403,7 +405,9 @@ struct MusicIntegrationSheet: View {
                         self.searchedLibraryPlaylists = Array(libraryResponse.playlists)
                     }
                 } catch {
+                    #if DEBUG
                     print("Error searching library playlists: \(error)")
+                    #endif
                 }
             }
 
@@ -425,7 +429,9 @@ struct MusicIntegrationSheet: View {
                 await MainActor.run {
                     self.isSearchingCatalog = false
                 }
+                #if DEBUG
                 print("Error searching catalog playlists: \(error)")
+                #endif
             }
         }
     }

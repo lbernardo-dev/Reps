@@ -1,10 +1,71 @@
 import SwiftUI
 import WatchKit
 
+private struct WatchWorkoutAnimationTriggerKey: EnvironmentKey {
+    static let defaultValue = 0
+}
+
+private extension EnvironmentValues {
+    var watchWorkoutAnimationTrigger: Int {
+        get { self[WatchWorkoutAnimationTriggerKey.self] }
+        set { self[WatchWorkoutAnimationTriggerKey.self] = newValue }
+    }
+}
+
+private enum WatchWorkoutSymbolMotion {
+    case activity
+    case rest
+    case completion
+}
+
+private struct WatchAnimatedWorkoutSymbol: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+    @Environment(\.watchWorkoutAnimationTrigger) private var presentationTrigger
+
+    let systemName: String
+    var eventValue = ""
+    var motion: WatchWorkoutSymbolMotion = .activity
+
+    private var animationsEnabled: Bool {
+        !reduceMotion && !isLuminanceReduced
+    }
+
+    private var animationValue: String {
+        "\(presentationTrigger)|\(eventValue)|illuminated:\(animationsEnabled)"
+    }
+
+    @ViewBuilder
+    var body: some View {
+        switch motion {
+        case .activity:
+            baseImage
+                .symbolEffect(.wiggle.forward.byLayer, options: .nonRepeating, value: animationValue)
+        case .rest:
+            baseImage
+                .symbolEffect(.rotate.clockwise.wholeSymbol, options: .nonRepeating, value: animationValue)
+        case .completion:
+            baseImage
+                .symbolEffect(.bounce.up.byLayer, options: .nonRepeating, value: animationValue)
+        }
+    }
+
+    private var baseImage: some View {
+        Image(systemName: systemName)
+            .contentTransition(.symbolEffect(.replace.downUp))
+            .symbolEffectsRemoved(!animationsEnabled)
+            .transition(.symbolEffect(.appear.byLayer))
+    }
+}
+
 // MARK: - Root router
 
 struct WatchWorkoutView: View {
     @Environment(WatchWorkoutModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var presentationAnimationTrigger = 0
 
     private var isActive: Bool {
         model.mode != .none || model.snapshot.hasActiveWorkout
@@ -19,6 +80,25 @@ struct WatchWorkoutView: View {
                 WatchStartView()
             }
         }
+        .environment(\.watchWorkoutAnimationTrigger, presentationAnimationTrigger)
+        .onAppear {
+            triggerPresentationAnimation()
+        }
+        .onChange(of: isLuminanceReduced) { wasReduced, isReduced in
+            if wasReduced && !isReduced {
+                triggerPresentationAnimation()
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                triggerPresentationAnimation()
+            }
+        }
+    }
+
+    private func triggerPresentationAnimation() {
+        guard !reduceMotion, !isLuminanceReduced else { return }
+        presentationAnimationTrigger &+= 1
     }
 }
 
@@ -92,6 +172,15 @@ struct WatchStartView: View {
                     .padding(.bottom, 10)
                 }
                 .navigationTitle("StreakRep")
+                .background(
+                    RadialGradient(
+                        colors: [accent.opacity(0.12), .black],
+                        center: .topLeading,
+                        startRadius: 5,
+                        endRadius: 180
+                    )
+                    .ignoresSafeArea()
+                )
             }
         }
     }
@@ -434,6 +523,10 @@ struct WatchActiveWorkoutView: View {
     @Environment(WatchWorkoutModel.self) private var model
     @State private var page = 0
 
+    private var accent: Color {
+        model.snapshot.isRouteWorkout ? WatchTheme.ringExercise : WatchTheme.accent(for: model.snapshot.widgetAccentColorName)
+    }
+
     var body: some View {
         TabView(selection: $page) {
             nowPage.tag(0)
@@ -441,6 +534,15 @@ struct WatchActiveWorkoutView: View {
             summaryPage.tag(2)
         }
         .tabViewStyle(.page)
+        .background(
+            RadialGradient(
+                colors: [accent.opacity(0.12), .black],
+                center: .topLeading,
+                startRadius: 5,
+                endRadius: 180
+            )
+            .ignoresSafeArea()
+        )
     }
 
     @ViewBuilder
@@ -492,7 +594,10 @@ struct WatchRouteNowView: View {
         VStack(spacing: 5) {
             // Activity type + paused badge
             HStack(spacing: 5) {
-                Image(systemName: activityIcon)
+                WatchAnimatedWorkoutSymbol(
+                    systemName: activityIcon,
+                    eventValue: "\(model.state)|\(model.snapshot.workoutTitle)"
+                )
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                 Text(model.snapshot.workoutTitle)
@@ -635,6 +740,13 @@ struct WatchStrengthNowView: View {
             .opacity(model.currentExerciseIndex == 0 ? 0.3 : 1)
             .accessibilityLabel(localizedString("Previous exercise"))
 
+            WatchAnimatedWorkoutSymbol(
+                systemName: "dumbbell.fill",
+                eventValue: "\(model.currentExerciseIndex)|\(model.totalCompletedSets)"
+            )
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(accent)
+
             VStack(spacing: 1) {
                 Text(model.currentExercise?.name ?? localizedString("Exercise"))
                     .font(.system(size: 14, weight: .bold, design: .rounded))
@@ -750,7 +862,15 @@ struct WatchStrengthNowView: View {
     private func restBanner(until end: Date) -> some View {
         VStack(spacing: 5) {
             HStack {
-                Label(localizedString("Rest"), systemImage: "hourglass")
+                Label {
+                    Text(localizedString("Rest"))
+                } icon: {
+                    WatchAnimatedWorkoutSymbol(
+                        systemName: "hourglass",
+                        eventValue: String(end.timeIntervalSinceReferenceDate),
+                        motion: .rest
+                    )
+                }
                     .font(.system(size: 10, weight: .heavy, design: .rounded))
                     .foregroundStyle(.orange)
                 Spacer()
@@ -777,7 +897,15 @@ struct WatchStrengthNowView: View {
 
     private var phoneRestBanner: some View {
         HStack {
-            Label(localizedString("Rest"), systemImage: "hourglass")
+            Label {
+                Text(localizedString("Rest"))
+            } icon: {
+                WatchAnimatedWorkoutSymbol(
+                    systemName: "hourglass",
+                    eventValue: model.snapshot.restEndDate.map { String($0.timeIntervalSinceReferenceDate) } ?? model.snapshot.restText,
+                    motion: .rest
+                )
+            }
                 .font(.system(size: 10, weight: .heavy, design: .rounded))
                 .foregroundStyle(.orange)
             Spacer()
@@ -1203,7 +1331,11 @@ struct WatchBigMetric: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Image(systemName: icon)
+            WatchAnimatedWorkoutSymbol(
+                systemName: icon,
+                eventValue: value,
+                motion: icon.contains("checkmark") ? .completion : .activity
+            )
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(color)
             Text(value)

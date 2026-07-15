@@ -1,684 +1,7 @@
 {
   "sourceLanguage" : "es",
   "strings" : {
-    "vitalspath_promo_accessibility" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open VitalsPath, supplement and family health tracking" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir VitalsPath, registro de suplementos y salud familiar" } }
-      }
-    },
-    "vitalspath_promo_close" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Promotion display options" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Opciones de visualización de la promoción" } }
-      }
-    },
-    "vitalspath_promo_close_message" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "As a Premium member, you can hide this recommendation for now or permanently." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Como miembro Premium, puedes ocultar esta recomendación ahora o permanentemente." } }
-      }
-    },
-    "vitalspath_promo_close_title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hide VitalsPath recommendation?" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "¿Ocultar la recomendación de VitalsPath?" } }
-      }
-    },
-    "vitalspath_promo_eyebrow" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recommended app" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "App recomendada" } }
-      }
-    },
-    "vitalspath_promo_hide_forever" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Don't show again" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "No volver a mostrar" } }
-      }
-    },
-    "vitalspath_promo_hide_now" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hide for now" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ocultar por ahora" } }
-      }
-    },
-    "vitalspath_promo_message" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Track sports supplements and take care of your health." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Registra tus suplementos deportivos y cuida tu salud." } }
-      }
-    },
-    "vitalspath_promo_move" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Move recommendation" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mover recomendación" } }
-      }
-    },
-    "vitalspath_promo_move_hint" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag to reposition it anywhere on the screen." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Arrastra para reubicarla en cualquier parte de la pantalla." } }
-      }
-    },
-    "vitalspath_promo_open_hint" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Opens the app if installed, or its App Store page." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre la app si está instalada o su ficha en App Store." } }
-      }
-    },
-    "vitalspath_promo_title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Complete your routine with VitalsPath" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Completa tu rutina con VitalsPath" } }
-      }
-    },
-    "possible_activity_section_title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Activity detected" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Actividad detectada" } }
-      }
-    },
-    "possible_activity_title" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Possible activity in progress" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Posible actividad en curso" } }
-      }
-    },
-    "possible_activity_source_format" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recent signals identified as coming from %@." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Señales recientes identificadas como procedentes de %@." } }
-      }
-    },
-    "possible_activity_question" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Are you recording a workout in Apple Fitness or another app?" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "¿Estás registrando un entreno en Apple Fitness o en otra app?" } }
-      }
-    },
-    "possible_activity_import_notice" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "StreakReps can't access another app's live session. If it is saved to Apple Health, its final data will be imported automatically when the workout ends." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "StreakReps no puede acceder a la sesión en directo de otra app. Si se guarda en Apple Salud, los datos finales se importarán automáticamente al terminar." } }
-      }
-    },
-    "possible_activity_estimates_note" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recent HealthKit signals; values are estimates and may arrive with a delay." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Señales recientes de HealthKit; los valores son estimados y pueden llegar con retraso." } }
-      }
-    },
-    "possible_activity_duration" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Estimated time" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tiempo estimado" } }
-      }
-    },
-    "possible_activity_heart_rate" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recent heart rate" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pulso reciente" } }
-      }
-    },
-    "possible_activity_energy" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Active energy" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Energía activa" } }
-      }
-    },
-    "possible_activity_distance" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Distance" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Distancia" } }
-      }
-    },
-    "session_filter_with_session" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "With session"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Con sesión"
-          }
-        }
-      }
-    },
-    "session_filter_without_session" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Without session"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sin sesión"
-          }
-        }
-      }
-    },
-    "heart_rate_zone_label" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heart rate"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frecuencia cardíaca"
-          }
-        }
-      }
-    },
-    "estimated_load_per_session" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estimated load per session"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Carga estimada por sesión"
-          }
-        }
-      }
-    },
-    "tap_start_to_log_sets" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap Start to log sets"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pulsa Empezar para registrar series"
-          }
-        }
-      }
-    },
-    "intent_start_free_workout_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start Free Workout"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Empezar entreno libre"
-          }
-        }
-      }
-    },
-    "intent_start_free_workout_description" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opens Reps and prepares a free workout."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abre Reps y prepara un entreno libre."
-          }
-        }
-      }
-    },
-    "intent_streak_status_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check Streak"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consultar racha"
-          }
-        }
-      }
-    },
-    "intent_streak_status_description" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tells you how many days your training streak is."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dice cuántos días llevas de racha de entrenos."
-          }
-        }
-      }
-    },
-    "intent_start_recommended_workout_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start Recommended Workout"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Empezar entreno recomendado"
-          }
-        }
-      }
-    },
-    "intent_start_recommended_workout_description" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Reps and start the workout selected for today."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abre Reps y empieza el entreno seleccionado para hoy."
-          }
-        }
-      }
-    },
-    "intent_open_training_progress_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Training Progress"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir progreso de entreno"
-          }
-        }
-      }
-    },
-    "intent_open_training_progress_description" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open your training history, progression and personal records in Reps."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abre tu historial de entreno, progresión y récords personales en Reps."
-          }
-        }
-      }
-    },
-    "intent_shortcut_train_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Train"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entrenar"
-          }
-        }
-      }
-    },
-    "intent_shortcut_streak_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streak"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Racha"
-          }
-        }
-      }
-    },
-    "intent_shortcut_start_workout_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start Workout"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Empezar entreno"
-          }
-        }
-      }
-    },
-    "intent_shortcut_training_progress_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Training Progress"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Progreso de entreno"
-          }
-        }
-      }
-    },
-    "intent_streak_full_singular" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You have a 1-day streak. Keep it up!"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Llevas 1 día de racha. ¡Sigue así!"
-          }
-        }
-      }
-    },
-    "intent_streak_full_plural_format" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You have a %d-day streak. Keep it up!"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Llevas %d días de racha. ¡Sigue así!"
-          }
-        }
-      }
-    },
-    "intent_streak_supporting_format" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streak: %d"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Racha: %d"
-          }
-        }
-      }
-    },
-    "intent_streak_none" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You don't have an active streak yet. Today is a great day to train!"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aún no tienes racha activa. ¡Hoy es buen día para entrenar!"
-          }
-        }
-      }
-    },
-    "delete_social_profile" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete social profile"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminar perfil social"
-          }
-        }
-      }
-    },
-    "delete_social_profile_subtitle" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Removes public profile & posts"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elimina perfil publico y publicaciones"
-          }
-        }
-      }
-    },
-    "deleting" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deleting..."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminando..."
-          }
-        }
-      }
-    },
-    "delete_social_profile_confirm_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete social profile?"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "¿Eliminar perfil social?"
-          }
-        }
-      }
-    },
-    "delete_social_profile_confirm_button" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete profile"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminar perfil"
-          }
-        }
-      }
-    },
-    "delete_social_profile_message" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your public profile, posts, comments and follows will be permanently removed from Community. This does not affect your local workouts or data."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tu perfil publico, publicaciones, comentarios y seguidores se eliminaran permanentemente de Comunidad. Esto no afecta a tus entrenamientos ni datos locales."
-          }
-        }
-      }
-    },
-    "delete_social_profile_success" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Social profile deleted"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Perfil social eliminado"
-          }
-        }
-      }
-    },
-    "delete_social_profile_failed" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't delete social profile. Check your connection and try again."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo eliminar el perfil social. Comprueba tu conexion e intentalo de nuevo."
-          }
-        }
-      }
-    },
-    "achievement_close_all_format" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close all (%d)"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cerrar todo (%d)"
-          }
-        }
-      }
-    },
-    "achievement_close_all_toast" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Achievements closed"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Logros cerrados"
-          }
-        }
-      }
-    },
-    "social_moderator_delete_comment" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete comment (moderator)"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminar comentario (moderador)"
-          }
-        }
-      }
-    },
-    "social_moderator_ban_user" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ban user"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Banear usuario"
-          }
-        }
-      }
-    },
-    "social_moderator_delete_post" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete post (moderator)"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminar publicacion (moderador)"
-          }
-        }
-      }
-    },
     "" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -914,6 +237,9 @@
           }
         }
       }
+    },
+    "-- lpm" : {
+
     },
     "-%.0f" : {
       "extractionState" : "stale",
@@ -5937,6 +5263,36 @@
         }
       }
     },
+    "%@ · %@ · %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ · %3$@"
+          }
+        }
+      }
+    },
+    "%@ · set %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · set %2$@"
+          }
+        }
+      }
+    },
+    "%@ / %@ %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@ %3$@"
+          }
+        }
+      }
+    },
     "%@ %@" : {
       "localizations" : {
         "en" : {
@@ -6084,6 +5440,9 @@
           }
         }
       }
+    },
+    "%@ lpm" : {
+
     },
     "%@ min" : {
       "localizations" : {
@@ -9179,6 +8538,40 @@
         }
       }
     },
+    "achievement_close_all_format" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close all (%d)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar todo (%d)"
+          }
+        }
+      }
+    },
+    "achievement_close_all_toast" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achievements closed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logros cerrados"
+          }
+        }
+      }
+    },
     "achievement_dedicated_desc" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -11810,91 +11203,6 @@
         }
       }
     },
-    "add_set" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add set"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir serie"
-          }
-        }
-      }
-    },
-    "complete_workout_banner_subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Imported from Apple Health with no sets — add them so your stats and muscle map are accurate."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importado desde Apple Salud sin series — añádelas para que tus estadísticas y el mapa muscular sean correctos."
-          }
-        }
-      }
-    },
-    "complete_workout_empty" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No exercises yet. Add what you trained to complete this workout."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todavía no hay ejercicios. Añade lo que entrenaste para completar este workout."
-          }
-        }
-      }
-    },
-    "complete_workout_explainer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This workout came from Apple Health without sets, reps or weight. Add your exercises below."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Este entrenamiento vino de Apple Salud sin series, repeticiones ni peso. Añade tus ejercicios abajo."
-          }
-        }
-      }
-    },
-    "complete_workout_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Complete workout"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completar entrenamiento"
-          }
-        }
-      }
-    },
     "add_exercise_action" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12194,6 +11502,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Añadir sesión"
+          }
+        }
+      }
+    },
+    "add_set" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add set"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir serie"
           }
         }
       }
@@ -21109,6 +20434,23 @@
         }
       }
     },
+    "category_filters" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category filters"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtros de categoría"
+          }
+        }
+      }
+    },
     "Category: \\(Self.displayName($0))" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -23844,6 +23186,74 @@
         }
       }
     },
+    "complete_workout_banner_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imported from Apple Health with no sets — add them so your stats and muscle map are accurate."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importado desde Apple Salud sin series — añádelas para que tus estadísticas y el mapa muscular sean correctos."
+          }
+        }
+      }
+    },
+    "complete_workout_empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No exercises yet. Add what you trained to complete this workout."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todavía no hay ejercicios. Añade lo que entrenaste para completar este workout."
+          }
+        }
+      }
+    },
+    "complete_workout_explainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This workout came from Apple Health without sets, reps or weight. Add your exercises below."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este entrenamiento vino de Apple Salud sin series, repeticiones ni peso. Añade tus ejercicios abajo."
+          }
+        }
+      }
+    },
+    "complete_workout_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Complete workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completar entrenamiento"
+          }
+        }
+      }
+    },
     "complete_workouts_to_track_apple_health_achievements_and_auto_save_training_tick" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -26068,6 +25478,23 @@
         }
       }
     },
+    "daily_greeting" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Greeting & summary"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saludo y resumen"
+          }
+        }
+      }
+    },
     "daily_summary_headline_configure_health" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -27323,6 +26750,141 @@
         }
       }
     },
+    "delete_social_profile" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete social profile"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar perfil social"
+          }
+        }
+      }
+    },
+    "delete_social_profile_confirm_button" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete profile"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar perfil"
+          }
+        }
+      }
+    },
+    "delete_social_profile_confirm_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete social profile?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Eliminar perfil social?"
+          }
+        }
+      }
+    },
+    "delete_social_profile_failed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't delete social profile. Check your connection and try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo eliminar el perfil social. Comprueba tu conexion e intentalo de nuevo."
+          }
+        }
+      }
+    },
+    "delete_social_profile_message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your public profile, posts, comments and follows will be permanently removed from Community. This does not affect your local workouts or data."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu perfil publico, publicaciones, comentarios y seguidores se eliminaran permanentemente de Comunidad. Esto no afecta a tus entrenamientos ni datos locales."
+          }
+        }
+      }
+    },
+    "delete_social_profile_subtitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removes public profile & posts"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina perfil publico y publicaciones"
+          }
+        }
+      }
+    },
+    "delete_social_profile_success" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Social profile deleted"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perfil social eliminado"
+          }
+        }
+      }
+    },
+    "deleting" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleting..."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminando..."
+          }
+        }
+      }
+    },
     "deload_exercise_scheduled_tomorrow_message" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28157,7 +27719,6 @@
       }
     },
     "Distance" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -29694,6 +29255,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Editar cuerpo"
+          }
+        }
+      }
+    },
+    "edit_layout" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Layout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar diseño"
           }
         }
       }
@@ -31748,6 +31326,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Estimación por FC media de cada sesión."
+          }
+        }
+      }
+    },
+    "estimated_load_per_session" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimated load per session"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carga estimada por sesión"
           }
         }
       }
@@ -34348,7 +33943,6 @@
       }
     },
     "Fin" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -37232,6 +36826,159 @@
         }
       }
     },
+    "gps_awaiting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for GPS"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esperando GPS"
+          }
+        }
+      }
+    },
+    "gps_route_points_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld points"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld puntos"
+          }
+        }
+      }
+    },
+    "route_notes_prompt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route notes, discomforts or terrain"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notas de ruta, molestias o terreno"
+          }
+        }
+      }
+    },
+    "treadmill_notes_prompt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Treadmill notes, pace or sensations"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notas de cinta, ritmo o sensaciones"
+          }
+        }
+      }
+    },
+    "resting_hr_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resting"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reposo"
+          }
+        }
+      }
+    },
+    "sync_watch_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Watch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Watch"
+          }
+        }
+      }
+    },
+    "Reposo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resting"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reposo"
+          }
+        }
+      }
+    },
+    "Pasos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steps"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasos"
+          }
+        }
+      }
+    },
+    "Ejercicio" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exercise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejercicio"
+          }
+        }
+      }
+    },
     "gps_map_recorded" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -38549,6 +38296,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Frecuencia cardiaca"
+          }
+        }
+      }
+    },
+    "heart_rate_zone_label" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heart rate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frecuencia cardíaca"
           }
         }
       }
@@ -43173,6 +42937,176 @@
         }
       }
     },
+    "intent_open_training_progress_description" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open your training history, progression and personal records in Reps."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre tu historial de entreno, progresión y récords personales en Reps."
+          }
+        }
+      }
+    },
+    "intent_open_training_progress_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Training Progress"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir progreso de entreno"
+          }
+        }
+      }
+    },
+    "intent_shortcut_start_workout_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empezar entreno"
+          }
+        }
+      }
+    },
+    "intent_shortcut_streak_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Racha"
+          }
+        }
+      }
+    },
+    "intent_shortcut_train_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Train"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrenar"
+          }
+        }
+      }
+    },
+    "intent_shortcut_training_progress_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Training Progress"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso de entreno"
+          }
+        }
+      }
+    },
+    "intent_start_free_workout_description" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens Reps and prepares a free workout."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Reps y prepara un entreno libre."
+          }
+        }
+      }
+    },
+    "intent_start_free_workout_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Free Workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empezar entreno libre"
+          }
+        }
+      }
+    },
+    "intent_start_recommended_workout_description" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Reps and start the workout selected for today."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Reps y empieza el entreno seleccionado para hoy."
+          }
+        }
+      }
+    },
+    "intent_start_recommended_workout_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Recommended Workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empezar entreno recomendado"
+          }
+        }
+      }
+    },
     "intent_stop_workout_desc" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -43203,6 +43137,108 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Detener entreno"
+          }
+        }
+      }
+    },
+    "intent_streak_full_plural_format" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have a %d-day streak. Keep it up!"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Llevas %d días de racha. ¡Sigue así!"
+          }
+        }
+      }
+    },
+    "intent_streak_full_singular" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have a 1-day streak. Keep it up!"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Llevas 1 día de racha. ¡Sigue así!"
+          }
+        }
+      }
+    },
+    "intent_streak_none" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You don't have an active streak yet. Today is a great day to train!"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no tienes racha activa. ¡Hoy es buen día para entrenar!"
+          }
+        }
+      }
+    },
+    "intent_streak_status_description" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tells you how many days your training streak is."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dice cuántos días llevas de racha de entrenos."
+          }
+        }
+      }
+    },
+    "intent_streak_status_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check Streak"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consultar racha"
+          }
+        }
+      }
+    },
+    "intent_streak_supporting_format" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak: %d"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Racha: %d"
           }
         }
       }
@@ -49427,6 +49463,23 @@
         }
       }
     },
+    "more" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más"
+          }
+        }
+      }
+    },
     "more_exercises_suffix" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -52441,6 +52494,40 @@
         }
       }
     },
+    "notif_complete_import_body_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" came in from Apple Health without sets or reps. Add them to see your real stats."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" llegó desde Apple Salud sin series ni repeticiones. Añádelas para ver tus estadísticas reales."
+          }
+        }
+      }
+    },
+    "notif_complete_import_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Complete your imported workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa tu entrenamiento importado"
+          }
+        }
+      }
+    },
     "notif_daily_summary_body" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -52505,40 +52592,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recuperación sugerida"
-          }
-        }
-      }
-    },
-    "notif_complete_import_body_format" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\"%@\" came in from Apple Health without sets or reps. Add them to see your real stats."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\"%@\" llegó desde Apple Salud sin series ni repeticiones. Añádelas para ver tus estadísticas reales."
-          }
-        }
-      }
-    },
-    "notif_complete_import_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Complete your imported workout"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completa tu entrenamiento importado"
           }
         }
       }
@@ -53507,6 +53560,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Olímpica"
+          }
+        }
+      }
+    },
+    "on_this_page" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On This Page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En esta pantalla"
           }
         }
       }
@@ -61255,6 +61325,176 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Porcentaje"
+          }
+        }
+      }
+    },
+    "possible_activity_distance" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distance"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distancia"
+          }
+        }
+      }
+    },
+    "possible_activity_duration" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimated time"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiempo estimado"
+          }
+        }
+      }
+    },
+    "possible_activity_energy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active energy"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Energía activa"
+          }
+        }
+      }
+    },
+    "possible_activity_estimates_note" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent HealthKit signals; values are estimates and may arrive with a delay."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Señales recientes de HealthKit; los valores son estimados y pueden llegar con retraso."
+          }
+        }
+      }
+    },
+    "possible_activity_heart_rate" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent heart rate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulso reciente"
+          }
+        }
+      }
+    },
+    "possible_activity_import_notice" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StreakReps can't access another app's live session. If it is saved to Apple Health, its final data will be imported automatically when the workout ends."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "StreakReps no puede acceder a la sesión en directo de otra app. Si se guarda en Apple Salud, los datos finales se importarán automáticamente al terminar."
+          }
+        }
+      }
+    },
+    "possible_activity_question" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you recording a workout in Apple Fitness or another app?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Estás registrando un entreno en Apple Fitness o en otra app?"
+          }
+        }
+      }
+    },
+    "possible_activity_section_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activity detected"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actividad detectada"
+          }
+        }
+      }
+    },
+    "possible_activity_source_format" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent signals identified as coming from %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Señales recientes identificadas como procedentes de %@."
+          }
+        }
+      }
+    },
+    "possible_activity_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Possible activity in progress"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posible actividad en curso"
           }
         }
       }
@@ -69438,6 +69678,7 @@
       }
     },
     "route_paused" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -71708,6 +71949,9 @@
         }
       }
     },
+    "Serie" : {
+
+    },
     "series" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -71942,6 +72186,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "session_count"
+          }
+        }
+      }
+    },
+    "session_filter_with_session" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With session"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con sesión"
+          }
+        }
+      }
+    },
+    "session_filter_without_session" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without session"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin sesión"
           }
         }
       }
@@ -75459,6 +75737,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Acciones de moderación"
+          }
+        }
+      }
+    },
+    "social_moderator_ban_user" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ban user"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banear usuario"
+          }
+        }
+      }
+    },
+    "social_moderator_delete_comment" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete comment (moderator)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar comentario (moderador)"
+          }
+        }
+      }
+    },
+    "social_moderator_delete_post" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete post (moderator)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar publicacion (moderador)"
           }
         }
       }
@@ -79619,6 +79948,23 @@
         }
       }
     },
+    "tap_start_to_log_sets" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap Start to log sets"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa Empezar para registrar series"
+          }
+        }
+      }
+    },
     "target" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -80463,7 +80809,6 @@
       }
     },
     "Time" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -82293,6 +82638,7 @@
       }
     },
     "treadmill_paused" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -84422,6 +84768,210 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "visual"
+          }
+        }
+      }
+    },
+    "vitalspath_promo_accessibility" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open VitalsPath, supplement and family health tracking"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir VitalsPath, registro de suplementos y salud familiar"
+          }
+        }
+      }
+    },
+    "vitalspath_promo_close" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Promotion display options"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opciones de visualización de la promoción"
+          }
+        }
+      }
+    },
+    "vitalspath_promo_close_message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As a Premium member, you can hide this recommendation for now or permanently."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como miembro Premium, puedes ocultar esta recomendación ahora o permanentemente."
+          }
+        }
+      }
+    },
+    "vitalspath_promo_close_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide VitalsPath recommendation?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Ocultar la recomendación de VitalsPath?"
+          }
+        }
+      }
+    },
+    "vitalspath_promo_eyebrow" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended app"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App recomendada"
+          }
+        }
+      }
+    },
+    "vitalspath_promo_hide_forever" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't show again"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No volver a mostrar"
+          }
+        }
+      }
+    },
+    "vitalspath_promo_hide_now" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide for now"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar por ahora"
+          }
+        }
+      }
+    },
+    "vitalspath_promo_message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track sports supplements and take care of your health."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra tus suplementos deportivos y cuida tu salud."
+          }
+        }
+      }
+    },
+    "vitalspath_promo_move" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move recommendation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mover recomendación"
+          }
+        }
+      }
+    },
+    "vitalspath_promo_move_hint" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to reposition it anywhere on the screen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrastra para reubicarla en cualquier parte de la pantalla."
+          }
+        }
+      }
+    },
+    "vitalspath_promo_open_hint" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the app if installed, or its App Store page."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre la app si está instalada o su ficha en App Store."
+          }
+        }
+      }
+    },
+    "vitalspath_promo_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Complete your routine with VitalsPath"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa tu rutina con VitalsPath"
           }
         }
       }
@@ -88640,86 +89190,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zottman Curl"
-          }
-        }
-      }
-    },
-    "edit_layout" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Layout"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Editar diseño"
-          }
-        }
-      }
-    },
-    "on_this_page" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On This Page"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En esta pantalla"
-          }
-        }
-      }
-    },
-    "more" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "More"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Más"
-          }
-        }
-      }
-    },
-    "category_filters" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Category filters"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filtros de categoría"
-          }
-        }
-      }
-    },
-    "daily_greeting" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Greeting & summary"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saludo y resumen"
           }
         }
       }

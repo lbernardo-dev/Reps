@@ -87,7 +87,9 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
             try await ApplicationMusicPlayer.shared.skipToNextEntry()
             updateNowPlaying()
         } catch {
+            #if DEBUG
             print("Error skipping forward: \(error)")
+            #endif
         }
     }
 
@@ -96,7 +98,9 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
             try await ApplicationMusicPlayer.shared.skipToPreviousEntry()
             updateNowPlaying()
         } catch {
+            #if DEBUG
             print("Error skipping backward: \(error)")
+            #endif
         }
     }
 
@@ -128,7 +132,9 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
         } catch AppleMusicPlaybackError.subscriptionRequired {
             message = localizedString("music_subscription_needed")
         } catch {
+            #if DEBUG
             print("Apple Music playback failed: \(error)")
+            #endif
             message = localizedString("apple_music_playlist_failed")
         }
     }
@@ -143,7 +149,9 @@ final class WorkoutAppleMusicPlayer: ObservableObject {
             message = localizedString("music_subscription_needed")
             throw AppleMusicPlaybackError.subscriptionRequired
         } catch {
+            #if DEBUG
             print("Apple Music subscription check failed, continuing to playback attempt: \(error)")
+            #endif
         }
     }
 

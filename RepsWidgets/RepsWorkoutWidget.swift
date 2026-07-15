@@ -47,15 +47,24 @@ struct RepsWorkoutWidget: Widget {
 
 extension View {
     func repsWidgetBackground(_ color: WidgetColor) -> some View {
-        ZStack {
+        let gradientFill = LinearGradient(
+            colors: [
+                color.widgetBackgroundFill,
+                color.widgetBackgroundFill.opacity(0.88),
+                Color.black
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        return ZStack {
             ContainerRelativeShape()
-                .fill(color.widgetBackgroundFill)
+                .fill(gradientFill)
             self
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .containerBackground(for: .widget) {
             ContainerRelativeShape()
-                .fill(color.widgetBackgroundFill)
+                .fill(gradientFill)
         }
     }
 }
@@ -80,7 +89,10 @@ private struct RepsWorkoutWidgetView: View {
                 if entry.snapshot.hasActiveWorkout,
                    entry.snapshot.isRouteWorkout {
                     Gauge(value: min(max((entry.snapshot.routeDistanceKm ?? 0) / 5.0, 0), 1)) {
-                        Image(systemName: entry.snapshot.stateSystemImage)
+                        WidgetWorkoutStatusSymbol(
+                            systemName: entry.snapshot.stateSystemImage,
+                            snapshot: entry.snapshot
+                        )
                     } currentValueLabel: {
                         Text(routeDistanceText(compact: true))
                             .font(.system(size: 9, weight: .bold, design: .rounded))
@@ -90,7 +102,7 @@ private struct RepsWorkoutWidgetView: View {
                 } else if entry.snapshot.hasActiveWorkout,
                    let restEndDate = entry.snapshot.restEndDate {
                     Gauge(value: entry.snapshot.restProgress) {
-                        Image(systemName: "hourglass")
+                        WidgetWorkoutStatusSymbol(systemName: "hourglass", snapshot: entry.snapshot)
                     } currentValueLabel: {
                         Text(restEndDate, style: .timer)
                             .font(.system(size: 9, weight: .bold, design: .rounded))
@@ -99,7 +111,10 @@ private struct RepsWorkoutWidgetView: View {
                     .gaugeStyle(.accessoryCircular)
                 } else {
                     Gauge(value: entry.snapshot.progress) {
-                        Image(systemName: entry.snapshot.hasActiveWorkout ? "figure.strengthtraining.traditional" : "dumbbell")
+                        WidgetWorkoutStatusSymbol(
+                            systemName: entry.snapshot.hasActiveWorkout ? "figure.strengthtraining.traditional" : "dumbbell",
+                            snapshot: entry.snapshot
+                        )
                     } currentValueLabel: {
                         Text("\(entry.snapshot.completedSets)")
                     }
@@ -111,7 +126,14 @@ private struct RepsWorkoutWidgetView: View {
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
                 if entry.snapshot.hasActiveWorkout {
-                    Label(entry.snapshot.stateLabel, systemImage: entry.snapshot.stateSystemImage)
+                    Label {
+                        Text(entry.snapshot.stateLabel)
+                    } icon: {
+                        WidgetWorkoutStatusSymbol(
+                            systemName: entry.snapshot.stateSystemImage,
+                            snapshot: entry.snapshot
+                        )
+                    }
                         .font(.caption.weight(.bold))
                         .foregroundStyle(entry.snapshot.isPaused ? .orange : .primary)
                         .lineLimit(1)
@@ -204,7 +226,18 @@ private struct RepsWorkoutWidgetView: View {
     }
 }
 
-private extension SharedWorkoutSnapshot {
+extension SharedWorkoutSnapshot {
+    var workoutAnimationTrigger: String {
+        [
+            hasActiveWorkout ? "active" : "inactive",
+            isPaused ? "paused" : "running",
+            restEndDate.map { String($0.timeIntervalSinceReferenceDate) } ?? "no-rest",
+            String(completedSets),
+            String(exerciseIndex ?? -1),
+            exerciseName ?? workoutTitle
+        ].joined(separator: "|")
+    }
+
     var stateLabel: LocalizedStringKey {
         if isRouteWorkout {
             if isPaused { return "PAUSA" }
@@ -246,6 +279,34 @@ private extension SharedWorkoutSnapshot {
     }
 }
 
+private struct WidgetWorkoutStatusSymbol: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+
+    let systemName: String
+    let snapshot: SharedWorkoutSnapshot
+
+    private var animationsEnabled: Bool {
+        !reduceMotion && !isLuminanceReduced
+    }
+
+    private var animationTrigger: String {
+        "\(snapshot.workoutAnimationTrigger)|illuminated:\(animationsEnabled)"
+    }
+
+    var body: some View {
+        Image(systemName: systemName)
+            .contentTransition(.symbolEffect(.replace.downUp))
+            .symbolEffect(
+                .wiggle.forward.byLayer,
+                options: .nonRepeating,
+                value: animationTrigger
+            )
+            .symbolEffectsRemoved(!animationsEnabled)
+            .transition(.symbolEffect(.appear.byLayer))
+    }
+}
+
 // MARK: - Active Workout View
 
 private struct ActiveWorkoutView: View {
@@ -264,7 +325,10 @@ private struct ActiveWorkoutView: View {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 4 : 8) {
             // Header
             HStack(alignment: .center) {
-                Image(systemName: entry.snapshot.stateSystemImage)
+                WidgetWorkoutStatusSymbol(
+                    systemName: entry.snapshot.stateSystemImage,
+                    snapshot: entry.snapshot
+                )
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.tint)
                 Text(entry.snapshot.stateLabel)
@@ -399,7 +463,10 @@ private struct ActiveWorkoutView: View {
     private func routeActiveBody() -> some View {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 5 : 8) {
             HStack(alignment: .center) {
-                Image(systemName: entry.snapshot.stateSystemImage)
+                WidgetWorkoutStatusSymbol(
+                    systemName: entry.snapshot.stateSystemImage,
+                    snapshot: entry.snapshot
+                )
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.tint)
                 Text(entry.snapshot.stateLabel)
@@ -451,7 +518,10 @@ private struct ActiveWorkoutView: View {
     private func mediumActiveBody(isResting: Bool) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .center, spacing: 8) {
-                Image(systemName: entry.snapshot.stateSystemImage)
+                WidgetWorkoutStatusSymbol(
+                    systemName: entry.snapshot.stateSystemImage,
+                    snapshot: entry.snapshot
+                )
                     .font(.system(size: 15, weight: .black))
                     .foregroundStyle(theme.tint)
                     .frame(width: 24, height: 24)
