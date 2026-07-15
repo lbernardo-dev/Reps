@@ -74,9 +74,22 @@ struct MainTabView: View {
   @State private var presentedQuickAction: QuickAction?
   @State private var pendingWorkoutSummarySession: WorkoutSession?
   @State private var showCalendarSheet = false
-  @State private var evaluatedPromotionTabs: Set<AppTab> = []
   @State private var activePromotion: VitalsPathPromotion?
+  @State private var promotionRemainingSeconds: Int = VitalsPathPromotionPolicy.visibleDuration
   @AppStorage("vitalspathPromotionPermanentlyHidden") private var isVitalsPathPromotionPermanentlyHidden = false
+  @AppStorage("vitalspathPromotionOffsetX") private var vitalsPathPromotionOffsetXStorage: Double = 0
+  @AppStorage("vitalspathPromotionOffsetY") private var vitalsPathPromotionOffsetYStorage: Double = 0
+  @State private var vitalsPathPromotionDragTranslation: CGSize = .zero
+
+  private var vitalsPathPromotionOffsetX: CGFloat {
+    get { CGFloat(vitalsPathPromotionOffsetXStorage) }
+    nonmutating set { vitalsPathPromotionOffsetXStorage = Double(newValue) }
+  }
+
+  private var vitalsPathPromotionOffsetY: CGFloat {
+    get { CGFloat(vitalsPathPromotionOffsetYStorage) }
+    nonmutating set { vitalsPathPromotionOffsetYStorage = Double(newValue) }
+  }
 
   init() {
     _selectedTab = State(initialValue: Self.initialTabFromLaunchArguments())
@@ -179,8 +192,8 @@ struct MainTabView: View {
         select(tab)
         store.pendingMainTabSelection = nil
       }
-      .task(id: selectedTab) {
-        await evaluateVitalsPathPromotion(for: selectedTab)
+      .task {
+        await runVitalsPathPromotionScheduler()
       }
   }
 
@@ -196,10 +209,20 @@ struct MainTabView: View {
        !chromeState.isTabBarHidden,
        store.finishedSessionForSummary == nil {
       GeometryReader { proxy in
+        let maxDX = max(0, proxy.size.width / 2 - 48)
+        let maxDY = max(0, proxy.size.height / 2 - 72)
+
         VitalsPathPromotionBanner(
           isPremium: store.hasProAccess,
+          remainingSeconds: promotionRemainingSeconds,
           dismissCurrent: dismissCurrentPromotion,
-          dismissPermanently: dismissPromotionPermanently
+          dismissPermanently: dismissPromotionPermanently,
+          onDragChanged: { translation in
+            vitalsPathPromotionDragTranslation = translation
+          },
+          onDragEnded: { translation in
+            commitVitalsPathPromotionDrag(translation, maxDX: maxDX, maxDY: maxDY)
+          }
         )
         .padding(.horizontal, PulseTheme.screenHorizontalPadding)
         .padding(.top, activePromotion.placement == .top ? proxy.safeAreaInsets.top + 56 : 0)
@@ -208,6 +231,10 @@ struct MainTabView: View {
           maxWidth: .infinity,
           maxHeight: .infinity,
           alignment: activePromotion.placement.alignment
+        )
+        .offset(
+          x: clamp(vitalsPathPromotionOffsetX + vitalsPathPromotionDragTranslation.width, to: -maxDX...maxDX),
+          y: clamp(vitalsPathPromotionOffsetY + vitalsPathPromotionDragTranslation.height, to: -maxDY...maxDY)
         )
         .transition(
           .move(edge: activePromotion.placement.transitionEdge)
@@ -218,46 +245,82 @@ struct MainTabView: View {
     }
   }
 
-  private func evaluateVitalsPathPromotion(for tab: AppTab) async {
-    guard !isVitalsPathPromotionPermanentlyHidden,
-          !evaluatedPromotionTabs.contains(tab) else { return }
+  private func commitVitalsPathPromotionDrag(_ translation: CGSize, maxDX: CGFloat, maxDY: CGFloat) {
+    vitalsPathPromotionOffsetX = clamp(vitalsPathPromotionOffsetX + translation.width, to: -maxDX...maxDX)
+    vitalsPathPromotionOffsetY = clamp(vitalsPathPromotionOffsetY + translation.height, to: -maxDY...maxDY)
+    vitalsPathPromotionDragTranslation = .zero
+    TelemetryService.shared.breadcrumb("vitalspath_promo.repositioned")
+  }
 
-    do {
-      try await Task.sleep(for: .seconds(1.2))
-    } catch {
-      return
-    }
+  private func clamp(_ value: CGFloat, to range: ClosedRange<CGFloat>) -> CGFloat {
+    min(max(value, range.lowerBound), range.upperBound)
+  }
 
-    guard selectedTab == tab else { return }
-    evaluatedPromotionTabs.insert(tab)
-
-    let promotion: VitalsPathPromotion?
+  /// Runs for the lifetime of the tab view: periodically rolls whether to show the
+  /// promotion, displays it for `visibleDuration` seconds, then waits a fresh random
+  /// interval before rolling again — repeating for as long as the app is in use.
+  private func runVitalsPathPromotionScheduler() async {
     #if DEBUG
       if ProcessInfo.processInfo.arguments.contains("-showVitalsPathPromotion") {
-        promotion = VitalsPathPromotion(tab: tab, placement: .top)
-      } else {
-        promotion = VitalsPathPromotionPolicy.promotion(
-          for: tab,
-          appearanceRoll: .random(in: 0..<1),
-          placementRoll: .random(in: 0..<1)
+        await presentVitalsPathPromotion(
+          VitalsPathPromotion(tab: selectedTab, placement: .top)
         )
       }
-    #else
-      promotion = VitalsPathPromotionPolicy.promotion(
-        for: tab,
-        appearanceRoll: .random(in: 0..<1),
-        placementRoll: .random(in: 0..<1)
-      )
     #endif
 
-    guard let promotion else { return }
+    while !Task.isCancelled {
+      let delay = Double.random(
+        in: VitalsPathPromotionPolicy.minimumInterval...VitalsPathPromotionPolicy.maximumInterval
+      )
+      do {
+        try await Task.sleep(for: .seconds(delay))
+      } catch {
+        return
+      }
+
+      guard !isVitalsPathPromotionPermanentlyHidden,
+            activePromotion == nil,
+            !isQuickMenuExpanded,
+            presentedQuickAction == nil,
+            !chromeState.isTabBarHidden,
+            store.finishedSessionForSummary == nil
+      else { continue }
+
+      guard let promotion = VitalsPathPromotionPolicy.promotion(
+        for: selectedTab,
+        appearanceRoll: .random(in: 0..<1),
+        placementRoll: .random(in: 0..<1)
+      ) else { continue }
+
+      await presentVitalsPathPromotion(promotion)
+    }
+  }
+
+  private func presentVitalsPathPromotion(_ promotion: VitalsPathPromotion) async {
     withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
       activePromotion = promotion
     }
     TelemetryService.shared.breadcrumb(
       "vitalspath_promo.impression",
-      ["tab": tab.telemetryName]
+      ["tab": promotion.tab.telemetryName]
     )
+
+    promotionRemainingSeconds = VitalsPathPromotionPolicy.visibleDuration
+    while promotionRemainingSeconds > 0 {
+      do {
+        try await Task.sleep(for: .seconds(1))
+      } catch {
+        return
+      }
+      guard activePromotion == promotion else { return }
+      promotionRemainingSeconds -= 1
+    }
+
+    guard activePromotion == promotion else { return }
+    withAnimation(.easeOut(duration: 0.2)) {
+      activePromotion = nil
+    }
+    TelemetryService.shared.breadcrumb("vitalspath_promo.auto_hide")
   }
 
   private func dismissCurrentPromotion() {
@@ -450,33 +513,7 @@ struct MainTabView: View {
 
   @ViewBuilder
   private var profileTabLabel: some View {
-    if let data = store.userProfile.avatarImageData, let avatar = circularTabAvatar(from: data) {
-      Image(uiImage: avatar)
-        .renderingMode(.original)
-        .accessibilityLabel(Text(verbatim: AppTab.profile.title))
-    } else {
-      AppTab.profile.label
-    }
-  }
-
-  private func circularTabAvatar(from data: Data, diameter: CGFloat = 44) -> UIImage? {
-    guard let source = UIImage(data: data) else { return nil }
-    let format = UIGraphicsImageRendererFormat()
-    format.scale = UITraitCollection.current.displayScale
-    format.opaque = false
-    let size = CGSize(width: diameter, height: diameter)
-    let rendered = UIGraphicsImageRenderer(size: size, format: format).image { _ in
-      UIBezierPath(ovalIn: CGRect(origin: .zero, size: size)).addClip()
-      let fillScale = max(size.width / source.size.width, size.height / source.size.height)
-      let scaledSize = CGSize(
-        width: source.size.width * fillScale, height: source.size.height * fillScale)
-      let origin = CGPoint(
-        x: (size.width - scaledSize.width) / 2, y: (size.height - scaledSize.height) / 2)
-      source.draw(in: CGRect(origin: origin, size: scaledSize))
-    }
-    // Tab bar icons render as template (monochrome) images by default; this
-    // forces the actual photo colors to survive the tab bar's snapshotting.
-    return rendered.withRenderingMode(.alwaysOriginal)
+    ProfileTabAvatarLabel(data: store.userProfile.avatarImageData)
   }
 
   // MARK: Helpers
@@ -576,6 +613,65 @@ struct MainTabView: View {
       }
     }
     store.consumeNotificationDestination()
+  }
+}
+
+private struct ProfileTabAvatarLabel: View {
+  private struct Signature: Hashable {
+    let count: Int
+    let prefix: UInt64
+    let suffix: UInt64
+  }
+
+  let data: Data?
+  @State private var renderedAvatar: UIImage?
+
+  var body: some View {
+    Group {
+      if let renderedAvatar {
+        Image(uiImage: renderedAvatar)
+          .renderingMode(.original)
+          .accessibilityLabel(Text(verbatim: AppTab.profile.title))
+      } else {
+        AppTab.profile.label
+      }
+    }
+    .task(id: signature) {
+      guard let data else {
+        renderedAvatar = nil
+        return
+      }
+      renderedAvatar = Self.circularTabAvatar(from: data)
+    }
+  }
+
+  private var signature: Signature? {
+    guard let data else { return nil }
+    return Signature(
+      count: data.count,
+      prefix: data.prefix(8).reduce(0) { ($0 << 8) | UInt64($1) },
+      suffix: data.suffix(8).reduce(0) { ($0 << 8) | UInt64($1) }
+    )
+  }
+
+  private static func circularTabAvatar(from data: Data, diameter: CGFloat = 44) -> UIImage? {
+    guard let source = UIImage(data: data) else { return nil }
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = UITraitCollection.current.displayScale
+    format.opaque = false
+    let size = CGSize(width: diameter, height: diameter)
+    let rendered = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+      UIBezierPath(ovalIn: CGRect(origin: .zero, size: size)).addClip()
+      let fillScale = max(size.width / source.size.width, size.height / source.size.height)
+      let scaledSize = CGSize(
+        width: source.size.width * fillScale, height: source.size.height * fillScale)
+      let origin = CGPoint(
+        x: (size.width - scaledSize.width) / 2,
+        y: (size.height - scaledSize.height) / 2
+      )
+      source.draw(in: CGRect(origin: origin, size: scaledSize))
+    }
+    return rendered.withRenderingMode(.alwaysOriginal)
   }
 }
 

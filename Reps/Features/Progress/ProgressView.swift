@@ -2,6 +2,39 @@ import Charts
 import MuscleMap
 import SwiftUI
 
+private struct ProgressDashboardRenderInput: @unchecked Sendable {
+  let key: ProgressDashboardRenderModel.Key
+  let sessions: [WorkoutSession]
+  let cardioLogs: [CardioLog]
+  let healthMetrics: [DailyHealthMetric]
+  let todayHealthMetric: DailyHealthMetric?
+  let bodyMetrics: [BodyMetric]
+  let exercises: [Exercise]
+  let goals: [Goal]
+  let activePlan: WorkoutPlan
+}
+
+private actor ProgressDashboardRenderWorker {
+  static let shared = ProgressDashboardRenderWorker()
+
+  func build(_ input: ProgressDashboardRenderInput) throws -> ProgressDashboardRenderModel {
+    try Task.checkCancellation()
+    let model = ProgressDashboardRenderModel.build(
+      key: input.key,
+      sessions: input.sessions,
+      cardioLogs: input.cardioLogs,
+      healthMetrics: input.healthMetrics,
+      todayHealthMetric: input.todayHealthMetric,
+      bodyMetrics: input.bodyMetrics,
+      exercises: input.exercises,
+      goals: input.goals,
+      activePlan: input.activePlan
+    )
+    try Task.checkCancellation()
+    return model
+  }
+}
+
 // MARK: - Layout customization
 
 /// The optional, reorderable/hideable cards on Progress, including the overview
@@ -118,7 +151,7 @@ struct ProgressDashboardView: View {
         metricDetailScreen(for: route)
       }
       .task(id: renderModelKey) {
-        rebuildRenderModel()
+        await rebuildRenderModel(for: renderModelKey)
       }
     }
   }
@@ -984,9 +1017,11 @@ struct ProgressDashboardView: View {
     )
   }
 
-  private func rebuildRenderModel() {
-    renderModel = ProgressDashboardRenderModel.build(
-      key: renderModelKey,
+  private func rebuildRenderModel(for key: ProgressDashboardRenderModel.Key) async {
+    // Capture immutable value snapshots on MainActor, then let the worker do
+    // the collection-heavy analytics without starving SwiftUI's render loop.
+    let input = ProgressDashboardRenderInput(
+      key: key,
       sessions: store.workoutSessions,
       cardioLogs: store.combinedCardioLogs,
       healthMetrics: store.health.latestDailyMetrics,
@@ -996,6 +1031,18 @@ struct ProgressDashboardView: View {
       goals: store.goals,
       activePlan: store.activePlan
     )
+
+    do {
+      let model = try await ProgressDashboardRenderWorker.shared.build(input)
+      try Task.checkCancellation()
+      guard model.key == renderModelKey else { return }
+      renderModel = model
+    } catch is CancellationError {
+      // SwiftUI cancels the previous task when the selected range or source
+      // signature changes. Never let an obsolete result replace newer data.
+    } catch {
+      TelemetryService.shared.record(error, context: "progress.render_model")
+    }
   }
 
   private var weekTotalMinutes: Int {
@@ -1324,7 +1371,7 @@ private extension CardioLog.ActivityType {
   }
 }
 
-struct ProgressDashboardRenderModel {
+struct ProgressDashboardRenderModel: @unchecked Sendable {
   struct Key: Equatable {
     let range: ProgressRange
     let sessionCount: Int
@@ -1545,11 +1592,18 @@ struct ProgressDashboardRenderModel {
       calendar: calendar
     )
 
+    let completedExerciseLogs = sessions.flatMap(FitnessMetrics.completedExerciseLogs(in:))
+    let loggedExerciseIDs = Set(completedExerciseLogs.map(\.exercise.id))
+    let loggedExerciseNames = Set(completedExerciseLogs.map(\.exercise.name))
+    let exercisesWithHistory = exercises.filter { exercise in
+      loggedExerciseIDs.contains(exercise.id) || loggedExerciseNames.contains(exercise.name)
+    }
+
     let workload = AnalyticsEngine.workloadSummary(sessions: sessions, bodyMetrics: bodyMetrics)
     let competitiveSummary = AnalyticsEngine.competitiveSummary(
       sessions: sessions,
       activePlan: activePlan,
-      exercises: exercises,
+      exercises: exercisesWithHistory,
       since: rangeStart
     )
     let effectiveSetCount = filteredSessions.reduce(0) { $0 + AnalyticsEngine.effectiveSets(in: $1).count }
@@ -1561,10 +1615,6 @@ struct ProgressDashboardRenderModel {
     let intensityDistribution = AnalyticsEngine.intensityDistribution(for: filteredSessions)
     let muscleVolumePoints = FitnessMetrics.muscleVolumePoints(for: sessions, since: rangeStart)
     let insightCards = FitnessMetrics.insightCards(for: sessions, goals: goals, since: rangeStart)
-    let exercisesWithHistory = exercises.filter { exercise in
-      !FitnessMetrics.progressPoints(for: exercise, in: sessions).isEmpty
-    }
-
     let weekSessionsByDay = Dictionary(grouping: weekSessions) { calendar.startOfDay(for: $0.date) }
     let weekHealthByDay = Dictionary(grouping: weekHealthMetrics) { calendar.startOfDay(for: $0.date) }
     let bodyFusionChartPoints = (0..<7).compactMap { offset -> BodyFusionPoint? in

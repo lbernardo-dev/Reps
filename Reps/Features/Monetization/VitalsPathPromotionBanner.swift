@@ -26,6 +26,9 @@ struct VitalsPathPromotion: Equatable {
 
 enum VitalsPathPromotionPolicy {
     static let appearanceProbability = 0.38
+    static let visibleDuration = 30
+    static let minimumInterval: TimeInterval = 90
+    static let maximumInterval: TimeInterval = 240
 
     static func promotion(
         for tab: AppTab,
@@ -47,8 +50,11 @@ struct VitalsPathPromotionBanner: View {
     @Environment(\.openURL) private var openURL
 
     let isPremium: Bool
+    let remainingSeconds: Int
     let dismissCurrent: () -> Void
     let dismissPermanently: () -> Void
+    let onDragChanged: (CGSize) -> Void
+    let onDragEnded: (CGSize) -> Void
 
     @State private var showsDismissOptions = false
 
@@ -57,6 +63,8 @@ struct VitalsPathPromotionBanner: View {
 
     var body: some View {
         HStack(spacing: 10) {
+            dragHandle
+
             Button(action: openVitalsPath) {
                 HStack(spacing: 11) {
                     VitalsPathMark()
@@ -71,12 +79,14 @@ struct VitalsPathPromotionBanner: View {
                         Text(verbatim: localizedString("vitalspath_promo_title"))
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(.primary)
-                            .lineLimit(1)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Text(verbatim: localizedString("vitalspath_promo_message"))
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -117,6 +127,17 @@ struct VitalsPathPromotionBanner: View {
         }
         .compositingGroup()
         .clipShape(.rect(cornerRadius: PulseTheme.compactRadius))
+        .overlay(alignment: .topTrailing) {
+            Text(verbatim: "\(remainingSeconds)s")
+                .font(.system(size: 9, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(PulseTheme.secondaryText)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(PulseTheme.card.opacity(0.9), in: Capsule())
+                .padding(5)
+                .accessibilityHidden(true)
+        }
         .confirmationDialog(
             localizedString("vitalspath_promo_close_title"),
             isPresented: $showsDismissOptions,
@@ -130,6 +151,29 @@ struct VitalsPathPromotionBanner: View {
         }
     }
 
+    private var dragHandle: some View {
+        Image(systemName: "line.3.horizontal")
+            .font(.caption.weight(.bold))
+            .foregroundStyle(PulseTheme.secondaryText)
+            .frame(width: 22, height: 44)
+            .contentShape(.rect)
+            .gesture(
+                DragGesture(minimumDistance: 2, coordinateSpace: .global)
+                    .onChanged { value in onDragChanged(value.translation) }
+                    .onEnded { value in onDragEnded(value.translation) }
+            )
+            .accessibilityLabel(localizedString("vitalspath_promo_move"))
+            .accessibilityHint(localizedString("vitalspath_promo_move_hint"))
+            .accessibilityAdjustableAction { direction in
+                let step: CGFloat = 24
+                switch direction {
+                case .increment: onDragEnded(CGSize(width: 0, height: -step))
+                case .decrement: onDragEnded(CGSize(width: 0, height: step))
+                @unknown default: break
+                }
+            }
+    }
+
     private func openVitalsPath() {
         TelemetryService.shared.breadcrumb("vitalspath_promo.open")
         openURL(deepLink) { accepted in
@@ -141,25 +185,15 @@ struct VitalsPathPromotionBanner: View {
 
 private struct VitalsPathMark: View {
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.black, Color(red: 0, green: 0.01, blue: 0.18)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-
-            Image(systemName: "heart.fill")
-                .font(.system(size: 25, weight: .bold))
-                .foregroundStyle(PulseTheme.semanticHealth)
-
-            Image(systemName: "waveform.path.ecg")
-                .font(.system(size: 20, weight: .black))
-                .foregroundStyle(.white)
-        }
-        .frame(width: 48, height: 48)
-        .accessibilityHidden(true)
+        Image("VitalsPathAppIcon")
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: 48, height: 48)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+            }
+            .accessibilityHidden(true)
     }
 }

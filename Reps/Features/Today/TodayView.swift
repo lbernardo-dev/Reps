@@ -1721,7 +1721,7 @@ private struct TodayViewContent: View {
             .padding(.top, 8)
 
             ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 12) {
+            LazyHStack(alignment: .top, spacing: 12) {
                 NavigationLink(value: TodayRoute.trainingBattery) {
                     WellnessWidget(
                         title: "battery_2",
@@ -1837,6 +1837,7 @@ private struct TodayViewContent: View {
             .scrollTargetLayout()
             .padding(.vertical, 2)
             }
+            .frame(height: 160)
             .scrollTargetBehavior(.viewAligned)
         }
     }
@@ -3125,7 +3126,7 @@ private struct WellnessWidget: View {
     private var hasData: Bool { value != "--" }
 
     var body: some View {
-        DomainHeroCard(domain: domain, minHeight: 156) {
+        DomainHeroCard(domain: domain, minHeight: 156, showsGlow: false) {
             ZStack(alignment: .bottomTrailing) {
                 if hasData {
                     WidgetVisualDecoration(domain: domain, valueString: value)
@@ -3143,7 +3144,6 @@ private struct WellnessWidget: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                             .lineLimit(2)
                             .minimumScaleFactor(0.82)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     Spacer(minLength: 2)
@@ -3159,7 +3159,6 @@ private struct WellnessWidget: View {
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(3)
                         .minimumScaleFactor(0.86)
-                        .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 0)
                 }

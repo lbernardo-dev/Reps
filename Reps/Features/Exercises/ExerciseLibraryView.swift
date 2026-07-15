@@ -3,6 +3,83 @@ import PhotosUI
 import MuscleMap
 import SwiftUI
 
+private struct ExerciseLibrarySearchInput: @unchecked Sendable {
+    let exercises: [Exercise]
+}
+
+private struct ExerciseLibraryFilterInput: @unchecked Sendable {
+    let exercises: [Exercise]
+    let state: ExerciseLibraryFilterState
+    let searchIndex: ExerciseLibrarySearchIndex
+}
+
+private struct ExerciseLibraryFilterOutput: @unchecked Sendable {
+    let exercises: [Exercise]
+}
+
+private actor ExerciseLibraryWorker {
+    static let shared = ExerciseLibraryWorker()
+
+    func makeSearchIndex(_ input: ExerciseLibrarySearchInput) -> ExerciseLibrarySearchIndex {
+        ExerciseLibrarySearchIndex(exercises: input.exercises)
+    }
+
+    func filter(_ input: ExerciseLibraryFilterInput) -> ExerciseLibraryFilterOutput {
+        let state = input.state
+        let normalizedQuery = ExerciseLibrarySearchIndex.normalized(state.searchText)
+        let availableEquipment = Set(state.availableEquipment.map(Self.normalizedEquipment))
+
+        let filtered = input.exercises.filter { exercise in
+            if state.selectedPath == .muscles, !state.selectedMuscleSegments.isEmpty {
+                guard !Set(MuscleLoadCalculator.segments(for: exercise))
+                    .isDisjoint(with: state.selectedMuscleSegments)
+                else { return false }
+            } else if state.selectedPath == .filters {
+                guard state.selectedMuscle == "All" || exercise.muscleGroup == state.selectedMuscle else {
+                    return false
+                }
+            }
+
+            guard state.selectedEquipment == "All" || exercise.equipment == state.selectedEquipment else {
+                return false
+            }
+            guard state.selectedType == nil || exercise.exerciseType == state.selectedType else { return false }
+            guard state.selectedDifficulty == nil || exercise.difficulty == state.selectedDifficulty else { return false }
+            guard state.selectedEnvironment == nil
+                    || exercise.environment == state.selectedEnvironment
+                    || exercise.environment == .both
+            else { return false }
+            guard state.selectedCategory.matches(exercise) else { return false }
+            guard !state.onlyAvailableEquipment
+                    || Self.matchesAvailableEquipment(exercise, availableEquipment: availableEquipment)
+            else { return false }
+            guard !normalizedQuery.isEmpty else { return true }
+            return input.searchIndex.matches(exercise, query: normalizedQuery)
+        }
+
+        return ExerciseLibraryFilterOutput(exercises: filtered)
+    }
+
+    private static func matchesAvailableEquipment(
+        _ exercise: Exercise,
+        availableEquipment: Set<String>
+    ) -> Bool {
+        guard !availableEquipment.isEmpty else { return true }
+        let required = exercise.requiredEquipment.isEmpty ? [exercise.equipment] : exercise.requiredEquipment
+        let normalizedRequired = Set(required.map(normalizedEquipment))
+        return normalizedRequired.contains("bodyweight")
+            || normalizedRequired.contains("body only")
+            || !normalizedRequired.isDisjoint(with: availableEquipment)
+            || availableEquipment.contains(normalizedEquipment(exercise.equipment))
+    }
+
+    private static func normalizedEquipment(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+    }
+}
+
 struct ExerciseLibraryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppStore.self) private var store
@@ -24,6 +101,7 @@ struct ExerciseLibraryView: View {
     @State private var showAddCustom = false
     @State private var showNotifications = false
     @State private var showEditLayout = false
+    @State private var isBodySelectorExpanded = false
     @State private var searchIndex = ExerciseLibrarySearchIndex.empty
     @State private var preparedFilteredExercises: [Exercise] = []
     @State private var isPreparingExerciseResults = false
@@ -50,7 +128,6 @@ struct ExerciseLibraryView: View {
             selectedEnvironment: selectedEnvironment,
             selectedCategory: selectedCategory,
             onlyAvailableEquipment: onlyAvailableEquipment,
-            exerciseIDs: store.exercises.map(\.id),
             availableEquipment: store.userProfile.availableEquipment
         )
     }
@@ -63,33 +140,6 @@ struct ExerciseLibraryView: View {
             return hasActiveFeatureFilter
         case .rehab:
             return false
-        }
-    }
-
-    private func makeFilteredExercises() -> [Exercise] {
-        let interval = PerformanceSignpost.begin(
-            "exerciseLibrary.filteredExercises",
-            "exercises=\(store.exercises.count) search=\(searchText.count)"
-        )
-        defer {
-            PerformanceSignpost.end("exerciseLibrary.filteredExercises", interval)
-        }
-
-        let normalizedQuery = ExerciseLibrarySearchIndex.normalized(searchText)
-        return store.exercises.filter { exercise in
-            if selectedPath == .muscles, !selectedMuscleSegments.isEmpty {
-                guard !Set(MuscleLoadCalculator.segments(for: exercise)).isDisjoint(with: selectedMuscleSegments) else { return false }
-            } else if selectedPath == .filters {
-                guard selectedMuscle == "All" || exercise.muscleGroup == selectedMuscle else { return false }
-            }
-            guard selectedEquipment == "All" || exercise.equipment == selectedEquipment else { return false }
-            guard selectedType == nil || exercise.exerciseType == selectedType else { return false }
-            guard selectedDifficulty == nil || exercise.difficulty == selectedDifficulty else { return false }
-            guard selectedEnvironment == nil || exercise.environment == selectedEnvironment || exercise.environment == .both else { return false }
-            guard selectedCategory.matches(exercise) else { return false }
-            guard !onlyAvailableEquipment || availableEquipmentMatches(exercise) else { return false }
-            guard !normalizedQuery.isEmpty else { return true }
-            return searchIndex.matches(exercise, query: normalizedQuery)
         }
     }
 
@@ -127,6 +177,12 @@ struct ExerciseLibraryView: View {
             }
         }
 
+        let input = ExerciseLibraryFilterInput(
+            exercises: store.exercises,
+            state: filterState,
+            searchIndex: searchIndex
+        )
+
         exerciseResultTask = Task { @MainActor in
             if showLoading {
                 try? await Task.sleep(for: .milliseconds(110))
@@ -135,11 +191,11 @@ struct ExerciseLibraryView: View {
             }
 
             guard !Task.isCancelled else { return }
-            let filtered = makeFilteredExercises()
+            let output = await ExerciseLibraryWorker.shared.filter(input)
             guard !Task.isCancelled else { return }
 
             withAnimation(.snappy(duration: 0.22)) {
-                preparedFilteredExercises = filtered
+                preparedFilteredExercises = output.exercises
                 isPreparingExerciseResults = false
                 hasPreparedExerciseResults = true
             }
@@ -358,6 +414,7 @@ struct ExerciseLibraryView: View {
                         MuscleCatalogPanel(
                             gender: store.userProfile.muscleMapGender,
                             selectedSegments: $selectedMuscleSegments,
+                            isBodySelectorExpanded: $isBodySelectorExpanded,
                             resultCount: preparedFilteredExercises.count,
                             isLoadingResults: isPreparingExerciseResults || !hasPreparedExerciseResults
                         )
@@ -408,11 +465,8 @@ struct ExerciseLibraryView: View {
                     store.userProfile.exercisesHiddenMuscleShortcutIDs = hiddenMuscleIDs
                 }
             }
-            .task(id: store.exercises.count) {
-                rebuildSearchIndex()
-            }
-            .onChange(of: store.exercises.map(\.id)) { _, _ in
-                rebuildSearchIndex()
+            .task(id: store.exercises.map(\.id)) {
+                await rebuildSearchIndex()
             }
             .onChange(of: filterState) { _, _ in
                 refreshPreparedExerciseResults()
@@ -489,9 +543,6 @@ struct ExerciseLibraryView: View {
             .sheet(isPresented: $showAddCustom) {
                 AddCustomExerciseView()
             }
-            .task {
-                refreshPreparedExerciseResults(showLoading: false)
-            }
             .onDisappear {
                 exerciseResultTask?.cancel()
             }
@@ -549,26 +600,6 @@ struct ExerciseLibraryView: View {
         showAddCustom = true
     }
 
-    private func availableEquipmentMatches(_ exercise: Exercise) -> Bool {
-        let equipment = Set(store.userProfile.availableEquipment.map(normalizedEquipment))
-        guard !equipment.isEmpty else {
-            return true
-        }
-
-        let required = exercise.requiredEquipment.isEmpty ? [exercise.equipment] : exercise.requiredEquipment
-        let normalizedRequired = Set(required.map(normalizedEquipment))
-        return normalizedRequired.contains("bodyweight")
-            || normalizedRequired.contains("body only")
-            || !normalizedRequired.isDisjoint(with: equipment)
-            || equipment.contains(normalizedEquipment(exercise.equipment))
-    }
-
-    private func normalizedEquipment(_ value: String) -> String {
-        value.trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-            .lowercased()
-    }
-
     private func displayName(forMuscle muscle: String) -> String {
         guard muscle != "All" else {
             return localizedString("all")
@@ -591,13 +622,17 @@ struct ExerciseLibraryView: View {
         selectedDifficulty?.localizedDisplayName ?? localizedString("any_difficulty")
     }
 
-    private func rebuildSearchIndex() {
-        searchIndex = ExerciseLibrarySearchIndex(exercises: store.exercises)
+    private func rebuildSearchIndex() async {
+        let input = ExerciseLibrarySearchInput(exercises: store.exercises)
+        let index = await ExerciseLibraryWorker.shared.makeSearchIndex(input)
+        guard !Task.isCancelled else { return }
+        searchIndex = index
+        refreshPreparedExerciseResults(showLoading: false)
     }
 
 }
 
-struct ExerciseLibrarySearchIndex {
+struct ExerciseLibrarySearchIndex: Sendable {
     private let entriesByID: [Exercise.ID: String]
 
     static let empty = ExerciseLibrarySearchIndex(entriesByID: [:])
@@ -695,7 +730,6 @@ private struct ExerciseLibraryFilterState: Equatable {
     let selectedEnvironment: Exercise.Environment?
     let selectedCategory: ExerciseLibraryCategory
     let onlyAvailableEquipment: Bool
-    let exerciseIDs: [Exercise.ID]
     let availableEquipment: [String]
 }
 
@@ -805,6 +839,7 @@ private struct ExerciseSearchField: View {
 private struct MuscleCatalogPanel: View {
     let gender: BodyGender
     @Binding var selectedSegments: Set<MuscleSegment>
+    @Binding var isBodySelectorExpanded: Bool
     let resultCount: Int
     let isLoadingResults: Bool
 
@@ -817,7 +852,58 @@ private struct MuscleCatalogPanel: View {
             )
 
             VStack(spacing: 14) {
-                ExerciseBodyMuscleSelector(gender: gender, selectedSegments: $selectedSegments)
+                if isBodySelectorExpanded {
+                    ExerciseBodyMuscleSelector(gender: gender, selectedSegments: $selectedSegments)
+
+                    Button {
+                        withAnimation(.snappy(duration: 0.22)) {
+                            isBodySelectorExpanded = false
+                        }
+                    } label: {
+                        Label(
+                            RepsLocalization.language == "es" ? "Ocultar selector corporal" : "Hide body selector",
+                            systemImage: "chevron.up"
+                        )
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button {
+                        HapticService.selection()
+                        withAnimation(.snappy(duration: 0.22)) {
+                            isBodySelectorExpanded = true
+                        }
+                    } label: {
+                        HStack(spacing: 12) {
+                            PulseIconBadge(
+                                systemImage: "figure.arms.open",
+                                tint: PulseTheme.accent,
+                                size: 46,
+                                isFilled: true
+                            )
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(RepsLocalization.language == "es" ? "Abrir selector corporal" : "Open body selector")
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(.primary)
+                                Text(
+                                    RepsLocalization.language == "es"
+                                        ? "Carga el mapa anatómico interactivo solo cuando lo necesites."
+                                        : "Load the interactive anatomy map only when you need it."
+                                )
+                                    .font(.caption)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.down")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(PulseTheme.tertiaryText)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 HStack {
                     Label(resultSummary, systemImage: "line.3.horizontal.decrease.circle.fill")
@@ -935,10 +1021,12 @@ private struct MuscleShortcutGrid: View {
                         }
                     } label: {
                         VStack(spacing: 8) {
-                            MuscleGroupAnatomyThumbnail(
-                                segment: segment,
-                                size: 86,
-                                intensity: 1
+                            PulseIconBadge(
+                                systemImage: segment.systemImage,
+                                tint: PulseTheme.accent,
+                                size: 64,
+                                radius: 18,
+                                isFilled: true
                             )
                             Text(segment.title)
                                 .font(.subheadline.weight(.bold))

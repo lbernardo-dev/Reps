@@ -389,11 +389,13 @@ struct RepsTests {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let today = calendar.startOfDay(for: .now)
-        let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: today))
+        // Keep the fixture inside the current week even when the suite runs on
+        // Monday (where "yesterday" belongs to the previous calendar week).
+        let recentDate = today
         let oldDate = try #require(calendar.date(byAdding: .day, value: -40, to: today))
         let recentSession = WorkoutSession(
             workoutTitle: "Push",
-            date: yesterday,
+            date: recentDate,
             durationMinutes: 45,
             sets: [SetLog(setNumber: 1, weightKg: 80, reps: 5, completed: true, rpe: 8)]
         )
@@ -414,7 +416,7 @@ struct RepsTests {
         let key = ProgressDashboardRenderModel.Key(
             range: .week,
             sessionCount: 2,
-            latestSessionDate: yesterday,
+            latestSessionDate: recentDate,
             cardioCount: 0,
             latestCardioDate: nil,
             healthCount: 1,
@@ -448,6 +450,26 @@ struct RepsTests {
         #expect(model.dailyVolumeSeries.count == 2)
         #expect(model.stepsWeekData.count == 7)
         #expect(model.activeEnergyWeekData.last?.value == 500)
+    }
+
+    @Test func ageMetricsRejectSentinelAndFutureDatesBeforeCalendarWork() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let plausibleBirthDate = Calendar.current.date(
+            byAdding: .year,
+            value: -35,
+            to: now
+        )
+
+        #expect(FitnessMetrics.ageYears(from: plausibleBirthDate, now: now) == 35)
+        #expect(FitnessMetrics.ageYears(from: .distantPast, now: now) == nil)
+        #expect(FitnessMetrics.ageYears(from: .distantFuture, now: now) == nil)
+        #expect(
+            FitnessMetrics.estimatedMaxHeartRate(
+                dateOfBirth: .distantPast,
+                now: now,
+                fallback: 190
+            ) == 190
+        )
     }
 
     @Test func trainingBatteryDropsWithHighFatigueAndRecoversWithRest() {

@@ -661,11 +661,13 @@ private struct WorkoutDetailsSectionTitle: View {
 
 private enum WorkoutHistoryHealthFormat {
     static func estimatedMaxHeartRate(for profile: UserProfile) -> Double {
-        guard let dateOfBirth = profile.dateOfBirth else {
-            return 190.0
-        }
-        let age = Calendar.current.dateComponents([.year], from: dateOfBirth, to: .now).year ?? 30
-        return max(160.0, 220.0 - Double(age))
+        max(
+            160.0,
+            FitnessMetrics.estimatedMaxHeartRate(
+                dateOfBirth: profile.dateOfBirth,
+                fallback: 190
+            )
+        )
     }
 }
 

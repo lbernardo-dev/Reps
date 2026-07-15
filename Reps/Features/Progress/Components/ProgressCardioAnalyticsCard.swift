@@ -61,10 +61,7 @@ struct CardioAnalyticsCard: View {
   @State private var bucket: DistanceBucket = .all
 
   private var estimatedMaxHR: Double {
-    guard let dob = dateOfBirth,
-          let years = Calendar.current.dateComponents([.year], from: dob, to: .now).year,
-          years > 0 else { return 190 }
-    return Double(max(120, 220 - years))
+    FitnessMetrics.estimatedMaxHeartRate(dateOfBirth: dateOfBirth)
   }
 
   private var points: [CardioAnalyticsPoint] {
@@ -227,10 +224,7 @@ struct HRZoneDurationCard: View {
   }
 
   private var estimatedMaxHR: Double {
-    guard let dob = dateOfBirth,
-          let years = Calendar.current.dateComponents([.year], from: dob, to: .now).year,
-          years > 0 else { return 190 }
-    return Double(max(120, 220 - years))
+    FitnessMetrics.estimatedMaxHeartRate(dateOfBirth: dateOfBirth)
   }
 
   private func zoneIndex(_ hr: Double) -> Int {
@@ -304,4 +298,3 @@ struct HRZoneDurationCard: View {
 }
 
 // MARK: - Pro insights teaser
-

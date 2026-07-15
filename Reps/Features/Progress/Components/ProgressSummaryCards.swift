@@ -190,15 +190,7 @@ private struct TodayZoneDistributionPanel: View {
   let sessions: [WorkoutSession]
   let dateOfBirth: Date?
 
-  private var maxHeartRate: Double {
-    guard let dateOfBirth,
-          let age = Calendar.current.dateComponents([.year], from: dateOfBirth, to: .now).year,
-          age > 0
-    else { return 190 }
-    return Double(max(120, 220 - age))
-  }
-
-  private var heartRateMinutes: [Int] {
+  private func makeHeartRateMinutes(maxHeartRate: Double) -> [Int] {
     var minutes = Array(repeating: 0, count: TodayTrainingZone.allCases.count)
 
     for session in sessions {
@@ -208,17 +200,17 @@ private struct TodayZoneDistributionPanel: View {
           guard let heartRate = points[index - 1].heartRate else { continue }
           let seconds = points[index].timestamp.timeIntervalSince(points[index - 1].timestamp)
           guard seconds > 0, seconds < 300 else { continue }
-          minutes[zoneIndex(forHeartRate: heartRate)] += max(1, Int((seconds / 60).rounded()))
+          minutes[zoneIndex(forHeartRate: heartRate, maxHeartRate: maxHeartRate)] += max(1, Int((seconds / 60).rounded()))
         }
       } else if let heartRate = session.averageHeartRate, heartRate > 0 {
-        minutes[zoneIndex(forHeartRate: heartRate)] += max(session.durationMinutes, 1)
+        minutes[zoneIndex(forHeartRate: heartRate, maxHeartRate: maxHeartRate)] += max(session.durationMinutes, 1)
       }
     }
 
     return minutes
   }
 
-  private var loadMinutes: [Int] {
+  private func makeLoadMinutes() -> [Int] {
     var minutes = Array(repeating: 0, count: TodayTrainingZone.allCases.count)
 
     for session in sessions {
@@ -232,20 +224,13 @@ private struct TodayZoneDistributionPanel: View {
     return minutes
   }
 
-  private var zoneMinutes: [Int] {
-    let heartRateTotal = heartRateMinutes.reduce(0, +)
-    return heartRateTotal > 0 ? heartRateMinutes : loadMinutes
-  }
-
-  private var totalMinutes: Int {
-    zoneMinutes.reduce(0, +)
-  }
-
-  private var isUsingHeartRate: Bool {
-    heartRateMinutes.reduce(0, +) > 0
-  }
-
   var body: some View {
+    let maxHeartRate = FitnessMetrics.estimatedMaxHeartRate(dateOfBirth: dateOfBirth)
+    let heartRateMinutes = makeHeartRateMinutes(maxHeartRate: maxHeartRate)
+    let isUsingHeartRate = heartRateMinutes.contains { $0 > 0 }
+    let zoneMinutes = isUsingHeartRate ? heartRateMinutes : makeLoadMinutes()
+    let totalMinutes = zoneMinutes.reduce(0, +)
+
     VStack(alignment: .leading, spacing: 10) {
       HStack(alignment: .firstTextBaseline) {
         VStack(alignment: .leading, spacing: 2) {
@@ -283,8 +268,10 @@ private struct TodayZoneDistributionPanel: View {
     .background(PulseTheme.grouped.opacity(0.56), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
   }
 
-  private func zoneIndex(forHeartRate heartRate: Double) -> Int {
-    TodayTrainingZone.allCases.last { heartRate >= $0.lowerBound(maxHR: maxHeartRate) }?.rawValue ?? 0
+  private func zoneIndex(forHeartRate heartRate: Double, maxHeartRate: Double) -> Int {
+    TodayTrainingZone.allCases.last {
+      heartRate >= $0.lowerBound(maxHR: maxHeartRate)
+    }?.rawValue ?? 0
   }
 
   private func zoneIndex(forLoadIn session: WorkoutSession, completedSets: Int) -> Int {

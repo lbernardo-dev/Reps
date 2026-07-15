@@ -796,8 +796,18 @@ struct ProfileSetupView: View {
     }
 
     private var generationHeatmap: [MuscleIntensity] {
-        let groups = generatedPlan.days.flatMap(\.exercises).flatMap { muscles(for: $0.exercise.muscleGroup) }
-        return Set(groups).map { MuscleIntensity(muscle: $0, intensity: generationPulse ? 0.95 : 0.52) }
+        let trained = Set(generatedPlan.days.flatMap(\.exercises).flatMap { muscles(for: $0.exercise.muscleGroup) })
+        let focus = selectedFocusMuscles
+        let focusIntensity = generationPulse ? 1.0 : 0.88
+        let trainedIntensity = generationPulse ? 0.55 : 0.30
+
+        let focusEntries = focus.map {
+            MuscleIntensity(muscle: $0, intensity: focusIntensity, color: PulseTheme.focus)
+        }
+        let trainedEntries = trained.subtracting(focus).map {
+            MuscleIntensity(muscle: $0, intensity: trainedIntensity, color: PulseTheme.accent.opacity(0.45))
+        }
+        return focusEntries + trainedEntries
     }
 
     private func muscles(for group: String) -> [Muscle] {
@@ -1468,20 +1478,59 @@ private struct PlanProjectionCard: View {
                 Chart(projection) { point in
                     BarMark(
                         x: .value("Week", point.id),
-                        y: .value("Sets", point.sets)
+                        y: .value("Sets", point.sets),
+                        width: .ratio(0.62)
                     )
                     .foregroundStyle(
                         point.isDeload
-                            ? AnyShapeStyle(PulseTheme.ringStand.opacity(0.28))
+                            ? AnyShapeStyle(PulseTheme.ringStand.opacity(0.22))
                             : AnyShapeStyle(LinearGradient(
-                                colors: [PulseTheme.ringStand, PulseTheme.accent],
+                                colors: [PulseTheme.ringStand.opacity(0.85), PulseTheme.accent],
                                 startPoint: .bottom,
                                 endPoint: .top
                             ))
                     )
                     .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
+
+                    LineMark(
+                        x: .value("Week", point.id),
+                        y: .value("Sets", point.sets)
+                    )
+                    .interpolationMethod(.catmullRom)
+                    .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
+                    .foregroundStyle(PulseTheme.textPrimary.opacity(0.85))
+                    .symbol {
+                        Circle()
+                            .fill(point.isDeload ? PulseTheme.ringStand : PulseTheme.textPrimary)
+                            .frame(width: 5, height: 5)
+                    }
+
+                    AreaMark(
+                        x: .value("Week", point.id),
+                        y: .value("Sets", point.sets)
+                    )
+                    .interpolationMethod(.catmullRom)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [PulseTheme.textPrimary.opacity(0.14), PulseTheme.textPrimary.opacity(0.0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
                 }
-                .chartYAxis(.hidden)
+                .chartYAxis {
+                    AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
+                        AxisGridLine()
+                            .foregroundStyle(PulseTheme.secondaryText.opacity(0.14))
+                        AxisValueLabel {
+                            if let sets = value.as(Int.self) {
+                                Text("\(sets)")
+                                    .font(.caption2)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                        }
+                    }
+                }
                 .chartXAxis {
                     AxisMarks(values: axisWeeks) { value in
                         AxisValueLabel {
@@ -1493,7 +1542,7 @@ private struct PlanProjectionCard: View {
                         }
                     }
                 }
-                .frame(height: 88)
+                .frame(height: 140)
             }
         }
     }

@@ -49,6 +49,18 @@
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Registra tus suplementos deportivos y cuida tu salud." } }
       }
     },
+    "vitalspath_promo_move" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Move recommendation" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mover recomendación" } }
+      }
+    },
+    "vitalspath_promo_move_hint" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag to reposition it anywhere on the screen." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Arrastra para reubicarla en cualquier parte de la pantalla." } }
+      }
+    },
     "vitalspath_promo_open_hint" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Opens the app if installed, or its App Store page." } },

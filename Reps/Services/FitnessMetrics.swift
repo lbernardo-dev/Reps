@@ -1,6 +1,45 @@
 import Foundation
 
 enum FitnessMetrics {
+    /// Returns a calendar age only after a cheap range check. Calling
+    /// `Calendar.dateComponents` with a corrupted sentinel date (for example
+    /// `Date.distantPast`) can spend seconds walking historical time-zone
+    /// transitions and block the main thread.
+    static func ageYears(
+        from dateOfBirth: Date?,
+        now: Date = .now,
+        maximumAge: Int = 120
+    ) -> Int? {
+        guard let dateOfBirth, maximumAge > 0 else { return nil }
+
+        let elapsed = now.timeIntervalSince(dateOfBirth)
+        let maximumPlausibleInterval = Double(maximumAge + 1) * 366 * 24 * 60 * 60
+        guard elapsed.isFinite,
+              elapsed >= 0,
+              elapsed <= maximumPlausibleInterval else {
+            return nil
+        }
+
+        let years = Calendar.current.dateComponents(
+            [.year],
+            from: dateOfBirth,
+            to: now
+        ).year
+        guard let years, (0...maximumAge).contains(years) else { return nil }
+        return years
+    }
+
+    static func estimatedMaxHeartRate(
+        dateOfBirth: Date?,
+        now: Date = .now,
+        fallback: Double = 190
+    ) -> Double {
+        guard let age = ageYears(from: dateOfBirth, now: now), age > 0 else {
+            return fallback
+        }
+        return Double(max(120, 220 - age))
+    }
+
     struct ExerciseProgressPoint: Identifiable {
         let id = UUID()
         let date: Date

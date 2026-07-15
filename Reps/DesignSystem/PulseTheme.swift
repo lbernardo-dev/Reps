@@ -22,6 +22,7 @@ enum PulseTheme {
     static let semanticEffort = Color(red: 0.94, green: 0.22, blue: 0.32)   // effort / fatigue / high output
     static let semanticCritical = Color(red: 0.90, green: 0.20, blue: 0.18) // destructive / alert
     static let semanticNeutral = Color(red: 0.55, green: 0.57, blue: 0.60)  // empty / inactive / neutral
+    static let semanticFocus = Color(red: 0.97, green: 0.40, blue: 0.16)    // prioritized / focus muscle
 
     // MARK: Brand accent — single tunable token
     static let accent = semanticAction
@@ -48,6 +49,7 @@ enum PulseTheme {
     static let destructive  = semanticCritical
     static let warning      = semanticWarning
     static let growth       = semanticHealth
+    static let focus        = semanticFocus
     static let appleMusic   = semanticEffort
     static let fitOrange    = semanticWarning
     static let playControl  = fitOrange
@@ -747,15 +749,22 @@ struct DomainStatusPill: View {
 struct DomainHeroCard<Content: View>: View {
     let domain: MetricDomain
     var minHeight: CGFloat = 128
+    /// When multiple hero cards sit close together (e.g. the Wellness row),
+    /// each card's unclipped outward glow bleeds into its neighbor's, reading
+    /// as one continuous colored panel behind the whole row. Disable it there;
+    /// full-width single-card placements (e.g. `WeeklyProgressHeroCard`) keep it.
+    var showsGlow: Bool = true
     let content: Content
 
     init(
         domain: MetricDomain,
         minHeight: CGFloat = 128,
+        showsGlow: Bool = true,
         @ViewBuilder content: () -> Content
     ) {
         self.domain = domain
         self.minHeight = minHeight
+        self.showsGlow = showsGlow
         self.content = content()
     }
 
@@ -782,7 +791,7 @@ struct DomainHeroCard<Content: View>: View {
                 shape.stroke(PulseTheme.cardStroke, lineWidth: 0.8)
             }
             .clipShape(shape)
-            .shadow(color: domain.glowColor, radius: 18, x: 0, y: 4)
+            .shadow(color: showsGlow ? domain.glowColor : .clear, radius: 18, x: 0, y: 4)
             .shadow(color: PulseTheme.surfaceShadow, radius: 7, y: 3)
     }
 }

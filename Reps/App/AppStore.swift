@@ -584,7 +584,7 @@ final class AppStore {
         guard currentWeight > 0, currentHeight > 0 else {
             return 0
         }
-        let age = userProfile.dateOfBirth.map { Calendar.current.dateComponents([.year], from: $0, to: .now).year ?? 30 } ?? 30
+        let age = FitnessMetrics.ageYears(from: userProfile.dateOfBirth) ?? 30
         let sexAdjustment = userProfile.sex == .female ? -161.0 : 5.0
         return 10 * currentWeight + 6.25 * currentHeight - 5 * Double(age) + sexAdjustment
     }
@@ -2285,9 +2285,9 @@ final class AppStore {
 
     /// Estimated max heart rate (≈ 220 − age) for HR-zone coloring on the Watch.
     private var watchEstimatedMaxHeartRate: Double? {
-        guard let dob = userProfile.dateOfBirth else { return nil }
-        let years = Calendar.current.dateComponents([.year], from: dob, to: .now).year ?? 0
-        guard years > 0, years < 120 else { return nil }
+        guard let years = FitnessMetrics.ageYears(from: userProfile.dateOfBirth),
+              years > 0,
+              years < 120 else { return nil }
         return Double(220 - years)
     }
 
