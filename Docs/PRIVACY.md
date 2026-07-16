@@ -4,7 +4,7 @@
 **Data Controller:** RomeroDev  
 **Contact:** romerodev.app+streakreps@gmail.com
 
-This policy explains how Reps (also referred to as "StreakRep" on some screens and metadata) processes information when you use the mobile application, its widgets, the Apple Watch application, and social features.
+This policy explains how Reps (also referred to as "StreakReps" on some screens and metadata) processes information when you use the mobile application, its widgets, the Apple Watch application, and social features.
 
 ## 1. What data Reps may process
 
@@ -26,7 +26,7 @@ You do not need to activate HealthKit, location, camera, microphone, photos, or 
 We use the data to:
 
 1. provide workout logging, plans, goals, and progress tracking;
-2. display metrics and recommendations within Reps;
+2. display metrics and recommendations within StreakReps;
 3. sync widgets, Apple Watch, and continuity features;
 4. save or restore your data when you choose to export or import a copy;
 5. provide the social features you activate;

@@ -23,6 +23,7 @@ enum StoreKitProductID: String, CaseIterable, Identifiable {
 
 enum RevenueCatConfiguration {
     static let apiKey = "appl_iAJUnQzosUZuncLQNWAVnAifxjk"
+    // RevenueCat identifier: keep stable even though the customer-facing brand changed.
     static let proEntitlementID = "StreakRep Pro"
     static let defaultOfferingID = "default"
 }
@@ -326,14 +327,14 @@ struct MonetizationState: Codable, Equatable {
             case .trial:                        return localizedString("pro_trial_status")
             case .active:                       return localizedString("pro_active_status")
             case .gracePeriod:                  return localizedString("pro_grace_status")
-            case .inactive, .cancelled, .expired: return localizedString("Reps Pro")
+            case .inactive, .cancelled, .expired: return localizedString("StreakReps Pro")
             }
         }
 
         switch status {
         case .cancelled: return localizedString("pro_cancelled_status")
         case .expired:   return localizedString("pro_expired_status")
-        default:         return localizedString("Reps Free")
+        default:         return localizedString("StreakReps Free")
         }
     }
 }

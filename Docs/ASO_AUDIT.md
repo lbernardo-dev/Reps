@@ -153,7 +153,7 @@ Privacy policy must explicitly cover:
 - Local storage and backup behavior.
 - Analytics/crash reporting if enabled.
 - Subscription purchase handling via Apple.
-- Contact email: `support@romerodev.com`.
+- Contact email: `romerodev.app+streakreps@gmail.com`.
 
 ## Screenshot Plan
 

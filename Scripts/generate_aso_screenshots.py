@@ -306,7 +306,7 @@ def render(shot: Shot, locale: str) -> None:
     draw = ImageDraw.Draw(canvas)
 
     draw.rectangle((0, 0, CANVAS[0], 20), fill=shot.accent)
-    draw_centered(draw, "STREAKREP FIT", 78, BRAND, shot.accent)
+    draw_centered(draw, "STREAKREPS", 78, BRAND, shot.accent)
 
     verb = shot.en_verb if locale == "en-US" else shot.es_verb
     desc = shot.en_desc if locale == "en-US" else shot.es_desc

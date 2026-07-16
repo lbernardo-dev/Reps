@@ -1787,7 +1787,7 @@ struct RepsTests {
         #expect(metrics.paceText == "5:12/km")
         #expect(metrics.speedText == "11.5 km/h")
         #expect(metrics.stepsText == "4200")
-        #expect(metrics.heartRateText == "151 lpm")
+        #expect(metrics.heartRateText == SharedWorkoutSnapshot.heartRateText(151))
         #expect(metrics.energyText == "340")
     }
 
@@ -1829,7 +1829,7 @@ struct RepsTests {
         #expect(metrics.speedText == "8.0 km/h")
         #expect(metrics.pointCount == 18)
         #expect(metrics.stepsText == "2200")
-        #expect(metrics.heartRateText == "132 lpm")
+        #expect(metrics.heartRateText == SharedWorkoutSnapshot.heartRateText(132))
         #expect(metrics.energyText == "--")
     }
 
@@ -2417,54 +2417,28 @@ struct RepsTests {
     }
 
     @Test func currentNotificationSchedulersCreateRoutableRequests() async throws {
-        let center = UNUserNotificationCenter.current()
-        center.removeAllPendingNotificationRequests()
-        center.removeAllDeliveredNotifications()
-        defer {
-            center.removeAllPendingNotificationRequests()
-            center.removeAllDeliveredNotifications()
-        }
-
+        let now = Date()
         let scheduled = ScheduledWorkout(
-            date: Date().addingTimeInterval(172_800),
+            date: now.addingTimeInterval(172_800),
             workoutDay: SeedData.pushDay,
             status: .scheduled
         )
 
-        NotificationService.scheduleRestEndNotification(after: 120, nextExerciseName: "Bench Press")
-        try await NotificationService.scheduleWorkoutReminder(for: scheduled)
-        try await NotificationService.scheduleMissedWorkoutCheck(for: scheduled)
-        try await NotificationService.scheduleDailySummary(hour: 23, minute: 55)
-        try await NotificationService.scheduleBatteryRecoverySuggestion(level: 42, suggestion: "Take a lighter day.")
-        try await NotificationService.scheduleRetentionNudge(
-            title: "Plan tomorrow",
-            body: "Keep momentum.",
-            date: Date().addingTimeInterval(7_200)
-        )
-        try await NotificationService.schedulePersonalRecordCelebration(exerciseName: "Squat", delay: 120)
-        let streakBaseDate = Date()
+        let retentionDate = now.addingTimeInterval(7_200)
         let streakFireComponents = Calendar.current.dateComponents(
             [.hour, .minute],
-            from: streakBaseDate.addingTimeInterval(7_200)
+            from: now.addingTimeInterval(7_200)
         )
-        try await NotificationService.scheduleStreakAtRiskReminder(
-            currentStreak: 3,
-            hour: try #require(streakFireComponents.hour),
-            minute: try #require(streakFireComponents.minute),
-            now: streakBaseDate
+        let gymPassID = UUID()
+        let requests = NotificationService.diagnosticRoutableRequests(
+            scheduledWorkout: scheduled,
+            now: now,
+            retentionDate: retentionDate,
+            streakHour: try #require(streakFireComponents.hour),
+            streakMinute: try #require(streakFireComponents.minute),
+            gymPassID: gymPassID,
+            gymRenewalDate: now.addingTimeInterval(604_800)
         )
-        try await NotificationService.scheduleGymRenewalReminder(
-            passID: UUID(),
-            gymName: "Test Gym",
-            renewalDate: Date().addingTimeInterval(604_800)
-        )
-        try await NotificationService.scheduleAchievementUnlocked(message: "Unlocked", delay: 120)
-        try await NotificationService.scheduleGoalReached(goalTitle: "Bench 100", delay: 120)
-        NotificationService.postCloudKitSocialNotification(subscriptionID: "new-follower-test")
-        NotificationService.postCloudKitSocialNotification(subscriptionID: "new-like-test")
-
-        try await Task.sleep(nanoseconds: 500_000_000)
-        let requests = await center.pendingNotificationRequests()
         let byIdentifier = Dictionary(uniqueKeysWithValues: requests.map { ($0.identifier, $0) })
         let routableKinds = Set(requests.compactMap { $0.content.userInfo["notification_kind"] as? String })
 

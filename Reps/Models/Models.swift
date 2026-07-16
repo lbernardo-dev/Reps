@@ -690,6 +690,12 @@ struct WorkoutSession: Codable, Identifiable {
     var healthKitActivityTypes: [String] = []
     var averageHeartRate: Double? = nil
     var maxHeartRate: Double? = nil
+    /// When this session was first created from a HealthKit import (distinct from
+    /// `date`/`startedAt`, which reflect the workout's own occurrence time and can
+    /// lag behind when HealthKit/Watch sync actually delivered it). Used to key the
+    /// 24h "complete your import" banner window. `nil` for sessions that predate
+    /// this field or weren't imported.
+    var importedAt: Date? = nil
 }
 
 extension WorkoutSession {

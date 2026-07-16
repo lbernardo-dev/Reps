@@ -159,6 +159,7 @@ struct MainTabView: View {
             "source": "initial",
           ])
         applyNotificationDestination(store.notificationDestination)
+        consumePendingFreeWorkoutPresentation()
       }
       .onChange(of: selectedTab) { _, newTab in
         TelemetryService.shared.log(
@@ -180,9 +181,9 @@ struct MainTabView: View {
           isQuickMenuExpanded = false
         }
       }
-      .onReceive(NotificationCenter.default.publisher(for: .repsStartFreeWorkoutIntent)) { _ in
-        select(.today)
-        presentedQuickAction = .freeWorkout
+      .onChange(of: store.pendingFreeWorkoutPresentation) { _, shouldPresent in
+        guard shouldPresent else { return }
+        consumePendingFreeWorkoutPresentation()
       }
       .onChange(of: store.notificationDestination) { _, destination in
         applyNotificationDestination(destination)
@@ -195,6 +196,13 @@ struct MainTabView: View {
       .task {
         await runVitalsPathPromotionScheduler()
       }
+  }
+
+  private func consumePendingFreeWorkoutPresentation() {
+    guard store.pendingFreeWorkoutPresentation else { return }
+    store.pendingFreeWorkoutPresentation = false
+    select(.today)
+    presentedQuickAction = .freeWorkout
   }
 
   // MARK: VitalsPath promotion

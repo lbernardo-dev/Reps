@@ -88,14 +88,8 @@ final class AppStore {
     var isFeedLoading: Bool = false
     var activeChallenges: [SocialChallenge] = []
     var isChallengesLoading: Bool = false
-    /// True when the current account is flagged as a moderator. There's no
-    /// backend, so this flag is granted out-of-band by the developer in the
-    /// CloudKit Dashboard (a SocialModerator record) — nothing in the app can
-    /// grant it. Gates client-side-only "delete others' content" / "ban" UI.
-    var isSocialModerator: Bool = false
-    /// Usernames banned by a moderator, hidden from every client. Enforcement
-    /// is client-side only (no backend to enforce it server-side), refreshed
-    /// alongside `isSocialModerator`.
+    /// Usernames banned out-of-band by the developer in CloudKit Dashboard.
+    /// Without a backend, clients can only consume this read-only list.
     private(set) var bannedUsernames: Set<String> = []
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
@@ -132,6 +126,9 @@ final class AppStore {
     /// Set by Siri/Shortcuts deep links and consumed by TodayView once its
     /// presentation hierarchy is ready.
     var pendingSystemWorkoutStart = false
+    /// Set by the free-workout deep link and consumed by the root quick-action
+    /// presenter. Keeping this in app state makes cold Shortcut launches reliable.
+    var pendingFreeWorkoutPresentation = false
     var pendingAchievementUnlocks: [AchievementUnlockBanner] = []
     var activePaywall: PaywallPresentation? {
         didSet {
@@ -192,7 +189,7 @@ final class AppStore {
             if let session {
                 return WorkoutShareImageRenderer.render(session: session)
             }
-            return WorkoutShareImageRenderer.render(title: "StreakRep Workout", duration: 0, volume: 0, sets: 0)
+            return WorkoutShareImageRenderer.render(title: "StreakReps Workout", duration: 0, volume: 0, sets: 0)
         }
         self.isUsingFallbackStorage = persistence.didFallbackToInMemory
         self.seenAchievementKeys = Set(UserDefaults.standard.stringArray(forKey: seenAchievementsKey) ?? [])
@@ -234,15 +231,28 @@ final class AppStore {
         // first would wipe the user's saved data before it's ever read back.
         restore(.empty, persistImmediately: false)
         Task {
+            // The data below was just read from `persistence` one line above, so
+            // re-diffing and rewriting the entire store back to itself right away
+            // is pure wasted work — skip the redundant full-scope save.
             if let snapshot = persistence.loadSnapshot() ?? Self.loadLegacySnapshot() {
-                restore(snapshot)
+                restore(snapshot, persistImmediately: false)
             } else {
                 persistence.save(currentSnapshot)
                 SharedWorkoutStore.save(sharedWorkoutSnapshot())
             }
             RepsLocalization.use(userProfile.preferredLanguage)
+
+            // Yield between these heavy, uninterrupted MainActor steps so the run
+            // loop gets a chance to service pending scroll/render frames instead of
+            // stalling every tab in one uninterrupted stretch right after cold launch.
+            await Task.yield()
             evaluateExistingAchievementUnlocks()
+
+            await Task.yield()
             cleanupJunkHealthWorkoutsIfNeeded()
+            backfillImportedAtIfNeeded()
+
+            await Task.yield()
             _ = loadActivityEvents()
 
             if startsBackgroundServices {
@@ -465,7 +475,11 @@ final class AppStore {
             return true
         case "workout":
             pendingMainTabSelection = .today
-            pendingSystemWorkoutStart = true
+            if url.path.lowercased() == "/free" {
+                pendingFreeWorkoutPresentation = true
+            } else {
+                pendingSystemWorkoutStart = true
+            }
             return true
         case "social" where url.path.isEmpty:
             // Friends widget tap target ("reps://social", no username). A
@@ -1532,6 +1546,35 @@ final class AppStore {
         }
     }
 
+    private static let importedAtBackfillDefaultsKey = "didBackfillImportedAt_v1"
+
+    /// One-time sweep for sessions imported before `importedAt` existed. Stamps
+    /// `.distantPast` (not `.now`) so they land outside the 24h "complete your
+    /// import" banner window rather than all flashing it at once on update —
+    /// we can't know whether the user already saw them, so treat them as already
+    /// past their window. They remain completable from history exactly as before.
+    private func backfillImportedAtIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.importedAtBackfillDefaultsKey) else { return }
+        defaults.set(true, forKey: Self.importedAtBackfillDefaultsKey)
+
+        workoutSessions = workoutSessions.map { session in
+            guard session.isImportedFromHealth, session.importedAt == nil else { return session }
+            var session = session
+            session.importedAt = .distantPast
+            return session
+        }
+    }
+
+    /// Sessions imported from HealthKit within the last 24 hours that are still
+    /// missing strength data — surfaced as a proactive banner on Today.
+    var recentlyImportedSessionsNeedingCompletion: [WorkoutSession] {
+        let cutoff = Date().addingTimeInterval(-24 * 3600)
+        return workoutSessions.filter {
+            $0.needsHealthKitCompletion && ($0.importedAt ?? .distantPast) >= cutoff
+        }
+    }
+
     /// An auto-imported session with no real training data — distance, calories,
     /// duration, and strength sets are all effectively empty.
     static func isJunkImportedSession(_ session: WorkoutSession) -> Bool {
@@ -2386,7 +2429,7 @@ final class AppStore {
             return SharedWorkoutSnapshot(
                 hasActiveWorkout: false,
                 planTitle: activePlan.days.isEmpty ? nil : activePlan.name,
-                workoutTitle: "StreakRep",
+                workoutTitle: "StreakReps",
                 sessionTitle: nil,
                 elapsedSeconds: 0,
                 pausedSeconds: 0,
@@ -3878,7 +3921,8 @@ final class AppStore {
 
         // 1c. Workouts Reps itself wrote back to Health are already represented by a
         // local session; tag that session's UUID if needed and never re-import.
-        if workout.metadata?[HKMetadataKeyWorkoutBrandName] as? String == "Reps" {
+        if let brandName = workout.metadata?[HKMetadataKeyWorkoutBrandName] as? String,
+           ["Reps", "StreakReps"].contains(brandName) {
             let externalSessionID = (workout.metadata?[HKMetadataKeyExternalUUID] as? String)
                 .flatMap(UUID.init(uuidString:))
             let index = workoutSessions.firstIndex(where: { session in
@@ -4062,7 +4106,8 @@ final class AppStore {
             isImportedFromHealth: true,
             healthKitActivityTypes: uniqueActivities,
             averageHeartRate: heartRate.average ?? sensors?.averageHeartRate,
-            maxHeartRate: heartRate.max ?? sensors?.maxHeartRate
+            maxHeartRate: heartRate.max ?? sensors?.maxHeartRate,
+            importedAt: Date()
         )
 
         workoutSessions.append(importedSession)
@@ -4684,61 +4729,22 @@ final class AppStore {
         commentSummaries[postID] = await SocialService.shared.cachedSummary(postID: postID)
     }
 
-    // MARK: - Moderator (developer-flagged, client-side enforcement only)
+    // MARK: - Moderation state (developer-managed, read-only)
 
-    /// Refreshes `isSocialModerator` and the global `bannedUsernames` set.
-    /// Called once when Community first loads.
+    /// Refreshes the global `bannedUsernames` set. Ban records are managed
+    /// outside the app in CloudKit Dashboard because the app has no backend
+    /// capable of safely authorizing moderator actions.
     func refreshModerationState() async {
         guard let username = userProfile.socialUsername else {
-            isSocialModerator = false
+            bannedUsernames = []
             return
         }
-        async let moderator = SocialService.shared.isModerator(username: username)
-        async let banned = SocialService.shared.fetchBannedUsernames()
-        isSocialModerator = await moderator
-        bannedUsernames = await banned
-    }
-
-    /// Moderator-only: removes another account's comment. Only shown in the UI
-    /// to accounts flagged as moderators in the CloudKit Dashboard.
-    func moderatorDeleteComment(_ comment: WorkoutComment, postID: String) async -> Bool {
-        guard isSocialModerator else { return false }
-        do {
-            try await SocialService.shared.deleteComment(commentID: comment.id, postID: postID)
-            await refreshCommentSummary(postID: postID)
-            return true
-        } catch {
-            TelemetryService.shared.record(error, context: "moderator_delete_comment")
-            return false
-        }
-    }
-
-    /// Moderator-only: removes another account's post.
-    func moderatorDeletePost(_ post: WorkoutPost) async -> Bool {
-        guard isSocialModerator else { return false }
-        do {
-            try await SocialService.shared.deletePost(postID: post.id)
-            feedPosts.removeAll { $0.id == post.id }
-            return true
-        } catch {
-            TelemetryService.shared.record(error, context: "moderator_delete_post")
-            return false
-        }
-    }
-
-    /// Moderator-only: hides a user's content for everyone, not just this
-    /// device (unlike `blockSocialUser`, which is a personal filter).
-    func moderatorBanUser(_ username: String) async -> Bool {
-        guard isSocialModerator, let moderator = userProfile.socialUsername else { return false }
+        let banned = await SocialService.shared.fetchBannedUsernames()
         let normalized = username.lowercased()
-        do {
-            try await SocialService.shared.banUser(username: normalized, bannedByUsername: moderator)
-            bannedUsernames.insert(normalized)
-            feedPosts.removeAll { $0.ownerUsername.lowercased() == normalized }
-            return true
-        } catch {
-            TelemetryService.shared.record(error, context: "moderator_ban_user")
-            return false
+        bannedUsernames = banned
+        if banned.contains(normalized) {
+            feedPosts = []
+            commentSummaries = [:]
         }
     }
 
@@ -4767,7 +4773,7 @@ final class AppStore {
         commentSummaries = [:]
         unreadFeedCount = 0
         activeChallenges = []
-        isSocialModerator = false
+        bannedUsernames = []
         return true
     }
 
@@ -5273,7 +5279,7 @@ final class NativeWorkoutSessionService: NSObject {
                 builder = workoutBuilder
                 let startDate = status.startedAt == .distantPast ? Date() : status.startedAt
                 try await workoutBuilder.addMetadata([
-                    HKMetadataKeyWorkoutBrandName: "Reps",
+                    HKMetadataKeyWorkoutBrandName: "StreakReps",
                     HKMetadataKeyCoachedWorkout: false
                 ])
                 try Task.checkCancellation()

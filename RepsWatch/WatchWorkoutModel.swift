@@ -302,7 +302,7 @@ final class WatchWorkoutModel: NSObject, CLLocationManagerDelegate {
                 prepareSnapshotForCompanionLaunch(configuration: configuration, startedAt: startDate)
 
                 try? await workoutBuilder.addMetadata([
-                    HKMetadataKeyWorkoutBrandName: "Reps",
+                    HKMetadataKeyWorkoutBrandName: "StreakReps",
                     HKMetadataKeyCoachedWorkout: false
                 ])
                 workoutSession.startActivity(with: startDate)
@@ -438,7 +438,7 @@ final class WatchWorkoutModel: NSObject, CLLocationManagerDelegate {
                 session = workoutSession
                 builder = workoutBuilder
                 try? await workoutBuilder.addMetadata([
-                    HKMetadataKeyWorkoutBrandName: "Reps",
+                    HKMetadataKeyWorkoutBrandName: "StreakReps",
                     HKMetadataKeyCoachedWorkout: false
                 ])
                 workoutSession.startActivity(with: startDate)
@@ -623,7 +623,7 @@ final class WatchWorkoutModel: NSObject, CLLocationManagerDelegate {
                 resetRouteMetrics()
 
                 try? await workoutBuilder.addMetadata([
-                    HKMetadataKeyWorkoutBrandName: "Reps",
+                    HKMetadataKeyWorkoutBrandName: "StreakReps",
                     HKMetadataKeyCoachedWorkout: false
                 ])
                 workoutSession.startActivity(with: .now)
@@ -1050,7 +1050,7 @@ extension WatchWorkoutModel: WCSessionDelegate {
         SharedWorkoutSnapshot(
             hasActiveWorkout: context["hasActiveWorkout"] as? Bool ?? false,
             planTitle: context["planTitle"] as? String,
-            workoutTitle: context["workoutTitle"] as? String ?? "StreakRep",
+            workoutTitle: context["workoutTitle"] as? String ?? "StreakReps",
             sessionTitle: context["sessionTitle"] as? String,
             elapsedSeconds: context["elapsedSeconds"] as? Int ?? 0,
             pausedSeconds: context["pausedSeconds"] as? Int ?? 0,

@@ -403,7 +403,7 @@ extension WorkoutSession {
         if isImportedFromHealth || healthKitUUIDString != nil || !healthKitActivityTypes.isEmpty {
             return "Apple Watch"
         }
-        return "StreakRep"
+        return "StreakReps"
     }
 
     var routeDateRangeText: String {

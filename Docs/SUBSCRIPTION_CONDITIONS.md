@@ -5,7 +5,7 @@ These conditions complement the Terms of Use and the Privacy Policy.
 
 ## 1. What is Pro
 
-Reps Pro unlocks premium features which may include advanced analytics, configurable progression, sharing cards, advanced Apple Watch features, iCloud operational backups, and other benefits indicated on the purchase screen.
+StreakReps Pro unlocks premium features which may include advanced analytics, configurable progression, sharing cards, advanced Apple Watch features, iCloud operational backups, and other benefits indicated on the purchase screen.
 
 The exact availability may vary by version, country, device, and configuration of the offer displayed by Apple.
 
@@ -39,7 +39,7 @@ No price changes are made simply by updating Reps. The conditions that apply are
 
 ## 6. Restore purchases and access
 
-You can use **Restore Purchases** within Reps to recover access acquired with the same Apple ID. Pro access depends on Apple's validation of the transaction and the temporary availability of the necessary services.
+You can use **Restore Purchases** within StreakReps to recover access acquired with the same Apple ID. Pro access depends on Apple's validation of the transaction and the temporary availability of the necessary services.
 
 If a purchase appears as pending, declined, refunded, or unverifiable, some Pro features may remain locked until Apple resolves the status.
 

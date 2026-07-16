@@ -498,7 +498,7 @@ struct RepsWorkoutLiveActivity: Widget {
                 Button(intent: ToggleWorkoutPauseLiveActivityIntent()) {
                     HStack(spacing: 4) {
                         Image(systemName: snapshot.isPaused ? "play.fill" : "pause.fill")
-                        Text(snapshot.isPaused ? "Reanudar" : "Pausar")
+                        Text(localizedString(snapshot.isPaused ? "resume" : "pause"))
                     }
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(theme.tint)
@@ -516,7 +516,7 @@ struct RepsWorkoutLiveActivity: Widget {
                     Button(intent: CompleteSetLiveActivityIntent()) {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
-                            Text("Serie")
+                            Text(localizedString("complete_set"))
                         }
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(Color.black)
@@ -558,7 +558,7 @@ struct RepsWorkoutLiveActivity: Widget {
                 Button(intent: StopWorkoutLiveActivityIntent()) {
                     HStack(spacing: 4) {
                         Image(systemName: "stop.fill")
-                        Text("Fin")
+                        Text(localizedString("finish"))
                     }
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.red)

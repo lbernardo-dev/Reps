@@ -165,7 +165,7 @@ def render(shot: Shot, locale: str) -> None:
     body = shot.en_body if locale == "en-US" else shot.es_body
 
     draw.rounded_rectangle((14, 12, 402, 76), radius=26, fill="#0E1712")
-    draw_centered(draw, "STREAKREP WATCH", 20, BRAND, shot.accent)
+    draw_centered(draw, "STREAKREPS", 20, BRAND, shot.accent)
     draw_centered(draw, title, 34, TITLE, WHITE)
     draw_wrapped_center(draw, body, 70, BODY, MUTED, 360)
 

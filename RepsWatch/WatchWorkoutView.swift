@@ -171,7 +171,7 @@ struct WatchStartView: View {
                     .padding(.horizontal, 4)
                     .padding(.bottom, 10)
                 }
-                .navigationTitle("StreakRep")
+                .navigationTitle("StreakReps")
                 .background(
                     RadialGradient(
                         colors: [accent.opacity(0.12), .black],
@@ -688,7 +688,7 @@ struct WatchRouteSummaryView: View {
                     WatchBigMetric(value: stepsText, label: localizedString("Steps"), icon: "shoeprints.fill", color: WatchTheme.ringExercise)
                     WatchBigMetric(value: speedText, label: "km/h", icon: "gauge.with.needle", color: WatchTheme.ringStand)
                     WatchBigMetric(value: kcalText, label: "kcal", icon: "flame.fill", color: .orange)
-                    WatchBigMetric(value: hrText, label: "lpm", icon: "heart.fill", color: WatchTheme.zoneColor(model.heartRateZone))
+                    WatchBigMetric(value: hrText, label: localizedString("lpm"), icon: "heart.fill", color: WatchTheme.zoneColor(model.heartRateZone))
                 }
                 WatchEndButton()
             }
@@ -1139,7 +1139,7 @@ struct WatchIntervalSummaryView: View {
                         color: .red
                     )
                     WatchBigMetric(value: kcalText, label: "kcal", icon: "flame.fill", color: .orange)
-                    WatchBigMetric(value: hrText, label: "lpm", icon: "heart.fill", color: WatchTheme.zoneColor(model.heartRateZone))
+                    WatchBigMetric(value: hrText, label: localizedString("lpm"), icon: "heart.fill", color: WatchTheme.zoneColor(model.heartRateZone))
                     WatchBigMetric(
                         value: SharedWorkoutSnapshot.durationText(model.elapsedSeconds),
                         label: localizedString("time"),
@@ -1224,7 +1224,7 @@ struct WatchMetricsPage: View {
     private var hrText: String { (model.heartRate ?? model.snapshot.heartRate).map { "\(Int($0))" } ?? "--" }
     private var kcalText: String { "\(Int(model.snapshot.activeEnergyKcal ?? model.activeEnergy))" }
     private var stepsText: String { (model.routeSteps ?? model.snapshot.routeSteps).map { "\(Int($0))" } ?? "--" }
-    private var zoneLabel: String { model.heartRateZone.map { "Z\($0)" } ?? "lpm" }
+    private var zoneLabel: String { model.heartRateZone.map { "Z\($0)" } ?? localizedString("lpm") }
 }
 
 // MARK: - Reusable components

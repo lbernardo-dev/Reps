@@ -110,23 +110,6 @@ struct WorkoutPostCard: View {
                     } label: {
                         Label(localizedString("social_block_user"), systemImage: "person.crop.circle.badge.xmark")
                     }
-                    if store.isSocialModerator {
-                        Divider()
-                        Button(role: .destructive) {
-                            Task {
-                                if await store.moderatorDeletePost(post) { onModeratorAction?() }
-                            }
-                        } label: {
-                            Label(localizedString("social_moderator_delete_post"), systemImage: "trash")
-                        }
-                        Button(role: .destructive) {
-                            Task {
-                                if await store.moderatorBanUser(post.ownerUsername) { onModeratorAction?() }
-                            }
-                        } label: {
-                            Label(localizedString("social_moderator_ban_user"), systemImage: "hand.raised.fill")
-                        }
-                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.title3)

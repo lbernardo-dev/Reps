@@ -317,7 +317,7 @@ private struct PRShareCardView: View {
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                             .foregroundStyle(Color.white.opacity(0.35))
                         Spacer()
-                        Text("StreakRep")
+                        Text("StreakReps")
                             .font(.system(size: 13, weight: .black, design: .rounded))
                             .foregroundStyle(PulseTheme.accent.opacity(0.7))
                     }

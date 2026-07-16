@@ -4,7 +4,7 @@
 **Responsable:** RomeroDev  
 **Contacto:** romerodev.app+streakreps@gmail.com
 
-Esta política explica cómo Reps (también denominada “StreakRep” en algunas pantallas y metadatos) trata la información cuando utilizas la aplicación móvil, sus widgets, la aplicación para Apple Watch y las funciones sociales.
+Esta política explica cómo Reps (también denominada “StreakReps” en algunas pantallas y metadatos) trata la información cuando utilizas la aplicación móvil, sus widgets, la aplicación para Apple Watch y las funciones sociales.
 
 ## 1. Qué datos puede tratar Reps
 

@@ -11,7 +11,7 @@ settings:
   base:
     DEVELOPMENT_TEAM: L2B56644F5
     MARKETING_VERSION: 1.0.0
-    CURRENT_PROJECT_VERSION: 100202607161
+    CURRENT_PROJECT_VERSION: 100202607162
     SWIFT_VERSION: 6.0
     LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION: "YES"
   configs:
@@ -38,25 +38,27 @@ targets:
       SystemCapabilities:
         com.apple.InAppPurchase:
           enabled: 1
+        com.apple.Push:
+          enabled: 1
     sources:
       - path: Reps
       - path: RepsShared
     info:
       path: Reps/Info.plist
       properties:
-        CFBundleDisplayName: StreakRep
+        CFBundleDisplayName: StreakReps
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
-        NSAppleMusicUsageDescription: StreakRep necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos.
-        NSCameraUsageDescription: StreakRep necesita acceso a la cámara para tomar fotos de progreso y asociarlas a tus entrenamientos.
-        NSMicrophoneUsageDescription: StreakRep necesita acceso al micrófono para grabar notas de voz dentro de tus entrenamientos.
-        NSHealthShareUsageDescription: StreakRep lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación.
-        NSHealthUpdateUsageDescription: StreakRep puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos.
-        NSLocationAlwaysAndWhenInUseUsageDescription: StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre incluso cuando la pantalla está bloqueada.
-        NSLocationWhenInUseUsageDescription: StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.
-        NSMotionUsageDescription: StreakRep usa sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada.
-        NSPhotoLibraryAddUsageDescription: StreakRep necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas.
-        NSPhotoLibraryUsageDescription: StreakRep necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos.
+        NSAppleMusicUsageDescription: StreakReps necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos.
+        NSCameraUsageDescription: StreakReps necesita acceso a la cámara para tomar fotos de progreso y asociarlas a tus entrenamientos.
+        NSMicrophoneUsageDescription: StreakReps necesita acceso al micrófono para grabar notas de voz dentro de tus entrenamientos.
+        NSHealthShareUsageDescription: StreakReps lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación.
+        NSHealthUpdateUsageDescription: StreakReps puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos.
+        NSLocationAlwaysAndWhenInUseUsageDescription: StreakReps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre incluso cuando la pantalla está bloqueada.
+        NSLocationWhenInUseUsageDescription: StreakReps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.
+        NSMotionUsageDescription: StreakReps usa sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada.
+        NSPhotoLibraryAddUsageDescription: StreakReps necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas.
+        NSPhotoLibraryUsageDescription: StreakReps necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos.
         ITSAppUsesNonExemptEncryption: false
         RepsProICloudRecordIDHashes:
           - 69c0dc20d15124f24860efa6345787972b5cc2ebe6f3646fe44cdfe1a5e37ca9
@@ -64,7 +66,7 @@ targets:
         NSUbiquitousContainers:
           iCloud.com.romerodev.repsfitness:
             NSUbiquitousContainerIsDocumentScopePublic: false
-            NSUbiquitousContainerName: StreakRep
+            NSUbiquitousContainerName: StreakReps
             NSUbiquitousContainerSupportedFolderLevels: None
         UIApplicationSupportsIndirectInputEvents: true
         UIBackgroundModes:
@@ -95,6 +97,7 @@ targets:
     entitlements:
       path: Reps/Reps.entitlements
       properties:
+        aps-environment: development
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.background-delivery: true
         com.apple.developer.icloud-container-identifiers:
@@ -108,10 +111,6 @@ targets:
       - package: MuscleMap
       - package: firebase-ios-sdk
         product: FirebaseAnalytics
-      - package: firebase-ios-sdk
-        product: FirebaseAnalyticsCore
-      - package: firebase-ios-sdk
-        product: FirebaseAnalyticsIdentitySupport
       - package: firebase-ios-sdk
         product: FirebaseCore
       - package: firebase-ios-sdk
@@ -163,7 +162,7 @@ targets:
     info:
       path: RepsWidgets/Info.plist
       properties:
-        CFBundleDisplayName: StreakRep
+        CFBundleDisplayName: StreakReps
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSExtension:
@@ -193,13 +192,13 @@ targets:
     info:
       path: RepsWatch/Info.plist
       properties:
-        CFBundleDisplayName: StreakRep
+        CFBundleDisplayName: StreakReps
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
-        NSHealthShareUsageDescription: StreakRep Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo.
-        NSHealthUpdateUsageDescription: StreakRep Watch guarda sesiones de entrenamiento iniciadas desde el reloj.
-        NSLocationWhenInUseUsageDescription: StreakRep Watch usa tu ubicación para dibujar la ruta de caminatas y carreras iniciadas desde el reloj.
-        NSMotionUsageDescription: StreakRep Watch usa el movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras.
+        NSHealthShareUsageDescription: StreakReps Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo.
+        NSHealthUpdateUsageDescription: StreakReps Watch guarda sesiones de entrenamiento iniciadas desde el reloj.
+        NSLocationWhenInUseUsageDescription: StreakReps Watch usa tu ubicación para dibujar la ruta de caminatas y carreras iniciadas desde el reloj.
+        NSMotionUsageDescription: StreakReps Watch usa el movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras.
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.romerodev.repsfitness
         UIBackgroundModes:

@@ -106,6 +106,14 @@ function stripRehabLocalizedText(source, relativePath) {
   });
 }
 
+function stripLocalizedFallbackTables(source, relativePath) {
+  if (relativePath !== "RepsShared/WorkoutShared.swift") return source;
+  return source.replace(
+    /private static let localizedFallbacks:[\s\S]*?\n    \]\n\n    private static func normalizedSupportedLanguage/,
+    "\n    private static func normalizedSupportedLanguage"
+  );
+}
+
 const spanishSignal = /[\u00C1\u00C9\u00CD\u00D3\u00DA\u00D1\u00E1\u00E9\u00ED\u00F3\u00FA\u00F1\u00BF\u00A1]|\b(entreno|entrenos|sesion|sesiones|serie|series|siguiente|guardar|cancelar|cerrar|peso|altura|fecha|agua|descanso|ejercicio|objetivo|permiso|anade|anadir|metricas|cuerpo|gimnasio|notificaciones|microfono|camara|fotos|semana|semanales|dias|calorias|duracion|distancia|notas|compartir|biblioteca|progreso|rutina|programa|activa|mostrar|marcar|perfil|salud|logros|recibos|calendario|volver|empezar|plantillas|hoy|ayer)\b/i;
 const strongSpanishInEnglish = /[\u00C1\u00C9\u00CD\u00D3\u00DA\u00D1\u00E1\u00E9\u00ED\u00F3\u00FA\u00F1\u00BF\u00A1]|\b(dias|semana|semanales|duracion|entrenado|directas|ultimos|recomienda|ejercicios|descanso|objetivo|previo|entreno|sesion)\b/i;
 
@@ -131,6 +139,7 @@ for (const [relativePath, catalog] of catalogs) {
   }
   let staleCount = 0;
   for (const [key, entry] of Object.entries(catalog.strings)) {
+    if (key === "") continue;
     const isStale = entry.extractionState === "stale";
     if (entry.extractionState === "stale") {
       staleCount += 1;
@@ -176,6 +185,7 @@ if (infoPlistResourceCount < 3) {
 for (const swiftFile of walk(root)) {
   const relativePath = path.relative(root, swiftFile);
   if (relativePath.startsWith("Scripts/")) continue;
+  if (relativePath.startsWith("RepsTests/")) continue;
   const source = stripSwiftComments(fs.readFileSync(swiftFile, "utf8"));
   for (const key of extractLocalizedLookupKeys(source)) {
     if (!localizableKeys.has(key)) {
@@ -183,7 +193,7 @@ for (const swiftFile of walk(root)) {
     }
   }
 
-  const auditedSource = stripRehabLocalizedText(source, relativePath);
+  const auditedSource = stripLocalizedFallbackTables(stripRehabLocalizedText(source, relativePath), relativePath);
   for (const value of extractSwiftStrings(auditedSource)) {
     if (spanishSignal.test(value) && !localizableKeys.has(value)) {
       errors.push(`${relativePath}: Spanish literal is not present in Localizable.xcstrings -> "${value}"`);

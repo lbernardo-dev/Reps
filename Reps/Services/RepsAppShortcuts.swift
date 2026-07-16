@@ -1,22 +1,6 @@
 import AppIntents
 import Foundation
 
-extension Notification.Name {
-    static let repsStartFreeWorkoutIntent = Notification.Name("RepsStartFreeWorkoutIntent")
-}
-
-struct StartFreeWorkoutIntent: AppIntent {
-    static let title: LocalizedStringResource = "intent_start_free_workout_title"
-    static let description = IntentDescription("intent_start_free_workout_description")
-    static let openAppWhenRun = true
-
-    @MainActor
-    func perform() async throws -> some IntentResult {
-        NotificationCenter.default.post(name: .repsStartFreeWorkoutIntent, object: nil)
-        return .result()
-    }
-}
-
 struct StreakStatusIntent: AppIntent {
     static let title: LocalizedStringResource = "intent_streak_status_title"
     static let description = IntentDescription("intent_streak_status_description")

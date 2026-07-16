@@ -117,8 +117,12 @@ enum NotificationService {
     /// user gets notified even if the app is suspended in the background.
     /// Replaces any previously scheduled rest alert.
     static func scheduleRestEndNotification(after seconds: Int, nextExerciseName: String? = nil) {
-        guard seconds > 1 else { return }
+        guard let request = restEndRequest(after: seconds, nextExerciseName: nextExerciseName) else { return }
+        UNUserNotificationCenter.current().add(request)
+    }
 
+    private static func restEndRequest(after seconds: Int, nextExerciseName: String? = nil) -> UNNotificationRequest? {
+        guard seconds > 1 else { return nil }
         let content = UNMutableNotificationContent()
         content.title = localizedString("rest_finished")
         if let nextExerciseName, !nextExerciseName.isEmpty {
@@ -130,8 +134,7 @@ enum NotificationService {
         content.threadIdentifier = "rest-timer"
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
-        let request = UNNotificationRequest(identifier: restTimerIdentifier, content: content, trigger: trigger)
-        UNUserNotificationCenter.current().add(request)
+        return UNNotificationRequest(identifier: restTimerIdentifier, content: content, trigger: trigger)
     }
 
     static func cancelRestEndNotification() {
@@ -184,6 +187,11 @@ enum NotificationService {
     }
 
     static func scheduleBatteryRecoverySuggestion(level: Int, suggestion: String) async throws {
+        let request = batteryRecoveryRequest(level: level, suggestion: suggestion)
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    private static func batteryRecoveryRequest(level: Int, suggestion: String) -> UNNotificationRequest {
         let content = UNMutableNotificationContent()
         content.title = localizedFormat("notif_battery_recovery_title_format", level)
         content.body = suggestion
@@ -199,14 +207,16 @@ enum NotificationService {
             content: content,
             trigger: trigger
         )
-        try await UNUserNotificationCenter.current().add(request)
+        return request
     }
 
     static func scheduleRetentionNudge(title: String, body: String, date: Date, now: Date = .now) async throws {
-        guard date > now.addingTimeInterval(60) else {
-            return
-        }
+        guard let request = retentionNudgeRequest(title: title, body: body, date: date, now: now) else { return }
+        try await UNUserNotificationCenter.current().add(request)
+    }
 
+    private static func retentionNudgeRequest(title: String, body: String, date: Date, now: Date = .now) -> UNNotificationRequest? {
+        guard date > now.addingTimeInterval(60) else { return nil }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -225,7 +235,7 @@ enum NotificationService {
             content: content,
             trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         )
-        try await UNUserNotificationCenter.current().add(request)
+        return request
     }
 
     /// Nudges the user, once, to fill in the sets/reps/weight for a workout
@@ -268,6 +278,11 @@ enum NotificationService {
     /// Celebrates a freshly-achieved personal record. Fires a few seconds later
     /// so it lands right after the user finishes (and never while logging).
     static func schedulePersonalRecordCelebration(exerciseName: String, delay: TimeInterval = 4) async throws {
+        let request = personalRecordRequest(exerciseName: exerciseName, delay: delay)
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    private static func personalRecordRequest(exerciseName: String, delay: TimeInterval = 4) -> UNNotificationRequest {
         let content = UNMutableNotificationContent()
         content.title = localizedString("notif_pr_title")
         content.body = localizedFormat("notif_pr_body_format", exerciseName)
@@ -281,15 +296,22 @@ enum NotificationService {
             content: content,
             trigger: trigger
         )
-        try await UNUserNotificationCenter.current().add(request)
+        return request
     }
 
     /// Schedules a reminder for the evening of a day where the streak would
     /// otherwise break. Replaces any previously scheduled streak reminder.
     static func scheduleStreakAtRiskReminder(currentStreak: Int, hour: Int = 19, minute: Int = 0, now: Date = .now) async throws {
-        guard currentStreak > 0 else { return }
+        guard let request = streakAtRiskRequest(currentStreak: currentStreak, hour: hour, minute: minute, now: now) else { return }
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [streakAtRiskIdentifier])
+        try await center.add(request)
+    }
+
+    private static func streakAtRiskRequest(currentStreak: Int, hour: Int = 19, minute: Int = 0, now: Date = .now) -> UNNotificationRequest? {
+        guard currentStreak > 0 else { return nil }
         let fireDate = notificationDate(for: now, hour: hour, minute: minute)
-        guard fireDate > now.addingTimeInterval(60) else { return }
+        guard fireDate > now.addingTimeInterval(60) else { return nil }
 
         let content = UNMutableNotificationContent()
         content.title = localizedFormat("notif_streak_at_risk_title_format", currentStreak)
@@ -304,9 +326,7 @@ enum NotificationService {
             content: content,
             trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         )
-        let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: [streakAtRiskIdentifier])
-        try await center.add(request)
+        return request
     }
 
     static func cancelStreakAtRiskReminder() {
@@ -327,11 +347,29 @@ enum NotificationService {
         now: Date = .now
     ) async throws {
         cancelGymRenewalReminder(passID: passID)
+        guard let request = gymRenewalRequest(
+            passID: passID,
+            gymName: gymName,
+            renewalDate: renewalDate,
+            daysBefore: daysBefore,
+            hour: hour,
+            now: now
+        ) else { return }
+        try await UNUserNotificationCenter.current().add(request)
+    }
 
+    private static func gymRenewalRequest(
+        passID: UUID,
+        gymName: String,
+        renewalDate: Date,
+        daysBefore: Int = 3,
+        hour: Int = 9,
+        now: Date = .now
+    ) -> UNNotificationRequest? {
         let calendar = Calendar.current
         let dayBefore = calendar.date(byAdding: .day, value: -daysBefore, to: renewalDate) ?? renewalDate
         let fireDate = notificationDate(for: dayBefore, hour: hour, minute: 0)
-        guard fireDate > now.addingTimeInterval(60) else { return }
+        guard fireDate > now.addingTimeInterval(60) else { return nil }
 
         let content = UNMutableNotificationContent()
         content.title = localizedString("notif_gym_renewal_title")
@@ -346,7 +384,7 @@ enum NotificationService {
             content: content,
             trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         )
-        try await UNUserNotificationCenter.current().add(request)
+        return request
     }
 
     static func cancelGymRenewalReminder(passID: UUID) {
@@ -449,6 +487,11 @@ enum NotificationService {
 
     /// Celebrates a newly unlocked achievement.
     static func scheduleAchievementUnlocked(message: String, delay: TimeInterval = 3) async throws {
+        let request = achievementRequest(message: message, delay: delay)
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    private static func achievementRequest(message: String, delay: TimeInterval = 3) -> UNNotificationRequest {
         let content = UNMutableNotificationContent()
         content.title = localizedString("notif_achievement_title")
         content.body = message
@@ -462,7 +505,7 @@ enum NotificationService {
             content: content,
             trigger: trigger
         )
-        try await UNUserNotificationCenter.current().add(request)
+        return request
     }
 
     private static let socialPrefix = "social-"
@@ -470,6 +513,11 @@ enum NotificationService {
     /// Turns a CloudKit social subscription push into a visible local notification.
     /// `subscriptionID` is the one set in SocialService ("new-follower-…" / "new-like-…" / "new-comment-…").
     static func postCloudKitSocialNotification(subscriptionID: String) {
+        guard let request = socialRequest(subscriptionID: subscriptionID) else { return }
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private static func socialRequest(subscriptionID: String) -> UNNotificationRequest? {
         let content = UNMutableNotificationContent()
         content.sound = .default
         content.threadIdentifier = "social"
@@ -484,7 +532,7 @@ enum NotificationService {
             content.title = localizedString("notif_new_comment_title")
             content.body = localizedString("notif_new_comment_body")
         } else {
-            return
+            return nil
         }
 
         // No routing kind: tapping simply opens the app (the social hub is not a
@@ -495,11 +543,16 @@ enum NotificationService {
             content: content,
             trigger: trigger
         )
-        UNUserNotificationCenter.current().add(request)
+        return request
     }
 
     /// Celebrates a goal the user just reached. Routes to the progress tab.
     static func scheduleGoalReached(goalTitle: String, delay: TimeInterval = 3) async throws {
+        let request = goalReachedRequest(goalTitle: goalTitle, delay: delay)
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    private static func goalReachedRequest(goalTitle: String, delay: TimeInterval = 3) -> UNNotificationRequest {
         let content = UNMutableNotificationContent()
         content.title = localizedString("notif_goal_reached_title")
         content.body = localizedFormat("notif_goal_reached_body_format", goalTitle)
@@ -513,8 +566,53 @@ enum NotificationService {
             content: content,
             trigger: trigger
         )
-        try await UNUserNotificationCenter.current().add(request)
+        return request
     }
+
+    #if DEBUG
+    static func diagnosticRoutableRequests(
+        scheduledWorkout: ScheduledWorkout,
+        now: Date,
+        retentionDate: Date,
+        streakHour: Int,
+        streakMinute: Int,
+        gymPassID: UUID,
+        gymRenewalDate: Date
+    ) -> [UNNotificationRequest] {
+        var requests: [UNNotificationRequest] = []
+
+        if let rest = restEndRequest(after: 120, nextExerciseName: "Bench Press") {
+            requests.append(rest)
+        }
+        if let reminder = workoutReminderRequest(for: scheduledWorkout, now: now) {
+            requests.append(reminder)
+        }
+        if let missed = missedWorkoutRequest(for: scheduledWorkout, now: now) {
+            requests.append(missed)
+        }
+        requests.append(dailySummaryRequest(hour: 23, minute: 55))
+        requests.append(batteryRecoveryRequest(level: 42, suggestion: "Take a lighter day."))
+        if let retention = retentionNudgeRequest(title: "Plan tomorrow", body: "Keep momentum.", date: retentionDate, now: now) {
+            requests.append(retention)
+        }
+        requests.append(personalRecordRequest(exerciseName: "Squat", delay: 120))
+        if let streak = streakAtRiskRequest(currentStreak: 3, hour: streakHour, minute: streakMinute, now: now) {
+            requests.append(streak)
+        }
+        if let renewal = gymRenewalRequest(passID: gymPassID, gymName: "Test Gym", renewalDate: gymRenewalDate, now: now) {
+            requests.append(renewal)
+        }
+        requests.append(achievementRequest(message: "Unlocked", delay: 120))
+        requests.append(goalReachedRequest(goalTitle: "Bench 100", delay: 120))
+        if let follower = socialRequest(subscriptionID: "new-follower-test") {
+            requests.append(follower)
+        }
+        if let like = socialRequest(subscriptionID: "new-like-test") {
+            requests.append(like)
+        }
+        return requests
+    }
+    #endif
 
     /// Re-schedules the notification ~1h later (snooze action handler).
     static func snooze(target: NotificationTarget, delay: TimeInterval = 3600) async {

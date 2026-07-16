@@ -895,48 +895,11 @@ actor SocialService {
         try await publicDB.save(record)
     }
 
-    // MARK: Moderator (developer-managed, no in-app grant flow)
-    //
-    // This app has no backend, so moderator status can't be safely granted
-    // from inside the app itself. Instead the developer creates/deletes a
-    // SocialModerator record directly in the CloudKit Dashboard to flag an
-    // account. Every "delete another user's content" / "ban" action below is
-    // enforced client-side only (gated on `isModerator` in the UI) — the same
-    // trust model this app already uses for reports and blocks.
+    // MARK: Moderation (developer-managed, read-only in app)
 
-    /// Checks whether `username` has been flagged as a moderator.
-    func isModerator(username: String) async -> Bool {
-        guard !username.isEmpty else { return false }
-        let rid = CKRecord.ID(recordName: "SocialModerator_\(username.lowercased())")
-        do {
-            _ = try await publicDB.record(for: rid)
-            return true
-        } catch {
-            return false
-        }
-    }
-
-    /// Globally hides a user's content for every client (unlike `blockUser`,
-    /// which only filters the blocker's own device).
-    func banUser(username: String, bannedByUsername: String) async throws {
-        try await requireICloudAccount()
-        let normalized = username.lowercased()
-        let rid = CKRecord.ID(recordName: "SocialBan_\(normalized)")
-        let record = CKRecord(recordType: "SocialBan", recordID: rid)
-        record["bannedUsername"] = normalized as CKRecordValue
-        record["bannedByUsername"] = bannedByUsername.lowercased() as CKRecordValue
-        record["createdAt"] = Date() as CKRecordValue
-        try await publicDB.save(record)
-    }
-
-    /// Reverses a ban.
-    func unbanUser(username: String) async throws {
-        let rid = CKRecord.ID(recordName: "SocialBan_\(username.lowercased())")
-        try await publicDB.deleteRecord(withID: rid)
-    }
-
-    /// Fetches every currently-banned username so clients can filter feeds
-    /// and threads. Small dataset — safe to refetch periodically.
+    /// Fetches every currently-banned username so clients can filter feeds and
+    /// threads. Records must be created/deleted outside the app in CloudKit
+    /// Dashboard, with public write access disabled in the production schema.
     func fetchBannedUsernames() async -> Set<String> {
         let query = CKQuery(recordType: "SocialBan", predicate: NSPredicate(value: true))
         do {
@@ -947,19 +910,6 @@ actor SocialService {
         } catch {
             return []
         }
-    }
-
-    /// Moderator-only: deletes any user's comment record.
-    func deleteComment(commentID: String, postID: String) async throws {
-        try await publicDB.deleteRecord(withID: CKRecord.ID(recordName: commentID))
-        ensureLoaded()
-        commentsCache[postID]?.removeAll { $0.id == commentID }
-        persistCache()
-    }
-
-    /// Moderator-only: deletes any user's post record.
-    func deletePost(postID: String) async throws {
-        try await publicDB.deleteRecord(withID: CKRecord.ID(recordName: postID))
     }
 
     // MARK: - Comments (offline-first, deferred sync)
@@ -1350,58 +1300,53 @@ actor SocialService {
     // `SocialProfile`/`WorkoutPost`/etc. are a real public CloudKit account,
     // so this removes every record owned by it, not just the profile.
     //
-    // Every step below is best-effort (`try?`): a single record failing to
-    // delete — most often because a query needs a Dashboard index that was
-    // never provisioned — must never block the rest of the deletion. The
-    // profile record itself is deleted last, once content cleanup has been
-    // attempted, so a partial failure never leaves a "ghost" profile that
-    // looks alive while its content is gone.
+    // The profile record itself is deleted last, once owned content cleanup
+    // has completed, so a retryable failure never leaves a profile that looks
+    // deleted while its owned content remains public.
 
     /// Deletes the public CloudKit account for `username`: profile, posts,
-    /// comments, outgoing/incoming follows, likes, blocks, and push
-    /// subscriptions. Local caches are cleared afterward. Throws only if
-    /// iCloud is unavailable or the profile record itself can't be removed.
+    /// comments, outgoing follows, likes, blocks, reports, and push
+    /// subscriptions. Local caches are cleared afterward.
     func deleteAccount(username: String) async throws {
         try await requireICloudAccount()
         let myID = try await myRecordID()
         let normalized = username.lowercased()
 
-        for post in await fetchPosts(username: normalized, limit: 1000) {
-            _ = try? await publicDB.deleteRecord(withID: CKRecord.ID(recordName: post.id))
-        }
-
-        await deleteRecords(
+        try await deleteRecords(
+            type: "WorkoutPost",
+            predicate: NSPredicate(format: "ownerUsername == %@", normalized)
+        )
+        try await deleteRecords(
             type: "WorkoutComment",
             predicate: NSPredicate(format: "ownerUsername == %@", normalized)
         )
-        await deleteRecords(
+        try await deleteRecords(
             type: "WorkoutLike",
             predicate: NSPredicate(format: "likerOwnerName == %@", myID.recordName)
         )
-        await deleteRecords(
+        try await deleteRecords(
             type: "SocialBlock",
             predicate: NSPredicate(format: "blockerOwnerName == %@", myID.recordName)
+        )
+        try await deleteRecords(
+            type: "ContentReport",
+            predicate: NSPredicate(format: "reporterUsername == %@", normalized)
         )
 
         // Outgoing follows use deterministic IDs, so no query/index is needed.
         if let profile = try? await fetchMyProfile(username: normalized) {
             for followed in profile.followingUsernames {
                 let fid = followRecordID(followerOwner: myID.recordName, followingUsername: followed)
-                _ = try? await publicDB.deleteRecord(withID: fid)
+                try await deleteRecordIfPresent(fid)
             }
         }
-        // Incoming follows (other accounts following this one) need a query.
-        await deleteRecords(
-            type: "SocialFollow",
-            predicate: NSPredicate(format: "followingUsername == %@", normalized)
-        )
 
         for subscriptionID in ["new-follower-\(normalized)", "new-like-\(normalized)", "new-comment-\(normalized)"] {
-            _ = try? await publicDB.deleteSubscription(withID: subscriptionID)
+            try await deleteSubscriptionIfPresent(subscriptionID)
         }
 
         // Profile record last — see note above on ordering.
-        try await publicDB.deleteRecord(withID: profileRecordID(username: normalized))
+        try await deleteRecordIfPresent(profileRecordID(username: normalized))
 
         UserDefaults.standard.removeObject(forKey: Self.postCacheKey)
         UserDefaults.standard.removeObject(forKey: Self.commentIndexKey)
@@ -1411,14 +1356,33 @@ actor SocialService {
         if let url = outboxURL { try? FileManager.default.removeItem(at: url) }
     }
 
-    /// Best-effort bulk delete: queries `type` for `predicate` and removes every
-    /// match. Silently does nothing if the query needs an index that isn't
-    /// provisioned yet, consistent with how every other query in this file degrades.
-    private func deleteRecords(type: String, predicate: NSPredicate) async {
+    /// Paginates through all records matching `predicate` and deletes each
+    /// record owned by this account.
+    private func deleteRecords(type: String, predicate: NSPredicate) async throws {
         let query = CKQuery(recordType: type, predicate: predicate)
-        guard let result = try? await publicDB.records(matching: query, resultsLimit: 1000) else { return }
-        for (recordID, _) in result.matchResults {
-            _ = try? await publicDB.deleteRecord(withID: recordID)
+        var page = try await publicDB.records(matching: query, resultsLimit: 200)
+        while true {
+            for (recordID, _) in page.matchResults {
+                try await deleteRecordIfPresent(recordID)
+            }
+            guard let cursor = page.queryCursor else { break }
+            page = try await publicDB.records(continuingMatchFrom: cursor, resultsLimit: 200)
+        }
+    }
+
+    private func deleteRecordIfPresent(_ recordID: CKRecord.ID) async throws {
+        do {
+            _ = try await publicDB.deleteRecord(withID: recordID)
+        } catch let error as CKError where error.code == .unknownItem {
+            return
+        }
+    }
+
+    private func deleteSubscriptionIfPresent(_ subscriptionID: String) async throws {
+        do {
+            _ = try await publicDB.deleteSubscription(withID: subscriptionID)
+        } catch let error as CKError where error.code == .unknownItem {
+            return
         }
     }
 }

@@ -5,7 +5,7 @@ Estas condiciones complementan los [Términos de uso](./TERMINOS_DE_USO.md) y la
 
 ## 1. Qué es Pro
 
-Reps Pro desbloquea funciones premium que pueden incluir analítica avanzada, progresión configurable, tarjetas para compartir, funciones avanzadas de Apple Watch, backups operativos de iCloud y otras prestaciones que se indiquen en la pantalla de compra.
+StreakReps Pro desbloquea funciones premium que pueden incluir analítica avanzada, progresión configurable, tarjetas para compartir, funciones avanzadas de Apple Watch, backups operativos de iCloud y otras prestaciones que se indiquen en la pantalla de compra.
 
 La disponibilidad exacta puede variar por versión, país, dispositivo y configuración de la oferta mostrada en Apple.
 

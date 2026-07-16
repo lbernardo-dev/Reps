@@ -1479,9 +1479,9 @@ struct ActiveWorkoutView: View {
                                     )
                                 
                                 if let bpm = currentHeartRate {
-                                    Text("\(Int(bpm)) lpm")
+                                    Text("\(Int(bpm)) \(localizedString("lpm"))")
                                         .foregroundStyle(Color.primary)
-                                    
+
                                     let zoneInfo = activeHeartRateZone(for: bpm)
                                     Text(zoneInfo.name)
                                         .font(.system(size: 8, weight: .black, design: .rounded))
@@ -1490,7 +1490,7 @@ struct ActiveWorkoutView: View {
                                         .padding(.vertical, 1.5)
                                         .background(zoneInfo.color, in: Capsule())
                                 } else {
-                                    Text("-- lpm")
+                                    Text("-- \(localizedString("lpm"))")
                                 }
                             }
                         }
@@ -2005,7 +2005,9 @@ struct ActiveWorkoutView: View {
                     Text(localizedString("document_session"))
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(.primary)
-                    Text(sessionNotes.isEmpty && sessionMediaAttachments.isEmpty ? "Añadir notas, fotos o audio" : "Notas y multimedia adjuntas")
+                    Text(localizedString(sessionNotes.isEmpty && sessionMediaAttachments.isEmpty
+                        ? "add_notes_photos_or_audio"
+                        : "notes_and_media_attached"))
                         .font(.caption)
                         .foregroundStyle(PulseTheme.secondaryText)
                 }

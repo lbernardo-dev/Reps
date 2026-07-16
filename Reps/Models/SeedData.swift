@@ -673,7 +673,7 @@ enum SeedData {
                 equipment: inferredEquipment(for: name),
                 requiredEquipment: [inferredEquipment(for: name)],
                 exerciseType: inferredExerciseType(for: name),
-                sourceName: "StreakRep seed catalog",
+                sourceName: "StreakReps seed catalog",
                 sourceLicense: "Internal generated catalog"
             )
     }
@@ -750,7 +750,7 @@ enum SeedData {
                     tags: family.tags + patternTags(for: name),
                     instructions: instructions(for: name, muscleGroup: family.muscleGroup),
                     commonMistakes: commonMistakes(for: family.exerciseType),
-                    sourceName: "StreakRep seed catalog",
+                    sourceName: "StreakReps seed catalog",
                     sourceLicense: "Internal generated catalog"
                 )
             }

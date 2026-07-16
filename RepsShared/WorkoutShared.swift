@@ -551,7 +551,7 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
     static let empty = SharedWorkoutSnapshot(
         hasActiveWorkout: false,
         planTitle: nil,
-        workoutTitle: "StreakRep",
+        workoutTitle: "StreakReps",
         sessionTitle: nil,
         elapsedSeconds: 0,
         pausedSeconds: 0,
@@ -661,7 +661,7 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
             estimatedRemainingSeconds: 2700,
             waterLiters: 1.2,
             musicTitle: "Heavy sets / clean reps",
-            musicArtist: "StreakRep Mix",
+            musicArtist: "StreakReps Mix",
             isMusicPlaying: true,
             nextExerciseName: isSpanish ? "Remo con barra" : "Barbell Row",
             exerciseHistorySummary: isSpanish ? "Mejor reciente: 92.5 kg x 6" : "Recent best: 92.5 kg x 6",
@@ -791,7 +791,7 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
         guard let value = validPositive(value) else {
             return "--"
         }
-        return "\(Int(value)) lpm"
+        return "\(Int(value)) \(localizedString("lpm"))"
     }
 
     var routeDistanceText: String {

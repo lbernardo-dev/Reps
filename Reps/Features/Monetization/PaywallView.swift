@@ -97,7 +97,7 @@ struct PaywallView: View {
                         .foregroundStyle(PulseTheme.textPrimary)
                 }
             }
-            .frame(width: 32, height: 32)
+            .frame(minWidth: 44, minHeight: 44)
             .navigationGlassCircle(.secondary)
         }
         .buttonStyle(.plain)
@@ -113,10 +113,11 @@ struct PaywallView: View {
             Image(systemName: "xmark")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PulseTheme.textPrimary)
-                .frame(width: 32, height: 32)
+                .frame(minWidth: 44, minHeight: 44)
                 .navigationGlassCircle(.secondary)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(localizedString("close"))
     }
 
     private var paywallHero: some View {
@@ -293,7 +294,8 @@ struct PaywallView: View {
     }
 
     private func priceText(for cycle: SubscriptionBillingCycle) -> String {
-        store.storeKitProduct(for: cycle)?.storeProduct.localizedPriceString ?? fallbackPrice(for: cycle)
+        store.storeKitProduct(for: cycle)?.storeProduct.localizedPriceString
+            ?? localizedString("loading_app_store")
     }
 
     private func weeklyEquivalentCaption(for cycle: SubscriptionBillingCycle) -> String? {
@@ -333,7 +335,9 @@ struct PaywallView: View {
 
     private func planSubtitle(for cycle: SubscriptionBillingCycle, product: Package?) -> String {
         if cycle.hasIntroTrial {
-            let price = product?.storeProduct.localizedPriceString ?? fallbackPrice(for: cycle)
+            guard let price = product?.storeProduct.localizedPriceString else {
+                return localizedString("loading_app_store")
+            }
             return localizedFormat("first_week_free_then_format", price, renewalText(for: cycle))
         }
 
@@ -346,15 +350,6 @@ struct PaywallView: View {
         case .monthly: return localizedString("per_month")
         case .yearly: return localizedString("per_year")
         case .lifetime: return ""
-        }
-    }
-
-    private func fallbackPrice(for cycle: SubscriptionBillingCycle) -> String {
-        switch cycle {
-        case .weekly: return "0,99 €"
-        case .monthly: return "1,99 €"
-        case .yearly: return "9,99 €"
-        case .lifetime: return "19,99 €"
         }
     }
 

@@ -1398,9 +1398,9 @@ struct ProfileView: View {
 
         var components = URLComponents()
         components.scheme = "mailto"
-        components.path = "support@romerodev.com"
+        components.path = "romerodev.app+streakreps@gmail.com"
         components.queryItems = [
-            URLQueryItem(name: "subject", value: "Feedback StreakRep \(appVersionText)"),
+            URLQueryItem(name: "subject", value: "Feedback StreakReps \(appVersionText)"),
             URLQueryItem(name: "body", value: trimmed)
         ]
 

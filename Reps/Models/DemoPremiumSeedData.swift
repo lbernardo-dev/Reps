@@ -738,7 +738,7 @@ enum DemoPremiumSeedData {
             UIRectFill(CGRect(x: 0, y: rect.height - 76, width: rect.width, height: 76))
             drawText(title, in: CGRect(x: 36, y: 46, width: 560, height: 50), size: 32, color: .white, weight: .bold)
             drawText(subtitle, in: CGRect(x: 36, y: 108, width: 560, height: 40), size: 22, color: .lightGray, weight: .semibold)
-            drawText("STREAKREP PRO", in: CGRect(x: 36, y: 292, width: 560, height: 36), size: 24, color: .black, weight: .heavy)
+            drawText("STREAKREPS PRO", in: CGRect(x: 36, y: 292, width: 560, height: 36), size: 24, color: .black, weight: .heavy)
         } ?? Data()
     }
 

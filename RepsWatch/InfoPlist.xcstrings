@@ -7,13 +7,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "StreakRep"
+            "value": "StreakReps"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "StreakRep"
+            "value": "StreakReps"
           }
         }
       }
@@ -41,13 +41,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "StreakRep Watch reads heart rate and calories during workouts to show your live vitals."
+            "value": "StreakReps Watch reads heart rate and calories during workouts to show your live vitals."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "StreakRep Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo."
+            "value": "StreakReps Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo."
           }
         }
       }
@@ -58,13 +58,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "StreakRep Watch saves workout sessions started from the watch."
+            "value": "StreakReps Watch saves workout sessions started from the watch."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "StreakRep Watch guarda sesiones de entrenamiento iniciadas desde el reloj."
+            "value": "StreakReps Watch guarda sesiones de entrenamiento iniciadas desde el reloj."
           }
         }
       }
@@ -75,13 +75,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "StreakRep Watch uses your location to draw the route of walks and runs started from the watch."
+            "value": "StreakReps Watch uses your location to draw the route of walks and runs started from the watch."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "StreakRep Watch usa tu ubicación para dibujar la ruta de caminatas y carreras iniciadas desde el reloj."
+            "value": "StreakReps Watch usa tu ubicación para dibujar la ruta de caminatas y carreras iniciadas desde el reloj."
           }
         }
       }
@@ -92,13 +92,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "StreakRep Watch uses motion and pedometer to show steps and distance during walks and runs."
+            "value": "StreakReps Watch uses motion and pedometer to show steps and distance during walks and runs."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "StreakRep Watch usa movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras."
+            "value": "StreakReps Watch usa movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras."
           }
         }
       }

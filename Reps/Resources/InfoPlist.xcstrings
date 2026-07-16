@@ -7,13 +7,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep"
+            "value" : "StreakReps"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep"
+            "value" : "StreakReps"
           }
         }
       }
@@ -24,13 +24,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep"
+            "value" : "StreakReps"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep"
+            "value" : "StreakReps"
           }
         }
       }
@@ -41,13 +41,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep needs access to your music library to play motivational playlists during your workouts."
+            "value" : "StreakReps needs access to your music library to play motivational playlists during your workouts."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos."
+            "value" : "StreakReps necesita acceso a tu biblioteca de música para reproducir playlists motivacionales durante tus entrenamientos."
           }
         }
       }
@@ -58,13 +58,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep needs camera access to take progress photos and attach them to your workouts."
+            "value" : "StreakReps needs camera access to take progress photos and attach them to your workouts."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep necesita acceso a la cámara para tomar fotos de progreso y asociarlas a tus entrenamientos."
+            "value" : "StreakReps necesita acceso a la cámara para tomar fotos de progreso y asociarlas a tus entrenamientos."
           }
         }
       }
@@ -75,13 +75,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep reads Apple Health data such as weight, height, steps, calories, hydration, exercise, heart rate, and workouts to show your progress and recovery."
+            "value" : "StreakReps reads Apple Health data such as weight, height, steps, calories, hydration, exercise, heart rate, and workouts to show your progress and recovery."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación."
+            "value" : "StreakReps lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación."
           }
         }
       }
@@ -92,13 +92,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep can save your body metrics, hydration, dietary energy, and workouts to Apple Health when you choose to sync them."
+            "value" : "StreakReps can save your body metrics, hydration, dietary energy, and workouts to Apple Health when you choose to sync them."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos."
+            "value" : "StreakReps puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos."
           }
         }
       }
@@ -109,13 +109,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre incluso cuando la pantalla está bloqueada."
+            "value" : "StreakReps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre incluso cuando la pantalla está bloqueada."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep needs your location to record outdoor running and cardio routes even when the screen is locked."
+            "value" : "StreakReps needs your location to record outdoor running and cardio routes even when the screen is locked."
           }
         }
       }
@@ -126,13 +126,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep needs your location to record outdoor running and cardio routes in real time."
+            "value" : "StreakReps needs your location to record outdoor running and cardio routes in real time."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real."
+            "value" : "StreakReps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real."
           }
         }
       }
@@ -143,13 +143,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep needs microphone access to record voice notes inside your workouts."
+            "value" : "StreakReps needs microphone access to record voice notes inside your workouts."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep necesita acceso al micrófono para grabar notas de voz dentro de tus entrenamientos."
+            "value" : "StreakReps necesita acceso al micrófono para grabar notas de voz dentro de tus entrenamientos."
           }
         }
       }
@@ -160,13 +160,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep uses motion sensors to detect walking or running and suggest resuming a paused route."
+            "value" : "StreakReps uses motion sensors to detect walking or running and suggest resuming a paused route."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep usa los sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada."
+            "value" : "StreakReps usa los sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada."
           }
         }
       }
@@ -177,13 +177,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas."
+            "value" : "StreakReps necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep needs permission to save progress images when you choose to export or share them."
+            "value" : "StreakReps needs permission to save progress images when you choose to export or share them."
           }
         }
       }
@@ -194,13 +194,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep needs access to your photos to select progress images and attach them to your profile or workouts."
+            "value" : "StreakReps needs access to your photos to select progress images and attach them to your profile or workouts."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "StreakRep necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos."
+            "value" : "StreakReps necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos."
           }
         }
       }

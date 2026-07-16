@@ -575,6 +575,12 @@ final class WorkoutSessionRecord {
     var activeEnergyKcal: Double?
     var heartRateBefore: Double?
     var heartRateAfter: Double?
+    var healthKitUUIDString: String? = nil
+    var isImportedFromHealth: Bool = false
+    var healthKitActivityTypes: [String] = []
+    var averageHeartRate: Double? = nil
+    var maxHeartRate: Double? = nil
+    var importedAt: Date? = nil
     @Relationship(deleteRule: .cascade) var sets: [SetLogRecord]
     @Relationship(deleteRule: .cascade) var exerciseLogs: [ExerciseLogRecord]
 
@@ -602,6 +608,12 @@ final class WorkoutSessionRecord {
         activeEnergyKcal = session.activeEnergyKcal
         heartRateBefore = session.heartRateBefore
         heartRateAfter = session.heartRateAfter
+        healthKitUUIDString = session.healthKitUUIDString
+        isImportedFromHealth = session.isImportedFromHealth
+        healthKitActivityTypes = session.healthKitActivityTypes
+        averageHeartRate = session.averageHeartRate
+        maxHeartRate = session.maxHeartRate
+        importedAt = session.importedAt
         sets = session.sets.map(SetLogRecord.init)
         exerciseLogs = (session.exerciseLogs ?? []).map(ExerciseLogRecord.init)
     }
@@ -632,7 +644,13 @@ final class WorkoutSessionRecord {
             steps: steps,
             activeEnergyKcal: activeEnergyKcal,
             heartRateBefore: heartRateBefore,
-            heartRateAfter: heartRateAfter
+            heartRateAfter: heartRateAfter,
+            healthKitUUIDString: healthKitUUIDString,
+            isImportedFromHealth: isImportedFromHealth,
+            healthKitActivityTypes: healthKitActivityTypes,
+            averageHeartRate: averageHeartRate,
+            maxHeartRate: maxHeartRate,
+            importedAt: importedAt
         )
     }
 }

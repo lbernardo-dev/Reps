@@ -225,7 +225,7 @@ struct SettingsView: View {
                         .shadow(color: PulseTheme.surfaceShadow, radius: 10, x: 0, y: 5)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("StreakRep")
+                        Text("StreakReps")
                             .font(SettingsTypography.appTitle)
                             .foregroundStyle(PulseTheme.textPrimary)
                             .lineLimit(1)
@@ -330,7 +330,7 @@ struct SettingsView: View {
 
     private var settingsSignature: some View {
         VStack(spacing: 8) {
-            Text(settingsFormatText("settings_app_version_format", "StreakRep", appVersion))
+            Text(settingsFormatText("settings_app_version_format", "StreakReps", appVersion))
                 .font(SettingsTypography.footerTitle)
                 .foregroundStyle(PulseTheme.textPrimary)
                 .multilineTextAlignment(.center)
@@ -496,9 +496,9 @@ struct SettingsView: View {
 
         var components = URLComponents()
         components.scheme = "mailto"
-        components.path = "support@romerodev.com"
+        components.path = "romerodev.app+streakreps@gmail.com"
         components.queryItems = [
-            URLQueryItem(name: "subject", value: "Feedback StreakRep \(appVersionText)"),
+            URLQueryItem(name: "subject", value: "Feedback StreakReps \(appVersionText)"),
             URLQueryItem(name: "body", value: trimmed)
         ]
 
@@ -1199,7 +1199,7 @@ private let settingsEnglishFallbacks: [String: String] = [
     "developer_tools": "Developer tools",
     "dev_menu_subtitle": "Onboarding, data, and Pro access",
     "home_screen_watch_and_live_activity_style": "Home Screen, Watch, and Live Activity style",
-    "how_reps_uses_data_permissions_and_health_context": "How Reps uses data, permissions, and health context",
+    "how_reps_uses_data_permissions_and_health_context": "How StreakReps uses data, permissions, and health context",
     "information_disclaimer": "Information and disclaimer",
     "language_theme_and_interface": "Language, theme, and interface",
     "last_active": "Last active",
@@ -1236,7 +1236,7 @@ private let settingsSpanishFallbacks: [String: String] = [
     "developer_tools": "Herramientas de desarrollo",
     "dev_menu_subtitle": "Inicio guiado, datos y acceso Pro",
     "home_screen_watch_and_live_activity_style": "Estilo para pantalla de inicio, Watch y Live Activity",
-    "how_reps_uses_data_permissions_and_health_context": "Cómo Reps usa datos, permisos y contexto de salud",
+    "how_reps_uses_data_permissions_and_health_context": "Cómo StreakReps usa datos, permisos y contexto de salud",
     "information_disclaimer": "Información y aviso legal",
     "language_theme_and_interface": "Idioma, tema e interfaz",
     "last_active": "Última actividad",

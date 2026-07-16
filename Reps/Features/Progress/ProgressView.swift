@@ -1180,7 +1180,7 @@ struct ProgressDashboardView: View {
       parts.append(localizedFormat("steps_count_format", Int(steps)))
     }
     if let heartRate = log.averageHeartRate {
-      parts.append("\(Int(heartRate)) lpm")
+      parts.append("\(Int(heartRate)) \(localizedString("lpm"))")
     }
     return parts.isEmpty ? localizedString("no_sensors") : parts.joined(separator: " · ")
   }

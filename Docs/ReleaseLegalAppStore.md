@@ -1,4 +1,4 @@
-# StreakRep 1.0.0 - textos legales y App Store
+# StreakReps 1.0.0 - textos legales y App Store
 
 Este documento contiene textos listos para publicar en las URLs reales de privacidad y terminos, notas para App Review, y una guia de privacidad para App Store Connect manteniendo iOS 26+.
 
@@ -19,15 +19,15 @@ private enum AppLegalLinks {
 
 ## Politica de privacidad
 
-# Politica de privacidad de StreakRep
+# Politica de privacidad de StreakReps
 
 Fecha de entrada en vigor: 6 de julio de 2026
 
-StreakRep es una app de fitness para planificar entrenamientos, registrar sesiones, medir progreso, usar widgets, Live Activities y Apple Watch, y sincronizar determinados datos con servicios de Apple cuando el usuario lo autoriza.
+StreakReps es una app de fitness para planificar entrenamientos, registrar sesiones, medir progreso, usar widgets, Live Activities y Apple Watch, y sincronizar determinados datos con servicios de Apple cuando el usuario lo autoriza.
 
 ## Datos que puedes guardar en la app
 
-StreakRep puede guardar los datos que introduces o generas al usar la app:
+StreakReps puede guardar los datos que introduces o generas al usar la app:
 
 - Perfil: nombre visible, email opcional, idioma, unidades, objetivo, nivel, preferencias de entrenamiento, equipamiento disponible y ajustes de la app.
 - Entrenamientos: rutinas, ejercicios, series, repeticiones, peso, duracion, descanso, RPE, RIR, tempo, notas, fotos, notas de voz, historial, records personales y estadisticas.
@@ -40,21 +40,21 @@ StreakRep puede guardar los datos que introduces o generas al usar la app:
 
 ## Apple Health
 
-StreakRep solo accede a Apple Health si das permiso desde el dialogo del sistema. Puedes permitir o denegar cada tipo de dato desde Ajustes > Salud > Acceso a datos y dispositivos.
+StreakReps solo accede a Apple Health si das permiso desde el dialogo del sistema. Puedes permitir o denegar cada tipo de dato desde Ajustes > Salud > Acceso a datos y dispositivos.
 
-StreakRep puede leer datos como peso, altura, pasos, calorias activas, agua, energia ingerida, minutos de ejercicio, frecuencia cardiaca, HRV, VO2 Max, sueno, rutas y entrenamientos.
+StreakReps puede leer datos como peso, altura, pasos, calorias activas, agua, energia ingerida, minutos de ejercicio, frecuencia cardiaca, HRV, VO2 Max, sueno, rutas y entrenamientos.
 
-StreakRep puede escribir datos como peso, altura, agua, energia ingerida, calorias activas, distancia, frecuencia cardiaca, pasos, rutas y entrenamientos cuando eliges sincronizarlos.
+StreakReps puede escribir datos como peso, altura, agua, energia ingerida, calorias activas, distancia, frecuencia cardiaca, pasos, rutas y entrenamientos cuando eliges sincronizarlos.
 
-StreakRep no vende datos de salud ni los usa para publicidad.
+StreakReps no vende datos de salud ni los usa para publicidad.
 
 ## Ubicacion
 
-StreakRep usa la ubicacion para registrar rutas de carrera o caminata al aire libre. En entrenamientos con ruta, la app puede continuar registrando ubicacion mientras la pantalla esta bloqueada para completar la sesion. Puedes revocar el permiso desde Ajustes > Privacidad y seguridad > Localizacion.
+StreakReps usa la ubicacion para registrar rutas de carrera o caminata al aire libre. En entrenamientos con ruta, la app puede continuar registrando ubicacion mientras la pantalla esta bloqueada para completar la sesion. Puedes revocar el permiso desde Ajustes > Privacidad y seguridad > Localizacion.
 
 ## Camara, fotos y microfono
 
-StreakRep puede solicitar:
+StreakReps puede solicitar:
 
 - Camara: para capturar fotos de progreso, imagenes de entrenamientos o codigos de pases de gimnasio.
 - Fotos: para seleccionar imagenes y para guardar/exportar imagenes cuando lo eliges.
@@ -64,21 +64,21 @@ Estos permisos se solicitan solo cuando usas una funcion que los necesita.
 
 ## Apple Music
 
-StreakRep puede pedir acceso a Apple Music para buscar y reproducir playlists durante entrenamientos. Apple gestiona la autorizacion y la disponibilidad de la suscripcion.
+StreakReps puede pedir acceso a Apple Music para buscar y reproducir playlists durante entrenamientos. Apple gestiona la autorizacion y la disponibilidad de la suscripcion.
 
 ## iCloud, CloudKit, widgets, Watch y Live Activities
 
-StreakRep puede usar iCloud/CloudKit para backups, restauracion, funciones sociales y sincronizacion de datos entre dispositivos cuando esta disponible. Widgets, Apple Watch y Live Activities leen un resumen minimo desde el App Group para mostrar progreso, entrenamiento activo, racha, bateria de recuperacion o actividad social.
+StreakReps puede usar iCloud/CloudKit para backups, restauracion, funciones sociales y sincronizacion de datos entre dispositivos cuando esta disponible. Widgets, Apple Watch y Live Activities leen un resumen minimo desde el App Group para mostrar progreso, entrenamiento activo, racha, bateria de recuperacion o actividad social.
 
 ## Analitica, diagnostico y rendimiento
 
-StreakRep usa Firebase Analytics y Firebase Crashlytics para entender uso general de funciones, diagnosticar errores y mejorar estabilidad. Estos datos pueden incluir interacciones con producto, eventos de app, propiedades generales de configuracion, errores no fatales y crash reports.
+StreakReps usa Firebase Analytics y Firebase Crashlytics para entender uso general de funciones, diagnosticar errores y mejorar estabilidad. Estos datos pueden incluir interacciones con producto, eventos de app, propiedades generales de configuracion, errores no fatales y crash reports.
 
-StreakRep no usa estos datos para rastrear al usuario entre apps o sitios de otras empresas. StreakRep no solicita App Tracking Transparency porque no realiza tracking publicitario cross-app.
+StreakReps no usa estos datos para rastrear al usuario entre apps o sitios de otras empresas. StreakReps no solicita App Tracking Transparency porque no realiza tracking publicitario cross-app.
 
 ## Compras y suscripciones
 
-Las compras digitales se procesan mediante In-App Purchase de Apple. StreakRep puede comprobar el estado de compra o suscripcion para desbloquear funciones Pro, restaurar compras y mostrar el estado de acceso. Apple gestiona el pago.
+Las compras digitales se procesan mediante In-App Purchase de Apple. StreakReps puede comprobar el estado de compra o suscripcion para desbloquear funciones Pro, restaurar compras y mostrar el estado de acceso. Apple gestiona el pago.
 
 ## Finalidades del tratamiento
 
@@ -94,7 +94,7 @@ Usamos los datos para:
 
 ## Comparticion de datos
 
-StreakRep puede compartir datos con:
+StreakReps puede compartir datos con:
 
 - Apple, para HealthKit, StoreKit, CloudKit, iCloud, Apple Music, notificaciones, widgets, Live Activities y Watch.
 - Firebase/Google, para analitica y crash reporting.
@@ -107,11 +107,11 @@ Los datos locales permanecen en tu dispositivo salvo que uses iCloud, backups, f
 
 ## Seguridad
 
-StreakRep usa APIs de Apple, almacenamiento local del sistema, iCloud/CloudKit y servicios de terceros para proteger y operar los datos. Ningun sistema es completamente infalible, pero aplicamos medidas razonables para proteger la informacion.
+StreakReps usa APIs de Apple, almacenamiento local del sistema, iCloud/CloudKit y servicios de terceros para proteger y operar los datos. Ningun sistema es completamente infalible, pero aplicamos medidas razonables para proteger la informacion.
 
 ## Menores
 
-StreakRep no esta dirigida a menores de 13 anos. Si crees que un menor ha proporcionado datos personales, contacta con soporte.
+StreakReps no esta dirigida a menores de 13 anos. Si crees que un menor ha proporcionado datos personales, contacta con soporte.
 
 ## Cambios
 
@@ -123,17 +123,17 @@ Para privacidad, soporte o eliminacion de datos: `TU_EMAIL_DE_SOPORTE`.
 
 ## Terminos de servicio
 
-# Terminos de servicio de StreakRep
+# Terminos de servicio de StreakReps
 
 Fecha de entrada en vigor: 6 de julio de 2026
 
-Al usar StreakRep aceptas estos terminos.
+Al usar StreakReps aceptas estos terminos.
 
 ## Servicio
 
-StreakRep ayuda a planificar entrenamientos, registrar sesiones, consultar progreso, usar widgets, Apple Watch, Live Activities, funciones sociales y sincronizaciones opcionales con servicios de Apple.
+StreakReps ayuda a planificar entrenamientos, registrar sesiones, consultar progreso, usar widgets, Apple Watch, Live Activities, funciones sociales y sincronizaciones opcionales con servicios de Apple.
 
-StreakRep no es un servicio medico. La informacion de entrenamiento, recuperacion, salud y progreso es orientativa y no sustituye consejo medico, diagnostico, tratamiento ni supervision profesional.
+StreakReps no es un servicio medico. La informacion de entrenamiento, recuperacion, salud y progreso es orientativa y no sustituye consejo medico, diagnostico, tratamiento ni supervision profesional.
 
 ## Uso responsable
 
@@ -148,9 +148,9 @@ Eres responsable de:
 
 Algunas funciones pueden permitir crear perfil social, publicaciones, retos, comentarios, fotos o interacciones. No debes publicar contenido ilegal, ofensivo, enganoso, invasivo de privacidad o que infrinja derechos de terceros. Podemos limitar o eliminar contenido si incumple estos terminos.
 
-## Compras y StreakRep Pro
+## Compras y StreakReps Pro
 
-StreakRep puede ofrecer funciones Pro mediante compras dentro de la app, suscripciones auto-renovables o compra vitalicia.
+StreakReps puede ofrecer funciones Pro mediante compras dentro de la app, suscripciones auto-renovables o compra vitalicia.
 
 Las compras en iOS se procesan con Apple In-App Purchase. Los precios, impuestos, pruebas gratuitas, renovaciones, cancelaciones y reembolsos se gestionan segun las reglas de Apple y App Store.
 
@@ -160,23 +160,23 @@ Una prueba gratuita, si esta disponible, se convertira en una suscripcion de pag
 
 ## Funciones de terceros
 
-StreakRep puede integrarse con Apple Health, Apple Music, iCloud, CloudKit, notificaciones, widgets, Apple Watch, Firebase y servicios de compras dentro de la app. El uso de esos servicios puede estar sujeto a sus propios terminos y disponibilidad.
+StreakReps puede integrarse con Apple Health, Apple Music, iCloud, CloudKit, notificaciones, widgets, Apple Watch, Firebase y servicios de compras dentro de la app. El uso de esos servicios puede estar sujeto a sus propios terminos y disponibilidad.
 
 ## Disponibilidad
 
-Intentamos mantener StreakRep estable, pero no garantizamos disponibilidad continua ni ausencia de errores. Algunas funciones dependen de permisos, hardware, sistema operativo, conectividad, iCloud, App Store, Apple Health, Apple Watch u otros servicios externos.
+Intentamos mantener StreakReps estable, pero no garantizamos disponibilidad continua ni ausencia de errores. Algunas funciones dependen de permisos, hardware, sistema operativo, conectividad, iCloud, App Store, Apple Health, Apple Watch u otros servicios externos.
 
 ## Limitacion de responsabilidad
 
-En la medida permitida por la ley, StreakRep se ofrece "tal cual". No somos responsables de lesiones, perdidas de datos, interrupciones, decisiones de entrenamiento, resultados fisicos, fallos de terceros o danos indirectos derivados del uso de la app.
+En la medida permitida por la ley, StreakReps se ofrece "tal cual". No somos responsables de lesiones, perdidas de datos, interrupciones, decisiones de entrenamiento, resultados fisicos, fallos de terceros o danos indirectos derivados del uso de la app.
 
 ## Propiedad intelectual
 
-StreakRep, su diseno, marca, codigo, textos, graficos y funcionalidades pertenecen a sus titulares. No puedes copiar, modificar, distribuir, vender ni explotar la app salvo lo permitido por la ley o por estos terminos.
+StreakReps, su diseno, marca, codigo, textos, graficos y funcionalidades pertenecen a sus titulares. No puedes copiar, modificar, distribuir, vender ni explotar la app salvo lo permitido por la ley o por estos terminos.
 
 ## Terminacion
 
-Puedes dejar de usar StreakRep en cualquier momento. Podemos suspender acceso a funciones si existe abuso, incumplimiento de estos terminos o riesgo para el servicio o terceros.
+Puedes dejar de usar StreakReps en cualquier momento. Podemos suspender acceso a funciones si existe abuso, incumplimiento de estos terminos o riesgo para el servicio o terceros.
 
 ## Cambios
 
@@ -191,7 +191,7 @@ Para soporte o preguntas legales: `TU_EMAIL_DE_SOPORTE`.
 Pega esto en App Store Connect y ajusta datos reales:
 
 ```text
-StreakRep is a native fitness app for workout planning, workout logging, progress analytics, widgets, Live Activities, and Apple Watch workouts.
+StreakReps is a native fitness app for workout planning, workout logging, progress analytics, widgets, Live Activities, and Apple Watch workouts.
 
 No demo login is required for the core app. If App Review needs social features, use:
 Username: [provide test user if required]

@@ -80,15 +80,13 @@ final class MetricsDiagnosticsService: NSObject, @unchecked Sendable {
     private func recordDiagnostic(payload: MXDiagnosticPayload, source: String) {
         #if canImport(FirebaseCrashlytics)
         let jsonData = payload.jsonRepresentation()
-        let preview = String(data: jsonData.prefix(900), encoding: .utf8) ?? ""
         let error = NSError(
             domain: "com.romerodev.repsfitness.metrickit",
             code: 1,
             userInfo: [
                 NSLocalizedDescriptionKey: "MetricKit diagnostic payload",
                 "source": source,
-                "payload_bytes": jsonData.count,
-                "payload_preview": preview
+                "payload_bytes": jsonData.count
             ]
         )
         Crashlytics.crashlytics().record(error: error)

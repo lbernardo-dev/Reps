@@ -502,7 +502,7 @@ private struct ActiveWorkoutView: View {
             HStack(spacing: 6) {
                 metricPill(title: "pace_label", value: routePaceText(), icon: "speedometer")
                 if family == .systemMedium {
-                    metricPill(title: "pulse_label", value: entry.snapshot.heartRate.map { "\(Int($0)) lpm" } ?? "--", icon: "heart.fill")
+                    metricPill(title: "pulse_label", value: entry.snapshot.heartRate.map { "\(Int($0)) \(localizedString("lpm"))" } ?? "--", icon: "heart.fill")
                     metricPill(title: "Kcal", value: entry.snapshot.activeEnergyKcal.map { "\(Int($0))" } ?? "--", icon: "flame.fill")
                 } else {
                     metricPill(title: "steps_label", value: entry.snapshot.routeSteps.map { "\(Int($0))" } ?? "--", icon: "shoeprints.fill")

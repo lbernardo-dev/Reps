@@ -685,7 +685,7 @@ final class HealthKitService: ObservableObject {
 
         let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: .local())
         try await builder.addMetadata([
-            HKMetadataKeyWorkoutBrandName: "Reps",
+            HKMetadataKeyWorkoutBrandName: "StreakReps",
             HKMetadataKeyCoachedWorkout: false,
             HKMetadataKeyExternalUUID: session.id.uuidString
         ])

@@ -161,7 +161,7 @@ struct ProfileSetupView: View {
             }
 
             VStack(spacing: 14) {
-                let brandText = Text("StreakRep")
+                let brandText = Text("StreakReps")
                     .foregroundStyle(LinearGradient(
                         colors: [PulseTheme.accent, PulseTheme.warning],
                         startPoint: .leading,

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>StreakRep</string>
+	<string>StreakReps</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -21,13 +21,13 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>StreakRep Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo.</string>
+	<string>StreakReps Watch lee pulso y calorías durante el entreno para mostrar tus vitales en directo.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>StreakRep Watch guarda sesiones de entrenamiento iniciadas desde el reloj.</string>
+	<string>StreakReps Watch guarda sesiones de entrenamiento iniciadas desde el reloj.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>StreakRep Watch usa tu ubicación para dibujar la ruta de caminatas y carreras iniciadas desde el reloj.</string>
+	<string>StreakReps Watch usa tu ubicación para dibujar la ruta de caminatas y carreras iniciadas desde el reloj.</string>
 	<key>NSMotionUsageDescription</key>
-	<string>StreakRep Watch usa el movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras.</string>
+	<string>StreakReps Watch usa el movimiento y podómetro para mostrar pasos y distancia durante caminatas y carreras.</string>
 	<key>WKApplication</key>
 	<true/>
 	<key>UIBackgroundModes</key>

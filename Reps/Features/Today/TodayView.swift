@@ -638,6 +638,10 @@ private struct TodayViewContent: View {
                     .stickyHeaderTitle(localizedString("possible_activity_section_title"))
                 }
 
+                ForEach(store.recentlyImportedSessionsNeedingCompletion) { session in
+                    ImportedWorkoutBannerCard(session: session)
+                }
+
                 ForEach(resolvedTodaySections.visible) { section in
                     todaySectionView(for: section)
                 }
@@ -1792,7 +1796,7 @@ private struct TodayViewContent: View {
                     WellnessWidget(
                         title: "hydration",
                         value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
-                        subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en StreakRep", $0) } ?? (localizedString("no_local_log")),
+                        subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en StreakReps", $0) } ?? (localizedString("no_local_log")),
                         localizesSubtitle: latestMetric?.waterLiters == nil,
                         systemImage: TrackedMetric.hydration.systemImage,
                         domain: TrackedMetric.hydration.domain,
@@ -1808,7 +1812,6 @@ private struct TodayViewContent: View {
                         title: "heart_rate_short",
                         value: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0))" } ?? "--",
                         subtitle: "lpm",
-                        localizesSubtitle: false,
                         systemImage: TrackedMetric.restingHeartRate.systemImage,
                         domain: TrackedMetric.restingHeartRate.domain
                     )
@@ -1821,7 +1824,7 @@ private struct TodayViewContent: View {
                     WellnessWidget(
                         title: "HRV",
                         value: store.todayHealthMetric?.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--",
-                        subtitle: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0)) lpm reposo" } ?? (localizedString("no_resting_hr")),
+                        subtitle: store.todayHealthMetric?.restingHeartRate.map { "\(Int($0)) \(localizedString("resting_hr"))" } ?? (localizedString("no_resting_hr")),
                         localizesSubtitle: store.todayHealthMetric?.restingHeartRate == nil,
                         systemImage: TrackedMetric.hrv.systemImage,
                         domain: TrackedMetric.hrv.domain
