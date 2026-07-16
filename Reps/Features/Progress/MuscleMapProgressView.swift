@@ -16,16 +16,13 @@ struct MuscleMapProgressView: View {
 
     private let heatmapHeight: CGFloat = 520
 
-    private var loads: [MuscleLoad] {
-        MuscleLoadCalculator.loads(
-            sessions: sessions,
-            plannedWorkout: plannedWorkout,
-            startDate: startDate,
-            includePrediction: selectedMode == .predict
-        )
-    }
-
-    private var filteredLoads: [MuscleLoad] {
+    // `loads` used to be a computed property, walking the full (unfiltered)
+    // session history via `MuscleLoadCalculator.loads` on every access. `body`
+    // read it independently ~8-10 times per render (directly, plus through
+    // `filteredLoads`/`underTargetLoads`/`highVolumeLoads`/`growthZoneCount`),
+    // so a single render redid this O(n) scan that many times. Compute it
+    // once per body evaluation and thread the value through instead.
+    private func filteredLoads(from loads: [MuscleLoad]) -> [MuscleLoad] {
         loads
             .filter { selectedFilter.includes($0.segment) }
             .sorted { lhs, rhs in
@@ -36,28 +33,38 @@ struct MuscleMapProgressView: View {
             }
     }
 
-    private var underTargetLoads: [MuscleLoad] {
+    private func underTargetLoads(from loads: [MuscleLoad]) -> [MuscleLoad] {
         loads.filter { $0.totalSets > 0 && $0.totalSets < 4 }
     }
 
-    private var highVolumeLoads: [MuscleLoad] {
+    private func highVolumeLoads(from loads: [MuscleLoad]) -> [MuscleLoad] {
         loads.filter { $0.totalSets > 12 }
     }
 
-    private var growthZoneCount: Int {
+    private func growthZoneCount(from loads: [MuscleLoad]) -> Int {
         loads.filter { $0.totalSets >= 4 && $0.totalSets <= 12 }.count
     }
 
     var body: some View {
-        VStack(spacing: 14) {
+        let loads = MuscleLoadCalculator.loads(
+            sessions: sessions,
+            plannedWorkout: plannedWorkout,
+            startDate: startDate,
+            includePrediction: selectedMode == .predict
+        )
+        let underTarget = underTargetLoads(from: loads)
+        let highVolume = highVolumeLoads(from: loads)
+        let filtered = filteredLoads(from: loads)
+
+        return VStack(spacing: 14) {
             MuscleCoverageSummaryCard(
                 subtitle: selectedMode.subtitle,
                 totalSegments: loads.count,
-                growthZoneCount: growthZoneCount,
-                underTargetCount: underTargetLoads.count,
-                highVolumeCount: highVolumeLoads.count,
-                topFocus: underTargetLoads.sorted { $0.totalSets < $1.totalSets }.first
-                    ?? highVolumeLoads.sorted { $0.totalSets > $1.totalSets }.first
+                growthZoneCount: growthZoneCount(from: loads),
+                underTargetCount: underTarget.count,
+                highVolumeCount: highVolume.count,
+                topFocus: underTarget.sorted { $0.totalSets < $1.totalSets }.first
+                    ?? highVolume.sorted { $0.totalSets > $1.totalSets }.first
                     ?? loads.sorted { $0.totalSets > $1.totalSets }.first
             )
 
@@ -86,7 +93,7 @@ struct MuscleMapProgressView: View {
             }
 
             LazyVStack(spacing: 14) {
-                ForEach(filteredLoads.filter { $0.segment != selectedSegment }) { load in
+                ForEach(filtered.filter { $0.segment != selectedSegment }) { load in
                     Button {
                         withAnimation(.snappy(duration: 0.22)) {
                             if selectedSegment == load.segment {

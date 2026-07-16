@@ -57,13 +57,52 @@ enum ProgressionMetricType: String, CaseIterable, Identifiable {
     }
 }
 
+/// Gates `generateChartData()` (a full regroup/reduce over the unfiltered
+/// session or body-metric history) behind a cheap signature, so dragging to
+/// scrub `activeWeek` — which mutates `body`'s only other tracked `@State` —
+/// no longer re-triggers that regroup at drag frame rate.
+private final class QuickMenuChartDataCache {
+    struct Signature: Equatable {
+        let metric: ProgressionMetricType
+        let sessionCount: Int
+        let latestSessionDate: Date?
+        let bodyMetricCount: Int
+        let latestBodyMetricDate: Date?
+        let goalCount: Int
+        let units: UserProfile.Units
+    }
+
+    var signature: Signature?
+    var points: [ProgressionPoint] = []
+}
+
 struct QuickMenuProgressionChart: View {
     @Environment(AppStore.self) private var store
     @Namespace private var tabNamespace
-    
+
     @State private var selectedMetric: ProgressionMetricType = .exercises
     @State private var activeWeek: Int? = nil // Drag gesture active week selection
-    
+    @State private var chartDataCache = QuickMenuChartDataCache()
+
+    private func cachedChartData() -> [ProgressionPoint] {
+        let signature = QuickMenuChartDataCache.Signature(
+            metric: selectedMetric,
+            sessionCount: store.workoutSessions.count,
+            latestSessionDate: store.workoutSessions.max { $0.date < $1.date }?.date,
+            bodyMetricCount: store.bodyMetrics.count,
+            latestBodyMetricDate: store.bodyMetrics.max { $0.date < $1.date }?.date,
+            goalCount: store.goals.count,
+            units: store.userProfile.units
+        )
+        if chartDataCache.signature == signature {
+            return chartDataCache.points
+        }
+        let points = generateChartData()
+        chartDataCache.signature = signature
+        chartDataCache.points = points
+        return points
+    }
+
     // MARK: - Weekly Data
     private func generateChartData() -> [ProgressionPoint] {
         switch selectedMetric {
@@ -176,7 +215,7 @@ struct QuickMenuProgressionChart: View {
     }
     
     var body: some View {
-        let allPoints = generateChartData()
+        let allPoints = cachedChartData()
         let minVal = allPoints.map(\.value).min() ?? 0.0
         let maxVal = allPoints.map(\.value).max() ?? 100.0
         let margin = max((maxVal - minVal) * 0.12, 1.0)

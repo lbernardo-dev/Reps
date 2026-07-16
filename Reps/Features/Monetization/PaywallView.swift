@@ -5,6 +5,7 @@ import UIKit
 
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @Environment(AppStore.self) private var store
 
     let presentation: PaywallPresentation
@@ -15,12 +16,7 @@ struct PaywallView: View {
     @State private var isRestoring = false
     @State private var showStoreKitInfo = false
     @State private var storeKitInfoMessage = ""
-
-    private let includedFeatures: [ProductFeature] = [
-        .configurableProgression,
-        .advancedAnalytics,
-        .automaticBackups
-    ]
+    @State private var didAppear = false
 
     init(presentation: PaywallPresentation, onDismissReason: ((PaywallDismissReason) -> Void)? = nil) {
         self.presentation = presentation
@@ -28,77 +24,99 @@ struct PaywallView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            contextualHeader
-            RevenueCatUI.PaywallView(displayCloseButton: true)
-                .tint(PulseTheme.accent)
-                .onPurchaseCompleted { customerInfo in
-                    store.handleRevenueCatCustomerInfo(customerInfo)
-                    close(reason: .system)
+        ZStack(alignment: .bottom) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 22) {
+                    paywallHero
+                    ContextualPaywallPreview(source: presentation.source, feature: presentation.feature)
+                    trialTimeline
+                    PlanComparisonCard()
+                    planSelector
+                    legalFooter
                 }
-                .onRestoreCompleted { customerInfo in
-                    store.handleRevenueCatCustomerInfo(customerInfo)
-                    storeKitInfoMessage = customerInfo.entitlements.all[RevenueCatConfiguration.proEntitlementID]?.isActive == true
-                        ? localizedString("licenses_restored_success")
-                        : localizedString("no_active_license_to_restore")
-                    showStoreKitInfo = true
-                }
-                .onPurchaseFailure { error in
-                    storeKitInfoMessage = error.localizedDescription
-                    showStoreKitInfo = true
-                }
-                .onRestoreFailure { error in
-                    storeKitInfoMessage = error.localizedDescription
-                    showStoreKitInfo = true
-                }
-                .onRequestedDismissal {
-                    close(reason: .close)
-                }
-                .task {
-                    await store.refreshStoreKitProducts()
-                    await store.refreshRevenueCatCustomerInfo()
-                }
-                .alert("revenuecat", isPresented: $showStoreKitInfo) {
-                    Button("aceptar", role: .cancel) {}
-                } message: {
-                    Text(storeKitInfoMessage)
-                }
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.top, 12)
+                .padding(.bottom, 148)
+                .opacity(didAppear ? 1 : 0)
+                .offset(y: didAppear ? 0 : 14)
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            .background(alignment: .top) {
+                RadialGradient(
+                    colors: [PulseTheme.accent.opacity(0.20), .clear],
+                    center: .top,
+                    startRadius: 8,
+                    endRadius: 340
+                )
+                .frame(height: 380)
+                .ignoresSafeArea(edges: .top)
+            }
+
+            ctaFooter
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .screenBackground()
+        .overlay(alignment: .top) { toolbar }
+        .task {
+            await store.refreshStoreKitProducts()
+            await store.refreshRevenueCatCustomerInfo()
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
+                didAppear = true
+            }
+        }
+        .alert(localizedString("info"), isPresented: $showStoreKitInfo) {
+            Button("aceptar", role: .cancel) {}
+        } message: {
+            Text(storeKitInfoMessage)
+        }
     }
 
-    private var contextualHeader: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Image(systemName: presentation.feature?.systemImage ?? "bolt.heart.fill")
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
-                    .frame(width: 34, height: 34)
-                    .background(PulseTheme.accent)
-                    .clipShape(Circle())
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(presentation.source.title)
-                        .font(.headline.weight(.bold))
-                    Text(presentation.source.subtitle)
-                        .font(.caption)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .lineLimit(2)
-                }
-
-                Spacer(minLength: 0)
-            }
-
-            Text(presentation.source.previewTitle)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(PulseTheme.accent)
-                .lineLimit(2)
+    private var toolbar: some View {
+        HStack {
+            restoreButton
+            Spacer()
+            closeButton
         }
+        .padding(.top, 8)
         .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-        .padding(.top, 12)
-        .padding(.bottom, 10)
-        .background(PulseTheme.grouped)
+    }
+
+    private var restoreButton: some View {
+        Button {
+            Task { await restorePurchases() }
+        } label: {
+            Group {
+                if isRestoring {
+                    ProgressView()
+                        .tint(PulseTheme.textPrimary)
+                } else {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.textPrimary)
+                }
+            }
+            .frame(width: 32, height: 32)
+            .navigationGlassCircle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .disabled(isRestoring)
+        .accessibilityLabel(localizedString("paywall_restore_licenses"))
+    }
+
+    private var closeButton: some View {
+        Button {
+            HapticService.impact(.light)
+            close(reason: .close)
+        } label: {
+            Image(systemName: "xmark")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(PulseTheme.textPrimary)
+                .frame(width: 32, height: 32)
+                .navigationGlassCircle(.secondary)
+        }
+        .buttonStyle(.plain)
     }
 
     private var paywallHero: some View {
@@ -147,9 +165,36 @@ struct PaywallView: View {
             .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
             .background(PulseTheme.accent)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            .shadow(color: PulseTheme.accent.opacity(0.35), radius: 16, y: 6)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableCardStyle())
         .disabled(isPurchasing || selectedProduct == nil)
+    }
+
+    private var ctaFooter: some View {
+        VStack(spacing: 10) {
+            primaryPurchaseButton
+            Text(purchaseDisclaimer)
+                .font(.caption2)
+                .foregroundStyle(PulseTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+        .padding(.top, 14)
+        .padding(.bottom, 8)
+        .background(alignment: .top) {
+            Rectangle()
+                .fill(PulseTheme.separator)
+                .frame(height: 0.8)
+        }
+        .background(.ultraThinMaterial)
+    }
+
+    private var purchaseDisclaimer: String {
+        selectedPlan.hasIntroTrial
+            ? localizedString("value_7_days_free_included_in_weekly_monthly_and_annual_then_it_is_renewed_from")
+            : localizedString("one_time_permanent_pro")
     }
 
     private var trialTimeline: some View {
@@ -160,6 +205,102 @@ struct PaywallView: View {
                 TrialTimelineRow(icon: "chart.line.uptrend.xyaxis", title: "progress_label", subtitle: "trial_progress_subtitle")
             }
         }
+    }
+
+    private var planSelector: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(localizedKey("choose_your_access"))
+                .font(.headline)
+
+            VStack(spacing: 10) {
+                ForEach(orderedPlans) { cycle in
+                    Button {
+                        selectPlan(cycle)
+                    } label: {
+                        PaywallPlanCard(
+                            title: cycle.title,
+                            subtitle: planSubtitle(for: cycle, product: store.storeKitProduct(for: cycle)),
+                            price: priceText(for: cycle),
+                            priceCaption: cycle == .yearly ? weeklyEquivalentCaption(for: cycle) : nil,
+                            badge: badge(for: cycle),
+                            hasTrial: cycle.hasIntroTrial,
+                            isFeatured: cycle == .yearly,
+                            isSelected: selectedPlan == cycle
+                        )
+                    }
+                    .buttonStyle(PressableCardStyle())
+                }
+            }
+        }
+    }
+
+    private var legalFooter: some View {
+        VStack(spacing: 10) {
+            Button {
+                HapticService.selection()
+                Purchases.shared.presentCodeRedemptionSheet()
+            } label: {
+                Text(localizedString("apply_promotional_code"))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            .buttonStyle(.plain)
+
+            VStack(spacing: 6) {
+                HStack(spacing: 14) {
+                    legalLink(localizedString("terms_of_service"), url: RepsLegalUrls.termsOfService, event: "paywall_terms_of_service")
+                    Circle()
+                        .fill(PulseTheme.tertiaryText)
+                        .frame(width: 2.5, height: 2.5)
+                    legalLink(localizedString("privacy_policy"), url: RepsLegalUrls.privacyPolicy, event: "paywall_privacy_policy")
+                }
+                legalLink(localizedString("subscription_terms"), url: RepsLegalUrls.subscriptionTerms, event: "paywall_subscription_terms")
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(PulseTheme.tertiaryText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 4)
+    }
+
+    private func legalLink(_ title: String, url: String, event: String) -> some View {
+        Button {
+            openLegalURL(url, event: event)
+        } label: {
+            Text(title)
+                .underline()
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func openLegalURL(_ urlString: String, event: String) {
+        TelemetryService.shared.log(.supportSheetOpened, parameters: ["sheet": event])
+        if let url = URL(string: urlString) {
+            openURL(url)
+        }
+    }
+
+    private var orderedPlans: [SubscriptionBillingCycle] {
+        SubscriptionBillingCycle.allCases.filter { availablePlans.contains($0) }
+    }
+
+    private func selectPlan(_ cycle: SubscriptionBillingCycle) {
+        guard selectedPlan != cycle else { return }
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            selectedPlan = cycle
+        }
+        store.trackPaywallPlanSelection(cycle, source: presentation.source)
+    }
+
+    private func priceText(for cycle: SubscriptionBillingCycle) -> String {
+        store.storeKitProduct(for: cycle)?.storeProduct.localizedPriceString ?? fallbackPrice(for: cycle)
+    }
+
+    private func weeklyEquivalentCaption(for cycle: SubscriptionBillingCycle) -> String? {
+        guard let perWeek = store.storeKitProduct(for: cycle)?.storeProduct.localizedPricePerWeek else {
+            return nil
+        }
+        return "\(perWeek) \(localizedString("per_week"))"
     }
 
     private var availablePlans: [SubscriptionBillingCycle] {
@@ -218,12 +359,48 @@ struct PaywallView: View {
     }
 
     private func badge(for cycle: SubscriptionBillingCycle) -> String? {
+        let base: String
         switch cycle {
-        case .yearly: return localizedString("best_value")
-        case .monthly: return localizedString("flexible_label")
+        case .yearly: base = localizedString("best_value")
+        case .monthly: base = localizedString("flexible_label")
         case .lifetime: return localizedString("one_time_payment")
         case .weekly: return localizedString("quick_trial")
         }
+
+        guard let percent = discountPercent(for: cycle) else { return base }
+        return "\(base) · \(localizedFormat("save_percent_format", percent))"
+    }
+
+    /// Savings vs. paying the weekly plan's price every week, using RevenueCat's
+    /// per-week price breakdown so this tracks whatever prices are live in App
+    /// Store Connect instead of hardcoded percentages.
+    /// Weeks a plan is deemed equivalent to, for a weekly-price baseline comparison
+    /// (e.g. a month "costs" 4 weekly renewals, a year 52).
+    private func weeksEquivalent(for cycle: SubscriptionBillingCycle) -> Decimal? {
+        switch cycle {
+        case .monthly: return 4
+        case .yearly: return 52
+        case .weekly, .lifetime: return nil
+        }
+    }
+
+    private func discountPercent(for cycle: SubscriptionBillingCycle) -> Int? {
+        guard let weeks = weeksEquivalent(for: cycle),
+              let weeklyPrice = store.storeKitProduct(for: .weekly)?.storeProduct.price,
+              weeklyPrice > 0,
+              let price = store.storeKitProduct(for: cycle)?.storeProduct.price else {
+            return nil
+        }
+
+        let weeklyPriceValue = (weeklyPrice as NSDecimalNumber).doubleValue
+        let priceValue = (price as NSDecimalNumber).doubleValue
+        let weeksValue = (weeks as NSDecimalNumber).doubleValue
+
+        let equivalentWeeklyCost = weeklyPriceValue * weeksValue
+        guard priceValue < equivalentWeeklyCost, equivalentWeeklyCost > 0 else { return nil }
+
+        let percent = (1 - priceValue / equivalentWeeklyCost) * 100
+        return Int(percent.rounded())
     }
 
     private func purchaseSelectedProduct() async {
@@ -233,14 +410,17 @@ struct PaywallView: View {
             return
         }
 
+        HapticService.impact(.medium)
         isPurchasing = true
         defer { isPurchasing = false }
 
         store.trackPaywallCTA(selectedPlan, source: presentation.source)
         let didPurchase = await store.purchaseStoreKitProduct(selectedProduct)
         if didPurchase {
+            HapticService.notification(.success)
             close(reason: .notNow)
         } else if let message = store.storeKitErrorMessage {
+            HapticService.notification(.error)
             storeKitInfoMessage = message
             showStoreKitInfo = true
         }
@@ -251,6 +431,7 @@ struct PaywallView: View {
         defer { isRestoring = false }
 
         let restored = await store.restoreStoreKitPurchases()
+        HapticService.notification(restored ? .success : .warning)
         storeKitInfoMessage = restored ? localizedString("licenses_restored_success") : localizedString("no_active_license_to_restore")
         showStoreKitInfo = true
     }
@@ -447,28 +628,6 @@ private struct TrialTimelineRow: View {
     }
 }
 
-private struct LockedFeatureSummary: View {
-    let feature: ProductFeature
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "sparkles.rectangle.stack.fill")
-                .foregroundStyle(PulseTheme.accent)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(feature.title)
-                    .font(.headline)
-                Text(feature.summary)
-                    .font(.subheadline)
-                    .foregroundStyle(PulseTheme.secondaryText)
-            }
-            Spacer()
-        }
-        .padding(14)
-        .background(PulseTheme.grouped)
-        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-    }
-}
-
 private struct ContextualPaywallPreview: View {
     let source: PaywallSource
     let feature: ProductFeature?
@@ -582,37 +741,38 @@ private struct PaywallPlanCard: View {
     let title: String
     let subtitle: String
     let price: String
+    let priceCaption: String?
     let badge: String?
+    let hasTrial: Bool
+    let isFeatured: Bool
     let isSelected: Bool
 
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                 .font(.title3.weight(.bold))
-                .foregroundStyle(isSelected ? .black : PulseTheme.secondaryText)
+                .foregroundStyle(isSelected ? PulseTheme.onColor(PulseTheme.accent) : PulseTheme.secondaryText)
                 .frame(width: 34, height: 34)
                 .background(isSelected ? PulseTheme.accent : Color.clear)
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(localizedKey(title))
-                        .font(.headline)
-                        .lineLimit(1)
-                    if let badge {
-                        Text(badge)
-                            .font(.caption2.weight(.bold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .foregroundStyle(isSelected ? .black : PulseTheme.accent)
-                            .background(isSelected ? PulseTheme.accent : PulseTheme.accent.opacity(0.14))
-                            .clipShape(Capsule())
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                    }
+                Text(title)
+                    .font(.headline)
+                    .lineLimit(1)
+
+                if let badge {
+                    Text(badge)
+                        .font(.caption2.weight(.bold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .foregroundStyle(isSelected ? PulseTheme.onColor(PulseTheme.accent) : PulseTheme.accent)
+                        .background(isSelected ? PulseTheme.accent : PulseTheme.accent.opacity(0.14))
+                        .clipShape(Capsule())
+                        .fixedSize()
                 }
 
-                Text(localizedKey(subtitle))
+                Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -620,8 +780,8 @@ private struct PaywallPlanCard: View {
             .layoutPriority(1)
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(alignment: .trailing, spacing: 6) {
-                if title != "Lifetime" {
+            VStack(alignment: .trailing, spacing: 4) {
+                if hasTrial {
                     Text("free_week")
                         .font(.caption.weight(.black))
                         .foregroundStyle(isSelected ? PulseTheme.accent : .primary)
@@ -633,8 +793,15 @@ private struct PaywallPlanCard: View {
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
+                if let priceCaption {
+                    Text(priceCaption)
+                        .font(.caption2)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
             }
-            .frame(width: 112, alignment: .trailing)
+            .frame(width: 118, alignment: .trailing)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -644,5 +811,7 @@ private struct PaywallPlanCard: View {
             RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
                 .stroke(isSelected ? PulseTheme.accent : PulseTheme.separator, lineWidth: isSelected ? 1.5 : 1)
         }
+        .shadow(color: isSelected ? PulseTheme.accent.opacity(0.22) : .clear, radius: 14, y: 4)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isSelected)
     }
 }

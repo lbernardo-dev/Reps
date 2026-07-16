@@ -53,8 +53,8 @@ final class AppStore {
             updateTrainingBattery()
         }
     }
-    var workoutSessions: [WorkoutSession] = [] { didSet { save(scope: .workoutSessions); updateTrainingBattery() } }
-    var cardioLogs: [CardioLog] = [] { didSet { save(scope: .cardioLogs) } }
+    var workoutSessions: [WorkoutSession] = [] { didSet { save(scope: .workoutSessions); updateTrainingBattery(); updateCombinedCardioLogs() } }
+    var cardioLogs: [CardioLog] = [] { didSet { save(scope: .cardioLogs); updateCombinedCardioLogs() } }
     var bodyMetrics: [BodyMetric] = [] { didSet { save(scope: .bodyMetrics); updateTrainingBattery() } }
     var progressPhotos: [ProgressPhoto] = [] { didSet { save(scope: .progressPhotos) } }
     var gymPasses: [GymPass] = [] { didSet { save(scope: .gymPasses) } }
@@ -3568,6 +3568,7 @@ final class AppStore {
 
         isRestoring = false
         updateTrainingBattery()
+        updateCombinedCardioLogs()
         if persistImmediately {
             persistence.save(currentSnapshot)
         }
@@ -4145,7 +4146,13 @@ final class AppStore {
 
     /// Cardio logs unified from explicitly-logged cardio plus every cardio-type
     /// workout session (free, planned, imported), deduplicated.
-    var combinedCardioLogs: [CardioLog] {
+    // Cached — recomputed only when `workoutSessions`/`cardioLogs` actually
+    // change, instead of redoing this merge+sort on every access (the Progress
+    // tab used to read this computed property multiple times per render).
+    private(set) var combinedCardioLogs: [CardioLog] = []
+
+    private func updateCombinedCardioLogs() {
+        guard !isRestoring else { return }
         let sessionLogs = workoutSessions.compactMap(CardioLog.init(cardioSession:))
         var keys = Set(cardioLogs.map(\.dedupeKey))
         var merged = cardioLogs
@@ -4153,7 +4160,7 @@ final class AppStore {
             keys.insert(log.dedupeKey)
             merged.append(log)
         }
-        return merged.sorted { $0.date > $1.date }
+        combinedCardioLogs = merged.sorted { $0.date > $1.date }
     }
 
     /// A workout with no meaningful duration, distance, or energy — typically a

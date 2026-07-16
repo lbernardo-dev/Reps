@@ -134,7 +134,7 @@ struct ProgressDashboardView: View {
       .navigationDestination(item: $activeDestination) { destination in
         switch destination {
         case .exerciseAnalytics:
-          ExerciseAnalyticsListView(exercises: exercisesWithHistory)
+          ExerciseAnalyticsListView(exercises: exercisesWithHistory, summaries: renderModel.exerciseProgressSummaries)
         case .workoutHistory:
           WorkoutHistoryView(sessions: filteredSessions.sorted { $0.date > $1.date })
         case .personalRecords:
@@ -673,7 +673,7 @@ struct ProgressDashboardView: View {
                     NavigationLink {
                       ExerciseProgressView(exercise: exercise)
                     } label: {
-                      ExerciseProgressRow(exercise: exercise)
+                      ExerciseProgressRow(exercise: exercise, summary: renderModel.exerciseProgressSummaries[exercise.id])
                     }
                     .buttonStyle(.plain)
 
@@ -1372,6 +1372,11 @@ private extension CardioLog.ActivityType {
 }
 
 struct ProgressDashboardRenderModel: @unchecked Sendable {
+  struct ExerciseProgressSummary {
+    let loggedDaysCount: Int
+    let totalVolumeKg: Double
+  }
+
   struct Key: Equatable {
     let range: ProgressRange
     let sessionCount: Int
@@ -1415,6 +1420,7 @@ struct ProgressDashboardRenderModel: @unchecked Sendable {
   let muscleVolumePoints: [FitnessMetrics.MuscleVolumePoint]
   let insightCards: [FitnessMetrics.TrainingInsight]
   let exercisesWithHistory: [Exercise]
+  let exerciseProgressSummaries: [UUID: ExerciseProgressSummary]
   let bodyFusionChartPoints: [BodyFusionPoint]
   let consistencyData: [ConsistencyPoint]
   // Supplementary stats computed once per rebuild
@@ -1472,6 +1478,7 @@ struct ProgressDashboardRenderModel: @unchecked Sendable {
     muscleVolumePoints: [],
     insightCards: [],
     exercisesWithHistory: [],
+    exerciseProgressSummaries: [:],
     bodyFusionChartPoints: [],
     consistencyData: [],
     monthSessions: 0,
@@ -1598,6 +1605,17 @@ struct ProgressDashboardRenderModel: @unchecked Sendable {
     let exercisesWithHistory = exercises.filter { exercise in
       loggedExerciseIDs.contains(exercise.id) || loggedExerciseNames.contains(exercise.name)
     }
+    // Precomputed once here (background actor) instead of `ExerciseProgressRow`
+    // calling `FitnessMetrics.progressPoints` against the full session history
+    // directly from `body` for every row shown on screen.
+    let exerciseProgressSummaries = Dictionary(uniqueKeysWithValues: exercisesWithHistory.map { exercise in
+      let points = FitnessMetrics.progressPoints(for: exercise, in: sessions)
+      let summary = ProgressDashboardRenderModel.ExerciseProgressSummary(
+        loggedDaysCount: points.count,
+        totalVolumeKg: points.map(\.totalVolumeKg).reduce(0, +)
+      )
+      return (exercise.id, summary)
+    })
 
     let workload = AnalyticsEngine.workloadSummary(sessions: sessions, bodyMetrics: bodyMetrics)
     let competitiveSummary = AnalyticsEngine.competitiveSummary(
@@ -1669,6 +1687,7 @@ struct ProgressDashboardRenderModel: @unchecked Sendable {
       muscleVolumePoints: muscleVolumePoints,
       insightCards: insightCards,
       exercisesWithHistory: exercisesWithHistory,
+      exerciseProgressSummaries: exerciseProgressSummaries,
       bodyFusionChartPoints: bodyFusionChartPoints,
       consistencyData: consistencyData,
       monthSessions: monthSessionsList.count,

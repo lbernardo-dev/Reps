@@ -106,11 +106,10 @@ struct TrainingLoadOverviewCard: View {
 
 struct ExerciseProgressRow: View {
   let exercise: Exercise
-  @Environment(AppStore.self) private var store
-
-  private var points: [FitnessMetrics.ExerciseProgressPoint] {
-    FitnessMetrics.progressPoints(for: exercise, in: store.workoutSessions)
-  }
+  // Precomputed by `ProgressDashboardRenderModel.build` on a background actor;
+  // this used to call `FitnessMetrics.progressPoints` against the full,
+  // unfiltered `store.workoutSessions` directly from `body`, per row.
+  let summary: ProgressDashboardRenderModel.ExerciseProgressSummary?
 
   var body: some View {
     HStack(spacing: 14) {
@@ -124,7 +123,7 @@ struct ExerciseProgressRow: View {
         Text(exercise.name)
           .font(.headline)
         Text(
-          "\(points.count) logged days · \(Int(points.map(\.totalVolumeKg).reduce(0, +))) kg volume"
+          "\(summary?.loggedDaysCount ?? 0) logged days · \(Int(summary?.totalVolumeKg ?? 0)) kg volume"
         )
         .font(.subheadline)
         .foregroundStyle(PulseTheme.secondaryText)

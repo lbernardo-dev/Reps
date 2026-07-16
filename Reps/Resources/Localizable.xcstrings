@@ -70660,6 +70660,23 @@
         }
       }
     },
+    "save_percent_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save %d%%"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ahorra %d%%"
+          }
+        }
+      }
+    },
     "save_photo" : {
       "extractionState" : "manual",
       "localizations" : {

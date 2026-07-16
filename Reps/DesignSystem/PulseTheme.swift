@@ -711,6 +711,7 @@ struct GlassMetricCard<Content: View>: View {
                     )
             }
             .clipShape(shape)
+            .compositingGroup()
             .shadow(color: PulseTheme.surfaceShadow, radius: isSelected ? 9 : 6, y: isSelected ? 4 : 2)
     }
 }
@@ -791,6 +792,7 @@ struct DomainHeroCard<Content: View>: View {
                 shape.stroke(PulseTheme.cardStroke, lineWidth: 0.8)
             }
             .clipShape(shape)
+            .compositingGroup()
             .shadow(color: showsGlow ? domain.glowColor : .clear, radius: 18, x: 0, y: 4)
             .shadow(color: PulseTheme.surfaceShadow, radius: 7, y: 3)
     }
@@ -1175,6 +1177,7 @@ struct PulseCard<Content: View>: View {
             .overlay {
                 shape.stroke(PulseTheme.cardStroke, lineWidth: 0.8)
             }
+            .compositingGroup()
             .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
     }
 }
@@ -1654,7 +1657,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
     var body: some View {
         ZStack(alignment: .top) {
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
+                LazyVStack(alignment: .leading, spacing: 18) {
                     content
                 }
                 // Pins the content to the ScrollView's own width instead of

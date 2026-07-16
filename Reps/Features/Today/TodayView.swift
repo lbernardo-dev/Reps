@@ -51,9 +51,53 @@ struct TodayView: View {
     @Environment(AppStore.self) private var store
     var onSelectTab: ((AppTab) -> Void)? = nil
 
+    @State private var renderCache = TodayRenderCache()
+
     var body: some View {
-        let model = makeTodayRenderModel()
-        TodayViewContent(model: model, store: store, onSelectTab: onSelectTab)
+        let signature = makeTodayRenderSignature()
+        let model: TodayRenderModel
+        if let cachedModel = renderCache.model, renderCache.signature == signature {
+            model = cachedModel
+        } else {
+            model = makeTodayRenderModel()
+            renderCache.signature = signature
+            renderCache.model = model
+        }
+        return TodayViewContent(model: model, store: store, onSelectTab: onSelectTab)
+    }
+
+    private func scheduledWorkoutsHash(_ workouts: [ScheduledWorkout]) -> Int {
+        var hasher = Hasher()
+        for workout in workouts {
+            hasher.combine(workout.id)
+            hasher.combine(workout.date)
+            hasher.combine(workout.status.rawValue)
+        }
+        return hasher.finalize()
+    }
+
+    private func makeTodayRenderSignature() -> TodayRenderSignature {
+        TodayRenderSignature(
+            workoutSessionCount: store.workoutSessions.count,
+            latestWorkoutDate: store.workoutSessions.max { $0.date < $1.date }?.date,
+            bodyMetricCount: store.bodyMetrics.count,
+            latestBodyMetricDate: store.bodyMetrics.max { $0.date < $1.date }?.date,
+            healthMetricCount: store.health.latestDailyMetrics.count,
+            latestHealthMetricDate: store.health.latestDailyMetrics.max { $0.date < $1.date }?.date,
+            activePlanID: store.activePlan.id,
+            activePlanDayCount: store.activePlan.days.count,
+            activePlanCurrentDayIndex: store.activePlan.currentDayIndex,
+            activePlanDaysPerWeek: store.activePlan.daysPerWeek,
+            hasActivePlan: store.hasActiveTrainingPlan,
+            units: store.userProfile.units,
+            preferredLanguage: store.userProfile.preferredLanguage,
+            trainingLocation: store.userProfile.trainingLocation,
+            weightIncrementKg: store.userProfile.weightIncrementKg,
+            todayHealthMetric: store.todayHealthMetric,
+            streakDays: store.streakDays,
+            scheduledWorkoutsHash: scheduledWorkoutsHash(store.scheduledWorkouts),
+            exercisesCount: store.exercises.count
+        )
     }
 
     private var todaysScheduledWorkout: ScheduledWorkout? {
@@ -821,28 +865,21 @@ private struct TodayViewContent: View {
 
     // MARK: - Weekly Progress Hero
 
+    // `model.weeklyVolumePoints` already grouped/summed volume per weekday in
+    // `makeTodayRenderModel()`; this used to redo that same O(n·7) aggregation
+    // (with its own DateFormatter) just to normalize it for the bar heights.
     private var weeklyProgressBarPoints: [WeeklyBarPoint] {
         let calendar = Calendar.current
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: store.userProfile.preferredLanguage)
-        formatter.dateFormat = "EEEEE"
+        let volumePoints = weeklyVolumePoints
+        let maxVolume = volumePoints.map(\.value).max() ?? 1.0
 
-        let maxVolume = (0..<7).compactMap { offset -> Double? in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
-            let daySessions = weekSessions.filter { calendar.isDate($0.date, inSameDayAs: date) }
-            return FitnessMetrics.totalVolumeKg(for: daySessions)
-        }.max() ?? 1.0
-
-        return (0..<7).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
-            let daySessions = weekSessions.filter { calendar.isDate($0.date, inSameDayAs: date) }
-            let vol = FitnessMetrics.totalVolumeKg(for: daySessions)
-            return WeeklyBarPoint(
-                id: date,
-                dayLabel: formatter.string(from: date),
-                normalizedHeight: maxVolume > 0 ? min(vol / maxVolume, 1.0) : 0,
-                hasActivity: !daySessions.isEmpty,
-                isToday: calendar.isDateInToday(date)
+        return volumePoints.map { point in
+            WeeklyBarPoint(
+                id: point.id,
+                dayLabel: point.label,
+                normalizedHeight: maxVolume > 0 ? min(point.value / maxVolume, 1.0) : 0,
+                hasActivity: weekSessions.contains { calendar.isDate($0.date, inSameDayAs: point.id) },
+                isToday: point.isToday
             )
         }
     }
@@ -2146,6 +2183,19 @@ private struct TodayRenderSignature: Equatable {
     let trainingLocation: UserProfile.TrainingLocation
     let weightIncrementKg: Double
     let todayHealthMetric: DailyHealthMetric?
+    let streakDays: Int
+    let scheduledWorkoutsHash: Int
+    let exercisesCount: Int
+}
+
+/// Reference box so `TodayView` can gate `makeTodayRenderModel()` behind a
+/// cheap signature comparison without the write itself (mutating a class
+/// instance's stored properties) being treated by SwiftUI as a state change
+/// that needs to re-invalidate the view — only the values read from `store`
+/// during signature construction drive re-evaluation.
+private final class TodayRenderCache {
+    var signature: TodayRenderSignature?
+    var model: TodayRenderModel?
 }
 
 private struct TodayRenderModel {

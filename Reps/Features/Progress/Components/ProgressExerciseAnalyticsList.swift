@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ExerciseAnalyticsListView: View {
   let exercises: [Exercise]
+  let summaries: [UUID: ProgressDashboardRenderModel.ExerciseProgressSummary]
 
   var body: some View {
     ScrollView(.vertical, showsIndicators: false) {
@@ -22,7 +23,7 @@ struct ExerciseAnalyticsListView: View {
               ExerciseProgressView(exercise: exercise)
             } label: {
               PulseCard {
-                ExerciseProgressRow(exercise: exercise)
+                ExerciseProgressRow(exercise: exercise, summary: summaries[exercise.id])
               }
             }
             .buttonStyle(.plain)
