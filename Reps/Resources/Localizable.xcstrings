@@ -40071,6 +40071,23 @@
         }
       }
     },
+    "how_your_free_week_works" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How your free week works"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo funciona tu semana gratis"
+          }
+        }
+      }
+    },
     "hoy" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -58364,6 +58381,23 @@
         }
       }
     },
+    "paywall_free_recap_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already free:"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya incluido gratis:"
+          }
+        }
+      }
+    },
     "paywall_improve_tracking_title" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -58840,6 +58874,23 @@
         }
       }
     },
+    "paywall_pro_exclusive_count_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%d exclusive"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%d exclusivas"
+          }
+        }
+      }
+    },
     "paywall_pro_insights_bullet_1" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -58955,6 +59006,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "RPE, RIR, tempo, tipo de serie y auto-progresión viven dentro de Pro."
+          }
+        }
+      }
+    },
+    "paywall_pro_unlocks_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything Pro unlocks"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo lo que desbloquea Pro"
           }
         }
       }
@@ -88753,6 +88821,7 @@
       }
     },
     "what_stays_free_vs_pro" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

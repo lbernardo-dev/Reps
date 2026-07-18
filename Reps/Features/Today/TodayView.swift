@@ -274,6 +274,10 @@ struct TodayView: View {
         }
         let weeklyRepsPoints = weeklyPoints { Double(sets(in: $0).reduce(0) { $0 + $1.reps }) }
         let weeklyVolumePoints = weeklyPoints { displayWeight(FitnessMetrics.totalVolumeKg(for: [$0])) }
+        // Strength volume is 0 for cardio/walking sessions (no weighted sets), which would
+        // otherwise render those days as empty bars indistinguishable from rest days. Session
+        // load (duration × RPE) is defined for every activity type, so it drives the bar chart.
+        let weeklyLoadPoints = weeklyPoints { AnalyticsEngine.sessionLoad(for: $0) }
 
         let competitiveSummary = AnalyticsEngine.competitiveSummary(
             sessions: store.workoutSessions,
@@ -442,6 +446,7 @@ struct TodayView: View {
             weeklyRepsPoints: weeklyRepsPoints,
             weeklyVolumePoints: weeklyVolumePoints,
             weeklyVolumeValues: weeklyVolumePoints.map(\.value),
+            weeklyLoadPoints: weeklyLoadPoints,
             workoutTrendText: Self.trendText(current: Double(recentSessions.count), previous: Double(previous30Sessions.count)),
             volumeTrendText: Self.trendText(current: recentVolumeKg, previous: previous30VolumeKg),
             weekRepsTrendText: Self.trendText(current: Double(currentWeekReps), previous: Double(previousReps)),
@@ -549,6 +554,7 @@ private struct TodayViewContent: View {
     private var recentActivityPoints: [DailyActivityPoint] { model.recentActivityPoints }
     private var weeklyRepsPoints: [MiniBarPoint] { model.weeklyRepsPoints }
     private var weeklyVolumePoints: [MiniBarPoint] { model.weeklyVolumePoints }
+    private var weeklyLoadPoints: [MiniBarPoint] { model.weeklyLoadPoints }
     private var weeklyVolumeValues: [Double] { model.weeklyVolumeValues }
     private var workoutTrendText: String? { model.workoutTrendText }
     private var volumeTrendText: String? { model.volumeTrendText }
@@ -560,6 +566,9 @@ private struct TodayViewContent: View {
     private var naturalGreetingTokens: [GreetingFlowToken] { model.naturalGreetingTokens }
     private var todayWeather: FitnessWeatherSnapshot? { weather.today }
     private var tomorrowWeather: FitnessWeatherSnapshot? { weather.tomorrow }
+    private var hasTrainedToday: Bool {
+        store.workoutSessions.contains { Calendar.current.isDateInToday($0.date) }
+    }
     private var weatherInsights: [FitnessWeatherInsight] {
         guard let todayWeather, let tomorrowWeather else { return [] }
         return FitnessWeatherInsight.make(
@@ -567,6 +576,7 @@ private struct TodayViewContent: View {
             tomorrow: tomorrowWeather,
             battery: batteryStatus,
             hasActivePlan: hasActivePlan,
+            hasTrainedToday: hasTrainedToday,
             trainingLocation: store.userProfile.trainingLocation
         )
     }
@@ -878,19 +888,19 @@ private struct TodayViewContent: View {
 
     // MARK: - Weekly Progress Hero
 
-    // `model.weeklyVolumePoints` already grouped/summed volume per weekday in
-    // `makeTodayRenderModel()`; this used to redo that same O(n·7) aggregation
-    // (with its own DateFormatter) just to normalize it for the bar heights.
+    // `model.weeklyLoadPoints` already grouped/summed session load (duration × RPE) per
+    // weekday in `makeTodayRenderModel()`. Load, unlike strength volume, is nonzero for
+    // cardio/walking sessions too, so the bar chart reflects all activity, not just lifting.
     private var weeklyProgressBarPoints: [WeeklyBarPoint] {
         let calendar = Calendar.current
-        let volumePoints = weeklyVolumePoints
-        let maxVolume = volumePoints.map(\.value).max() ?? 1.0
+        let loadPoints = weeklyLoadPoints
+        let maxLoad = loadPoints.map(\.value).max() ?? 1.0
 
-        return volumePoints.map { point in
+        return loadPoints.map { point in
             WeeklyBarPoint(
                 id: point.id,
                 dayLabel: point.label,
-                normalizedHeight: maxVolume > 0 ? min(point.value / maxVolume, 1.0) : 0,
+                normalizedHeight: maxLoad > 0 ? min(point.value / maxLoad, 1.0) : 0,
                 hasActivity: weekSessions.contains { calendar.isDate($0.date, inSameDayAs: point.id) },
                 isToday: point.isToday
             )
@@ -2388,6 +2398,7 @@ private struct TodayRenderModel {
     let weeklyRepsPoints: [MiniBarPoint]
     let weeklyVolumePoints: [MiniBarPoint]
     let weeklyVolumeValues: [Double]
+    let weeklyLoadPoints: [MiniBarPoint]
     // ── Trend Strings ───────────────────────────────────────────────────
     let workoutTrendText: String?
     let volumeTrendText: String?
@@ -4972,19 +4983,24 @@ private struct AnimatedWeatherStatusIcon: View {
     private var isCardHero: Bool { presentation == .hero }
     private var isWidgetBackground: Bool { presentation == .widgetBackground }
     private var isDetailBackground: Bool { presentation == .detailBackground }
-    private var sceneScale: CGFloat { isWidgetBackground ? 1.18 : 1 }
+    private var sceneScale: CGFloat { isWidgetBackground ? 0.62 : 1 }
+    private var celestialScale: CGFloat {
+        if isDetailBackground { return 1.4 }
+        if isWidgetBackground { return 1.18 }
+        return 1
+    }
     private var conditionLayerYOffset: CGFloat {
         if isDetailBackground { return -150 }
         if isWidgetBackground { return -72 }
         return 0
     }
-    /// Where the sun/moon orbit band starts inside each surface: the detail
+    /// Where the sun/moon's confined orbit band starts inside each surface: the detail
     /// background sits behind the navigation header, so its band begins lower
     /// to keep the body inside the visible sky.
     private var celestialTopBandFraction: CGFloat {
-        if isDetailBackground { return 0.28 }
-        if isWidgetBackground { return 0.14 }
-        return 0.12
+        if isDetailBackground { return 0.10 }
+        if isWidgetBackground { return 0.08 }
+        return 0.06
     }
 
     var body: some View {
@@ -5011,7 +5027,7 @@ private struct AnimatedWeatherStatusIcon: View {
                             orbitProgress: palette.orbitProgress,
                             phase: phase,
                             reduceMotion: reduceMotion,
-                            scale: sceneScale,
+                            scale: celestialScale,
                             topBandFraction: celestialTopBandFraction
                         )
                     }
@@ -5146,7 +5162,7 @@ private struct WeatherCelestialBody: View {
     let phase: TimeInterval
     let reduceMotion: Bool
     let scale: CGFloat
-    /// Fraction of the container height where the visible orbit band starts.
+    /// Fraction of the container height where the confined orbit band starts.
     /// Each surface (card, widget background, detail background) passes its own
     /// value so the body never drifts under headers or outside its scene.
     var topBandFraction: CGFloat = 0.16
@@ -5155,7 +5171,7 @@ private struct WeatherCelestialBody: View {
         GeometryReader { proxy in
             let progress = min(max(orbitProgress, 0), 1)
             let bodySize = (isNight ? 38 : 42) * scale
-            let x = proxy.size.width * (0.10 + 0.80 * progress)
+            let x = horizontalPosition(progress: progress, width: proxy.size.width)
             let breathe = reduceMotion ? 1 : 1 + 0.035 * sin(phase * 0.9)
 
             Image(systemName: isNight ? "moon.stars.fill" : "sun.max.fill")
@@ -5168,19 +5184,21 @@ private struct WeatherCelestialBody: View {
         .clipped()
     }
 
-    /// Dawn (or dusk for the moon): the body slides into view over the top edge
-    /// of its scene until it settles at the top of the band; for the rest of the
-    /// period it drifts down through the band and hides fully below the bottom
-    /// edge right when the day/night ends.
+    /// Keeps the body inside the top-right corner throughout: a short side-to-side
+    /// drift within the rightmost fifth of the width, never crossing into the
+    /// center or left side of the scene.
+    private func horizontalPosition(progress: Double, width: CGFloat) -> CGFloat {
+        width * (0.78 + 0.14 * sin(progress * .pi))
+    }
+
+    /// A brief rise-and-fall confined to a thin band just below the top edge,
+    /// instead of a full sunrise-to-sunset arc: the body stays clear of headers
+    /// and foreground cards without ever traveling down into the scene.
     private func verticalPosition(progress: Double, height: CGFloat, bodySize: CGFloat) -> CGFloat {
         let bandTop = height * topBandFraction + bodySize * 0.5
-        let exitY = height + bodySize
-        if progress < 0.15 {
-            let t = progress / 0.15
-            return -bodySize * 0.6 + (bandTop + bodySize * 0.6) * t
-        }
-        let t = (progress - 0.15) / 0.85
-        return bandTop + (exitY - bandTop) * pow(t, 1.6)
+        let bandHeight = bodySize * 1.6
+        let arc = sin(progress * .pi)
+        return bandTop + bandHeight * (1 - arc)
     }
 }
 
@@ -5253,14 +5271,25 @@ private struct WeatherAtmosphericParticles: View {
 
             switch condition {
             case .rain, .storm:
-                let speed = condition == .storm ? 150.0 : 105.0
-                for index in 0..<12 {
-                    let lane = size.width * CGFloat(index + 1) / 13
-                    let rawY = (phase * speed + Double(index * 31)).truncatingRemainder(dividingBy: Double(size.height + 28))
+                let dropCount = condition == .storm ? 18 : 15
+                let baseSpeed = condition == .storm ? 150.0 : 100.0
+                for index in 0..<dropCount {
+                    // Per-drop variance (lane jitter, speed, length, slant, opacity) breaks the
+                    // even lanes into scattered, independently falling drops instead of a single
+                    // synchronized line of dots.
+                    let laneWidth = size.width / CGFloat(dropCount)
+                    let jitter = CGFloat((index * 53) % 100) / 100 - 0.5
+                    let lane = laneWidth * (CGFloat(index) + 0.5) + jitter * laneWidth * 0.8
+                    let speedVariance = 0.65 + 0.7 * (Double((index * 31) % 10) / 10)
+                    let speed = baseSpeed * speedVariance
+                    let rawY = (phase * speed + Double(index * 43)).truncatingRemainder(dividingBy: Double(size.height + 30))
+                    let length: CGFloat = (condition == .storm ? 15 : 9) + CGFloat(index % 4) * 2
+                    let slant: CGFloat = condition == .storm ? 6 : 3
+                    let opacity = 0.26 + 0.34 * (Double((index * 19) % 10) / 10)
                     var drop = Path()
-                    drop.move(to: CGPoint(x: lane, y: CGFloat(rawY) - 14))
-                    drop.addLine(to: CGPoint(x: lane - 4, y: CGFloat(rawY)))
-                    context.stroke(drop, with: .color(.white.opacity(0.42)), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                    drop.move(to: CGPoint(x: lane, y: CGFloat(rawY) - length))
+                    drop.addLine(to: CGPoint(x: lane - slant, y: CGFloat(rawY)))
+                    context.stroke(drop, with: .color(.white.opacity(opacity)), style: StrokeStyle(lineWidth: index.isMultiple(of: 3) ? 1.8 : 1.1, lineCap: .round))
                 }
             case .snow:
                 for index in 0..<11 {
@@ -5312,6 +5341,7 @@ private struct FitnessWeatherInsight: Identifiable {
         tomorrow: FitnessWeatherSnapshot,
         battery: FitnessMetrics.TrainingBatteryStatus,
         hasActivePlan: Bool,
+        hasTrainedToday: Bool,
         trainingLocation: UserProfile.TrainingLocation,
         now: Date = Date()
     ) -> [FitnessWeatherInsight] {
@@ -5322,6 +5352,10 @@ private struct FitnessWeatherInsight: Identifiable {
 
         let calendar = Calendar.current
         let nowFraction = Double(calendar.component(.hour, from: now)) + Double(calendar.component(.minute, from: now)) / 60
+        let isNight = !today.isDaylight
+        // Already trained and the sun is down: pushing another outdoor or
+        // indoor session makes no sense — recovery is the right call.
+        let shouldRecommendRest = isNight && hasTrainedToday
         // WeatherKit chooses the best window from the real hourly forecast. Once
         // it has passed, recommending it as "today" would be stale.
         let todayWindowHasPassed = nowFraction >= Double(today.bestWindow.endHour)
@@ -5330,35 +5364,45 @@ private struct FitnessWeatherInsight: Identifiable {
         let uvStartHour = highUVHours.map(\.hour).min()
         let uvEndHour = highUVHours.map(\.hour).max().map { min($0 + 1, 24) }
 
-        if today.precipitation.indicatesDryConditions
-            && today.secondaryWindSpeed < comfortableGusts
-            && today.highTemperature < comfortableHigh {
-            if todayWindowHasPassed {
-                insights.append(FitnessWeatherInsight(
-                    title: localizedString("tomorrow_window"),
-                    message: localizedFormat("tomorrow_window_message_format", tomorrow.bestWindow.title, tomorrow.bestWindow.subtitle),
-                    systemImage: "clock.arrow.circlepath",
-                    tone: .indoor
-                ))
-                suggestedTomorrowWindow = true
+        if shouldRecommendRest {
+            insights.append(FitnessWeatherInsight(
+                title: localizedString("rest_and_recover_title"),
+                message: localizedFormat("rest_and_recover_message_format", tomorrow.bestWindow.title, tomorrow.bestWindow.subtitle),
+                systemImage: "moon.zzz.fill",
+                tone: .good
+            ))
+            suggestedTomorrowWindow = true
+        } else if !hasTrainedToday {
+            if today.precipitation.indicatesDryConditions
+                && today.secondaryWindSpeed < comfortableGusts
+                && today.highTemperature < comfortableHigh {
+                if todayWindowHasPassed {
+                    insights.append(FitnessWeatherInsight(
+                        title: localizedString("tomorrow_window"),
+                        message: localizedFormat("tomorrow_window_message_format", tomorrow.bestWindow.title, tomorrow.bestWindow.subtitle),
+                        systemImage: "clock.arrow.circlepath",
+                        tone: .indoor
+                    ))
+                    suggestedTomorrowWindow = true
+                } else {
+                    insights.append(FitnessWeatherInsight(
+                        title: localizedString("good_day_to_go_out"),
+                        message: localizedFormat("good_day_to_go_out_message_format", today.bestWindow.title.lowercased(with: RepsLocalization.locale)),
+                        systemImage: "figure.run",
+                        tone: .good
+                    ))
+                }
             } else {
                 insights.append(FitnessWeatherInsight(
-                    title: localizedString("good_day_to_go_out"),
-                    message: localizedFormat("good_day_to_go_out_message_format", today.bestWindow.title.lowercased(with: RepsLocalization.locale)),
-                    systemImage: "figure.run",
-                    tone: .good
+                    title: localizedString("controlled_outdoor_plan"),
+                    message: localizedString("controlled_outdoor_plan_message"),
+                    systemImage: "exclamationmark.triangle.fill",
+                    tone: .warning
                 ))
             }
-        } else {
-            insights.append(FitnessWeatherInsight(
-                title: localizedString("controlled_outdoor_plan"),
-                message: localizedString("controlled_outdoor_plan_message"),
-                systemImage: "exclamationmark.triangle.fill",
-                tone: .warning
-            ))
         }
 
-        if let peakUV, let uvStartHour, let uvEndHour, nowFraction < Double(uvEndHour) {
+        if !shouldRecommendRest, let peakUV, let uvStartHour, let uvEndHour, nowFraction < Double(uvEndHour) {
             let uvWindow = String(format: "%02d:00–%02d:00", uvStartHour, uvEndHour)
             insights.append(FitnessWeatherInsight(
                 title: localizedString("strong_sun_midday"),
@@ -5368,7 +5412,7 @@ private struct FitnessWeatherInsight: Identifiable {
             ))
         }
 
-        if battery.level < 55 || trainingLocation == .gym || trainingLocation == .home {
+        if !shouldRecommendRest && !hasTrainedToday && (battery.level < 55 || trainingLocation == .gym || trainingLocation == .home) {
             insights.append(FitnessWeatherInsight(
                 title: hasActivePlan ? localizedString("better_indoors") : localizedString("indoor_alternative"),
                 message: localizedFormat("indoor_strength_recovery_message_format", "\(battery.level)"),

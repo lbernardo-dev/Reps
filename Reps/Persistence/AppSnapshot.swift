@@ -195,7 +195,7 @@ extension AppSnapshot {
             userProfile: UserProfile(),
             monetization: MonetizationState(),
             activePlan: .empty,
-            plans: SeedData.defaultPlans,
+            plans: [],
             workoutTemplates: SeedData.workoutTemplates,
             exercises: SeedData.exercises,
             scheduledWorkouts: [],

@@ -314,7 +314,11 @@ struct SettingsView: View {
                 }
 
                 Button {
-                    activeSheet = .subscription
+                    if store.monetization.hasProAccess {
+                        activeSheet = .subscription
+                    } else {
+                        localPaywall = store.makePaywallPresentation(source: .profileSubscription, feature: nil)
+                    }
                 } label: {
                     Text(settingsDisplayText(store.monetization.hasProAccess ? "manage_subscription" : "view_options"))
                         .font(SettingsTypography.buttonTitle)

@@ -1454,7 +1454,13 @@ struct ProfileView: View {
     private func connectHealth() async {
         do {
             try await healthKit.requestAuthorization()
-            store.health.isAuthorized = healthKit.hasWriteAuthorization
+            // `requestAuthorization()` only throws for real errors (Health unavailable, bad
+            // types) — it succeeds even when the user grants read-only access and denies every
+            // write toggle in the system prompt. Gating on `hasWriteAuthorization` here meant
+            // read-only users stayed permanently "unauthorized," which blocked the read/sync
+            // pipeline entirely (workouts — including walks — never imported, streak/sessions
+            // stuck at 0). Reaching this line already means the connection flow completed.
+            store.health.isAuthorized = true
             store.health.lastSyncDate = .now
             store.startHealthKitWorkoutObserverIfAuthorized()
             let metrics = try await healthKit.fetchLatestBodyMetrics()

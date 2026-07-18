@@ -1,0 +1,99 @@
+{
+  "versionLocalizationId": "74189668-d66c-44b3-8d22-07b66c4b818c",
+  "path": ".asc/reports/screenshots-upload/failures-1784407829397029000.json",
+  "deviceType": "IPHONE_67",
+  "displayType": "APP_IPHONE_67",
+  "replace": true,
+  "setId": "c72d445b-63d5-43d1-a399-c3f59ad46c2d",
+  "files": [
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/01-train-smarter.jpg",
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/02-follow-real-plan.jpg",
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/03-control-load.jpg",
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/04-see-weekly-progress.jpg",
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/05-connect-health.jpg",
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/06-map-every-muscle.jpg",
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/07-find-core-exercises.jpg",
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/08-start-structured.jpg",
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/09-track-your-body.jpg",
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/10-stay-consistent.jpg"
+  ],
+  "orderedIds": [
+    "a0879d5d-a22d-4725-8dbc-73f60c8c725c",
+    "1487080b-5f10-4c5a-8b2f-69b8233f8d6a",
+    "4b0487ec-cd9b-48b3-94ab-9d49653ec870",
+    "32d8d105-39b1-491a-a2da-d26dffcd8924",
+    "5685cfdf-6701-45aa-9302-118618bed6e1",
+    "bdf27b64-8041-4472-9799-fa820f1420f0",
+    "4d0f3581-3440-43ef-b046-e3e9465b6291",
+    "28825da4-fae6-4115-bd3d-e1b39b178339",
+    "7cd9655e-39eb-48e1-9d2a-79bdc8a1dec5"
+  ],
+  "pendingFiles": [
+    "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/10-stay-consistent.jpg"
+  ],
+  "results": [
+    {
+      "fileName": "01-train-smarter.jpg",
+      "filePath": "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/01-train-smarter.jpg",
+      "assetId": "a0879d5d-a22d-4725-8dbc-73f60c8c725c",
+      "state": "COMPLETE"
+    },
+    {
+      "fileName": "02-follow-real-plan.jpg",
+      "filePath": "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/02-follow-real-plan.jpg",
+      "assetId": "1487080b-5f10-4c5a-8b2f-69b8233f8d6a",
+      "state": "COMPLETE"
+    },
+    {
+      "fileName": "03-control-load.jpg",
+      "filePath": "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/03-control-load.jpg",
+      "assetId": "4b0487ec-cd9b-48b3-94ab-9d49653ec870",
+      "state": "COMPLETE"
+    },
+    {
+      "fileName": "04-see-weekly-progress.jpg",
+      "filePath": "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/04-see-weekly-progress.jpg",
+      "assetId": "32d8d105-39b1-491a-a2da-d26dffcd8924",
+      "state": "COMPLETE"
+    },
+    {
+      "fileName": "05-connect-health.jpg",
+      "filePath": "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/05-connect-health.jpg",
+      "assetId": "5685cfdf-6701-45aa-9302-118618bed6e1",
+      "state": "COMPLETE"
+    },
+    {
+      "fileName": "06-map-every-muscle.jpg",
+      "filePath": "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/06-map-every-muscle.jpg",
+      "assetId": "bdf27b64-8041-4472-9799-fa820f1420f0",
+      "state": "COMPLETE"
+    },
+    {
+      "fileName": "07-find-core-exercises.jpg",
+      "filePath": "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/07-find-core-exercises.jpg",
+      "assetId": "4d0f3581-3440-43ef-b046-e3e9465b6291",
+      "state": "COMPLETE"
+    },
+    {
+      "fileName": "08-start-structured.jpg",
+      "filePath": "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/08-start-structured.jpg",
+      "assetId": "28825da4-fae6-4115-bd3d-e1b39b178339",
+      "state": "COMPLETE"
+    },
+    {
+      "fileName": "09-track-your-body.jpg",
+      "filePath": "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/09-track-your-body.jpg",
+      "assetId": "7cd9655e-39eb-48e1-9d2a-79bdc8a1dec5",
+      "state": "COMPLETE"
+    }
+  ],
+  "failures": [
+    {
+      "fileName": "10-stay-consistent.jpg",
+      "filePath": "/Users/romerosoft/Work/DESARROLLO/SWIFT/Reps/screenshots/aso/en-US/10-stay-consistent.jpg",
+      "error": "Too many screenshots.: Set: c72d445b-63d5-43d1-a399-c3f59ad46c2d has already 10 appScreenshots"
+    }
+  ],
+  "error": "Too many screenshots.: Set: c72d445b-63d5-43d1-a399-c3f59ad46c2d has already 10 appScreenshots",
+  "generatedAt": "2026-07-18T20:51:16Z"
+}

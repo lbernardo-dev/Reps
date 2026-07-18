@@ -3609,7 +3609,7 @@ final class AppStore {
         userProfile = snapshot.userProfile
         monetization = snapshot.monetization
         activePlan = snapshot.activePlan
-        plans = mergeSeedPlans(into: snapshot.plans)
+        plans = stripSeedPlans(from: snapshot.plans)
         workoutTemplates = mergeSeedWorkouts(into: snapshot.workoutTemplates.isEmpty ? snapshot.activePlan.days : snapshot.workoutTemplates)
         exercises = mergeSeedExercises(into: snapshot.exercises.isEmpty ? SeedData.exercises : snapshot.exercises)
         scheduledWorkouts = Self.normalizedScheduledWorkouts(snapshot.scheduledWorkouts)
@@ -4556,10 +4556,17 @@ final class AppStore {
         return storedWorkouts + missing
     }
 
-    private func mergeSeedPlans(into storedPlans: [WorkoutPlan]) -> [WorkoutPlan] {
-        let existingNames = Set(storedPlans.map { $0.name.lowercased() })
-        let missing = SeedData.defaultPlans.filter { !existingNames.contains($0.name.lowercased()) }
-        return storedPlans + missing
+    /// `plans` holds only plans the user actually owns (hand-built, or cloned with a fresh
+    /// UUID via `addPlan(fromCatalog:)` when activating a catalog program) — never the
+    /// browsable program catalog itself, which lives in `SeedData.defaultPlans` and is
+    /// rendered separately by `ProgramLibraryView`. A prior regression merged the whole
+    /// catalog into `plans` on every restore, which broke `canCreateAnotherPlan`'s
+    /// `plans.isEmpty` check for free users. This strips any leftover catalog entries
+    /// (identifiable by their stable seed id, since activated clones always get a new
+    /// UUID) from snapshots persisted while that bug was live.
+    private func stripSeedPlans(from storedPlans: [WorkoutPlan]) -> [WorkoutPlan] {
+        let seedIDs = Set(SeedData.defaultPlans.map(\.id))
+        return storedPlans.filter { !seedIDs.contains($0.id) }
     }
 
     // MARK: - Social Activity Events
