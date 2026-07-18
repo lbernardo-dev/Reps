@@ -50,7 +50,8 @@ struct TrainingLoadOverviewCard: View {
             level: battery.level,
             color: statusColor,
             size: CGSize(width: 58, height: 132),
-            showsLabel: true
+            showsLabel: true,
+            isRecharging: battery.restDays > 0 || battery.recoveryCredit > 0
           )
           .frame(width: 76, height: 148, alignment: .trailing)
         }

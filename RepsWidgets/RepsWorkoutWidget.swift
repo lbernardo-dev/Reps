@@ -112,7 +112,7 @@ private struct RepsWorkoutWidgetView: View {
                 } else {
                     Gauge(value: entry.snapshot.progress) {
                         WidgetWorkoutStatusSymbol(
-                            systemName: entry.snapshot.hasActiveWorkout ? "figure.strengthtraining.traditional" : "dumbbell",
+                            systemName: entry.snapshot.hasActiveWorkout ? entry.snapshot.workoutIconName : "dumbbell",
                             snapshot: entry.snapshot
                         )
                     } currentValueLabel: {
@@ -250,14 +250,11 @@ extension SharedWorkoutSnapshot {
     }
 
     var stateSystemImage: String {
-        if isRouteWorkout {
-            if isPaused { return "pause.fill" }
-            return isOutdoorRoute == false ? "figure.run.treadmill" : "figure.walk"
-        }
+        if isPaused { return "pause.fill" }
         if restEndDate != nil {
             return "hourglass"
         }
-        return isPaused ? "pause.fill" : "figure.strengthtraining.traditional"
+        return workoutIconName
     }
 
     var currentSetText: String? {
@@ -301,6 +298,11 @@ private struct WidgetWorkoutStatusSymbol: View {
                 .wiggle.forward.byLayer,
                 options: .nonRepeating,
                 value: animationTrigger
+            )
+            .symbolEffect(
+                .bounce,
+                options: .repeating,
+                isActive: animationsEnabled && !snapshot.isPaused
             )
             .symbolEffectsRemoved(!animationsEnabled)
             .transition(.symbolEffect(.appear.byLayer))

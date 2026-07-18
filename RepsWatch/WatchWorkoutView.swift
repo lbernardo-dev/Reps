@@ -26,6 +26,7 @@ private struct WatchAnimatedWorkoutSymbol: View {
     let systemName: String
     var eventValue = ""
     var motion: WatchWorkoutSymbolMotion = .activity
+    var isPaused = false
 
     private var animationsEnabled: Bool {
         !reduceMotion && !isLuminanceReduced
@@ -41,6 +42,7 @@ private struct WatchAnimatedWorkoutSymbol: View {
         case .activity:
             baseImage
                 .symbolEffect(.wiggle.forward.byLayer, options: .nonRepeating, value: animationValue)
+                .symbolEffect(.bounce, options: .repeating, isActive: animationsEnabled && !isPaused)
         case .rest:
             baseImage
                 .symbolEffect(.rotate.clockwise.wholeSymbol, options: .nonRepeating, value: animationValue)
@@ -741,8 +743,9 @@ struct WatchStrengthNowView: View {
             .accessibilityLabel(localizedString("Previous exercise"))
 
             WatchAnimatedWorkoutSymbol(
-                systemName: "dumbbell.fill",
-                eventValue: "\(model.currentExerciseIndex)|\(model.totalCompletedSets)"
+                systemName: model.snapshot.workoutIconName,
+                eventValue: "\(model.currentExerciseIndex)|\(model.totalCompletedSets)",
+                isPaused: model.state == .paused
             )
             .font(.system(size: 10, weight: .bold))
             .foregroundStyle(accent)

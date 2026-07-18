@@ -852,6 +852,41 @@ struct ActiveWorkoutStatus: Identifiable, Equatable, Codable {
         let derivedElapsed = Int(effectiveDate.timeIntervalSince(startedAt)) - pausedSeconds
         return max(derivedElapsed, elapsedSeconds, 0)
     }
+
+    var workoutIconName: String {
+        let name = (exerciseName ?? workoutTitle).lowercased()
+        if isRouteWorkout {
+            if isOutdoorRoute == false {
+                return "figure.run.treadmill"
+            } else if name.contains("run") || name.contains("carrera") || name.contains("jog") {
+                return "figure.run"
+            } else if name.contains("hike") || name.contains("senderismo") {
+                return "figure.hiking"
+            } else {
+                return "figure.walk"
+            }
+        } else {
+            if name.contains("core") || name.contains("abdom") || name.contains("abs") || name.contains("plank") {
+                return "figure.core.training"
+            } else if name.contains("stretch") || name.contains("estiramiento") || name.contains("flex") {
+                return "figure.flexibility"
+            } else if name.contains("yoga") {
+                return "figure.yoga"
+            } else if name.contains("pilates") {
+                return "figure.pilates"
+            } else if name.contains("jump") || name.contains("salto") || name.contains("rope") {
+                return "figure.rope.skipping"
+            } else if name.contains("cycle") || name.contains("ciclismo") || name.contains("bici") {
+                return name.contains("outdoor") ? "figure.outdoor.cycle" : "figure.indoor.cycle"
+            } else if name.contains("swim") || name.contains("natacion") {
+                return "figure.pool.swim"
+            } else if name.contains("box") || name.contains("kickbox") || name.contains("hit") || name.contains("hiit") {
+                return "figure.high.intensity.intervaltraining"
+            } else {
+                return "figure.strengthtraining.traditional"
+            }
+        }
+    }
 }
 
 struct Goal: Codable, Identifiable {

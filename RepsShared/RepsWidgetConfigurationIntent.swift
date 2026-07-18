@@ -252,6 +252,8 @@ public struct RepsWidgetConfigurationIntent: WidgetConfigurationIntent {
 }
 
 #if os(iOS)
+import AudioToolbox
+
 /// Bridges Live Activity button taps (which run inside the main app process
 /// via LiveActivityIntent) to the same command pipeline the watch uses.
 enum LiveActivityCommandBridge {
@@ -279,6 +281,9 @@ public struct ToggleWorkoutPauseLiveActivityIntent: LiveActivityIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult {
+        #if os(iOS)
+        AudioServicesPlaySystemSound(1519)
+        #endif
         let isPaused = SharedWorkoutStore.load().isPaused
         await LiveActivityCommandBridge.post(isPaused ? .resume : .pause)
         return .result()
@@ -292,6 +297,9 @@ public struct CompleteSetLiveActivityIntent: LiveActivityIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult {
+        #if os(iOS)
+        AudioServicesPlaySystemSound(1520)
+        #endif
         await LiveActivityCommandBridge.post(.completeSet)
         return .result()
     }
@@ -304,6 +312,9 @@ public struct NextExerciseLiveActivityIntent: LiveActivityIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult {
+        #if os(iOS)
+        AudioServicesPlaySystemSound(1519)
+        #endif
         await LiveActivityCommandBridge.post(.nextExercise)
         return .result()
     }
@@ -316,6 +327,9 @@ public struct StopWorkoutLiveActivityIntent: LiveActivityIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult {
+        #if os(iOS)
+        AudioServicesPlaySystemSound(1520)
+        #endif
         await LiveActivityCommandBridge.post(.stop)
         return .result()
     }
@@ -328,6 +342,9 @@ public struct AddWaterLiveActivityIntent: LiveActivityIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult {
+        #if os(iOS)
+        AudioServicesPlaySystemSound(1519)
+        #endif
         await LiveActivityCommandBridge.post(.addWater)
         return .result()
     }
@@ -340,6 +357,9 @@ public struct MusicToggleLiveActivityIntent: LiveActivityIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult {
+        #if os(iOS)
+        AudioServicesPlaySystemSound(1519)
+        #endif
         await LiveActivityCommandBridge.post(.musicToggle)
         return .result()
     }
@@ -352,6 +372,9 @@ public struct MusicNextLiveActivityIntent: LiveActivityIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult {
+        #if os(iOS)
+        AudioServicesPlaySystemSound(1519)
+        #endif
         await LiveActivityCommandBridge.post(.musicNext)
         return .result()
     }
@@ -364,6 +387,9 @@ public struct MusicPreviousLiveActivityIntent: LiveActivityIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult {
+        #if os(iOS)
+        AudioServicesPlaySystemSound(1519)
+        #endif
         await LiveActivityCommandBridge.post(.musicPrevious)
         return .result()
     }

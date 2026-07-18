@@ -123,9 +123,9 @@ struct RepsWorkoutLiveActivity: Widget {
                     HStack(spacing: 4) {
                         Image(systemName: "heart.fill")
                             .symbolEffect(
-                                .pulse.wholeSymbol,
-                                options: .nonRepeating,
-                                value: animationsEnabled ? Int(hr / 5) : -1
+                                .pulse,
+                                options: .repeating,
+                                isActive: animationsEnabled && !snapshot.isPaused
                             )
                             .symbolEffectsRemoved(!animationsEnabled)
                             .transition(.symbolEffect(.appear.byLayer))
@@ -222,11 +222,11 @@ struct RepsWorkoutLiveActivity: Widget {
                             .foregroundStyle(theme.foreground)
                     }
                     if snapshot.restEndDate != nil {
-                        Text("resting_label" as LocalizedStringKey)
+                        Text(localizedString("resting_label"))
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(.orange)
                     } else {
-                        Text("active_set_label" as LocalizedStringKey)
+                        Text(localizedString("active_set_label"))
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(theme.tint)
                     }
@@ -746,49 +746,19 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func animatedActivityIcon(_ snapshot: SharedWorkoutSnapshot) -> some View {
-        let systemImage: String
-        let name = (snapshot.exerciseName ?? snapshot.workoutTitle).lowercased()
-        
-        if snapshot.isRouteWorkout {
-            if snapshot.isOutdoorRoute == false {
-                systemImage = "figure.run.treadmill"
-            } else if name.contains("run") || name.contains("carrera") || name.contains("jog") {
-                systemImage = "figure.run"
-            } else if name.contains("hike") || name.contains("senderismo") {
-                systemImage = "figure.hiking"
-            } else {
-                systemImage = "figure.walk"
-            }
-        } else {
-            if name.contains("core") || name.contains("abdom") || name.contains("abs") || name.contains("plank") {
-                systemImage = "figure.core.training"
-            } else if name.contains("stretch") || name.contains("estiramiento") || name.contains("flex") {
-                systemImage = "figure.flexibility"
-            } else if name.contains("yoga") {
-                systemImage = "figure.yoga"
-            } else if name.contains("pilates") {
-                systemImage = "figure.pilates"
-            } else if name.contains("jump") || name.contains("salto") || name.contains("rope") {
-                systemImage = "figure.rope.skipping"
-            } else if name.contains("cycle") || name.contains("ciclismo") || name.contains("bici") {
-                systemImage = name.contains("outdoor") ? "figure.outdoor.cycle" : "figure.indoor.cycle"
-            } else if name.contains("swim") || name.contains("natacion") {
-                systemImage = "figure.pool.swim"
-            } else if name.contains("box") || name.contains("kickbox") || name.contains("hit") || name.contains("hiit") {
-                systemImage = "figure.high.intensity.intervaltraining"
-            } else {
-                systemImage = "figure.strengthtraining.traditional"
-            }
-        }
-        
-        return Image(systemName: systemImage)
+        return Image(systemName: snapshot.workoutIconName)
             .contentTransition(.symbolEffect(.replace.downUp))
             .symbolEffect(
                 .wiggle.forward.byLayer,
                 options: .nonRepeating,
                 value: animationTrigger(snapshot, event: "activity")
             )
-            .symbolEffectsRemoved(!animationsEnabled || snapshot.isPaused)
+            .symbolEffect(
+                .bounce,
+                options: .repeating,
+                isActive: animationsEnabled && !snapshot.isPaused
+            )
+            .symbolEffectsRemoved(!animationsEnabled)
             .transition(.symbolEffect(.appear.byLayer))
     }
 

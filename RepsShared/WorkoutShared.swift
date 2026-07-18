@@ -58,6 +58,24 @@ enum RepsLocalization {
 
     private static let localizedFallbacks: [String: [String: String]] = [
         "en": [
+            "resting_label": "Resting",
+            "active_set_label": "Active Set",
+            "evolucion_cardio": "Cardio Evolution",
+            "evolucion_fuerza": "Strength Evolution",
+            "evolucion_core": "Core Evolution",
+            "last_workout_cardio": "LATEST",
+            "last_workout_strength": "LATEST",
+            "last_workout_core": "LATEST",
+            "trends_and_distance": "Trends & distance",
+            "volume_and_intensity": "Volume & intensity",
+            "stability_and_consistency": "Stability & consistency",
+            "no_cardio_sessions": "No cardio sessions",
+            "no_strength_sessions": "No strength sessions",
+            "no_core_sessions": "No core sessions",
+            "start_cardio_to_see_trends": "Complete cardio sessions to see your trends.",
+            "start_strength_to_see_trends": "Complete strength sessions to see your volume.",
+            "start_core_to_see_trends": "Complete core sessions to see your consistency.",
+            "pace_label": "Pace",
             "support": "Support",
             "support_subtitle": "Help center and contact",
             "faq": "FAQ",
@@ -147,6 +165,24 @@ enum RepsLocalization {
             "your_area": "Your area"
         ],
         "es": [
+            "resting_label": "En descanso",
+            "active_set_label": "Serie activa",
+            "evolucion_cardio": "Evolución Cardio",
+            "evolucion_fuerza": "Evolución Fuerza",
+            "evolucion_core": "Evolución Core",
+            "last_workout_cardio": "ÚLTIMO",
+            "last_workout_strength": "ÚLTIMO",
+            "last_workout_core": "ÚLTIMO",
+            "trends_and_distance": "Tendencias y distancia",
+            "volume_and_intensity": "Volumen e intensidad",
+            "stability_and_consistency": "Estabilidad y constancia",
+            "no_cardio_sessions": "Sin sesiones de cardio",
+            "no_strength_sessions": "Sin sesiones de fuerza",
+            "no_core_sessions": "Sin sesiones de core",
+            "start_cardio_to_see_trends": "Completa sesiones de cardio para ver tu evolución.",
+            "start_strength_to_see_trends": "Completa sesiones de fuerza para ver tu volumen.",
+            "start_core_to_see_trends": "Completa sesiones de core para ver tu constancia.",
+            "pace_label": "Ritmo",
             "support": "Soporte",
             "support_subtitle": "Centro de ayuda y contacto",
             "faq": "Preguntas frecuentes",
@@ -814,6 +850,41 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
         [routeDistanceText, routePaceText]
             .filter { $0 != "--" }
             .joined(separator: " · ")
+    }
+
+    var workoutIconName: String {
+        let name = (exerciseName ?? workoutTitle).lowercased()
+        if isRouteWorkout {
+            if isOutdoorRoute == false {
+                return "figure.run.treadmill"
+            } else if name.contains("run") || name.contains("carrera") || name.contains("jog") {
+                return "figure.run"
+            } else if name.contains("hike") || name.contains("senderismo") {
+                return "figure.hiking"
+            } else {
+                return "figure.walk"
+            }
+        } else {
+            if name.contains("core") || name.contains("abdom") || name.contains("abs") || name.contains("plank") {
+                return "figure.core.training"
+            } else if name.contains("stretch") || name.contains("estiramiento") || name.contains("flex") {
+                return "figure.flexibility"
+            } else if name.contains("yoga") {
+                return "figure.yoga"
+            } else if name.contains("pilates") {
+                return "figure.pilates"
+            } else if name.contains("jump") || name.contains("salto") || name.contains("rope") {
+                return "figure.rope.skipping"
+            } else if name.contains("cycle") || name.contains("ciclismo") || name.contains("bici") {
+                return name.contains("outdoor") ? "figure.outdoor.cycle" : "figure.indoor.cycle"
+            } else if name.contains("swim") || name.contains("natacion") {
+                return "figure.pool.swim"
+            } else if name.contains("box") || name.contains("kickbox") || name.contains("hit") || name.contains("hiit") {
+                return "figure.high.intensity.intervaltraining"
+            } else {
+                return "figure.strengthtraining.traditional"
+            }
+        }
     }
 }
 

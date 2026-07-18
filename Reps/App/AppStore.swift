@@ -1676,10 +1676,17 @@ final class AppStore {
             sets: allSets,
             notes: logs.isEmpty ? nil : logs.map { "\($0.exercise.name): \($0.sets.count) sets" }.joined(separator: "\n"),
             exerciseLogs: logs,
+            estimatedCalories: status.liveActiveEnergyKcal,
             routePoints: status.routePoints ?? [],
-            pausedDurationSeconds: pausedSeconds
+            pausedDurationSeconds: pausedSeconds,
+            distanceKm: (status.routeDistanceKm ?? 0) > 0 ? status.routeDistanceKm : nil,
+            averagePaceSecondsPerKm: status.routePaceSecondsPerKm,
+            steps: status.routeSteps,
+            activeEnergyKcal: status.liveActiveEnergyKcal,
+            averageHeartRate: status.liveHeartRate
         )
         finishWorkout(session)
+        clearActiveWorkout()
         return session
     }
 
@@ -5751,7 +5758,7 @@ final class RepsWorkoutLiveActivityController {
                     await activity.end(ActivityContent(
                         state: RepsWorkoutActivityAttributes.ContentState(snapshot: snapshot),
                         staleDate: nil
-                    ), dismissalPolicy: .after(Date().addingTimeInterval(30)))
+                    ), dismissalPolicy: .immediate)
                 }
             }
         }

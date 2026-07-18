@@ -11,7 +11,7 @@ settings:
   base:
     DEVELOPMENT_TEAM: L2B56644F5
     MARKETING_VERSION: 1.0.0
-    CURRENT_PROJECT_VERSION: 100202607162
+    CURRENT_PROJECT_VERSION: 100202607163
     SWIFT_VERSION: 6.0
     LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION: "YES"
   configs:
@@ -40,6 +40,8 @@ targets:
           enabled: 1
         com.apple.Push:
           enabled: 1
+        com.apple.WeatherKit:
+          enabled: 1
     sources:
       - path: Reps
       - path: RepsShared
@@ -55,7 +57,7 @@ targets:
         NSHealthShareUsageDescription: StreakReps lee datos de Apple Health como peso, altura, pasos, calorías, hidratación, ejercicio, pulso y entrenos para mostrar tu progreso y recuperación.
         NSHealthUpdateUsageDescription: StreakReps puede guardar en Apple Health tus métricas corporales, hidratación, energía ingerida y entrenos cuando eliges sincronizarlos.
         NSLocationAlwaysAndWhenInUseUsageDescription: StreakReps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre incluso cuando la pantalla está bloqueada.
-        NSLocationWhenInUseUsageDescription: StreakReps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.
+        NSLocationWhenInUseUsageDescription: StreakReps necesita tu ubicación para mostrar el tiempo real de tu zona y registrar tus rutas de carrera y cardio al aire libre.
         NSMotionUsageDescription: StreakReps usa sensores de movimiento para detectar caminata o carrera y sugerir reanudar una ruta pausada.
         NSPhotoLibraryAddUsageDescription: StreakReps necesita permiso para guardar imágenes de progreso cuando eliges exportarlas o compartirlas.
         NSPhotoLibraryUsageDescription: StreakReps necesita acceso a tus fotos para seleccionar imágenes de progreso y asociarlas a tu perfil o entrenamientos.
@@ -100,6 +102,7 @@ targets:
         aps-environment: development
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.background-delivery: true
+        com.apple.developer.weatherkit: true
         com.apple.developer.icloud-container-identifiers:
           - iCloud.com.romerodev.repsfitness
         com.apple.developer.icloud-services:

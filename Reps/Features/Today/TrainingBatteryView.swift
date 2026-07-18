@@ -98,6 +98,10 @@ struct TrainingBatteryView: View {
         return 100 - (clamped / 80 * 100)
     }
 
+    private var isRecharging: Bool {
+        batteryStatus.restDays > 0 || batteryStatus.recoveryCredit > 0
+    }
+
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 24) {
@@ -148,6 +152,7 @@ struct TrainingBatteryView: View {
                         "battery_level_explainer_title",
                         sections: [
                             InfoExplainerSection(heading: "how_it_s_calculated", body: "battery_level_formula_explanation"),
+                            InfoExplainerSection(heading: "battery_vs_fatigue", body: "battery_vs_fatigue_explanation"),
                             InfoExplainerSection(heading: "recovery_credits", body: "recovery_factor_explanation"),
                             InfoExplainerSection(heading: "stress_loads", body: "freshness_factor_explanation"),
                         ]
@@ -191,13 +196,13 @@ struct TrainingBatteryView: View {
     private var heroGauge: some View {
         switch selectedStyle {
         case .liquid:
-            LiquidCapsuleGauge(level: batteryStatus.level, color: batteryColor)
+            LiquidCapsuleGauge(level: batteryStatus.level, color: batteryColor, isRecharging: isRecharging)
                 .transition(.scale.combined(with: .opacity))
         case .tech:
-            CircularTechGauge(level: batteryStatus.level, color: batteryColor, stateText: batteryStatus.state.rawValue.uppercased())
+            CircularTechGauge(level: batteryStatus.level, color: batteryColor, stateText: batteryStatus.state.rawValue.uppercased(), isRecharging: isRecharging)
                 .transition(.scale.combined(with: .opacity))
         case .grid:
-            VerticalSegmentedPowerCell(level: batteryStatus.level, color: batteryColor)
+            VerticalSegmentedPowerCell(level: batteryStatus.level, color: batteryColor, isRecharging: isRecharging)
                 .transition(.scale.combined(with: .opacity))
         }
     }
@@ -645,6 +650,7 @@ struct LiquidCapsuleGauge: View {
     let color: Color
     var size: CGSize = CGSize(width: 100, height: 180)
     var showsLabel: Bool = true
+    var isRecharging: Bool = false
     @State private var isAnimationActive = false
 
     /// Uniform shrink factor for stroke widths, fonts and decorative details, derived from the
@@ -712,6 +718,13 @@ struct LiquidCapsuleGauge: View {
             // Central bold level readout
             if showsLabel {
                 VStack(spacing: -2) {
+                    if isRecharging {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 14 * scale, weight: .bold))
+                            .foregroundStyle(PulseTheme.recovery)
+                            .shadow(color: PulseTheme.recovery.opacity(0.8), radius: 4)
+                            .padding(.bottom, 2)
+                    }
                     Text("\(level)")
                         .font(.system(size: 32 * scale, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
@@ -810,6 +823,7 @@ struct CircularTechGauge: View {
     let level: Int
     let color: Color
     let stateText: String
+    var isRecharging: Bool = false
 
     var body: some View {
         ZStack {
@@ -845,6 +859,13 @@ struct CircularTechGauge: View {
 
             // Central information hub
             VStack(spacing: 2) {
+                if isRecharging {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(PulseTheme.recovery)
+                        .shadow(color: PulseTheme.recovery.opacity(0.8), radius: 4)
+                        .padding(.bottom, 1)
+                }
                 Text(localizedString("level"))
                     .font(.system(size: 9, weight: .black, design: .rounded))
                     .tracking(1.5)
@@ -875,6 +896,7 @@ struct CircularTechGauge: View {
 struct VerticalSegmentedPowerCell: View {
     let level: Int
     let color: Color
+    var isRecharging: Bool = false
 
     var body: some View {
         VStack(spacing: 6) {
@@ -887,6 +909,13 @@ struct VerticalSegmentedPowerCell: View {
 
             // Outer casing
             VStack(spacing: 5) {
+                if isRecharging {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(PulseTheme.recovery)
+                        .shadow(color: PulseTheme.recovery.opacity(0.8), radius: 4)
+                        .padding(.bottom, 2)
+                }
                 let segments = 10
                 let activeSegments = Int(Double(level) / 10.0)
 

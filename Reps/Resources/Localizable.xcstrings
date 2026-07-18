@@ -16356,6 +16356,40 @@
         }
       }
     },
+    "battery_vs_fatigue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Battery vs. Fatigue"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batería vs. Fatiga"
+          }
+        }
+      }
+    },
+    "battery_vs_fatigue_explanation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fatigue represents the accumulated wear and tear from your training. Battery represents your overall energy capacity and readiness. Think of Fatigue as the drain, and Battery as the charge left. As you rest and recover, your Fatigue decreases and your Battery charges."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La Fatiga representa el desgaste acumulado por tu entrenamiento. La Batería representa tu nivel de energía y preparación para entrenar. Piensa en la Fatiga como el gasto de energía y en la Batería como la carga restante. A medida que descansas y te recuperas, la Fatiga disminuye y la Batería se recarga."
+          }
+        }
+      }
+    },
     "battery_low_advice": {
       "extractionState": "manual",
       "localizations": {
@@ -79331,6 +79365,23 @@
         }
       }
     },
+    "strong_sun_weatherkit_window_message_format": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "UV %@: use protection and avoid hard intervals during the forecast risk window (%@)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "UV %@: usa protección y evita intervalos duros durante la franja de riesgo prevista (%@)."
+          }
+        }
+      }
+    },
     "Sube la adherencia": {
       "extractionState": "stale",
       "localizations": {
@@ -86873,6 +86924,120 @@
         }
       }
     },
+    "weather_all_services_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live weather is temporarily unavailable from both providers."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tiempo en directo no está disponible temporalmente en ninguno de los dos proveedores."
+          }
+        }
+      }
+    },
+    "weather_condition_clear": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Clear" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Despejado" } }
+      }
+    },
+    "weather_condition_cloudy": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Cloudy" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Nublado" } }
+      }
+    },
+    "weather_condition_drizzle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Drizzle" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Llovizna" } }
+      }
+    },
+    "weather_condition_fog": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Fog" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Niebla" } }
+      }
+    },
+    "weather_condition_partly_cloudy": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Partly cloudy" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Parcialmente nublado" } }
+      }
+    },
+    "weather_condition_rain": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Rain" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Lluvia" } }
+      }
+    },
+    "weather_condition_snow": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Snow" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Nieve" } }
+      }
+    },
+    "weather_condition_storm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Thunderstorm" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Tormenta" } }
+      }
+    },
+    "weather_data_by_met_norway": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weather data by MET Norway"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datos meteorológicos de MET Norway"
+          }
+        }
+      }
+    },
+    "weather_data_adapted_cc_by": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "CC BY 4.0 · Adapted" } },
+        "es": { "stringUnit": { "state": "translated", "value": "CC BY 4.0 · Adaptados" } }
+      }
+    },
+    "weather_data_sources": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weather data sources"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuentes de datos meteorológicos"
+          }
+        }
+      }
+    },
     "weather_fitness_subtitle": {
       "extractionState": "manual",
       "localizations": {
@@ -86886,6 +87051,105 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pronóstico de hoy para entrenar"
+          }
+        }
+      }
+    },
+    "weather_loading_real_data": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading live weather from WeatherKit…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cargando el tiempo real desde WeatherKit…"
+          }
+        }
+      }
+    },
+    "weather_loading_met_norway": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WeatherKit did not respond. Loading live data from MET Norway…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WeatherKit no ha respondido. Cargando datos reales desde MET Norway…"
+          }
+        }
+      }
+    },
+    "max_wind": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "max wind" } },
+        "es": { "stringUnit": { "state": "translated", "value": "viento máximo" } }
+      }
+    },
+    "precipitation_amount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "precipitation amount" } },
+        "es": { "stringUnit": { "state": "translated", "value": "cantidad de precipitación" } }
+      }
+    },
+    "weather_requesting_location": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow location access to load the real forecast for your area."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permite el acceso a la ubicación para cargar el pronóstico real de tu zona."
+          }
+        }
+      }
+    },
+    "weather_retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar"
+          }
+        }
+      }
+    },
+    "weather_service_activation_pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple is activating WeatherKit for this app. We’ll retry automatically."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple está activando WeatherKit para esta app. Reintentaremos automáticamente."
           }
         }
       }

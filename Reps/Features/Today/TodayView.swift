@@ -1,5 +1,8 @@
+import CoreLocation
+import MapKit
 import MuscleMap
 import SwiftUI
+import WeatherKit
 
 // MARK: - Layout customization
 
@@ -52,6 +55,7 @@ struct TodayView: View {
     var onSelectTab: ((AppTab) -> Void)? = nil
 
     @State private var renderCache = TodayRenderCache()
+    @State private var weatherController = TodayWeatherController()
 
     var body: some View {
         let signature = makeTodayRenderSignature()
@@ -63,7 +67,15 @@ struct TodayView: View {
             renderCache.signature = signature
             renderCache.model = model
         }
-        return TodayViewContent(model: model, store: store, onSelectTab: onSelectTab)
+        return TodayViewContent(
+            model: model,
+            store: store,
+            weather: weatherController,
+            onSelectTab: onSelectTab
+        )
+        .task(id: store.userProfile.units) {
+            await weatherController.load(units: store.userProfile.units)
+        }
     }
 
     private func scheduledWorkoutsHash(_ workouts: [ScheduledWorkout]) -> Int {
@@ -394,19 +406,6 @@ struct TodayView: View {
             if hasActivePlan { gWords("your plan calls for"); gHighlight(weekTargetText, weeklyPlanSummaryTint); gWords("sessions this week.") } else { gWords("no active plan yet.") }
         }
 
-        // ── Weather ───────────────────────────────────────────────────────────
-        let todayWeather = FitnessWeatherSnapshot.trainingDayPreview(now: now, units: units)
-        let tomorrowDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now.addingTimeInterval(86_400)
-        let tomorrowWeather = FitnessWeatherSnapshot.trainingDayPreview(now: tomorrowDate, units: units)
-        let weatherInsights = FitnessWeatherInsight.make(
-            today: todayWeather,
-            tomorrow: tomorrowWeather,
-            battery: battery,
-            hasActivePlan: hasActivePlan,
-            trainingLocation: store.userProfile.trainingLocation,
-            now: now
-        )
-
         return TodayRenderModel(
             weekStart: weekStart,
             last30StartDate: last30StartDate,
@@ -452,10 +451,7 @@ struct TodayView: View {
             latestVO2Max: sortedHealthMetrics.first(where: { $0.vo2MaxMlKgMin != nil })?.vo2MaxMlKgMin,
             latestRecordedSleepHours: sortedHealthMetrics.first(where: { ($0.sleepHours ?? 0) > 0 })?.sleepHours,
             greetingHeadline: greetingHeadline,
-            naturalGreetingTokens: greetingTokens,
-            todayWeather: todayWeather,
-            tomorrowWeather: tomorrowWeather,
-            weatherInsights: weatherInsights
+            naturalGreetingTokens: greetingTokens
         )
     }
 }
@@ -463,6 +459,7 @@ struct TodayView: View {
 private struct TodayViewContent: View {
     let model: TodayRenderModel
     let store: AppStore
+    let weather: TodayWeatherController
     var onSelectTab: ((AppTab) -> Void)? = nil
 
     @State private var showScheduleWorkout = false
@@ -561,9 +558,18 @@ private struct TodayViewContent: View {
     private var latestRestingHeartRate: Double? { model.latestRestingHeartRate }
     private var greetingHeadline: String { model.greetingHeadline }
     private var naturalGreetingTokens: [GreetingFlowToken] { model.naturalGreetingTokens }
-    private var todayWeather: FitnessWeatherSnapshot { model.todayWeather }
-    private var tomorrowWeather: FitnessWeatherSnapshot { model.tomorrowWeather }
-    private var weatherInsights: [FitnessWeatherInsight] { model.weatherInsights }
+    private var todayWeather: FitnessWeatherSnapshot? { weather.today }
+    private var tomorrowWeather: FitnessWeatherSnapshot? { weather.tomorrow }
+    private var weatherInsights: [FitnessWeatherInsight] {
+        guard let todayWeather, let tomorrowWeather else { return [] }
+        return FitnessWeatherInsight.make(
+            today: todayWeather,
+            tomorrow: tomorrowWeather,
+            battery: batteryStatus,
+            hasActivePlan: hasActivePlan,
+            trainingLocation: store.userProfile.trainingLocation
+        )
+    }
     private var todaysScheduledWorkout: ScheduledWorkout? { model.todaysScheduledWorkout }
 
     private var recommendedWorkoutConfirmationBinding: Binding<Bool> {
@@ -680,12 +686,15 @@ private struct TodayViewContent: View {
                 NotificationsView()
             }
             .navigationDestination(isPresented: $showWeatherDetail) {
-                TodayWeatherDetailView(
-                    today: todayWeather,
-                    tomorrow: tomorrowWeather,
-                    insights: weatherInsights,
-                    selectedDay: homeWeatherDay
-                )
+                if let todayWeather, let tomorrowWeather, let attribution = weather.attribution {
+                    TodayWeatherDetailView(
+                        today: todayWeather,
+                        tomorrow: tomorrowWeather,
+                        insights: weatherInsights,
+                        attribution: attribution,
+                        selectedDay: homeWeatherDay
+                    )
+                }
             }
             .navigationDestination(item: $workoutToStart) { workout in
                 ActiveWorkoutView(workout: workout, origin: workout.id == freeWorkout.id ? .free : .routine)
@@ -983,13 +992,28 @@ private struct TodayViewContent: View {
                 subtitleKey: "weather_fitness_subtitle"
             )
 
-            Button {
-                HapticService.selection()
-                showWeatherDetail = true
-            } label: {
-                FitnessWeatherWidget(today: todayWeather, tomorrow: tomorrowWeather, selectedDay: $homeWeatherDay)
+            if let todayWeather, let tomorrowWeather, let attribution = weather.attribution {
+                VStack(spacing: 8) {
+                    Button {
+                        HapticService.selection()
+                        showWeatherDetail = true
+                    } label: {
+                        FitnessWeatherWidget(
+                            today: todayWeather,
+                            tomorrow: tomorrowWeather,
+                            selectedDay: $homeWeatherDay
+                        )
+                    }
+                    .buttonStyle(PressableCardStyle())
+
+                    WeatherAttributionMark(attribution: attribution, showsLegalLink: true)
+                        .padding(.horizontal, 16)
+                }
+            } else {
+                WeatherDataStateCard(phase: weather.phase) {
+                    Task { await weather.retry() }
+                }
             }
-            .buttonStyle(PressableCardStyle())
         }
     }
 
@@ -997,25 +1021,27 @@ private struct TodayViewContent: View {
 
     private var outdoorIntelligenceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 8) {
-                TodaySectionHeader(
-                    systemImage: "sparkles",
-                    tint: PulseTheme.accent,
-                    titleKey: "smart_weather_insights",
-                    subtitleKey: "smart_weather_insights_subtitle"
-                )
-                Spacer(minLength: 8)
-                WeatherInsightsCollapseToggle(isExpanded: $isOutdoorInsightsExpanded)
-            }
-
-            WeatherInsightsPanel(insights: weatherInsights, isExpanded: $isOutdoorInsightsExpanded)
-                .padding(14)
-                .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                        .stroke(PulseTheme.cardStroke, lineWidth: 0.8)
+            if todayWeather != nil, tomorrowWeather != nil {
+                HStack(alignment: .top, spacing: 8) {
+                    TodaySectionHeader(
+                        systemImage: "sparkles",
+                        tint: PulseTheme.accent,
+                        titleKey: "smart_weather_insights",
+                        subtitleKey: "smart_weather_insights_subtitle"
+                    )
+                    Spacer(minLength: 8)
+                    WeatherInsightsCollapseToggle(isExpanded: $isOutdoorInsightsExpanded)
                 }
-                .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
+
+                WeatherInsightsPanel(insights: weatherInsights, isExpanded: $isOutdoorInsightsExpanded)
+                    .padding(14)
+                    .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                            .stroke(PulseTheme.cardStroke, lineWidth: 0.8)
+                    }
+                    .shadow(color: PulseTheme.surfaceShadow, radius: 7, x: 0, y: 3)
+            }
         }
     }
 
@@ -1292,60 +1318,87 @@ private struct TodayViewContent: View {
 
     // MARK: – Active session hero (replaces the old separate banner)
     private func activeSessionHero(_ status: ActiveWorkoutStatus) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            activeSessionHeroHeader(status)
+            activeSessionHeroSubtitle(status)
+            
+            if status.isRouteWorkout {
+                activeSessionCardioDetails(status)
+            } else {
+                activeSessionStrengthDetails(status)
+            }
+            
+            activeSessionTimelineRow(status)
+            activeSessionMetricsRow(status)
+            activeSessionProgressBar(status)
+            activeSessionActionButtons(status)
+        }
+    }
+
+    private func activeSessionHeroHeader(_ status: ActiveWorkoutStatus) -> some View {
         let isPaused = status.isPaused
-        let setsWord = localizedString("sets_3")
-        let progress: Double = status.totalSets > 0 ? Double(status.completedSets) / Double(status.totalSets) : 0
+        let progress = activeSessionProgress(status)
+        let progressColor = activeSessionProgressColor(progress)
+        let language = store.userProfile.preferredLanguage
+        
+        return HStack(alignment: .top, spacing: 14) {
+            ZStack {
+                Circle()
+                    .stroke(PulseTheme.separator, lineWidth: 5)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(progressColor, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeOut(duration: 0.4), value: progress)
+                Image(systemName: isPaused ? "pause.fill" : status.workoutIconName)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(progressColor)
+                    .symbolEffect(.bounce, options: .repeating, isActive: !isPaused)
+            }
+            .frame(width: 54, height: 54)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(localizedString(isPaused ? "PAUSED" : "IN PROGRESS"))
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .tracking(1.8)
+                    .foregroundStyle(Color.orange)
+                Text(RepsText.workoutTitle(status.workoutTitle, language: language))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .foregroundStyle(PulseTheme.textPrimary)
+            }
+            Spacer()
+        }
+    }
+
+    private func activeSessionProgress(_ status: ActiveWorkoutStatus) -> Double {
+        if status.isRouteWorkout {
+            let plannedDuration = Double(store.activeWorkout?.durationMinutes ?? 30) * 60.0
+            return plannedDuration > 0 ? min(Double(status.effectiveElapsedSeconds()) / plannedDuration, 1.0) : 0
+        } else {
+            return status.totalSets > 0 ? Double(status.completedSets) / Double(status.totalSets) : 0
+        }
+    }
+
+    private func activeSessionProgressColor(_ progress: Double) -> Color {
+        let percent = progress * 100
+        if percent >= 70 {
+            return PulseTheme.growth
+        } else if percent >= 50 {
+            return PulseTheme.semanticAction
+        } else if percent >= 30 {
+            return PulseTheme.warning
+        } else {
+            return PulseTheme.destructive
+        }
+    }
+
+    private func activeSessionHeroSubtitle(_ status: ActiveWorkoutStatus) -> some View {
         let language = store.userProfile.preferredLanguage
         let sessionTitle = status.sessionTitle.map { RepsText.localizedWorkoutSubtitle($0, language: language) }
         
-        let progressColor: Color = {
-            let percent = progress * 100
-            if percent >= 70 {
-                return PulseTheme.growth
-            } else if percent >= 50 {
-                return PulseTheme.semanticAction
-            } else if percent >= 30 {
-                return PulseTheme.warning
-            } else {
-                return PulseTheme.destructive
-            }
-        }()
-
-        return VStack(alignment: .leading, spacing: 16) {
-
-            // ── Header row ────────────────────────────────────────────
-            HStack(alignment: .top, spacing: 14) {
-
-                // Progress ring
-                ZStack {
-                    Circle()
-                        .stroke(PulseTheme.separator, lineWidth: 5)
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(progressColor, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeOut(duration: 0.4), value: progress)
-                    Image(systemName: isPaused ? "pause.fill" : "figure.strengthtraining.traditional")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(progressColor)
-                }
-                .frame(width: 54, height: 54)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(localizedString(isPaused ? "PAUSED" : "IN PROGRESS"))
-                        .font(.system(size: 10, weight: .black, design: .rounded))
-                        .tracking(1.8)
-                        .foregroundStyle(Color.orange)
-                    Text(RepsText.workoutTitle(status.workoutTitle, language: language))
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                        .foregroundStyle(PulseTheme.textPrimary)
-                }
-                Spacer()
-            }
-
-            // ── Plan & Session info ───────────────────────────────────
+        return Group {
             if let planTitle = status.planTitle {
                 HStack(spacing: 6) {
                     Image(systemName: "square.grid.3x3.topleft.filled")
@@ -1367,14 +1420,21 @@ private struct TodayViewContent: View {
                 }
                 .padding(.top, -4)
             }
+        }
+    }
 
-            // ── Current Exercise & Target Info ────────────────────────
+    @ViewBuilder
+    private func activeSessionStrengthDetails(_ status: ActiveWorkoutStatus) -> some View {
+        let isPaused = status.isPaused
+        
+        VStack(alignment: .leading, spacing: 12) {
             if let exerciseName = status.exerciseName {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
-                        Image(systemName: "figure.strengthtraining.traditional")
+                        Image(systemName: status.workoutIconName)
                             .font(.caption)
                             .foregroundStyle(Color.orange)
+                            .symbolEffect(.bounce, options: .repeating, isActive: !isPaused)
                         Text(localizedString("current_exercise_label"))
                             .font(.system(size: 9, weight: .bold, design: .rounded))
                             .tracking(1.0)
@@ -1389,16 +1449,24 @@ private struct TodayViewContent: View {
                     HStack(spacing: 12) {
                         if let completed = status.currentExerciseCompletedSets,
                            let total = status.currentExerciseTotalSets {
-                            Label("\(completed)/\(total) series", systemImage: "checklist")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
+                            let setsText = "\(completed)/\(total) series"
+                            HStack(spacing: 4) {
+                                Image(systemName: "checklist")
+                                Text(setsText)
+                            }
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
                         }
                         
                         if let weight = status.currentSetWeightKg,
                            let reps = status.currentSetReps {
-                            Label("\(weight.formatted()) kg x \(reps) reps", systemImage: "target")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
+                            let repsText = "\(weight.formatted()) kg x \(reps) reps"
+                            HStack(spacing: 4) {
+                                Image(systemName: "target")
+                                Text(repsText)
+                            }
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
                         }
                     }
                 }
@@ -1408,7 +1476,6 @@ private struct TodayViewContent: View {
                 .background(Color.orange.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
             }
 
-            // ── Next Exercise & Water Info ────────────────────────────
             HStack(spacing: 16) {
                 if let next = status.nextExerciseName, !next.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
@@ -1437,111 +1504,177 @@ private struct TodayViewContent: View {
                 }
             }
             .padding(.top, 4)
+        }
+    }
 
-            // ── Timers row ─────────────────────────────────────────────
-            HStack(spacing: 0) {
-                TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                    HStack(spacing: 0) {
-                        StatPill(
-                            value: timeString(status.effectiveElapsedSeconds(at: timeline.date)),
-                            label: "Total",
-                            systemImage: "timer"
-                        )
-                        Spacer()
-                        Divider().frame(height: 24).opacity(0.3)
-                        Spacer()
-                        
-                        let restVal = (status.restSeconds ?? 0) > 0 ? timeString(status.restSeconds ?? 0) : "--:--"
-                        StatPill(
-                            value: restVal,
-                            label: "Descanso",
-                            systemImage: "hourglass"
-                        )
-                        Spacer()
-                        Divider().frame(height: 24).opacity(0.3)
-                        Spacer()
-                        
-                        StatPill(
-                            value: timeString(status.effectivePausedSeconds(at: timeline.date)),
-                            label: "Pausa",
-                            systemImage: "pause.circle"
-                        )
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-            .foregroundStyle(.primary)
+    private func activeSessionCardioDetails(_ status: ActiveWorkoutStatus) -> some View {
+        let isPaused = status.isPaused
+        let distStr = status.routeDistanceKm.map { String(format: "%.2f km", $0) } ?? "--"
+        let hrStr = status.liveHeartRate.map { "\(Int($0)) LPM" } ?? "--"
+        
+        let paceVal: String
+        let paceIcon: String
+        let paceLabel: String
+        if let paceSec = status.routePaceSecondsPerKm, paceSec > 0 {
+            paceVal = SharedWorkoutSnapshot.routePaceText(paceSec)
+            paceIcon = "speedometer"
+            paceLabel = "pace_label"
+        } else if let stepsVal = status.routeSteps, stepsVal > 0 {
+            paceVal = "\(Int(stepsVal))"
+            paceIcon = "figure.walk"
+            paceLabel = "steps_metric"
+        } else {
+            paceVal = "--"
+            paceIcon = "speedometer"
+            paceLabel = "pace_label"
+        }
+        
+        return HStack(spacing: 0) {
+            StatPill(
+                value: distStr,
+                label: "distance_label",
+                systemImage: "figure.walk",
+                animateBounce: true,
+                isPaused: isPaused
+            )
+            Spacer()
+            Divider().frame(height: 24).opacity(0.3)
+            Spacer()
+            
+            StatPill(
+                value: paceVal,
+                label: paceLabel,
+                systemImage: paceIcon
+            )
+            Spacer()
+            Divider().frame(height: 24).opacity(0.3)
+            Spacer()
+            
+            StatPill(
+                value: hrStr,
+                label: "pulsaciones",
+                systemImage: "heart.fill",
+                animatePulse: true,
+                isPaused: isPaused
+            )
+        }
+        .foregroundStyle(.primary)
+        .padding(.top, 4)
+    }
 
-            // ── Metrics row ───────────────────────────────────────────
+    private func activeSessionTimelineRow(_ status: ActiveWorkoutStatus) -> some View {
+        let isRoute = status.isRouteWorkout
+        return TimelineView(.periodic(from: .now, by: 1)) { timeline in
             HStack(spacing: 0) {
                 StatPill(
-                    value: "\(status.completedSets)/\(status.totalSets)",
-                    label: setsWord,
-                    systemImage: "checkmark.circle"
+                    value: timeString(status.effectiveElapsedSeconds(at: timeline.date)),
+                    label: "Total",
+                    systemImage: "timer"
                 )
+                
+                if !isRoute {
+                    Spacer()
+                    Divider().frame(height: 24).opacity(0.3)
+                    Spacer()
+                    
+                    let restVal = (status.restSeconds ?? 0) > 0 ? timeString(status.restSeconds ?? 0) : "--:--"
+                    StatPill(
+                        value: restVal,
+                        label: "Descanso",
+                        systemImage: "hourglass"
+                    )
+                }
+                
                 Spacer()
                 Divider().frame(height: 24).opacity(0.3)
                 Spacer()
+                
                 StatPill(
-                    value: "\(status.volumeKg) kg",
-                    label: localizedString("volume_2"),
-                    systemImage: "scalemass"
+                    value: timeString(status.effectivePausedSeconds(at: timeline.date)),
+                    label: "Pausa",
+                    systemImage: "pause.circle"
                 )
             }
-            .foregroundStyle(.primary)
-            .padding(.top, 4)
+            .frame(maxWidth: .infinity)
+        }
+    }
 
-            // ── Compact progress bar ──────────────────────────────────
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(PulseTheme.grouped).frame(height: 6)
-                    Capsule().fill(progressColor)
-                        .frame(width: geo.size.width * progress, height: 6)
-                        .animation(.easeOut(duration: 0.4), value: progress)
+    private func activeSessionMetricsRow(_ status: ActiveWorkoutStatus) -> some View {
+        let setsWord = localizedString("sets_3")
+        return Group {
+            if !status.isRouteWorkout {
+                HStack(spacing: 0) {
+                    StatPill(
+                        value: "\(status.completedSets)/\(status.totalSets)",
+                        label: setsWord,
+                        systemImage: "checkmark.circle"
+                    )
+                    Spacer()
+                    Divider().frame(height: 24).opacity(0.3)
+                    Spacer()
+                    StatPill(
+                        value: "\(status.volumeKg) kg",
+                        label: localizedString("volume_2"),
+                        systemImage: "scalemass"
+                    )
                 }
+                .foregroundStyle(.primary)
+                .padding(.top, 4)
             }
-            .frame(height: 6)
+        }
+    }
 
-            // ── Action buttons ────────────────────────────────────────
-            HStack(spacing: 10) {
-                // Return to workout
-                NavigationLink(value: TodayRoute.activeWorkout) {
-                    Label(localizedString("return"), systemImage: "arrow.right.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .foregroundStyle(PulseTheme.onColor(PulseTheme.semanticProgress))
-                        .background(PulseTheme.semanticProgress)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
-                .buttonStyle(.plain)
-
-                // Pause / Resume
-                Button {
-                    store.setActiveWorkoutPaused(!isPaused)
-                } label: {
-                    Image(systemName: isPaused ? "play.fill" : "pause.fill")
-                        .font(.headline.weight(.bold))
-                        .frame(width: 48, height: 48)
-                        .foregroundStyle(PulseTheme.onColor(isPaused ? PulseTheme.playControl : PulseTheme.pauseControl))
-                        .background(isPaused ? PulseTheme.playControl : PulseTheme.pauseControl)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
-                .accessibilityLabel(isPaused ? "Resume workout" : "Pause workout")
-
-                // Stop
-                Button {
-                    store.finishActiveWorkoutFromSummaryCard()
-                } label: {
-                    Image(systemName: "stop.fill")
-                        .font(.headline.weight(.bold))
-                        .frame(width: 48, height: 48)
-                        .foregroundStyle(PulseTheme.onColor(PulseTheme.stopControl))
-                        .background(PulseTheme.stopControl)
-                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
-                .accessibilityLabel("stop_workout")
+    private func activeSessionProgressBar(_ status: ActiveWorkoutStatus) -> some View {
+        let progress = activeSessionProgress(status)
+        let progressColor = activeSessionProgressColor(progress)
+        return GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(PulseTheme.grouped).frame(height: 6)
+                Capsule().fill(progressColor)
+                    .frame(width: geo.size.width * progress, height: 6)
+                    .animation(.easeOut(duration: 0.4), value: progress)
             }
+        }
+        .frame(height: 6)
+    }
+
+    private func activeSessionActionButtons(_ status: ActiveWorkoutStatus) -> some View {
+        let isPaused = status.isPaused
+        return HStack(spacing: 10) {
+            NavigationLink(value: TodayRoute.activeWorkout) {
+                Label(localizedString("return"), systemImage: "arrow.right.circle.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.semanticProgress))
+                    .background(PulseTheme.semanticProgress)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                store.setActiveWorkoutPaused(!isPaused)
+            } label: {
+                Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                    .font(.headline.weight(.bold))
+                    .frame(width: 48, height: 48)
+                    .foregroundStyle(PulseTheme.onColor(isPaused ? PulseTheme.playControl : PulseTheme.pauseControl))
+                    .background(isPaused ? PulseTheme.playControl : PulseTheme.pauseControl)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            }
+            .accessibilityLabel(isPaused ? "Resume workout" : "Pause workout")
+
+            Button {
+                store.finishActiveWorkoutFromSummaryCard()
+            } label: {
+                Image(systemName: "stop.fill")
+                    .font(.headline.weight(.bold))
+                    .frame(width: 48, height: 48)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.stopControl))
+                    .background(PulseTheme.stopControl)
+                    .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+            }
+            .accessibilityLabel("stop_workout")
         }
         .padding(18)
         .foregroundStyle(.primary)
@@ -2258,10 +2391,6 @@ private struct TodayRenderModel {
     // ── Greeting ────────────────────────────────────────────────────────
     let greetingHeadline: String
     let naturalGreetingTokens: [GreetingFlowToken]
-    // ── Weather ─────────────────────────────────────────────────────────
-    let todayWeather: FitnessWeatherSnapshot
-    let tomorrowWeather: FitnessWeatherSnapshot
-    let weatherInsights: [FitnessWeatherInsight]
 }
 
 /// Consistent icon + title/subtitle header used above the Today tab's top-level sections.
@@ -2539,6 +2668,9 @@ private struct StatPill: View {
     let value: String
     let label: String
     let systemImage: String
+    var animatePulse: Bool = false
+    var animateBounce: Bool = false
+    var isPaused: Bool = false
 
     var body: some View {
         VStack(spacing: 2) {
@@ -2546,6 +2678,8 @@ private struct StatPill: View {
                 Image(systemName: systemImage)
                     .font(.system(size: 11, weight: .semibold))
                     .opacity(0.75)
+                    .symbolEffect(.pulse, options: .repeating, isActive: animatePulse && !isPaused)
+                    .symbolEffect(.bounce, options: .repeating, isActive: animateBounce && !isPaused)
                 Text(value)
                     .font(.system(size: 15, weight: .bold, design: .rounded).monospacedDigit())
                     .lineLimit(1)
@@ -3720,7 +3854,6 @@ private struct FitnessWeatherHourPoint: Identifiable, Hashable {
     let hour: Int
     let temperature: Int
     let windSpeed: Int
-    let rainProbability: Int
     let uvIndex: Int
 
     /// Stable identity: hour is unique within a forecast snapshot.
@@ -3728,6 +3861,39 @@ private struct FitnessWeatherHourPoint: Identifiable, Hashable {
 
     var label: String {
         String(format: "%02d", hour)
+    }
+}
+
+private enum FitnessPrecipitationMetric: Hashable {
+    case probability(Int)
+    case amount(Double)
+
+    var valueText: String {
+        switch self {
+        case .probability(let value): "\(value)%"
+        case .amount(let value): String(format: "%.1f mm", value)
+        }
+    }
+
+    var detailLabel: String {
+        switch self {
+        case .probability: localizedString("rain_probability")
+        case .amount: localizedString("precipitation_amount")
+        }
+    }
+
+    var indicatesWetConditions: Bool {
+        switch self {
+        case .probability(let value): value >= 40
+        case .amount(let value): value >= 0.2
+        }
+    }
+
+    var indicatesDryConditions: Bool {
+        switch self {
+        case .probability(let value): value <= 10
+        case .amount(let value): value < 0.2
+        }
     }
 }
 
@@ -3750,13 +3916,15 @@ private struct FitnessWeatherSnapshot: Identifiable, Hashable {
     let currentTemperature: Int
     let highTemperature: Int
     let lowTemperature: Int
-    let rainProbability: Int
+    let precipitation: FitnessPrecipitationMetric
     let humidity: Int
     let windSpeed: Int
-    let windGusts: Int
+    let secondaryWindSpeed: Int
+    let secondaryWindLabel: String
     let uvIndex: Int
     let sunrise: String
     let sunset: String
+    let isDaylight: Bool
     let hourly: [FitnessWeatherHourPoint]
     let bestWindow: FitnessWeatherWindow
 
@@ -3764,76 +3932,1221 @@ private struct FitnessWeatherSnapshot: Identifiable, Hashable {
     /// is not recreated when unrelated store updates happen.
     var id: Date { date }
 
-    static func trainingDayPreview(now: Date, units: UserProfile.Units) -> FitnessWeatherSnapshot {
-        let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: now)
-        let dayOffset = calendar.isDateInTomorrow(now) ? 1 : 0
+    static func make(
+        day: DayWeather,
+        current: CurrentWeather?,
+        hours: [HourWeather],
+        chartHours: [HourWeather],
+        locationName: String,
+        timeZone: TimeZone,
+        units: UserProfile.Units
+    ) -> FitnessWeatherSnapshot {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
         let isImperial = units == .imperial
-        let celsius = [22, 21, 20, 21, 25, 30, 33 - dayOffset, 30 - dayOffset]
-        let windKmh = [5, 5, 4, 5, 8, 12, 14, 9]
-        let rain = [0, 0, 0, 0, 0, 0, 2 + dayOffset, 0]
-        let uv = [0, 0, 1, 4, 8, 7, 3, 0]
-        let hours = [0, 3, 6, 9, 12, 15, 18, 21]
-        let hourNow = calendar.component(.hour, from: now)
-        let closestIndex = hours.enumerated().min { lhs, rhs in
-            abs(lhs.element - hourNow) < abs(rhs.element - hourNow)
-        }?.offset ?? 2
-
-        func temp(_ value: Int) -> Int {
-            isImperial ? Int((Double(value) * 9 / 5 + 32).rounded()) : value
+        let temperatureUnit: UnitTemperature = isImperial ? .fahrenheit : .celsius
+        let speedUnit: UnitSpeed = isImperial ? .milesPerHour : .kilometersPerHour
+        let dayStart = calendar.startOfDay(for: day.date)
+        let representativeHour = hours.min { lhs, rhs in
+            abs(calendar.component(.hour, from: lhs.date) - 12) < abs(calendar.component(.hour, from: rhs.date) - 12)
         }
 
-        func speed(_ value: Int) -> Int {
-            isImperial ? Int((Double(value) * 0.621_371).rounded()) : value
+        func temperature(_ value: Measurement<UnitTemperature>) -> Int {
+            Int(value.converted(to: temperatureUnit).value.rounded())
         }
 
-        let hourly = zip(hours.indices, hours).map { index, hour in
+        func speed(_ value: Measurement<UnitSpeed>) -> Int {
+            Int(value.converted(to: speedUnit).value.rounded())
+        }
+
+        let sampledHours = sampled(hours: chartHours, maximumCount: 8)
+        let hourly = sampledHours.map { hour in
             FitnessWeatherHourPoint(
-                hour: hour,
-                temperature: temp(celsius[index]),
-                windSpeed: speed(windKmh[index]),
-                rainProbability: rain[index],
-                uvIndex: uv[index]
+                hour: calendar.component(.hour, from: hour.date),
+                temperature: temperature(hour.temperature),
+                windSpeed: speed(hour.wind.speed),
+                uvIndex: hour.uvIndex.value
             )
         }
 
-        let highCelsius = celsius.max() ?? 30
-        let conditionTitle = highCelsius >= 32 ? localizedString("sunny_hot") : localizedString("moderate_clouds")
-        let conditionMessage = highCelsius >= 32
-            ? localizedString("sunny_hot_message")
-            : localizedString("moderate_clouds_message")
-        let dayTitle = dayOffset == 0 ? localizedString("today_2") : localizedString("tomorrow")
-        let windowEndHour = dayOffset == 0 ? 9 : 10
-        let windowTitle = "\(dayTitle), \(dayOffset == 0 ? "07:00 - 09:00" : "08:00 - 10:00")"
-        let windowRain = "\(rain.max() ?? 0)"
-        let windowSpeed = "\(speed(5)) \(isImperial ? "mph" : "km/h")"
+        let liveHour = current == nil ? representativeHour : nil
+        let currentTemperature = current.map { temperature($0.temperature) }
+            ?? liveHour.map { temperature($0.temperature) }
+            ?? Int(((temperature(day.lowTemperature) + temperature(day.highTemperature)) / 2))
+        let currentWind = current.map { speed($0.wind.speed) }
+            ?? liveHour.map { speed($0.wind.speed) }
+            ?? speed(day.wind.speed)
+        let gusts = current?.wind.gust.map(speed)
+            ?? liveHour?.wind.gust.map(speed)
+            ?? day.wind.gust.map(speed)
+            ?? currentWind
+        let humidity = current.map { Int(($0.humidity * 100).rounded()) }
+            ?? liveHour.map { Int(($0.humidity * 100).rounded()) }
+            ?? Int((((day.minimumHumidity + day.maximumHumidity) / 2) * 100).rounded())
+        let rainProbability = Int((day.precipitationChance * 100).rounded())
+        let condition = current?.condition ?? representativeHour?.condition ?? day.condition
+        let symbolName = current?.symbolName ?? representativeHour?.symbolName ?? day.symbolName
+        let daylight = current?.isDaylight ?? representativeHour?.isDaylight ?? !symbolName.contains("moon")
+        let high = temperature(day.highTemperature)
+        let low = temperature(day.lowTemperature)
+        let unitLabel = isImperial ? "°F" : "°C"
+        let speedLabel = isImperial ? "mph" : "km/h"
+        let conditionMessage = "\(low)–\(high)\(unitLabel) · \(localizedString("rain")) \(rainProbability)% · \(localizedString("wind")) \(currentWind) \(speedLabel)"
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = RepsLocalization.locale
+        timeFormatter.dateFormat = "HH:mm"
+        let bestWindow = bestTrainingWindow(
+            hours: hours,
+            day: day,
+            date: day.date,
+            units: units,
+            temperatureUnit: temperatureUnit,
+            speedUnit: speedUnit
+        )
 
         return FitnessWeatherSnapshot(
             date: dayStart,
-            locationName: localizedString("your_area"),
-            conditionTitle: conditionTitle,
+            locationName: locationName,
+            conditionTitle: condition.description,
             conditionMessage: conditionMessage,
-            systemImage: highCelsius >= 32 ? "sun.max.fill" : "cloud.sun.fill",
-            temperatureUnit: isImperial ? "°F" : "°C",
-            speedUnit: isImperial ? "mph" : "km/h",
-            currentTemperature: temp(celsius[closestIndex]),
-            highTemperature: temp(highCelsius),
-            lowTemperature: temp(celsius.min() ?? 20),
-            rainProbability: rain.max() ?? 0,
-            humidity: dayOffset == 0 ? 58 : 55,
-            windSpeed: speed(windKmh[closestIndex]),
-            windGusts: speed(32 + dayOffset * 4),
-            uvIndex: uv.max() ?? 0,
-            sunrise: dayOffset == 0 ? "06:41" : "06:42",
-            sunset: dayOffset == 0 ? "21:31" : "21:30",
+            systemImage: symbolName,
+            temperatureUnit: unitLabel,
+            speedUnit: speedLabel,
+            currentTemperature: currentTemperature,
+            highTemperature: high,
+            lowTemperature: low,
+            precipitation: .probability(rainProbability),
+            humidity: humidity,
+            windSpeed: currentWind,
+            secondaryWindSpeed: gusts,
+            secondaryWindLabel: localizedString("wind_gusts"),
+            uvIndex: current?.uvIndex.value ?? representativeHour?.uvIndex.value ?? day.uvIndex.value,
+            sunrise: day.sun.sunrise.map(timeFormatter.string) ?? "—",
+            sunset: day.sun.sunset.map(timeFormatter.string) ?? "—",
+            isDaylight: daylight,
             hourly: hourly,
-            bestWindow: FitnessWeatherWindow(
-                title: windowTitle,
-                subtitle: localizedFormat("light_rain_wind_window_subtitle_format", "\(temp(dayOffset == 0 ? 21 : 22))\(isImperial ? "°F" : "°C")", windowRain, windowSpeed),
-                systemImage: "sunrise.fill",
-                endHour: windowEndHour
-            )
+            bestWindow: bestWindow
         )
+    }
+
+    private static func sampled(hours: [HourWeather], maximumCount: Int) -> [HourWeather] {
+        guard hours.count > maximumCount else { return hours }
+        let step = Double(hours.count - 1) / Double(maximumCount - 1)
+        return (0..<maximumCount).map { hours[Int((Double($0) * step).rounded())] }
+    }
+
+    private static func bestTrainingWindow(
+        hours: [HourWeather],
+        day: DayWeather,
+        date: Date,
+        units: UserProfile.Units,
+        temperatureUnit: UnitTemperature,
+        speedUnit: UnitSpeed
+    ) -> FitnessWeatherWindow {
+        let calendar = Calendar.current
+        let candidates = hours.filter {
+            let hour = calendar.component(.hour, from: $0.date)
+            return hour >= 6 && hour <= 21
+        }
+        let best = candidates.min { lhs, rhs in
+            trainingScore(lhs) < trainingScore(rhs)
+        } ?? hours.first
+        guard let best else {
+            let dayTitle = calendar.isDateInToday(date) ? localizedString("today_2") : localizedString("tomorrow")
+            let rain = Int((day.precipitationChance * 100).rounded())
+            let wind = Int(day.wind.speed.converted(to: speedUnit).value.rounded())
+            let temperature = Int(day.highTemperature.converted(to: temperatureUnit).value.rounded())
+            let temperatureLabel = units == .imperial ? "°F" : "°C"
+            let speedLabel = units == .imperial ? "mph" : "km/h"
+            return FitnessWeatherWindow(
+                title: dayTitle,
+                subtitle: localizedFormat(
+                    "light_rain_wind_window_subtitle_format",
+                    "\(temperature)\(temperatureLabel)",
+                    "\(rain)",
+                    "\(wind) \(speedLabel)"
+                ),
+                systemImage: day.symbolName,
+                endHour: 23
+            )
+        }
+        let start = best.date
+        let end = calendar.date(byAdding: .hour, value: 2, to: start) ?? start
+        let formatter = DateFormatter()
+        formatter.locale = RepsLocalization.locale
+        formatter.dateFormat = "HH:mm"
+        let dayTitle = calendar.isDateInToday(date) ? localizedString("today_2") : localizedString("tomorrow")
+        let rain = Int((best.precipitationChance * 100).rounded())
+        let wind = Int(best.wind.speed.converted(to: speedUnit).value.rounded())
+        let temperature = Int(best.temperature.converted(to: temperatureUnit).value.rounded())
+        let temperatureLabel = units == .imperial ? "°F" : "°C"
+        let speedLabel = units == .imperial ? "mph" : "km/h"
+
+        return FitnessWeatherWindow(
+            title: "\(dayTitle), \(formatter.string(from: start)) - \(formatter.string(from: end))",
+            subtitle: localizedFormat(
+                "light_rain_wind_window_subtitle_format",
+                "\(temperature)\(temperatureLabel)",
+                "\(rain)",
+                "\(wind) \(speedLabel)"
+            ),
+            systemImage: best.symbolName,
+            endHour: calendar.component(.hour, from: end)
+        )
+    }
+
+    private static func trainingScore(_ hour: HourWeather) -> Double {
+        let temperature = hour.temperature.converted(to: .celsius).value
+        let wind = hour.wind.speed.converted(to: .kilometersPerHour).value
+        return hour.precipitationChance * 100
+            + abs(temperature - 19) * 2
+            + wind * 0.45
+            + Double(max(hour.uvIndex.value - 6, 0)) * 3
+    }
+}
+
+private enum FitnessWeatherAttribution {
+    case apple(WeatherAttribution)
+    case metNorway
+}
+
+private enum METWeatherClientError: Error {
+    case invalidURL
+    case invalidResponse
+    case httpStatus(Int)
+    case incompleteForecast
+}
+
+private struct METWeatherForecast: Codable, Sendable {
+    struct Properties: Codable, Sendable {
+        let timeseries: [TimeSeries]
+    }
+
+    struct TimeSeries: Codable, Sendable {
+        let time: String
+        let data: ForecastData
+    }
+
+    struct ForecastData: Codable, Sendable {
+        let instant: Instant
+        let next1Hours: Period?
+
+        enum CodingKeys: String, CodingKey {
+            case instant
+            case next1Hours = "next_1_hours"
+        }
+    }
+
+    struct Instant: Codable, Sendable {
+        let details: InstantDetails
+    }
+
+    struct InstantDetails: Codable, Sendable {
+        let airTemperature: Double
+        let relativeHumidity: Double
+        let windSpeed: Double
+        let ultravioletIndexClearSky: Double?
+
+        enum CodingKeys: String, CodingKey {
+            case airTemperature = "air_temperature"
+            case relativeHumidity = "relative_humidity"
+            case windSpeed = "wind_speed"
+            case ultravioletIndexClearSky = "ultraviolet_index_clear_sky"
+        }
+    }
+
+    struct Period: Codable, Sendable {
+        let summary: Summary
+        let details: PeriodDetails
+    }
+
+    struct Summary: Codable, Sendable {
+        let symbolCode: String
+
+        enum CodingKeys: String, CodingKey {
+            case symbolCode = "symbol_code"
+        }
+    }
+
+    struct PeriodDetails: Codable, Sendable {
+        let precipitationAmount: Double?
+
+        enum CodingKeys: String, CodingKey {
+            case precipitationAmount = "precipitation_amount"
+        }
+    }
+
+    let properties: Properties
+}
+
+private struct METWeatherCacheRecord: Codable, Sendable {
+    let forecast: METWeatherForecast
+    let locationName: String
+    let timeZoneIdentifier: String?
+    let latitude: Double
+    let longitude: Double
+    let fetchedAt: Date
+}
+
+private actor METWeatherDiskCache {
+    private let fileURL: URL
+
+    init() {
+        let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        fileURL = directory.appending(path: "met-norway-forecast.json")
+    }
+
+    func load() -> METWeatherCacheRecord? {
+        guard let data = try? Data(contentsOf: fileURL) else { return nil }
+        return try? JSONDecoder().decode(METWeatherCacheRecord.self, from: data)
+    }
+
+    func save(_ record: METWeatherCacheRecord) {
+        guard let data = try? JSONEncoder().encode(record) else { return }
+        try? data.write(to: fileURL, options: .atomic)
+    }
+}
+
+private actor METWeatherClient {
+    private let session: URLSession
+
+    init() {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 15
+        configuration.timeoutIntervalForResource = 25
+        configuration.waitsForConnectivity = true
+        configuration.requestCachePolicy = .useProtocolCachePolicy
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        configuration.httpAdditionalHeaders = [
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip, deflate",
+            "User-Agent": "StreakReps/\(version) https://lbernardo-dev.github.io/apps/en/case-studies/reps/support/"
+        ]
+        session = URLSession(configuration: configuration)
+    }
+
+    func forecast(for location: CLLocation) async throws -> METWeatherForecast {
+        var components = URLComponents(string: "https://api.met.no/weatherapi/locationforecast/2.0/complete")
+        let locale = Locale(identifier: "en_US_POSIX")
+        components?.queryItems = [
+            URLQueryItem(name: "lat", value: String(format: "%.4f", locale: locale, location.coordinate.latitude)),
+            URLQueryItem(name: "lon", value: String(format: "%.4f", locale: locale, location.coordinate.longitude))
+        ]
+        guard let url = components?.url else { throw METWeatherClientError.invalidURL }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        let (data, response) = try await session.data(for: request)
+        try Task.checkCancellation()
+        guard let response = response as? HTTPURLResponse else {
+            throw METWeatherClientError.invalidResponse
+        }
+        guard (200..<300).contains(response.statusCode) else {
+            throw METWeatherClientError.httpStatus(response.statusCode)
+        }
+        return try JSONDecoder().decode(METWeatherForecast.self, from: data)
+    }
+}
+
+private struct METWeatherHour {
+    let date: Date
+    let temperature: Double
+    let humidity: Double
+    let precipitationAmount: Double
+    let symbolCode: String
+    let windSpeedMetersPerSecond: Double
+    let uvIndex: Double
+    let isDaylight: Bool
+}
+
+private enum METWeatherCondition {
+    case clear, partlyCloudy, cloudy, fog, drizzle, rain, snow, storm
+
+    init(symbolCode: String) {
+        let code = symbolCode.lowercased()
+        if code.contains("thunder") { self = .storm }
+        else if code.contains("snow") || code.contains("sleet") { self = .snow }
+        else if code.contains("fog") { self = .fog }
+        else if code.contains("lightrain") || code.contains("drizzle") { self = .drizzle }
+        else if code.contains("rain") { self = .rain }
+        else if code.contains("partlycloudy") || code.contains("fair") { self = .partlyCloudy }
+        else if code.contains("cloudy") { self = .cloudy }
+        else { self = .clear }
+    }
+
+    var title: String {
+        switch self {
+        case .clear: localizedString("weather_condition_clear")
+        case .partlyCloudy: localizedString("weather_condition_partly_cloudy")
+        case .cloudy: localizedString("weather_condition_cloudy")
+        case .fog: localizedString("weather_condition_fog")
+        case .drizzle: localizedString("weather_condition_drizzle")
+        case .rain: localizedString("weather_condition_rain")
+        case .snow: localizedString("weather_condition_snow")
+        case .storm: localizedString("weather_condition_storm")
+        }
+    }
+
+    func symbol(isDaylight: Bool) -> String {
+        switch self {
+        case .clear: isDaylight ? "sun.max.fill" : "moon.stars.fill"
+        case .partlyCloudy: isDaylight ? "cloud.sun.fill" : "cloud.moon.fill"
+        case .cloudy: "cloud.fill"
+        case .fog: "cloud.fog.fill"
+        case .drizzle: "cloud.drizzle.fill"
+        case .rain: "cloud.rain.fill"
+        case .snow: "cloud.snow.fill"
+        case .storm: "cloud.bolt.rain.fill"
+        }
+    }
+}
+
+private extension METWeatherForecast {
+    func makeSnapshots(
+        locationName: String,
+        timeZone: TimeZone,
+        units: UserProfile.Units
+    ) throws -> (today: FitnessWeatherSnapshot, tomorrow: FitnessWeatherSnapshot) {
+        let formatter = ISO8601DateFormatter()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let parsedHours: [METWeatherHour] = properties.timeseries.compactMap { point in
+            guard let date = formatter.date(from: point.time),
+                  let period = point.data.next1Hours else { return nil }
+            let details = point.data.instant.details
+            let symbolCode = period.summary.symbolCode
+            let hasNightSymbol = symbolCode.hasSuffix("_night")
+            let daylight = symbolCode.hasSuffix("_day")
+                || (!hasNightSymbol && (details.ultravioletIndexClearSky ?? 0) > 0)
+            return METWeatherHour(
+                date: date,
+                temperature: details.airTemperature,
+                humidity: details.relativeHumidity,
+                precipitationAmount: period.details.precipitationAmount ?? 0,
+                symbolCode: symbolCode,
+                windSpeedMetersPerSecond: details.windSpeed,
+                uvIndex: details.ultravioletIndexClearSky ?? 0,
+                isDaylight: daylight
+            )
+        }
+        guard let firstDate = parsedHours.first?.date,
+              let tomorrowDate = calendar.date(byAdding: .day, value: 1, to: firstDate) else {
+            throw METWeatherClientError.incompleteForecast
+        }
+
+        let isImperial = units == .imperial
+        let temperatureUnit: UnitTemperature = isImperial ? .fahrenheit : .celsius
+        let speedUnit: UnitSpeed = isImperial ? .milesPerHour : .kilometersPerHour
+        let temperatureLabel = isImperial ? "°F" : "°C"
+        let speedLabel = isImperial ? "mph" : "km/h"
+
+        func temperature(_ celsius: Double) -> Int {
+            Int(Measurement(value: celsius, unit: UnitTemperature.celsius).converted(to: temperatureUnit).value.rounded())
+        }
+
+        func speed(_ metersPerSecond: Double) -> Int {
+            Int(Measurement(value: metersPerSecond, unit: UnitSpeed.metersPerSecond).converted(to: speedUnit).value.rounded())
+        }
+
+        func makeDay(date: Date, isToday: Bool) throws -> FitnessWeatherSnapshot {
+            let hours = parsedHours.filter { calendar.isDate($0.date, inSameDayAs: date) }
+            guard !hours.isEmpty else { throw METWeatherClientError.incompleteForecast }
+            let representative = hours.min {
+                abs(calendar.component(.hour, from: $0.date) - 12) < abs(calendar.component(.hour, from: $1.date) - 12)
+            } ?? hours[0]
+            let active = isToday ? hours[0] : representative
+            let highCelsius = hours.map(\.temperature).max() ?? active.temperature
+            let lowCelsius = hours.map(\.temperature).min() ?? active.temperature
+            let peakWind = hours.map(\.windSpeedMetersPerSecond).max() ?? active.windSpeedMetersPerSecond
+            let activeHumidity = isToday
+                ? active.humidity
+                : hours.map(\.humidity).reduce(0, +) / Double(hours.count)
+            let activeUV = isToday ? active.uvIndex : (hours.map(\.uvIndex).max() ?? representative.uvIndex)
+            let precipitationAmount = hours.map(\.precipitationAmount).reduce(0, +)
+            let condition = METWeatherCondition(symbolCode: active.symbolCode)
+            let high = temperature(highCelsius)
+            let low = temperature(lowCelsius)
+            let wind = speed(active.windSpeedMetersPerSecond)
+            // Near midnight the current calendar day can contain only one or
+            // two remaining forecast points. Extend only the chart with the
+            // next real hours; daily totals and recommendations stay scoped
+            // to the selected day.
+            let chartHours = isToday && hours.count < 4
+                ? Array(parsedHours.prefix(8))
+                : hours
+            let sampledHours = sample(chartHours, maximumCount: 8)
+            let hourPoints = sampledHours.map { hour in
+                FitnessWeatherHourPoint(
+                    hour: calendar.component(.hour, from: hour.date),
+                    temperature: temperature(hour.temperature),
+                    windSpeed: speed(hour.windSpeedMetersPerSecond),
+                    uvIndex: Int(hour.uvIndex.rounded())
+                )
+            }
+            let bestWindow = try makeBestWindow(
+                hours: hours,
+                date: date,
+                calendar: calendar,
+                units: units,
+                temperature: temperature,
+                speed: speed
+            )
+            return FitnessWeatherSnapshot(
+                date: calendar.startOfDay(for: date),
+                locationName: locationName,
+                conditionTitle: condition.title,
+                conditionMessage: "\(low)–\(high)\(temperatureLabel) · \(localizedString("rain")) \(String(format: "%.1f mm", precipitationAmount)) · \(localizedString("wind")) \(wind) \(speedLabel)",
+                systemImage: condition.symbol(isDaylight: active.isDaylight),
+                temperatureUnit: temperatureLabel,
+                speedUnit: speedLabel,
+                currentTemperature: temperature(active.temperature),
+                highTemperature: high,
+                lowTemperature: low,
+                precipitation: .amount(precipitationAmount),
+                humidity: Int(activeHumidity.rounded()),
+                windSpeed: wind,
+                secondaryWindSpeed: speed(peakWind),
+                secondaryWindLabel: localizedString("max_wind"),
+                uvIndex: Int(activeUV.rounded()),
+                sunrise: "—",
+                sunset: "—",
+                isDaylight: active.isDaylight,
+                hourly: hourPoints,
+                bestWindow: bestWindow
+            )
+        }
+
+        return (
+            try makeDay(date: firstDate, isToday: true),
+            try makeDay(date: tomorrowDate, isToday: false)
+        )
+    }
+
+    private func sample(_ hours: [METWeatherHour], maximumCount: Int) -> [METWeatherHour] {
+        guard hours.count > maximumCount else { return hours }
+        let step = Double(hours.count - 1) / Double(maximumCount - 1)
+        return (0..<maximumCount).map { hours[Int((Double($0) * step).rounded())] }
+    }
+
+    private func makeBestWindow(
+        hours: [METWeatherHour],
+        date: Date,
+        calendar: Calendar,
+        units: UserProfile.Units,
+        temperature: (Double) -> Int,
+        speed: (Double) -> Int
+    ) throws -> FitnessWeatherWindow {
+        let candidates = hours.filter {
+            let hour = calendar.component(.hour, from: $0.date)
+            return hour >= 6 && hour <= 21
+        }
+        guard let best = (candidates.isEmpty ? hours : candidates).min(by: {
+            metTrainingScore($0) < metTrainingScore($1)
+        }) else { throw METWeatherClientError.incompleteForecast }
+        let end = calendar.date(byAdding: .hour, value: 2, to: best.date) ?? best.date
+        let formatter = DateFormatter()
+        formatter.locale = RepsLocalization.locale
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "HH:mm"
+        let dayTitle = calendar.isDateInToday(date) ? localizedString("today_2") : localizedString("tomorrow")
+        let temperatureLabel = units == .imperial ? "°F" : "°C"
+        let speedLabel = units == .imperial ? "mph" : "km/h"
+        return FitnessWeatherWindow(
+            title: "\(dayTitle), \(formatter.string(from: best.date)) - \(formatter.string(from: end))",
+            subtitle: "\(temperature(best.temperature))\(temperatureLabel) · \(String(format: "%.1f mm", best.precipitationAmount)) · \(speed(best.windSpeedMetersPerSecond)) \(speedLabel)",
+            systemImage: METWeatherCondition(symbolCode: best.symbolCode).symbol(isDaylight: best.isDaylight),
+            endHour: calendar.component(.hour, from: end)
+        )
+    }
+
+    private func metTrainingScore(_ hour: METWeatherHour) -> Double {
+        hour.precipitationAmount * 30
+            + abs(hour.temperature - 19) * 2
+            + hour.windSpeedMetersPerSecond * 1.62
+            + max(hour.uvIndex - 6, 0) * 3
+    }
+}
+
+private enum WeatherRefreshPolicy {
+    /// Weather models do not change often enough to justify a request on every view appearance.
+    static let freshDataLifetime: TimeInterval = 30 * 60
+    static let maximumStaleLifetime: TimeInterval = 6 * 60 * 60
+    /// At most four WeatherKit forecast calls per device and day.
+    static let appleMinimumInterval: TimeInterval = 6 * 60 * 60
+    /// Respects MET Norway cache guidance and prevents relaunch request storms.
+    static let metWeatherMinimumInterval: TimeInterval = 30 * 60
+
+    static let lastAppleRequestKey = "weather.lastAppleRequestAt"
+    static let lastMETWeatherRequestKey = "weather.lastMETNorwayRequestAt"
+}
+
+@MainActor
+@Observable
+private final class TodayWeatherController: NSObject, CLLocationManagerDelegate {
+    enum Phase {
+        case idle
+        case requestingLocation
+        case loading
+        case serviceActivating
+        case loadingFallback
+        case loaded
+        case locationDenied
+        case failed(String)
+    }
+
+    private struct Payload {
+        let current: CurrentWeather
+        let hourly: [HourWeather]
+        let daily: [DayWeather]
+        let locationName: String
+        let timeZone: TimeZone
+        let location: CLLocation
+        let fetchedAt: Date
+    }
+
+    private struct METWeatherPayload {
+        let forecast: METWeatherForecast
+        let locationName: String
+        let timeZone: TimeZone
+        let location: CLLocation
+        let fetchedAt: Date
+    }
+
+    private struct ResolvedWeatherLocation {
+        let name: String
+        let timeZone: TimeZone
+    }
+
+    private let locationManager = CLLocationManager()
+    private let service = WeatherService.shared
+    private let metWeatherClient = METWeatherClient()
+    private let metWeatherDiskCache = METWeatherDiskCache()
+    private let defaults = UserDefaults.standard
+    private var payload: Payload?
+    private var metWeatherPayload: METWeatherPayload?
+    private var metWeatherFallbackTask: Task<Void, Never>?
+    private var requestedUnits: UserProfile.Units = .metric
+
+    var phase: Phase = .idle
+    var today: FitnessWeatherSnapshot?
+    var tomorrow: FitnessWeatherSnapshot?
+    var attribution: FitnessWeatherAttribution?
+
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
+        locationManager.distanceFilter = 1_000
+    }
+
+    func load(units: UserProfile.Units, force: Bool = false) async {
+        requestedUnits = units
+        if let payload,
+           !force,
+           Date.now.timeIntervalSince(payload.fetchedAt) < WeatherRefreshPolicy.freshDataLifetime {
+            apply(payload, units: units)
+            phase = .loaded
+            return
+        }
+        if metWeatherPayload == nil, let record = await metWeatherDiskCache.load() {
+            let cachedLocation = CLLocation(latitude: record.latitude, longitude: record.longitude)
+            let cachedTimeZone: TimeZone
+            if let identifier = record.timeZoneIdentifier,
+               let timeZone = TimeZone(identifier: identifier) {
+                cachedTimeZone = timeZone
+            } else {
+                cachedTimeZone = await resolveWeatherLocation(cachedLocation).timeZone
+            }
+            metWeatherPayload = METWeatherPayload(
+                forecast: record.forecast,
+                locationName: record.locationName,
+                timeZone: cachedTimeZone,
+                location: cachedLocation,
+                fetchedAt: record.fetchedAt
+            )
+        }
+        if let metWeatherPayload,
+           !force,
+           Date.now.timeIntervalSince(metWeatherPayload.fetchedAt) < WeatherRefreshPolicy.freshDataLifetime,
+           let snapshots = try? metWeatherPayload.forecast.makeSnapshots(
+               locationName: metWeatherPayload.locationName,
+               timeZone: metWeatherPayload.timeZone,
+               units: units
+           ) {
+            today = snapshots.today
+            tomorrow = snapshots.tomorrow
+            attribution = .metNorway
+            phase = .loaded
+            return
+        }
+
+        switch locationManager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            phase = .loading
+            locationManager.requestLocation()
+        case .notDetermined:
+            phase = .requestingLocation
+            locationManager.requestWhenInUseAuthorization()
+        case .denied, .restricted:
+            phase = .locationDenied
+        @unknown default:
+            phase = .failed(localizedString("location_permission_denied"))
+        }
+    }
+
+    func retry() async {
+        metWeatherFallbackTask?.cancel()
+        metWeatherFallbackTask = nil
+        await load(units: requestedUnits, force: true)
+    }
+
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        Task { @MainActor in
+            switch status {
+            case .authorizedAlways, .authorizedWhenInUse:
+                phase = .loading
+                locationManager.requestLocation()
+            case .denied, .restricted:
+                phase = .locationDenied
+            case .notDetermined:
+                phase = .requestingLocation
+            @unknown default:
+                phase = .failed(localizedString("location_permission_denied"))
+            }
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        Task { @MainActor in
+            await fetch(for: location)
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        Task { @MainActor in
+            phase = .failed(error.localizedDescription)
+        }
+    }
+
+    private func fetch(for location: CLLocation) async {
+        if let payload,
+           Date.now.timeIntervalSince(payload.fetchedAt) < WeatherRefreshPolicy.freshDataLifetime,
+           location.distance(from: payload.location) < 1_000 {
+            apply(payload, units: requestedUnits)
+            phase = .loaded
+            return
+        }
+
+        if let metWeatherPayload,
+           Date.now.timeIntervalSince(metWeatherPayload.fetchedAt) < WeatherRefreshPolicy.freshDataLifetime,
+           location.distance(from: metWeatherPayload.location) < 1_000 {
+            apply(metWeatherPayload)
+            return
+        }
+
+        if shouldRequestWeatherKit {
+            await fetchWeatherKit(for: location)
+        } else {
+            await fetchMETWeather(for: location)
+        }
+    }
+
+    private func fetchWeatherKit(for location: CLLocation) async {
+        defaults.set(Date.now, forKey: WeatherRefreshPolicy.lastAppleRequestKey)
+        scheduleMETWeatherFallbackIfNeeded(for: location)
+        phase = .loading
+        do {
+            async let weatherResult = service.weather(
+                for: location,
+                including: .current, .hourly, .daily
+            )
+            async let attributionResult = service.attribution
+            let ((current, hourlyForecast, dailyForecast), attribution) = try await (weatherResult, attributionResult)
+            let daily = Array(dailyForecast)
+            let hourly = Array(hourlyForecast)
+            let resolvedLocation = await resolveWeatherLocation(location)
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = resolvedLocation.timeZone
+            guard let todayDay = daily.first(where: { calendar.isDateInToday($0.date) }),
+                  let tomorrowDay = daily.first(where: { calendar.isDateInTomorrow($0.date) }) else {
+                phase = .failed(localizedString("no_data"))
+                return
+            }
+            let payload = Payload(
+                current: current,
+                hourly: hourly,
+                daily: [todayDay, tomorrowDay],
+                locationName: resolvedLocation.name,
+                timeZone: resolvedLocation.timeZone,
+                location: location,
+                fetchedAt: .now
+            )
+            self.payload = payload
+            self.attribution = .apple(attribution)
+            metWeatherFallbackTask?.cancel()
+            metWeatherFallbackTask = nil
+            apply(payload, units: requestedUnits)
+            phase = .loaded
+        } catch {
+            metWeatherFallbackTask?.cancel()
+            metWeatherFallbackTask = nil
+            if attribution == nil || today == nil || tomorrow == nil {
+                phase = .serviceActivating
+            }
+            await fetchMETWeather(for: location)
+        }
+    }
+
+    private func scheduleMETWeatherFallbackIfNeeded(for location: CLLocation) {
+        guard metWeatherFallbackTask == nil else { return }
+        metWeatherFallbackTask?.cancel()
+        metWeatherFallbackTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(60))
+                guard !Task.isCancelled, let self else { return }
+                await self.fetchMETWeather(for: location)
+            } catch {
+                // Apple succeeded or the user started a fresh request.
+            }
+        }
+    }
+
+    private func fetchMETWeather(for location: CLLocation) async {
+        metWeatherFallbackTask = nil
+        guard shouldRequestMETWeather else {
+            if applyStaleMETWeatherPayload(near: location) { return }
+            phase = .failed(localizedString("weather_all_services_unavailable"))
+            return
+        }
+        defaults.set(Date.now, forKey: WeatherRefreshPolicy.lastMETWeatherRequestKey)
+        phase = .loadingFallback
+        do {
+            let forecast = try await metWeatherClient.forecast(for: location)
+            let resolvedLocation = await resolveWeatherLocation(location)
+            let snapshots = try forecast.makeSnapshots(
+                locationName: resolvedLocation.name,
+                timeZone: resolvedLocation.timeZone,
+                units: requestedUnits
+            )
+            let payload = METWeatherPayload(
+                forecast: forecast,
+                locationName: resolvedLocation.name,
+                timeZone: resolvedLocation.timeZone,
+                location: location,
+                fetchedAt: .now
+            )
+            metWeatherPayload = payload
+            await metWeatherDiskCache.save(METWeatherCacheRecord(
+                forecast: forecast,
+                locationName: resolvedLocation.name,
+                timeZoneIdentifier: resolvedLocation.timeZone.identifier,
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude,
+                fetchedAt: payload.fetchedAt
+            ))
+            today = snapshots.today
+            tomorrow = snapshots.tomorrow
+            attribution = .metNorway
+            phase = .loaded
+        } catch is CancellationError {
+            // A successful Apple response superseded this request.
+        } catch {
+            if !applyStaleMETWeatherPayload(near: location) {
+                phase = .failed(localizedString("weather_all_services_unavailable"))
+            }
+        }
+    }
+
+    private var shouldRequestWeatherKit: Bool {
+        guard let lastRequest = defaults.object(forKey: WeatherRefreshPolicy.lastAppleRequestKey) as? Date else {
+            return true
+        }
+        return Date.now.timeIntervalSince(lastRequest) >= WeatherRefreshPolicy.appleMinimumInterval
+    }
+
+    private var shouldRequestMETWeather: Bool {
+        guard let lastRequest = defaults.object(forKey: WeatherRefreshPolicy.lastMETWeatherRequestKey) as? Date else {
+            return true
+        }
+        return Date.now.timeIntervalSince(lastRequest) >= WeatherRefreshPolicy.metWeatherMinimumInterval
+    }
+
+    @discardableResult
+    private func applyStaleMETWeatherPayload(near location: CLLocation) -> Bool {
+        guard let metWeatherPayload,
+              Date.now.timeIntervalSince(metWeatherPayload.fetchedAt) < WeatherRefreshPolicy.maximumStaleLifetime,
+              location.distance(from: metWeatherPayload.location) < 1_000 else { return false }
+        apply(metWeatherPayload)
+        return true
+    }
+
+    private func apply(_ payload: METWeatherPayload) {
+        guard let snapshots = try? payload.forecast.makeSnapshots(
+            locationName: payload.locationName,
+            timeZone: payload.timeZone,
+            units: requestedUnits
+        ) else {
+            phase = .failed(localizedString("no_data"))
+            return
+        }
+        today = snapshots.today
+        tomorrow = snapshots.tomorrow
+        attribution = .metNorway
+        phase = .loaded
+    }
+
+    private func apply(_ payload: Payload, units: UserProfile.Units) {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = payload.timeZone
+        guard let todayDay = payload.daily.first(where: { calendar.isDateInToday($0.date) }),
+              let tomorrowDay = payload.daily.first(where: { calendar.isDateInTomorrow($0.date) }) else {
+            phase = .failed(localizedString("no_data"))
+            return
+        }
+        let todayHours = payload.hourly.filter { calendar.isDate($0.date, inSameDayAs: todayDay.date) }
+        let tomorrowHours = payload.hourly.filter { calendar.isDate($0.date, inSameDayAs: tomorrowDay.date) }
+        let todayChartHours = todayHours.count < 4
+            ? Array((todayHours + tomorrowHours).prefix(8))
+            : todayHours
+        today = FitnessWeatherSnapshot.make(
+            day: todayDay,
+            current: payload.current,
+            hours: todayHours,
+            chartHours: todayChartHours,
+            locationName: payload.locationName,
+            timeZone: payload.timeZone,
+            units: units
+        )
+        tomorrow = FitnessWeatherSnapshot.make(
+            day: tomorrowDay,
+            current: nil,
+            hours: tomorrowHours,
+            chartHours: tomorrowHours,
+            locationName: payload.locationName,
+            timeZone: payload.timeZone,
+            units: units
+        )
+    }
+
+    private func resolveWeatherLocation(_ location: CLLocation) async -> ResolvedWeatherLocation {
+        guard let request = MKReverseGeocodingRequest(location: location),
+              let item = try? await request.mapItems.first else {
+            return ResolvedWeatherLocation(
+                name: localizedString("your_area"),
+                timeZone: .current
+            )
+        }
+        return ResolvedWeatherLocation(
+            name: item.name ?? localizedString("your_area"),
+            timeZone: item.timeZone ?? .current
+        )
+    }
+}
+
+// MARK: - Living weather artwork
+
+/// A small, self-contained weather scene shared by the Today card and its detail view.
+/// Animation state stays local so its timeline does not invalidate the surrounding dashboard.
+private struct AnimatedWeatherStatusIcon: View {
+    enum Presentation: Equatable {
+        case compact
+        case hero
+        case widgetBackground
+        case detailBackground
+    }
+
+    let snapshot: FitnessWeatherSnapshot
+    let presentation: Presentation
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var showsAtmosphere: Bool { presentation != .compact }
+    private var isCardHero: Bool { presentation == .hero }
+    private var isWidgetBackground: Bool { presentation == .widgetBackground }
+    private var isDetailBackground: Bool { presentation == .detailBackground }
+    private var sceneScale: CGFloat { isWidgetBackground ? 1.18 : 1 }
+    private var conditionLayerYOffset: CGFloat {
+        if isDetailBackground { return -150 }
+        if isWidgetBackground { return -72 }
+        return 0
+    }
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { timeline in
+            GeometryReader { proxy in
+                let moment = snapshot.localMoment(matching: timeline.date)
+                let phase = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
+                let palette = WeatherSkyPalette(moment: moment, snapshot: snapshot)
+
+                ZStack {
+                    if showsAtmosphere {
+                        Rectangle()
+                            .fill(palette.gradient)
+
+                        WeatherAtmosphericParticles(
+                            condition: snapshot.animatedCondition,
+                            isNight: palette.isNight,
+                            phase: phase
+                        )
+                        .padding(isDetailBackground ? 0 : 8)
+
+                        WeatherCelestialBody(
+                            isNight: palette.isNight,
+                            orbitProgress: palette.orbitProgress,
+                            phase: phase,
+                            reduceMotion: reduceMotion,
+                            scale: sceneScale
+                        )
+                    }
+
+                    WeatherConditionLayers(
+                        condition: snapshot.animatedCondition,
+                        isNight: palette.isNight,
+                        phase: phase,
+                        reduceMotion: reduceMotion,
+                        compact: presentation == .compact,
+                        scale: sceneScale
+                    )
+                    .offset(y: conditionLayerYOffset)
+                }
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipShape(RoundedRectangle(cornerRadius: isCardHero ? PulseTheme.cardRadius : 0, style: .continuous))
+                .overlay {
+                    if isCardHero {
+                        RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                            .stroke(.white.opacity(0.16), lineWidth: 0.8)
+                    }
+                }
+                .mask {
+                    if isDetailBackground {
+                        LinearGradient(
+                            stops: [
+                                .init(color: .white, location: 0),
+                                .init(color: .white.opacity(0.92), location: 0.48),
+                                .init(color: .white.opacity(0.42), location: 0.78),
+                                .init(color: .clear, location: 1)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    } else {
+                        Rectangle().fill(.white)
+                    }
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private enum AnimatedWeatherCondition {
+    case clear
+    case partlyCloudy
+    case cloudy
+    case rain
+    case storm
+    case snow
+    case fog
+}
+
+private extension FitnessWeatherSnapshot {
+    var animatedCondition: AnimatedWeatherCondition {
+        let symbol = systemImage.lowercased()
+        if symbol.contains("bolt") || symbol.contains("storm") { return .storm }
+        if symbol.contains("snow") || symbol.contains("sleet") { return .snow }
+        if symbol.contains("rain") || symbol.contains("drizzle") || precipitation.indicatesWetConditions { return .rain }
+        if symbol.contains("fog") || symbol.contains("haze") || symbol.contains("smoke") { return .fog }
+        if symbol.contains("cloud.sun") || symbol.contains("cloud.moon") { return .partlyCloudy }
+        if symbol.contains("cloud") { return .cloudy }
+        return .clear
+    }
+
+    func localMoment(matching clock: Date) -> Date {
+        let calendar = Calendar.current
+        let time = calendar.dateComponents([.hour, .minute, .second], from: clock)
+        return calendar.date(
+            bySettingHour: time.hour ?? 12,
+            minute: time.minute ?? 0,
+            second: time.second ?? 0,
+            of: date
+        ) ?? date
+    }
+
+    func minutes(from value: String) -> Int? {
+        let components = value.split(separator: ":").compactMap { Int($0) }
+        guard components.count == 2 else { return nil }
+        return components[0] * 60 + components[1]
+    }
+}
+
+private struct WeatherSkyPalette {
+    let isNight: Bool
+    let orbitProgress: Double
+    let gradient: LinearGradient
+
+    init(moment: Date, snapshot: FitnessWeatherSnapshot) {
+        let calendar = Calendar.current
+        let minute = calendar.component(.hour, from: moment) * 60 + calendar.component(.minute, from: moment)
+        let sunrise = snapshot.minutes(from: snapshot.sunrise)
+        let sunset = snapshot.minutes(from: snapshot.sunset)
+        if let sunrise, let sunset {
+            isNight = minute < sunrise || minute >= sunset
+            if isNight {
+                let nightLength = max((24 * 60 - sunset) + sunrise, 1)
+                let elapsed = minute >= sunset ? minute - sunset : (24 * 60 - sunset) + minute
+                orbitProgress = min(max(Double(elapsed) / Double(nightLength), 0), 1)
+            } else {
+                orbitProgress = min(max(Double(minute - sunrise) / Double(max(sunset - sunrise, 1)), 0), 1)
+            }
+        } else {
+            isNight = !snapshot.isDaylight
+            orbitProgress = Double(minute) / Double(24 * 60)
+        }
+
+        let colors: [Color]
+        if isNight {
+            colors = [Color(red: 0.05, green: 0.09, blue: 0.24), Color(red: 0.20, green: 0.10, blue: 0.32)]
+        } else if snapshot.animatedCondition == .storm {
+            colors = [Color(red: 0.13, green: 0.18, blue: 0.29), Color(red: 0.29, green: 0.34, blue: 0.43)]
+        } else if [.rain, .cloudy, .fog].contains(snapshot.animatedCondition) {
+            colors = [Color(red: 0.28, green: 0.40, blue: 0.54), Color(red: 0.53, green: 0.61, blue: 0.69)]
+        } else if snapshot.animatedCondition == .snow {
+            colors = [Color(red: 0.53, green: 0.66, blue: 0.78), Color(red: 0.82, green: 0.88, blue: 0.92)]
+        } else if let sunrise, minute < sunrise + 90 {
+            colors = [Color(red: 0.34, green: 0.28, blue: 0.62), Color(red: 0.98, green: 0.55, blue: 0.38)]
+        } else if let sunset, minute >= sunset - 100 {
+            colors = [Color(red: 0.94, green: 0.42, blue: 0.30), Color(red: 0.36, green: 0.20, blue: 0.55)]
+        } else {
+            colors = [Color(red: 0.20, green: 0.57, blue: 0.91), Color(red: 0.44, green: 0.76, blue: 0.95)]
+        }
+        gradient = LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+}
+
+private struct WeatherCelestialBody: View {
+    let isNight: Bool
+    let orbitProgress: Double
+    let phase: TimeInterval
+    let reduceMotion: Bool
+    let scale: CGFloat
+
+    var body: some View {
+        GeometryReader { proxy in
+            let progress = orbitProgress
+            let x = proxy.size.width * (0.12 + 0.76 * progress)
+            let arc = sin(progress * .pi)
+            let y = proxy.size.height * (0.25 - 0.15 * arc)
+            let breathe = reduceMotion ? 1 : 1 + 0.035 * sin(phase * 0.9)
+
+            Image(systemName: isNight ? "moon.stars.fill" : "sun.max.fill")
+                .font(.system(size: (isNight ? 38 : 42) * scale, weight: .bold))
+                .symbolRenderingMode(.multicolor)
+                .scaleEffect(breathe)
+                .position(x: x, y: y)
+                .shadow(color: (isNight ? Color.white : Color.yellow).opacity(0.30), radius: 12)
+        }
+    }
+}
+
+private struct WeatherConditionLayers: View {
+    let condition: AnimatedWeatherCondition
+    let isNight: Bool
+    let phase: TimeInterval
+    let reduceMotion: Bool
+    let compact: Bool
+    let scale: CGFloat
+
+    private var primarySymbol: String {
+        switch condition {
+        case .clear: isNight ? "moon.stars.fill" : "sun.max.fill"
+        case .partlyCloudy: compact ? (isNight ? "cloud.moon.fill" : "cloud.sun.fill") : "cloud.fill"
+        case .cloudy: "cloud.fill"
+        case .rain: "cloud.rain.fill"
+        case .storm: "cloud.bolt.rain.fill"
+        case .snow: "cloud.snow.fill"
+        case .fog: "cloud.fog.fill"
+        }
+    }
+
+    private var symbolSize: CGFloat { (compact ? 46 : 82) * scale }
+
+    var body: some View {
+        let drift = reduceMotion ? 0 : sin(phase * 0.42) * (compact ? 2.5 : 8)
+        let float = reduceMotion ? 0 : cos(phase * 0.55) * (compact ? 1.5 : 4)
+        let breathe = reduceMotion ? 1 : 1 + sin(phase * 0.75) * 0.025
+
+        ZStack {
+            if !compact, condition == .cloudy || condition == .partlyCloudy || condition == .rain || condition == .storm || condition == .snow {
+                Image(systemName: "cloud.fill")
+                    .font(.system(size: 47 * scale, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.20))
+                    .offset(x: -62 - drift * 0.55, y: 28)
+            }
+
+            if compact || condition != .clear {
+                Image(systemName: primarySymbol)
+                    .font(.system(size: symbolSize, weight: .bold))
+                    .symbolRenderingMode(.multicolor)
+                    .scaleEffect(breathe)
+                    .offset(x: drift, y: float + (compact ? 0 : 12))
+                    .shadow(color: .black.opacity(compact ? 0.08 : 0.20), radius: compact ? 3 : 9, y: compact ? 1 : 5)
+            }
+        }
+    }
+}
+
+private struct WeatherAtmosphericParticles: View {
+    let condition: AnimatedWeatherCondition
+    let isNight: Bool
+    let phase: TimeInterval
+
+    var body: some View {
+        Canvas(rendersAsynchronously: true) { context, size in
+            if isNight {
+                for index in 0..<13 {
+                    let x = size.width * CGFloat((index * 37) % 101) / 101
+                    let y = size.height * CGFloat((index * 23 + 9) % 61) / 100
+                    let twinkle = 0.35 + 0.50 * (0.5 + 0.5 * sin(phase * 1.35 + Double(index)))
+                    let radius = CGFloat(index.isMultiple(of: 4) ? 1.7 : 1.0)
+                    context.fill(
+                        Path(ellipseIn: CGRect(x: x, y: y, width: radius * 2, height: radius * 2)),
+                        with: .color(.white.opacity(twinkle))
+                    )
+                }
+            }
+
+            switch condition {
+            case .rain, .storm:
+                let speed = condition == .storm ? 150.0 : 105.0
+                for index in 0..<12 {
+                    let lane = size.width * CGFloat(index + 1) / 13
+                    let rawY = (phase * speed + Double(index * 31)).truncatingRemainder(dividingBy: Double(size.height + 28))
+                    var drop = Path()
+                    drop.move(to: CGPoint(x: lane, y: CGFloat(rawY) - 14))
+                    drop.addLine(to: CGPoint(x: lane - 4, y: CGFloat(rawY)))
+                    context.stroke(drop, with: .color(.white.opacity(0.42)), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                }
+            case .snow:
+                for index in 0..<11 {
+                    let x = size.width * CGFloat(index + 1) / 12 + CGFloat(sin(phase + Double(index))) * 5
+                    let rawY = (phase * 25 + Double(index * 29)).truncatingRemainder(dividingBy: Double(size.height + 12))
+                    context.fill(Path(ellipseIn: CGRect(x: x, y: CGFloat(rawY), width: 4, height: 4)), with: .color(.white.opacity(0.72)))
+                }
+            case .fog:
+                for index in 0..<4 {
+                    let y = size.height * (0.38 + CGFloat(index) * 0.12)
+                    let offset = CGFloat(sin(phase * 0.28 + Double(index))) * 18
+                    var line = Path()
+                    line.move(to: CGPoint(x: size.width * 0.15 + offset, y: y))
+                    line.addLine(to: CGPoint(x: size.width * 0.85 + offset, y: y))
+                    context.stroke(line, with: .color(.white.opacity(0.20)), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                }
+            case .clear, .partlyCloudy, .cloudy:
+                break
+            }
+        }
     }
 }
 
@@ -3875,13 +5188,17 @@ private struct FitnessWeatherInsight: Identifiable {
 
         let calendar = Calendar.current
         let nowFraction = Double(calendar.component(.hour, from: now)) + Double(calendar.component(.minute, from: now)) / 60
-        // The mocked "best window" is a fixed morning slot; once its end hour has
-        // passed, recommending it as "today" would be a stale, already-elapsed tip.
+        // WeatherKit chooses the best window from the real hourly forecast. Once
+        // it has passed, recommending it as "today" would be stale.
         let todayWindowHasPassed = nowFraction >= Double(today.bestWindow.endHour)
-        // Matches the 12:00-17:00 window referenced in strong_sun_midday_message_format.
-        let uvPeakHasPassed = nowFraction >= 17
+        let highUVHours = today.hourly.filter { $0.uvIndex >= 7 }
+        let peakUV = highUVHours.map(\.uvIndex).max()
+        let uvStartHour = highUVHours.map(\.hour).min()
+        let uvEndHour = highUVHours.map(\.hour).max().map { min($0 + 1, 24) }
 
-        if today.rainProbability <= 10 && today.windGusts < comfortableGusts && today.highTemperature < comfortableHigh {
+        if today.precipitation.indicatesDryConditions
+            && today.secondaryWindSpeed < comfortableGusts
+            && today.highTemperature < comfortableHigh {
             if todayWindowHasPassed {
                 insights.append(FitnessWeatherInsight(
                     title: localizedString("tomorrow_window"),
@@ -3907,10 +5224,11 @@ private struct FitnessWeatherInsight: Identifiable {
             ))
         }
 
-        if today.uvIndex >= 7 && !uvPeakHasPassed {
+        if let peakUV, let uvStartHour, let uvEndHour, nowFraction < Double(uvEndHour) {
+            let uvWindow = String(format: "%02d:00–%02d:00", uvStartHour, uvEndHour)
             insights.append(FitnessWeatherInsight(
                 title: localizedString("strong_sun_midday"),
-                message: localizedFormat("strong_sun_midday_message_format", "\(today.uvIndex)"),
+                message: localizedFormat("strong_sun_weatherkit_window_message_format", "\(peakUV)", uvWindow),
                 systemImage: "sun.max.trianglebadge.exclamationmark.fill",
                 tone: .warning
             ))
@@ -3936,6 +5254,135 @@ private struct FitnessWeatherInsight: Identifiable {
     }
 }
 
+private struct WeatherDataStateCard: View {
+    let phase: TodayWeatherController.Phase
+    let retry: () -> Void
+
+    private var isLoading: Bool {
+        switch phase {
+        case .idle, .requestingLocation, .loading, .serviceActivating, .loadingFallback: true
+        case .loaded, .locationDenied, .failed: false
+        }
+    }
+
+    private var message: String {
+        switch phase {
+        case .idle, .loading:
+            localizedString("weather_loading_real_data")
+        case .requestingLocation:
+            localizedString("weather_requesting_location")
+        case .serviceActivating:
+            localizedString("weather_service_activation_pending")
+        case .loadingFallback:
+            localizedString("weather_loading_met_norway")
+        case .locationDenied:
+            localizedString("location_permission_denied")
+        case .failed(let message):
+            message
+        case .loaded:
+            localizedString("no_data")
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Group {
+                if isLoading {
+                    ProgressView()
+                } else {
+                    Image(systemName: phaseIcon)
+                        .font(.title3.weight(.bold))
+                }
+            }
+            .tint(MetricDomain.weather.tint)
+            .foregroundStyle(MetricDomain.weather.tint)
+            .frame(width: 34, height: 34)
+
+            Text(message)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if case .locationDenied = phase {
+                Button(localizedString("settings")) {
+                    PermissionService.shared.openSettings()
+                }
+                .buttonStyle(.bordered)
+            } else if case .failed = phase {
+                Button(localizedString("weather_retry"), action: retry)
+                    .buttonStyle(.bordered)
+            } else if case .serviceActivating = phase {
+                Button(localizedString("weather_retry"), action: retry)
+                    .buttonStyle(.bordered)
+            } else if case .loaded = phase {
+                Button(localizedString("weather_retry"), action: retry)
+                    .buttonStyle(.bordered)
+            }
+        }
+        .padding(16)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke(PulseTheme.cardStroke, lineWidth: 0.8)
+        }
+    }
+
+    private var phaseIcon: String {
+        switch phase {
+        case .locationDenied: "location.slash.fill"
+        case .failed, .loaded: "exclamationmark.triangle.fill"
+        case .idle, .requestingLocation, .loading, .serviceActivating, .loadingFallback: "cloud.sun.fill"
+        }
+    }
+}
+
+private struct WeatherAttributionMark: View {
+    let attribution: FitnessWeatherAttribution
+    let showsLegalLink: Bool
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    @ViewBuilder
+    var body: some View {
+        switch attribution {
+        case .apple(let apple):
+            HStack(spacing: 10) {
+                AsyncImage(url: colorScheme == .dark ? apple.combinedMarkDarkURL : apple.combinedMarkLightURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                    default:
+                        Text(apple.serviceName)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                }
+                .frame(maxWidth: 130, minHeight: 18, maxHeight: 22, alignment: .leading)
+
+                Spacer(minLength: 0)
+
+                if showsLegalLink {
+                    Link(localizedString("weather_data_sources"), destination: apple.legalPageURL)
+                        .font(.caption.weight(.semibold))
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(apple.legalAttributionText)
+        case .metNorway:
+            HStack {
+                Link(localizedString("weather_data_by_met_norway"), destination: URL(string: "https://www.met.no/en")!)
+                    .font(.caption.weight(.semibold))
+                Spacer(minLength: 0)
+                Link(localizedString("weather_data_adapted_cc_by"), destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+        }
+    }
+}
+
 private struct FitnessWeatherWidget: View {
     let today: FitnessWeatherSnapshot
     let tomorrow: FitnessWeatherSnapshot
@@ -3947,77 +5394,92 @@ private struct FitnessWeatherWidget: View {
 
     var body: some View {
         GlassMetricCard(domain: .weather, contentPadding: 0) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(activeSnapshot.locationName)
-                            .font(.caption.weight(.bold))
+            ZStack {
+                AnimatedWeatherStatusIcon(snapshot: activeSnapshot, presentation: .widgetBackground)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .id(activeSnapshot.id)
+                    .transition(.opacity)
+
+                LinearGradient(
+                    stops: [
+                        .init(color: .black.opacity(0.10), location: 0),
+                        .init(color: .black.opacity(0.20), location: 0.38),
+                        .init(color: PulseTheme.card.opacity(0.68), location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .allowsHitTesting(false)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(activeSnapshot.locationName)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                            Text(activeSnapshot.conditionTitle)
+                                .font(.system(size: 28, weight: .black, design: .rounded))
+                                .foregroundStyle(PulseTheme.textPrimary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.62)
+                            Text(activeSnapshot.conditionMessage)
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.headline.weight(.bold))
                             .foregroundStyle(PulseTheme.secondaryText)
-                        Text(activeSnapshot.conditionTitle)
-                            .font(.system(size: 28, weight: .black, design: .rounded))
-                            .foregroundStyle(PulseTheme.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.62)
-                        Text(activeSnapshot.conditionMessage)
-                            .font(.caption)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 8)
                     }
-                    Spacer(minLength: 0)
-                    Image(systemName: activeSnapshot.systemImage)
-                        .font(.system(size: 48, weight: .bold))
-                        .symbolRenderingMode(.multicolor)
-                        .frame(width: 60, height: 60)
-                    Image(systemName: "chevron.right")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .padding(.top, 8)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
 
-                WeatherCompactChart(points: activeSnapshot.hourly, tint: MetricDomain.weather.tint)
-                    .frame(height: 118)
-                    .padding(.horizontal, 8)
-                    .id(selectedDay)
+                    WeatherCompactChart(points: activeSnapshot.hourly, tint: MetricDomain.weather.tint)
+                        .frame(height: 118)
+                        .padding(.horizontal, 8)
+                        .id(selectedDay)
 
-                HStack(spacing: 8) {
-                    WeatherMetricPill(value: "\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)", label: localizedString("now"), systemImage: "thermometer.medium", color: PulseTheme.warning)
-                    WeatherMetricPill(value: "\(activeSnapshot.windSpeed) \(activeSnapshot.speedUnit)", label: localizedString("wind"), systemImage: "location.north.fill", color: MetricDomain.weather.tint)
-                    WeatherMetricPill(value: "\(activeSnapshot.rainProbability)%", label: localizedString("rain"), systemImage: "cloud.rain.fill", color: Color.blue)
-                    WeatherMetricPill(value: "\(activeSnapshot.uvIndex)", label: "UV", systemImage: "sun.max.fill", color: PulseTheme.accent)
-                }
-                .padding(.horizontal, 16)
+                    HStack(spacing: 8) {
+                        WeatherMetricPill(value: "\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)", label: localizedString("now"), systemImage: "thermometer.medium", color: PulseTheme.warning)
+                        WeatherMetricPill(value: "\(activeSnapshot.windSpeed) \(activeSnapshot.speedUnit)", label: localizedString("wind"), systemImage: "location.north.fill", color: MetricDomain.weather.tint)
+                        WeatherMetricPill(value: activeSnapshot.precipitation.valueText, label: localizedString("rain"), systemImage: "cloud.rain.fill", color: Color.blue)
+                        WeatherMetricPill(value: "\(activeSnapshot.uvIndex)", label: "UV", systemImage: "sun.max.fill", color: PulseTheme.accent)
+                    }
+                    .padding(.horizontal, 16)
 
-                HStack(spacing: 10) {
-                    ForecastDayPill(
-                        title: localizedString("today_2"),
-                        temperature: "\(today.lowTemperature)-\(today.highTemperature)\(today.temperatureUnit)",
-                        systemImage: today.systemImage,
-                        isSelected: selectedDay == .today
-                    ) {
-                        HapticService.selection()
-                        withAnimation(.snappy(duration: 0.22)) {
-                            selectedDay = .today
+                    HStack(spacing: 10) {
+                        ForecastDayPill(
+                            title: localizedString("today_2"),
+                            temperature: "\(today.lowTemperature)-\(today.highTemperature)\(today.temperatureUnit)",
+                            systemImage: today.systemImage,
+                            isSelected: selectedDay == .today
+                        ) {
+                            HapticService.selection()
+                            withAnimation(.snappy(duration: 0.22)) {
+                                selectedDay = .today
+                            }
+                        }
+                        ForecastDayPill(
+                            title: localizedString("tomorrow"),
+                            temperature: "\(tomorrow.lowTemperature)-\(tomorrow.highTemperature)\(tomorrow.temperatureUnit)",
+                            systemImage: tomorrow.systemImage,
+                            isSelected: selectedDay == .tomorrow
+                        ) {
+                            HapticService.selection()
+                            withAnimation(.snappy(duration: 0.22)) {
+                                selectedDay = .tomorrow
+                            }
                         }
                     }
-                    ForecastDayPill(
-                        title: localizedString("tomorrow"),
-                        temperature: "\(tomorrow.lowTemperature)-\(tomorrow.highTemperature)\(tomorrow.temperatureUnit)",
-                        systemImage: tomorrow.systemImage,
-                        isSelected: selectedDay == .tomorrow
-                    ) {
-                        HapticService.selection()
-                        withAnimation(.snappy(duration: 0.22)) {
-                            selectedDay = .tomorrow
-                        }
-                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
             }
         }
+        .animation(.smooth(duration: 0.35), value: selectedDay)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(localizedString("weather")), \(activeSnapshot.conditionTitle), \(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)")
     }
@@ -4423,6 +5885,7 @@ private struct TodayWeatherDetailView: View {
     let today: FitnessWeatherSnapshot
     let tomorrow: FitnessWeatherSnapshot
     let insights: [FitnessWeatherInsight]
+    let attribution: FitnessWeatherAttribution
     @State private var selectedDay: FitnessWeatherDay
     @State private var isInsightsExpanded = true
 
@@ -4430,11 +5893,13 @@ private struct TodayWeatherDetailView: View {
         today: FitnessWeatherSnapshot,
         tomorrow: FitnessWeatherSnapshot,
         insights: [FitnessWeatherInsight],
+        attribution: FitnessWeatherAttribution,
         selectedDay: FitnessWeatherDay
     ) {
         self.today = today
         self.tomorrow = tomorrow
         self.insights = insights
+        self.attribution = attribution
         _selectedDay = State(initialValue: selectedDay)
     }
 
@@ -4445,9 +5910,16 @@ private struct TodayWeatherDetailView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             PulseTheme.background.ignoresSafeArea()
-            DomainTintedBackground(domain: domain, height: 460)
+
+            AnimatedWeatherStatusIcon(snapshot: activeSnapshot, presentation: .detailBackground)
+                .frame(maxWidth: .infinity)
+                .frame(height: 660)
+                .ignoresSafeArea(edges: .top)
+                .allowsHitTesting(false)
+                .id(activeSnapshot.id)
+                .transition(.opacity)
 
             ScrollView {
                 VStack(spacing: 18) {
@@ -4459,6 +5931,7 @@ private struct TodayWeatherDetailView: View {
                     windCard
                     rainUVCard
                     insightsCard
+                    WeatherAttributionMark(attribution: attribution, showsLegalLink: true)
                 }
                 .padding(.top, DetailNavigationHeaderBar.contentTopPadding - 40)
                 .padding(.horizontal, 16)
@@ -4473,13 +5946,18 @@ private struct TodayWeatherDetailView: View {
 
     private var hero: some View {
         VStack(spacing: 13) {
-            Image(systemName: activeSnapshot.systemImage)
-                .font(.system(size: 88, weight: .bold))
-                .symbolRenderingMode(.multicolor)
+            Color.clear
+                .frame(height: 96)
+                .accessibilityHidden(true)
             VStack(spacing: 5) {
                 Text(activeSnapshot.locationName)
                     .font(.headline.weight(.bold))
                     .foregroundStyle(PulseTheme.secondaryText)
+                Text("\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)")
+                    .font(.system(size: 52, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(PulseTheme.textPrimary)
+                    .contentTransition(.numericText(value: Double(activeSnapshot.currentTemperature)))
+                    .animation(.spring(response: 0.4, dampingFraction: 0.72), value: activeSnapshot.currentTemperature)
                 Text(activeSnapshot.conditionTitle)
                     .font(.system(size: 34, weight: .black, design: .rounded))
                     .foregroundStyle(PulseTheme.textPrimary)
@@ -4497,7 +5975,7 @@ private struct TodayWeatherDetailView: View {
                 WeatherMetricPill(value: "\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)", label: localizedString("now"), systemImage: "thermometer.medium", color: PulseTheme.warning)
                 WeatherMetricPill(value: "\(activeSnapshot.windSpeed) \(activeSnapshot.speedUnit)", label: localizedString("wind"), systemImage: "location.north.fill", color: MetricDomain.weather.tint)
                 WeatherMetricPill(value: "\(activeSnapshot.uvIndex)", label: "UV", systemImage: "sun.max.fill", color: PulseTheme.accent)
-                WeatherMetricPill(value: "\(activeSnapshot.rainProbability)%", label: localizedString("rain"), systemImage: "cloud.rain.fill", color: Color.blue)
+                WeatherMetricPill(value: activeSnapshot.precipitation.valueText, label: localizedString("rain"), systemImage: "cloud.rain.fill", color: Color.blue)
             }
         }
         .padding(.top, 6)
@@ -4546,7 +6024,7 @@ private struct TodayWeatherDetailView: View {
         HealthStatsHeader(items: [
             HealthStatItem(value: "\(activeSnapshot.highTemperature)\(activeSnapshot.temperatureUnit)", label: localizedString("max_temperature")),
             HealthStatItem(value: "\(activeSnapshot.humidity)%", label: localizedString("humidity")),
-            HealthStatItem(value: "\(activeSnapshot.windGusts) \(activeSnapshot.speedUnit)", label: localizedString("wind_gusts"))
+            HealthStatItem(value: "\(activeSnapshot.secondaryWindSpeed) \(activeSnapshot.speedUnit)", label: activeSnapshot.secondaryWindLabel)
         ], domain: domain)
     }
 
@@ -4567,7 +6045,7 @@ private struct TodayWeatherDetailView: View {
                 HStack(spacing: 0) {
                     HealthStatItem(value: "\(activeSnapshot.windSpeed)", label: activeSnapshot.speedUnit)
                         .weatherStatCell()
-                    HealthStatItem(value: "\(activeSnapshot.windGusts)", label: localizedString("wind_gusts"))
+                    HealthStatItem(value: "\(activeSnapshot.secondaryWindSpeed)", label: activeSnapshot.secondaryWindLabel)
                         .weatherStatCell()
                 }
                 WeatherWindBars(points: activeSnapshot.hourly, color: domain.tint)
@@ -4581,7 +6059,7 @@ private struct TodayWeatherDetailView: View {
             VStack(alignment: .leading, spacing: 14) {
                 WeatherDetailCardHeader(title: localizedString("rain_uv"), systemImage: "sun.max.fill", color: PulseTheme.accent)
                 HStack(spacing: 10) {
-                    HealthMiniTile(title: localizedString("rain"), value: "\(activeSnapshot.rainProbability)%", subtitle: localizedString("rain_probability"), systemImage: "cloud.rain.fill", color: Color.blue, domain: domain)
+                    HealthMiniTile(title: localizedString("rain"), value: activeSnapshot.precipitation.valueText, subtitle: activeSnapshot.precipitation.detailLabel, systemImage: "cloud.rain.fill", color: Color.blue, domain: domain)
                     HealthMiniTile(title: "UV", value: "\(activeSnapshot.uvIndex)", subtitle: uvLabel(activeSnapshot.uvIndex), systemImage: "sun.max.fill", color: PulseTheme.accent, domain: domain)
                 }
                 HealthInsightRow(

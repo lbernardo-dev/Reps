@@ -185,8 +185,13 @@ private struct RestCountdownRing: View, Equatable {
                         .foregroundStyle(ringColor)
                         .animation(.none, value: seconds)
                     Text(seconds == 0 ? localizedString("ready") : localizedString(kind == .exerciseChange ? "next_up" : "rest"))
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
                         .foregroundStyle(PulseTheme.secondaryText)
+                    
+                    if seconds > 0 {
+                        ChargingBatteryIndicator()
+                            .padding(.top, 2)
+                    }
                 }
             }
         }
@@ -244,5 +249,35 @@ private extension UIColor {
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
         getRed(&red, green: &green, blue: &blue, alpha: &alpha)
         return (Double(red), Double(green), Double(blue), Double(alpha))
+    }
+}
+
+private struct ChargingBatteryIndicator: View {
+    @State private var batteryFill: Double = 0.2
+    
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 8))
+                .foregroundStyle(PulseTheme.recovery)
+            
+            ZStack(alignment: .leading) {
+                // Battery body
+                RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                    .stroke(PulseTheme.secondaryText, lineWidth: 0.8)
+                    .frame(width: 14, height: 8)
+                
+                // Battery fill
+                RoundedRectangle(cornerRadius: 0.5, style: .continuous)
+                    .fill(PulseTheme.recovery)
+                    .frame(width: 10 * batteryFill, height: 4.8)
+                    .padding(.leading, 1.2)
+            }
+        }
+        .onAppear {
+            withAnimation(.linear(duration: 1.6).repeatForever(autoreverses: false)) {
+                batteryFill = 1.0
+            }
+        }
     }
 }

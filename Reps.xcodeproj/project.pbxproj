@@ -347,10 +347,10 @@
 		831A5EF4D6BAD29408F1A4DF /* WorkoutHistoryHeartRateCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryHeartRateCards.swift; sourceTree = "<group>"; };
 		838124289B9C836F98389B94 /* ActiveWorkoutMediaPlayers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutMediaPlayers.swift; sourceTree = "<group>"; };
 		84A56B2755C1B3EBAC992D3C /* ActiveWorkoutModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutModels.swift; sourceTree = "<group>"; };
-		860264EAF0E928C5E69888F7 /* RepsWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = RepsWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		860264EAF0E928C5E69888F7 /* RepsWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RepsWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		87CD664F776611D49CB2499E /* NotificationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationEngine.swift; sourceTree = "<group>"; };
 		89F73E9CB8B46A571B9DEA48 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		8AD60C6BDD44A63047D0E969 /* Reps.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Reps.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8AD60C6BDD44A63047D0E969 /* Reps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Reps.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8AE6FC6EDB425205F8F3592B /* FitnessMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessMetrics.swift; sourceTree = "<group>"; };
 		8B208456C111D6D93E890FF9 /* SectionCustomization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionCustomization.swift; sourceTree = "<group>"; };
 		8B2C6CD1669CF772946C0815 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -361,7 +361,7 @@
 		9055371D6F3FC5EB8456BF60 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9133DB946FB1648980C9F29D /* TimersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimersView.swift; sourceTree = "<group>"; };
 		9162A2B566F74760FD426276 /* StrengthComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthComparisonView.swift; sourceTree = "<group>"; };
-		93621471CB3E1736B6202A5E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		93621471CB3E1736B6202A5E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		945E8908F812F5E8792A360D /* RehabLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RehabLibraryView.swift; sourceTree = "<group>"; };
 		9482D3B7D2A2D87906F383A1 /* MuscleMapProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleMapProgressView.swift; sourceTree = "<group>"; };
 		950200F84625327CC6A342A2 /* ProgressCardioAnalyticsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressCardioAnalyticsCard.swift; sourceTree = "<group>"; };
@@ -450,7 +450,7 @@
 		F998B9C72A27863842809A33 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 		FB859CD37FC951A9954F1D23 /* CommentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsView.swift; sourceTree = "<group>"; };
 		FBE400159890F89819FDFC36 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
-		FDFC62FC1D5EA20A03DAE8C8 /* RepsTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RepsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FDFC62FC1D5EA20A03DAE8C8 /* RepsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RepsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1010,14 +1010,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1700;
+				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					015FB5945AF5A6B8DE435B43 = {
 						DevelopmentTeam = L2B56644F5;
 					};
 					0416157AB6A2DD4CDDAF81C0 = {
-						DevelopmentTeam = L2B56644F5;
-						SystemCapabilities = "[\"com.apple.Push\": [\"enabled\": 1], \"com.apple.InAppPurchase\": [\"enabled\": 1]]";
+						SystemCapabilities = "[\"com.apple.Push\": [\"enabled\": 1], \"com.apple.InAppPurchase\": [\"enabled\": 1], \"com.apple.WeatherKit\": [\"enabled\": 1]]";
 					};
 					4B274BECDF40555313A5737C = {
 						DevelopmentTeam = L2B56644F5;
@@ -1374,6 +1373,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = L2B56644F5;
 				INFOPLIST_FILE = Reps/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -1391,6 +1391,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -1421,11 +1422,13 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202607162;
+				CURRENT_PROJECT_VERSION = 100202607163;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -1447,6 +1450,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -1458,6 +1462,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -1488,11 +1493,13 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 100202607162;
+				CURRENT_PROJECT_VERSION = 100202607163;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -1507,6 +1514,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
@@ -1540,6 +1548,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = L2B56644F5;
 				INFOPLIST_FILE = Reps/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;

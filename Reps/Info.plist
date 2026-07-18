@@ -44,7 +44,7 @@
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>StreakReps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre incluso cuando la pantalla está bloqueada.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>StreakReps necesita tu ubicación para registrar tus rutas de carrera y cardio al aire libre en tiempo real.</string>
+	<string>StreakReps necesita tu ubicación para mostrar el tiempo real de tu zona y registrar tus rutas de carrera y cardio al aire libre.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>StreakReps necesita acceso al micrófono para grabar notas de voz dentro de tus entrenamientos.</string>
 	<key>NSMotionUsageDescription</key>

@@ -41,7 +41,7 @@ private actor ProgressDashboardRenderWorker {
 /// bundle (`.overview`, first by default — training load + rings hero + today's
 /// metric grid), fully reorderable/hideable like every other card.
 private enum ProgressDashboardSection: String, CustomizableSection {
-    case overview, trends, todayFocus, explore
+    case overview, trends, todayFocus, cardioEvolution, strengthEvolution, coreEvolution, explore
 
     var id: String { rawValue }
 
@@ -50,6 +50,9 @@ private enum ProgressDashboardSection: String, CustomizableSection {
         case .overview: localizedString("load")
         case .trends: localizedString("trends")
         case .todayFocus: localizedString("today")
+        case .cardioEvolution: localizedString("evolucion_cardio")
+        case .strengthEvolution: localizedString("evolucion_fuerza")
+        case .coreEvolution: localizedString("evolucion_core")
         case .explore: localizedString("explore")
         }
     }
@@ -59,6 +62,9 @@ private enum ProgressDashboardSection: String, CustomizableSection {
         case .overview: "bolt.fill"
         case .trends: "chart.line.uptrend.xyaxis"
         case .todayFocus: "sun.max.fill"
+        case .cardioEvolution: "figure.run"
+        case .strengthEvolution: "figure.strengthtraining.traditional"
+        case .coreEvolution: "figure.core.training"
         case .explore: "square.grid.2x2.fill"
         }
     }
@@ -158,16 +164,67 @@ struct ProgressDashboardView: View {
 
   // MARK: - Layout customization
 
+  private enum WorkoutCategory {
+      case strength, cardio, core
+  }
+
+  private var latestWorkoutCategory: WorkoutCategory {
+      guard let last = store.workoutSessions.sorted(by: { $0.date > $1.date }).first else {
+          return .strength
+      }
+      if last.isRouteSession {
+          return .cardio
+      }
+      let exercises = last.exerciseLogs?.map { $0.exercise.name.lowercased() } ?? []
+      let coreCount = exercises.filter { name in
+          name.contains("core") || name.contains("abs") || name.contains("abdom") || name.contains("plank")
+      }.count
+      if coreCount > 0 && coreCount >= exercises.count / 2 {
+          return .core
+      }
+      return .strength
+  }
+
   private var resolvedProgressSections: (visible: [ProgressDashboardSection], hiddenAvailable: [ProgressDashboardSection]) {
-    SectionLayoutResolver.resolve(
+    let resolved = SectionLayoutResolver.resolve(
       storedOrder: store.userProfile.progressSectionOrder,
       storedHidden: store.userProfile.progressHiddenSectionIDs
-    ) { section in
+    ) { (section: ProgressDashboardSection) -> Bool in
       switch section {
-      case .overview, .todayFocus, .explore: true
-      case .trends: !trendMetrics.isEmpty
+      case .overview, .todayFocus, .explore, .cardioEvolution, .strengthEvolution, .coreEvolution: return true
+      case .trends: return !trendMetrics.isEmpty
       }
     }
+
+    // Sort visible evolution sections based on latestWorkoutCategory:
+    var visible = resolved.visible
+    let category = latestWorkoutCategory
+    let evoOrder: [ProgressDashboardSection] = {
+        switch category {
+        case .cardio: return [.cardioEvolution, .strengthEvolution, .coreEvolution]
+        case .core: return [.coreEvolution, .strengthEvolution, .cardioEvolution]
+        case .strength: return [.strengthEvolution, .cardioEvolution, .coreEvolution]
+        }
+    }()
+
+    let evoSections: Set<ProgressDashboardSection> = [.cardioEvolution, .strengthEvolution, .coreEvolution]
+    let presentEvos = visible.filter { evoSections.contains($0) }
+    if !presentEvos.isEmpty {
+        let sortedEvos = presentEvos.sorted { a, b in
+            let indexA = evoOrder.firstIndex(of: a) ?? 99
+            let indexB = evoOrder.firstIndex(of: b) ?? 99
+            return indexA < indexB
+        }
+        var sortedIdx = 0
+        for i in 0..<visible.count {
+            if evoSections.contains(visible[i]) {
+                visible[i] = sortedEvos[sortedIdx]
+                sortedIdx += 1
+            }
+        }
+    }
+
+    return (visible: visible, hiddenAvailable: resolved.hiddenAvailable)
   }
 
   @ViewBuilder
@@ -285,6 +342,15 @@ struct ProgressDashboardView: View {
         onMetricTap: { handleMetricTap($0, range: .today) }
       )
       .stickyHeaderTitle(section.title)
+    case .cardioEvolution:
+      cardioEvolutionView
+        .stickyHeaderTitle(section.title)
+    case .strengthEvolution:
+      strengthEvolutionView
+        .stickyHeaderTitle(section.title)
+    case .coreEvolution:
+      coreEvolutionView
+        .stickyHeaderTitle(section.title)
     case .explore:
       // ── EXPLORAR: pantallas de análisis detallado ────────
       VStack(spacing: 10) {
@@ -521,7 +587,7 @@ struct ProgressDashboardView: View {
                 badgeColor: PulseTheme.accent, domain: .recovery)
               MetricCard(
                 title: "fatigue_score", value: "\(Int(workload.fatigueScore))", subtitle: "0-100",
-                systemImage: "battery.50", badgeColor: PulseTheme.warning, domain: .recovery)
+                systemImage: "bolt.slash", badgeColor: PulseTheme.warning, domain: .recovery)
             }
 
             PulseCard {
@@ -1344,6 +1410,313 @@ struct ProgressDashboardView: View {
 
   private var consistencyData: [ConsistencyPoint] {
     renderModel.consistencyData
+  }
+
+  private var cardioSessions: [WorkoutSession] {
+      store.workoutSessions.filter { $0.isRouteSession }
+  }
+
+  private var strengthSessions: [WorkoutSession] {
+      store.workoutSessions.filter { !$0.isRouteSession && !isCoreSession($0) }
+  }
+
+  private var coreSessions: [WorkoutSession] {
+      store.workoutSessions.filter { !$0.isRouteSession && isCoreSession($0) }
+  }
+
+  private func isCoreSession(_ session: WorkoutSession) -> Bool {
+      let title = session.workoutTitle.lowercased()
+      if title.contains("core") || title.contains("abs") || title.contains("abdom") {
+          return true
+      }
+      let exercises = session.exerciseLogs?.map { $0.exercise.name.lowercased() } ?? []
+      let coreCount = exercises.filter { name in
+          name.contains("core") || name.contains("abs") || name.contains("abdom") || name.contains("plank")
+      }.count
+      return coreCount > 0 && coreCount >= exercises.count / 2
+  }
+
+  private func averageHeartRate(for sessions: [WorkoutSession]) -> Double? {
+      let hrs = sessions.compactMap(\.averageHeartRate)
+      guard !hrs.isEmpty else { return nil }
+      return hrs.reduce(0.0, +) / Double(hrs.count)
+  }
+
+  private func averageRPE(for sessions: [WorkoutSession]) -> Double? {
+      let rpes = sessions.compactMap(\.sessionRPE)
+      guard !rpes.isEmpty else { return nil }
+      return rpes.reduce(0.0, +) / Double(rpes.count)
+  }
+
+  @ViewBuilder
+  private var cardioEvolutionView: some View {
+      let sessions = cardioSessions.sorted { $0.date < $1.date }
+      let totalDistance = sessions.compactMap(\.distanceKm).reduce(0.0, +)
+      let totalMinutes = sessions.reduce(0) { $0 + $1.durationMinutes }
+      
+      PulseCard {
+          VStack(alignment: .leading, spacing: 12) {
+              HStack(spacing: 8) {
+                  Image(systemName: "figure.run")
+                      .font(.title3)
+                      .foregroundStyle(Color.blue)
+                  
+                  VStack(alignment: .leading, spacing: 2) {
+                      Text(localizedString("evolucion_cardio"))
+                          .font(.system(size: 14, weight: .bold, design: .rounded))
+                          .foregroundStyle(PulseTheme.textPrimary)
+                      Text(localizedString("trends_and_distance"))
+                          .font(.system(size: 10, weight: .bold))
+                          .foregroundStyle(PulseTheme.secondaryText)
+                  }
+                  Spacer()
+                  
+                  if latestWorkoutCategory == .cardio {
+                      Text(localizedString("last_workout_cardio"))
+                          .font(.system(size: 9, weight: .black))
+                          .foregroundStyle(Color.blue)
+                          .padding(.horizontal, 6)
+                          .padding(.vertical, 2)
+                          .background(Color.blue.opacity(0.12), in: Capsule())
+                  }
+              }
+              
+              if sessions.isEmpty {
+                  PulseEmptyState(
+                      title: LocalizedStringKey(localizedString("no_cardio_sessions")),
+                      message: LocalizedStringKey(localizedString("start_cardio_to_see_trends")),
+                      systemImage: "figure.walk"
+                  )
+              } else {
+                  HStack(spacing: 12) {
+                      MetricInline(title: "distance_label", value: String(format: "%.1f km", totalDistance))
+                      MetricInline(title: "duration_2", value: "\(totalMinutes) min")
+                      if let avgHR = averageHeartRate(for: sessions) {
+                          MetricInline(title: "avg_hr_2", value: "\(Int(avgHR)) LPM")
+                      }
+                  }
+                  .padding(.vertical, 4)
+                  
+                  Chart(sessions.suffix(7)) { session in
+                      AreaMark(
+                          x: .value("Fecha", session.date, unit: .day),
+                          y: .value("Distancia", session.distanceKm ?? 0.0)
+                      )
+                      .foregroundStyle(
+                          LinearGradient(
+                              colors: [Color.blue.opacity(0.24), Color.blue.opacity(0)],
+                              startPoint: .top,
+                              endPoint: .bottom
+                          )
+                      )
+                      
+                      LineMark(
+                          x: .value("Fecha", session.date, unit: .day),
+                          y: .value("Distancia", session.distanceKm ?? 0.0)
+                      )
+                      .foregroundStyle(Color.blue)
+                      .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                      
+                      PointMark(
+                          x: .value("Fecha", session.date, unit: .day),
+                          y: .value("Distancia", session.distanceKm ?? 0.0)
+                      )
+                      .foregroundStyle(Color.blue)
+                  }
+                  .frame(height: 100)
+                  .chartXAxis {
+                      AxisMarks(values: .automatic) { _ in
+                          AxisGridLine().foregroundStyle(PulseTheme.separator)
+                          AxisTick().foregroundStyle(PulseTheme.separator)
+                          AxisValueLabel(format: .dateTime.day().month(), centered: true)
+                              .foregroundStyle(PulseTheme.secondaryText)
+                              .font(.system(size: 8, weight: .bold))
+                      }
+                  }
+                  .chartYAxis {
+                      AxisMarks(position: .leading) { _ in
+                          AxisGridLine().foregroundStyle(PulseTheme.separator)
+                          AxisValueLabel()
+                              .foregroundStyle(PulseTheme.secondaryText)
+                              .font(.system(size: 8, weight: .bold))
+                      }
+                  }
+                  .allowsHitTesting(false)
+              }
+          }
+      }
+  }
+
+  @ViewBuilder
+  private var strengthEvolutionView: some View {
+      let sessions = strengthSessions.sorted { $0.date < $1.date }
+      let totalVolume = sessions.reduce(0.0) { $0 + FitnessMetrics.totalVolumeKg(for: [$1]) }
+      let totalSets = sessions.reduce(0) { $0 + $1.sets.count }
+      
+      PulseCard {
+          VStack(alignment: .leading, spacing: 12) {
+              HStack(spacing: 8) {
+                  Image(systemName: "figure.strengthtraining.traditional")
+                      .font(.title3)
+                      .foregroundStyle(Color.orange)
+                  
+                  VStack(alignment: .leading, spacing: 2) {
+                      Text(localizedString("evolucion_fuerza"))
+                          .font(.system(size: 14, weight: .bold, design: .rounded))
+                          .foregroundStyle(PulseTheme.textPrimary)
+                      Text(localizedString("volume_and_intensity"))
+                          .font(.system(size: 10, weight: .bold))
+                          .foregroundStyle(PulseTheme.secondaryText)
+                  }
+                  Spacer()
+                  
+                  if latestWorkoutCategory == .strength {
+                      Text(localizedString("last_workout_strength"))
+                          .font(.system(size: 9, weight: .black))
+                          .foregroundStyle(Color.orange)
+                          .padding(.horizontal, 6)
+                          .padding(.vertical, 2)
+                          .background(Color.orange.opacity(0.12), in: Capsule())
+                  }
+              }
+              
+              if sessions.isEmpty {
+                  PulseEmptyState(
+                      title: LocalizedStringKey(localizedString("no_strength_sessions")),
+                      message: LocalizedStringKey(localizedString("start_strength_to_see_trends")),
+                      systemImage: "figure.strengthtraining.traditional"
+                  )
+              } else {
+                  HStack(spacing: 12) {
+                      MetricInline(title: "total_volume", value: "\(Int(totalVolume)) kg")
+                      MetricInline(title: "completed_sets", value: "\(totalSets) ser")
+                      if store.bestEstimatedOneRepMaxKg > 0 {
+                          MetricInline(title: "best_1rm_estimated", value: "\(Int(store.bestEstimatedOneRepMaxKg)) kg")
+                      }
+                  }
+                  .padding(.vertical, 4)
+                  
+                  Chart(sessions.suffix(7)) { session in
+                      BarMark(
+                          x: .value("Fecha", session.date, unit: .day),
+                          y: .value("Volumen", FitnessMetrics.totalVolumeKg(for: [session]))
+                      )
+                      .foregroundStyle(
+                          LinearGradient(
+                              colors: [Color.orange, Color.orange.opacity(0.6)],
+                              startPoint: .top,
+                              endPoint: .bottom
+                          )
+                      )
+                      .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                  }
+                  .frame(height: 100)
+                  .chartXAxis {
+                      AxisMarks(values: .automatic) { _ in
+                          AxisGridLine().foregroundStyle(PulseTheme.separator)
+                          AxisValueLabel(format: .dateTime.day().month(), centered: true)
+                              .foregroundStyle(PulseTheme.secondaryText)
+                              .font(.system(size: 8, weight: .bold))
+                      }
+                  }
+                  .chartYAxis {
+                      AxisMarks(position: .leading) { _ in
+                          AxisGridLine().foregroundStyle(PulseTheme.separator)
+                          AxisValueLabel()
+                              .foregroundStyle(PulseTheme.secondaryText)
+                              .font(.system(size: 8, weight: .bold))
+                      }
+                  }
+                  .allowsHitTesting(false)
+              }
+          }
+      }
+  }
+
+  @ViewBuilder
+  private var coreEvolutionView: some View {
+      let sessions = coreSessions.sorted { $0.date < $1.date }
+      let totalSessions = sessions.count
+      let totalMinutes = sessions.reduce(0) { $0 + $1.durationMinutes }
+      
+      PulseCard {
+          VStack(alignment: .leading, spacing: 12) {
+              HStack(spacing: 8) {
+                  Image(systemName: "figure.core.training")
+                      .font(.title3)
+                      .foregroundStyle(Color.purple)
+                  
+                  VStack(alignment: .leading, spacing: 2) {
+                      Text(localizedString("evolucion_core"))
+                          .font(.system(size: 14, weight: .bold, design: .rounded))
+                          .foregroundStyle(PulseTheme.textPrimary)
+                      Text(localizedString("stability_and_consistency"))
+                          .font(.system(size: 10, weight: .bold))
+                          .foregroundStyle(PulseTheme.secondaryText)
+                  }
+                  Spacer()
+                  
+                  if latestWorkoutCategory == .core {
+                      Text(localizedString("last_workout_core"))
+                          .font(.system(size: 9, weight: .black))
+                          .foregroundStyle(Color.purple)
+                          .padding(.horizontal, 6)
+                          .padding(.vertical, 2)
+                          .background(Color.purple.opacity(0.12), in: Capsule())
+                  }
+              }
+              
+              if sessions.isEmpty {
+                  PulseEmptyState(
+                      title: LocalizedStringKey(localizedString("no_core_sessions")),
+                      message: LocalizedStringKey(localizedString("start_core_to_see_trends")),
+                      systemImage: "figure.core.training"
+                  )
+              } else {
+                  HStack(spacing: 12) {
+                      MetricInline(title: "sessions", value: "\(totalSessions)")
+                      MetricInline(title: "duration_2", value: "\(totalMinutes) min")
+                      if let avgRPE = averageRPE(for: sessions) {
+                          MetricInline(title: "avg_rpe", value: String(format: "%.1f", avgRPE))
+                      }
+                  }
+                  .padding(.vertical, 4)
+                  
+                  Chart(sessions.suffix(7)) { session in
+                      LineMark(
+                          x: .value("Fecha", session.date, unit: .day),
+                          y: .value("Duración", Double(session.durationMinutes))
+                      )
+                      .foregroundStyle(Color.purple)
+                      .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                      
+                      PointMark(
+                          x: .value("Fecha", session.date, unit: .day),
+                          y: .value("Duración", Double(session.durationMinutes))
+                      )
+                      .foregroundStyle(Color.purple)
+                  }
+                  .frame(height: 100)
+                  .chartXAxis {
+                      AxisMarks(values: .automatic) { _ in
+                          AxisGridLine().foregroundStyle(PulseTheme.separator)
+                          AxisValueLabel(format: .dateTime.day().month(), centered: true)
+                              .foregroundStyle(PulseTheme.secondaryText)
+                              .font(.system(size: 8, weight: .bold))
+                      }
+                  }
+                  .chartYAxis {
+                      AxisMarks(position: .leading) { _ in
+                          AxisGridLine().foregroundStyle(PulseTheme.separator)
+                          AxisValueLabel()
+                              .foregroundStyle(PulseTheme.secondaryText)
+                              .font(.system(size: 8, weight: .bold))
+                      }
+                  }
+                  .allowsHitTesting(false)
+              }
+          }
+      }
   }
 
   private func perform(_ action: AnalyticsEngine.CompetitiveAction) {
