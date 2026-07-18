@@ -1350,43 +1350,45 @@
 
 /* Begin XCBuildConfiguration section */
 		10DD82A98FE002A65FCA87DB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = RepsWidgets/RepsWidgets.entitlements;
-				INFOPLIST_FILE = RepsWidgets/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.widgets;
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
+	buildSettings = {
+		"CODE_SIGN_ENTITLEMENTS" = "RepsWidgets/RepsWidgets.entitlements";
+		"CURRENT_PROJECT_VERSION" = 100202607181;
+		"INFOPLIST_FILE" = "RepsWidgets/Info.plist";
+		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
+		"LD_RUNPATH_SEARCH_PATHS" = (
+			"$(inherited)",
+			"@executable_path/Frameworks",
+			"@executable_path/../../Frameworks",
+		);
+		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.widgets";
+		SDKROOT = iphoneos;
+		"SKIP_INSTALL" = YES;
+		"TARGETED_DEVICE_FAMILY" = "1,2";
+	};
+	isa = XCBuildConfiguration;
+	name = Release;
+};
 		35EFD3E117AF290EBCB00260 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				INFOPLIST_FILE = Reps/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
+	buildSettings = {
+		"ASSETCATALOG_COMPILER_APPICON_NAME" = StreakRepFit2;
+		"ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME" = AccentColor;
+		"CODE_SIGN_ENTITLEMENTS" = "Reps/Reps.entitlements";
+		"CODE_SIGN_IDENTITY" = "iPhone Developer";
+		"CURRENT_PROJECT_VERSION" = 100202607181;
+		"INFOPLIST_FILE" = "Reps/Info.plist";
+		"INFOPLIST_KEY_LSApplicationCategoryType" = "public.app-category.healthcare-fitness";
+		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
+		"LD_RUNPATH_SEARCH_PATHS" = (
+			"$(inherited)",
+			"@executable_path/Frameworks",
+		);
+		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness";
+		SDKROOT = iphoneos;
+		"TARGETED_DEVICE_FAMILY" = 1;
+	};
+	isa = XCBuildConfiguration;
+	name = Debug;
+};
 		3A2FDE58DD79E3CA846E99A4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1515,117 +1517,123 @@
 			name = Release;
 		};
 		6F3AB2473C31CC9ACB9BC34A /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = RepsWatch/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.watchkitapp;
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
-			};
-			name = Debug;
-		};
+	buildSettings = {
+		"ASSETCATALOG_COMPILER_APPICON_NAME" = AppIcon;
+		"CODE_SIGN_ENTITLEMENTS" = "RepsWatch/RepsWatch.entitlements";
+		"CURRENT_PROJECT_VERSION" = 100202607181;
+		"GENERATE_INFOPLIST_FILE" = NO;
+		"INFOPLIST_FILE" = "RepsWatch/Info.plist";
+		"LD_RUNPATH_SEARCH_PATHS" = (
+			"$(inherited)",
+			"@executable_path/Frameworks",
+		);
+		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.watchkitapp";
+		SDKROOT = watchos;
+		"SKIP_INSTALL" = YES;
+		"TARGETED_DEVICE_FAMILY" = 4;
+		"WATCHOS_DEPLOYMENT_TARGET" = "26.0";
+	};
+	isa = XCBuildConfiguration;
+	name = Debug;
+};
 		919CA4D77571434F7FBB6526 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				INFOPLIST_FILE = Reps/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
-		};
+	buildSettings = {
+		"ASSETCATALOG_COMPILER_APPICON_NAME" = StreakRepFit2;
+		"ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME" = AccentColor;
+		"CODE_SIGN_ENTITLEMENTS" = "Reps/Reps.entitlements";
+		"CODE_SIGN_IDENTITY" = "iPhone Developer";
+		"CURRENT_PROJECT_VERSION" = 100202607181;
+		"INFOPLIST_FILE" = "Reps/Info.plist";
+		"INFOPLIST_KEY_LSApplicationCategoryType" = "public.app-category.healthcare-fitness";
+		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
+		"LD_RUNPATH_SEARCH_PATHS" = (
+			"$(inherited)",
+			"@executable_path/Frameworks",
+		);
+		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness";
+		SDKROOT = iphoneos;
+		"TARGETED_DEVICE_FAMILY" = 1;
+	};
+	isa = XCBuildConfiguration;
+	name = Release;
+};
 		9299C2FF0FEA7A16B18BBE80 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.tests;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reps.app/Reps";
-			};
-			name = Debug;
-		};
+	buildSettings = {
+		"BUNDLE_LOADER" = "$(TEST_HOST)";
+		"CURRENT_PROJECT_VERSION" = 100202607181;
+		"GENERATE_INFOPLIST_FILE" = YES;
+		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
+		"LD_RUNPATH_SEARCH_PATHS" = (
+			"$(inherited)",
+			"@executable_path/Frameworks",
+			"@loader_path/Frameworks",
+		);
+		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.tests";
+		SDKROOT = iphoneos;
+		"TARGETED_DEVICE_FAMILY" = "1,2";
+		"TEST_HOST" = "$(BUILT_PRODUCTS_DIR)/Reps.app/Reps";
+	};
+	isa = XCBuildConfiguration;
+	name = Debug;
+};
 		CEFD8405E7DEF8522AA68218 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = RepsWatch/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.watchkitapp;
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 26.0;
-			};
-			name = Release;
-		};
+	buildSettings = {
+		"ASSETCATALOG_COMPILER_APPICON_NAME" = AppIcon;
+		"CODE_SIGN_ENTITLEMENTS" = "RepsWatch/RepsWatch.entitlements";
+		"CURRENT_PROJECT_VERSION" = 100202607181;
+		"GENERATE_INFOPLIST_FILE" = NO;
+		"INFOPLIST_FILE" = "RepsWatch/Info.plist";
+		"LD_RUNPATH_SEARCH_PATHS" = (
+			"$(inherited)",
+			"@executable_path/Frameworks",
+		);
+		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.watchkitapp";
+		SDKROOT = watchos;
+		"SKIP_INSTALL" = YES;
+		"TARGETED_DEVICE_FAMILY" = 4;
+		"WATCHOS_DEPLOYMENT_TARGET" = "26.0";
+	};
+	isa = XCBuildConfiguration;
+	name = Release;
+};
 		F113E1ACAFB6BBBBFE43990F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = RepsWidgets/RepsWidgets.entitlements;
-				INFOPLIST_FILE = RepsWidgets/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.widgets;
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
+	buildSettings = {
+		"CODE_SIGN_ENTITLEMENTS" = "RepsWidgets/RepsWidgets.entitlements";
+		"CURRENT_PROJECT_VERSION" = 100202607181;
+		"INFOPLIST_FILE" = "RepsWidgets/Info.plist";
+		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
+		"LD_RUNPATH_SEARCH_PATHS" = (
+			"$(inherited)",
+			"@executable_path/Frameworks",
+			"@executable_path/../../Frameworks",
+		);
+		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.widgets";
+		SDKROOT = iphoneos;
+		"SKIP_INSTALL" = YES;
+		"TARGETED_DEVICE_FAMILY" = "1,2";
+	};
+	isa = XCBuildConfiguration;
+	name = Debug;
+};
 		F971A50523106F9D988E0976 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.tests;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reps.app/Reps";
-			};
-			name = Release;
-		};
+	buildSettings = {
+		"BUNDLE_LOADER" = "$(TEST_HOST)";
+		"CURRENT_PROJECT_VERSION" = 100202607181;
+		"GENERATE_INFOPLIST_FILE" = YES;
+		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
+		"LD_RUNPATH_SEARCH_PATHS" = (
+			"$(inherited)",
+			"@executable_path/Frameworks",
+			"@loader_path/Frameworks",
+		);
+		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.tests";
+		SDKROOT = iphoneos;
+		"TARGETED_DEVICE_FAMILY" = "1,2";
+		"TEST_HOST" = "$(BUILT_PRODUCTS_DIR)/Reps.app/Reps";
+	};
+	isa = XCBuildConfiguration;
+	name = Release;
+};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
