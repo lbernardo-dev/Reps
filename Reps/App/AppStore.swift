@@ -2557,10 +2557,17 @@ final class AppStore {
         )
     }
 
+    /// Free tier gets exactly one plan slot, whether it's hand-built, picked from
+    /// the program catalog, or generated from equipment — only the second+ plan
+    /// requires Pro. Callers that let the user build a plan through a multi-step
+    /// flow (wizards) should check this *before* opening the flow, so a blocked
+    /// free user gets the paywall instead of losing their work at the final step.
+    var canCreateAnotherPlan: Bool {
+        monetization.hasProAccess || plans.isEmpty
+    }
+
     func addPlan(_ plan: WorkoutPlan, activate: Bool, fromCatalog: Bool = false, bypassPlanLimit: Bool = false) {
-        // Free tier gets exactly one plan slot, whether it's hand-built or picked
-        // from the program catalog — only the second+ plan requires Pro.
-        guard bypassPlanLimit || monetization.hasProAccess || plans.isEmpty else {
+        guard bypassPlanLimit || canCreateAnotherPlan else {
             presentPaywall(source: fromCatalog ? .planActivation : .multiplePlans, feature: nil, trigger: .featureGate)
             return
         }
@@ -3145,6 +3152,12 @@ final class AppStore {
             ? localizedKey("home_based_on_my_equipment")
             : localizedKey("recommended_gym"))
         suggested.daysPerWeek = max(1, daysPerWeek)
+        // The UI-level gate (ProfileView's equipment_routine button, and this
+        // function's only production entry point) already blocks free users
+        // with an existing plan before they can reach here — see
+        // `canCreateAnotherPlan`. Bypassing the limit at this layer keeps this
+        // building block itself unconditional, matching its existing contract
+        // (also exercised directly by RepsTests without going through the UI gate).
         addPlan(suggested, activate: true, bypassPlanLimit: true)
         health.message = localizedFormat("routine_created_active_in_plans_message", suggested.name)
         return suggested
@@ -5234,12 +5247,13 @@ final class NativeWorkoutSessionService: NSObject {
         isLaunchingCompanionWorkout = true
 
         let configuration = Self.configuration(status: status, workout: workout)
-        Task {
+        Task { [weak self] in
+            guard let self else { return }
             do {
-                try await requestAuthorization()
+                try await self.requestAuthorization()
                 try Task.checkCancellation()
-                guard activeStatusID == status.id else { return }
-                healthStore.startWatchApp(with: configuration) { [weak self] success, error in
+                guard self.activeStatusID == status.id else { return }
+                self.healthStore.startWatchApp(with: configuration) { [weak self] success, error in
                     Task { @MainActor in
                         guard let self else { return }
                         self.isLaunchingCompanionWorkout = false
@@ -5253,8 +5267,8 @@ final class NativeWorkoutSessionService: NSObject {
                 }
             } catch {
                 TelemetryService.shared.record(error, context: "healthkit_start_watch_app_authorization")
-                isLaunchingCompanionWorkout = false
-                if companionLaunchStatusID == status.id {
+                self.isLaunchingCompanionWorkout = false
+                if self.companionLaunchStatusID == status.id {
                     self.companionLaunchStatusID = nil
                 }
             }

@@ -546,6 +546,10 @@ struct MainTabView: View {
 
   private func open(_ action: QuickAction) {
     withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) { isQuickMenuExpanded = false }
+    if action == .createPlan, !store.canCreateAnotherPlan {
+      store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+      return
+    }
     TelemetryService.shared.log(.quickActionOpened, parameters: ["action": action.telemetryName])
     presentedQuickAction = action
   }

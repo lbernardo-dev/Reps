@@ -484,6 +484,16 @@ struct ExerciseLibraryView: View {
             .onChange(of: selectedPath) { _, newValue in
                 if newValue == .muscles { selectedMuscle = "All" }
                 if newValue == .filters { selectedMuscleSegments.removeAll() }
+                if newValue != .filters {
+                    // The Characteristics controls below aren't shown outside that tab,
+                    // so leaving them set silently narrows results with no visible cause.
+                    selectedCategory = .all
+                    selectedEquipment = "All"
+                    selectedType = nil
+                    selectedDifficulty = nil
+                    selectedEnvironment = nil
+                    onlyAvailableEquipment = false
+                }
             }
             .safeAreaInset(edge: .top) {
                 PulseHeaderBar(

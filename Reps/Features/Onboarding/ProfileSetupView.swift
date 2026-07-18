@@ -1122,7 +1122,7 @@ private struct OnboardingNumberPicker: View {
                         Button {
                             value = option
                         } label: {
-                            Text(option == 90 && unit == "min" ? "90+" : "\(option)")
+                            Text(option == 90 && unit == "onboarding_schedule_duration_unit" ? "90+" : "\(option)")
                                 .font(.headline.monospacedDigit())
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)

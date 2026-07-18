@@ -14,7 +14,9 @@ enum OnboardingPlanBuilder {
         sessionLengthMinutes: Int?,
         focusMuscles: [String]
     ) -> WorkoutPlan {
-        let dayCount = max(2, min(profile.weeklyTrainingDays, 6))
+        // Honor the user's actual schedule choice (1-7 days/week, see the
+        // onboarding schedule step) instead of silently clamping it into 2-6.
+        let dayCount = max(1, min(profile.weeklyTrainingDays, 7))
         let exerciseCount = exerciseCount(for: sessionLengthMinutes)
         let restBetweenExercises = restBetweenExercises(for: profile.experience)
         let days = makeDays(
@@ -41,7 +43,10 @@ enum OnboardingPlanBuilder {
         return WorkoutPlan(
             name: planName,
             location: profile.trainingLocation,
-            daysPerWeek: dayCount,
+            // The predefined splits below top out at 6 distinct sessions, so a
+            // 7-day request still yields 6 real days — report the actual count
+            // rather than a number the plan doesn't contain.
+            daysPerWeek: days.count,
             currentWeek: 1,
             totalWeeks: weeks,
             completion: 0,
@@ -237,8 +242,8 @@ enum OnboardingPlanBuilder {
         switch dayCount {
         case 2:
             return [
-                TrainingSplit(title: "Full body A", subtitle: localizedString("split_push_leg_core"), groups: ["Chest", "Legs", "Back", "Core"]),
-                TrainingSplit(title: "Full body B", subtitle: localizedString("split_pull_glutes_arms"), groups: ["Back", "Glutes", "Shoulders", "Arms"])
+                TrainingSplit(title: localizedString("full_body_a"), subtitle: localizedString("split_push_leg_core"), groups: ["Chest", "Legs", "Back", "Core"]),
+                TrainingSplit(title: localizedString("full_body_b"), subtitle: localizedString("split_pull_glutes_arms"), groups: ["Back", "Glutes", "Shoulders", "Arms"])
             ]
         case 3:
             return [
@@ -255,12 +260,12 @@ enum OnboardingPlanBuilder {
             ]
         default:
             return [
-                TrainingSplit(title: "Push", subtitle: localizedString("split_chest_shoulder_triceps"), groups: ["Chest", "Shoulders", "Arms"]),
-                TrainingSplit(title: "Pull", subtitle: localizedString("split_back_biceps"), groups: ["Back", "Arms", "Shoulders"]),
-                TrainingSplit(title: "Legs", subtitle: localizedString("full_legs"), groups: ["Legs", "Glutes", "Core"]),
-                TrainingSplit(title: "Upper", subtitle: localizedString("mixed_upper"), groups: ["Chest", "Back", "Shoulders", "Arms"]),
-                TrainingSplit(title: "Lower", subtitle: localizedString("lower_strength"), groups: ["Legs", "Glutes", "Core"]),
-                TrainingSplit(title: "Focus", subtitle: localizedString("priority_muscles"), groups: ["Back", "Chest", "Legs", "Arms", "Core"])
+                TrainingSplit(title: localizedString("push"), subtitle: localizedString("split_chest_shoulder_triceps"), groups: ["Chest", "Shoulders", "Arms"]),
+                TrainingSplit(title: localizedString("pull"), subtitle: localizedString("split_back_biceps"), groups: ["Back", "Arms", "Shoulders"]),
+                TrainingSplit(title: localizedString("legs_label"), subtitle: localizedString("full_legs"), groups: ["Legs", "Glutes", "Core"]),
+                TrainingSplit(title: localizedString("upper_a"), subtitle: localizedString("mixed_upper"), groups: ["Chest", "Back", "Shoulders", "Arms"]),
+                TrainingSplit(title: localizedString("lower_a"), subtitle: localizedString("lower_strength"), groups: ["Legs", "Glutes", "Core"]),
+                TrainingSplit(title: localizedString("enfoque"), subtitle: localizedString("priority_muscles"), groups: ["Back", "Chest", "Legs", "Arms", "Core"])
             ].prefix(dayCount).map { $0 }
         }
     }

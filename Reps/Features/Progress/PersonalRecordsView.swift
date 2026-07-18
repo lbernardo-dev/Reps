@@ -115,7 +115,15 @@ struct PRCardView: View {
     let item: PersonalRecordsView.PersonalRecordItem
     @State private var isShowingShareSheet = false
     @State private var shareImage: UIImage?
-    
+
+    private var weightUnit: String {
+        store.userProfile.units == .metric ? "kg" : "lb"
+    }
+
+    private func displayWeight(_ kg: Double) -> Double {
+        store.userProfile.units == .metric ? kg : UnitConverter.pounds(fromKilograms: kg)
+    }
+
     var body: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 12) {
@@ -177,14 +185,14 @@ struct PRCardView: View {
                     .foregroundStyle(PulseTheme.accent)
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-                    Text("1RM Est: \(Int(item.oneRepMax)) kg")
+                    Text("1RM Est: \(Int(displayWeight(item.oneRepMax))) \(weightUnit)")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(PulseTheme.ringStand)
                         .lineLimit(1)
 
                     Spacer(minLength: 8)
 
-                    Text("\(item.maxWeight, specifier: "%.1f") kg")
+                    Text("\(displayWeight(item.maxWeight), specifier: "%.1f") \(weightUnit)")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundStyle(PulseTheme.accent)
 

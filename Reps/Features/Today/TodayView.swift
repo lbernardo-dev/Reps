@@ -1841,7 +1841,7 @@ private struct TodayViewContent: View {
                 showFreeWorkoutStart = true
             }
         case .createPlan:
-            showCreatePlan = true
+            requestCreatePlan()
         case .scheduleWorkout:
             showScheduleWorkout = true
         case .openProgress:
@@ -1861,7 +1861,15 @@ private struct TodayViewContent: View {
         if hasActivePlan {
             planToEdit = store.activePlan
         } else {
+            requestCreatePlan()
+        }
+    }
+
+    private func requestCreatePlan() {
+        if store.canCreateAnotherPlan {
             showCreatePlan = true
+        } else {
+            store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
         }
     }
 
@@ -1931,8 +1939,8 @@ private struct TodayViewContent: View {
                     WellnessWidget(
                         title: "hydration",
                         value: store.todayHealthMetric.map { String(format: "%.1f L", $0.waterLiters) } ?? "--",
-                        subtitle: latestMetric?.waterLiters.map { String(format: "%.1f L en StreakReps", $0) } ?? (localizedString("no_local_log")),
-                        localizesSubtitle: latestMetric?.waterLiters == nil,
+                        subtitle: latestMetric?.waterLiters.map { localizedFormat("water_logged_in_app_format", $0) } ?? (localizedString("no_local_log")),
+                        localizesSubtitle: false,
                         systemImage: TrackedMetric.hydration.systemImage,
                         domain: TrackedMetric.hydration.domain,
                         customTint: TrackedMetric.hydration.tint
@@ -2236,7 +2244,7 @@ private struct TodayViewContent: View {
 
                 Button {
                     HapticService.selection()
-                    showCreatePlan = true
+                    requestCreatePlan()
                 } label: {
                     ShortcutTile(
                         title: "new_plan",

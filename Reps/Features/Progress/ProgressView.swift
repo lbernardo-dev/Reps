@@ -79,6 +79,7 @@ struct ProgressDashboardView: View {
   @State private var metricDetail: SummaryMetricRoute?
   @State private var showNotifications = false
   @State private var showEditLayout = false
+  @State private var goalToEdit: Goal?
   @State private var renderModel = ProgressDashboardRenderModel.empty
 
   var onSelectTab: ((AppTab) -> Void)? = nil
@@ -121,6 +122,9 @@ struct ProgressDashboardView: View {
             showEditLayout = true
           }
 
+      }
+      .sheet(item: $goalToEdit) { goal in
+        GoalEditorView(existingGoal: goal)
       }
       .sheet(isPresented: $showEditLayout) {
         let resolved = resolvedProgressSections
@@ -1302,7 +1306,9 @@ struct ProgressDashboardView: View {
         }
         .padding(.horizontal, 4)
         ForEach(store.goals.prefix(3)) { goal in
-          GoalCard(goal: goal) {}
+          GoalCard(goal: goal) {
+            goalToEdit = goal
+          }
         }
         if store.goals.count > 3 {
           Text(localizedFormat("goal_more_fmt", store.goals.count - 3))

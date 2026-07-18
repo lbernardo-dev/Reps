@@ -909,9 +909,18 @@ struct Goal: Codable, Identifiable {
     var unit: String
     var deadline: Date?
     var reason: String? = nil
+    /// Value of `current` when the goal was created. Optional so goals persisted
+    /// before this field existed decode as `nil` and fall back to the legacy
+    /// ratio-based progress below. Used to compute progress correctly for goals
+    /// where the target is *below* the starting value (e.g. weight loss).
+    var startValue: Double? = nil
 
     var progress: Double {
         guard target > 0 else { return 0 }
+        if let startValue, target < startValue {
+            guard startValue != target else { return 1.0 }
+            return min(max((startValue - current) / (startValue - target), 0), 1.0)
+        }
         return min(current / target, 1.0)
     }
 

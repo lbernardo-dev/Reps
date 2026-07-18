@@ -363,7 +363,7 @@ actor SocialService {
         do {
             let record = try await publicDB.record(for: rid)
             record["lastActiveAt"] = Date() as CKRecordValue
-            try await publicDB.save(record)
+            _ = try await publicDB.save(record)
         } catch { }
     }
 
@@ -479,7 +479,7 @@ actor SocialService {
             record["avatarAsset"] = CKAsset(fileURL: tmpURL)
         }
 
-        try await publicDB.save(record)
+        _ = try await publicDB.save(record)
     }
 
     // Updates only the followingUsernames field on own SocialProfile so
@@ -491,7 +491,7 @@ actor SocialService {
         do {
             let record = try await publicDB.record(for: rid)
             record["followingUsernames"] = followingUsernames.map { $0.lowercased() } as CKRecordValue
-            try await publicDB.save(record)
+            _ = try await publicDB.save(record)
         } catch { /* non-critical */ }
     }
 
@@ -577,7 +577,7 @@ actor SocialService {
         // can display/link to the follower without an extra profile lookup.
         record["followerUsername"] = myUsername.lowercased() as CKRecordValue
         record["followingUsername"] = profile.username.lowercased() as CKRecordValue
-        try await publicDB.save(record)
+        _ = try await publicDB.save(record)
     }
 
     func unfollow(_ profile: SocialProfile) async throws {
@@ -683,7 +683,7 @@ actor SocialService {
         record["exerciseNames"] = exerciseNames as CKRecordValue
         record["likeCount"] = Int64(0) as CKRecordValue
         record["commentCount"] = Int64(0) as CKRecordValue
-        try await publicDB.save(record)
+        _ = try await publicDB.save(record)
         savePostID(rid.recordName)
     }
 
@@ -835,7 +835,7 @@ actor SocialService {
         record["likerUsername"] = likerUsername.lowercased() as CKRecordValue
         record["postRecordName"] = post.id as CKRecordValue
         record["postOwnerUsername"] = post.ownerUsername.lowercased() as CKRecordValue
-        try await publicDB.save(record)
+        _ = try await publicDB.save(record)
     }
 
     func unlikePost(_ post: WorkoutPost) async throws {
@@ -877,7 +877,7 @@ actor SocialService {
         record["reporterUsername"] = reporterUsername.lowercased() as CKRecordValue
         record["reporterOwnerName"] = myID.recordName as CKRecordValue
         record["reportedAt"] = Date() as CKRecordValue
-        try await publicDB.save(record)
+        _ = try await publicDB.save(record)
     }
 
     /// Persists a block relationship in CloudKit. The local profile is updated
@@ -886,13 +886,13 @@ actor SocialService {
         try await requireICloudAccount()
         let myID = try await myRecordID()
         let normalized = username.lowercased()
-        let rid = CKRecord.ID(recordName: "SocialBlock_(myID.recordName)_(normalized)")
+        let rid = CKRecord.ID(recordName: "SocialBlock_\(myID.recordName)_\(normalized)")
         let record = CKRecord(recordType: "SocialBlock", recordID: rid)
         record["blockerOwnerName"] = myID.recordName as CKRecordValue
         record["blockerUsername"] = blockerUsername.lowercased() as CKRecordValue
         record["blockedUsername"] = normalized as CKRecordValue
         record["createdAt"] = Date() as CKRecordValue
-        try await publicDB.save(record)
+        _ = try await publicDB.save(record)
     }
 
     // MARK: Moderation (developer-managed, read-only in app)
@@ -1489,7 +1489,7 @@ extension SocialService {
         record["creatorUsername"]      = creatorUsername.lowercased() as CKRecordValue
         record["creatorDisplayName"]   = creatorDisplayName as CKRecordValue
         record["participantCount"]     = Int64(0) as CKRecordValue
-        try await publicDB.save(record)
+        _ = try await publicDB.save(record)
         guard let ch = SocialChallenge(record: record) else {
             throw SocialServiceError.malformedChallengeRecord
         }
@@ -1530,7 +1530,7 @@ extension SocialService {
         record["participantUsername"]      = username.lowercased() as CKRecordValue
         record["participantDisplayName"]   = displayName as CKRecordValue
         record["currentValue"]             = Double(0) as CKRecordValue
-        try await publicDB.save(record)
+        _ = try await publicDB.save(record)
 
         // Optimistically bump participantCount on the challenge record.
         let crid = challengeRecordID(challengeID)
@@ -1547,7 +1547,7 @@ extension SocialService {
         do {
             let record = try await publicDB.record(for: rid)
             record["currentValue"] = value as CKRecordValue
-            try await publicDB.save(record)
+            _ = try await publicDB.save(record)
         } catch { /* not joined — silently ignore */ }
     }
 

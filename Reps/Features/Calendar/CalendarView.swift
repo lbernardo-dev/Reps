@@ -336,7 +336,7 @@ struct CalendarView: View {
     }
 
     private var weekSessions: [WorkoutSession] {
-        guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: selectedDate) else { return [] }
+        guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: .now) else { return [] }
         return store.workoutSessions.filter { interval.contains($0.date) }
     }
 
@@ -349,7 +349,7 @@ struct CalendarView: View {
     }
 
     private var weekScheduled: [ScheduledWorkout] {
-        guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: selectedDate) else { return [] }
+        guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: .now) else { return [] }
         return store.scheduledWorkouts.filter { interval.contains($0.date) }
     }
 

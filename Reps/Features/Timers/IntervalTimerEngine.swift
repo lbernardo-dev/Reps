@@ -62,14 +62,24 @@ final class IntervalTimerEngine {
         max(phaseDuration - Int(elapsed().rounded()), 0)
     }
 
-    /// Call once per timeline tick. Returns the transition that just happened, if any,
-    /// so the caller can fire a haptic/sound exactly once per transition.
+    /// Call once per timeline tick. Returns whether at least one phase transition
+    /// happened, so the caller can fire a haptic/sound. Advances through *every*
+    /// phase/round boundary crossed since the last tick — not just one — so that
+    /// resuming from a long backgrounding period (e.g. several Tabata rounds while
+    /// the screen was locked) correctly reflects the real elapsed time instead of
+    /// silently restarting the next phase's countdown from "now".
     @discardableResult
     func tick(at date: Date = .now) -> Bool {
         guard phase != .done, !isPaused, phaseStartedAt != nil else { return false }
-        guard phaseDuration - Int(elapsed(at: date).rounded()) <= 0 else { return false }
-        advancePhase(at: date)
-        return true
+        var advanced = false
+        while phase != .done,
+              let started = phaseStartedAt,
+              phaseDuration > 0,
+              date.timeIntervalSince(started) >= TimeInterval(phaseDuration) {
+            advancePhase(at: started.addingTimeInterval(TimeInterval(phaseDuration)))
+            advanced = true
+        }
+        return advanced
     }
 
     func skipPhase(at date: Date = .now) {

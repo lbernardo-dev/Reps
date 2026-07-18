@@ -302,7 +302,7 @@ struct GoalEditorView: View {
     private var isEditing: Bool { existingGoal != nil }
     private var canSave: Bool {
         !title.trimmingCharacters(in: .whitespaces).isEmpty
-            && Double(target.replacingOccurrences(of: ",", with: ".")) != nil
+            && (Double(target.replacingOccurrences(of: ",", with: ".")) ?? 0) > 0
     }
 
     var body: some View {
@@ -525,7 +525,8 @@ struct GoalEditorView: View {
                 target: targetVal,
                 unit: unit.trimmingCharacters(in: .whitespaces),
                 deadline: dl,
-                reason: resolvedReason.flatMap { $0.isEmpty ? nil : $0 }
+                reason: resolvedReason.flatMap { $0.isEmpty ? nil : $0 },
+                startValue: currentVal
             ))
         }
         dismiss()

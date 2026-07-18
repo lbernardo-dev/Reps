@@ -6,8 +6,14 @@ struct PlateCalculatorView: View {
     @AppStorage("plateCalc.barWeight") private var barbellWeight: Double = 20.0
     @AppStorage("plateCalc.disabledPlates") private var disabledPlatesRaw: String = ""
 
-    // Full universe of plates the calculator knows about (kg).
-    private let allPlates: [Double] = [25.0, 20.0, 15.0, 10.0, 5.0, 2.5, 2.0, 1.5, 1.25, 1.0, 0.5]
+    // Full universe of plates the calculator knows about, in the plate
+    // denominations gyms actually stock for that unit system — metric gyms
+    // load kg plates, imperial gyms load lb plates (not a kg number relabeled).
+    private var allPlates: [Double] {
+        store.userProfile.units == .metric
+            ? [25.0, 20.0, 15.0, 10.0, 5.0, 2.5, 2.0, 1.5, 1.25, 1.0, 0.5]
+            : [45.0, 35.0, 25.0, 10.0, 5.0, 2.5]
+    }
 
     private struct BarOption: Identifiable {
         var id: Double { weight }
@@ -15,12 +21,21 @@ struct PlateCalculatorView: View {
         let weight: Double
     }
 
-    private let barOptions: [BarOption] = [
-        BarOption(name: "olympic_bar", weight: 20.0),
-        BarOption(name: "women_bar", weight: 15.0),
-        BarOption(name: "technique_bar", weight: 7.0),
-        BarOption(name: "z_bar", weight: 10.0)
-    ]
+    private var barOptions: [BarOption] {
+        store.userProfile.units == .metric
+            ? [
+                BarOption(name: "olympic_bar", weight: 20.0),
+                BarOption(name: "women_bar", weight: 15.0),
+                BarOption(name: "technique_bar", weight: 7.0),
+                BarOption(name: "z_bar", weight: 10.0)
+              ]
+            : [
+                BarOption(name: "olympic_bar", weight: 45.0),
+                BarOption(name: "women_bar", weight: 35.0),
+                BarOption(name: "technique_bar", weight: 15.0),
+                BarOption(name: "z_bar", weight: 22.0)
+              ]
+    }
 
     private var disabledPlates: Set<Double> {
         Set(disabledPlatesRaw.split(separator: ",").compactMap { Double($0) })
@@ -69,6 +84,8 @@ struct PlateCalculatorView: View {
         
         var heightFactor: CGFloat {
             switch weight {
+            case 45.0: return 1.0
+            case 35.0: return 0.92
             case 25.0: return 1.0
             case 20.0: return 0.92
             case 15.0: return 0.84
@@ -79,10 +96,10 @@ struct PlateCalculatorView: View {
             default: return 0.35
             }
         }
-        
+
         var width: CGFloat {
             switch weight {
-            case 25.0, 20.0, 15.0, 10.0: return 24
+            case 45.0, 35.0, 25.0, 20.0, 15.0, 10.0: return 24
             case 5.0: return 18
             case 2.5: return 14
             case 1.25: return 12
@@ -325,5 +342,17 @@ struct PlateCalculatorView: View {
         .navigationTitle("plate_calculator")
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
+        .onAppear(perform: snapBarbellWeightToUnitIfNeeded)
+        .onChange(of: store.userProfile.units) { _, _ in snapBarbellWeightToUnitIfNeeded() }
+    }
+
+    /// The persisted bar weight is a plain number shared across unit systems.
+    /// If it doesn't match any bar offered in the current unit (e.g. it's still
+    /// the metric 20kg default after switching to imperial, where bars are
+    /// 45/35/15/22 lb), snap it to that unit's Olympic bar instead of silently
+    /// treating a kg number as if it were the same number in lb.
+    private func snapBarbellWeightToUnitIfNeeded() {
+        guard !barOptions.contains(where: { $0.weight == barbellWeight }) else { return }
+        barbellWeight = barOptions.first?.weight ?? barbellWeight
     }
 }

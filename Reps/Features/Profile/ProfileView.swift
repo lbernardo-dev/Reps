@@ -808,7 +808,11 @@ struct ProfileView: View {
                         systemImage: "wand.and.sparkles",
                         color: PulseTheme.ringStand
                     ) {
-                        activeSheet = .equipmentRoutineWizard
+                        if store.canCreateAnotherPlan {
+                            activeSheet = .equipmentRoutineWizard
+                        } else {
+                            store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+                        }
                     }
                 }
             }
