@@ -265,7 +265,7 @@ struct ProgressDashboardView: View {
           color: TrackedMetric.steps.tint,
           title: "steps_metric",
           value: stepsToday > 0 ? "\(stepsToday)" : "—",
-          unit: "PASOS",
+          unit: localizedString("steps_2"),
           chartData: stepsWeekData,
           showsChevron: true
         )
@@ -1448,12 +1448,44 @@ struct ProgressDashboardView: View {
       return rpes.reduce(0.0, +) / Double(rpes.count)
   }
 
+  /// One point per calendar day, so several sessions on the same date never
+  /// draw as vertical zigzags, and days whose sessions carry no value (e.g. a
+  /// walk without distance yet) don't drag the line down to a false 0.
+  private func evolutionDailyPoints(
+      for sessions: [WorkoutSession],
+      value: (WorkoutSession) -> Double
+  ) -> [EvolutionDayPoint] {
+      let calendar = Calendar.current
+      let byDay = Dictionary(grouping: sessions) { calendar.startOfDay(for: $0.date) }
+      let points = byDay
+          .map { day, items in EvolutionDayPoint(date: day, value: items.reduce(0) { $0 + value($1) }) }
+          .filter { $0.value > 0 }
+          .sorted { $0.date < $1.date }
+      return Array(points.suffix(7))
+  }
+
+  /// Sessions inside the same window the chart draws, so the headline metrics
+  /// describe what the user sees instead of an unbounded all-time total.
+  private func evolutionWindowSessions(
+      _ sessions: [WorkoutSession],
+      chartedDays: [EvolutionDayPoint]
+  ) -> [WorkoutSession] {
+      guard let start = chartedDays.first?.date else {
+          let calendar = Calendar.current
+          let fallbackStart = calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: .now)) ?? .now
+          return sessions.filter { $0.date >= fallbackStart }
+      }
+      return sessions.filter { $0.date >= start }
+  }
+
   @ViewBuilder
   private var cardioEvolutionView: some View {
       let sessions = cardioSessions.sorted { $0.date < $1.date }
-      let totalDistance = sessions.compactMap(\.distanceKm).reduce(0.0, +)
-      let totalMinutes = sessions.reduce(0) { $0 + $1.durationMinutes }
-      
+      let chartedDays = evolutionDailyPoints(for: sessions) { $0.distanceKm ?? 0 }
+      let windowSessions = evolutionWindowSessions(sessions, chartedDays: chartedDays)
+      let totalDistance = windowSessions.compactMap(\.distanceKm).reduce(0.0, +)
+      let totalMinutes = windowSessions.reduce(0) { $0 + $1.durationMinutes }
+
       PulseCard {
           VStack(alignment: .leading, spacing: 12) {
               HStack(spacing: 8) {
@@ -1491,57 +1523,59 @@ struct ProgressDashboardView: View {
                   HStack(spacing: 12) {
                       MetricInline(title: "distance_label", value: String(format: "%.1f km", totalDistance))
                       MetricInline(title: "duration_2", value: "\(totalMinutes) min")
-                      if let avgHR = averageHeartRate(for: sessions) {
-                          MetricInline(title: "avg_hr_2", value: "\(Int(avgHR)) LPM")
+                      if let avgHR = averageHeartRate(for: windowSessions) {
+                          MetricInline(title: "avg_hr_2", value: "\(Int(avgHR)) \(localizedString("lpm").uppercased())")
                       }
                   }
                   .padding(.vertical, 4)
-                  
-                  Chart(sessions.suffix(7)) { session in
-                      AreaMark(
-                          x: .value("Fecha", session.date, unit: .day),
-                          y: .value("Distancia", session.distanceKm ?? 0.0)
-                      )
-                      .foregroundStyle(
-                          LinearGradient(
-                              colors: [Color.blue.opacity(0.24), Color.blue.opacity(0)],
-                              startPoint: .top,
-                              endPoint: .bottom
+
+                  if !chartedDays.isEmpty {
+                      Chart(chartedDays) { day in
+                          AreaMark(
+                              x: .value(localizedString("date_2"), day.date, unit: .day),
+                              y: .value(localizedString("distance_label"), day.value)
                           )
-                      )
-                      
-                      LineMark(
-                          x: .value("Fecha", session.date, unit: .day),
-                          y: .value("Distancia", session.distanceKm ?? 0.0)
-                      )
-                      .foregroundStyle(Color.blue)
-                      .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                      
-                      PointMark(
-                          x: .value("Fecha", session.date, unit: .day),
-                          y: .value("Distancia", session.distanceKm ?? 0.0)
-                      )
-                      .foregroundStyle(Color.blue)
-                  }
-                  .frame(height: 100)
-                  .chartXAxis {
-                      AxisMarks(values: .automatic) { _ in
-                          AxisGridLine().foregroundStyle(PulseTheme.separator)
-                          AxisTick().foregroundStyle(PulseTheme.separator)
-                          AxisValueLabel(format: .dateTime.day().month(), centered: true)
-                              .foregroundStyle(PulseTheme.secondaryText)
-                              .font(.system(size: 8, weight: .bold))
+                          .foregroundStyle(
+                              LinearGradient(
+                                  colors: [Color.blue.opacity(0.24), Color.blue.opacity(0)],
+                                  startPoint: .top,
+                                  endPoint: .bottom
+                              )
+                          )
+
+                          LineMark(
+                              x: .value(localizedString("date_2"), day.date, unit: .day),
+                              y: .value(localizedString("distance_label"), day.value)
+                          )
+                          .foregroundStyle(Color.blue)
+                          .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+
+                          PointMark(
+                              x: .value(localizedString("date_2"), day.date, unit: .day),
+                              y: .value(localizedString("distance_label"), day.value)
+                          )
+                          .foregroundStyle(Color.blue)
                       }
-                  }
-                  .chartYAxis {
-                      AxisMarks(position: .leading) { _ in
-                          AxisGridLine().foregroundStyle(PulseTheme.separator)
-                          AxisValueLabel()
-                              .foregroundStyle(PulseTheme.secondaryText)
-                              .font(.system(size: 8, weight: .bold))
+                      .frame(height: 100)
+                      .chartXAxis {
+                          AxisMarks(values: .automatic) { _ in
+                              AxisGridLine().foregroundStyle(PulseTheme.separator)
+                              AxisTick().foregroundStyle(PulseTheme.separator)
+                              AxisValueLabel(format: .dateTime.day().month(), centered: true)
+                                  .foregroundStyle(PulseTheme.secondaryText)
+                                  .font(.system(size: 8, weight: .bold))
+                          }
                       }
+                      .chartYAxis {
+                          AxisMarks(position: .leading) { _ in
+                              AxisGridLine().foregroundStyle(PulseTheme.separator)
+                              AxisValueLabel()
+                                  .foregroundStyle(PulseTheme.secondaryText)
+                                  .font(.system(size: 8, weight: .bold))
+                          }
+                      }
+                      .allowsHitTesting(false)
                   }
-                  .allowsHitTesting(false)
               }
           }
       }
@@ -1550,9 +1584,11 @@ struct ProgressDashboardView: View {
   @ViewBuilder
   private var strengthEvolutionView: some View {
       let sessions = strengthSessions.sorted { $0.date < $1.date }
-      let totalVolume = sessions.reduce(0.0) { $0 + FitnessMetrics.totalVolumeKg(for: [$1]) }
-      let totalSets = sessions.reduce(0) { $0 + $1.sets.count }
-      
+      let chartedDays = evolutionDailyPoints(for: sessions) { FitnessMetrics.totalVolumeKg(for: [$0]) }
+      let windowSessions = evolutionWindowSessions(sessions, chartedDays: chartedDays)
+      let totalVolume = windowSessions.reduce(0.0) { $0 + FitnessMetrics.totalVolumeKg(for: [$1]) }
+      let totalSets = windowSessions.reduce(0) { $0 + $1.sets.count }
+
       PulseCard {
           VStack(alignment: .leading, spacing: 12) {
               HStack(spacing: 8) {
@@ -1589,45 +1625,47 @@ struct ProgressDashboardView: View {
               } else {
                   HStack(spacing: 12) {
                       MetricInline(title: "total_volume", value: "\(Int(totalVolume)) kg")
-                      MetricInline(title: "completed_sets", value: "\(totalSets) ser")
+                      MetricInline(title: "completed_sets", value: "\(totalSets) \(localizedString("series"))")
                       if store.bestEstimatedOneRepMaxKg > 0 {
                           MetricInline(title: "best_1rm_estimated", value: "\(Int(store.bestEstimatedOneRepMaxKg)) kg")
                       }
                   }
                   .padding(.vertical, 4)
-                  
-                  Chart(sessions.suffix(7)) { session in
-                      BarMark(
-                          x: .value("Fecha", session.date, unit: .day),
-                          y: .value("Volumen", FitnessMetrics.totalVolumeKg(for: [session]))
-                      )
-                      .foregroundStyle(
-                          LinearGradient(
-                              colors: [Color.orange, Color.orange.opacity(0.6)],
-                              startPoint: .top,
-                              endPoint: .bottom
+
+                  if !chartedDays.isEmpty {
+                      Chart(chartedDays) { day in
+                          BarMark(
+                              x: .value(localizedString("date_2"), day.date, unit: .day),
+                              y: .value(localizedString("volume_label"), day.value)
                           )
-                      )
-                      .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
-                  }
-                  .frame(height: 100)
-                  .chartXAxis {
-                      AxisMarks(values: .automatic) { _ in
-                          AxisGridLine().foregroundStyle(PulseTheme.separator)
-                          AxisValueLabel(format: .dateTime.day().month(), centered: true)
-                              .foregroundStyle(PulseTheme.secondaryText)
-                              .font(.system(size: 8, weight: .bold))
+                          .foregroundStyle(
+                              LinearGradient(
+                                  colors: [Color.orange, Color.orange.opacity(0.6)],
+                                  startPoint: .top,
+                                  endPoint: .bottom
+                              )
+                          )
+                          .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
                       }
-                  }
-                  .chartYAxis {
-                      AxisMarks(position: .leading) { _ in
-                          AxisGridLine().foregroundStyle(PulseTheme.separator)
-                          AxisValueLabel()
-                              .foregroundStyle(PulseTheme.secondaryText)
-                              .font(.system(size: 8, weight: .bold))
+                      .frame(height: 100)
+                      .chartXAxis {
+                          AxisMarks(values: .automatic) { _ in
+                              AxisGridLine().foregroundStyle(PulseTheme.separator)
+                              AxisValueLabel(format: .dateTime.day().month(), centered: true)
+                                  .foregroundStyle(PulseTheme.secondaryText)
+                                  .font(.system(size: 8, weight: .bold))
+                          }
                       }
+                      .chartYAxis {
+                          AxisMarks(position: .leading) { _ in
+                              AxisGridLine().foregroundStyle(PulseTheme.separator)
+                              AxisValueLabel()
+                                  .foregroundStyle(PulseTheme.secondaryText)
+                                  .font(.system(size: 8, weight: .bold))
+                          }
+                      }
+                      .allowsHitTesting(false)
                   }
-                  .allowsHitTesting(false)
               }
           }
       }
@@ -1636,9 +1674,11 @@ struct ProgressDashboardView: View {
   @ViewBuilder
   private var coreEvolutionView: some View {
       let sessions = coreSessions.sorted { $0.date < $1.date }
-      let totalSessions = sessions.count
-      let totalMinutes = sessions.reduce(0) { $0 + $1.durationMinutes }
-      
+      let chartedDays = evolutionDailyPoints(for: sessions) { Double($0.durationMinutes) }
+      let windowSessions = evolutionWindowSessions(sessions, chartedDays: chartedDays)
+      let totalSessions = windowSessions.count
+      let totalMinutes = windowSessions.reduce(0) { $0 + $1.durationMinutes }
+
       PulseCard {
           VStack(alignment: .leading, spacing: 12) {
               HStack(spacing: 8) {
@@ -1676,44 +1716,46 @@ struct ProgressDashboardView: View {
                   HStack(spacing: 12) {
                       MetricInline(title: "sessions", value: "\(totalSessions)")
                       MetricInline(title: "duration_2", value: "\(totalMinutes) min")
-                      if let avgRPE = averageRPE(for: sessions) {
+                      if let avgRPE = averageRPE(for: windowSessions) {
                           MetricInline(title: "avg_rpe", value: String(format: "%.1f", avgRPE))
                       }
                   }
                   .padding(.vertical, 4)
-                  
-                  Chart(sessions.suffix(7)) { session in
-                      LineMark(
-                          x: .value("Fecha", session.date, unit: .day),
-                          y: .value("Duración", Double(session.durationMinutes))
-                      )
-                      .foregroundStyle(Color.purple)
-                      .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                      
-                      PointMark(
-                          x: .value("Fecha", session.date, unit: .day),
-                          y: .value("Duración", Double(session.durationMinutes))
-                      )
-                      .foregroundStyle(Color.purple)
-                  }
-                  .frame(height: 100)
-                  .chartXAxis {
-                      AxisMarks(values: .automatic) { _ in
-                          AxisGridLine().foregroundStyle(PulseTheme.separator)
-                          AxisValueLabel(format: .dateTime.day().month(), centered: true)
-                              .foregroundStyle(PulseTheme.secondaryText)
-                              .font(.system(size: 8, weight: .bold))
+
+                  if !chartedDays.isEmpty {
+                      Chart(chartedDays) { day in
+                          LineMark(
+                              x: .value(localizedString("date_2"), day.date, unit: .day),
+                              y: .value(localizedString("duration_label"), day.value)
+                          )
+                          .foregroundStyle(Color.purple)
+                          .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+
+                          PointMark(
+                              x: .value(localizedString("date_2"), day.date, unit: .day),
+                              y: .value(localizedString("duration_label"), day.value)
+                          )
+                          .foregroundStyle(Color.purple)
                       }
-                  }
-                  .chartYAxis {
-                      AxisMarks(position: .leading) { _ in
-                          AxisGridLine().foregroundStyle(PulseTheme.separator)
-                          AxisValueLabel()
-                              .foregroundStyle(PulseTheme.secondaryText)
-                              .font(.system(size: 8, weight: .bold))
+                      .frame(height: 100)
+                      .chartXAxis {
+                          AxisMarks(values: .automatic) { _ in
+                              AxisGridLine().foregroundStyle(PulseTheme.separator)
+                              AxisValueLabel(format: .dateTime.day().month(), centered: true)
+                                  .foregroundStyle(PulseTheme.secondaryText)
+                                  .font(.system(size: 8, weight: .bold))
+                          }
                       }
+                      .chartYAxis {
+                          AxisMarks(position: .leading) { _ in
+                              AxisGridLine().foregroundStyle(PulseTheme.separator)
+                              AxisValueLabel()
+                                  .foregroundStyle(PulseTheme.secondaryText)
+                                  .font(.system(size: 8, weight: .bold))
+                          }
+                      }
+                      .allowsHitTesting(false)
                   }
-                  .allowsHitTesting(false)
               }
           }
       }
@@ -1727,6 +1769,13 @@ struct ProgressDashboardView: View {
     onSelectTab?(destination)
   }
 
+}
+
+private struct EvolutionDayPoint: Identifiable {
+  let date: Date
+  let value: Double
+
+  var id: Date { date }
 }
 
 private extension CardioLog.ActivityType {
@@ -2097,7 +2146,7 @@ struct ProgressDashboardRenderModel: @unchecked Sendable {
     metrics.append(TrendMetric(
       title: localizedString("volume_label"),
       value: recentWeeklyVol > 0 ? "\(Int(recentWeeklyVol))" : "—",
-      unit: "KG/SEM",
+      unit: localizedString("unit_kg_per_week"),
       direction: volumeDirection,
       color: PulseTheme.ringMove,
       metric: .volume
@@ -2108,7 +2157,7 @@ struct ProgressDashboardRenderModel: @unchecked Sendable {
     metrics.append(TrendMetric(
       title: localizedString("sessions"),
       value: recentWeeklySessions > 0 ? String(format: "%.1f", recentWeeklySessions) : "—",
-      unit: "SES/SEM",
+      unit: localizedString("unit_sessions_per_week"),
       direction: sessionsDirection,
       color: PulseTheme.ringExercise,
       metric: .sessions
@@ -2124,7 +2173,7 @@ struct ProgressDashboardRenderModel: @unchecked Sendable {
         metrics.append(TrendMetric(
           title: localizedString("steps_metric"),
           value: "\(Int(avgRecent))",
-          unit: "PASOS/DÍA",
+          unit: localizedString("unit_steps_per_day"),
           direction: direction,
           color: PulseTheme.accent,
           metric: .steps
@@ -2162,7 +2211,7 @@ struct ProgressDashboardRenderModel: @unchecked Sendable {
         metrics.append(TrendMetric(
           title: localizedString("active_kcal"),
           value: "\(Int(avgRecent))",
-          unit: "KCAL/DÍA",
+          unit: localizedString("unit_kcal_per_day"),
           direction: direction,
           color: PulseTheme.ringMove,
           metric: .activeEnergy

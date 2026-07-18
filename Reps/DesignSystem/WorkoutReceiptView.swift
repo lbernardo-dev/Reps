@@ -376,10 +376,10 @@ struct WorkoutReceiptView: View {
                     statRow(title: "total_volume", value: "\(totalVolume) KG")
                 }
                 if !isRouteReceipt || completedSetsCount > 0 {
-                    statRow(title: "completed_sets", value: "\(completedSetsCount) SRS")
+                    statRow(title: "completed_sets", value: "\(completedSetsCount) \(localizedString("series").uppercased())")
                 }
                 if let session, let heartRate = session.averageHeartRate {
-                    statRow(title: "avg_hr_2", value: "\(Int(heartRate)) LPM")
+                    statRow(title: "avg_hr_2", value: "\(Int(heartRate)) \(localizedString("lpm").uppercased())")
                 }
                 if isRouteReceipt, let session {
                     if let distanceKm = session.distanceKm {
@@ -392,7 +392,7 @@ struct WorkoutReceiptView: View {
                         statRow(title: "steps_2", value: "\(Int(steps))")
                     }
                     if let before = session.heartRateBefore, let after = session.heartRateAfter {
-                        statRow(title: "before_after", value: "\(Int(before))/\(Int(after)) LPM")
+                        statRow(title: "before_after", value: "\(Int(before))/\(Int(after)) \(localizedString("lpm").uppercased())")
                     }
                 }
             }

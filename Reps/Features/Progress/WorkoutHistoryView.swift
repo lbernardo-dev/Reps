@@ -329,7 +329,7 @@ struct WorkoutLogRow: View {
                 parts.append(WorkoutHistoryFormat.paceSlashLowercase(pace))
             }
             if let steps = session.steps {
-                parts.append("\(Int(steps)) pasos")
+                parts.append("\(Int(steps)) \(localizedString("steps"))")
             }
             parts.append(session.date.formatted(date: .abbreviated, time: .shortened))
             return parts.joined(separator: " · ")

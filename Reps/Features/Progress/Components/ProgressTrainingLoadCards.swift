@@ -144,16 +144,20 @@ struct MetricInline: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
+      // Single-line title that scales down instead of wrapping/hyphenating, so
+      // sibling tiles inside an HStack always end up with the same height.
       Text(localizedKey(title))
         .font(.caption.weight(.semibold))
         .foregroundStyle(PulseTheme.secondaryText)
+        .lineLimit(1)
+        .minimumScaleFactor(0.65)
       Text(value)
         .font(.headline.monospacedDigit())
         .lineLimit(1)
         .minimumScaleFactor(0.78)
     }
     .padding(10)
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     .background(PulseTheme.grouped)
     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
   }

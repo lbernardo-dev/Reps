@@ -121,7 +121,7 @@ struct DailySummaryFocusCard: View {
           Button { onMetricTap(activeEnergyToday > 0 ? .activeEnergy : .steps) } label: {
             DailySignalPill(
               title: "Health",
-              value: activeEnergyToday > 0 ? "\(activeEnergyToday) kcal" : "\(stepsToday) pasos",
+              value: activeEnergyToday > 0 ? "\(activeEnergyToday) kcal" : "\(stepsToday) \(localizedString("steps"))",
               systemImage: activeEnergyToday > 0 ? TrackedMetric.activeEnergy.systemImage : TrackedMetric.steps.systemImage,
               color: activeEnergyToday > 0 ? TrackedMetric.activeEnergy.tint : TrackedMetric.steps.tint
             )

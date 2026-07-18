@@ -91,7 +91,7 @@ struct RepsWorkoutLiveActivity: Widget {
             HStack(spacing: 24) {
                 // Time
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Time")
+                    Text(verbatim: localizedString("Time"))
                         .font(.system(size: 9, weight: .black))
                         .foregroundStyle(theme.secondaryForeground)
                         .textCase(.uppercase)
@@ -106,7 +106,7 @@ struct RepsWorkoutLiveActivity: Widget {
 
                 // Distance
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Distance")
+                    Text(verbatim: localizedString("Distance"))
                         .font(.system(size: 9, weight: .black))
                         .foregroundStyle(theme.secondaryForeground)
                         .textCase(.uppercase)
@@ -236,7 +236,7 @@ struct RepsWorkoutLiveActivity: Widget {
                 // Active rest timer countdown (high priority data!)
                 if snapshot.restEndDate != nil {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("rest")
+                        Text(verbatim: localizedString("rest"))
                             .font(.system(size: 8, weight: .black))
                             .foregroundStyle(.orange)
                             .textCase(.uppercase)
@@ -393,7 +393,7 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func actionButtons(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme, includesCompleteSet: Bool) -> some View {
-        let pauseTitle: LocalizedStringKey = snapshot.isPaused ? "resume_label" : "pause_label"
+        let pauseTitle = snapshot.isPaused ? "resume_label" : "pause_label"
         return HStack(spacing: 8) {
             Button(intent: ToggleWorkoutPauseLiveActivityIntent()) {
                 HStack(spacing: 6) {
@@ -580,7 +580,7 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func statusBadge(_ snapshot: SharedWorkoutSnapshot, theme: WidgetTheme, isStale: Bool, showIcon: Bool = false) -> some View {
-        let title: LocalizedStringKey = isStale ? "ACTUALIZANDO" : statusTitle(snapshot)
+        let title = isStale ? "ACTUALIZANDO" : statusTitle(snapshot)
         let icon = isStale ? "arrow.triangle.2.circlepath" : compactLeadingSystemImage(snapshot)
 
         return Group {
@@ -617,7 +617,7 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func compactMetric<Content: View>(
-        _ title: LocalizedStringKey,
+        _ title: String,
         icon: String,
         theme: WidgetTheme,
         @ViewBuilder value: () -> Content
@@ -654,7 +654,7 @@ struct RepsWorkoutLiveActivity: Widget {
     }
 
     private func islandMetric<Content: View>(
-        _ title: LocalizedStringKey,
+        _ title: String,
         icon: String,
         tint: Color,
         @ViewBuilder value: () -> Content
@@ -720,7 +720,7 @@ struct RepsWorkoutLiveActivity: Widget {
         }
     }
 
-    private func statusTitle(_ snapshot: SharedWorkoutSnapshot) -> LocalizedStringKey {
+    private func statusTitle(_ snapshot: SharedWorkoutSnapshot) -> String {
         if snapshot.isRouteWorkout {
             if snapshot.isPaused { return "PAUSA" }
             return snapshot.isOutdoorRoute == false ? "CINTA" : "RUTA"

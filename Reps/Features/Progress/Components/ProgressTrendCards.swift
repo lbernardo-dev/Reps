@@ -70,21 +70,21 @@ struct TrendHighlightsCard: View {
 
         HStack(spacing: 10) {
           TrendHighlightPill(
-            title: "Mejor senal",
-            value: leadMetric?.title ?? "Sin datos",
+            title: localizedString("best_signal"),
+            value: leadMetric?.title ?? localizedString("no_data"),
             detail: leadMetric.map { "\($0.value) \($0.unit)" } ?? "--",
             color: leadMetric?.color ?? PulseTheme.secondaryText
           )
           TrendHighlightPill(
-            title: "Fuerza",
+            title: localizedString("strength"),
             value: "\(sessionsThisWeek)/\(sessionsGoal)",
             detail: "\(volumeThisWeek) kg",
             color: PulseTheme.ringExercise
           )
           TrendHighlightPill(
-            title: "Constancia",
+            title: localizedString("consistency"),
             value: "\(weekDays.filter { $0 }.count)/7",
-            detail: "dias activos",
+            detail: localizedString("active_days"),
             color: PulseTheme.ringStand
           )
         }
@@ -107,6 +107,8 @@ struct TrendHighlightPill: View {
       Text(title)
         .font(.system(size: 10, weight: .bold))
         .foregroundStyle(PulseTheme.secondaryText)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
       Text(value)
         .font(.system(size: 14, weight: .black, design: .rounded).monospacedDigit())
         .foregroundStyle(color)
@@ -116,9 +118,10 @@ struct TrendHighlightPill: View {
         .font(.system(size: 10, weight: .semibold))
         .foregroundStyle(PulseTheme.tertiaryText)
         .lineLimit(1)
+        .minimumScaleFactor(0.7)
     }
     .padding(10)
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     .background(color.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }

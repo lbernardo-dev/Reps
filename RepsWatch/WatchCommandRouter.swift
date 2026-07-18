@@ -8,7 +8,9 @@ enum WatchCommandRouter {
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(message, replyHandler: nil)
         } else {
-            try? WCSession.default.updateApplicationContext(message)
+            // transferUserInfo queues without clobbering the shared application
+            // context, which also carries workout summaries.
+            WCSession.default.transferUserInfo(message)
         }
     }
 }

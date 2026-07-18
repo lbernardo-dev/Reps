@@ -4172,6 +4172,25 @@ final class AppStore {
             return
         }
         var session = workoutSessions[index]
+
+        // HealthKit publishes the final walk/run totals (totalDistance) after the
+        // session was already saved locally — e.g. an in-app walk whose live
+        // samples never streamed, or a Watch walk written back by Health. Without
+        // this copy the session keeps distanceKm == nil forever and the Distance
+        // card/evolution charts show 0 km even though the walk was recorded.
+        let hasStrengthContent = !session.sets.isEmpty || (session.exerciseLogs?.isEmpty == false)
+        if !hasStrengthContent,
+           Self.isCardioMovementActivity(workout.workoutActivityType) || session.isRouteSession {
+            let workoutDistance = workout.totalDistance?.doubleValue(for: .meterUnit(with: .kilo))
+            let bestDistance = Self.bestRouteDistance(session.distanceKm, workoutDistance)
+            if let bestDistance, bestDistance != session.distanceKm {
+                session.distanceKm = bestDistance
+                session.averagePaceSecondsPerKm = session.averagePaceSecondsPerKm
+                    ?? Self.averagePaceSecondsPerKm(duration: workout.duration, distanceKm: bestDistance)
+                workoutSessions[index] = session
+            }
+        }
+
         let needsSensors = session.heartRateAfter == nil
             || session.heartRateBefore == nil
             || session.steps == nil
@@ -5637,7 +5656,10 @@ final class WatchSyncService: NSObject, WCSessionDelegate, @unchecked Sendable {
     }
 
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
-        handlePersistentPayload(userInfo)
+        // Queued transfers carry the same payloads as live messages (summaries,
+        // logSet, commands), so route them through the full handler — the
+        // summary-only path here used to silently drop queued set logs.
+        handle(userInfo)
     }
 
     private func handlePersistentPayload(_ message: [String: Any]) {

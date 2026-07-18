@@ -101,19 +101,17 @@ struct VitalsPathPromotionBanner: View {
             .accessibilityLabel(localizedString("vitalspath_promo_accessibility"))
             .accessibilityHint(localizedString("vitalspath_promo_open_hint"))
 
-            if isPremium {
-                Button {
-                    showsDismissOptions = true
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.caption.weight(.bold))
-                        .frame(width: 32, height: 32)
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(PulseTheme.secondaryText)
-                .accessibilityLabel(localizedString("vitalspath_promo_close"))
+            Button {
+                showsDismissOptions = true
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.bold))
+                    .frame(width: 32, height: 32)
+                    .contentShape(.rect)
             }
+            .buttonStyle(.plain)
+            .foregroundStyle(PulseTheme.secondaryText)
+            .accessibilityLabel(localizedString("vitalspath_promo_close"))
         }
         .padding(10)
         .background {
@@ -144,7 +142,9 @@ struct VitalsPathPromotionBanner: View {
             titleVisibility: .visible
         ) {
             Button(localizedString("vitalspath_promo_hide_now"), action: dismissCurrent)
-            Button(localizedString("vitalspath_promo_hide_forever"), role: .destructive, action: dismissPermanently)
+            if isPremium {
+                Button(localizedString("vitalspath_promo_hide_forever"), role: .destructive, action: dismissPermanently)
+            }
             Button(localizedString("cancel"), role: .cancel) {}
         } message: {
             Text(verbatim: localizedString("vitalspath_promo_close_message"))

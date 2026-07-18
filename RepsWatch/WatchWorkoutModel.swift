@@ -275,8 +275,13 @@ final class WatchWorkoutModel: NSObject, CLLocationManagerDelegate {
     }
 
     func startWorkout(configuration: HKWorkoutConfiguration) {
-        guard session == nil else { return }
+        // Same duplicate-session race as the snapshot path: a second call while
+        // the async authorization below is in flight must not spawn a second
+        // HKWorkoutSession.
+        guard session == nil, !isStartingLocalSession else { return }
+        isStartingLocalSession = true
         Task {
+            defer { isStartingLocalSession = false }
             do {
                 try await requestHealthAuthorization()
 
@@ -540,7 +545,9 @@ final class WatchWorkoutModel: NSObject, CLLocationManagerDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self, let startedAt = self.startedAt else { return }
-                self.elapsedSeconds = Int(Date().timeIntervalSince(startedAt))
+                // Paused time never counts toward the displayed clock, matching
+                // the durations persisted in the workout summaries.
+                self.elapsedSeconds = max(Int(Date().timeIntervalSince(startedAt)) - self.currentPausedSeconds, 0)
                 self.updateRouteDerivedMetrics()
                 self.updateStandaloneSnapshotIfNeeded()
                 self.sendRouteMetricsIfNeeded()
@@ -575,11 +582,16 @@ final class WatchWorkoutModel: NSObject, CLLocationManagerDelegate {
             if snapshot.isPaused, state == .running {
                 session?.pause()
                 state = .paused
+                pauseStartedAt = .now
                 if isLocalRouteWorkout {
                     stopPedometer()
                     stopLocation()
                 }
             } else if !snapshot.isPaused, state == .paused {
+                if let pauseStartedAt {
+                    accumulatedPausedSeconds += max(Int(Date().timeIntervalSince(pauseStartedAt)), 0)
+                }
+                pauseStartedAt = nil
                 session?.resume()
                 state = .running
                 if isLocalRouteWorkout {
@@ -864,7 +876,7 @@ final class WatchWorkoutModel: NSObject, CLLocationManagerDelegate {
 
     private func updateStandaloneSnapshotIfNeeded() {
         guard isStandaloneRouteWorkout, let startedAt, let activity = standaloneActivity else { return }
-        let elapsed = max(Int(Date().timeIntervalSince(startedAt)) - accumulatedPausedSeconds, 0)
+        let elapsed = max(Int(Date().timeIntervalSince(startedAt)) - currentPausedSeconds, 0)
         elapsedSeconds = elapsed
         snapshot = SharedWorkoutSnapshot(
             hasActiveWorkout: true,
@@ -981,7 +993,9 @@ final class WatchWorkoutModel: NSObject, CLLocationManagerDelegate {
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(message, replyHandler: nil)
         } else {
-            try? WCSession.default.updateApplicationContext(message)
+            // transferUserInfo queues without clobbering the shared application
+            // context, which also carries workout summaries.
+            WCSession.default.transferUserInfo(message)
         }
     }
 

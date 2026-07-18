@@ -10301,6 +10301,22 @@
         }
       }
     },
+    "active_set_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active Set"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serie activa"
+          }
+        }
+      }
+    },
     "activeDayTab": {
       "extractionState": "stale",
       "localizations": {
@@ -10853,7 +10869,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "ACTIVO"
+            "value": "ACTIVE"
           }
         },
         "es": {
@@ -10905,7 +10921,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "ACTUALIZANDO"
+            "value": "UPDATING"
           }
         },
         "es": {
@@ -17086,6 +17102,23 @@
         }
       }
     },
+    "best_1rm_estimated": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BEST 1RM (EST.)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MEJOR 1RM (EST.)"
+          }
+        }
+      }
+    },
     "best_day_format": {
       "extractionState": "stale",
       "localizations": {
@@ -17099,6 +17132,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mejor: %@"
+          }
+        }
+      }
+    },
+    "best_signal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Best signal"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mejor señal"
           }
         }
       }
@@ -21729,7 +21779,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "CINTA"
+            "value": "TREADMILL"
           }
         },
         "es": {
@@ -31768,6 +31818,54 @@
         }
       }
     },
+    "evolucion_cardio": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cardio Evolution"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evolución Cardio"
+          }
+        }
+      }
+    },
+    "evolucion_core": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Core Evolution"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evolución Core"
+          }
+        }
+      }
+    },
+    "evolucion_fuerza": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strength Evolution"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evolución Fuerza"
+          }
+        }
+      }
+    },
     "evolution": {
       "extractionState": "stale",
       "localizations": {
@@ -33376,6 +33474,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Faltan series"
+          }
+        }
+      }
+    },
+    "faq": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FAQ"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntas frecuentes"
+          }
+        }
+      }
+    },
+    "faq_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frequently asked questions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntas frecuentes y respuestas rápidas"
           }
         }
       }
@@ -44767,6 +44897,38 @@
         }
       }
     },
+    "last_workout_cardio": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LATEST"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ÚLTIMO"
+          }
+        }
+      }
+    },
+    "last_workout_core": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LATEST"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ÚLTIMO"
+          }
+        }
+      }
+    },
     "last_workout_saved_in_apple_health": {
       "extractionState": "stale",
       "localizations": {
@@ -44780,6 +44942,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Último entreno guardado en Apple Health."
+          }
+        }
+      }
+    },
+    "last_workout_strength": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LATEST"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ÚLTIMO"
           }
         }
       }
@@ -51561,6 +51739,38 @@
         }
       }
     },
+    "no_cardio_sessions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No cardio sessions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin sesiones de cardio"
+          }
+        }
+      }
+    },
+    "no_core_sessions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No core sessions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin sesiones de core"
+          }
+        }
+      }
+    },
     "no_data": {
       "extractionState": "manual",
       "localizations": {
@@ -52234,6 +52444,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sin datos de sueno"
+          }
+        }
+      }
+    },
+    "no_strength_sessions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No strength sessions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin sesiones de fuerza"
           }
         }
       }
@@ -57463,7 +57689,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "PAUSA"
+            "value": "PAUSED"
           }
         },
         "es": {
@@ -69164,6 +69390,22 @@
         }
       }
     },
+    "resting_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En descanso"
+          }
+        }
+      }
+    },
     "restorative_sleep": {
       "extractionState": "manual",
       "localizations": {
@@ -70783,7 +71025,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "RUTA"
+            "value": "ROUTE"
           }
         },
         "es": {
@@ -77465,6 +77707,22 @@
         }
       }
     },
+    "stability_and_consistency": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stability & consistency"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estabilidad y constancia"
+          }
+        }
+      }
+    },
     "stable_progress": {
       "extractionState": "stale",
       "localizations": {
@@ -77719,6 +77977,38 @@
         }
       }
     },
+    "start_cardio_to_see_trends": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete cardio sessions to see your trends."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completa sesiones de cardio para ver tu evolución."
+          }
+        }
+      }
+    },
+    "start_core_to_see_trends": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete core sessions to see your consistency."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completa sesiones de core para ver tu constancia."
+          }
+        }
+      }
+    },
     "start_date": {
       "extractionState": "stale",
       "localizations": {
@@ -77834,6 +78124,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inicia el entrenamiento"
+          }
+        }
+      }
+    },
+    "start_strength_to_see_trends": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete strength sessions to see your volume."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completa sesiones de fuerza para ver tu volumen."
           }
         }
       }
@@ -79501,6 +79807,22 @@
         }
       }
     },
+    "subscription_terms_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Billing, renewal, and Pro conditions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Facturación, renovación y condiciones Pro"
+          }
+        }
+      }
+    },
     "substitute_exercise": {
       "extractionState": "stale",
       "localizations": {
@@ -79837,6 +80159,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "support_sheet_opened"
+          }
+        }
+      }
+    },
+    "support_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Help center and contact"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Centro de ayuda y contacto"
           }
         }
       }
@@ -83446,6 +83784,22 @@
         }
       }
     },
+    "trends_and_distance": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trends & distance"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tendencias y distancia"
+          }
+        }
+      }
+    },
     "trial_progress_subtitle": {
       "extractionState": "manual",
       "localizations": {
@@ -83918,6 +84272,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "unit"
+          }
+        }
+      }
+    },
+    "unit_kcal_per_day": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KCAL/DAY"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KCAL/DÍA"
+          }
+        }
+      }
+    },
+    "unit_kg_per_week": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KG/WK"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KG/SEM"
+          }
+        }
+      }
+    },
+    "unit_sessions_per_week": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SES/WK"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SES/SEM"
+          }
+        }
+      }
+    },
+    "unit_steps_per_day": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "STEPS/DAY"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PASOS/DÍA"
           }
         }
       }
@@ -85938,6 +86360,22 @@
         }
       }
     },
+    "volume_and_intensity": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume & intensity"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volumen e intensidad"
+          }
+        }
+      }
+    },
     "volume_by_muscle_group": {
       "extractionState": "stale",
       "localizations": {
@@ -86944,57 +87382,137 @@
     "weather_condition_clear": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Clear" } },
-        "es": { "stringUnit": { "state": "translated", "value": "Despejado" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Despejado"
+          }
+        }
       }
     },
     "weather_condition_cloudy": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Cloudy" } },
-        "es": { "stringUnit": { "state": "translated", "value": "Nublado" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cloudy"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nublado"
+          }
+        }
       }
     },
     "weather_condition_drizzle": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Drizzle" } },
-        "es": { "stringUnit": { "state": "translated", "value": "Llovizna" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drizzle"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llovizna"
+          }
+        }
       }
     },
     "weather_condition_fog": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Fog" } },
-        "es": { "stringUnit": { "state": "translated", "value": "Niebla" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fog"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niebla"
+          }
+        }
       }
     },
     "weather_condition_partly_cloudy": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Partly cloudy" } },
-        "es": { "stringUnit": { "state": "translated", "value": "Parcialmente nublado" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partly cloudy"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parcialmente nublado"
+          }
+        }
       }
     },
     "weather_condition_rain": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Rain" } },
-        "es": { "stringUnit": { "state": "translated", "value": "Lluvia" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rain"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lluvia"
+          }
+        }
       }
     },
     "weather_condition_snow": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Snow" } },
-        "es": { "stringUnit": { "state": "translated", "value": "Nieve" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snow"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieve"
+          }
+        }
       }
     },
     "weather_condition_storm": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Thunderstorm" } },
-        "es": { "stringUnit": { "state": "translated", "value": "Tormenta" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thunderstorm"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tormenta"
+          }
+        }
       }
     },
     "weather_data_by_met_norway": {
@@ -87017,8 +87535,18 @@
     "weather_data_adapted_cc_by": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "CC BY 4.0 · Adapted" } },
-        "es": { "stringUnit": { "state": "translated", "value": "CC BY 4.0 · Adaptados" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CC BY 4.0 · Adapted"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CC BY 4.0 · Adaptados"
+          }
+        }
       }
     },
     "weather_data_sources": {
@@ -87034,6 +87562,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fuentes de datos meteorológicos"
+          }
+        }
+      }
+    },
+    "weather_enable_location": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable location"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar ubicación"
           }
         }
       }
@@ -87092,15 +87636,51 @@
     "max_wind": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "max wind" } },
-        "es": { "stringUnit": { "state": "translated", "value": "viento máximo" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "max wind"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "viento máximo"
+          }
+        }
       }
     },
     "precipitation_amount": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "precipitation amount" } },
-        "es": { "stringUnit": { "state": "translated", "value": "cantidad de precipitación" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "precipitation amount"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cantidad de precipitación"
+          }
+        }
+      }
+    },
+    "weather_location_permission_prompt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on location to see real weather and training conditions for your area."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activa la ubicación para ver el tiempo real y las condiciones de entreno de tu zona."
+          }
+        }
       }
     },
     "weather_requesting_location": {

@@ -238,15 +238,15 @@ extension SharedWorkoutSnapshot {
         ].joined(separator: "|")
     }
 
-    var stateLabel: LocalizedStringKey {
+    var stateLabel: String {
         if isRouteWorkout {
-            if isPaused { return "PAUSA" }
-            return isOutdoorRoute == false ? "CINTA" : "RUTA"
+            if isPaused { return localizedString("PAUSA") }
+            return localizedString(isOutdoorRoute == false ? "CINTA" : "RUTA")
         }
         if restEndDate != nil {
-            return "DESCANSO"
+            return localizedString("DESCANSO")
         }
-        return isPaused ? "PAUSA" : "ACTIVO"
+        return localizedString(isPaused ? "PAUSA" : "ACTIVO")
     }
 
     var stateSystemImage: String {
@@ -442,7 +442,7 @@ private struct ActiveWorkoutView: View {
                        let total = entry.snapshot.currentExerciseTotalSets,
                        total > 0 {
                         HStack(spacing: 6) {
-                            Text("exercise_2")
+                            Text(verbatim: localizedString("exercise_2"))
                             ProgressView(value: Double(current) / Double(total))
                                 .progressViewStyle(RepsProgressStyle(tintColor: theme.tint, isDarkBackground: theme.isDarkBackground))
                             Text("\(current)/\(total)")
@@ -688,7 +688,7 @@ private struct ActiveWorkoutView: View {
         HStack(spacing: 6) {
             if includesCompleteSet {
                 Button(intent: CompleteSetLiveActivityIntent()) {
-                    Label("set_done", systemImage: "checkmark.circle.fill")
+                    Label(localizedKey("set_done"), systemImage: "checkmark.circle.fill")
                         .font(.system(size: 11, weight: .bold))
                         .frame(maxWidth: .infinity)
                 }
@@ -726,7 +726,7 @@ private struct InactiveWorkoutView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.tint)
                 Spacer()
-                Text(entry.snapshot.hasUpcomingWorkout ? "next_uppercase" : "no_plan_uppercase" as LocalizedStringKey)
+                Text(verbatim: localizedString(entry.snapshot.hasUpcomingWorkout ? "next_uppercase" : "no_plan_uppercase"))
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(theme.badgeText)
                     .padding(.horizontal, 6)

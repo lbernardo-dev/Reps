@@ -286,7 +286,10 @@ struct MainTabView: View {
         return
       }
 
+      // Never interrupt a brand-new user: cross-promotion only starts once
+      // they have at least one completed workout behind them.
       guard !isVitalsPathPromotionPermanentlyHidden,
+            !store.workoutSessions.isEmpty,
             activePromotion == nil,
             !isQuickMenuExpanded,
             presentedQuickAction == nil,
@@ -332,7 +335,6 @@ struct MainTabView: View {
   }
 
   private func dismissCurrentPromotion() {
-    guard store.hasProAccess else { return }
     withAnimation(.easeOut(duration: 0.2)) {
       activePromotion = nil
     }
@@ -357,15 +359,13 @@ struct MainTabView: View {
     !chromeState.isQuickActionAccessoryHidden
   }
 
-  @ViewBuilder
+  // The tab shell stays mounted while the quick menu or a quick-action sheet
+  // is up — swapping it out for a flat background here used to reset every
+  // tab's scroll position and navigation state on each open. The quick-menu
+  // overlay draws its own opaque backdrop above this surface.
   private var activeTabSurface: some View {
-    if isQuickMenuExpanded || presentedQuickAction != nil {
-      PulseTheme.background
-        .ignoresSafeArea()
-        .accessibilityHidden(true)
-    } else {
-      tabShell
-    }
+    tabShell
+      .accessibilityHidden(isQuickMenuExpanded)
   }
 
   @ViewBuilder

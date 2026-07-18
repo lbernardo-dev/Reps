@@ -1010,9 +1010,11 @@ private struct TodayViewContent: View {
                         .padding(.horizontal, 16)
                 }
             } else {
-                WeatherDataStateCard(phase: weather.phase) {
-                    Task { await weather.retry() }
-                }
+                WeatherDataStateCard(
+                    phase: weather.phase,
+                    retry: { Task { await weather.retry() } },
+                    enableLocation: { weather.requestLocationPermission() }
+                )
             }
         }
     }
@@ -1510,7 +1512,7 @@ private struct TodayViewContent: View {
     private func activeSessionCardioDetails(_ status: ActiveWorkoutStatus) -> some View {
         let isPaused = status.isPaused
         let distStr = status.routeDistanceKm.map { String(format: "%.2f km", $0) } ?? "--"
-        let hrStr = status.liveHeartRate.map { "\(Int($0)) LPM" } ?? "--"
+        let hrStr = status.liveHeartRate.map { "\(Int($0)) \(localizedString("lpm").uppercased())" } ?? "--"
         
         let paceVal: String
         let paceIcon: String
@@ -4301,11 +4303,53 @@ private enum METWeatherCondition {
     }
 }
 
+/// NOAA-style sunrise/sunset approximation (±5 min). MET Norway's forecast
+/// payload carries no sun times, and without them the animated sky cannot
+/// place the sun/moon correctly across the day.
+private enum SolarSchedule {
+    static func sunriseSunset(
+        for date: Date,
+        latitude: Double,
+        longitude: Double,
+        timeZone: TimeZone
+    ) -> (sunrise: Date, sunset: Date)? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        guard let dayOfYear = calendar.ordinality(of: .day, in: .year, for: date) else { return nil }
+        let n = Double(dayOfYear)
+
+        let declinationDegrees = -23.44 * cos(2 * .pi / 365 * (n + 10))
+        let declination = declinationDegrees * .pi / 180
+        let latitudeRadians = latitude * .pi / 180
+
+        // Sun center at -0.83° accounts for refraction + solar radius.
+        let zenith = -0.83 * Double.pi / 180
+        let cosHourAngle = (sin(zenith) - sin(latitudeRadians) * sin(declination))
+            / (cos(latitudeRadians) * cos(declination))
+        guard cosHourAngle >= -1, cosHourAngle <= 1 else { return nil } // polar day/night
+
+        let hourAngleDegrees = acos(cosHourAngle) * 180 / .pi
+        let b = 2 * .pi * (n - 81) / 364
+        let equationOfTimeMinutes = 9.87 * sin(2 * b) - 7.53 * cos(b) - 1.5 * sin(b)
+        let solarNoonUTCMinutes = 720 - 4 * longitude - equationOfTimeMinutes
+
+        let startOfDay = calendar.startOfDay(for: date)
+        var utcCalendar = Calendar(identifier: .gregorian)
+        utcCalendar.timeZone = TimeZone(identifier: "UTC") ?? .current
+        let utcMidnight = utcCalendar.startOfDay(for: startOfDay.addingTimeInterval(Double(timeZone.secondsFromGMT(for: startOfDay))))
+
+        let sunrise = utcMidnight.addingTimeInterval((solarNoonUTCMinutes - 4 * hourAngleDegrees) * 60)
+        let sunset = utcMidnight.addingTimeInterval((solarNoonUTCMinutes + 4 * hourAngleDegrees) * 60)
+        return (sunrise, sunset)
+    }
+}
+
 private extension METWeatherForecast {
     func makeSnapshots(
         locationName: String,
         timeZone: TimeZone,
-        units: UserProfile.Units
+        units: UserProfile.Units,
+        coordinate: CLLocationCoordinate2D
     ) throws -> (today: FitnessWeatherSnapshot, tomorrow: FitnessWeatherSnapshot) {
         let formatter = ISO8601DateFormatter()
         var calendar = Calendar(identifier: .gregorian)
@@ -4391,6 +4435,16 @@ private extension METWeatherForecast {
                 temperature: temperature,
                 speed: speed
             )
+            let sunTimes = SolarSchedule.sunriseSunset(
+                for: date,
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude,
+                timeZone: timeZone
+            )
+            let sunFormatter = DateFormatter()
+            sunFormatter.locale = Locale(identifier: "en_US_POSIX")
+            sunFormatter.timeZone = timeZone
+            sunFormatter.dateFormat = "HH:mm"
             return FitnessWeatherSnapshot(
                 date: calendar.startOfDay(for: date),
                 locationName: locationName,
@@ -4408,8 +4462,8 @@ private extension METWeatherForecast {
                 secondaryWindSpeed: speed(peakWind),
                 secondaryWindLabel: localizedString("max_wind"),
                 uvIndex: Int(activeUV.rounded()),
-                sunrise: "—",
-                sunset: "—",
+                sunrise: sunTimes.map { sunFormatter.string(from: $0.sunrise) } ?? "—",
+                sunset: sunTimes.map { sunFormatter.string(from: $0.sunset) } ?? "—",
                 isDaylight: active.isDaylight,
                 hourly: hourPoints,
                 bestWindow: bestWindow
@@ -4485,6 +4539,7 @@ private enum WeatherRefreshPolicy {
 private final class TodayWeatherController: NSObject, CLLocationManagerDelegate {
     enum Phase {
         case idle
+        case locationPermissionNeeded
         case requestingLocation
         case loading
         case serviceActivating
@@ -4526,6 +4581,12 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
     private var metWeatherPayload: METWeatherPayload?
     private var metWeatherFallbackTask: Task<Void, Never>?
     private var requestedUnits: UserProfile.Units = .metric
+    /// Set by an explicit `force` reload so the next location fix bypasses both
+    /// the "don't hammer Apple more than 4x/day" throttle and the freshness
+    /// cache — otherwise a user who just fixed a WeatherKit config issue and
+    /// taps retry can be stuck seeing MET Norway for up to 6h, because the
+    /// throttle window started on the earlier *failed* attempt too.
+    private var pendingForceFetch = false
 
     var phase: Phase = .idle
     var today: FitnessWeatherSnapshot?
@@ -4571,7 +4632,8 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
            let snapshots = try? metWeatherPayload.forecast.makeSnapshots(
                locationName: metWeatherPayload.locationName,
                timeZone: metWeatherPayload.timeZone,
-               units: units
+               units: units,
+               coordinate: metWeatherPayload.location.coordinate
            ) {
             today = snapshots.today
             tomorrow = snapshots.tomorrow
@@ -4582,16 +4644,24 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
 
         switch locationManager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
+            pendingForceFetch = force
             phase = .loading
             locationManager.requestLocation()
         case .notDetermined:
-            phase = .requestingLocation
-            locationManager.requestWhenInUseAuthorization()
+            // Never fire the system permission dialog from a passive render of
+            // the Today tab — surface a card and let the user opt in explicitly.
+            phase = .locationPermissionNeeded
         case .denied, .restricted:
             phase = .locationDenied
         @unknown default:
             phase = .failed(localizedString("location_permission_denied"))
         }
+    }
+
+    /// User-initiated: the only place the system location prompt is triggered.
+    func requestLocationPermission() {
+        phase = .requestingLocation
+        locationManager.requestWhenInUseAuthorization()
     }
 
     func retry() async {
@@ -4610,7 +4680,7 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
             case .denied, .restricted:
                 phase = .locationDenied
             case .notDetermined:
-                phase = .requestingLocation
+                phase = .locationPermissionNeeded
             @unknown default:
                 phase = .failed(localizedString("location_permission_denied"))
             }
@@ -4620,18 +4690,36 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         Task { @MainActor in
-            await fetch(for: location)
+            let force = pendingForceFetch
+            pendingForceFetch = false
+            await fetch(for: location, force: force)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
+            // A transient location error (kCLErrorLocationUnknown, airplane mode…)
+            // should never blank the card while we still hold a recent forecast
+            // for wherever the user last was.
+            if let payload,
+               Date.now.timeIntervalSince(payload.fetchedAt) < WeatherRefreshPolicy.maximumStaleLifetime {
+                apply(payload, units: requestedUnits)
+                phase = .loaded
+                return
+            }
+            if let metWeatherPayload,
+               Date.now.timeIntervalSince(metWeatherPayload.fetchedAt) < WeatherRefreshPolicy.maximumStaleLifetime {
+                apply(metWeatherPayload)
+                return
+            }
+            TelemetryService.shared.record(error, context: "weather_location_request")
             phase = .failed(error.localizedDescription)
         }
     }
 
-    private func fetch(for location: CLLocation) async {
-        if let payload,
+    private func fetch(for location: CLLocation, force: Bool = false) async {
+        if !force,
+           let payload,
            Date.now.timeIntervalSince(payload.fetchedAt) < WeatherRefreshPolicy.freshDataLifetime,
            location.distance(from: payload.location) < 1_000 {
             apply(payload, units: requestedUnits)
@@ -4639,14 +4727,15 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
             return
         }
 
-        if let metWeatherPayload,
+        if !force,
+           let metWeatherPayload,
            Date.now.timeIntervalSince(metWeatherPayload.fetchedAt) < WeatherRefreshPolicy.freshDataLifetime,
            location.distance(from: metWeatherPayload.location) < 1_000 {
             apply(metWeatherPayload)
             return
         }
 
-        if shouldRequestWeatherKit {
+        if force || shouldRequestWeatherKit {
             await fetchWeatherKit(for: location)
         } else {
             await fetchMETWeather(for: location)
@@ -4690,6 +4779,13 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
             apply(payload, units: requestedUnits)
             phase = .loaded
         } catch {
+            // Surfaces WeatherKit failures (JWT/capability/availability) in
+            // telemetry — otherwise the silent MET fallback masks a
+            // misconfigured provider forever.
+            #if DEBUG
+            print("WeatherKit request failed: \(error) — \((error as NSError).domain)/\((error as NSError).code)")
+            #endif
+            TelemetryService.shared.record(error, context: "weatherkit_forecast")
             metWeatherFallbackTask?.cancel()
             metWeatherFallbackTask = nil
             if attribution == nil || today == nil || tomorrow == nil {
@@ -4728,7 +4824,8 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
             let snapshots = try forecast.makeSnapshots(
                 locationName: resolvedLocation.name,
                 timeZone: resolvedLocation.timeZone,
-                units: requestedUnits
+                units: requestedUnits,
+                coordinate: location.coordinate
             )
             let payload = METWeatherPayload(
                 forecast: forecast,
@@ -4786,7 +4883,8 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
         guard let snapshots = try? payload.forecast.makeSnapshots(
             locationName: payload.locationName,
             timeZone: payload.timeZone,
-            units: requestedUnits
+            units: requestedUnits,
+            coordinate: payload.location.coordinate
         ) else {
             phase = .failed(localizedString("no_data"))
             return
@@ -4872,6 +4970,14 @@ private struct AnimatedWeatherStatusIcon: View {
         if isWidgetBackground { return -72 }
         return 0
     }
+    /// Where the sun/moon orbit band starts inside each surface: the detail
+    /// background sits behind the navigation header, so its band begins lower
+    /// to keep the body inside the visible sky.
+    private var celestialTopBandFraction: CGFloat {
+        if isDetailBackground { return 0.28 }
+        if isWidgetBackground { return 0.14 }
+        return 0.12
+    }
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { timeline in
@@ -4897,7 +5003,8 @@ private struct AnimatedWeatherStatusIcon: View {
                             orbitProgress: palette.orbitProgress,
                             phase: phase,
                             reduceMotion: reduceMotion,
-                            scale: sceneScale
+                            scale: sceneScale,
+                            topBandFraction: celestialTopBandFraction
                         )
                     }
 
@@ -5031,22 +5138,41 @@ private struct WeatherCelestialBody: View {
     let phase: TimeInterval
     let reduceMotion: Bool
     let scale: CGFloat
+    /// Fraction of the container height where the visible orbit band starts.
+    /// Each surface (card, widget background, detail background) passes its own
+    /// value so the body never drifts under headers or outside its scene.
+    var topBandFraction: CGFloat = 0.16
 
     var body: some View {
         GeometryReader { proxy in
-            let progress = orbitProgress
-            let x = proxy.size.width * (0.12 + 0.76 * progress)
-            let arc = sin(progress * .pi)
-            let y = proxy.size.height * (0.25 - 0.15 * arc)
+            let progress = min(max(orbitProgress, 0), 1)
+            let bodySize = (isNight ? 38 : 42) * scale
+            let x = proxy.size.width * (0.10 + 0.80 * progress)
             let breathe = reduceMotion ? 1 : 1 + 0.035 * sin(phase * 0.9)
 
             Image(systemName: isNight ? "moon.stars.fill" : "sun.max.fill")
-                .font(.system(size: (isNight ? 38 : 42) * scale, weight: .bold))
+                .font(.system(size: bodySize, weight: .bold))
                 .symbolRenderingMode(.multicolor)
                 .scaleEffect(breathe)
-                .position(x: x, y: y)
+                .position(x: x, y: verticalPosition(progress: progress, height: proxy.size.height, bodySize: bodySize))
                 .shadow(color: (isNight ? Color.white : Color.yellow).opacity(0.30), radius: 12)
         }
+        .clipped()
+    }
+
+    /// Dawn (or dusk for the moon): the body slides into view over the top edge
+    /// of its scene until it settles at the top of the band; for the rest of the
+    /// period it drifts down through the band and hides fully below the bottom
+    /// edge right when the day/night ends.
+    private func verticalPosition(progress: Double, height: CGFloat, bodySize: CGFloat) -> CGFloat {
+        let bandTop = height * topBandFraction + bodySize * 0.5
+        let exitY = height + bodySize
+        if progress < 0.15 {
+            let t = progress / 0.15
+            return -bodySize * 0.6 + (bandTop + bodySize * 0.6) * t
+        }
+        let t = (progress - 0.15) / 0.85
+        return bandTop + (exitY - bandTop) * pow(t, 1.6)
     }
 }
 
@@ -5257,11 +5383,12 @@ private struct FitnessWeatherInsight: Identifiable {
 private struct WeatherDataStateCard: View {
     let phase: TodayWeatherController.Phase
     let retry: () -> Void
+    let enableLocation: () -> Void
 
     private var isLoading: Bool {
         switch phase {
         case .idle, .requestingLocation, .loading, .serviceActivating, .loadingFallback: true
-        case .loaded, .locationDenied, .failed: false
+        case .loaded, .locationDenied, .locationPermissionNeeded, .failed: false
         }
     }
 
@@ -5271,6 +5398,8 @@ private struct WeatherDataStateCard: View {
             localizedString("weather_loading_real_data")
         case .requestingLocation:
             localizedString("weather_requesting_location")
+        case .locationPermissionNeeded:
+            localizedString("weather_location_permission_prompt")
         case .serviceActivating:
             localizedString("weather_service_activation_pending")
         case .loadingFallback:
@@ -5308,6 +5437,9 @@ private struct WeatherDataStateCard: View {
                     PermissionService.shared.openSettings()
                 }
                 .buttonStyle(.bordered)
+            } else if case .locationPermissionNeeded = phase {
+                Button(localizedString("weather_enable_location"), action: enableLocation)
+                    .buttonStyle(.borderedProminent)
             } else if case .failed = phase {
                 Button(localizedString("weather_retry"), action: retry)
                     .buttonStyle(.bordered)
@@ -5330,6 +5462,7 @@ private struct WeatherDataStateCard: View {
     private var phaseIcon: String {
         switch phase {
         case .locationDenied: "location.slash.fill"
+        case .locationPermissionNeeded: "location.fill"
         case .failed, .loaded: "exclamationmark.triangle.fill"
         case .idle, .requestingLocation, .loading, .serviceActivating, .loadingFallback: "cloud.sun.fill"
         }

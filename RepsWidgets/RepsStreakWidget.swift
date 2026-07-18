@@ -117,7 +117,7 @@ private struct SmallStreakView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(alignment: .center) {
-                Text("streak")
+                Text(verbatim: localizedString("streak"))
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(theme.tint)
                 Spacer()
@@ -146,13 +146,13 @@ private struct SmallStreakView: View {
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
                 
-                Text(streak == 1 ? "day_singular" : "days_plural" as LocalizedStringKey)
+                Text(verbatim: localizedString(streak == 1 ? "day_singular" : "days_plural"))
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(theme.secondaryForeground)
             }
             .padding(.vertical, -4)
 
-            Text(hasPlan ? "streak_completed_label" : "streak_no_plan_label" as LocalizedStringKey)
+            Text(verbatim: localizedString(hasPlan ? "streak_completed_label" : "streak_no_plan_label"))
                 .font(.system(size: 8, weight: .black))
                 .foregroundStyle(theme.secondaryForeground)
 
@@ -216,7 +216,7 @@ private struct MediumStreakView: View {
                         .foregroundStyle(theme.foreground)
                         .minimumScaleFactor(0.8)
                         .lineLimit(1)
-                    Text(streak == 1 ? "day_singular" : "days_plural" as LocalizedStringKey)
+                    Text(verbatim: localizedString(streak == 1 ? "day_singular" : "days_plural"))
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(theme.secondaryForeground)
                 }
@@ -224,13 +224,13 @@ private struct MediumStreakView: View {
 
             // Right: stats
             VStack(alignment: .leading, spacing: 4) {
-                Text("weekly_consistency")
+                Text(verbatim: localizedString("weekly_consistency"))
                     .font(.system(size: 8, weight: .black))
                     .foregroundStyle(theme.tint)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
-                Text(streak > 0 ? "excellent_consistency" : (hasPlan ? "start_your_streak_today" : "create_your_first_plan") as LocalizedStringKey)
+                Text(verbatim: localizedString(streak > 0 ? "excellent_consistency" : (hasPlan ? "start_your_streak_today" : "create_your_first_plan")))
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.foreground)
                     .lineLimit(1)
@@ -242,7 +242,7 @@ private struct MediumStreakView: View {
                     if hasPlan {
                         Text(localizedFormat("planned_workouts_completed_this_week_format", Int(completion * 100)))
                     } else {
-                        Text("when_you_have_an_active_plan_you_ll_see_your_weekly_progress_here")
+                        Text(verbatim: localizedString("when_you_have_an_active_plan_you_ll_see_your_weekly_progress_here"))
                     }
                 }
                     .font(.system(size: 10))

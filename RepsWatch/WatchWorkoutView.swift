@@ -510,7 +510,7 @@ private struct WatchIntervalPickerView: View {
                         .background(WatchTheme.ringMove.opacity(0.10), in: RoundedRectangle(cornerRadius: WatchTheme.cardRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("\(preset.name), \(preset.rounds) rondas")
+                    .accessibilityLabel("\(preset.name), \(localizedFormat("%d rounds · %ds / %ds", preset.rounds, preset.workSeconds, preset.restSeconds))")
                 }
             }
             .padding(.horizontal, 4)
@@ -609,7 +609,7 @@ struct WatchRouteNowView: View {
                     .minimumScaleFactor(0.8)
                 Spacer(minLength: 0)
                 if model.state == .paused {
-                    Text("PAUSED")
+                    Text(verbatim: localizedString("PAUSED"))
                         .font(.system(size: 9, weight: .black, design: .rounded))
                         .foregroundStyle(.orange)
                         .padding(.horizontal, 5)
