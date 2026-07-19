@@ -1048,7 +1048,9 @@ final class AppStore {
         userProfile = result.profile
         sanitizeAvailableEquipment()
         userProfile.onboardingCompleted = true
-        bodyMetrics.append(result.bodyMetric)
+        if let bodyMetric = result.bodyMetric {
+            bodyMetrics.append(bodyMetric)
+        }
         if let plan = result.plan {
             // The first generated plan is the activation path for every user.
             // Free users get one active plan; Pro limits still apply to

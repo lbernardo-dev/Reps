@@ -13,7 +13,7 @@ struct DonutSlice: Identifiable {
 struct MetricDonutChart: View {
     let slices: [DonutSlice]
     let centerValue: String
-    let centerLabel: LocalizedStringKey
+    let centerLabel: String
     var legendValueFormatter: (Double) -> String = { String(format: "%.0f", $0) }
 
     private var total: Double { slices.reduce(0) { $0 + $1.value } }
@@ -40,7 +40,7 @@ struct MetricDonutChart: View {
                         .foregroundStyle(PulseTheme.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    Text(centerLabel)
+                    Text(localizedKey(centerLabel))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)

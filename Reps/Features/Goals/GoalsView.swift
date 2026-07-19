@@ -12,7 +12,7 @@ struct GoalsView: View {
     enum GoalFilter: String, CaseIterable, Identifiable {
         case all, active, achieved
         var id: String { rawValue }
-        var labelKey: LocalizedStringKey {
+        var labelKey: String {
             switch self {
             case .all:      "goal_filter_all"
             case .active:   "goal_filter_active"
@@ -103,12 +103,12 @@ struct GoalsView: View {
         }
     }
 
-    private func summaryCell(value: Int, labelKey: LocalizedStringKey, color: Color) -> some View {
+    private func summaryCell(value: Int, labelKey: String, color: Color) -> some View {
         VStack(spacing: 4) {
             Text("\(value)")
                 .font(.title2.bold())
                 .foregroundStyle(color)
-            Text(labelKey)
+            Text(localizedKey(labelKey))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
         }
@@ -360,7 +360,7 @@ struct GoalEditorView: View {
                             Text(k.localizedDisplayName)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.primary)
-                            Text(k.hintKey)
+                            Text(localizedKey(k.hintKey))
                                 .font(.caption)
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }
@@ -579,7 +579,7 @@ extension Goal.Kind {
         }
     }
 
-    var hintKey: LocalizedStringKey {
+    var hintKey: String {
         switch self {
         case .strength:    "goal_kind_strength_hint"
         case .consistency: "goal_kind_consistency_hint"

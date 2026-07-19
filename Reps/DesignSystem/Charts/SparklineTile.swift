@@ -3,7 +3,7 @@ import SwiftUI
 /// Compact tile: label + hero value + trend arrow + tiny sparkline.
 /// Used for Trends grids (Stand, Cardio Fitness, Move, Exercise…).
 struct SparklineTile: View {
-    let title: LocalizedStringKey
+    let title: String
     let value: String
     let unit: String
     var trend: TrendDirection = .neutral
@@ -33,7 +33,7 @@ struct SparklineTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(title)
+                Text(localizedKey(title))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(1)

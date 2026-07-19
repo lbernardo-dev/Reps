@@ -6,7 +6,7 @@ import SwiftUI
 struct HeroNumberView: View {
     let value: String
     var unit: String? = nil
-    let label: LocalizedStringKey
+    let label: String
     var tint: Color = .white
     var size: CGFloat = 34
 
@@ -25,7 +25,7 @@ struct HeroNumberView: View {
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
             }
-            Text(label)
+            Text(localizedKey(label))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .lineLimit(2)

@@ -143,12 +143,12 @@ struct CalendarView: View {
                             if !daySessions.isEmpty {
                                 HStack(spacing: 12) {
                                     let sessionsWord = localizedString("sessions_2")
-                                    CalendarSummaryPill(title: "\(daySessions.count)", subtitle: LocalizedStringKey(sessionsWord), systemImage: "checkmark.circle")
+                                    CalendarSummaryPill(title: "\(daySessions.count)", subtitle: sessionsWord, systemImage: "checkmark.circle")
                                     if dayRouteDistanceKm(on: selectedDate) > 0 {
                                         CalendarSummaryPill(title: String(format: "%.1f", dayRouteDistanceKm(on: selectedDate)), subtitle: "km", systemImage: "figure.walk")
                                     } else {
                                         let exercisesWord = localizedString("exercises_2")
-                                        CalendarSummaryPill(title: "\(dayExerciseCount(on: selectedDate))", subtitle: LocalizedStringKey(exercisesWord), systemImage: "dumbbell")
+                                        CalendarSummaryPill(title: "\(dayExerciseCount(on: selectedDate))", subtitle: exercisesWord, systemImage: "dumbbell")
                                     }
                                     let volume = Int(sessionVolumeKg(on: selectedDate))
                                     CalendarSummaryPill(title: volume > 0 ? "\(volume)" : "\(daySessions.reduce(0) { $0 + $1.durationMinutes })", subtitle: volume > 0 ? "kg" : "min", systemImage: volume > 0 ? "scalemass" : "timer")
@@ -298,7 +298,7 @@ struct CalendarView: View {
                 }
                 HStack(spacing: 10) {
                     let scheduledWord = localizedString("scheduled_3")
-                    CalendarSummaryPill(title: "\(weekScheduled.count)", subtitle: LocalizedStringKey(scheduledWord), systemImage: "calendar.badge.clock")
+                    CalendarSummaryPill(title: "\(weekScheduled.count)", subtitle: scheduledWord, systemImage: "calendar.badge.clock")
                     CalendarSummaryPill(title: "\(Int(weekVolumeKg))", subtitle: "kg", systemImage: "scalemass")
                     CalendarSummaryPill(title: "\(weekSessions.reduce(0) { $0 + $1.durationMinutes })", subtitle: "min", systemImage: "timer")
                 }
@@ -564,7 +564,7 @@ struct CalendarMonthRenderModel {
 
 private struct CalendarSummaryPill: View {
     let title: String
-    let subtitle: LocalizedStringKey
+    let subtitle: String
     let systemImage: String
 
     var body: some View {

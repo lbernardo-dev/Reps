@@ -2230,7 +2230,7 @@ private struct TodayViewContent: View {
                 } label: {
                     ShortcutTile(
                         title: "library",
-                        subtitle: LocalizedStringKey(localizedFormat("exercises_count_format", store.exercises.count)),
+                        subtitle: localizedFormat("exercises_count_format", store.exercises.count),
                         systemImage: "photo.stack",
                         color: PulseTheme.accent
                     )
@@ -2268,7 +2268,7 @@ private struct TodayViewContent: View {
                 NavigationLink(value: TodayRoute.workoutLibrary) {
                     ShortcutTile(
                         title: "routines",
-                        subtitle: LocalizedStringKey(localizedFormat("templates_count_format", store.workoutTemplates.count)),
+                        subtitle: localizedFormat("templates_count_format", store.workoutTemplates.count),
                         systemImage: "list.clipboard",
                         color: PulseTheme.accent
                     )
@@ -3358,9 +3358,9 @@ private struct BodyWeightSummaryRow: View {
 }
 
 private struct HomeMetricTile: View {
-    let title: LocalizedStringKey
+    let title: String
     let value: String
-    let subtitle: LocalizedStringKey
+    let subtitle: String
     let systemImage: String
     let color: Color
 
@@ -3541,8 +3541,8 @@ private struct PlanMicroCard: View {
 }
 
 private struct ShortcutTile: View {
-    let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
+    let title: String
+    let subtitle: String
     let systemImage: String
     let color: Color
 

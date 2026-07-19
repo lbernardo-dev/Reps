@@ -209,7 +209,7 @@ private struct AttachmentPreview: View {
         VStack(spacing: 8) {
             Image(systemName: systemImage).font(.title2)
             if let label {
-                Text(LocalizedStringKey(label)).font(.caption.weight(.bold))
+                Text(localizedString(label)).font(.caption.weight(.bold))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

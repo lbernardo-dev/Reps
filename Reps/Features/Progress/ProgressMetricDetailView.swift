@@ -17,7 +17,7 @@ enum MetricDetailRange: String, CaseIterable, Identifiable {
   case today, week, month, year
   var id: String { rawValue }
 
-  var title: LocalizedStringKey {
+  var title: String {
     switch self {
     case .today: "today"
     case .week: "week_label"
@@ -177,7 +177,7 @@ struct ProgressMetricDetailView: View {
   private var rangePicker: some View {
     Picker("range", selection: $range) {
       ForEach(MetricDetailRange.allCases) { r in
-        Text(r.title).tag(r)
+        Text(localizedKey(r.title)).tag(r)
       }
     }
     .pickerStyle(.segmented)

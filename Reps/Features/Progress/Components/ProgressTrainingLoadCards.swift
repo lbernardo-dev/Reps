@@ -139,7 +139,7 @@ struct ExerciseProgressRow: View {
 
 
 struct MetricInline: View {
-  let title: LocalizedStringKey
+  let title: String
   let value: String
 
   var body: some View {

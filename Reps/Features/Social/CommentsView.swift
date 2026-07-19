@@ -53,7 +53,7 @@ struct CommentsView: View {
     // MARK: - Header
 
     private var header: some View {
-        Text(LocalizedStringKey("comments"))
+        Text(localizedString("comments"))
             .font(.headline)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
@@ -79,7 +79,7 @@ struct CommentsView: View {
                     Text("@\(comment.ownerUsername)")
                         .font(.caption.weight(.bold))
                     if comment.isPending {
-                        Label(LocalizedStringKey("comment_sending"), systemImage: "clock")
+                        Label(localizedString("comment_sending"), systemImage: "clock")
                             .font(.caption2)
                             .labelStyle(.titleAndIcon)
                             .foregroundStyle(PulseTheme.tertiaryText)
@@ -135,7 +135,7 @@ struct CommentsView: View {
                    username: store.userProfile.socialUsername ?? "?",
                    size: 32)
 
-            TextField(LocalizedStringKey("comments_placeholder"), text: $draftText, axis: .vertical)
+            TextField(localizedString("comments_placeholder"), text: $draftText, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.subheadline)
                 .lineLimit(1...4)

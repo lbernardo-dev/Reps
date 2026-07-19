@@ -323,10 +323,6 @@ struct RepsLegalUrls {
 func localizedKey(_ key: String) -> String {
     RepsLocalization.string(key)
 }
-
-func localizedKey(_ key: LocalizedStringKey) -> LocalizedStringKey {
-    key
-}
 #endif
 
 func localizedString(_ key: String) -> String {

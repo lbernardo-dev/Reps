@@ -975,7 +975,7 @@ struct WeekRingStrip: View {
 struct TodayMetricCard: View {
   let icon: String
   let color: Color
-  let title: LocalizedStringKey
+  let title: String
   let value: String
   let detail: String
 
@@ -1025,7 +1025,7 @@ struct TodayMetricCard: View {
 struct TodayBarChartCard: View {
   let icon: String
   let color: Color
-  let title: LocalizedStringKey
+  let title: String
   let value: String
   let unit: String
   let chartData: [TodayChartPoint]

@@ -97,16 +97,16 @@ struct ProfileSetupView: View {
             generationTask?.cancel()
         }
         .alert(
-            LocalizedStringKey("onboarding_plan_back_title"),
+            localizedString("onboarding_plan_back_title"),
             isPresented: $showingBackFromPlan
         ) {
-            Button(LocalizedStringKey("onboarding_plan_back_confirm"), role: .destructive) {
+            Button(localizedString("onboarding_plan_back_confirm"), role: .destructive) {
                 isGenerationComplete = false
                 moveBackward()
             }
-            Button(LocalizedStringKey("onboarding_plan_back_cancel"), role: .cancel) {}
+            Button(localizedString("onboarding_plan_back_cancel"), role: .cancel) {}
         } message: {
-            Text(LocalizedStringKey("onboarding_plan_back_message"))
+            Text(localizedString("onboarding_plan_back_message"))
         }
     }
 
@@ -402,7 +402,7 @@ struct ProfileSetupView: View {
                             Button {
                                 draft.bodyMapPreference = preference
                             } label: {
-                                Text(preference.title)
+                                Text(localizedKey(preference.title))
                                     .font(.caption.weight(.bold))
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 38)
@@ -512,7 +512,7 @@ struct ProfileSetupView: View {
             }
 
             PulseCard {
-                let stepTitles: [LocalizedStringKey] = [
+                let stepTitles: [String] = [
                     "onboarding_step_saving_profile",
                     "onboarding_step_preferences",
                     "onboarding_step_volume",
@@ -638,7 +638,7 @@ struct ProfileSetupView: View {
             Button {
                 primaryAction()
             } label: {
-                Text(step.primaryButtonTitle)
+                Text(localizedKey(step.primaryButtonTitle))
                     .font(.headline.weight(.bold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
@@ -673,7 +673,7 @@ struct ProfileSetupView: View {
         step == .ready ? 128 : 82
     }
 
-    private var scheduleHelperText: LocalizedStringKey {
+    private var scheduleHelperText: String {
         switch draft.weeklyTrainingDays {
         case 1: "onboarding_schedule_1_day"
         case 2: "onboarding_schedule_2_days"
@@ -685,7 +685,7 @@ struct ProfileSetupView: View {
         }
     }
 
-    private var durationHelperText: LocalizedStringKey {
+    private var durationHelperText: String {
         switch draft.sessionLengthMinutes {
         case 15: "onboarding_duration_15min"
         case 30: "onboarding_duration_30min"
@@ -741,7 +741,11 @@ struct ProfileSetupView: View {
         var profile = draft.makeProfile()
         profile.onboardingCompleted = true
         guard !draft.buildsOwnPlan else {
-            return OnboardingResult(profile: profile, bodyMetric: bodyMetric, plan: nil, activatePlan: false)
+            // The baseline step never ran on this path — the draft still holds
+            // placeholder age/height/weight, so persist none of it as user data.
+            profile.dateOfBirth = nil
+            profile.sex = nil
+            return OnboardingResult(profile: profile, bodyMetric: nil, plan: nil, activatePlan: false)
         }
         let plan = cachedPlan ?? buildPlan()
         return OnboardingResult(
@@ -852,7 +856,7 @@ private struct OnboardingDraft {
 
     static let focusOptions = ["Chest", "Back", "Shoulders", "Arms", "Legs", "Glutes", "Core"]
 
-    static func localizedFocusKey(_ focus: String) -> LocalizedStringKey {
+    static func localizedFocusKey(_ focus: String) -> String {
         switch focus {
         case "Chest":     return "muscle_group_chest"
         case "Back":      return "muscle_group_back"
@@ -861,7 +865,7 @@ private struct OnboardingDraft {
         case "Legs":      return "muscle_group_legs"
         case "Glutes":    return "muscle_group_glutes"
         case "Core":      return "muscle_group_core"
-        default:          return LocalizedStringKey(focus)
+        default:          return localizedString(focus)
         }
     }
 
@@ -935,7 +939,7 @@ private enum OnboardingStep: CaseIterable {
     case generating
     case ready
 
-    var primaryButtonTitle: LocalizedStringKey {
+    var primaryButtonTitle: String {
         switch self {
         case .hero: "onboarding_btn_get_started"
         case .value: "onboarding_btn_start_setup"
@@ -953,7 +957,7 @@ private enum BodyMapPreference: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: LocalizedStringKey {
+    var title: String {
         switch self {
         case .mapA: "onboarding_body_map_male"
         case .mapB: "onboarding_body_map_female"
@@ -1018,16 +1022,16 @@ private struct OnboardingProgressHeader: View {
 }
 
 private struct OnboardingTitle: View {
-    let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
+    let title: String
+    let subtitle: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.system(size: 34, weight: .heavy))
                 .lineLimit(4)
                 .minimumScaleFactor(0.72)
-            Text(subtitle)
+            Text(localizedKey(subtitle))
                 .font(.title3.weight(.medium))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1037,8 +1041,8 @@ private struct OnboardingTitle: View {
 }
 
 private struct OnboardingOptionCard: View {
-    let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
+    let title: String
+    let subtitle: String
     let icon: String
     let tint: Color
     let isSelected: Bool
@@ -1055,10 +1059,10 @@ private struct OnboardingOptionCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
+                    Text(localizedKey(title))
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    Text(subtitle)
+                    Text(localizedKey(subtitle))
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1087,20 +1091,20 @@ private struct OnboardingOptionCard: View {
 }
 
 private struct OnboardingNumberPicker: View {
-    let title: LocalizedStringKey
+    let title: String
     @Binding var value: Int
     let options: [Int]
-    let unit: LocalizedStringKey
-    let helper: LocalizedStringKey
+    let unit: String
+    let helper: String
 
     var body: some View {
         PulseCard(contentPadding: 18) {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(title)
+                    Text(localizedKey(title))
                         .font(.headline)
                     Spacer()
-                    Text(helper)
+                    Text(localizedKey(helper))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
@@ -1111,7 +1115,7 @@ private struct OnboardingNumberPicker: View {
                     Text("\(value)")
                         .font(.system(size: 68, weight: .heavy))
                         .contentTransition(.numericText(value: Double(value)))
-                    Text(unit)
+                    Text(localizedKey(unit))
                         .font(.title2.weight(.black))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -1142,9 +1146,9 @@ private struct OnboardingNumberPicker: View {
 }
 
 private struct OnboardingMetricSlider: View {
-    let title: LocalizedStringKey
+    let title: String
     let valueText: String
-    let unit: LocalizedStringKey
+    let unit: String
     let icon: String
     @Binding var value: Double
     let range: ClosedRange<Double>
@@ -1164,7 +1168,7 @@ private struct OnboardingMetricSlider: View {
                         .frame(width: 42, height: 42)
                         .background(PulseTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
-                    Text(title)
+                    Text(localizedKey(title))
                         .font(.headline)
                     Spacer()
                 }
@@ -1173,7 +1177,7 @@ private struct OnboardingMetricSlider: View {
                     Text(valueText)
                         .font(.system(size: 56, weight: .heavy))
                         .contentTransition(.numericText(value: value))
-                    Text(unit)
+                    Text(localizedKey(unit))
                         .font(.title2.weight(.black))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -1220,13 +1224,13 @@ private struct TickRail: View {
 }
 
 private struct EquipmentChip: View {
-    let title: LocalizedStringKey
+    let title: String
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.subheadline.weight(.bold))
                 .padding(.horizontal, 14)
                 .frame(height: 40)
@@ -1252,12 +1256,12 @@ private struct FlowLayout<Content: View>: View {
 }
 
 private struct HeroSignal: View {
-    let title: LocalizedStringKey
+    let title: String
     let value: String
 
     var body: some View {
         VStack(spacing: 4) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.caption.weight(.bold))
                 .foregroundStyle(PulseTheme.secondaryText)
             Text(value)
@@ -1272,8 +1276,8 @@ private struct HeroSignal: View {
 
 private struct OnboardingBenefit: View {
     let icon: String
-    let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
+    let title: String
+    let subtitle: String
 
     var body: some View {
         PulseCard {
@@ -1281,9 +1285,9 @@ private struct OnboardingBenefit: View {
                 Image(systemName: icon)
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(PulseTheme.accent)
-                Text(title)
+                Text(localizedKey(title))
                     .font(.headline)
-                Text(subtitle)
+                Text(localizedKey(subtitle))
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1293,13 +1297,13 @@ private struct OnboardingBenefit: View {
 }
 
 private struct OnboardingSignal: View {
-    let title: LocalizedStringKey
+    let title: String
     let value: String
     let color: Color
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
             Text(value)
@@ -1313,12 +1317,12 @@ private struct OnboardingSignal: View {
 }
 
 private struct GenerationPill: View {
-    let title: LocalizedStringKey
+    let title: String
     let value: String
 
     var body: some View {
         VStack(spacing: 4) {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
             Text(value)
@@ -1332,7 +1336,7 @@ private struct GenerationPill: View {
 }
 
 private struct GenerationStepRow: View {
-    let title: LocalizedStringKey
+    let title: String
     let isCompleted: Bool
     let isActive: Bool
     let isLast: Bool
@@ -1361,7 +1365,7 @@ private struct GenerationStepRow: View {
                 }
                 .frame(width: 26, height: 26)
 
-                Text(title)
+                Text(localizedKey(title))
                     .font(.subheadline.weight(isActive ? .bold : .medium))
                     .foregroundStyle(isActive ? .white : (isCompleted ? .white.opacity(0.75) : PulseTheme.secondaryText))
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1451,9 +1455,9 @@ private struct PlanProjectionCard: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(LocalizedStringKey("onboarding_plan_projection_title"))
+                        Text(localizedString("onboarding_plan_projection_title"))
                             .font(.headline)
-                        Text(LocalizedStringKey("onboarding_plan_projection_caption"))
+                        Text(localizedString("onboarding_plan_projection_caption"))
                             .font(.caption.weight(.medium))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -1798,7 +1802,7 @@ private struct PlanBenefitRow: View {
                 .font(.caption.weight(.bold))
                 .foregroundStyle(PulseTheme.accent)
                 .frame(width: 18)
-            Text(LocalizedStringKey(text))
+            Text(localizedString(text))
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.primary)
         }
@@ -2050,7 +2054,7 @@ private extension View {
 }
 
 private extension UserProfile.MainGoal {
-    var title: LocalizedStringKey {
+    var title: String {
         switch self {
         case .buildMuscle: "onboarding_goal_build_muscle"
         case .bodyRecomposition: "onboarding_goal_recomp"
@@ -2070,7 +2074,7 @@ private extension UserProfile.MainGoal {
         }
     }
 
-    var subtitle: LocalizedStringKey {
+    var subtitle: String {
         switch self {
         case .buildMuscle: "onboarding_goal_build_muscle_sub"
         case .bodyRecomposition: "onboarding_goal_recomp_sub"
@@ -2102,7 +2106,7 @@ private extension UserProfile.MainGoal {
 }
 
 private extension UserProfile.Experience {
-    var title: LocalizedStringKey {
+    var title: String {
         switch self {
         case .beginner: "onboarding_exp_beginner"
         case .intermediate: "onboarding_exp_intermediate"
@@ -2110,7 +2114,7 @@ private extension UserProfile.Experience {
         }
     }
 
-    var subtitle: LocalizedStringKey {
+    var subtitle: String {
         switch self {
         case .beginner: "onboarding_exp_beginner_sub"
         case .intermediate: "onboarding_exp_intermediate_sub"

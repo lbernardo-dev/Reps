@@ -196,13 +196,13 @@ struct BodyWellnessEditorView: View {
 }
 
 private struct RatingSelector: View {
-    let labelKey: LocalizedStringKey
+    let labelKey: String
     @Binding var value: Int
     var higherIsBetter: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(labelKey)
+            Text(localizedKey(labelKey))
                 .font(.subheadline)
                 .foregroundStyle(.primary)
             HStack(spacing: 10) {

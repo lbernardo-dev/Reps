@@ -232,14 +232,6 @@ struct ActiveWorkoutView: View {
         store.gymPasses.first
     }
 
-    private var currentRestLabel: LocalizedStringKey {
-        guard lastSetCompletedAtSeconds != nil else {
-            return "pending_rest"
-        }
-
-        return restSeconds == 0 ? "ready" : "rest"
-    }
-
     private var isSessionStarted: Bool {
         store.activeWorkoutStatus != nil && store.activeWorkout?.id == workout.id
     }
@@ -789,9 +781,13 @@ struct ActiveWorkoutView: View {
 
         let currentSet = selectedExerciseContext.currentWorkingSet
         let playlist = planPlaylist
+        // Recomputed here (rather than reading the ticking `@State`) so every
+        // call site — many aren't preceded by a timer tick — publishes a
+        // live-accurate elapsed time instead of whatever was last cached.
+        let freshElapsedSeconds = elapsedWorkoutSeconds()
         store.updateActiveWorkout(ActiveWorkoutStatusBuilder.update(
             from: ActiveWorkoutStatusBuilder.Input(
-                elapsedSeconds: elapsedSeconds,
+                elapsedSeconds: freshElapsedSeconds,
                 pausedSeconds: pausedSeconds,
                 isPaused: isPaused,
                 selectedExerciseName: selectedDraft.map { RepsText.exerciseName($0.workoutExercise.exercise.name, language: store.userProfile.preferredLanguage) },
@@ -812,8 +808,8 @@ struct ActiveWorkoutView: View {
                 isRouteWorkout: isCardioMovementCandidate,
                 isOutdoorRoute: isRouteCandidate,
                 routeDistanceKm: routeTracker.distanceKm,
-                routePaceSecondsPerKm: routeTracker.averagePaceSecondsPerKm(elapsedSeconds: elapsedSeconds),
-                routeSpeedKmh: routeTracker.averageSpeedKmh(elapsedSeconds: elapsedSeconds),
+                routePaceSecondsPerKm: routeTracker.averagePaceSecondsPerKm(elapsedSeconds: freshElapsedSeconds),
+                routeSpeedKmh: routeTracker.averageSpeedKmh(elapsedSeconds: freshElapsedSeconds),
                 routePointCount: routeTracker.routePoints.count,
                 routePoints: routeTracker.routePoints,
                 pedometerDistanceKm: motionMetrics.distanceKm,
@@ -1325,28 +1321,6 @@ struct ActiveWorkoutView: View {
                 }
             }
         }
-    }
-
-    private var restCard: some View {
-        let undoAction: (() -> Void)? = lastCompletedSetUndoContext == nil
-            ? nil
-            : { undoLastCompletedSet() }
-        let backAction: (() -> Void)? = (restKind == .exerciseChange && selectedExerciseIndex > 0)
-            ? { moveExercise(by: -1) }
-            : nil
-        return ActiveRestPanel(
-            isRestActive: lastSetCompletedAtSeconds != nil,
-            currentRestSeconds: currentRestRemainingSeconds(),
-            restStartedAt: restStartedAt,
-            restDuration: restDuration,
-            kind: restKind,
-            nextExerciseName: restKind == .exerciseChange ? nextExerciseTitle : nil,
-            onDecrease: { adjustRest(by: -15) },
-            onIncrease: { adjustRest(by: 15) },
-            onSkipOrRestart: toggleRestTimer,
-            onUndo: undoAction,
-            onBackToPreviousExercise: backAction
-        )
     }
 
     private func undoLastCompletedSet() {
@@ -2114,7 +2088,7 @@ struct ActiveWorkoutView: View {
                     .foregroundStyle(PulseTheme.accent)
                 Text("add_your_first_exercise")
                     .font(.title2.bold())
-                Text(emptyWorkoutPrompt)
+                Text(localizedKey(emptyWorkoutPrompt))
                     .foregroundStyle(PulseTheme.secondaryText)
 
                 if workout.sessionType == .core, !coreExerciseSuggestions.isEmpty {
@@ -2166,7 +2140,7 @@ struct ActiveWorkoutView: View {
         workout.sessionType == .core ? .strength : nil
     }
 
-    private var emptyWorkoutPrompt: LocalizedStringKey {
+    private var emptyWorkoutPrompt: String {
         workout.sessionType == .core
             ? "core_empty_workout_prompt"
             : "free_training_starts_empty_so_you_record_only_what_you_do_today"

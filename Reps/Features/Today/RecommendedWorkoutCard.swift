@@ -17,7 +17,7 @@ struct RecommendedWorkoutCard: View {
         batteryLevel >= 80 ? PulseTheme.recovery : batteryLevel >= 55 ? PulseTheme.accent : PulseTheme.warning
     }
 
-    private var batteryLabel: LocalizedStringKey {
+    private var batteryLabel: String {
         batteryLevel >= 80 ? "recommended_battery_charged" : batteryLevel >= 55 ? "recommended_battery_steady" : "recommended_battery_low"
     }
 
@@ -47,7 +47,7 @@ struct RecommendedWorkoutCard: View {
                             .font(.title3.weight(.black))
                             .lineLimit(1)
                             .minimumScaleFactor(0.82)
-                        Text(batteryLabel)
+                        Text(localizedKey(batteryLabel))
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.secondaryText)
                             .lineLimit(2)

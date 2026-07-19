@@ -16,7 +16,7 @@ enum TimerKind: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
-    var title: LocalizedStringKey {
+    var title: String {
         switch self {
         case .stopwatch: "timer_kind_stopwatch"
         case .countdown: "timer_kind_countdown"

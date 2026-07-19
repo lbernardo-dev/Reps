@@ -209,8 +209,8 @@ struct ProgressPhotoEditorView: View {
 }
 
 private struct ProgressPhotoSourceActionLabel: View {
-    let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
+    let title: String
+    let subtitle: String
     let systemImage: String
 
     var body: some View {

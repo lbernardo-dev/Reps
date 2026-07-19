@@ -71,7 +71,7 @@ private struct TimerKindRow: View {
                         .foregroundStyle(kind.tint)
                 }
 
-                Text(kind.title)
+                Text(localizedKey(kind.title))
                     .font(.headline)
                     .foregroundStyle(.primary)
 

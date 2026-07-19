@@ -3,8 +3,8 @@ import SwiftUI
 struct ProgressionRecommendationCard: View {
     let recommendations: [SmartProgressionAdvisor.Recommendation]
     let language: String
-    var title: LocalizedStringKey = "smart_progression"
-    var emptyMessage: LocalizedStringKey = "log_a_few_sessions_to_unlock_weight_rep_and_deload_recommendations"
+    var title: String = "smart_progression"
+    var emptyMessage: String = "log_a_few_sessions_to_unlock_weight_rep_and_deload_recommendations"
 
     var body: some View {
         PulseCard {
@@ -30,7 +30,7 @@ struct ProgressionRecommendationCard: View {
                 }
 
                 if recommendations.isEmpty {
-                    Text(emptyMessage)
+                    Text(localizedKey(emptyMessage))
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)

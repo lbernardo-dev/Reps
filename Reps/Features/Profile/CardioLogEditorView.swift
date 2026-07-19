@@ -20,7 +20,7 @@ struct CardioLogEditorView: View {
                 Section("activity_2") {
                     Picker("training_type", selection: $activityType) {
                         ForEach(CardioLog.ActivityType.allCases) { type in
-                            Text(type.displayName).tag(type)
+                            Text(localizedKey(type.displayName)).tag(type)
                         }
                     }
                     DatePicker("date_2", selection: $date)
@@ -87,7 +87,7 @@ struct CardioLogEditorView: View {
 }
 
 private extension CardioLog.ActivityType {
-    var displayName: LocalizedStringKey {
+    var displayName: String {
         switch self {
         case .treadmill: "treadmill"
         case .elliptical: "elliptical"

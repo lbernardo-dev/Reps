@@ -674,7 +674,7 @@ struct ProfileView: View {
                         .font(.headline)
                         .foregroundStyle(PulseTheme.accent)
                     Spacer()
-                    Text(healthStatus)
+                    Text(localizedKey(healthStatus))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(store.health.isAuthorized ? PulseTheme.accent : PulseTheme.secondaryText)
                 }
@@ -1344,7 +1344,7 @@ struct ProfileView: View {
         ]
     }
 
-    private var healthStatus: LocalizedStringKey {
+    private var healthStatus: String {
         if !store.health.isAvailable {
             return "No disponible"
         }
@@ -1700,10 +1700,10 @@ struct ProfileView: View {
 }
 
 private struct ProfileToolSection<Content: View>: View {
-    let title: LocalizedStringKey
+    let title: String
     let content: Content
 
-    init(title: LocalizedStringKey, @ViewBuilder content: () -> Content) {
+    init(title: String, @ViewBuilder content: () -> Content) {
         self.title = title
         self.content = content()
     }
@@ -2035,7 +2035,7 @@ private extension View {
 }
 
 private struct ProfileMetric: View {
-    let title: LocalizedStringKey
+    let title: String
     let value: String
     let unit: String
     let color: Color
@@ -2060,7 +2060,7 @@ private struct ProfileMetric: View {
 }
 
 private struct HealthMiniMetric: View {
-    let title: LocalizedStringKey
+    let title: String
     let value: String
     let systemImage: String
     var tint: Color = PulseTheme.accent
@@ -2153,9 +2153,9 @@ private struct AvatarPickerLabel: View {
 }
 
 private struct CalorieRow: View {
-    let title: LocalizedStringKey
+    let title: String
     let value: Double
-    let subtitle: LocalizedStringKey
+    let subtitle: String
 
     var body: some View {
         HStack {

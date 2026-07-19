@@ -430,7 +430,7 @@ enum MetricDomain: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var titleKey: LocalizedStringKey {
+    var titleKey: String {
         switch self {
         case .strength: "strength"
         case .recovery: "recovery"
@@ -717,7 +717,7 @@ struct GlassMetricCard<Content: View>: View {
 }
 
 struct DomainStatusPill: View {
-    let text: LocalizedStringKey
+    let text: String
     let domain: MetricDomain
     var prominence: NavigationGlassProminence = .secondary
     var systemImage: String?
@@ -807,7 +807,7 @@ struct DomainHeroCard<Content: View>: View {
 enum DomainVerdict {
     case excellent, good, fair, worthALook, poor
 
-    var label: LocalizedStringKey {
+    var label: String {
         switch self {
         case .excellent:  "verdict_excellent"
         case .good:       "verdict_good"
@@ -1204,7 +1204,7 @@ struct PulseIconBadge: View {
 }
 
 struct PulseStatusPill: View {
-    let title: LocalizedStringKey
+    let title: String
     var systemImage: String?
     var tint: Color = PulseTheme.accent
     var isFilled = false
@@ -1234,11 +1234,11 @@ struct PulseStatusPill: View {
 // MARK: - Buttons
 
 struct PrimaryButton: View {
-    let title: LocalizedStringKey
+    let title: String
     let systemImage: String?
     let action: () -> Void
 
-    init(_ title: LocalizedStringKey, systemImage: String? = nil, action: @escaping () -> Void) {
+    init(_ title: String, systemImage: String? = nil, action: @escaping () -> Void) {
         self.title = title
         self.systemImage = systemImage
         self.action = action
@@ -1265,11 +1265,11 @@ struct PrimaryButton: View {
 }
 
 struct SecondaryButton: View {
-    let title: LocalizedStringKey
+    let title: String
     let systemImage: String?
     let action: () -> Void
 
-    init(_ title: LocalizedStringKey, systemImage: String? = nil, action: @escaping () -> Void) {
+    init(_ title: String, systemImage: String? = nil, action: @escaping () -> Void) {
         self.title = title
         self.systemImage = systemImage
         self.action = action
@@ -1824,7 +1824,7 @@ struct StickyHeaderHeightPreferenceKey: PreferenceKey {
 /// when no avatar image is set.
 struct HeaderAvatarButton: View {
     let imageData: Data?
-    let accessibilityLabel: LocalizedStringKey
+    let accessibilityLabel: String
     let action: () -> Void
 
     var body: some View {
@@ -1850,19 +1850,19 @@ struct HeaderAvatarButton: View {
             .navigationGlassCircle(.secondary)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(localizedKey(accessibilityLabel))
     }
 }
 
 struct PulseListRow<Trailing: View>: View {
-    let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
+    let title: String
+    let subtitle: String
     let systemImage: String
     let trailing: Trailing
 
     init(
-        title: LocalizedStringKey,
-        subtitle: LocalizedStringKey,
+        title: String,
+        subtitle: String,
         systemImage: String,
         @ViewBuilder trailing: () -> Trailing = { Image(systemName: "chevron.right").foregroundStyle(.tertiary) }
     ) {
@@ -1901,7 +1901,7 @@ struct PulseListRow<Trailing: View>: View {
 }
 
 struct PulseChip: View {
-    let title: LocalizedStringKey
+    let title: String
     var isSelected = false
 
     var body: some View {
@@ -1918,8 +1918,8 @@ struct PulseChip: View {
 }
 
 struct PulseEmptyState: View {
-    let title: LocalizedStringKey
-    let message: LocalizedStringKey
+    let title: String
+    let message: String
     let systemImage: String
 
     var body: some View {
@@ -1994,9 +1994,9 @@ struct PulseSkeletonCard: View {
 }
 
 struct MetricCard: View {
-    let title: LocalizedStringKey
+    let title: String
     let value: String
-    let subtitle: LocalizedStringKey
+    let subtitle: String
     let systemImage: String
     var badgeColor: Color = PulseTheme.accent
     var domain: MetricDomain? = nil

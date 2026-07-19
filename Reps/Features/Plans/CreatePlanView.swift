@@ -228,8 +228,8 @@ struct CreatePlanView: View {
         .background(PulseTheme.background)
     }
 
-    private var progressHintText: LocalizedStringKey {
-        LocalizedStringKey(localizedFormat("plan_progress_seeded_format", step.rawValue + 1, PlanWizardStep.allCases.count))
+    private var progressHintText: String {
+        localizedFormat("plan_progress_seeded_format", step.rawValue + 1, PlanWizardStep.allCases.count)
     }
 
     private var basicsStep: some View {

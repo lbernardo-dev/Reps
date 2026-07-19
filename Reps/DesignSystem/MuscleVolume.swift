@@ -28,7 +28,7 @@ enum MuscleZone: CaseIterable, Identifiable {
         }
     }
 
-    var title: LocalizedStringKey {
+    var title: String {
         switch self {
         case .maintaining: "zone_maintaining"
         case .growing: "zone_growing"
@@ -166,7 +166,7 @@ struct MuscleZoneLegend: View {
                     Circle()
                         .fill(zone.color)
                         .frame(width: 9, height: 9)
-                    Text(zone.title)
+                    Text(localizedKey(zone.title))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }

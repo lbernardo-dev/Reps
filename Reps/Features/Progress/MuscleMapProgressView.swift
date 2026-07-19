@@ -129,7 +129,7 @@ struct MuscleMapProgressView: View {
                         selectedMode = mode
                     }
                 } label: {
-                    Text(mode.title)
+                    Text(localizedKey(mode.title))
                         .font(.system(size: 13, weight: .bold))
                         .padding(.horizontal, 16)
                         .frame(height: 34)
@@ -203,7 +203,7 @@ struct MuscleMapProgressView: View {
 }
 
 private struct MuscleCoverageSummaryCard: View {
-    let subtitle: LocalizedStringKey
+    let subtitle: String
     let totalSegments: Int
     let growthZoneCount: Int
     let underTargetCount: Int
@@ -297,7 +297,7 @@ private struct MuscleCoverageSummaryCard: View {
 
 private struct MuscleCoverageMetric: View {
     let value: String
-    let label: LocalizedStringKey
+    let label: String
     let systemImage: String
     let color: Color
 
@@ -321,7 +321,7 @@ private struct MuscleCoverageMetric: View {
 }
 
 private struct QuietFilterChip: View {
-    let title: LocalizedStringKey
+    let title: String
     var isSelected = false
 
     var body: some View {
@@ -407,10 +407,13 @@ struct InteractiveBodyHeatmap: View {
 }
 
 private struct MuscleLoadCard: View {
+    @Environment(AppStore.self) private var store
     let load: MuscleLoad
     let gender: BodyGender
     var isSelected = false
     var showsAnalysisHint = false
+
+    private var isMetric: Bool { store.userProfile.units == .metric }
 
 	    var body: some View {
 	        VStack(alignment: .leading, spacing: 12) {
@@ -465,7 +468,7 @@ private struct MuscleLoadCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.78)
                 Spacer()
-                Text("\(Int(load.totalVolumeKg)) kg")
+                Text("\(Int(isMetric ? load.totalVolumeKg : UnitConverter.pounds(fromKilograms: load.totalVolumeKg))) \(isMetric ? "kg" : "lb")")
                     .font(.system(size: 13, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
             }
@@ -1079,14 +1082,14 @@ private enum MuscleMapMode: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: LocalizedStringKey {
+    var title: String {
         switch self {
         case .actual: "last_7_days"
         case .predict: "predict"
         }
     }
 
-    var subtitle: LocalizedStringKey {
+    var subtitle: String {
         switch self {
         case .actual: "muscle_map_actual_subtitle"
         case .predict: "muscle_map_predict_subtitle"
@@ -1103,7 +1106,7 @@ private enum MuscleRegionFilter: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: LocalizedStringKey {
+    var title: String {
         switch self {
         case .all: "all_muscles"
         case .upper: "upper_body"

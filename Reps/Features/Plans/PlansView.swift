@@ -1136,7 +1136,7 @@ private struct ToolsHeroHeader: View {
 }
 
 private struct LibraryShortcut: View {
-    let title: LocalizedStringKey
+    let title: String
     let subtitle: String
     let systemImage: String
 

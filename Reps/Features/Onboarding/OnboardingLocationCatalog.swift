@@ -60,7 +60,7 @@ struct OnboardingLocationCatalog {
         }
     }
 
-    static func localizedEquipmentKey(_ name: String) -> LocalizedStringKey {
+    static func localizedEquipmentKey(_ name: String) -> String {
         switch name {
         case "Barbell":    return "equip_barbell"
         case "Dumbbells":  return "equip_dumbbells"
@@ -70,7 +70,7 @@ struct OnboardingLocationCatalog {
         case "Bench":      return "equip_bench"
         case "Bodyweight": return "equip_bodyweight"
         case "Cardio":     return "equip_cardio"
-        default:           return LocalizedStringKey(name)
+        default:           return localizedString(name)
         }
     }
 }
@@ -83,6 +83,6 @@ struct OnboardingTrainingLocationOption: Identifiable, Equatable {
     let profileLocation: UserProfile.TrainingLocation
     let equipment: [String]
 
-    var title: LocalizedStringKey { LocalizedStringKey(titleKey) }
-    var subtitle: LocalizedStringKey { LocalizedStringKey(subtitleKey) }
+    var title: String { titleKey }
+    var subtitle: String { subtitleKey }
 }

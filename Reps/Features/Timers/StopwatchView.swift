@@ -90,14 +90,14 @@ struct StopwatchView: View {
     }
 
     private func controlButton(
-        title: LocalizedStringKey,
+        title: String,
         systemImage: String,
         tint: Color,
         foreground: Color = .black,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
+            Label(localizedKey(title), systemImage: systemImage)
                 .font(.subheadline.weight(.bold))
                 .frame(maxWidth: .infinity)
                 .frame(height: PulseTheme.minTapTarget)

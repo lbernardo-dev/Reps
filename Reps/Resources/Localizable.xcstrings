@@ -238,7 +238,20 @@
       }
     },
     "-- %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "-- %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "-- %@"
+          }
+        }
+      }
     },
     "-%.0f" : {
       "extractionState" : "stale",
@@ -320,6 +333,125 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "-15s"
+          }
+        }
+      }
+    },
+    "active_kcal_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active kilocalories"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kilocalorías activas"
+          }
+        }
+      }
+    },
+    "avg_rpe_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avg RPE"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RPE medio"
+          }
+        }
+      }
+    },
+    "gym_workout_hero" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gym Workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entreno en gimnasio"
+          }
+        }
+      }
+    },
+    "home_workout_hero" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home Workout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entreno en casa"
+          }
+        }
+      }
+    },
+    "sets_label" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sets"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series"
+          }
+        }
+      }
+    },
+    "total_volume_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total volume"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volumen total"
+          }
+        }
+      }
+    },
+    "workout_time_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workout time"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiempo de entreno"
           }
         }
       }
@@ -5264,9 +5396,15 @@
     },
     "%@ · %@ · %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@ · %3$@"
+          }
+        },
         "es" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "%1$@ · %2$@ · %3$@"
           }
         }
@@ -5274,19 +5412,31 @@
     },
     "%@ · set %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · set %2$@"
+          }
+        },
         "es" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · set %2$@"
+            "state" : "translated",
+            "value" : "%1$@ · serie %2$@"
           }
         }
       }
     },
     "%@ / %@ %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ / %2$@ %3$@"
+          }
+        },
         "es" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "%1$@ / %2$@ %3$@"
           }
         }
@@ -5717,9 +5867,15 @@
     },
     "%@%@ kcal" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@%2$@ kcal"
+          }
+        },
         "es" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "%1$@%2$@ kcal"
           }
         }
@@ -6718,10 +6874,16 @@
     },
     "1RM Est: %@ %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1RM Est: %1$@ %2$@"
+          }
+        },
         "es" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "1RM Est: %1$@ %2$@"
+            "state" : "translated",
+            "value" : "1RM est.: %1$@ %2$@"
           }
         }
       }
@@ -69342,6 +69504,40 @@
         }
       }
     },
+    "rest_and_recover_message_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You already trained today — time to recover. Tomorrow's best window: %1$@, %2$@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya has entrenado hoy: toca recuperar. Mejor ventana de mañana: %1$@, %2$@."
+          }
+        }
+      }
+    },
+    "rest_and_recover_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest and recover"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descansa y recupérate"
+          }
+        }
+      }
+    },
     "rest_between_exercises_format" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -73788,23 +73984,6 @@
         }
       }
     },
-    "sets_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sets"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Series"
-          }
-        }
-      }
-    },
     "sets_logged_count_format" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -73879,13 +74058,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%d sets · %d kg"
+            "value" : "%1$d sets · %2$d %3$@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%d series · %d kg"
+            "value" : "%1$d series · %2$d %3$@"
           }
         }
       }

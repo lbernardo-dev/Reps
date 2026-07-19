@@ -40,7 +40,7 @@ enum ProgressSection: String, CaseIterable, Identifiable {
 
   var id: String { rawValue }
 
-  var title: LocalizedStringKey {
+  var title: String {
     switch self {
     case .general: "general_label"
     case .exercises: "exercises_3"
@@ -93,7 +93,7 @@ enum ProgressRange: String, CaseIterable, Identifiable {
 
   var id: String { rawValue }
 
-  var title: LocalizedStringKey {
+  var title: String {
     switch self {
     case .week: "week_label"
     case .month: "month_label"
@@ -102,7 +102,7 @@ enum ProgressRange: String, CaseIterable, Identifiable {
     }
   }
 
-  var subtitle: LocalizedStringKey {
+  var subtitle: String {
     switch self {
     case .week: "this_week"
     case .month: "this_month"

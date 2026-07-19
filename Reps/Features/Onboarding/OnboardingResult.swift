@@ -2,7 +2,9 @@ import Foundation
 
 struct OnboardingResult {
     var profile: UserProfile
-    var bodyMetric: BodyMetric
+    /// nil when the user skipped the baseline step (e.g. "I build my own
+    /// plan"), so placeholder height/weight never get persisted as real data.
+    var bodyMetric: BodyMetric?
     var plan: WorkoutPlan?
     var activatePlan: Bool
 }

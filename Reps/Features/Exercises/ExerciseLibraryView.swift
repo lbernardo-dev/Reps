@@ -231,7 +231,7 @@ struct ExerciseLibraryView: View {
             Picker(localizedString("Training type"), selection: $selectedType) {
                 Text(localizedString("All")).tag(Optional<Exercise.ExerciseType>.none)
                 ForEach(Exercise.ExerciseType.allCases) { type in
-                    Text(type.localizedTitle).tag(Optional(type))
+                    Text(localizedKey(type.localizedTitle)).tag(Optional(type))
                 }
             }
             .pickerStyle(.segmented)
@@ -1320,7 +1320,7 @@ private enum ExerciseTextLocalizer {
 }
 
 private extension Exercise.ExerciseType {
-    var localizedTitle: LocalizedStringKey {
+    var localizedTitle: String {
         switch self {
         case .strength: "Strength"
         case .cardio: "Cardio"
@@ -1332,7 +1332,7 @@ private extension Exercise.ExerciseType {
 }
 
 private extension Exercise.Difficulty {
-    var localizedTitle: LocalizedStringKey {
+    var localizedTitle: String {
         switch self {
         case .low: "Beginner"
         case .medium: "Intermediate"
@@ -1350,7 +1350,7 @@ private extension Exercise.Difficulty {
 }
 
 private extension Exercise.Environment {
-    var localizedTitle: LocalizedStringKey {
+    var localizedTitle: String {
         switch self {
         case .home: "Home"
         case .gym: "Gym"
@@ -1455,7 +1455,7 @@ private struct ExerciseMetadataChips: View {
 }
 
 private struct MetadataChip: View {
-    let title: LocalizedStringKey
+    let title: String
     let systemImage: String
 
     var body: some View {

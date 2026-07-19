@@ -300,7 +300,7 @@ struct QuickMenuProgressionChart: View {
             HStack(spacing: 0) {
                 ForEach(ProgressionMetricType.allCases) { type in
                     let isSelected = selectedMetric == type
-                    Text(type.displayName)
+                    Text(localizedKey(type.displayName))
                         .font(.system(size: 11, weight: isSelected ? .bold : .medium, design: .rounded))
 	                        .foregroundStyle(isSelected ? PulseTheme.mediaText : PulseTheme.mediaText.opacity(0.45))
                         .padding(.vertical, 7)

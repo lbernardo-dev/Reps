@@ -387,7 +387,7 @@ struct ProgressDashboardView: View {
     ) {
       Picker("range", selection: $selectedRange) {
         ForEach(ProgressRange.allCases) { range in
-          Text(range.title).tag(range)
+          Text(localizedKey(range.title)).tag(range)
         }
       }
       .pickerStyle(.segmented)
@@ -534,7 +534,7 @@ struct ProgressDashboardView: View {
                           .background(PulseTheme.accent.opacity(0.12))
                           .clipShape(Circle())
                         VStack(alignment: .leading, spacing: 3) {
-                          Text(log.activityType.displayName)
+                          Text(localizedKey(log.activityType.displayName))
                             .font(.subheadline.weight(.bold))
                           Text(log.date.formatted(date: .abbreviated, time: .shortened))
                             .font(.caption)
@@ -1521,8 +1521,8 @@ struct ProgressDashboardView: View {
               
               if sessions.isEmpty {
                   PulseEmptyState(
-                      title: LocalizedStringKey(localizedString("no_cardio_sessions")),
-                      message: LocalizedStringKey(localizedString("start_cardio_to_see_trends")),
+                      title: localizedString("no_cardio_sessions"),
+                      message: localizedString("start_cardio_to_see_trends"),
                       systemImage: "figure.walk"
                   )
               } else {
@@ -1624,8 +1624,8 @@ struct ProgressDashboardView: View {
               
               if sessions.isEmpty {
                   PulseEmptyState(
-                      title: LocalizedStringKey(localizedString("no_strength_sessions")),
-                      message: LocalizedStringKey(localizedString("start_strength_to_see_trends")),
+                      title: localizedString("no_strength_sessions"),
+                      message: localizedString("start_strength_to_see_trends"),
                       systemImage: "figure.strengthtraining.traditional"
                   )
               } else {
@@ -1714,8 +1714,8 @@ struct ProgressDashboardView: View {
               
               if sessions.isEmpty {
                   PulseEmptyState(
-                      title: LocalizedStringKey(localizedString("no_core_sessions")),
-                      message: LocalizedStringKey(localizedString("start_core_to_see_trends")),
+                      title: localizedString("no_core_sessions"),
+                      message: localizedString("start_core_to_see_trends"),
                       systemImage: "figure.core.training"
                   )
               } else {
@@ -1785,7 +1785,7 @@ private struct EvolutionDayPoint: Identifiable {
 }
 
 private extension CardioLog.ActivityType {
-  var displayName: LocalizedStringKey {
+  var displayName: String {
     switch self {
     case .treadmill: "treadmill_label"
     case .elliptical: "elliptical_label"

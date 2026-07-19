@@ -3,15 +3,15 @@ import SwiftUI
 /// A single explanation block inside an `InfoExplainerSheet` (a heading + body of prose).
 struct InfoExplainerSection: Identifiable {
     let id = UUID()
-    let heading: LocalizedStringKey
-    let body: LocalizedStringKey
+    let heading: String
+    let body: String
 }
 
 /// Modal "tap ? to learn more" sheet used across the app to explain the science/formula
 /// behind a metric — mirrors the competitive audit's "About hydration" / "About sleep" pattern.
 struct InfoExplainerSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let title: LocalizedStringKey
+    let title: String
     var icon: String = "sparkles"
     let sections: [InfoExplainerSection]
 
@@ -27,7 +27,7 @@ struct InfoExplainerSheet: View {
                             .background(PulseTheme.accent)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                        Text(title)
+                        Text(localizedKey(title))
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .fixedSize(horizontal: false, vertical: true)
 
@@ -36,9 +36,9 @@ struct InfoExplainerSheet: View {
 
                     ForEach(sections) { section in
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(section.heading)
+                            Text(localizedKey(section.heading))
                                 .font(.subheadline.weight(.bold))
-                            Text(section.body)
+                            Text(localizedKey(section.body))
                                 .font(.subheadline)
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -78,14 +78,14 @@ struct InfoExplainerSheet: View {
 /// Small "?" affordance that owns its own presentation state — drop next to any metric
 /// to give it a tap-to-explain popup without call sites managing a `@State` flag themselves.
 struct InfoButton: View {
-    private let title: LocalizedStringKey
+    private let title: String
     private let icon: String
     private let sheetIcon: String
     private let sections: [InfoExplainerSection]
     @State private var isPresented = false
 
     init(
-        _ title: LocalizedStringKey,
+        _ title: String,
         icon: String = "questionmark.circle.fill",
         sheetIcon: String = "sparkles",
         sections: [InfoExplainerSection]
@@ -106,7 +106,7 @@ struct InfoButton: View {
                 .foregroundStyle(PulseTheme.secondaryText)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(title)
+        .accessibilityLabel(localizedKey(title))
         .sheet(isPresented: $isPresented) {
             InfoExplainerSheet(title: title, icon: sheetIcon, sections: sections)
         }

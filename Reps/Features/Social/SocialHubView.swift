@@ -166,7 +166,7 @@ struct SocialHubView: View {
             Spacer()
             PulseEmptyState(
                 title: "social_age_gate_title",
-                message: LocalizedStringKey(socialAgeGateMessageKey),
+                message: socialAgeGateMessageKey,
                 systemImage: "person.badge.shield.checkmark"
             )
             Button {

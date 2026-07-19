@@ -5,7 +5,7 @@ import SwiftUI
 /// Watch / Fitbod-style factor rings shown in the competitive audit.
 struct ReadinessGauge: View {
     let value: Double          // 0...100
-    var label: LocalizedStringKey? = nil
+    var label: String? = nil
     var lineWidth: CGFloat = 6
     var size: CGFloat = 64
     var showsValue: Bool = true
@@ -43,7 +43,7 @@ struct ReadinessGauge: View {
             .frame(width: size, height: size)
 
             if let label {
-                Text(label)
+                Text(localizedKey(label))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(1)
@@ -62,7 +62,7 @@ struct ReadinessGauge: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label ?? "")
+        .accessibilityLabel(label.map(localizedKey) ?? "")
         .accessibilityValue("\(Int(clamped.rounded()))")
     }
 }
@@ -70,7 +70,7 @@ struct ReadinessGauge: View {
 /// Large hero variant used for the primary readiness score (e.g. "77 · high").
 struct ReadinessHeroGauge: View {
     let value: Double
-    let statusLabel: LocalizedStringKey
+    let statusLabel: String
 
     var body: some View {
         HStack(spacing: 16) {
@@ -80,7 +80,7 @@ struct ReadinessHeroGauge: View {
                 Text(Int(value.rounded()).formatted())
                     .font(.system(size: 40, weight: .heavy, design: .rounded))
                     .foregroundStyle(PulseTheme.textPrimary)
-                Text(statusLabel)
+                Text(localizedKey(statusLabel))
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(PulseTheme.secondaryText)
             }

@@ -6,7 +6,7 @@ struct ProgressExecutiveCard: View {
   let sessions: Int
   let volumeKg: Int
   let bestEstimatedOneRepMaxKg: Int
-  let rangeTitle: LocalizedStringKey
+  let rangeTitle: String
   let primaryInsight: FitnessMetrics.TrainingInsight?
   let onOpenExercises: () -> Void
   let onOpenHistory: () -> Void
@@ -108,7 +108,7 @@ struct ProgressExecutiveCard: View {
 
 struct ProgressExecutiveMetric: View {
   let value: String
-  let label: LocalizedStringKey
+  let label: String
   let systemImage: String
   let color: Color
 
@@ -136,8 +136,8 @@ struct ProgressExecutiveMetric: View {
 
 
 struct ProgressToolTile: View {
-  let title: LocalizedStringKey
-  let subtitle: LocalizedStringKey
+  let title: String
+  let subtitle: String
   let systemImage: String
   let color: Color
 

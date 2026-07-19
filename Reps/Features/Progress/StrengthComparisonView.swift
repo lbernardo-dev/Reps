@@ -398,8 +398,8 @@ struct StrengthComparisonView: View {
             if filteredExercises.isEmpty {
                 PulseCard {
                     PulseEmptyState(
-                        title: LocalizedStringKey("comparison_no_history_title"),
-                        message: LocalizedStringKey("comparison_no_history_msg"),
+                        title: "comparison_no_history_title",
+                        message: "comparison_no_history_msg",
                         systemImage: "dumbbell"
                     )
                     .padding(.vertical, 8)

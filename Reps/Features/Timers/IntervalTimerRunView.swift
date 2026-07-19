@@ -25,7 +25,7 @@ struct IntervalTimerRunView: View {
         .padding(.horizontal, PulseTheme.screenHorizontalPadding)
         .padding(.top, 20)
         .screenBackground()
-        .navigationTitle(kind.title)
+        .navigationTitle(localizedKey(kind.title))
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
     }
@@ -84,7 +84,7 @@ struct IntervalTimerRunView: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
 
-                    Text(phaseLabel(engine.phase))
+                    Text(localizedKey(phaseLabel(engine.phase)))
                         .font(.system(size: 13, weight: .black, design: .rounded))
                         .tracking(2)
                         .foregroundStyle(engine.phase == .rest ? PulseTheme.ringStand : kind.tint)
@@ -171,10 +171,10 @@ struct IntervalTimerRunView: View {
     }
 
     @ViewBuilder
-    private func controlButton(title: LocalizedStringKey, systemImage: String, action: @escaping () -> Void) -> some View {
+    private func controlButton(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
         let tint = systemImage == "play.fill" ? PulseTheme.playControl : (systemImage == "pause.fill" ? PulseTheme.pauseControl : PulseTheme.grouped)
         Button(action: action) {
-            Label(title, systemImage: systemImage)
+            Label(localizedKey(title), systemImage: systemImage)
                 .font(.subheadline.weight(.bold))
                 .frame(maxWidth: .infinity)
                 .frame(height: PulseTheme.minTapTarget)
@@ -185,7 +185,7 @@ struct IntervalTimerRunView: View {
         .buttonStyle(.plain)
     }
 
-    private func phaseLabel(_ phase: IntervalTimerEngine.Phase) -> LocalizedStringKey {
+    private func phaseLabel(_ phase: IntervalTimerEngine.Phase) -> String {
         switch phase {
         case .work: kind.isSingleDuration ? "go" : "work"
         case .rest: "rest"
@@ -195,14 +195,14 @@ struct IntervalTimerRunView: View {
 }
 
 private struct DurationStepperRow: View {
-    let title: LocalizedStringKey
+    let title: String
     @Binding var seconds: Int
     let step: Int
     let range: ClosedRange<Int>
 
     var body: some View {
         HStack {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.headline)
             Spacer()
             Stepper(value: $seconds, in: range, step: step) {
@@ -216,13 +216,13 @@ private struct DurationStepperRow: View {
 }
 
 private struct RoundsStepperRow: View {
-    let title: LocalizedStringKey
+    let title: String
     @Binding var value: Int
     let range: ClosedRange<Int>
 
     var body: some View {
         HStack {
-            Text(title)
+            Text(localizedKey(title))
                 .font(.headline)
             Spacer()
             Stepper(value: $value, in: range) {

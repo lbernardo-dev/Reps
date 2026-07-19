@@ -834,7 +834,13 @@ struct RepsTests {
         #expect(SeedData.defaultPlans.flatMap(\.days).flatMap(\.exercises).contains { $0.progressionType != .none })
     }
 
-    @Test @MainActor func appStoreMergesSeedPlansIntoEmptySnapshot() {
+    @Test @MainActor func appStoreLeavesEmptySnapshotPlansEmptyAndExposesCatalogSeparately() {
+        // `plans` holds only plans the user actually owns; the browsable program
+        // catalog lives in `SeedData.defaultPlans` and is rendered separately by
+        // `ProgramLibraryView` (see `AppStore.stripSeedPlans`). Auto-merging the
+        // catalog into `plans` was a prior regression that broke
+        // `canCreateAnotherPlan`'s free-tier check — this asserts the fixed
+        // behavior instead of the old bug.
         let persistence = SwiftDataPersistence(inMemory: true)
         var snapshot = AppSnapshot.empty
         snapshot.plans = []
@@ -842,9 +848,10 @@ struct RepsTests {
 
         let store = AppStore(persistence: persistence)
 
-        #expect(store.plans.count >= SeedData.defaultPlans.count)
-        #expect(store.plans.contains { $0.name == "Full Body Beginner 3-Day" })
-        #expect(store.plans.contains { $0.name == "Express 30-Minute Strength" })
+        #expect(store.plans.isEmpty)
+        #expect(SeedData.defaultPlans.count >= 13)
+        #expect(SeedData.defaultPlans.contains { $0.name == "Full Body Beginner 3-Day" })
+        #expect(SeedData.defaultPlans.contains { $0.name == "Express 30-Minute Strength" })
     }
 
     @Test func substitutionRespectsAvailableEquipment() {

@@ -383,8 +383,8 @@ struct TrainingBatteryView: View {
 
     private func readinessFactorGauge(
         value: Double,
-        label: LocalizedStringKey,
-        infoTitle: LocalizedStringKey,
+        label: String,
+        infoTitle: String,
         infoSections: [InfoExplainerSection]
     ) -> some View {
         VStack(spacing: 8) {
