@@ -670,7 +670,16 @@ struct ProfileSetupView: View {
     }
 
     private var bottomContentPadding: CGFloat {
-        step == .ready ? 128 : 82
+        switch step {
+        case .ready:
+            128
+        case .baseline, .equipment:
+            // These are the two longest form steps. Keep their final controls
+            // comfortably above the persistent CTA at all Dynamic Type sizes.
+            120
+        default:
+            82
+        }
     }
 
     private var scheduleHelperText: String {
@@ -1232,6 +1241,8 @@ private struct EquipmentChip: View {
         Button(action: action) {
             Text(localizedKey(title))
                 .font(.subheadline.weight(.bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
                 .padding(.horizontal, 14)
                 .frame(height: 40)
                 .contentShape(Capsule())
@@ -1249,7 +1260,7 @@ private struct FlowLayout<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: spacing)], alignment: .leading, spacing: spacing) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 122), spacing: spacing)], alignment: .leading, spacing: spacing) {
             content
         }
     }

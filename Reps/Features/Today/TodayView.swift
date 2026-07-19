@@ -4549,8 +4549,11 @@ private enum WeatherRefreshPolicy {
     /// Respects MET Norway cache guidance and prevents relaunch request storms.
     static let metWeatherMinimumInterval: TimeInterval = 30 * 60
 
-    static let lastAppleRequestKey = "weather.lastAppleRequestAt"
-    static let lastMETWeatherRequestKey = "weather.lastMETNorwayRequestAt"
+    // Throttling failed attempts strands the user without weather until the
+    // interval expires. These v2 keys deliberately record successful fetches
+    // only; renaming also releases devices affected by the previous behavior.
+    static let lastAppleSuccessKey = "weather.lastAppleSuccessAt.v2"
+    static let lastMETWeatherSuccessKey = "weather.lastMETNorwaySuccessAt.v2"
 }
 
 @MainActor
@@ -4762,7 +4765,6 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
     }
 
     private func fetchWeatherKit(for location: CLLocation) async {
-        defaults.set(Date.now, forKey: WeatherRefreshPolicy.lastAppleRequestKey)
         scheduleMETWeatherFallbackIfNeeded(for: location)
         phase = .loading
         do {
@@ -4793,6 +4795,7 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
             )
             self.payload = payload
             self.attribution = .apple(attribution)
+            defaults.set(Date.now, forKey: WeatherRefreshPolicy.lastAppleSuccessKey)
             metWeatherFallbackTask?.cancel()
             metWeatherFallbackTask = nil
             apply(payload, units: requestedUnits)
@@ -4835,7 +4838,6 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
             phase = .failed(localizedString("weather_all_services_unavailable"))
             return
         }
-        defaults.set(Date.now, forKey: WeatherRefreshPolicy.lastMETWeatherRequestKey)
         phase = .loadingFallback
         do {
             let forecast = try await metWeatherClient.forecast(for: location)
@@ -4854,6 +4856,7 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
                 fetchedAt: .now
             )
             metWeatherPayload = payload
+            defaults.set(Date.now, forKey: WeatherRefreshPolicy.lastMETWeatherSuccessKey)
             await metWeatherDiskCache.save(METWeatherCacheRecord(
                 forecast: forecast,
                 locationName: resolvedLocation.name,
@@ -4869,6 +4872,10 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
         } catch is CancellationError {
             // A successful Apple response superseded this request.
         } catch {
+            TelemetryService.shared.record(error, context: "met_norway_forecast")
+            #if DEBUG
+            print("MET Norway request failed: \(error) — \((error as NSError).domain)/\((error as NSError).code)")
+            #endif
             if !applyStaleMETWeatherPayload(near: location) {
                 phase = .failed(localizedString("weather_all_services_unavailable"))
             }
@@ -4876,14 +4883,17 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
     }
 
     private var shouldRequestWeatherKit: Bool {
-        guard let lastRequest = defaults.object(forKey: WeatherRefreshPolicy.lastAppleRequestKey) as? Date else {
+        // With no usable in-memory result there is nothing worth throttling.
+        guard payload != nil,
+              let lastRequest = defaults.object(forKey: WeatherRefreshPolicy.lastAppleSuccessKey) as? Date else {
             return true
         }
         return Date.now.timeIntervalSince(lastRequest) >= WeatherRefreshPolicy.appleMinimumInterval
     }
 
     private var shouldRequestMETWeather: Bool {
-        guard let lastRequest = defaults.object(forKey: WeatherRefreshPolicy.lastMETWeatherRequestKey) as? Date else {
+        guard metWeatherPayload != nil,
+              let lastRequest = defaults.object(forKey: WeatherRefreshPolicy.lastMETWeatherSuccessKey) as? Date else {
             return true
         }
         return Date.now.timeIntervalSince(lastRequest) >= WeatherRefreshPolicy.metWeatherMinimumInterval
