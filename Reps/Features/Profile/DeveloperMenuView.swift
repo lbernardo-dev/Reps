@@ -1,4 +1,4 @@
-#if DEBUG
+#if DEBUG && targetEnvironment(simulator)
 import SwiftUI
 
 struct DeveloperMenuView: View {

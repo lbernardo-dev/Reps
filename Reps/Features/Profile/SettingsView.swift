@@ -173,7 +173,7 @@ struct SettingsView: View {
             }
             .stickyHeaderTitle(settingsDisplayText("about"))
 
-            #if DEBUG
+            #if DEBUG && targetEnvironment(simulator)
             settingsSection("advanced", systemImage: "wrench.and.screwdriver.fill") {
                 SettingsNavigationRow(
                     title: "developer_tools",
@@ -426,7 +426,7 @@ struct SettingsView: View {
                     ])
                 ]
             )
-        #if DEBUG
+        #if DEBUG && targetEnvironment(simulator)
         case .developerMenu:
             DeveloperMenuView()
         #endif
@@ -527,7 +527,7 @@ private enum SettingsDestination: String, Identifiable {
     case reminders
     case information
     case whatsNew
-    #if DEBUG
+    #if DEBUG && targetEnvironment(simulator)
     case developerMenu
     #endif
 
