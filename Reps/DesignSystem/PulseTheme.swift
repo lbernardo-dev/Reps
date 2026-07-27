@@ -179,6 +179,11 @@ enum PulseTheme {
     static let pillRadius: CGFloat = 999
     static let screenHorizontalPadding: CGFloat = 16
     static let screenBottomContentPadding: CGFloat = 24
+    /// Extra scroll runway for tab roots that contain mandatory or actionable
+    /// footer content. iPadOS 26's floating tab bar and bottom accessory can
+    /// visually cover the last row even though the ScrollView reports a much
+    /// smaller bottom safe-area inset.
+    static let mainTabFooterClearance: CGFloat = 120
     static let minTapTarget: CGFloat = 44
     static let spacingXS: CGFloat = 6
     static let spacingS: CGFloat = 10
@@ -1031,6 +1036,9 @@ enum RepsText {
         if let activityTitle = localizedKnownWorkoutTitle(value, language: language) {
             return activityTitle
         }
+        if let direct = localizedCatalogValue(value, defaultValue: value, language: language), direct != value {
+            return direct
+        }
         return localizedTerm(prefix: "workout.title", value: value, defaultValue: value, language: language)
     }
 
@@ -1306,7 +1314,10 @@ struct SectionHeader: View {
     @Environment(\.locale) private var locale
 
     var body: some View {
-        Text(verbatim: String(localized: String.LocalizationValue(title), locale: locale).capitalizingFirstLetter())
+        // Dynamic keys do not reliably pick the profile-selected language via
+        // Text's localization initializer. Route them through the app's
+        // explicit localization bundle, as the rest of the UI does.
+        Text(verbatim: localizedString(title).capitalizingFirstLetter())
             .font(.subheadline.weight(.bold))
             .foregroundStyle(PulseTheme.textSecondary)
             .accessibilityAddTraits(.isHeader)

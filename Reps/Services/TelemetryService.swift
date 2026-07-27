@@ -17,6 +17,7 @@ final class TelemetryService {
     static let shared = TelemetryService()
 
     private(set) var isConfigured = false
+    private var didApplyFirebaseRuntimeSettings = false
 
     private init() {}
 
@@ -34,6 +35,8 @@ final class TelemetryService {
         #else
         isConfigured = false
         #endif
+
+        applyFirebaseRuntimeSettingsIfNeeded()
 
         #if canImport(FirebaseCrashlytics)
         if isConfigured {
@@ -137,6 +140,34 @@ final class TelemetryService {
         configure()
     }
 
+    private func applyFirebaseRuntimeSettingsIfNeeded() {
+        guard isConfigured, !didApplyFirebaseRuntimeSettings else { return }
+        didApplyFirebaseRuntimeSettings = true
+
+        let bundle = Bundle.main
+        let appVersion = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        let buildNumber = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        let bundleID = bundle.bundleIdentifier ?? "unknown"
+
+        #if canImport(FirebaseAnalytics)
+        Analytics.setAnalyticsCollectionEnabled(true)
+        Analytics.setDefaultEventParameters([
+            "app_version": appVersion,
+            "build_number": buildNumber,
+            "bundle_id": bundleID
+        ])
+        #endif
+
+        #if canImport(FirebaseCrashlytics)
+        let crashlytics = Crashlytics.crashlytics()
+        crashlytics.setCrashlyticsCollectionEnabled(true)
+        crashlytics.setCustomValue(appVersion, forKey: "app_version")
+        crashlytics.setCustomValue(buildNumber, forKey: "build_number")
+        crashlytics.setCustomValue(bundleID, forKey: "bundle_id")
+        crashlytics.setCustomValue("reps-241f8", forKey: "firebase_project_id")
+        #endif
+    }
+
     private static var isDisabledForCurrentProcess: Bool {
         let environment = ProcessInfo.processInfo.environment
         return environment["XCTestConfigurationFilePath"] != nil
@@ -145,6 +176,9 @@ final class TelemetryService {
 
     private func sanitize(_ parameters: [String: Any?]) -> [String: Any] {
         parameters.reduce(into: [:]) { result, item in
+            guard !Self.isSensitiveParameterKey(item.key) else {
+                return
+            }
             guard let value = item.value else {
                 return
             }
@@ -164,6 +198,19 @@ final class TelemetryService {
                 result[item.key] = String(describing: value).prefix(80).description
             }
         }
+    }
+
+    private static func isSensitiveParameterKey(_ key: String) -> Bool {
+        let normalized = key.lowercased()
+        return [
+            "email",
+            "user_email",
+            "display_name",
+            "full_name",
+            "alias",
+            "username",
+            "social_username"
+        ].contains(normalized)
     }
 }
 

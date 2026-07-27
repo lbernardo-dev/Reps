@@ -13428,6 +13428,23 @@
         }
       }
     },
+    "apple_music_background_active" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playing · continues in background"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduciendo · continúa en segundo plano"
+          }
+        }
+      }
+    },
     "apple_music_conectado" : {
       "localizations" : {
         "en" : {
@@ -39005,7 +39022,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Heavy press and row"
+            "value" : "Press y remo pesados"
           }
         }
       }
@@ -45627,7 +45644,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leg volume and glutes"
+            "value" : "Volumen de piernas y glúteos"
           }
         }
       }
@@ -47408,7 +47425,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lower Hypertrophy"
+            "value" : "Hipertrofia tren inferior"
           }
         }
       }
@@ -47442,7 +47459,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lower Strength"
+            "value" : "Fuerza tren inferior"
           }
         }
       }
@@ -59297,13 +59314,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restore licenses"
+            "value" : "Restore purchases"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restaurar licencias"
+            "value" : "Restaurar compras"
           }
         }
       }
@@ -77988,7 +78005,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Squat and hinge focus"
+            "value" : "Enfoque en sentadilla y bisagra"
           }
         }
       }
@@ -85212,7 +85229,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Upper Hypertrophy"
+            "value" : "Hipertrofia tren superior"
           }
         }
       }
@@ -85280,7 +85297,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Upper Strength"
+            "value" : "Fuerza tren superior"
           }
         }
       }
@@ -86752,7 +86769,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Volume for chest, back and delts"
+            "value" : "Volumen para pecho, espalda y deltoides"
           }
         }
       }

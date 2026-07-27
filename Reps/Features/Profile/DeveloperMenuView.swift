@@ -8,6 +8,7 @@ struct DeveloperMenuView: View {
     @State private var showDeleteAllConfirmation = false
     @State private var showRestartOnboardingConfirmation = false
     @State private var showPremiumDemoConfirmation = false
+    @State private var showCrashlyticsTestConfirmation = false
     @State private var localPaywall: PaywallPresentation?
 
     var body: some View {
@@ -92,6 +93,19 @@ struct DeveloperMenuView: View {
                 } footer: {
                     Text("dev_menu_debug_only_footer")
                 }
+
+                Section {
+                    Button(role: .destructive) {
+                        HapticService.notification(.warning)
+                        showCrashlyticsTestConfirmation = true
+                    } label: {
+                        Text("Forzar crash de prueba")
+                    }
+                } header: {
+                    Text("Firebase Crashlytics")
+                } footer: {
+                    Text("Solo Debug. Reabre la app despues para que Crashlytics envie el reporte.")
+                }
             }
             .navigationTitle("dev_menu_title")
             .navigationBarTitleDisplayMode(.inline)
@@ -135,6 +149,18 @@ struct DeveloperMenuView: View {
                 Button("cancel", role: .cancel) {}
             } message: {
                 Text("dev_restart_onboarding_footer")
+            }
+            .confirmationDialog(
+                "Forzar crash de prueba",
+                isPresented: $showCrashlyticsTestConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Crash ahora", role: .destructive) {
+                    TelemetryService.shared.triggerTestCrash()
+                }
+                Button("cancel", role: .cancel) {}
+            } message: {
+                Text("La app se cerrara intencionadamente para validar Crashlytics.")
             }
             .fullScreenCover(item: $localPaywall) { presentation in
                 PaywallView(presentation: presentation) { reason in

@@ -248,22 +248,24 @@ struct WorkoutPostCard: View {
     @ViewBuilder
     private var commentsPreview: some View {
         if let commentSummary, commentSummary.count > 0 {
-            VStack(alignment: .leading, spacing: 3) {
-                if commentSummary.count > 1 {
-                    Text(localizedFormat("comments_view_all", commentSummary.count))
-                        .font(.subheadline)
-                        .foregroundStyle(PulseTheme.secondaryText)
+            Button(action: onComment) {
+                VStack(alignment: .leading, spacing: 3) {
+                    if commentSummary.count > 1 {
+                        Text(localizedFormat("comments_view_all", commentSummary.count))
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    if let last = commentSummary.lastComment {
+                        Text("@\(last.ownerUsername) \(last.text)")
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                    }
                 }
-                if let last = commentSummary.lastComment {
-                    Text("@\(last.ownerUsername) \(last.text)")
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-            .onTapGesture(perform: onComment)
+            .buttonStyle(.plain)
+            .accessibilityHint(localizedString("comments"))
             .padding(.horizontal, 14)
             .padding(.top, 2)
             .padding(.bottom, 12)

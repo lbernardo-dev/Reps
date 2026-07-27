@@ -4,6 +4,8 @@ DerivedData/
 .derived-release-device/
 .asc/artifacts/
 .asc/signing/
+.asc/DerivedDataDevice/
+.asc/DerivedDataReview/
 
 # Instruments trace output
 traces/

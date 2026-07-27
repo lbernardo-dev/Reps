@@ -94,18 +94,22 @@ struct PaywallView: View {
         Button {
             Task { await restorePurchases() }
         } label: {
-            Group {
+            HStack(spacing: 7) {
                 if isRestoring {
                     ProgressView()
                         .tint(PulseTheme.textPrimary)
                 } else {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(PulseTheme.textPrimary)
                 }
+
+                Text(localizedString(isRestoring ? "paywall_restoring" : "paywall_restore_licenses"))
+                    .font(.caption.weight(.semibold))
             }
-            .frame(minWidth: 44, minHeight: 44)
-            .navigationGlassCircle(.secondary)
+            .foregroundStyle(PulseTheme.textPrimary)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
+            .navigationGlassCapsule(.secondary)
         }
         .buttonStyle(.plain)
         .disabled(isRestoring)

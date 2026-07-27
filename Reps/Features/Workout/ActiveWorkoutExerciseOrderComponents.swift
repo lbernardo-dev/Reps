@@ -10,8 +10,6 @@ struct ActiveExerciseOrderCard: View {
     let onDelete: (Int) -> Void
 
     @State private var pendingDeleteIndex: Int?
-    @State private var revealedDeleteIndex: Int?
-
     /// Stable color per superset group, assigned by first appearance.
     private var groupColors: [UUID: Color] {
         let palette: [Color] = [.orange, .purple, .teal, .pink, .blue, .green]
@@ -62,21 +60,8 @@ struct ActiveExerciseOrderCard: View {
                                 isFirstInGroup: group != nil && group != prevGroup,
                                 isLinkedToNext: group != nil && group == nextGroup,
                                 language: language,
-                                isDeleteRevealed: revealedDeleteIndex == index,
                                 onMove: onMove,
                                 onToggleSuperset: onToggleSuperset,
-                                onRevealDelete: {
-                                    withAnimation(.snappy(duration: 0.2)) {
-                                        revealedDeleteIndex = index
-                                    }
-                                },
-                                onHideDelete: {
-                                    withAnimation(.snappy(duration: 0.2)) {
-                                        if revealedDeleteIndex == index {
-                                            revealedDeleteIndex = nil
-                                        }
-                                    }
-                                },
                                 onRequestDelete: {
                                     pendingDeleteIndex = index
                                 }
@@ -97,7 +82,6 @@ struct ActiveExerciseOrderCard: View {
                 guard let pendingDeleteIndex else { return }
                 onDelete(pendingDeleteIndex)
                 self.pendingDeleteIndex = nil
-                revealedDeleteIndex = nil
             }
             Button(localizedString("cancel"), role: .cancel) {
                 pendingDeleteIndex = nil
@@ -129,100 +113,81 @@ private struct ActiveExerciseOrderRow: View {
     let isFirstInGroup: Bool
     let isLinkedToNext: Bool
     let language: String
-    let isDeleteRevealed: Bool
     let onMove: (Int, Int) -> Void
     let onToggleSuperset: (Int) -> Void
-    let onRevealDelete: () -> Void
-    let onHideDelete: () -> Void
     let onRequestDelete: () -> Void
 
     var body: some View {
-        ZStack(alignment: .trailing) {
+        HStack(spacing: 8) {
+            if let groupColor {
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(groupColor)
+                    .frame(width: 3, height: 28)
+            }
+
+            Text("\(index + 1)")
+                .font(.caption.weight(.black).monospacedDigit())
+                .foregroundStyle(PulseTheme.accent)
+                .frame(width: 26, height: 26)
+                .background(PulseTheme.accent.opacity(0.12))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(RepsText.exerciseName(draft.workoutExercise.exercise.name, language: language))
+                    .font(.subheadline.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                if isFirstInGroup, let groupColor {
+                    Text("superset_label")
+                        .font(.caption2.weight(.heavy))
+                        .foregroundStyle(groupColor)
+                        .textCase(.uppercase)
+                }
+            }
+
+            Spacer(minLength: 2)
+
+            if !isLast {
+                Button {
+                    onToggleSuperset(index)
+                } label: {
+                    Image(systemName: isLinkedToNext ? "link.circle.fill" : "link")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isLinkedToNext ? (groupColor ?? PulseTheme.accent) : PulseTheme.secondaryText)
+                        .frame(width: 30, height: 32)
+                }
+                .accessibilityLabel(Text(isLinkedToNext ? "superset_remove" : "superset_create"))
+            }
+
+            Button {
+                onMove(index, index - 1)
+            } label: {
+                Image(systemName: "chevron.up")
+                    .frame(width: 28, height: 32)
+            }
+            .disabled(isFirst)
+
+            Button {
+                onMove(index, index + 1)
+            } label: {
+                Image(systemName: "chevron.down")
+                    .frame(width: 28, height: 32)
+            }
+            .disabled(isLast)
+
             Button(action: onRequestDelete) {
-                Image(systemName: "trash.fill")
-                    .font(.headline.weight(.black))
-                    .foregroundStyle(.white)
-                    .frame(width: 64, height: 48)
-                    .background(PulseTheme.destructive, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                Image(systemName: "trash")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(PulseTheme.destructive)
+                    .frame(width: 30, height: 32)
+                    .background(PulseTheme.destructive.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .buttonStyle(.plain)
             .accessibilityLabel("delete")
-
-            HStack(spacing: 10) {
-                if let groupColor {
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .fill(groupColor)
-                        .frame(width: 3, height: 28)
-                }
-
-                Text("\(index + 1)")
-                    .font(.caption.weight(.black).monospacedDigit())
-                    .foregroundStyle(PulseTheme.accent)
-                    .frame(width: 26, height: 26)
-                    .background(PulseTheme.accent.opacity(0.12))
-                    .clipShape(Circle())
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(RepsText.exerciseName(draft.workoutExercise.exercise.name, language: language))
-                        .font(.subheadline.weight(.bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                    if isFirstInGroup, let groupColor {
-                        Text("superset_label")
-                            .font(.caption2.weight(.heavy))
-                            .foregroundStyle(groupColor)
-                            .textCase(.uppercase)
-                    }
-                }
-
-                Spacer()
-
-                if !isLast {
-                    Button {
-                        onToggleSuperset(index)
-                    } label: {
-                        Image(systemName: isLinkedToNext ? "link.circle.fill" : "link")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(isLinkedToNext ? (groupColor ?? PulseTheme.accent) : PulseTheme.secondaryText)
-                            .frame(width: 32, height: 32)
-                    }
-                    .accessibilityLabel(Text(isLinkedToNext ? "superset_remove" : "superset_create"))
-                }
-
-                Button {
-                    onMove(index, index - 1)
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .frame(width: 32, height: 32)
-                }
-                .disabled(isFirst)
-
-                Button {
-                    onMove(index, index + 1)
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .frame(width: 32, height: 32)
-                }
-                .disabled(isLast)
-            }
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 10)
-            .frame(height: 48)
-            .background(isSelected ? PulseTheme.accentMuted : PulseTheme.grouped)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .offset(x: isDeleteRevealed ? -72 : 0)
-            .gesture(
-                DragGesture(minimumDistance: 18, coordinateSpace: .local)
-                    .onEnded { value in
-                        if value.translation.width < -44 {
-                            onRevealDelete()
-                        } else if value.translation.width > 24 {
-                            onHideDelete()
-                        }
-                    }
-            )
         }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 8)
         .frame(height: 48)
-        .clipped()
+        .background(isSelected ? PulseTheme.accentMuted : PulseTheme.grouped)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }

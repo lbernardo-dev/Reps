@@ -365,7 +365,12 @@ struct MainTabView: View {
   // overlay draws its own opaque backdrop above this surface.
   private var activeTabSurface: some View {
     tabShell
-      .accessibilityHidden(isQuickMenuExpanded)
+      // Prevent VoiceOver focus from escaping behind an active modal overlay.
+      .accessibilityHidden(isQuickMenuExpanded || isAchievementOverlayPresented)
+  }
+
+  private var isAchievementOverlayPresented: Bool {
+    !store.pendingAchievementUnlocks.isEmpty && store.finishedSessionForSummary == nil
   }
 
   @ViewBuilder
@@ -697,28 +702,29 @@ private struct QuickLogTabAccessory: View {
 
   var body: some View {
     Button(action: action) {
-      HStack(spacing: 12) {
+      HStack(spacing: 10) {
         Image(systemName: "plus")
-          .font(.system(size: 19, weight: .bold))
-          .frame(width: 30, height: 34)
+          .font(.system(size: 16, weight: .black))
+          .frame(width: 24, height: 28)
         Text(verbatim: localizedString("quick_log"))
-          .font(.system(size: isInline ? 18 : 17, weight: .bold, design: .rounded))
+          .font(.system(size: isInline ? 16 : 15, weight: .bold, design: .rounded))
           .lineLimit(1)
           .minimumScaleFactor(0.70)
           .layoutPriority(1)
         Spacer(minLength: 4)
         Image(systemName: "bolt.fill")
-          .font(.system(size: 20, weight: .bold))
+          .font(.system(size: 16, weight: .bold))
           .symbolRenderingMode(.hierarchical)
-          .frame(width: 30, height: 34)
+          .frame(width: 24, height: 28)
       }
-      .frame(maxWidth: .infinity)
-      .frame(height: isInline ? 58 : 56)
-      .padding(.horizontal, 16)
+      .frame(maxWidth: isInline ? .infinity : 360)
+      .frame(height: isInline ? 50 : 46)
+      .padding(.horizontal, 14)
       .contentShape(Capsule(style: .continuous))
     }
     .buttonStyle(.plain)
     .accessibilityLabel(localizedString("quick_menu_open"))
+    .accessibilityHint(localizedString("quick_actions"))
   }
 }
 

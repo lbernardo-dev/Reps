@@ -60,7 +60,7 @@ struct SettingsView: View {
             }
         ) {
             appSummaryCard
-                .stickyHeaderTitle(localizedString("app"))
+                .stickyHeaderTitle("StreakReps")
             licenseCard
                 .stickyHeaderTitle(localizedString("subscription"))
             settingsSection("personalization", systemImage: "slider.horizontal.3") {
@@ -225,17 +225,9 @@ struct SettingsView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .shadow(color: PulseTheme.surfaceShadow, radius: 10, x: 0, y: 5)
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("StreakReps")
-                            .font(SettingsTypography.appTitle)
-                            .foregroundStyle(PulseTheme.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            SettingsPill(title: settingsFormatText("settings_version_value_format", appVersion), systemImage: "info.circle.fill", tint: PulseTheme.accent)
-                            SettingsPill(title: settingsFormatText("settings_build_value_format", buildNumber), systemImage: "hammer.fill", tint: PulseTheme.secondaryText)
-                        }
+                    VStack(alignment: .leading, spacing: 6) {
+                        SettingsPill(title: settingsFormatText("settings_version_value_format", appVersion), systemImage: "info.circle.fill", tint: PulseTheme.accent)
+                        SettingsPill(title: settingsFormatText("settings_build_value_format", buildNumber), systemImage: "hammer.fill", tint: PulseTheme.secondaryText)
                     }
                     Spacer(minLength: 0)
                 }

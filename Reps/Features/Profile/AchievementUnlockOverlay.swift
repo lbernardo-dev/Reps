@@ -321,10 +321,15 @@ struct AchievementUnlockOverlay: View {
         ZStack {
             if let banner = currentBanner, showCard {
                 // Dim backdrop
-                PulseTheme.mediaScrimStrong.opacity(0.96)
-                    .ignoresSafeArea()
-                    .transition(.opacity)
-                    .onTapGesture { dismiss() }
+                Button(action: dismiss) {
+                    PulseTheme.mediaScrimStrong.opacity(0.96)
+                        .ignoresSafeArea()
+                }
+                .buttonStyle(.plain)
+                // The card contains an explicit close action; keep the backdrop
+                // tappable without exposing an unlabeled accessibility element.
+                .accessibilityHidden(true)
+                .transition(.opacity)
 
                 // Achievement card — rendered before confetti so confetti lands on top
                 AchievementUnlockCard(
@@ -362,6 +367,7 @@ struct AchievementUnlockOverlay: View {
                 .zIndex(3)
             }
         }
+        .accessibilityElement(children: .contain)
         .animation(.spring(response: 0.45, dampingFraction: 0.80), value: showCard)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showClosedAllToast)
         .onChange(of: store.pendingAchievementUnlocks) { _, unlocks in

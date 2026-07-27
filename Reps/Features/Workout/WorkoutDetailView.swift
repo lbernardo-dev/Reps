@@ -602,15 +602,16 @@ struct WorkoutMusclePreview: View {
     }
 
     private func sideTapZone(_ side: BodySide) -> some View {
-        Color.clear
-            .contentShape(Rectangle())
-            .onTapGesture {
+        Button {
                 withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
                     selectedSide = side
                 }
-            }
+        } label: {
+            Color.clear
+                .contentShape(Rectangle())
+        }
+            .buttonStyle(.plain)
             .accessibilityLabel(sideLabel(side))
-            .accessibilityAddTraits(.isButton)
     }
 
     private var heatmap: [MuscleIntensity] {

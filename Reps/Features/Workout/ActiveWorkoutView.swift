@@ -161,10 +161,9 @@ struct ActiveWorkoutView: View {
     }
 
     private var planPlaylist: PlanPlaylist? {
-        guard store.activePlan.days.contains(where: { $0.id == workout.id }) else {
-            return nil
-        }
-
+        // Playlists belong to the active plan, not to an individual day.
+        // Recommended workouts are derived copies with a different day ID, so
+        // requiring an exact ID match hid the player from those sessions.
         return store.activePlan.playlists.first
     }
 
@@ -522,6 +521,8 @@ struct ActiveWorkoutView: View {
                                 .frame(width: contentWidth)
                         } else {
                             workoutCommandCard
+                                .frame(width: contentWidth)
+                            workoutMusicCard
                                 .frame(width: contentWidth)
                             // Where am I: per-exercise progress and quick switch.
                             exerciseSwitcher
@@ -1032,9 +1033,94 @@ struct ActiveWorkoutView: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .lineLimit(1)
+
+                            HStack(spacing: 5) {
+                                PlaybackEqualizer(isPlaying: musicPlayer.isPlaying)
+                                Text(localizedString(
+                                    musicPlayer.isPlaying
+                                        ? "apple_music_background_active"
+                                        : "apple_music_paused"
+                                ))
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(
+                                    musicPlayer.isPlaying
+                                        ? PulseTheme.appleMusic
+                                        : PulseTheme.secondaryText
+                                )
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+                            }
                         }
 
                         Spacer(minLength: 8)
+
+                        MusicTransportControls(
+                            provider: playlist.provider,
+                            isPlaying: musicPlayer.isPlaying,
+                            onBack: { Task { await musicPlayer.skipBackward(playlist) } },
+                            onPlayPause: { Task { await musicPlayer.playOrPause(playlist) } },
+                            onForward: { Task { await musicPlayer.skipForward(playlist) } }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var workoutMusicCard: some View {
+        if let playlist = planPlaylist {
+            PulseCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Apple Music", systemImage: "music.note")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(PulseTheme.appleMusic)
+
+                    HStack(spacing: 12) {
+                        if let artwork = musicPlayer.currentSongArtwork {
+                            ArtworkImage(artwork, width: 48, height: 48)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        } else {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(PulseTheme.grouped)
+                                    .frame(width: 48, height: 48)
+                                Image(systemName: "music.note")
+                                    .font(.title3.weight(.bold))
+                                    .foregroundStyle(PulseTheme.appleMusic)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(musicPlayer.currentSongTitle ?? playlist.title)
+                                .font(.subheadline.weight(.bold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+
+                            Text(musicPlayer.currentSongArtist ?? musicPlayer.statusText(for: playlist))
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .lineLimit(1)
+
+                            HStack(spacing: 5) {
+                                PlaybackEqualizer(isPlaying: musicPlayer.isPlaying)
+                                Text(localizedString(
+                                    musicPlayer.isPlaying
+                                        ? "apple_music_background_active"
+                                        : "apple_music_paused"
+                                ))
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(
+                                    musicPlayer.isPlaying
+                                        ? PulseTheme.appleMusic
+                                        : PulseTheme.secondaryText
+                                )
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+                            }
+                        }
+
+                        Spacer(minLength: 4)
 
                         MusicTransportControls(
                             provider: playlist.provider,

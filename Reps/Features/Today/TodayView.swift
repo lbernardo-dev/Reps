@@ -622,6 +622,7 @@ private struct TodayViewContent: View {
             StickyHeaderScaffold(
                 title: "workout",
                 subtitle: currentDateTitle,
+                bottomContentPadding: PulseTheme.mainTabFooterClearance,
                 accessory: {
                     Button {
                         HapticService.selection()
@@ -1004,6 +1005,13 @@ private struct TodayViewContent: View {
 
             if let todayWeather, let tomorrowWeather, let attribution = weather.attribution {
                 VStack(spacing: 8) {
+                    // WeatherKit attribution must remain clearly visible. Keep
+                    // it before the forecast card instead of as a footer, where
+                    // iPadOS 26's floating tab bar and Quick Log accessory can
+                    // cover it at the natural resting scroll position.
+                    WeatherAttributionMark(attribution: attribution, showsLegalLink: true)
+                        .padding(.horizontal, 16)
+
                     Button {
                         HapticService.selection()
                         showWeatherDetail = true
@@ -1015,9 +1023,6 @@ private struct TodayViewContent: View {
                         )
                     }
                     .buttonStyle(PressableCardStyle())
-
-                    WeatherAttributionMark(attribution: attribution, showsLegalLink: true)
-                        .padding(.horizontal, 16)
                 }
             } else {
                 WeatherDataStateCard(
@@ -2041,7 +2046,10 @@ private struct TodayViewContent: View {
 
     private var planPreview: some View {
         let summary = store.activePlanExecutionSummary
-        let progress = summary?.planProgress ?? 0
+        // This card drives today's decision, so it should mirror the weekly
+        // completion shown in Plan instead of mixing two different progress
+        // horizons in the same moment.
+        let progress = summary?.adherence ?? 0
         let tint = planTint(for: summary?.loadState)
 
         return PulseCard {
@@ -4661,7 +4669,9 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
             tomorrow = snapshots.tomorrow
             attribution = .metNorway
             phase = .loaded
-            return
+            // Keep the cached fallback visible, but continue below so a fresh
+            // location can promote the card back to WeatherKit. Returning here
+            // would strand the user on MET Norway until its cache expired.
         }
 
         switch locationManager.authorizationStatus {
@@ -4752,7 +4762,8 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
         if !force,
            let metWeatherPayload,
            Date.now.timeIntervalSince(metWeatherPayload.fetchedAt) < WeatherRefreshPolicy.freshDataLifetime,
-           location.distance(from: metWeatherPayload.location) < 1_000 {
+           location.distance(from: metWeatherPayload.location) < 1_000,
+           !shouldRequestWeatherKit {
             apply(metWeatherPayload)
             return
         }
@@ -5008,7 +5019,10 @@ private struct AnimatedWeatherStatusIcon: View {
     /// background sits behind the navigation header, so its band begins lower
     /// to keep the body inside the visible sky.
     private var celestialTopBandFraction: CGFloat {
-        if isDetailBackground { return 0.10 }
+        // The detail scene has room below its navigation controls. Lower the
+        // celestial lane there so it reads as part of the sky rather than as a
+        // decoration pinned to the status bar.
+        if isDetailBackground { return 0.15 }
         if isWidgetBackground { return 0.08 }
         return 0.06
     }
@@ -5184,29 +5198,64 @@ private struct WeatherCelestialBody: View {
             let x = horizontalPosition(progress: progress, width: proxy.size.width)
             let breathe = reduceMotion ? 1 : 1 + 0.035 * sin(phase * 0.9)
 
-            Image(systemName: isNight ? "moon.stars.fill" : "sun.max.fill")
-                .font(.system(size: bodySize, weight: .bold))
-                .symbolRenderingMode(.multicolor)
-                .scaleEffect(breathe)
-                .position(x: x, y: verticalPosition(progress: progress, height: proxy.size.height, bodySize: bodySize))
-                .shadow(color: (isNight ? Color.white : Color.yellow).opacity(0.30), radius: 12)
+            ZStack {
+                orbitTrajectory(in: proxy.size, bodySize: bodySize)
+
+                Image(systemName: isNight ? "moon.stars.fill" : "sun.max.fill")
+                    .font(.system(size: bodySize, weight: .bold))
+                    .symbolRenderingMode(.multicolor)
+                    .scaleEffect(breathe)
+                    .position(
+                        x: x,
+                        y: verticalPosition(
+                            progress: progress,
+                            height: proxy.size.height,
+                            bodySize: bodySize
+                        )
+                    )
+                    .shadow(color: (isNight ? Color.white : Color.yellow).opacity(0.30), radius: 12)
+            }
         }
         .clipped()
     }
 
-    /// Keeps the body inside the top-right corner throughout: a short side-to-side
-    /// drift within the rightmost fifth of the width, never crossing into the
-    /// center or left side of the scene.
-    private func horizontalPosition(progress: Double, width: CGFloat) -> CGFloat {
-        width * (0.78 + 0.14 * sin(progress * .pi))
+    @ViewBuilder
+    private func orbitTrajectory(in size: CGSize, bodySize: CGFloat) -> some View {
+        let start = CGPoint(
+            x: size.width * 0.585,
+            y: verticalPosition(progress: 0, height: size.height, bodySize: bodySize)
+        )
+        let end = CGPoint(
+            x: size.width * 0.905,
+            y: verticalPosition(progress: 1, height: size.height, bodySize: bodySize)
+        )
+        let control = CGPoint(
+            x: size.width * 0.745,
+            y: verticalPosition(progress: 0.5, height: size.height, bodySize: bodySize)
+        )
+
+        Path { path in
+            path.move(to: start)
+            path.addQuadCurve(to: end, control: control)
+        }
+        .stroke(
+            isNight ? Color.white.opacity(0.30) : Color.yellow.opacity(0.34),
+            style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [6, 8])
+        )
     }
 
-    /// A brief rise-and-fall confined to a thin band just below the top edge,
-    /// instead of a full sunrise-to-sunset arc: the body stays clear of headers
-    /// and foreground cards without ever traveling down into the scene.
+    /// Opens the orbit into the sky: the body now starts closer to the center
+    /// and travels farther horizontally, leaving the route legible on both the
+    /// compact widget and the detail scene.
+    private func horizontalPosition(progress: Double, width: CGFloat) -> CGFloat {
+        width * (0.585 + 0.32 * progress)
+    }
+
+    /// A readable rise-and-fall, sized relative to the actual scene. It keeps
+    /// the body away from foreground content while making its route apparent.
     private func verticalPosition(progress: Double, height: CGFloat, bodySize: CGFloat) -> CGFloat {
         let bandTop = height * topBandFraction + bodySize * 0.5
-        let bandHeight = bodySize * 1.6
+        let bandHeight = min(max(height * 0.16, bodySize * 1.8), bodySize * 3.4)
         let arc = sin(progress * .pi)
         return bandTop + bandHeight * (1 - arc)
     }
@@ -5554,15 +5603,20 @@ private struct WeatherAttributionMark: View {
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
                 }
-                .frame(maxWidth: 130, minHeight: 18, maxHeight: 22, alignment: .leading)
+                // Keep Apple's supplied combined mark comfortably legible.
+                // Shrinking this footer to caption height makes the trademark
+                // look clipped on iPad and under larger accessibility sizes.
+                .frame(width: 130, height: 22, alignment: .leading)
 
                 Spacer(minLength: 0)
 
                 if showsLegalLink {
                     Link(localizedString("weather_data_sources"), destination: apple.legalPageURL)
                         .font(.caption.weight(.semibold))
+                        .frame(minHeight: PulseTheme.minTapTarget)
                 }
             }
+            .frame(minHeight: PulseTheme.minTapTarget)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(apple.legalAttributionText)
         case .metNorway:
@@ -6130,13 +6184,17 @@ private struct TodayWeatherDetailView: View {
                 }
                 .padding(.top, DetailNavigationHeaderBar.contentTopPadding - 40)
                 .padding(.horizontal, 16)
-                .padding(.bottom, 32)
+                .safeAreaPadding(.bottom, 24)
             }
             .overlay(alignment: .top) {
                 HealthWidgetDetailNavBar(title: nil, domain: domain)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        // This is a pushed detail screen, not a tab root. Explicitly removing
+        // the main tab bar also removes its Quick Log accessory, so neither can
+        // cover WeatherKit's legally required attribution footer on iPad.
+        .mainTabBarHidden()
     }
 
     private var hero: some View {

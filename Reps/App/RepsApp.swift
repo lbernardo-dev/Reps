@@ -75,6 +75,15 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
             MetricsDiagnosticsService.shared.start()
         }
 
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--firebase-crashlytics-test") {
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                TelemetryService.shared.triggerTestCrash()
+            }
+        }
+        #endif
+
         return true
     }
 
@@ -196,7 +205,9 @@ struct RepsApp: App {
 
                     if store.userProfile.onboardingCompleted,
                        store.userProfile.remindersEnabled {
-                        _ = await PermissionService.shared.requestNotifications()
+                        // Request permission only from the explicit reminders
+                        // control. A launch-time prompt can interrupt the dashboard
+                        // or stack on top of another modal.
                         store.refreshNotificationSchedule()
                     }
 

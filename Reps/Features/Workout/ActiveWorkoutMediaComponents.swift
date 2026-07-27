@@ -115,6 +115,38 @@ struct MusicTransportControls: View {
     }
 }
 
+struct PlaybackEqualizer: View {
+    let isPlaying: Bool
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 0.16, paused: !isPlaying)) { context in
+            let tick = Int(context.date.timeIntervalSinceReferenceDate * 6)
+
+            HStack(alignment: .bottom, spacing: 2) {
+                ForEach(0..<3, id: \.self) { index in
+                    Capsule()
+                        .fill(isPlaying ? PulseTheme.appleMusic : PulseTheme.secondaryText)
+                        .frame(
+                            width: 3,
+                            height: isPlaying ? barHeight(index: index, tick: tick) : 4
+                        )
+                }
+            }
+        }
+        .frame(width: 13, height: 14, alignment: .bottom)
+        .accessibilityHidden(true)
+    }
+
+    private func barHeight(index: Int, tick: Int) -> CGFloat {
+        let patterns: [[CGFloat]] = [
+            [5, 11, 7, 14],
+            [12, 6, 14, 8],
+            [8, 14, 5, 11]
+        ]
+        return patterns[index][(tick + index) % patterns[index].count]
+    }
+}
+
 struct AttachmentPreviewStrip: View {
     let attachments: [WorkoutMediaAttachment]
 

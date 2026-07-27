@@ -668,8 +668,11 @@ private struct ActivePlanCommandCard: View {
     let onEdit: () -> Void
     let onDeactivate: () -> Void
 
-    private var planProgress: Double {
-        summary?.planProgress ?? 0
+    /// The command surface is about what the athlete should do *this week*.
+    /// Showing lifetime plan progress beside the weekly completion tile made a
+    /// finished historical plan look like 100% while the same card said 1/4.
+    private var weeklyProgress: Double {
+        summary?.adherence ?? 0
     }
 
     private var statusTint: Color {
@@ -782,8 +785,10 @@ private struct ActivePlanCommandCard: View {
                         }
                         .accessibilityLabel("plan_actions")
 
-                        PlanProgressDial(progress: planProgress, tint: statusTint)
+                        PlanProgressDial(progress: weeklyProgress, tint: statusTint)
                             .frame(width: 58, height: 58)
+                            .accessibilityLabel(localizedString("this_week"))
+                            .accessibilityValue("\(Int(weeklyProgress * 100))%")
                     }
                 }
 
@@ -791,10 +796,6 @@ private struct ActivePlanCommandCard: View {
                     PlanMetricTile(value: adherenceText, label: localizedString("this_week"), systemImage: "calendar.badge.checkmark", tint: PulseTheme.recovery)
                     PlanMetricTile(value: volumeText, label: localizedString("volume_2"), systemImage: "scalemass.fill", tint: PulseTheme.ringStand)
                     PlanMetricTile(value: weeklySetsText, label: localizedString("sets_3"), systemImage: "checklist.checked", tint: PulseTheme.semanticProgress)
-                }
-
-                if let summary {
-                    PlanExecutionBars(points: summary.weeklyPoints, tint: statusTint)
                 }
 
                 if let targetEventName = plan.targetEventName,
@@ -1558,11 +1559,11 @@ private struct PlanDayRow: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(day.title)
+                            Text(RepsText.workoutTitle(day.title, language: RepsLocalization.language))
                                 .font(.headline.weight(.black))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.75)
-                            Text(day.subtitle)
+                            Text(RepsText.localizedWorkoutSubtitle(day.subtitle, language: RepsLocalization.language))
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .lineLimit(1)
