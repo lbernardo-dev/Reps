@@ -937,6 +937,17 @@ private struct TodayViewContent: View {
                     greetingTokenView(token)
                 }
             }
+
+            if store.health.isAuthorized {
+                HStack(spacing: 5) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.red)
+                    Text(localizedString("data_from_apple_health"))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
         }
         .padding(.bottom, 10)
     }
@@ -5028,9 +5039,9 @@ private struct AnimatedWeatherStatusIcon: View {
         // The detail scene has room below its navigation controls. Lower the
         // celestial lane there so it reads as part of the sky rather than as a
         // decoration pinned to the status bar.
-        if isDetailBackground { return 0.15 }
-        if isWidgetBackground { return 0.08 }
-        return 0.06
+        if isDetailBackground { return 0.055 }
+        if isWidgetBackground { return 0.03 }
+        return 0.04
     }
 
     var body: some View {
@@ -5200,7 +5211,7 @@ private struct WeatherCelestialBody: View {
     var body: some View {
         GeometryReader { proxy in
             let progress = min(max(orbitProgress, 0), 1)
-            let bodySize = (isNight ? 38 : 42) * scale
+            let bodySize = (isNight ? 52 : 58) * scale
             let x = horizontalPosition(progress: progress, width: proxy.size.width)
             let breathe = reduceMotion ? 1 : 1 + 0.035 * sin(phase * 0.9)
 

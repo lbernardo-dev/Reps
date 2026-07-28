@@ -63,6 +63,15 @@ struct SettingsView: View {
                 .stickyHeaderTitle("StreakReps")
             licenseCard
                 .stickyHeaderTitle(localizedString("subscription"))
+            settingsSection("health_data", systemImage: "heart.fill") {
+                SettingsNavigationRow(
+                    title: "apple_health",
+                    subtitle: store.health.isAuthorized ? "connected_to_apple_health" : "not_connected_to_apple_health",
+                    systemImage: "heart.fill",
+                    tint: .red
+                ) { activeDestination = .appleHealth }
+            }
+            .stickyHeaderTitle(localizedString("apple_health"))
             settingsSection("personalization", systemImage: "slider.horizontal.3") {
                 SettingsNavigationRow(
                     title: "app_preferences",
@@ -386,6 +395,8 @@ struct SettingsView: View {
             WidgetSettingsScreen()
         case .reminders:
             ReminderSettingsScreen()
+        case .appleHealth:
+            AppleHealthSettingsScreen()
         case .information:
             SettingsInfoScreen(
                 title: "information_disclaimer",
@@ -519,6 +530,7 @@ private enum SettingsDestination: String, Identifiable {
     case workoutSession
     case widgets
     case reminders
+    case appleHealth
     case information
     case whatsNew
     #if DEBUG && targetEnvironment(simulator)
@@ -1084,6 +1096,108 @@ private struct SettingsInfoScreen: View {
         .toolbar(.hidden, for: .navigationBar)
         .mainTabBarHidden()
         .quickActionAccessoryHidden()
+    }
+}
+
+/// Dedicated, top-level Apple Health disclosure screen. Surfaced directly
+/// from the Settings root (not buried under About) with a live connection
+/// status so HealthKit usage is unambiguous to both users and App Review —
+/// see Guideline 2.5.1 (HealthKit/CareKit functionality must be clearly
+/// identified in the app's UI).
+private struct AppleHealthSettingsScreen: View {
+    @Environment(\.openURL) private var openURL
+    @Environment(AppStore.self) private var store
+    @StateObject private var healthKit = HealthKitService.shared
+
+    var body: some View {
+        StickyHeaderScaffold(
+            title: "apple_health",
+            subtitle: "settings",
+            showsGlobalActions: false,
+            accessory: {
+                HStack(spacing: 10) {
+                    SettingsBackHeaderButton()
+                    SettingsTodayHeaderButton()
+                }
+            }
+        ) {
+            PulseCard(backgroundColor: PulseTheme.grouped) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Label(settingsDisplayText("apple_health"), systemImage: "heart.fill")
+                            .font(SettingsTypography.cardTitle)
+                            .foregroundStyle(PulseTheme.accent)
+                        Spacer()
+                        Text(settingsDisplayText(store.health.isAuthorized ? "connected_to_apple_health" : "not_connected_to_apple_health"))
+                            .font(SettingsTypography.rowSubtitle.weight(.semibold))
+                            .foregroundStyle(store.health.isAuthorized ? PulseTheme.accent : PulseTheme.secondaryText)
+                    }
+
+                    Text(settingsDisplayText("apple_health_only_used_if_connected"))
+                        .font(SettingsTypography.rowSubtitle)
+                        .foregroundStyle(PulseTheme.secondaryText)
+
+                    Button {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            openURL(url)
+                        }
+                    } label: {
+                        Label(settingsDisplayText("open_health_settings"), systemImage: "gearshape.fill")
+                            .font(SettingsTypography.buttonTitle)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                            .background(PulseTheme.accent)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!healthKit.isAvailable)
+                }
+            }
+            .stickyHeaderTitle(settingsDisplayText("apple_health"))
+
+            SettingsInfoSectionCard(
+                title: "data",
+                rows: [
+                    "reads_steps_heart_rate_sleep_and_body_metrics_from_apple_health",
+                    "writes_completed_workouts_and_body_metrics_when_you_sync",
+                    "apple_health_only_used_if_connected"
+                ]
+            )
+            .stickyHeaderTitle(settingsDisplayText("data"))
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .mainTabBarHidden()
+        .quickActionAccessoryHidden()
+    }
+}
+
+private struct SettingsInfoSectionCard: View {
+    let title: String
+    let rows: [String]
+
+    var body: some View {
+        PulseCard(backgroundColor: PulseTheme.grouped) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(settingsDisplayText(title))
+                    .font(SettingsTypography.rowTitle)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(rows, id: \.self) { row in
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(PulseTheme.accent)
+                                .padding(.top, 1)
+                            Text(settingsDisplayText(row))
+                                .font(SettingsTypography.rowSubtitle)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

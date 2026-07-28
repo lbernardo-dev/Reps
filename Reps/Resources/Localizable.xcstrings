@@ -24147,6 +24147,23 @@
         }
       }
     },
+    "connected_to_apple_health" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado"
+          }
+        }
+      }
+    },
     "consistency" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -26215,6 +26232,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Centro de datos"
+          }
+        }
+      }
+    },
+    "data_from_apple_health" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data from Apple Health"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datos de Apple Health"
           }
         }
       }
@@ -38515,6 +38549,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirmar datos de hoy"
+          }
+        }
+      }
+    },
+    "health_data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Health Data"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datos de salud"
           }
         }
       }
@@ -53001,6 +53052,23 @@
         }
       }
     },
+    "not_connected_to_apple_health" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not connected"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No conectado"
+          }
+        }
+      }
+    },
     "note" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -56943,6 +57011,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir vídeo del ejercicio"
+          }
+        }
+      }
+    },
+    "open_health_settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Health Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir ajustes de Salud"
           }
         }
       }
@@ -66265,6 +66350,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Factores"
+          }
+        }
+      }
+    },
+    "reads_steps_heart_rate_sleep_and_body_metrics_from_apple_health" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reads steps, heart rate, sleep and body metrics from Apple Health"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lee pasos, frecuencia cardiaca, sueño y métricas corporales desde Apple Health"
           }
         }
       }
@@ -89453,6 +89555,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Femenina"
+          }
+        }
+      }
+    },
+    "writes_completed_workouts_and_body_metrics_when_you_sync" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writes completed workouts and body metrics when you sync"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe entrenos completados y métricas corporales al sincronizar"
           }
         }
       }

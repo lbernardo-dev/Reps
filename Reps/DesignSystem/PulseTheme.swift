@@ -180,16 +180,13 @@ enum PulseTheme {
     static let screenHorizontalPadding: CGFloat = 16
     static let screenBottomContentPadding: CGFloat = 24
     /// Extra scroll runway for tab roots that contain mandatory or actionable
-    /// footer content. The floating tab bar and bottom accessory can visually
-    /// cover the last row even though the ScrollView reports a much smaller
-    /// bottom safe-area inset. This app ships iPhone-only
-    /// (`TARGETED_DEVICE_FAMILY = 1`), so on iPad App Review runs it through
-    /// the iPhone compatibility window — there `UIDevice.userInterfaceIdiom`
-    /// still reports `.phone`, so idiom checks can't detect that case. App
-    /// Review rejected a build (Guideline 4) because the WeatherKit
-    /// attribution link ended up behind that stack there, so this clearance
-    /// must be generous for every host, not just conditionally on iPad.
-    static let mainTabFooterClearance: CGFloat = 180
+    /// footer content, so the last row doesn't rest directly under the
+    /// floating Quick Log accessory pill (which stays bottom-anchored on both
+    /// iPhone and the now-universal iPad build, even though the tab bar
+    /// itself renders at the top on iPad). Keep this close to the
+    /// accessory's actual footprint — inflating it further just adds dead
+    /// scroll space past the last section.
+    static let mainTabFooterClearance: CGFloat = 110
     static let minTapTarget: CGFloat = 44
     static let spacingXS: CGFloat = 6
     static let spacingS: CGFloat = 10
