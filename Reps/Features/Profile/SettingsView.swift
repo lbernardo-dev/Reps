@@ -200,9 +200,11 @@ struct SettingsView: View {
                 SettingsFeedbackSheet { message in
                     sendFeedback(message)
                 }
+                .repsSheetPresentation()
             case .subscription:
                 SubscriptionCenterView()
                     .environment(store)
+                    .repsSheetPresentation()
             }
         }
         .fullScreenCover(item: $localPaywall) { presentation in

@@ -117,12 +117,14 @@ struct GymVisitEditorView: View {
                     address = place.address
                     coordinate = place.coordinate
                 }
+                .repsSheetPresentation()
             }
             .sheet(isPresented: $showingWorkoutPicker) {
                 GymVisitWorkoutPickerView(
                     workouts: gymWorkouts,
                     selectedIDs: $selectedWorkoutIDs
                 )
+                .repsSheetPresentation()
             }
         }
     }

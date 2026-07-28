@@ -217,6 +217,7 @@ struct CalendarView: View {
             }
             .sheet(isPresented: $showSchedule) {
                 ScheduleWorkoutView()
+                    .repsSheetPresentation()
             }
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()

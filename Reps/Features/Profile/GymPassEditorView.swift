@@ -137,6 +137,7 @@ struct GymPassEditorView: View {
                 GymInvoiceEditorView(invoice: invoice, defaultCurrency: currencyCode) { saved in
                     upsertInvoice(saved)
                 }
+                .repsSheetPresentation()
             }
             .onChange(of: photoItem) { _, newItem in
                 guard let newItem else { return }

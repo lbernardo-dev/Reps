@@ -179,6 +179,7 @@ struct CreatePlanView: View {
                     addExercise(exercise, to: target.index)
                     pickerTargetDay = nil
                 }
+                .repsSheetPresentation()
             }
             .sheet(item: $bookmarkTarget) { target in
                 ExerciseMediaBookmarkEditor(bookmarks: Binding(
@@ -197,11 +198,13 @@ struct CreatePlanView: View {
                         days[target.dayIndex].exercises[target.exerciseIndex].mediaBookmarks = newValue
                     }
                 ))
+                .repsSheetPresentation()
             }
             .sheet(isPresented: $showMusicConnector) {
                 MusicIntegrationSheet { selectedPlaylist in
                     playlists.append(selectedPlaylist)
                 }
+                .repsSheetPresentation()
             }
         }
     }

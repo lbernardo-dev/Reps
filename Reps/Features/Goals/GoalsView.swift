@@ -70,8 +70,10 @@ struct GoalsView: View {
             switch sheet {
             case .newGoal:
                 GoalEditorView()
+                    .repsSheetPresentation()
             case .editGoal(let goal):
                 GoalEditorView(existingGoal: goal)
+                    .repsSheetPresentation()
             }
         }
     }

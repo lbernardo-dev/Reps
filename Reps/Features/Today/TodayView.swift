@@ -678,15 +678,19 @@ private struct TodayViewContent: View {
                     store.userProfile.todaySectionOrder = order
                     store.userProfile.todayHiddenSectionIDs = hiddenIDs
                 }
+                .repsSheetPresentation()
             }
             .sheet(isPresented: $showScheduleWorkout) {
                 ScheduleWorkoutView()
+                    .repsSheetPresentation()
             }
             .sheet(isPresented: $showCreatePlan) {
                 CreatePlanView()
+                    .repsSheetPresentation()
             }
             .sheet(item: $planToEdit) { plan in
                 CreatePlanView(existingPlan: plan)
+                    .repsSheetPresentation()
             }
             .navigationDestination(isPresented: $showProfile) {
                 ProfileView {
@@ -996,19 +1000,15 @@ private struct TodayViewContent: View {
 
     private var weatherSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TodaySectionHeader(
-                systemImage: "cloud.sun.fill",
-                tint: MetricDomain.weather.tint,
-                titleKey: "weather",
-                subtitleKey: "weather_fitness_subtitle"
-            )
-
             if let todayWeather, let tomorrowWeather, let attribution = weather.attribution {
                 VStack(spacing: 8) {
                     // WeatherKit attribution must remain clearly visible. Keep
                     // it before the forecast card instead of as a footer, where
                     // iPadOS 26's floating tab bar and Quick Log accessory can
-                    // cover it at the natural resting scroll position.
+                    // cover it at the natural resting scroll position. It
+                    // already carries Apple's own "Weather" wordmark, so the
+                    // app's section header is omitted here to avoid stacking
+                    // two redundant "Weather" titles.
                     WeatherAttributionMark(attribution: attribution, showsLegalLink: true)
                         .padding(.horizontal, 16)
 
@@ -1025,6 +1025,12 @@ private struct TodayViewContent: View {
                     .buttonStyle(PressableCardStyle())
                 }
             } else {
+                TodaySectionHeader(
+                    systemImage: "cloud.sun.fill",
+                    tint: MetricDomain.weather.tint,
+                    titleKey: "weather",
+                    subtitleKey: "weather_fitness_subtitle"
+                )
                 WeatherDataStateCard(
                     phase: weather.phase,
                     retry: { Task { await weather.retry() } },

@@ -560,6 +560,7 @@ struct RouteWorkoutSummaryView: View {
         .background(Color.black)
         .sheet(isPresented: $showExpandedMap) {
             RouteWorkoutExpandedMap(session: session)
+                .repsSheetPresentation()
         }
     }
 

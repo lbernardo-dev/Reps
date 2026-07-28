@@ -306,6 +306,7 @@ struct ActiveWorkoutView: View {
         }
         .sheet(item: $activeBookmark) { bookmark in
             VideoPlayerSheet(bookmark: bookmark)
+                .repsSheetPresentation()
         }
         .sheet(isPresented: $showAddExercise) {
             ExercisePickerSheet(
@@ -318,6 +319,7 @@ struct ActiveWorkoutView: View {
                 addExercise(exercise)
                 showAddExercise = false
             }
+            .repsSheetPresentation()
         }
         .sheet(item: replacementBinding) { replacement in
             ExercisePickerSheet(
@@ -328,9 +330,11 @@ struct ActiveWorkoutView: View {
                 replaceExercise(at: replacement.index, with: exercise)
                 replacementExerciseIndex = nil
             }
+            .repsSheetPresentation()
         }
         .sheet(isPresented: $showProPreferences) {
             ProPreferencesView()
+                .repsSheetPresentation()
         }
         .sheet(isPresented: $showSessionFeedback) {
             NavigationStack {
@@ -366,8 +370,7 @@ struct ActiveWorkoutView: View {
                     }
                 }
             }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
+            .repsSheetPresentation(detents: [.medium, .large])
         }
         .sensoryFeedback(.success, trigger: completedSets)
         .mainTabBarHidden()
@@ -1648,6 +1651,7 @@ struct ActiveWorkoutView: View {
                 title: RepsText.workoutTitle(workout.title, language: store.userProfile.preferredLanguage),
                 routePoints: routeTracker.routePoints
             )
+            .repsSheetPresentation()
         }
     }
 

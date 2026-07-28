@@ -64,6 +64,7 @@ struct ImportedWorkoutCompletionView: View {
                 )
                 showExercisePicker = false
             }
+            .repsSheetPresentation()
         }
     }
 

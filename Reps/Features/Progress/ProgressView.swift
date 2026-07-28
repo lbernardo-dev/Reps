@@ -125,6 +125,7 @@ struct ProgressDashboardView: View {
       }
       .sheet(item: $goalToEdit) { goal in
         GoalEditorView(existingGoal: goal)
+          .repsSheetPresentation()
       }
       .sheet(isPresented: $showEditLayout) {
         let resolved = resolvedProgressSections
@@ -136,6 +137,7 @@ struct ProgressDashboardView: View {
           store.userProfile.progressSectionOrder = order
           store.userProfile.progressHiddenSectionIDs = hiddenIDs
         }
+        .repsSheetPresentation()
       }
       .toolbar(.hidden, for: .navigationBar)
       .navigationDestination(isPresented: $showNotifications) {

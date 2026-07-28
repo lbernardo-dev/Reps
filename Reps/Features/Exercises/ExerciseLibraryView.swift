@@ -468,6 +468,7 @@ struct ExerciseLibraryView: View {
                     store.userProfile.exercisesMuscleShortcutOrder = muscleOrder
                     store.userProfile.exercisesHiddenMuscleShortcutIDs = hiddenMuscleIDs
                 }
+                .repsSheetPresentation()
             }
             .task(id: store.exercises.map(\.id)) {
                 await rebuildSearchIndex()
@@ -556,6 +557,7 @@ struct ExerciseLibraryView: View {
             }
             .sheet(isPresented: $showAddCustom) {
                 AddCustomExerciseView()
+                    .repsSheetPresentation()
             }
             .onDisappear {
                 exerciseResultTask?.cancel()
@@ -1705,22 +1707,26 @@ struct ExerciseDetailView: View {
         .sheet(isPresented: $showEditCustomExercise) {
             AddCustomExerciseView(existingExercise: currentExercise)
                 .environment(store)
+                .repsSheetPresentation()
         }
         .sheet(isPresented: $showAddToPlan) {
             AddExerciseToPlanView(exercise: currentExercise) {
                 feedbackMessage = localizedString("exercise_added_to_the_active_plan")
             }
             .environment(store)
+            .repsSheetPresentation()
         }
         .sheet(isPresented: $showSchedule) {
             ScheduleExerciseView(exercise: currentExercise) {
                 feedbackMessage = localizedString("exercise_scheduled")
             }
             .environment(store)
+            .repsSheetPresentation()
         }
         .sheet(isPresented: $showBookmarkEditor) {
             ExerciseBookmarkEditor(exercise: currentExercise)
                 .environment(store)
+                .repsSheetPresentation()
         }
         .sheet(isPresented: $showSecondaryEditor) {
             SecondaryMuscleEditorView(exercise: currentExercise) { weights in
@@ -1729,6 +1735,7 @@ struct ExerciseDetailView: View {
                 store.updateExercise(updated)
             }
             .environment(store)
+            .repsSheetPresentation()
         }
     }
 
@@ -2229,6 +2236,7 @@ struct ExerciseHeroMedia: View {
         .sheet(isPresented: $showVideoPlayer) {
             if let videoData = exercise.customVideoData {
                 ExerciseGuideVideoPlayerSheet(videoData: videoData, title: exercise.name)
+                    .repsSheetPresentation()
             }
         }
     }

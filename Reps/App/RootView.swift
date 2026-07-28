@@ -217,8 +217,16 @@ struct MainTabView: View {
        !chromeState.isTabBarHidden,
        store.finishedSessionForSummary == nil {
       GeometryReader { proxy in
-        let maxDX = max(0, proxy.size.width / 2 - 48)
-        let maxDY = max(0, proxy.size.height / 2 - 72)
+        // Clamp to a phone-like ceiling before computing drag bounds: on
+        // iPad this proxy ranges from ~320pt (Slide Over) to ~1366pt (iPad
+        // Pro 13" landscape) to arbitrary Stage Manager window sizes, and a
+        // raw iPad-width drag range would place/clamp the banner very
+        // differently across window sizes than the phone-shaped layout it
+        // was designed for.
+        let boundsWidth = min(proxy.size.width, 430)
+        let boundsHeight = min(proxy.size.height, 900)
+        let maxDX = max(0, boundsWidth / 2 - 48)
+        let maxDY = max(0, boundsHeight / 2 - 72)
 
         VitalsPathPromotionBanner(
           isPremium: store.hasProAccess,
@@ -396,6 +404,14 @@ struct MainTabView: View {
       .tabBarMinimizeBehavior(.onScrollDown)
   }
 
+  // Deliberately stays a plain TabView on iPad rather than adopting
+  // `.tabViewStyle(.sidebarAdaptable)` or NavigationSplitView for now — see
+  // the iPad adaptation plan: a sidebar/split-view shell needs its own
+  // dedicated QA pass against `chromeState.isTabBarHidden`,
+  // `tabBarMinimizeBehavior`, the Quick Log accessory, and the Profile
+  // tab's `.search`-role detached-avatar treatment below, and isn't a
+  // dependency of getting a genuinely-adapted (not stretched) iPad app
+  // resubmitted.
   private var tabViewContent: some View {
     TabView(selection: tabSelection) {
       // — Hoy: readiness + today's plan + streak. No deep analytics.

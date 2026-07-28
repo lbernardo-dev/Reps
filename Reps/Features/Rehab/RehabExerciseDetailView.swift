@@ -81,6 +81,7 @@ struct RehabExerciseDetailView: View {
             RehabLogSessionSheet(exercise: exercise) { setsCompleted, painLevel, notes in
                 store.logRehabSession(exerciseID: exercise.id, setsCompleted: setsCompleted, painLevel: painLevel, notes: notes)
             }
+            .repsSheetPresentation()
         }
     }
 

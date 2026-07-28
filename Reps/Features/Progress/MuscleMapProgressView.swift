@@ -118,6 +118,7 @@ struct MuscleMapProgressView: View {
                 gender: gender,
                 catalog: catalog
             )
+            .repsSheetPresentation()
         }
     }
 

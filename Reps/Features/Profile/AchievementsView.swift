@@ -291,6 +291,7 @@ struct AchievementsView: View {
         .toolbar(.hidden, for: .navigationBar)
         .sheet(item: $selectedReceiptForPreview) { card in
             ReceiptPreviewSheet(card: card)
+                .repsSheetPresentation()
         }
         .fullScreenCover(item: $localPaywall) { presentation in
             PaywallView(presentation: presentation) { reason in

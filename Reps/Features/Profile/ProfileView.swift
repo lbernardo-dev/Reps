@@ -1638,6 +1638,7 @@ struct ProfileView: View {
         view
             .sheet(item: $activeSheet) { sheet in
                 profileSheetDestination(sheet)
+                    .repsSheetPresentation()
             }
             .navigationDestination(isPresented: $showSocialHubFromDeepLink) {
                 SocialHubView()

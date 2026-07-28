@@ -394,6 +394,7 @@ struct ExerciseProgressView: View {
         .sheet(isPresented: $showLocalVideoPlayer) {
             if let videoData = currentExercise.customVideoData {
                 ExerciseGuideVideoPlayerSheet(videoData: videoData, title: currentExercise.name)
+                    .repsSheetPresentation()
             }
         }
     }

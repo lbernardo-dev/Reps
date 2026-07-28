@@ -151,16 +151,20 @@ struct PlansView: View {
                     store.userProfile.trainSectionOrder = order
                     store.userProfile.trainHiddenSectionIDs = hiddenIDs
                 }
+                .repsSheetPresentation()
             }
             .sheet(isPresented: $showCreatePlan) {
                 CreatePlanView()
+                    .repsSheetPresentation()
             }
             .sheet(isPresented: $showProgramLibrary) {
                 ProgramLibraryView()
                     .environment(store)
+                    .repsSheetPresentation()
             }
             .sheet(item: $planToEdit) { plan in
                 CreatePlanView(existingPlan: plan)
+                    .repsSheetPresentation()
             }
             .sheet(item: $selectedPlanForDetail) { plan in
                 PlanDetailSheet(plan: plan, isLocked: !canManagePlan(plan)) {
@@ -177,6 +181,7 @@ struct PlansView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { planToEdit = plan }
                 }
                 .environment(store)
+                .repsSheetPresentation()
             }
             .navigationDestination(isPresented: $showExerciseLibrary) {
                 ExerciseLibraryView()

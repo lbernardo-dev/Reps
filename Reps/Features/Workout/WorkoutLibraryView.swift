@@ -53,9 +53,11 @@ struct WorkoutLibraryView: View {
         .mainTabBarHidden()
         .sheet(isPresented: $showCreate) {
             WorkoutEditorView(mode: .create)
+                .repsSheetPresentation()
         }
         .sheet(item: $editingWorkout) { workout in
             WorkoutEditorView(mode: .edit(workout))
+                .repsSheetPresentation()
         }
     }
 }
@@ -220,6 +222,7 @@ struct WorkoutEditorView: View {
             }
             .sheet(isPresented: $showCustomExercise) {
                 AddCustomExerciseView()
+                    .repsSheetPresentation()
             }
         }
     }

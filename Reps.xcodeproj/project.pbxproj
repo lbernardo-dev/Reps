@@ -144,6 +144,7 @@
 		9D6C2CA9B9BC38E180888A76 /* RepsBatteryWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DAAE09638B4291B3E89483 /* RepsBatteryWidget.swift */; };
 		9F6D0433BC46DF7D9D6FCCBC /* ProgressProInsightsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB58EC48831AF89BE4E6A7E9 /* ProgressProInsightsCard.swift */; };
 		A1EE8255CBAF7C557CE9A4BC /* MuscleVolume.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0A97C79C7E907579CBFCBD /* MuscleVolume.swift */; };
+		A30508DF06F62FE5A3DAA06B /* AdaptiveLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E0109F5F66F9AC44B8016D4 /* AdaptiveLayout.swift */; };
 		A30E158195688DBDD478062A /* SocialAgeGateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51C33031F6FE64648B717B6 /* SocialAgeGateService.swift */; };
 		A3472399B3A3FE456881EAB2 /* RepsWidgetConfigurationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542BD8688B577CF24924B7C3 /* RepsWidgetConfigurationIntent.swift */; };
 		A431702EC9FA27884190F60F /* ActiveWorkoutFeedbackPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13EF4F5A4D286C5E6639121F /* ActiveWorkoutFeedbackPanel.swift */; };
@@ -335,6 +336,7 @@
 		62CBE419F5E7532E008D1E8D /* RepsWorkoutControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsWorkoutControls.swift; sourceTree = "<group>"; };
 		6A0756D3C4E5FBCCAC2D91B1 /* VO2MaxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VO2MaxView.swift; sourceTree = "<group>"; };
 		6DAB8A3B56BCAE9A06BA4E3F /* SocialHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialHubView.swift; sourceTree = "<group>"; };
+		6E0109F5F66F9AC44B8016D4 /* AdaptiveLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLayout.swift; sourceTree = "<group>"; };
 		6E0553B789BDA0DF29D0DFAD /* GymVisitEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymVisitEditorView.swift; sourceTree = "<group>"; };
 		6E370781AA207875F4813E3C /* ChallengeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeDetailView.swift; sourceTree = "<group>"; };
 		6FBD066F81690661D21DAB00 /* SocialOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialOnboardingView.swift; sourceTree = "<group>"; };
@@ -899,6 +901,7 @@
 		FAD5B4B96FF3D5E00D913EA8 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
+				6E0109F5F66F9AC44B8016D4 /* AdaptiveLayout.swift */,
 				BD0A0BED634F18E1F2AF5516 /* AddressSearchField.swift */,
 				AE253B386C668DF85E574C66 /* AnatomyThumbnail.swift */,
 				A7546415D658D1F30651D879 /* CameraPicker.swift */,
@@ -1017,7 +1020,7 @@
 					};
 					0416157AB6A2DD4CDDAF81C0 = {
 						DevelopmentTeam = L2B56644F5;
-						SystemCapabilities = "[\"com.apple.WeatherKit\": [\"enabled\": 1], \"com.apple.Push\": [\"enabled\": 1], \"com.apple.InAppPurchase\": [\"enabled\": 1]]";
+						SystemCapabilities = "[\"com.apple.InAppPurchase\": [\"enabled\": 1], \"com.apple.Push\": [\"enabled\": 1], \"com.apple.WeatherKit\": [\"enabled\": 1]]";
 					};
 					4B274BECDF40555313A5737C = {
 						DevelopmentTeam = L2B56644F5;
@@ -1048,9 +1051,9 @@
 			projectRoot = "";
 			targets = (
 				0416157AB6A2DD4CDDAF81C0 /* Reps */,
-				015FB5945AF5A6B8DE435B43 /* RepsTests */,
-				61B5331B7F00A92F8997BA95 /* RepsWatch Watch App */,
 				4B274BECDF40555313A5737C /* RepsWidgets */,
+				61B5331B7F00A92F8997BA95 /* RepsWatch Watch App */,
+				015FB5945AF5A6B8DE435B43 /* RepsTests */,
 			);
 		};
 /* End PBXProject section */
@@ -1151,6 +1154,7 @@
 				C2E79D22B1183C1EF66197F4 /* ActiveWorkoutSetListComponents.swift in Sources */,
 				240C8F24B8310661EA698A3C /* ActiveWorkoutSetRowComponents.swift in Sources */,
 				24AE3436E9DC925BEC8A64F3 /* ActiveWorkoutView.swift in Sources */,
+				A30508DF06F62FE5A3DAA06B /* AdaptiveLayout.swift in Sources */,
 				554066D3EAD1B94EE5DDDD36 /* AddressSearchField.swift in Sources */,
 				EFD938AF04FAB8E1A03E3890 /* AnatomyThumbnail.swift in Sources */,
 				B4C98D41ED857AF09B4C5C97 /* AppSnapshot.swift in Sources */,
@@ -1350,298 +1354,290 @@
 
 /* Begin XCBuildConfiguration section */
 		10DD82A98FE002A65FCA87DB /* Release */ = {
-	buildSettings = {
-		"CODE_SIGN_ENTITLEMENTS" = "RepsWidgets/RepsWidgets.entitlements";
-		"CODE_SIGN_IDENTITY" = "iPhone Distribution";
-		"CODE_SIGN_STYLE" = Manual;
-		"CURRENT_PROJECT_VERSION" = 100202607262;
-		"INFOPLIST_FILE" = "RepsWidgets/Info.plist";
-		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
-		"LD_RUNPATH_SEARCH_PATHS" = (
-			"$(inherited)",
-			"@executable_path/Frameworks",
-			"@executable_path/../../Frameworks",
-		);
-		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.widgets";
-		"PROVISIONING_PROFILE_SPECIFIER" = "StreakRep Widgets App Store 20260710";
-		SDKROOT = iphoneos;
-		"SKIP_INSTALL" = YES;
-		"TARGETED_DEVICE_FAMILY" = "1,2";
-	};
-	isa = XCBuildConfiguration;
-	name = Release;
-};
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RepsWidgets/RepsWidgets.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
+				INFOPLIST_FILE = RepsWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.widgets;
+				PROVISIONING_PROFILE_SPECIFIER = "StreakRep Widgets App Store 20260710";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		35EFD3E117AF290EBCB00260 /* Debug */ = {
-	buildSettings = {
-		"ASSETCATALOG_COMPILER_APPICON_NAME" = StreakRepFit2;
-		"ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME" = AccentColor;
-		"CODE_SIGN_ENTITLEMENTS" = "Reps/Reps.entitlements";
-		"CODE_SIGN_IDENTITY" = "iPhone Developer";
-		"CURRENT_PROJECT_VERSION" = 100202607262;
-		"INFOPLIST_FILE" = "Reps/Info.plist";
-		"INFOPLIST_KEY_LSApplicationCategoryType" = "public.app-category.healthcare-fitness";
-		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
-		"LD_RUNPATH_SEARCH_PATHS" = (
-			"$(inherited)",
-			"@executable_path/Frameworks",
-		);
-		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness";
-		SDKROOT = iphoneos;
-		"TARGETED_DEVICE_FAMILY" = 1;
-	};
-	isa = XCBuildConfiguration;
-	name = Debug;
-};
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Reps/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		3A2FDE58DD79E3CA846E99A4 /* Debug */ = {
-	buildSettings = {
-		"ALWAYS_SEARCH_USER_PATHS" = NO;
-		"CLANG_ANALYZER_NONNULL" = YES;
-		"CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION" = "YES_AGGRESSIVE";
-		"CLANG_CXX_LANGUAGE_STANDARD" = "gnu++14";
-		"CLANG_CXX_LIBRARY" = "libc++";
-		"CLANG_ENABLE_MODULES" = YES;
-		"CLANG_ENABLE_OBJC_ARC" = YES;
-		"CLANG_ENABLE_OBJC_WEAK" = YES;
-		"CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING" = YES;
-		"CLANG_WARN_BOOL_CONVERSION" = YES;
-		"CLANG_WARN_COMMA" = YES;
-		"CLANG_WARN_CONSTANT_CONVERSION" = YES;
-		"CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS" = YES;
-		"CLANG_WARN_DIRECT_OBJC_ISA_USAGE" = "YES_ERROR";
-		"CLANG_WARN_DOCUMENTATION_COMMENTS" = YES;
-		"CLANG_WARN_EMPTY_BODY" = YES;
-		"CLANG_WARN_ENUM_CONVERSION" = YES;
-		"CLANG_WARN_INFINITE_RECURSION" = YES;
-		"CLANG_WARN_INT_CONVERSION" = YES;
-		"CLANG_WARN_NON_LITERAL_NULL_CONVERSION" = YES;
-		"CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF" = YES;
-		"CLANG_WARN_OBJC_LITERAL_CONVERSION" = YES;
-		"CLANG_WARN_OBJC_ROOT_CLASS" = "YES_ERROR";
-		"CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER" = YES;
-		"CLANG_WARN_RANGE_LOOP_ANALYSIS" = YES;
-		"CLANG_WARN_STRICT_PROTOTYPES" = YES;
-		"CLANG_WARN_SUSPICIOUS_MOVE" = YES;
-		"CLANG_WARN_UNGUARDED_AVAILABILITY" = "YES_AGGRESSIVE";
-		"CLANG_WARN_UNREACHABLE_CODE" = YES;
-		"CLANG_WARN__DUPLICATE_METHOD_MATCH" = YES;
-		"COPY_PHASE_STRIP" = NO;
-		"CURRENT_PROJECT_VERSION" = 100202607262;
-		"DEBUG_INFORMATION_FORMAT" = "dwarf-with-dsym";
-		"DEVELOPMENT_TEAM" = L2B56644F5;
-		"ENABLE_STRICT_OBJC_MSGSEND" = YES;
-		"ENABLE_TESTABILITY" = YES;
-		"GCC_C_LANGUAGE_STANDARD" = gnu11;
-		"GCC_DYNAMIC_NO_PIC" = NO;
-		"GCC_NO_COMMON_BLOCKS" = YES;
-		"GCC_OPTIMIZATION_LEVEL" = 0;
-		"GCC_PREPROCESSOR_DEFINITIONS" = (
-			"$(inherited)",
-			"DEBUG=1",
-		);
-		"GCC_WARN_64_TO_32_BIT_CONVERSION" = YES;
-		"GCC_WARN_ABOUT_RETURN_TYPE" = "YES_ERROR";
-		"GCC_WARN_UNDECLARED_SELECTOR" = YES;
-		"GCC_WARN_UNINITIALIZED_AUTOS" = "YES_AGGRESSIVE";
-		"GCC_WARN_UNUSED_FUNCTION" = YES;
-		"GCC_WARN_UNUSED_VARIABLE" = YES;
-		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
-		"LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION" = YES;
-		"MARKETING_VERSION" = "1.0.0";
-		"MTL_ENABLE_DEBUG_INFO" = "INCLUDE_SOURCE";
-		"MTL_FAST_MATH" = YES;
-		"ONLY_ACTIVE_ARCH" = YES;
-		"PRODUCT_NAME" = "$(TARGET_NAME)";
-		"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = DEBUG;
-		"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
-		"SWIFT_VERSION" = "6.0";
-		"WATCHOS_DEPLOYMENT_TARGET" = "10.0";
-	};
-	isa = XCBuildConfiguration;
-	name = Debug;
-};
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 100202607271;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = L2B56644F5;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION = YES;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
 		6D38A0746D2CC4714C46615C /* Release */ = {
-	buildSettings = {
-		"ALWAYS_SEARCH_USER_PATHS" = NO;
-		"CLANG_ANALYZER_NONNULL" = YES;
-		"CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION" = "YES_AGGRESSIVE";
-		"CLANG_CXX_LANGUAGE_STANDARD" = "gnu++14";
-		"CLANG_CXX_LIBRARY" = "libc++";
-		"CLANG_ENABLE_MODULES" = YES;
-		"CLANG_ENABLE_OBJC_ARC" = YES;
-		"CLANG_ENABLE_OBJC_WEAK" = YES;
-		"CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING" = YES;
-		"CLANG_WARN_BOOL_CONVERSION" = YES;
-		"CLANG_WARN_COMMA" = YES;
-		"CLANG_WARN_CONSTANT_CONVERSION" = YES;
-		"CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS" = YES;
-		"CLANG_WARN_DIRECT_OBJC_ISA_USAGE" = "YES_ERROR";
-		"CLANG_WARN_DOCUMENTATION_COMMENTS" = YES;
-		"CLANG_WARN_EMPTY_BODY" = YES;
-		"CLANG_WARN_ENUM_CONVERSION" = YES;
-		"CLANG_WARN_INFINITE_RECURSION" = YES;
-		"CLANG_WARN_INT_CONVERSION" = YES;
-		"CLANG_WARN_NON_LITERAL_NULL_CONVERSION" = YES;
-		"CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF" = YES;
-		"CLANG_WARN_OBJC_LITERAL_CONVERSION" = YES;
-		"CLANG_WARN_OBJC_ROOT_CLASS" = "YES_ERROR";
-		"CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER" = YES;
-		"CLANG_WARN_RANGE_LOOP_ANALYSIS" = YES;
-		"CLANG_WARN_STRICT_PROTOTYPES" = YES;
-		"CLANG_WARN_SUSPICIOUS_MOVE" = YES;
-		"CLANG_WARN_UNGUARDED_AVAILABILITY" = "YES_AGGRESSIVE";
-		"CLANG_WARN_UNREACHABLE_CODE" = YES;
-		"CLANG_WARN__DUPLICATE_METHOD_MATCH" = YES;
-		"COPY_PHASE_STRIP" = NO;
-		"CURRENT_PROJECT_VERSION" = 100202607262;
-		"DEBUG_INFORMATION_FORMAT" = "dwarf-with-dsym";
-		"DEVELOPMENT_TEAM" = L2B56644F5;
-		"ENABLE_NS_ASSERTIONS" = NO;
-		"ENABLE_STRICT_OBJC_MSGSEND" = YES;
-		"GCC_C_LANGUAGE_STANDARD" = gnu11;
-		"GCC_NO_COMMON_BLOCKS" = YES;
-		"GCC_WARN_64_TO_32_BIT_CONVERSION" = YES;
-		"GCC_WARN_ABOUT_RETURN_TYPE" = "YES_ERROR";
-		"GCC_WARN_UNDECLARED_SELECTOR" = YES;
-		"GCC_WARN_UNINITIALIZED_AUTOS" = "YES_AGGRESSIVE";
-		"GCC_WARN_UNUSED_FUNCTION" = YES;
-		"GCC_WARN_UNUSED_VARIABLE" = YES;
-		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
-		"LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION" = YES;
-		"MARKETING_VERSION" = "1.0.0";
-		"MTL_ENABLE_DEBUG_INFO" = NO;
-		"MTL_FAST_MATH" = YES;
-		"PRODUCT_NAME" = "$(TARGET_NAME)";
-		"SWIFT_COMPILATION_MODE" = wholemodule;
-		"SWIFT_OPTIMIZATION_LEVEL" = "-O";
-		"SWIFT_VERSION" = "6.0";
-		"WATCHOS_DEPLOYMENT_TARGET" = "10.0";
-	};
-	isa = XCBuildConfiguration;
-	name = Release;
-};
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 100202607271;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = L2B56644F5;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION = YES;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		6F3AB2473C31CC9ACB9BC34A /* Debug */ = {
-	buildSettings = {
-		"ASSETCATALOG_COMPILER_APPICON_NAME" = AppIcon;
-		"CODE_SIGN_ENTITLEMENTS" = "RepsWatch/RepsWatch.entitlements";
-		"CURRENT_PROJECT_VERSION" = 100202607262;
-		"GENERATE_INFOPLIST_FILE" = NO;
-		"INFOPLIST_FILE" = "RepsWatch/Info.plist";
-		"LD_RUNPATH_SEARCH_PATHS" = (
-			"$(inherited)",
-			"@executable_path/Frameworks",
-		);
-		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.watchkitapp";
-		SDKROOT = watchos;
-		"SKIP_INSTALL" = YES;
-		"TARGETED_DEVICE_FAMILY" = 4;
-		"WATCHOS_DEPLOYMENT_TARGET" = "26.0";
-	};
-	isa = XCBuildConfiguration;
-	name = Debug;
-};
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RepsWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
 		919CA4D77571434F7FBB6526 /* Release */ = {
-	buildSettings = {
-		"ASSETCATALOG_COMPILER_APPICON_NAME" = StreakRepFit2;
-		"ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME" = AccentColor;
-		"CODE_SIGN_ENTITLEMENTS" = "Reps/Reps.entitlements";
-		"CODE_SIGN_IDENTITY" = "iPhone Distribution";
-		"CODE_SIGN_STYLE" = Manual;
-		"CURRENT_PROJECT_VERSION" = 100202607262;
-		"INFOPLIST_FILE" = "Reps/Info.plist";
-		"INFOPLIST_KEY_LSApplicationCategoryType" = "public.app-category.healthcare-fitness";
-		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
-		"LD_RUNPATH_SEARCH_PATHS" = (
-			"$(inherited)",
-			"@executable_path/Frameworks",
-		);
-		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness";
-		"PROVISIONING_PROFILE_SPECIFIER" = "StreakRep App Store 20260720";
-		SDKROOT = iphoneos;
-		"TARGETED_DEVICE_FAMILY" = 1;
-	};
-	isa = XCBuildConfiguration;
-	name = Release;
-};
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
+				INFOPLIST_FILE = Reps/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness;
+				PROVISIONING_PROFILE_SPECIFIER = "StreakRep App Store 20260720";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		9299C2FF0FEA7A16B18BBE80 /* Debug */ = {
-	buildSettings = {
-		"BUNDLE_LOADER" = "$(TEST_HOST)";
-		"CURRENT_PROJECT_VERSION" = 100202607262;
-		"GENERATE_INFOPLIST_FILE" = YES;
-		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
-		"LD_RUNPATH_SEARCH_PATHS" = (
-			"$(inherited)",
-			"@executable_path/Frameworks",
-			"@loader_path/Frameworks",
-		);
-		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.tests";
-		SDKROOT = iphoneos;
-		"TARGETED_DEVICE_FAMILY" = "1,2";
-		"TEST_HOST" = "$(BUILT_PRODUCTS_DIR)/Reps.app/Reps";
-	};
-	isa = XCBuildConfiguration;
-	name = Debug;
-};
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reps.app/Reps";
+			};
+			name = Debug;
+		};
 		CEFD8405E7DEF8522AA68218 /* Release */ = {
-	buildSettings = {
-		"ASSETCATALOG_COMPILER_APPICON_NAME" = AppIcon;
-		"CODE_SIGN_ENTITLEMENTS" = "RepsWatch/RepsWatch.entitlements";
-		"CODE_SIGN_IDENTITY" = "iPhone Distribution";
-		"CODE_SIGN_STYLE" = Manual;
-		"CURRENT_PROJECT_VERSION" = 100202607262;
-		"GENERATE_INFOPLIST_FILE" = NO;
-		"INFOPLIST_FILE" = "RepsWatch/Info.plist";
-		"LD_RUNPATH_SEARCH_PATHS" = (
-			"$(inherited)",
-			"@executable_path/Frameworks",
-		);
-		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.watchkitapp";
-		"PROVISIONING_PROFILE_SPECIFIER" = "StreakRep Watch App Store 20260710";
-		SDKROOT = watchos;
-		"SKIP_INSTALL" = YES;
-		"TARGETED_DEVICE_FAMILY" = 4;
-		"WATCHOS_DEPLOYMENT_TARGET" = "26.0";
-	};
-	isa = XCBuildConfiguration;
-	name = Release;
-};
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RepsWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.watchkitapp;
+				PROVISIONING_PROFILE_SPECIFIER = "StreakRep Watch App Store 20260710";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
 		F113E1ACAFB6BBBBFE43990F /* Debug */ = {
-	buildSettings = {
-		"CODE_SIGN_ENTITLEMENTS" = "RepsWidgets/RepsWidgets.entitlements";
-		"CURRENT_PROJECT_VERSION" = 100202607262;
-		"INFOPLIST_FILE" = "RepsWidgets/Info.plist";
-		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
-		"LD_RUNPATH_SEARCH_PATHS" = (
-			"$(inherited)",
-			"@executable_path/Frameworks",
-			"@executable_path/../../Frameworks",
-		);
-		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.widgets";
-		SDKROOT = iphoneos;
-		"SKIP_INSTALL" = YES;
-		"TARGETED_DEVICE_FAMILY" = "1,2";
-	};
-	isa = XCBuildConfiguration;
-	name = Debug;
-};
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RepsWidgets/RepsWidgets.entitlements;
+				INFOPLIST_FILE = RepsWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		F971A50523106F9D988E0976 /* Release */ = {
-	buildSettings = {
-		"BUNDLE_LOADER" = "$(TEST_HOST)";
-		"CURRENT_PROJECT_VERSION" = 100202607262;
-		"GENERATE_INFOPLIST_FILE" = YES;
-		"IPHONEOS_DEPLOYMENT_TARGET" = "26.0";
-		"LD_RUNPATH_SEARCH_PATHS" = (
-			"$(inherited)",
-			"@executable_path/Frameworks",
-			"@loader_path/Frameworks",
-		);
-		"PRODUCT_BUNDLE_IDENTIFIER" = "com.romerodev.repsfitness.tests";
-		SDKROOT = iphoneos;
-		"TARGETED_DEVICE_FAMILY" = "1,2";
-		"TEST_HOST" = "$(BUILT_PRODUCTS_DIR)/Reps.app/Reps";
-	};
-	isa = XCBuildConfiguration;
-	name = Release;
-};
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reps.app/Reps";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */

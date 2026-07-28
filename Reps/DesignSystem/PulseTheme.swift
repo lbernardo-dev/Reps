@@ -180,10 +180,16 @@ enum PulseTheme {
     static let screenHorizontalPadding: CGFloat = 16
     static let screenBottomContentPadding: CGFloat = 24
     /// Extra scroll runway for tab roots that contain mandatory or actionable
-    /// footer content. iPadOS 26's floating tab bar and bottom accessory can
-    /// visually cover the last row even though the ScrollView reports a much
-    /// smaller bottom safe-area inset.
-    static let mainTabFooterClearance: CGFloat = 120
+    /// footer content. The floating tab bar and bottom accessory can visually
+    /// cover the last row even though the ScrollView reports a much smaller
+    /// bottom safe-area inset. This app ships iPhone-only
+    /// (`TARGETED_DEVICE_FAMILY = 1`), so on iPad App Review runs it through
+    /// the iPhone compatibility window — there `UIDevice.userInterfaceIdiom`
+    /// still reports `.phone`, so idiom checks can't detect that case. App
+    /// Review rejected a build (Guideline 4) because the WeatherKit
+    /// attribution link ended up behind that stack there, so this clearance
+    /// must be generous for every host, not just conditionally on iPad.
+    static let mainTabFooterClearance: CGFloat = 180
     static let minTapTarget: CGFloat = 44
     static let spacingXS: CGFloat = 6
     static let spacingS: CGFloat = 10
@@ -1670,6 +1676,7 @@ struct StickyHeaderScaffold<Accessory: View, Content: View>: View {
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(alignment: .leading, spacing: 18) {
                     content
+                        .adaptiveContentWidth()
                 }
                 // Pins the content to the ScrollView's own width instead of
                 // `.frame(maxWidth: .infinity)`, so an off-screen child (e.g. a

@@ -56,8 +56,7 @@ struct HealthGoalsView: View {
         }
         .sheet(item: $activeSheet) { sheet in
             sheetContent(for: sheet)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+                .repsSheetPresentation()
                 .presentationBackground(.ultraThinMaterial)
         }
     }

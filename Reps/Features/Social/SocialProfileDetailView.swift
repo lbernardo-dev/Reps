@@ -63,6 +63,7 @@ struct SocialProfileDetailView: View {
                 posts.removeAll { $0.id == post.id }
             })
             .environment(store)
+            .repsSheetPresentation()
         }
     }
 
@@ -468,6 +469,7 @@ private struct PostDetailSheet: View {
         }
         .sheet(isPresented: $showComments) {
             CommentsView(post: post)
+                .repsSheetPresentation()
         }
     }
 

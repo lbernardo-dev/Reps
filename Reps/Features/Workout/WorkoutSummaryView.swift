@@ -349,6 +349,7 @@ struct WorkoutSummaryView: View {
                     prefilledCaption: defaultFeedCaption,
                     onPosted: { withAnimation { feedShared = true } }
                 )
+                .repsSheetPresentation()
             }
         }
     }

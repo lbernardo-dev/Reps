@@ -77,6 +77,7 @@ struct SocialHubView: View {
         .task { await loadInitialDataIfNeeded() }
         .sheet(isPresented: $showCreateChallenge) {
             CreateChallengeView()
+                .repsSheetPresentation()
         }
         .navigationDestination(item: $selectedChallenge) { ch in
             ChallengeDetailView(challenge: ch)
@@ -108,6 +109,7 @@ struct SocialHubView: View {
         }
         .sheet(item: $commentsPost) { post in
             CommentsView(post: post)
+                .repsSheetPresentation()
         }
         .sheet(item: $selectedExplorePost) { post in
             NavigationStack {
@@ -150,14 +152,17 @@ struct SocialHubView: View {
                     }
                 }
             }
+            .repsSheetPresentation()
         }
         .sheet(isPresented: $showCreatePost) {
             CreatePostView()
                 .environment(store)
+                .repsSheetPresentation()
         }
         .sheet(isPresented: $showSocialOnboarding) {
             SocialOnboardingView()
                 .environment(store)
+                .repsSheetPresentation()
         }
     }
 
@@ -385,6 +390,7 @@ struct SocialHubView: View {
         }
         .sheet(isPresented: $showEditProfile) {
             EditSocialProfileView()
+                .repsSheetPresentation()
         }
     }
 
