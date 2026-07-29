@@ -135,6 +135,9 @@ struct MainTabView: View {
           if store.pendingMilestonePaywall {
             store.pendingMilestonePaywall = false
             store.presentPaywall(source: .onboarding, feature: nil, trigger: .featureGate)
+          } else if store.pendingReviewRequest {
+            store.pendingReviewRequest = false
+            requestReview()
           }
         }
       }
@@ -168,12 +171,6 @@ struct MainTabView: View {
             "tab": newTab.telemetryName,
             "source": "selection",
           ])
-      }
-      .onChange(of: store.pendingReviewRequest) { _, shouldRequest in
-        if shouldRequest {
-          store.pendingReviewRequest = false
-          requestReview()
-        }
       }
       .onChange(of: chromeState.isTabBarHidden) { _, hidden in
         guard hidden else { return }
