@@ -371,7 +371,12 @@ struct WorkoutSummaryView: View {
             completedSets.count
         )
         if !sessionPRs.isEmpty {
-            caption += localizedFormat("feed_default_caption_pr_format", sessionPRs.count)
+            if sessionPRs.count == 1, let firstPR = sessionPRs.first {
+                let name = RepsText.exerciseName(firstPR.exercise.name, language: store.userProfile.preferredLanguage)
+                caption += " · " + localizedFormat("feed_default_caption_pr_format", name)
+            } else {
+                caption += " · " + localizedFormat("you_set_pr_count_records_today", sessionPRs.count)
+            }
         }
         return caption
     }

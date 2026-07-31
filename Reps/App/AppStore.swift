@@ -679,6 +679,13 @@ final class AppStore {
         monetization.hasProAccess
     }
 
+    func isPlanDayLocked(_ day: WorkoutDay, in plan: WorkoutPlan? = nil) -> Bool {
+        guard !hasProAccess else { return false }
+        let targetPlan = plan ?? activePlan
+        guard let index = targetPlan.days.firstIndex(where: { $0.id == day.id || $0.title == day.title }) else { return false }
+        return index > 0
+    }
+
     func hasFeatureAccess(_ feature: ProductFeature) -> Bool {
         ProductAccess.isEnabled(feature, proEnabled: hasProAccess)
     }
@@ -1118,7 +1125,11 @@ final class AppStore {
     }
 
     func updateAvatarImageData(_ data: Data?) {
-        userProfile.avatarImageData = data
+        guard let rawData = data else {
+            userProfile.avatarImageData = nil
+            return
+        }
+        userProfile.avatarImageData = AvatarImageOptimizer.optimize(rawData)
     }
 
     func addProgressPhoto(_ photo: ProgressPhoto) {

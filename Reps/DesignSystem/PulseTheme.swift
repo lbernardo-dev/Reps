@@ -1059,10 +1059,59 @@ enum RepsText {
             .lowercased()
     }
 
+    private static let spanishExerciseDictionary: [String: String] = [
+        "barbell bench press": "Press de Banca con Barra",
+        "incline barbell bench press": "Press Inclinado con Barra",
+        "dumbbell bench press": "Press con Mancuernas en Banco Plano",
+        "incline dumbbell bench press": "Press Inclinado con Mancuernas",
+        "dumbbell flyes": "Aperturas con Mancuernas",
+        "push-ups": "Flexiones de Pecho",
+        "lat pulldown": "Jalón al Pecho en Polea",
+        "barbell row": "Remo con Barra",
+        "dumbbell row": "Remo a una Mano con Mancuerna",
+        "seated cable row": "Remo Sentado en Polea",
+        "pull-ups": "Dominadas Pronadas",
+        "chin-ups": "Dominadas Supinas",
+        "barbell squat": "Sentadillas Traseras con Barra",
+        "goblet squat": "Sentadillas Goblet con Mancuerna",
+        "leg press": "Prensa de Piernas",
+        "romanian deadlift": "Peso Muerto Rumano",
+        "barbell deadlift": "Peso Muerto Convencional",
+        "hip thrust": "Empuje de Cadera con Barra (Hip Thrust)",
+        "barbell hip thrust": "Empuje de Cadera con Barra (Hip Thrust)",
+        "glute bridge": "Puente de Glúteos",
+        "walking lunges": "Zancadas Caminando con Mancuernas",
+        "bulgarian split squat": "Sentadilla Búlgara con Mancuernas",
+        "standing calf raise": "Elevación de Talones de Pie",
+        "seated calf raise": "Elevación de Talones Sentado",
+        "overhead dumbbell press": "Press Militar con Mancuernas",
+        "barbell overhead press": "Press Militar con Barra",
+        "dumbbell lateral raise": "Elevaciones Laterales con Mancuernas",
+        "face pull": "Jalón a la Cara en Polea (Face Pull)",
+        "dumbbell bicep curl": "Curl de Bíceps con Mancuernas",
+        "hammer curl": "Curl Martillo con Mancuernas",
+        "triceps rope pushdown": "Extensión de Tríceps en Polea con Cuerda",
+        "skull crushers": "Extensión de Tríceps en Banco (Skull Crushers)",
+        "hanging leg raise": "Elevación de Piernas Colgado",
+        "plank": "Plancha Abdominal Isométrica",
+        "cable woodchopper": "Corte de Madera en Polea (Woodchopper)",
+        "cable kickback": "Patada de Glúteo en Polea",
+        "glute kickback": "Patada de Glúteo en Polea",
+        "cable lateral raise": "Elevaciones Laterales en Polea",
+        "ez bar bicep curl": "Curl de Bíceps con Barra Z",
+        "triceps dip": "Fondos de Tríceps",
+        "chest dip": "Fondos de Pecho en Paralelas"
+    ]
+
     private static func localizedTerm(prefix: String, value: String, defaultValue: String, language: String) -> String {
         let key = "\(prefix).\(slug(value))"
-        if let localized = localizedCatalogValue(key, defaultValue: defaultValue, language: language) {
+        if let localized = localizedCatalogValue(key, defaultValue: defaultValue, language: language), localized != key && localized != defaultValue {
             return localized
+        }
+        if language.lowercased().hasPrefix("es") && prefix == "exercise" {
+            if let spanish = spanishExerciseDictionary[normalized(value)] {
+                return spanish
+            }
         }
         return defaultValue
     }

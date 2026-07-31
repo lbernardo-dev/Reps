@@ -34,6 +34,7 @@ struct SettingsView: View {
     @State private var activeDestination: SettingsDestination?
     @State private var activeSheet: SettingsSheet?
     @State private var localPaywall: PaywallPresentation?
+    @State private var hasCopiedUserID = false
 
     var body: some View {
         StickyHeaderScaffold(
@@ -284,11 +285,32 @@ struct SettingsView: View {
                     Button {
                         UIPasteboard.general.string = userID
                         HapticService.notification(.success)
+                        withAnimation(.snappy(duration: 0.25)) {
+                            hasCopiedUserID = true
+                        }
+                        Task {
+                            try? await Task.sleep(for: .seconds(2))
+                            withAnimation(.snappy(duration: 0.25)) {
+                                hasCopiedUserID = false
+                            }
+                        }
                     } label: {
-                        Image(systemName: "doc.on.doc")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(PulseTheme.accent)
-                            .frame(width: 36, height: 36)
+                        HStack(spacing: 6) {
+                            if hasCopiedUserID {
+                                Text(settingsDisplayText("user_id_copied"))
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.green)
+                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                            }
+                            Image(systemName: hasCopiedUserID ? "checkmark.circle.fill" : "doc.on.doc")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(hasCopiedUserID ? .green : PulseTheme.accent)
+                                .scaleEffect(hasCopiedUserID ? 1.18 : 1.0)
+                        }
+                        .padding(.horizontal, hasCopiedUserID ? 10 : 8)
+                        .padding(.vertical, 6)
+                        .background(hasCopiedUserID ? Color.green.opacity(0.15) : Color.clear, in: Capsule())
+                        .frame(height: 36)
                     }
                     .buttonStyle(.plain)
                 }
@@ -652,32 +674,421 @@ private struct WorkoutSessionSettingsScreen: View {
     }
 }
 
+private func colorForWidgetName(_ name: String) -> Color {
+    switch name {
+    case "blue": return .blue
+    case "green": return Color(red: 0.2, green: 0.85, blue: 0.45)
+    case "orange": return .orange
+    case "purple": return .purple
+    case "red": return .red
+    case "yellow": return .yellow
+    default: return PulseTheme.accent
+    }
+}
+
 private struct WidgetSettingsScreen: View {
     @Environment(AppStore.self) private var store
     private let widgetColors = ["system", "blue", "green", "orange", "purple", "red", "yellow"]
+    @State private var workoutWidgetSize = "small"
+    @State private var streakWidgetSize = "medium"
+    @State private var batteryMetricFocus = "readiness"
+    @State private var showFriendsActivity = true
+    @State private var liveActivityRestTimer = true
 
     var body: some View {
         SettingsDetailScaffold(title: "widgets", systemImage: "square.grid.2x2.fill") {
+            // Master Color & Sync Card
             SettingsControlCard(title: "widget_color", systemImage: "paintpalette.fill") {
-                Picker(localizedString("widget_color"), selection: Binding(
-                    get: { store.userProfile.widgetAccentColorName },
-                    set: { colorName in
-                        store.userProfile.widgetAccentColorName = colorName
-                        store.syncWidgets()
-                        HapticService.selection()
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text(settingsDisplayText("global_accent_color"))
+                            .font(SettingsTypography.rowTitle)
+                            .foregroundStyle(PulseTheme.textPrimary)
+                        Spacer()
+                        Picker(localizedString("widget_color"), selection: Binding(
+                            get: { store.userProfile.widgetAccentColorName },
+                            set: { colorName in
+                                store.userProfile.widgetAccentColorName = colorName
+                                store.syncWidgets()
+                                HapticService.selection()
+                            }
+                        )) {
+                            ForEach(widgetColors, id: \.self) { colorName in
+                                Text(settingsDisplayText("color_\(colorName)")).tag(colorName)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(PulseTheme.accent)
                     }
-                )) {
-                    ForEach(widgetColors, id: \.self) { colorName in
-                        Text(localizedString("color_\(colorName)")).tag(colorName)
+
+                    Button {
+                        store.syncWidgets()
+                        HapticService.notification(.success)
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                            Text(settingsDisplayText("sync_widgets"))
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.accent)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 14)
+                        .background(PulseTheme.accent.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Text(settingsDisplayText("widgets_watch_and_live_activities_follow_session_outside_app"))
+                        .font(SettingsTypography.rowSubtitle)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+
+            // Section Header: Previews & Independent Customization
+            Text(settingsDisplayText("widget_previews_and_customization"))
+                .font(SettingsTypography.sectionTitle)
+                .foregroundStyle(PulseTheme.textPrimary)
+                .padding(.top, 8)
+
+            // 1. Workout Widget Preview & Settings
+            WidgetPreviewCard(
+                title: settingsDisplayText("workout_widget"),
+                subtitle: settingsDisplayText("workout_widget_desc"),
+                systemImage: "bolt.fill",
+                accentColor: colorForWidgetName(store.userProfile.widgetAccentColorName)
+            ) {
+                WorkoutWidgetPreviewView(
+                    routineName: store.activePlan.days.first?.title ?? "Push & Core Power",
+                    exerciseCount: 5,
+                    color: colorForWidgetName(store.userProfile.widgetAccentColorName),
+                    size: workoutWidgetSize
+                )
+            } controls: {
+                HStack {
+                    Text(settingsDisplayText("widget_size"))
+                        .font(SettingsTypography.rowTitle)
+                        .foregroundStyle(PulseTheme.textPrimary)
+                    Spacer()
+                    Picker("Size", selection: $workoutWidgetSize) {
+                        Text("Small").tag("small")
+                        Text("Medium").tag("medium")
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
+            }
+
+            // 2. Streak & Consistency Widget Preview & Settings
+            WidgetPreviewCard(
+                title: settingsDisplayText("streak_widget"),
+                subtitle: settingsDisplayText("streak_widget_desc"),
+                systemImage: "flame.fill",
+                accentColor: .orange
+            ) {
+                StreakWidgetPreviewView(
+                    streakDays: max(store.streakDays, 7),
+                    color: colorForWidgetName(store.userProfile.widgetAccentColorName),
+                    size: streakWidgetSize
+                )
+            } controls: {
+                HStack {
+                    Text(settingsDisplayText("widget_size"))
+                        .font(SettingsTypography.rowTitle)
+                        .foregroundStyle(PulseTheme.textPrimary)
+                    Spacer()
+                    Picker("Size", selection: $streakWidgetSize) {
+                        Text("Small").tag("small")
+                        Text("Medium").tag("medium")
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
+            }
+
+            // 3. Battery & Recovery Widget Preview & Settings
+            WidgetPreviewCard(
+                title: settingsDisplayText("battery_widget"),
+                subtitle: settingsDisplayText("battery_widget_desc"),
+                systemImage: "battery.100.bolt",
+                accentColor: .green
+            ) {
+                BatteryWidgetPreviewView(
+                    batteryLevel: 88,
+                    statusText: "Optimal Readiness",
+                    color: colorForWidgetName(store.userProfile.widgetAccentColorName)
+                )
+            } controls: {
+                HStack {
+                    Text(settingsDisplayText("primary_metric"))
+                        .font(SettingsTypography.rowTitle)
+                        .foregroundStyle(PulseTheme.textPrimary)
+                    Spacer()
+                    Picker("Metric", selection: $batteryMetricFocus) {
+                        Text("Readiness").tag("readiness")
+                        Text("HRV").tag("hrv")
+                        Text("Sleep").tag("sleep")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(PulseTheme.accent)
+                }
+            }
+
+            // 4. Live Activity & Dynamic Island Preview & Settings
+            WidgetPreviewCard(
+                title: settingsDisplayText("live_activity_preview"),
+                subtitle: settingsDisplayText("live_activity_desc"),
+                systemImage: "waveform.path.ecg",
+                accentColor: PulseTheme.accent
+            ) {
+                LiveActivityPreviewView(
+                    exerciseName: "Bench Press",
+                    setInfo: "Set 3 of 4 · 80 kg",
+                    timeText: "42:15",
+                    color: colorForWidgetName(store.userProfile.widgetAccentColorName)
+                )
+            } controls: {
+                Toggle(settingsDisplayText("show_rest_timer_live_activity"), isOn: $liveActivityRestTimer)
+                    .font(SettingsTypography.rowTitle)
+                    .tint(PulseTheme.accent)
+            }
+        }
+    }
+}
+
+// MARK: - Widget Preview Container & Preview Layouts
+
+private struct WidgetPreviewCard<Preview: View, Controls: View>: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let accentColor: Color
+    @ViewBuilder let preview: () -> Preview
+    @ViewBuilder let controls: () -> Controls
+
+    var body: some View {
+        PulseCard(contentPadding: 16, backgroundColor: PulseTheme.card) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    PulseIconBadge(systemImage: systemImage, tint: accentColor, size: 36, radius: 10)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                            .font(SettingsTypography.cardTitle)
+                            .foregroundStyle(PulseTheme.textPrimary)
+                        Text(subtitle)
+                            .font(SettingsTypography.rowSubtitle)
+                            .foregroundStyle(PulseTheme.secondaryText)
                     }
                 }
-                .pickerStyle(.menu)
-                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(localizedString("widgets_watch_and_live_activities_follow_session_outside_app"))
-                    .font(SettingsTypography.rowSubtitle)
-                    .foregroundStyle(PulseTheme.secondaryText)
+                // Interactive Live Preview Container
+                VStack {
+                    preview()
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity)
+                .background(Color.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+
+                Divider()
+                    .background(Color.white.opacity(0.1))
+
+                controls()
             }
+        }
+    }
+}
+
+private struct WorkoutWidgetPreviewView: View {
+    let routineName: String
+    let exerciseCount: Int
+    let color: Color
+    let size: String
+
+    var body: some View {
+        if size == "medium" {
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bolt.fill")
+                            .foregroundStyle(color)
+                        Text("TODAY'S WORKOUT")
+                            .font(.caption2.weight(.black))
+                            .foregroundStyle(color)
+                    }
+                    Text(routineName)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    Text("\(exerciseCount) exercises · ~45 min")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                Spacer()
+                ZStack {
+                    Circle()
+                        .stroke(color.opacity(0.25), lineWidth: 6)
+                    Circle()
+                        .trim(from: 0, to: 0.65)
+                        .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    Image(systemName: "play.fill")
+                        .font(.headline)
+                        .foregroundStyle(color)
+                }
+                .frame(width: 54, height: 54)
+            }
+            .padding(14)
+            .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "bolt.fill")
+                        .foregroundStyle(color)
+                    Spacer()
+                    Text("READY")
+                        .font(.caption2.weight(.bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(color.opacity(0.2), in: Capsule())
+                        .foregroundStyle(color)
+                }
+                Text(routineName)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                Spacer(minLength: 4)
+                Text("\(exerciseCount) EXERCISES")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            .padding(12)
+            .frame(width: 140, height: 130)
+            .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+    }
+}
+
+private struct StreakWidgetPreviewView: View {
+    let streakDays: Int
+    let color: Color
+    let size: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.orange.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                Image(systemName: "flame.fill")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(Color.orange)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(streakDays) DAY STREAK")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(.white)
+                Text("Consistent & On Track")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            Spacer()
+            HStack(spacing: 4) {
+                ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { day in
+                    Circle()
+                        .fill(day == "S" || day == "F" ? color : color.opacity(0.3))
+                        .frame(width: 8, height: 8)
+                }
+            }
+        }
+        .padding(12)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct BatteryWidgetPreviewView: View {
+    let batteryLevel: Int
+    let statusText: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "battery.100.bolt")
+                        .foregroundStyle(color)
+                    Text("ENERGY & RECOVERY")
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(color)
+                }
+                Text("\(batteryLevel)%")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                Text(statusText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            Spacer()
+            GeometryReader { geometry in
+                ZStack(alignment: .bottom) {
+                    Capsule()
+                        .fill(color.opacity(0.2))
+                    Capsule()
+                        .fill(color)
+                        .frame(height: geometry.size.height * (CGFloat(batteryLevel) / 100.0))
+                }
+            }
+            .frame(width: 14, height: 50)
+        }
+        .padding(12)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct LiveActivityPreviewView: View {
+    let exerciseName: String
+    let setInfo: String
+    let timeText: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "figure.strengthtraining.traditional")
+                        .foregroundStyle(color)
+                    Text("Reps")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.white)
+                }
+                Spacer()
+                Text(timeText)
+                    .font(.caption2.weight(.bold).monospacedDigit())
+                    .foregroundStyle(color)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color.black, in: Capsule())
+            .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+
+            HStack(spacing: 12) {
+                PulseIconBadge(systemImage: "bolt.fill", tint: color, size: 36, radius: 10)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(exerciseName)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text(setInfo)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                Spacer()
+                Text(timeText)
+                    .font(.title3.weight(.black).monospacedDigit())
+                    .foregroundStyle(color)
+            }
+            .padding(12)
+            .background(Color.black.opacity(0.8), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 }
@@ -1335,6 +1746,28 @@ private let settingsEnglishFallbacks: [String: String] = [
     "unlock_pro_features_and_advanced_data": "Unlock Pro features and advanced data.",
     "units_distance_and_training_defaults": "Units, distance, and training defaults",
     "user_id_label": "User ID:",
+    "user_id_copied": "Copied!",
+    "widget_previews_and_customization": "Widget Previews & Customization",
+    "global_accent_color": "Global Accent Color",
+    "sync_widgets": "Sync Widgets",
+    "workout_widget": "Workout Widget",
+    "workout_widget_desc": "Displays today's routine and active workout progress",
+    "streak_widget": "Streak Widget",
+    "streak_widget_desc": "Tracks daily consistency and training streak",
+    "battery_widget": "Recovery & Energy Widget",
+    "battery_widget_desc": "Monitors body battery, readiness, and HRV status",
+    "live_activity_preview": "Live Activity & Dynamic Island",
+    "live_activity_desc": "Real-time workout controls on Lock Screen and Dynamic Island",
+    "widget_size": "Widget Size",
+    "primary_metric": "Primary Metric Focus",
+    "show_rest_timer_live_activity": "Show Rest Timer in Live Activity",
+    "color_system": "System",
+    "color_blue": "Blue",
+    "color_green": "Green",
+    "color_orange": "Orange",
+    "color_purple": "Purple",
+    "color_red": "Red",
+    "color_yellow": "Yellow",
     "view_options": "View options",
     "weight_increment_kg_format": "Increment: %.1f kg"
 ]
@@ -1372,6 +1805,28 @@ private let settingsSpanishFallbacks: [String: String] = [
     "unlock_pro_features_and_advanced_data": "Desbloquea funciones Pro y datos avanzados.",
     "units_distance_and_training_defaults": "Unidades, distancia y valores de entrenamiento",
     "user_id_label": "ID de usuario:",
+    "user_id_copied": "¡Copiado!",
+    "widget_previews_and_customization": "Vistas Previas y Personalización de Widgets",
+    "global_accent_color": "Color de Acento Global",
+    "sync_widgets": "Sincronizar Widgets",
+    "workout_widget": "Widget de Entrenamiento",
+    "workout_widget_desc": "Muestra la rutina de hoy y el progreso activo",
+    "streak_widget": "Widget de Racha",
+    "streak_widget_desc": "Seguimiento de racha diaria y constancia",
+    "battery_widget": "Widget de Recuperación y Batería",
+    "battery_widget_desc": "Monitorea la batería corporal, disposición y HRV",
+    "live_activity_preview": "Live Activity y Dynamic Island",
+    "live_activity_desc": "Controles en tiempo real en Pantalla de Bloqueo e Island",
+    "widget_size": "Tamaño del Widget",
+    "primary_metric": "Métrica Principal",
+    "show_rest_timer_live_activity": "Mostrar Temporizador de Descanso",
+    "color_system": "Sistema",
+    "color_blue": "Azul",
+    "color_green": "Verde",
+    "color_orange": "Naranja",
+    "color_purple": "Púrpura",
+    "color_red": "Rojo",
+    "color_yellow": "Amarillo",
     "view_options": "Ver opciones",
     "weight_increment_kg_format": "Incremento: %.1f kg"
 ]

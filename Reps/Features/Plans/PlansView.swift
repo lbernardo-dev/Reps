@@ -1552,11 +1552,13 @@ private struct PlanRow: View {
 }
 
 private struct PlanDayRow: View {
+    @Environment(AppStore.self) private var store
     let day: WorkoutDay
     let gender: BodyGender
     let catalog: [Exercise]
 
     var body: some View {
+        let isLocked = store.isPlanDayLocked(day, in: store.activePlan)
         PulseCard(contentPadding: 14) {
             HStack(alignment: .top, spacing: 12) {
                 dayThumbnail
@@ -1564,10 +1566,17 @@ private struct PlanDayRow: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(RepsText.workoutTitle(day.title, language: RepsLocalization.language))
-                                .font(.headline.weight(.black))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.75)
+                            HStack(spacing: 6) {
+                                Text(RepsText.workoutTitle(day.title, language: RepsLocalization.language))
+                                    .font(.headline.weight(.black))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+                                if isLocked {
+                                    Image(systemName: "lock.fill")
+                                        .font(.subheadline)
+                                        .foregroundStyle(PulseTheme.accent)
+                                }
+                            }
                             Text(RepsText.localizedWorkoutSubtitle(day.subtitle, language: RepsLocalization.language))
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)

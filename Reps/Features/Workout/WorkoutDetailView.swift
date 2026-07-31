@@ -90,27 +90,51 @@ struct WorkoutDetailView: View {
             selectedWorkout = newWorkout
         }
         .safeAreaInset(edge: .bottom) {
-            let startWord = localizedString("start_workout")
-            NavigationLink {
-                ActiveWorkoutView(workout: selectedWorkout)
-            } label: {
-                Label(startWord, systemImage: "play.fill")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
-                    .background(PulseTheme.playControl)
-                    .clipShape(Capsule())
-            }
-            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-            .padding(.vertical, 12)
-            .background(
-                LinearGradient(
-                    colors: [PulseTheme.background.opacity(0), PulseTheme.background],
-                    startPoint: .top,
-                    endPoint: .bottom
+            let isLocked = store.isPlanDayLocked(selectedWorkout, in: parentPlan ?? store.activePlan)
+            if isLocked {
+                Button {
+                    store.requireFeature(.customRoutines, source: .programLibrary)
+                } label: {
+                    Label(localizedString("unlock_with_pro_button"), systemImage: "lock.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                        .background(PulseTheme.accent)
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [PulseTheme.background.opacity(0), PulseTheme.background],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 )
-            )
+            } else {
+                let startWord = localizedString("start_workout")
+                NavigationLink {
+                    ActiveWorkoutView(workout: selectedWorkout)
+                } label: {
+                    Label(startWord, systemImage: "play.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
+                        .background(PulseTheme.playControl)
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [PulseTheme.background.opacity(0), PulseTheme.background],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+            }
         }
     }
 

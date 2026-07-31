@@ -10,8 +10,8 @@ import WeatherKit
 /// workout hero (`.hero`, first by default) — fully reorderable/hideable like
 /// every other card, per explicit request rather than pinned Apple-Rings-style.
 private enum TodaySection: String, CustomizableSection {
-    case hero, greeting, weeklyProgress, weather, insights, continuity, recommendedWorkout
-    case progression, signals, wellness, plan, shortcuts
+    case greeting, hero, weeklyProgress, weather, insights, continuity
+    case signals, wellness, plan, shortcuts, recommendedWorkout, progression
 
     var id: String { rawValue }
 
@@ -396,7 +396,7 @@ struct TodayView: View {
             gWords("\u{B7} Recuperaci\u{F3}n")
             gPill(TrackedMetric.readiness.systemImage, "\(battery.level)%", TrackedMetric.readiness.tint, .recovery)
             gWords("\u{B7} \(stressText) \u{B7}")
-            if hasActivePlan { gWords("tu plan pide"); gHighlight(weekTargetText, weeklyPlanSummaryTint); gWords("sesiones esta semana.") } else { gWords("a\u{FA}n no tienes plan activo.") }
+            if hasActivePlan { gWords("tu plan pide"); gPill("bolt.fill", weekTargetText, weeklyPlanSummaryTint, .workouts); gWords("sesiones esta semana.") } else { gWords("a\u{FA}n no tienes plan activo.") }
         } else {
             gWords("You slept")
             if let s = latestSleepHours { gPill(TrackedMetric.sleep.systemImage, String(format: "%.1f h", s), TrackedMetric.sleep.tint, .sleep) } else { gWords("no data") }
@@ -407,7 +407,7 @@ struct TodayView: View {
             gWords("\u{B7} recovery")
             gPill(TrackedMetric.readiness.systemImage, "\(battery.level)%", TrackedMetric.readiness.tint, .recovery)
             gWords("\u{B7} \(stressText) \u{B7}")
-            if hasActivePlan { gWords("your plan calls for"); gHighlight(weekTargetText, weeklyPlanSummaryTint); gWords("sessions this week.") } else { gWords("no active plan yet.") }
+            if hasActivePlan { gWords("your plan calls for"); gPill("bolt.fill", weekTargetText, weeklyPlanSummaryTint, .workouts); gWords("sessions this week.") } else { gWords("no active plan yet.") }
         }
 
         return TodayRenderModel(
@@ -496,6 +496,10 @@ private struct TodayViewContent: View {
     }
 
     private func startFocusWorkout() {
+        guard !store.isPlanDayLocked(focusWorkout) else {
+            store.requireFeature(.customRoutines, source: .programLibrary)
+            return
+        }
         guard focusWorkoutAlreadyCompletedToday else {
             workoutToStart = focusWorkout
             return
@@ -622,7 +626,7 @@ private struct TodayViewContent: View {
             StickyHeaderScaffold(
                 title: "workout",
                 subtitle: currentDateTitle,
-                bottomContentPadding: PulseTheme.mainTabFooterClearance,
+                bottomContentPadding: 16,
                 accessory: {
                     Button {
                         HapticService.selection()
@@ -959,6 +963,7 @@ private struct TodayViewContent: View {
         case .hrv: HRVView()
         case .heartRate: HeartRateView()
         case .recovery: TrainingBatteryView()
+        case .workouts: TrainingBatteryView()
         }
     }
 
@@ -968,6 +973,7 @@ private struct TodayViewContent: View {
         case .hrv: return .greetingHrv
         case .heartRate: return .greetingHeartRate
         case .recovery: return .greetingRecovery
+        case .workouts: return .greetingRecovery
         }
     }
 
@@ -979,23 +985,45 @@ private struct TodayViewContent: View {
                 .font(.subheadline)
                 .foregroundStyle(PulseTheme.secondaryText)
         case .pill(let icon, let value, let tint, let destination):
-            NavigationLink(value: route(for: destination)) {
-                HStack(spacing: 4) {
-                    Image(systemName: icon)
-                        .font(.system(size: 10, weight: .bold))
-                    Text(value)
-                        .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
+            if destination == .workouts {
+                Button {
+                    HapticService.selection()
+                    planToEdit = store.activePlan
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: icon)
+                            .font(.system(size: 10, weight: .bold))
+                        Text(value)
+                            .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
+                    }
+                    .foregroundStyle(tint)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(tint.opacity(0.16), in: Capsule())
+                    .overlay {
+                        Capsule().stroke(tint.opacity(0.22), lineWidth: 0.8)
+                    }
                 }
-                .foregroundStyle(tint)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(tint.opacity(0.16), in: Capsule())
-                .overlay {
-                    Capsule().stroke(tint.opacity(0.22), lineWidth: 0.8)
+                .buttonStyle(.plain)
+            } else {
+                NavigationLink(value: route(for: destination)) {
+                    HStack(spacing: 4) {
+                        Image(systemName: icon)
+                            .font(.system(size: 10, weight: .bold))
+                        Text(value)
+                            .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
+                    }
+                    .foregroundStyle(tint)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(tint.opacity(0.16), in: Capsule())
+                    .overlay {
+                        Capsule().stroke(tint.opacity(0.22), lineWidth: 0.8)
+                    }
                 }
+                .buttonStyle(.plain)
+                .matchedTransitionSource(id: destination.zoomID, in: wellnessZoom)
             }
-            .buttonStyle(.plain)
-            .matchedTransitionSource(id: destination.zoomID, in: wellnessZoom)
         case .highlight(let value, let tint):
             Text(value)
                 .font(.system(size: 15, weight: .black, design: .rounded).monospacedDigit())
@@ -1251,35 +1279,70 @@ private struct TodayViewContent: View {
             }
             .buttonStyle(.plain)
 
-            HStack(spacing: 10) {
-                Button {
-                    perform(dailyCoachRecommendation.action)
-                } label: {
-                    Label(dailyCoachRecommendation.actionTitle, systemImage: "arrow.up.right.circle.fill")
-                        .font(.headline.weight(.black))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                        .foregroundStyle(PulseTheme.onColor(color(for: dailyCoachRecommendation.tone)))
-                        .background(color(for: dailyCoachRecommendation.tone), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
-                .buttonStyle(.plain)
+            let isFocusLocked = store.isPlanDayLocked(focusWorkout)
 
-                Button {
-                    HapticService.selection()
-                    if hasActivePlanSession {
-                        startFocusWorkout()
-                    } else {
-                        showFreeWorkoutStart = true
+            if isFocusLocked {
+                HStack(spacing: 10) {
+                    Button {
+                        HapticService.selection()
+                        store.requireFeature(.customRoutines, source: .programLibrary)
+                    } label: {
+                        Label(localizedString("unlock_with_pro_button"), systemImage: "lock.fill")
+                            .font(.headline.weight(.black))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                            .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
-                } label: {
-                    Image(systemName: "play.fill")
-                        .font(.headline.weight(.black))
-                        .frame(width: 54, height: 54)
-                        .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
-                        .background(PulseTheme.playControl, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    .buttonStyle(.plain)
+
+                    Button {
+                        HapticService.selection()
+                        store.requireFeature(.customRoutines, source: .programLibrary)
+                    } label: {
+                        Image(systemName: "lock.fill")
+                            .font(.headline.weight(.black))
+                            .frame(width: 54, height: 54)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                            .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(localizedString("unlock_with_pro_button"))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(playButtonTitle)
+            } else {
+                HStack(spacing: 10) {
+                    Button {
+                        HapticService.selection()
+                        if hasActivePlan {
+                            planToEdit = store.activePlan
+                        } else {
+                            perform(dailyCoachRecommendation.action)
+                        }
+                    } label: {
+                        Label(dailyCoachRecommendation.actionTitle, systemImage: "arrow.up.right.circle.fill")
+                            .font(.headline.weight(.black))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .foregroundStyle(PulseTheme.onColor(color(for: dailyCoachRecommendation.tone)))
+                            .background(color(for: dailyCoachRecommendation.tone), in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+
+                    if hasActivePlan {
+                        Button {
+                            HapticService.selection()
+                            startFocusWorkout()
+                        } label: {
+                            Image(systemName: "play.fill")
+                                .font(.headline.weight(.black))
+                                .frame(width: 54, height: 54)
+                                .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
+                                .background(PulseTheme.playControl, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(playButtonTitle)
+                    }
+                }
             }
         }
         .padding(18)
@@ -1304,11 +1367,15 @@ private struct TodayViewContent: View {
         Menu {
             Section(header: Text(localizedString("change_day"))) {
                 ForEach(store.activePlan.days) { day in
+                    let isLocked = store.isPlanDayLocked(day)
                     Button {
                         store.selectWorkoutDayForToday(day)
                     } label: {
                         HStack {
                             Text(RepsText.workoutTitle(day.title, language: store.userProfile.preferredLanguage))
+                            if isLocked {
+                                Image(systemName: "lock.fill")
+                            }
                             if day.id == focusWorkout.id {
                                 Image(systemName: "checkmark")
                             }
@@ -2786,7 +2853,7 @@ private struct TodayCoachSummaryRow: View {
 }
 
 private enum GreetingMetricDestination {
-    case sleep, hrv, heartRate, recovery
+    case sleep, hrv, heartRate, recovery, workouts
 
     var zoomID: String {
         switch self {
@@ -2794,6 +2861,7 @@ private enum GreetingMetricDestination {
         case .hrv: return "greeting-hrv"
         case .heartRate: return "greeting-heart-rate"
         case .recovery: return "greeting-recovery"
+        case .workouts: return "greeting-workouts"
         }
     }
 }
@@ -4647,8 +4715,29 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
         locationManager.distanceFilter = 1_000
     }
 
+    private var locationRetryCount = 0
+
+    private var cachedOrSavedLocation: CLLocation? {
+        if let loc = locationManager.location {
+            return loc
+        }
+        if let metLoc = metWeatherPayload?.location {
+            return metLoc
+        }
+        let lat = defaults.double(forKey: "weather.lastLatitude")
+        let lon = defaults.double(forKey: "weather.lastLongitude")
+        guard lat != 0 || lon != 0 else { return nil }
+        return CLLocation(latitude: lat, longitude: lon)
+    }
+
+    private func persistLocationCoordinates(_ location: CLLocation) {
+        defaults.set(location.coordinate.latitude, forKey: "weather.lastLatitude")
+        defaults.set(location.coordinate.longitude, forKey: "weather.lastLongitude")
+    }
+
     func load(units: UserProfile.Units, force: Bool = false) async {
         requestedUnits = units
+        locationRetryCount = 0
         if let payload,
            !force,
            Date.now.timeIntervalSince(payload.fetchedAt) < WeatherRefreshPolicy.freshDataLifetime {
@@ -4694,7 +4783,13 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
         switch locationManager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
             pendingForceFetch = force
-            phase = .loading
+            if today == nil {
+                phase = .loading
+            }
+            // Immediately start fetching using existing or cached location if available
+            if let loc = cachedOrSavedLocation {
+                await fetch(for: loc, force: force)
+            }
             locationManager.requestLocation()
         case .notDetermined:
             // Never fire the system permission dialog from a passive render of
@@ -4716,6 +4811,7 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
     func retry() async {
         metWeatherFallbackTask?.cancel()
         metWeatherFallbackTask = nil
+        locationRetryCount = 0
         await load(units: requestedUnits, force: true)
     }
 
@@ -4739,14 +4835,21 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         Task { @MainActor in
+            locationRetryCount = 0
             let force = pendingForceFetch
             pendingForceFetch = false
+            persistLocationCoordinates(location)
             await fetch(for: location, force: force)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
+            // If weather data is already loaded and active, don't interrupt it with transient location error
+            if today != nil {
+                return
+            }
+
             // A transient location error (kCLErrorLocationUnknown, airplane mode…)
             // should never blank the card while we still hold a recent forecast
             // for wherever the user last was.
@@ -4761,8 +4864,31 @@ private final class TodayWeatherController: NSObject, CLLocationManagerDelegate 
                 apply(metWeatherPayload)
                 return
             }
+
+            // Attempt fallback to cached/saved location coordinate if present
+            if let loc = cachedOrSavedLocation {
+                await fetch(for: loc, force: pendingForceFetch)
+                if today != nil {
+                    return
+                }
+            }
+
+            // Auto-retry transient location requests (e.g. CoreLocation warming up on launch)
+            if locationRetryCount < 2 {
+                locationRetryCount += 1
+                try? await Task.sleep(for: .milliseconds(1200))
+                locationManager.requestLocation()
+                return
+            }
+
             TelemetryService.shared.record(error, context: "weather_location_request")
-            phase = .failed(error.localizedDescription)
+            
+            let nsError = error as NSError
+            if nsError.domain == kCLErrorDomain {
+                phase = .failed(localizedString("weather_all_services_unavailable"))
+            } else {
+                phase = .failed(error.localizedDescription)
+            }
         }
     }
 
@@ -5034,12 +5160,9 @@ private struct AnimatedWeatherStatusIcon: View {
     }
     /// Where the sun/moon's confined orbit band starts inside each surface: the detail
     /// background sits behind the navigation header, so its band begins lower
-    /// to keep the body inside the visible sky.
+    /// to keep the body inside the visible sky below the navigation controls.
     private var celestialTopBandFraction: CGFloat {
-        // The detail scene has room below its navigation controls. Lower the
-        // celestial lane there so it reads as part of the sky rather than as a
-        // decoration pinned to the status bar.
-        if isDetailBackground { return 0.055 }
+        if isDetailBackground { return 0.22 }
         if isWidgetBackground { return 0.03 }
         return 0.04
     }
@@ -5238,17 +5361,21 @@ private struct WeatherCelestialBody: View {
 
     @ViewBuilder
     private func orbitTrajectory(in size: CGSize, bodySize: CGFloat) -> some View {
+        let y0 = verticalPosition(progress: 0, height: size.height, bodySize: bodySize)
+        let y1 = verticalPosition(progress: 1, height: size.height, bodySize: bodySize)
+        let yApex = verticalPosition(progress: 0.5, height: size.height, bodySize: bodySize)
+
         let start = CGPoint(
             x: size.width * 0.585,
-            y: verticalPosition(progress: 0, height: size.height, bodySize: bodySize)
+            y: y0
         )
         let end = CGPoint(
             x: size.width * 0.905,
-            y: verticalPosition(progress: 1, height: size.height, bodySize: bodySize)
+            y: y1
         )
         let control = CGPoint(
             x: size.width * 0.745,
-            y: verticalPosition(progress: 0.5, height: size.height, bodySize: bodySize)
+            y: 2 * yApex - 0.5 * (y0 + y1)
         )
 
         Path { path in
@@ -6155,6 +6282,19 @@ private struct TodayWeatherDetailView: View {
     @State private var selectedDay: FitnessWeatherDay
     @State private var isInsightsExpanded = true
 
+    // MARK: - Orbit legibility
+
+    /// Proximity of the celestial body to its lowest arc position [0…1].
+    /// 0 = body is at zenith (mid-arc, no overlap risk).
+    /// 1 = body is at horizon (orbit extremes, maximum overlap risk with hero text).
+    private var orbitLowness: Double {
+        let palette = WeatherSkyPalette(moment: Date(), snapshot: activeSnapshot)
+        let p = palette.orbitProgress
+        // sin(π·p) peaks at 0.5 (zenith) → invert so low positions score high
+        let arcHeight = sin(p * .pi)
+        return 1.0 - arcHeight
+    }
+
     init(
         today: FitnessWeatherSnapshot,
         tomorrow: FitnessWeatherSnapshot,
@@ -6215,30 +6355,52 @@ private struct TodayWeatherDetailView: View {
     }
 
     private var hero: some View {
-        VStack(spacing: 13) {
+        // Adaptive legibility: shadow intensity and frosted-glass backdrop scale
+        // with orbitLowness so they appear progressively as the sun/moon
+        // descends toward the text zone, and vanish at zenith.
+        let lowness = orbitLowness                         // [0 = zenith … 1 = horizon]
+        let shadowRadius = 4.0 + lowness * 12.0            // 4…16 pt
+        let shadowOpacity = 0.10 + lowness * 0.40          // 0.10…0.50
+        let backdropOpacity = max(0, lowness - 0.35) * 1.0 // appears only in lower half of arc
+
+        return VStack(spacing: 13) {
             Color.clear
                 .frame(height: 96)
                 .accessibilityHidden(true)
+
             VStack(spacing: 5) {
                 Text(activeSnapshot.locationName)
                     .font(.headline.weight(.bold))
                     .foregroundStyle(PulseTheme.secondaryText)
+                    .shadow(color: .black.opacity(shadowOpacity * 0.6), radius: shadowRadius * 0.6, y: 1)
                 Text("\(activeSnapshot.currentTemperature)\(activeSnapshot.temperatureUnit)")
                     .font(.system(size: 52, weight: .black, design: .rounded).monospacedDigit())
                     .foregroundStyle(PulseTheme.textPrimary)
                     .contentTransition(.numericText(value: Double(activeSnapshot.currentTemperature)))
                     .animation(.spring(response: 0.4, dampingFraction: 0.72), value: activeSnapshot.currentTemperature)
+                    .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: 2)
                 Text(activeSnapshot.conditionTitle)
                     .font(.system(size: 34, weight: .black, design: .rounded))
                     .foregroundStyle(PulseTheme.textPrimary)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.72)
+                    .shadow(color: .black.opacity(shadowOpacity * 0.85), radius: shadowRadius * 0.9, y: 1)
                 Text(activeSnapshot.conditionMessage)
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .multilineTextAlignment(.center)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
+                    .shadow(color: .black.opacity(shadowOpacity * 0.5), radius: shadowRadius * 0.5)
+            }
+            // Frosted glass backdrop — grows in when orbit is low, invisible at zenith
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .opacity(backdropOpacity)
+                    .animation(.easeInOut(duration: 1.5), value: backdropOpacity)
             }
 
             HStack(spacing: 8) {

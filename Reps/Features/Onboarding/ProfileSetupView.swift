@@ -2,6 +2,8 @@ import Charts
 import MuscleMap
 import SwiftUI
 
+// MARK: - Main Coordinator View
+
 struct ProfileSetupView: View {
     @Environment(AppStore.self) private var store
 
@@ -13,20 +15,24 @@ struct ProfileSetupView: View {
     @State private var isGenerationComplete = false
     @State private var generationPulse = false
     @State private var generationTask: Task<Void, Never>?
-    @State private var testimonialIndex = 0
     @State private var contentAppeared = false
     @State private var showingBackFromPlan = false
 
     var onFinish: (OnboardingResult) -> Void
 
-    private let steps = OnboardingStep.allCases
+    private var activeSteps: [OnboardingStep] {
+        if draft.buildsOwnPlan {
+            return [.hero, .value, .setup, .goal, .equipment, .ready]
+        }
+        return OnboardingStep.allCases
+    }
 
     private var stepIndex: Int {
-        steps.firstIndex(of: step) ?? 0
+        activeSteps.firstIndex(of: step) ?? 0
     }
 
     private var progressValue: Double {
-        Double(stepIndex + 1) / Double(steps.count)
+        Double(stepIndex + 1) / Double(activeSteps.count)
     }
 
     private var bodyMetric: BodyMetric {
@@ -35,10 +41,6 @@ struct ProfileSetupView: View {
 
     private var generatedPlan: WorkoutPlan {
         cachedPlan ?? buildPlan()
-    }
-
-    private var selectedGender: BodyGender {
-        draft.bodyMapPreference.bodyGender
     }
 
     private var weeklySetTotal: Int {
@@ -50,6 +52,8 @@ struct ProfileSetupView: View {
             if step != .hero && (step != .generating || isGenerationComplete) {
                 OnboardingProgressHeader(
                     progress: progressValue,
+                    currentStepIndex: stepIndex + 1,
+                    totalSteps: activeSteps.count,
                     canGoBack: stepIndex > 0,
                     onBack: {
                         if step == .generating {
@@ -114,522 +118,42 @@ struct ProfileSetupView: View {
     private var stepContent: some View {
         switch step {
         case .hero:
-            heroStep
+            OnboardingHeroStepView()
         case .value:
-            valueStep
+            OnboardingValueStepView(draft: $draft)
         case .setup:
-            setupStep
+            OnboardingSetupStepView(draft: $draft)
         case .goal:
-            goalStep
+            OnboardingGoalStepView(draft: $draft)
         case .experience:
-            experienceStep
+            OnboardingExperienceStepView(draft: $draft)
         case .schedule:
-            scheduleStep
+            OnboardingScheduleStepView(draft: $draft)
         case .equipment:
-            equipmentStep
+            OnboardingEquipmentStepView(draft: $draft)
         case .baseline:
-            baselineStep
+            OnboardingBaselineStepView(draft: $draft)
         case .focus:
-            focusStep
+            OnboardingFocusStepView(draft: $draft)
         case .generating:
-            generatingStep
-        case .ready:
-            readyStep
-        }
-    }
-
-    private var heroStep: some View {
-        VStack(spacing: 28) {
-            Spacer(minLength: 64)
-
-            ZStack {
-                Circle()
-                    .fill(.white.opacity(0.14))
-                    .frame(width: 204, height: 204)
-                    .blur(radius: 30)
-
-                Image("StreakRepHeroIcon")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 152, height: 152)
-                    .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 34, style: .continuous)
-                            .stroke(.white.opacity(0.14), lineWidth: 1)
-                    )
-                    .shadow(color: .white.opacity(0.18), radius: 26)
-            }
-
-            VStack(spacing: 14) {
-                let brandText = Text("StreakReps")
-                    .foregroundStyle(LinearGradient(
-                        colors: [PulseTheme.accent, PulseTheme.warning],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ))
-                Text("\(Text("onboarding_hero_meet"))\(brandText)\(Text("onboarding_hero_partner"))")
-                    .font(.system(size: 38, weight: .heavy))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(4)
-                    .minimumScaleFactor(0.76)
-
-                Text("onboarding_hero_tagline")
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, 8)
-
-            Spacer(minLength: 24)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var valueStep: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            OnboardingTitle(
-                title: "onboarding_value_title",
-                subtitle: "onboarding_value_subtitle"
-            )
-
-            OnboardingProgressBodyHero(
-                goal: draft.mainGoal.shortTitle,
-                daysPerWeek: draft.weeklyTrainingDays,
-                minutes: draft.sessionLengthMinutes
-            )
-            .frame(height: 540)
-        }
-    }
-
-    private var setupStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            OnboardingTitle(
-                title: "onboarding_setup_title",
-                subtitle: "onboarding_setup_subtitle"
-            )
-
-            VStack(spacing: 12) {
-                OnboardingOptionCard(
-                    title: "onboarding_setup_create",
-                    subtitle: "onboarding_setup_create_sub",
-                    icon: "sparkles",
-                    tint: PulseTheme.accent,
-                    isSelected: !draft.buildsOwnPlan
-                ) {
-                    draft.buildsOwnPlan = false
-                }
-
-                OnboardingOptionCard(
-                    title: "onboarding_setup_self",
-                    subtitle: "onboarding_setup_self_sub",
-                    icon: "wrench.fill",
-                    tint: PulseTheme.secondaryText,
-                    isSelected: draft.buildsOwnPlan
-                ) {
-                    draft.buildsOwnPlan = true
-                }
-            }
-        }
-    }
-
-    private var goalStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            OnboardingTitle(
-                title: "onboarding_goal_title",
-                subtitle: "onboarding_goal_subtitle"
-            )
-
-            VStack(spacing: 12) {
-                ForEach(UserProfile.MainGoal.allCases) { goal in
-                    OnboardingOptionCard(
-                        title: goal.title,
-                        subtitle: goal.subtitle,
-                        icon: goal.icon,
-                        tint: goal.tint,
-                        isSelected: draft.mainGoal == goal
-                    ) {
-                        draft.mainGoal = goal
-                    }
-                }
-            }
-        }
-    }
-
-    private var experienceStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            OnboardingTitle(
-                title: "onboarding_exp_title",
-                subtitle: "onboarding_exp_subtitle"
-            )
-
-            VStack(spacing: 12) {
-                ForEach(UserProfile.Experience.allCases) { experience in
-                    OnboardingOptionCard(
-                        title: experience.title,
-                        subtitle: experience.subtitle,
-                        icon: experience.icon,
-                        tint: PulseTheme.ringStand,
-                        isSelected: draft.experience == experience
-                    ) {
-                        draft.experience = experience
-                    }
-                }
-            }
-        }
-    }
-
-    private var scheduleStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            OnboardingTitle(
-                title: "onboarding_schedule_title",
-                subtitle: "onboarding_schedule_subtitle"
-            )
-
-            OnboardingNumberPicker(
-                title: "onboarding_schedule_days_label",
-                value: $draft.weeklyTrainingDays,
-                options: Array(1...7),
-                unit: "onboarding_schedule_days_unit",
-                helper: scheduleHelperText
-            )
-
-            OnboardingNumberPicker(
-                title: "onboarding_schedule_duration_label",
-                value: $draft.sessionLengthMinutes,
-                options: [15, 30, 45, 60, 75, 90],
-                unit: "onboarding_schedule_duration_unit",
-                helper: durationHelperText
-            )
-        }
-    }
-
-    private var equipmentStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            OnboardingTitle(
-                title: "onboarding_equipment_title",
-                subtitle: "onboarding_equipment_subtitle"
-            )
-
-            VStack(spacing: 12) {
-                ForEach(OnboardingLocationCatalog.locations) { location in
-                    OnboardingOptionCard(
-                        title: location.title,
-                        subtitle: location.subtitle,
-                        icon: location.icon,
-                        tint: PulseTheme.recovery,
-                        isSelected: draft.selectedLocationID == location.id
-                    ) {
-                        draft.applyLocation(location)
-                    }
-                }
-            }
-
-            PulseCard {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("onboarding_equipment_available_label")
-                        .font(.headline)
-
-                    FlowLayout(spacing: 10) {
-                        ForEach(OnboardingLocationCatalog.coreEquipment, id: \.self) { equipment in
-                            EquipmentChip(
-                                title: OnboardingLocationCatalog.localizedEquipmentKey(equipment),
-                                isSelected: draft.availableEquipment.contains(equipment)
-                            ) {
-                                draft.toggleEquipment(equipment)
-                            }
-                        }
-                    }
-
-                    Text("onboarding_equipment_refine_hint")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                }
-            }
-        }
-    }
-
-    private var baselineStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            OnboardingTitle(
-                title: "onboarding_baseline_title",
-                subtitle: "onboarding_baseline_subtitle"
-            )
-
-            OnboardingMetricSlider(
-                title: "onboarding_baseline_age",
-                valueText: "\(draft.age)",
-                unit: "onboarding_baseline_age_unit",
-                icon: "calendar",
-                value: Binding(
-                    get: { Double(draft.age) },
-                    set: { draft.age = Int($0.rounded()) }
-                ),
-                range: 14...85,
-                step: 1
-            )
-
-            OnboardingMetricSlider(
-                title: "onboarding_baseline_height",
-                valueText: String(format: "%.0f", draft.heightCm),
-                unit: "onboarding_baseline_height_unit",
-                icon: "ruler",
-                value: $draft.heightCm,
-                range: 130...220,
-                step: 1
-            )
-
-            OnboardingMetricSlider(
-                title: "onboarding_baseline_weight",
-                valueText: String(format: "%.1f", draft.weightKg),
-                unit: "onboarding_baseline_weight_unit",
-                icon: "scalemass.fill",
-                value: $draft.weightKg,
-                range: 35...180,
-                step: 0.5
-            )
-
-            PulseCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("onboarding_baseline_anatomy_label")
-                        .font(.headline)
-                    Text("onboarding_baseline_anatomy_subtitle")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(PulseTheme.secondaryText)
-
-                    HStack(spacing: 8) {
-                        ForEach(BodyMapPreference.allCases) { preference in
-                            Button {
-                                draft.bodyMapPreference = preference
-                            } label: {
-                                Text(localizedKey(preference.title))
-                                    .font(.caption.weight(.bold))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 38)
-                                    .contentShape(Capsule())
-                                    .foregroundStyle(draft.bodyMapPreference == preference ? .black : PulseTheme.secondaryText)
-                                    .background(draft.bodyMapPreference == preference ? .white : PulseTheme.grouped)
-                                    .clipShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-                            .pressableFeedback(scale: 0.94)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var focusStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            OnboardingTitle(
-                title: "onboarding_focus_title",
-                subtitle: "onboarding_focus_subtitle"
-            )
-
-            OnboardingBodyPair(gender: selectedGender, selectedMuscles: selectedFocusMuscles) { muscle in
-                if let focus = focusKey(for: muscle) {
-                    draft.toggleFocus(focus)
-                }
-            }
-            .frame(height: 410)
-
-            FlowLayout(spacing: 10) {
-                ForEach(OnboardingDraft.focusOptions, id: \.self) { focus in
-                    EquipmentChip(
-                        title: OnboardingDraft.localizedFocusKey(focus),
-                        isSelected: draft.focusMuscles.contains(focus)
-                    ) {
-                        draft.toggleFocus(focus)
-                    }
-                }
-                EquipmentChip(
-                    title: "onboarding_focus_all",
-                    isSelected: draft.allFocusSelected
-                ) {
-                    draft.toggleAllFocus()
-                }
-            }
-        }
-    }
-
-    private var generatingStep: some View {
-        VStack(spacing: 0) {
-            if !isGenerationComplete {
-                planGeneratingView
-            } else {
-                planCompleteView
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var activeGenerationStep: Int {
-        if generationProgress < 0.25 { return 0 }
-        if generationProgress < 0.55 { return 1 }
-        if generationProgress < 0.82 { return 2 }
-        return 3
-    }
-
-    private static let planTestimonials: [(text: String, author: String)] = [
-        (text: "I finally have a plan that fits my schedule and recovery.", author: "Alex R."),
-        (text: "The first week was tough but by week 3 I was hooked.", author: "Maria K."),
-        (text: "Finally an app that actually adapts to my life.", author: "Carlos M."),
-    ]
-
-    private var planGeneratingView: some View {
-        VStack(alignment: .leading, spacing: 26) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("onboarding_personalizing_title")
-                    .font(.system(size: 34, weight: .heavy))
-                Text("onboarding_personalizing_subtitle")
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(PulseTheme.secondaryText)
-            }
-            .padding(.top, 8)
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text("PROGRESS")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .tracking(1.2)
-
-                GeometryReader { proxy in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(.white.opacity(0.10))
-                        Capsule()
-                            .fill(LinearGradient(
-                                colors: [PulseTheme.ringStand, PulseTheme.accent],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ))
-                            .frame(width: max(16, proxy.size.width * generationProgress))
-                    }
-                }
-                .frame(height: 5)
-            }
-
-            PulseCard {
-                let stepTitles: [String] = [
-                    "onboarding_step_saving_profile",
-                    "onboarding_step_preferences",
-                    "onboarding_step_volume",
-                    "onboarding_step_templates"
-                ]
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(stepTitles.enumerated()), id: \.offset) { index, title in
-                        GenerationStepRow(
-                            title: title,
-                            isCompleted: index < activeGenerationStep,
-                            isActive: index == activeGenerationStep,
-                            isLast: index == stepTitles.count - 1
-                        )
-                    }
-                }
-            }
-
-            PulseCard(backgroundColor: PulseTheme.grouped) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Image(systemName: "quote.opening")
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(PulseTheme.tertiaryText)
-
-                    Text(Self.planTestimonials[testimonialIndex].text)
-                        .font(.body.weight(.medium))
-                        .italic()
-                        .foregroundStyle(PulseTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .id(testimonialIndex)
-                        .transition(.opacity)
-
-                    Text("— \(Self.planTestimonials[testimonialIndex].author)")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                }
-            }
-
-            Spacer(minLength: 16)
-        }
-        .frame(maxWidth: .infinity)
-        .task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(3.5))
-                withAnimation(.easeInOut(duration: 0.45)) {
-                    testimonialIndex = (testimonialIndex + 1) % Self.planTestimonials.count
-                }
-            }
-        }
-    }
-
-    private var planCompleteView: some View {
-        VStack(spacing: 22) {
-            OnboardingTitle(
-                title: "onboarding_generating_title",
-                subtitle: "onboarding_generating_subtitle"
-            )
-
-            OnboardingBodyPair(gender: selectedGender, heatmap: generationHeatmap)
-                .frame(height: 410)
-                .scaleEffect(generationPulse ? 1.02 : 0.98)
-                .opacity(generationPulse ? 1 : 0.82)
-
-            HStack(spacing: 8) {
-                GenerationPill(title: "onboarding_pill_days", value: "\(generatedPlan.daysPerWeek)")
-                GenerationPill(title: "onboarding_pill_sets", value: "\(weeklySetTotal)")
-                GenerationPill(title: "onboarding_pill_weeks", value: "\(generatedPlan.totalWeeks)")
-            }
-
-            PlanProjectionCard(
-                plan: generatedPlan,
+            OnboardingGeneratingStepView(
+                draft: $draft,
+                generatedPlan: generatedPlan,
                 weeklySetTotal: weeklySetTotal,
-                goal: draft.mainGoal,
-                experience: draft.experience,
-                focusMuscles: Array(draft.focusMuscles).sorted(),
-                locationID: draft.selectedLocationID
+                isGenerationComplete: isGenerationComplete,
+                generationProgress: generationProgress,
+                generationStatusText: generationStatusText,
+                generationPulse: generationPulse
             )
-        }
-    }
-
-    private var readyStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            OnboardingTitle(
-                title: "onboarding_ready_title",
-                subtitle: "onboarding_ready_subtitle"
-            )
-
-            HStack(spacing: 8) {
-                GenerationPill(title: "onboarding_pill_days", value: "\(generatedPlan.daysPerWeek)")
-                GenerationPill(title: "onboarding_pill_sets", value: "\(weeklySetTotal)")
-                GenerationPill(title: "onboarding_pill_weeks", value: "\(generatedPlan.totalWeeks)")
-            }
-
-            if let firstDay = generatedPlan.days.first {
-                PlanDay1LockedPreviewCard(
-                    day: firstDay,
-                    gender: selectedGender,
-                    language: draft.preferredLanguage,
-                    exercises: store.exercises,
-                    isPro: store.monetization.hasProAccess
-                )
-            }
-
-            if generatedPlan.days.count > 1 {
-                PlanLockedDaysCard(
-                    plan: generatedPlan,
-                    isPro: store.monetization.hasProAccess
-                )
-            }
-
-            if !store.monetization.hasProAccess {
-                PlanUnlockProCard(
-                    totalWeeks: generatedPlan.totalWeeks,
-                    daysPerWeek: generatedPlan.daysPerWeek
-                ) {
+        case .ready:
+            OnboardingReadyStepView(
+                draft: $draft,
+                generatedPlan: generatedPlan,
+                weeklySetTotal: weeklySetTotal,
+                onUnlockPro: {
                     store.presentPaywall(source: .onboarding, feature: nil, trigger: .onboarding)
                 }
-            }
+            )
         }
     }
 
@@ -638,7 +162,7 @@ struct ProfileSetupView: View {
             Button {
                 primaryAction()
             } label: {
-                Text(localizedKey(step.primaryButtonTitle))
+                Text(onboardingLocalizedString(step.primaryButtonTitle))
                     .font(.headline.weight(.bold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
@@ -653,7 +177,7 @@ struct ProfileSetupView: View {
                 Button {
                     finishOnboarding()
                 } label: {
-                    Text(store.monetization.hasProAccess ? "onboarding_btn_start_with_plan" : "onboarding_btn_continue_free")
+                    Text(onboardingLocalizedString(store.monetization.hasProAccess ? "onboarding_btn_start_with_plan" : "onboarding_btn_continue_free"))
                         .font(.subheadline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 38)
@@ -674,42 +198,15 @@ struct ProfileSetupView: View {
         case .ready:
             128
         case .baseline, .equipment:
-            // These are the two longest form steps. Keep their final controls
-            // comfortably above the persistent CTA at all Dynamic Type sizes.
             120
         default:
             82
         }
     }
 
-    private var scheduleHelperText: String {
-        switch draft.weeklyTrainingDays {
-        case 1: "onboarding_schedule_1_day"
-        case 2: "onboarding_schedule_2_days"
-        case 3: "onboarding_schedule_3_days"
-        case 4: "onboarding_schedule_4_days"
-        case 5: "onboarding_schedule_5_days"
-        case 6: "onboarding_schedule_6_days"
-        default: "onboarding_schedule_7_days"
-        }
-    }
-
-    private var durationHelperText: String {
-        switch draft.sessionLengthMinutes {
-        case 15: "onboarding_duration_15min"
-        case 30: "onboarding_duration_30min"
-        case 45: "onboarding_duration_45min"
-        case 60: "onboarding_duration_60min"
-        case 75: "onboarding_duration_75min"
-        default: "onboarding_duration_90min"
-        }
-    }
-
     private func primaryAction() {
         switch step {
         case .ready:
-            // The first generated plan is the free activation moment. Pro is
-            // offered contextually from the preview, never before first value.
             finishOnboarding()
         default:
             moveForward()
@@ -721,15 +218,27 @@ struct ProfileSetupView: View {
             finishOnboarding()
             return
         }
-        if step == .setup && draft.buildsOwnPlan {
-            finishOnboarding()
+        if draft.buildsOwnPlan {
+            switch step {
+            case .setup:
+                step = .goal
+            case .goal:
+                step = .equipment
+            case .equipment:
+                step = .ready
+            default:
+                let nextIdx = min(stepIndex + 1, activeSteps.count - 1)
+                step = activeSteps[nextIdx]
+            }
             return
         }
-        step = steps[min(stepIndex + 1, steps.count - 1)]
+        let nextIdx = min(stepIndex + 1, activeSteps.count - 1)
+        step = activeSteps[nextIdx]
     }
 
     private func moveBackward() {
-        step = steps[max(stepIndex - 1, 0)]
+        let prevIdx = max(stepIndex - 1, 0)
+        step = activeSteps[prevIdx]
     }
 
     private func finishOnboarding() {
@@ -750,8 +259,6 @@ struct ProfileSetupView: View {
         var profile = draft.makeProfile()
         profile.onboardingCompleted = true
         guard !draft.buildsOwnPlan else {
-            // The baseline step never ran on this path — the draft still holds
-            // placeholder age/height/weight, so persist none of it as user data.
             profile.dateOfBirth = nil
             profile.sex = nil
             return OnboardingResult(profile: profile, bodyMetric: nil, plan: nil, activatePlan: false)
@@ -803,47 +310,182 @@ struct ProfileSetupView: View {
             }
         }
     }
+}
 
-    private var selectedFocusMuscles: Set<Muscle> {
-        Set(draft.focusMuscles.flatMap(muscles(for:)))
-    }
+// MARK: - Onboarding String Localizer Helper
 
-    private var generationHeatmap: [MuscleIntensity] {
-        let trained = Set(generatedPlan.days.flatMap(\.exercises).flatMap { muscles(for: $0.exercise.muscleGroup) })
-        let focus = selectedFocusMuscles
-        let focusIntensity = generationPulse ? 1.0 : 0.88
-        let trainedIntensity = generationPulse ? 0.55 : 0.30
+private func onboardingLocalizedString(_ key: String) -> String {
+    let val = localizedString(key)
+    return val.isEmpty ? key : val
+}
 
-        let focusEntries = focus.map {
-            MuscleIntensity(muscle: $0, intensity: focusIntensity, color: PulseTheme.focus)
+// MARK: - WHO International Health & BMI Model (Adjusted by Sex)
+
+struct HealthBMIMetrics {
+    let bmi: Double
+    let category: BMICategory
+    let color: Color
+    let title: String
+    let subtitle: String
+
+    enum BMICategory: String, CaseIterable {
+        case underweight
+        case normal
+        case overweight
+        case obesityClass1
+        case obesityClass2Plus
+
+        var icon: String {
+            switch self {
+            case .underweight: "bolt.shield.fill"
+            case .normal: "checkmark.seal.fill"
+            case .overweight: "exclamationmark.triangle.fill"
+            case .obesityClass1: "heart.text.square.fill"
+            case .obesityClass2Plus: "shield.trianglebadge.exclamationmark.fill"
+            }
         }
-        let trainedEntries = trained.subtracting(focus).map {
-            MuscleIntensity(muscle: $0, intensity: trainedIntensity, color: PulseTheme.accent.opacity(0.45))
+    }
+
+    static func calculate(heightCm: Double, weightKg: Double, sex: UserProfile.Sex? = .male) -> HealthBMIMetrics {
+        let heightM = max(0.5, heightCm / 100.0)
+        let bmi = weightKg / (heightM * heightM)
+        let isFemale = (sex == .female)
+
+        let category: BMICategory
+        let color: Color
+        let title: String
+        let subtitle: String
+
+        // Sex-adjusted WHO thresholds & localized advice from String Catalog
+        switch bmi {
+        case ..<18.5:
+            category = .underweight
+            color = Color(red: 0.3, green: 0.65, blue: 1.0)
+            title = localizedString("bmi_underweight_title")
+            subtitle = localizedString(isFemale ? "bmi_underweight_sub_female" : "bmi_underweight_sub_male")
+        case 18.5..<25.0:
+            category = .normal
+            color = Color(red: 0.2, green: 0.85, blue: 0.45)
+            title = localizedString("bmi_normal_title")
+            subtitle = localizedString(isFemale ? "bmi_normal_sub_female" : "bmi_normal_sub_male")
+        case 25.0..<30.0:
+            category = .overweight
+            color = Color(red: 0.95, green: 0.72, blue: 0.15)
+            title = localizedString("bmi_overweight_title")
+            subtitle = localizedString(isFemale ? "bmi_overweight_sub_female" : "bmi_overweight_sub_male")
+        case 30.0..<35.0:
+            category = .obesityClass1
+            color = Color(red: 0.98, green: 0.48, blue: 0.12)
+            title = localizedString("bmi_obesity1_title")
+            subtitle = localizedString("bmi_obesity1_sub")
+        default:
+            category = .obesityClass2Plus
+            color = Color(red: 0.92, green: 0.25, blue: 0.25)
+            title = localizedString("bmi_obesity2_title")
+            subtitle = localizedString("bmi_obesity2_sub")
         }
-        return focusEntries + trainedEntries
+
+        return HealthBMIMetrics(
+            bmi: bmi,
+            category: category,
+            color: color,
+            title: title,
+            subtitle: subtitle
+        )
     }
 
-    private func muscles(for group: String) -> [Muscle] {
-        let lower = group.lowercased()
-        if lower.contains("chest") { return [.chest, .upperChest, .lowerChest] }
-        if lower.contains("back") { return [.upperBack, .rhomboids, .trapezius, .lowerBack] }
-        if lower.contains("shoulder") { return [.deltoids, .frontDeltoid, .rearDeltoid] }
-        if lower.contains("arm") { return [.biceps, .triceps, .forearm] }
-        if lower.contains("leg") { return [.quadriceps, .hamstring, .calves, .adductors] }
-        if lower.contains("glute") { return [.gluteal, .hamstring] }
-        if lower.contains("core") { return [.abs, .upperAbs, .lowerAbs, .obliques] }
-        return []
+    static func gradientStops(heightCm: Double, range: ClosedRange<Double>) -> [Gradient.Stop] {
+        let heightM = max(1.0, heightCm / 100.0)
+        let h2 = heightM * heightM
+
+        let wUnder = 18.5 * h2
+        let wNormal = 25.0 * h2
+        let wOver = 30.0 * h2
+        let wObese1 = 35.0 * h2
+
+        let minW = range.lowerBound
+        let maxW = range.upperBound
+        let span = max(1.0, maxW - minW)
+
+        func norm(_ w: Double) -> Double {
+            min(max((w - minW) / span, 0.0), 1.0)
+        }
+
+        let blue = Color(red: 0.3, green: 0.65, blue: 1.0)
+        let green = Color(red: 0.2, green: 0.85, blue: 0.45)
+        let gold = Color(red: 0.95, green: 0.72, blue: 0.15)
+        let orange = Color(red: 0.98, green: 0.48, blue: 0.12)
+        let red = Color(red: 0.92, green: 0.25, blue: 0.25)
+
+        return [
+            .init(color: blue, location: 0.0),
+            .init(color: blue, location: norm(wUnder * 0.92)),
+            .init(color: green, location: norm(wUnder)),
+            .init(color: green, location: norm((wUnder + wNormal) / 2)),
+            .init(color: gold, location: norm(wNormal)),
+            .init(color: orange, location: norm(wOver)),
+            .init(color: red, location: norm(wObese1)),
+            .init(color: red, location: 1.0)
+        ]
+    }
+}
+
+// MARK: - Onboarding Types & Draft
+
+private enum OnboardingStep: String, CaseIterable, Identifiable {
+    case hero
+    case value
+    case setup
+    case goal
+    case experience
+    case schedule
+    case equipment
+    case baseline
+    case focus
+    case generating
+    case ready
+
+    var id: String { rawValue }
+
+    var primaryButtonTitle: String {
+        switch self {
+        case .hero: "onboarding_btn_get_started"
+        case .value: "onboarding_btn_start_setup"
+        case .generating: "onboarding_btn_see_my_plan"
+        case .ready: "onboarding_btn_unlock_plan"
+        default: "onboarding_btn_continue"
+        }
+    }
+}
+
+private enum BodyMapPreference: String, CaseIterable, Identifiable {
+    case mapA
+    case mapB
+    case preferNotToSay
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .mapA: "onboarding_body_map_male"
+        case .mapB: "onboarding_body_map_female"
+        case .preferNotToSay: "onboarding_body_map_skip"
+        }
     }
 
-    private func focusKey(for muscle: Muscle) -> String? {
-        if [.chest, .upperChest, .lowerChest].contains(muscle) { return "Chest" }
-        if [.upperBack, .rhomboids, .trapezius, .upperTrapezius, .lowerTrapezius, .lowerBack].contains(muscle) { return "Back" }
-        if [.deltoids, .frontDeltoid, .rearDeltoid, .rotatorCuff].contains(muscle) { return "Shoulders" }
-        if [.biceps, .triceps, .forearm].contains(muscle) { return "Arms" }
-        if [.quadriceps, .innerQuad, .outerQuad, .hamstring, .calves, .tibialis, .adductors].contains(muscle) { return "Legs" }
-        if [.gluteal].contains(muscle) { return "Glutes" }
-        if [.abs, .upperAbs, .lowerAbs, .obliques, .serratus].contains(muscle) { return "Core" }
-        return nil
+    var bodyGender: BodyGender {
+        switch self {
+        case .mapB: .female
+        case .mapA, .preferNotToSay: .male
+        }
+    }
+
+    var profileSex: UserProfile.Sex? {
+        switch self {
+        case .mapA: .male
+        case .mapB: .female
+        case .preferNotToSay: nil
+        }
     }
 }
 
@@ -935,63 +577,864 @@ private struct OnboardingDraft {
     }
 }
 
-private enum OnboardingStep: CaseIterable {
-    case hero
-    case value
-    case setup
-    case goal
-    case experience
-    case schedule
-    case equipment
-    case baseline
-    case focus
-    case generating
-    case ready
+// MARK: - Step Views
 
-    var primaryButtonTitle: String {
-        switch self {
-        case .hero: "onboarding_btn_get_started"
-        case .value: "onboarding_btn_start_setup"
-        case .generating: "onboarding_btn_see_my_plan"
-        case .ready: "onboarding_btn_unlock_plan"
-        default: "onboarding_btn_continue"
+private struct OnboardingHeroStepView: View {
+    var body: some View {
+        VStack(spacing: 28) {
+            Spacer(minLength: 64)
+
+            ZStack {
+                Circle()
+                    .fill(.white.opacity(0.14))
+                    .frame(width: 204, height: 204)
+                    .blur(radius: 30)
+
+                Image("StreakRepHeroIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 152, height: 152)
+                    .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 34, style: .continuous)
+                            .stroke(.white.opacity(0.14), lineWidth: 1)
+                    )
+                    .shadow(color: .white.opacity(0.18), radius: 26)
+            }
+
+            VStack(spacing: 14) {
+                let brandText = Text("StreakReps")
+                    .foregroundStyle(LinearGradient(
+                        colors: [PulseTheme.accent, PulseTheme.warning],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ))
+                Text("\(Text(onboardingLocalizedString("onboarding_hero_meet")))\(brandText)\(Text(onboardingLocalizedString("onboarding_hero_partner")))")
+                    .font(.system(size: 38, weight: .heavy))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(4)
+                    .minimumScaleFactor(0.76)
+
+                Text(onboardingLocalizedString("onboarding_hero_tagline"))
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 8)
+
+            Spacer(minLength: 24)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct OnboardingValueStepView: View {
+    @Binding var draft: OnboardingDraft
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            OnboardingTitle(
+                title: "onboarding_value_title",
+                subtitle: "onboarding_value_subtitle"
+            )
+
+            OnboardingProgressBodyHero(
+                goal: draft.mainGoal.shortTitle,
+                daysPerWeek: draft.weeklyTrainingDays,
+                minutes: draft.sessionLengthMinutes
+            )
+            .frame(height: 480)
+
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "info.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Text(onboardingLocalizedString("onboarding_results_disclaimer"))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 4)
+            .padding(.top, 2)
         }
     }
 }
 
-private enum BodyMapPreference: String, CaseIterable, Identifiable {
-    case mapA
-    case mapB
-    case preferNotToSay
+private struct OnboardingSetupStepView: View {
+    @Binding var draft: OnboardingDraft
 
-    var id: String { rawValue }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            OnboardingTitle(
+                title: onboardingLocalizedString("onboarding_setup_title"),
+                subtitle: onboardingLocalizedString("onboarding_setup_subtitle")
+            )
 
-    var title: String {
-        switch self {
-        case .mapA: "onboarding_body_map_male"
-        case .mapB: "onboarding_body_map_female"
-        case .preferNotToSay: "onboarding_body_map_skip"
-        }
-    }
+            VStack(spacing: 14) {
+                OnboardingRichSetupOptionCard(
+                    title: "onboarding_setup_create",
+                    subtitle: "onboarding_setup_create_sub",
+                    icon: "sparkles",
+                    badgeText: onboardingLocalizedString("onboarding_setup_badge_recommended"),
+                    badgeColor: PulseTheme.accent,
+                    timeEstimate: onboardingLocalizedString("onboarding_setup_time_45s"),
+                    features: [
+                        "onboarding_setup_feat_overload",
+                        "onboarding_setup_feat_anatomy",
+                        "onboarding_setup_feat_weeks"
+                    ],
+                    isSelected: !draft.buildsOwnPlan
+                ) {
+                    draft.buildsOwnPlan = false
+                }
 
-    var bodyGender: BodyGender {
-        switch self {
-        case .mapB: .female
-        case .mapA, .preferNotToSay: .male
-        }
-    }
+                OnboardingRichSetupOptionCard(
+                    title: "onboarding_setup_self",
+                    subtitle: "onboarding_setup_self_sub",
+                    icon: "wrench.fill",
+                    badgeText: onboardingLocalizedString("onboarding_setup_badge_express"),
+                    badgeColor: PulseTheme.ringStand,
+                    timeEstimate: onboardingLocalizedString("onboarding_setup_time_instant"),
+                    features: [
+                        "onboarding_setup_feat_custom",
+                        "onboarding_setup_feat_express",
+                        "onboarding_setup_feat_pro"
+                    ],
+                    isSelected: draft.buildsOwnPlan
+                ) {
+                    draft.buildsOwnPlan = true
+                }
+            }
 
-    var profileSex: UserProfile.Sex? {
-        switch self {
-        case .mapA: .male
-        case .mapB: .female
-        case .preferNotToSay: nil
+            HStack(spacing: 8) {
+                Image(systemName: "info.circle.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Text(onboardingLocalizedString("onboarding_setup_footer_hint"))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 4)
+            .padding(.top, 4)
         }
     }
 }
+
+private struct OnboardingRichSetupOptionCard: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let badgeText: String
+    let badgeColor: Color
+    let timeEstimate: String
+    let features: [String]
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 14) {
+                    Image(systemName: icon)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(isSelected ? PulseTheme.onColor(badgeColor) : badgeColor)
+                        .frame(width: 48, height: 48)
+                        .background(isSelected ? badgeColor : badgeColor.opacity(0.14))
+                        .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Text(onboardingLocalizedString(title))
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(.primary)
+
+                            Text(badgeText)
+                                .font(.system(size: 10, weight: .black, design: .rounded))
+                                .tracking(0.6)
+                                .foregroundStyle(isSelected ? PulseTheme.onColor(badgeColor) : badgeColor)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(isSelected ? badgeColor : badgeColor.opacity(0.18))
+                                .clipShape(Capsule())
+                        }
+
+                        Text(onboardingLocalizedString(subtitle))
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(isSelected ? .white : PulseTheme.tertiaryText)
+                }
+
+                Divider()
+                    .overlay(PulseTheme.separator.opacity(0.6))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(features, id: \.self) { feature in
+                        HStack(spacing: 9) {
+                            Image(systemName: "checkmark")
+                                .font(.caption2.weight(.black))
+                                .foregroundStyle(isSelected ? badgeColor : PulseTheme.ringStand)
+                            Text(onboardingLocalizedString(feature))
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.textPrimary.opacity(0.9))
+                        }
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.fill")
+                            .font(.caption2)
+                        Text(timeEstimate)
+                            .font(.caption2.weight(.bold))
+                    }
+                    .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .background(isSelected ? .white.opacity(0.08) : PulseTheme.card)
+            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                    .stroke(isSelected ? badgeColor.opacity(0.9) : PulseTheme.separator, lineWidth: isSelected ? 2.0 : 1)
+            )
+            .shadow(color: isSelected ? badgeColor.opacity(0.22) : .clear, radius: 12, y: 4)
+        }
+        .buttonStyle(.plain)
+        .pressableFeedback(scale: 0.965)
+        .sensoryFeedback(.selection, trigger: isSelected)
+    }
+}
+
+private struct OnboardingGoalStepView: View {
+    @Binding var draft: OnboardingDraft
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            OnboardingTitle(
+                title: "onboarding_goal_title",
+                subtitle: "onboarding_goal_subtitle"
+            )
+
+            VStack(spacing: 12) {
+                ForEach(UserProfile.MainGoal.allCases) { goal in
+                    OnboardingOptionCard(
+                        title: goal.title,
+                        subtitle: goal.subtitle,
+                        icon: goal.icon,
+                        tint: goal.tint,
+                        isSelected: draft.mainGoal == goal
+                    ) {
+                        draft.mainGoal = goal
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct OnboardingExperienceStepView: View {
+    @Binding var draft: OnboardingDraft
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            OnboardingTitle(
+                title: "onboarding_exp_title",
+                subtitle: "onboarding_exp_subtitle"
+            )
+
+            VStack(spacing: 12) {
+                ForEach(UserProfile.Experience.allCases) { experience in
+                    OnboardingOptionCard(
+                        title: experience.title,
+                        subtitle: experience.subtitle,
+                        icon: experience.icon,
+                        tint: PulseTheme.ringStand,
+                        isSelected: draft.experience == experience
+                    ) {
+                        draft.experience = experience
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct OnboardingScheduleStepView: View {
+    @Binding var draft: OnboardingDraft
+
+    private var scheduleHelperText: String {
+        switch draft.weeklyTrainingDays {
+        case 1: "onboarding_schedule_1_day"
+        case 2: "onboarding_schedule_2_days"
+        case 3: "onboarding_schedule_3_days"
+        case 4: "onboarding_schedule_4_days"
+        case 5: "onboarding_schedule_5_days"
+        case 6: "onboarding_schedule_6_days"
+        default: "onboarding_schedule_7_days"
+        }
+    }
+
+    private var durationHelperText: String {
+        switch draft.sessionLengthMinutes {
+        case 15: "onboarding_duration_15min"
+        case 30: "onboarding_duration_30min"
+        case 45: "onboarding_duration_45min"
+        case 60: "onboarding_duration_60min"
+        case 75: "onboarding_duration_75min"
+        default: "onboarding_duration_90min"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            OnboardingTitle(
+                title: "onboarding_schedule_title",
+                subtitle: "onboarding_schedule_subtitle"
+            )
+
+            OnboardingNumberPicker(
+                title: "onboarding_schedule_days_label",
+                value: $draft.weeklyTrainingDays,
+                options: Array(1...7),
+                unit: "onboarding_schedule_days_unit",
+                helper: scheduleHelperText
+            )
+
+            OnboardingNumberPicker(
+                title: "onboarding_schedule_duration_label",
+                value: $draft.sessionLengthMinutes,
+                options: [15, 30, 45, 60, 75, 90],
+                unit: "onboarding_schedule_duration_unit",
+                helper: durationHelperText
+            )
+        }
+    }
+}
+
+private struct OnboardingEquipmentStepView: View {
+    @Binding var draft: OnboardingDraft
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            OnboardingTitle(
+                title: "onboarding_equipment_title",
+                subtitle: "onboarding_equipment_subtitle"
+            )
+
+            VStack(spacing: 12) {
+                ForEach(OnboardingLocationCatalog.locations) { location in
+                    OnboardingOptionCard(
+                        title: location.title,
+                        subtitle: location.subtitle,
+                        icon: location.icon,
+                        tint: PulseTheme.recovery,
+                        isSelected: draft.selectedLocationID == location.id
+                    ) {
+                        draft.applyLocation(location)
+                    }
+                }
+            }
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(onboardingLocalizedString("onboarding_equipment_available_label"))
+                        .font(.headline)
+
+                    FlowLayout(spacing: 10) {
+                        ForEach(OnboardingLocationCatalog.coreEquipment, id: \.self) { equipment in
+                            EquipmentChip(
+                                title: OnboardingLocationCatalog.localizedEquipmentKey(equipment),
+                                isSelected: draft.availableEquipment.contains(equipment)
+                            ) {
+                                draft.toggleEquipment(equipment)
+                            }
+                        }
+                    }
+
+                    Text(onboardingLocalizedString("onboarding_equipment_refine_hint"))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+        }
+    }
+}
+
+private struct OnboardingBaselineStepView: View {
+    @Binding var draft: OnboardingDraft
+
+    private var bmiMetrics: HealthBMIMetrics {
+        HealthBMIMetrics.calculate(
+            heightCm: draft.heightCm,
+            weightKg: draft.weightKg,
+            sex: draft.bodyMapPreference.profileSex
+        )
+    }
+
+    private var weightGradientStops: [Gradient.Stop] {
+        HealthBMIMetrics.gradientStops(heightCm: draft.heightCm, range: 35...180)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            OnboardingTitle(
+                title: "onboarding_baseline_title",
+                subtitle: "onboarding_baseline_subtitle"
+            )
+
+            OnboardingMetricSlider(
+                title: "onboarding_baseline_age",
+                valueText: "\(draft.age)",
+                unit: "onboarding_baseline_age_unit",
+                icon: "calendar",
+                value: Binding(
+                    get: { Double(draft.age) },
+                    set: { draft.age = Int($0.rounded()) }
+                ),
+                range: 14...85,
+                step: 1
+            )
+
+            OnboardingMetricSlider(
+                title: "onboarding_baseline_height",
+                valueText: String(format: "%.0f", draft.heightCm),
+                unit: "onboarding_baseline_height_unit",
+                icon: "ruler",
+                value: $draft.heightCm,
+                range: 130...220,
+                step: 1
+            )
+
+            OnboardingMetricSlider(
+                title: "onboarding_baseline_weight",
+                valueText: String(format: "%.1f", draft.weightKg),
+                unit: "onboarding_baseline_weight_unit",
+                icon: "scalemass.fill",
+                value: $draft.weightKg,
+                range: 35...180,
+                step: 0.5,
+                accentColor: bmiMetrics.color,
+                gradientStops: weightGradientStops
+            )
+
+            // WHO Health & BMI Category Indicator Card (Sex-Adjusted)
+            PulseCard {
+                HStack(alignment: .top, spacing: 14) {
+                    Image(systemName: bmiMetrics.category.icon)
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(PulseTheme.onColor(bmiMetrics.color))
+                        .frame(width: 44, height: 44)
+                        .background(bmiMetrics.color)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .shadow(color: bmiMetrics.color.opacity(0.35), radius: 8, y: 3)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Text(verbatim: String(format: "IMC %.1f", bmiMetrics.bmi))
+                                .font(.caption.weight(.black).monospacedDigit())
+                                .foregroundStyle(PulseTheme.onColor(bmiMetrics.color))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(bmiMetrics.color)
+                                .clipShape(Capsule())
+
+                            Text(bmiMetrics.title)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.primary)
+                        }
+
+                        Text(bmiMetrics.subtitle)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(onboardingLocalizedString("onboarding_baseline_anatomy_label"))
+                        .font(.headline)
+                    Text(onboardingLocalizedString("onboarding_baseline_anatomy_subtitle"))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
+
+                    HStack(spacing: 8) {
+                        ForEach(BodyMapPreference.allCases) { preference in
+                            Button {
+                                draft.bodyMapPreference = preference
+                            } label: {
+                                Text(onboardingLocalizedString(preference.title))
+                                    .font(.caption.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 38)
+                                    .contentShape(Capsule())
+                                    .foregroundStyle(draft.bodyMapPreference == preference ? .black : PulseTheme.secondaryText)
+                                    .background(draft.bodyMapPreference == preference ? .white : PulseTheme.grouped)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .pressableFeedback(scale: 0.94)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct OnboardingFocusStepView: View {
+    @Binding var draft: OnboardingDraft
+
+    private var selectedGender: BodyGender {
+        draft.bodyMapPreference.bodyGender
+    }
+
+    private var selectedFocusMuscles: Set<Muscle> {
+        Set(draft.focusMuscles.flatMap(muscles(for:)))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            OnboardingTitle(
+                title: "onboarding_focus_title",
+                subtitle: "onboarding_focus_subtitle"
+            )
+
+            OnboardingBodyPair(gender: selectedGender, selectedMuscles: selectedFocusMuscles) { muscle in
+                if let focus = focusKey(for: muscle) {
+                    draft.toggleFocus(focus)
+                }
+            }
+            .frame(height: 410)
+
+            FlowLayout(spacing: 10) {
+                ForEach(OnboardingDraft.focusOptions, id: \.self) { focus in
+                    EquipmentChip(
+                        title: OnboardingDraft.localizedFocusKey(focus),
+                        isSelected: draft.focusMuscles.contains(focus)
+                    ) {
+                        draft.toggleFocus(focus)
+                    }
+                }
+                EquipmentChip(
+                    title: "onboarding_focus_all",
+                    isSelected: draft.allFocusSelected
+                ) {
+                    draft.toggleAllFocus()
+                }
+            }
+        }
+    }
+
+    private func muscles(for group: String) -> [Muscle] {
+        let lower = group.lowercased()
+        if lower.contains("chest") { return [.chest, .upperChest, .lowerChest] }
+        if lower.contains("back") { return [.upperBack, .rhomboids, .trapezius, .lowerBack] }
+        if lower.contains("shoulder") { return [.deltoids, .frontDeltoid, .rearDeltoid] }
+        if lower.contains("arm") { return [.biceps, .triceps, .forearm] }
+        if lower.contains("leg") { return [.quadriceps, .hamstring, .calves, .adductors] }
+        if lower.contains("glute") { return [.gluteal, .hamstring] }
+        if lower.contains("core") { return [.abs, .upperAbs, .lowerAbs, .obliques] }
+        return []
+    }
+
+    private func focusKey(for muscle: Muscle) -> String? {
+        if [.chest, .upperChest, .lowerChest].contains(muscle) { return "Chest" }
+        if [.upperBack, .rhomboids, .trapezius, .upperTrapezius, .lowerTrapezius, .lowerBack].contains(muscle) { return "Back" }
+        if [.deltoids, .frontDeltoid, .rearDeltoid, .rotatorCuff].contains(muscle) { return "Shoulders" }
+        if [.biceps, .triceps, .forearm].contains(muscle) { return "Arms" }
+        if [.quadriceps, .innerQuad, .outerQuad, .hamstring, .calves, .tibialis, .adductors].contains(muscle) { return "Legs" }
+        if [.gluteal].contains(muscle) { return "Glutes" }
+        if [.abs, .upperAbs, .lowerAbs, .obliques, .serratus].contains(muscle) { return "Core" }
+        return nil
+    }
+}
+
+private struct OnboardingGeneratingStepView: View {
+    @Binding var draft: OnboardingDraft
+    let generatedPlan: WorkoutPlan
+    let weeklySetTotal: Int
+    let isGenerationComplete: Bool
+    let generationProgress: Double
+    let generationStatusText: String
+    let generationPulse: Bool
+
+    @State private var testimonialIndex = 0
+
+    private static let planTestimonials: [(text: String, author: String)] = [
+        (text: "Al fin tengo un plan adaptado a mi horario y equipamiento real.", author: "Alex R."),
+        (text: "La primera semana fue retadora pero en la 3era ya vi cambios reales.", author: "María K."),
+        (text: "Una app que realmente ajusta la carga de trabajo según mi progreso.", author: "Carlos M."),
+    ]
+
+    private var selectedGender: BodyGender {
+        draft.bodyMapPreference.bodyGender
+    }
+
+    private var activeGenerationStep: Int {
+        if generationProgress < 0.25 { return 0 }
+        if generationProgress < 0.55 { return 1 }
+        if generationProgress < 0.82 { return 2 }
+        return 3
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if !isGenerationComplete {
+                planGeneratingView
+            } else {
+                planCompleteView
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var planGeneratingView: some View {
+        VStack(alignment: .leading, spacing: 26) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(onboardingLocalizedString("onboarding_personalizing_title"))
+                    .font(.system(size: 34, weight: .heavy))
+                Text(onboardingLocalizedString("onboarding_personalizing_subtitle"))
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(PulseTheme.secondaryText)
+            }
+            .padding(.top, 8)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text(localizedString("onboarding_badge_progress"))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .tracking(1.2)
+
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(.white.opacity(0.10))
+                        Capsule()
+                            .fill(LinearGradient(
+                                colors: [PulseTheme.ringStand, PulseTheme.accent],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ))
+                            .frame(width: max(16, proxy.size.width * generationProgress))
+                    }
+                }
+                .frame(height: 5)
+            }
+
+            PulseCard {
+                let stepTitles: [String] = [
+                    "onboarding_step_saving_profile",
+                    "onboarding_step_preferences",
+                    "onboarding_step_volume",
+                    "onboarding_step_templates"
+                ]
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(stepTitles.enumerated()), id: \.offset) { index, title in
+                        GenerationStepRow(
+                            title: title,
+                            isCompleted: index < activeGenerationStep,
+                            isActive: index == activeGenerationStep,
+                            isLast: index == stepTitles.count - 1
+                        )
+                    }
+                }
+            }
+
+            PulseCard(backgroundColor: PulseTheme.grouped) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Image(systemName: "quote.opening")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(PulseTheme.tertiaryText)
+
+                    Text(Self.planTestimonials[testimonialIndex].text)
+                        .font(.body.weight(.medium))
+                        .italic()
+                        .foregroundStyle(PulseTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .id(testimonialIndex)
+                        .transition(.opacity)
+
+                    Text("— \(Self.planTestimonials[testimonialIndex].author)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+
+            Spacer(minLength: 16)
+        }
+        .frame(maxWidth: .infinity)
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(3.5))
+                withAnimation(.easeInOut(duration: 0.45)) {
+                    testimonialIndex = (testimonialIndex + 1) % Self.planTestimonials.count
+                }
+            }
+        }
+    }
+
+    private var planCompleteView: some View {
+        VStack(spacing: 22) {
+            OnboardingTitle(
+                title: "onboarding_generating_title",
+                subtitle: "onboarding_generating_subtitle"
+            )
+
+            OnboardingBodyPair(gender: selectedGender, heatmap: generationHeatmap)
+                .frame(height: 410)
+                .scaleEffect(generationPulse ? 1.02 : 0.98)
+                .opacity(generationPulse ? 1 : 0.82)
+
+            HStack(spacing: 8) {
+                GenerationPill(title: onboardingLocalizedString("onboarding_pill_days"), value: "\(generatedPlan.daysPerWeek)")
+                GenerationPill(title: onboardingLocalizedString("onboarding_pill_sets"), value: "\(weeklySetTotal)")
+                GenerationPill(title: onboardingLocalizedString("onboarding_pill_weeks"), value: "\(generatedPlan.totalWeeks)")
+            }
+
+            TransformationProjection12WeekCard(
+                plan: generatedPlan,
+                weeklySetTotal: weeklySetTotal,
+                goal: draft.mainGoal,
+                experience: draft.experience,
+                focusMuscles: Array(draft.focusMuscles).sorted(),
+                locationID: draft.selectedLocationID,
+                sex: draft.bodyMapPreference.profileSex
+            )
+        }
+    }
+
+    private var generationHeatmap: [MuscleIntensity] {
+        let trained = Set(generatedPlan.days.flatMap(\.exercises).flatMap { muscles(for: $0.exercise.muscleGroup) })
+        let focus = Set(draft.focusMuscles.flatMap(muscles(for:)))
+        let focusIntensity = generationPulse ? 1.0 : 0.88
+        let trainedIntensity = generationPulse ? 0.55 : 0.30
+
+        let focusEntries = focus.map {
+            MuscleIntensity(muscle: $0, intensity: focusIntensity, color: PulseTheme.focus)
+        }
+        let trainedEntries = trained.subtracting(focus).map {
+            MuscleIntensity(muscle: $0, intensity: trainedIntensity, color: PulseTheme.accent.opacity(0.45))
+        }
+        return focusEntries + trainedEntries
+    }
+
+    private func muscles(for group: String) -> [Muscle] {
+        let lower = group.lowercased()
+        if lower.contains("chest") { return [.chest, .upperChest, .lowerChest] }
+        if lower.contains("back") { return [.upperBack, .rhomboids, .trapezius, .lowerBack] }
+        if lower.contains("shoulder") { return [.deltoids, .frontDeltoid, .rearDeltoid] }
+        if lower.contains("arm") { return [.biceps, .triceps, .forearm] }
+        if lower.contains("leg") { return [.quadriceps, .hamstring, .calves, .adductors] }
+        if lower.contains("glute") { return [.gluteal, .hamstring] }
+        if lower.contains("core") { return [.abs, .upperAbs, .lowerAbs, .obliques] }
+        return []
+    }
+}
+
+private struct OnboardingReadyStepView: View {
+    @Environment(AppStore.self) private var store
+    @Binding var draft: OnboardingDraft
+    let generatedPlan: WorkoutPlan
+    let weeklySetTotal: Int
+    let onUnlockPro: () -> Void
+
+    private var selectedGender: BodyGender {
+        draft.bodyMapPreference.bodyGender
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            if draft.buildsOwnPlan {
+                OnboardingTitle(
+                    title: "Modo Libre listo",
+                    subtitle: "Tu espacio de entrenamiento personalizado está configurado. Puedes crear tus rutinas y acceder a las herramientas Pro."
+                )
+
+                PulseCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Label(draft.mainGoal.shortTitle, systemImage: draft.mainGoal.icon)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(PulseTheme.accent)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(PulseTheme.accent.opacity(0.12))
+                                .clipShape(Capsule())
+
+                            Spacer()
+
+                            Label(OnboardingLocationCatalog.location(for: draft.selectedLocationID).title, systemImage: "mappin.and.ellipse")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+
+                        Text(localizedString("onboarding_setup_self_confirmation"))
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                }
+            } else {
+                OnboardingTitle(
+                    title: "onboarding_ready_title",
+                    subtitle: "onboarding_ready_subtitle"
+                )
+
+                HStack(spacing: 8) {
+                    GenerationPill(title: onboardingLocalizedString("onboarding_pill_days"), value: "\(generatedPlan.daysPerWeek)")
+                    GenerationPill(title: onboardingLocalizedString("onboarding_pill_sets"), value: "\(weeklySetTotal)")
+                    GenerationPill(title: onboardingLocalizedString("onboarding_pill_weeks"), value: "\(generatedPlan.totalWeeks)")
+                }
+
+                if let firstDay = generatedPlan.days.first {
+                    PlanDay1LockedPreviewCard(
+                        day: firstDay,
+                        gender: selectedGender,
+                        language: draft.preferredLanguage,
+                        exercises: store.exercises,
+                        isPro: store.monetization.hasProAccess
+                    )
+                }
+
+                if generatedPlan.days.count > 1 {
+                    PlanLockedDaysCard(
+                        plan: generatedPlan,
+                        isPro: store.monetization.hasProAccess
+                    )
+                }
+            }
+
+            if !store.monetization.hasProAccess {
+                PlanUnlockProCard(
+                    totalWeeks: generatedPlan.totalWeeks,
+                    daysPerWeek: generatedPlan.daysPerWeek,
+                    onUnlock: onUnlockPro
+                )
+            }
+        }
+    }
+}
+
+// MARK: - Reusable UI Components
 
 private struct OnboardingProgressHeader: View {
     let progress: Double
+    let currentStepIndex: Int
+    let totalSteps: Int
     let canGoBack: Bool
     let onBack: () -> Void
 
@@ -1006,7 +1449,7 @@ private struct OnboardingProgressHeader: View {
                         .navigationGlassCircle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Back")
+                .accessibilityLabel("Atrás")
             } else {
                 Color.clear
                     .frame(width: 38, height: 38)
@@ -1017,11 +1460,28 @@ private struct OnboardingProgressHeader: View {
                     .fill(PulseTheme.grouped)
                     .overlay(alignment: .leading) {
                         Capsule()
-                            .fill(PulseTheme.accent)
+                            .fill(
+                                LinearGradient(
+                                    colors: [PulseTheme.accent, PulseTheme.ringStand],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                             .frame(width: proxy.size.width * min(max(progress, 0), 1))
+                            .animation(.spring(response: 0.38, dampingFraction: 0.82), value: progress)
                     }
             }
-            .frame(height: 4)
+            .frame(height: 5)
+
+            if totalSteps > 0 {
+                Text("\(currentStepIndex)/\(totalSteps)")
+                    .font(.caption2.weight(.black).monospacedDigit())
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(PulseTheme.grouped)
+                    .clipShape(Capsule())
+            }
         }
         .frame(height: 38)
         .padding(.horizontal, PulseTheme.screenHorizontalPadding)
@@ -1036,11 +1496,11 @@ private struct OnboardingTitle: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Text(localizedKey(title))
+            Text(onboardingLocalizedString(title))
                 .font(.system(size: 34, weight: .heavy))
                 .lineLimit(4)
                 .minimumScaleFactor(0.72)
-            Text(localizedKey(subtitle))
+            Text(onboardingLocalizedString(subtitle))
                 .font(.title3.weight(.medium))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1068,10 +1528,10 @@ private struct OnboardingOptionCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(localizedKey(title))
+                    Text(onboardingLocalizedString(title))
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    Text(localizedKey(subtitle))
+                    Text(onboardingLocalizedString(subtitle))
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1090,8 +1550,9 @@ private struct OnboardingOptionCard: View {
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                    .stroke(isSelected ? .white.opacity(0.9) : PulseTheme.separator, lineWidth: isSelected ? 1.6 : 1)
+                    .stroke(isSelected ? tint.opacity(0.9) : PulseTheme.separator, lineWidth: isSelected ? 1.8 : 1)
             )
+            .shadow(color: isSelected ? tint.opacity(0.20) : .clear, radius: 10, y: 4)
         }
         .buttonStyle(.plain)
         .pressableFeedback(scale: 0.965)
@@ -1110,10 +1571,10 @@ private struct OnboardingNumberPicker: View {
         PulseCard(contentPadding: 18) {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(localizedKey(title))
+                    Text(onboardingLocalizedString(title))
                         .font(.headline)
                     Spacer()
-                    Text(localizedKey(helper))
+                    Text(onboardingLocalizedString(helper))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(1)
@@ -1124,7 +1585,7 @@ private struct OnboardingNumberPicker: View {
                     Text("\(value)")
                         .font(.system(size: 68, weight: .heavy))
                         .contentTransition(.numericText(value: Double(value)))
-                    Text(localizedKey(unit))
+                    Text(onboardingLocalizedString(unit))
                         .font(.title2.weight(.black))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
@@ -1162,6 +1623,8 @@ private struct OnboardingMetricSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     let step: Double
+    var accentColor: Color = PulseTheme.accent
+    var gradientStops: [Gradient.Stop]? = nil
 
     private var progress: Double {
         (value - range.lowerBound) / (range.upperBound - range.lowerBound)
@@ -1173,11 +1636,11 @@ private struct OnboardingMetricSlider: View {
                 HStack(spacing: 12) {
                     Image(systemName: icon)
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                        .foregroundStyle(PulseTheme.onColor(accentColor))
                         .frame(width: 42, height: 42)
-                        .background(PulseTheme.accent)
+                        .background(accentColor)
                         .clipShape(RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
-                    Text(localizedKey(title))
+                    Text(onboardingLocalizedString(title))
                         .font(.headline)
                     Spacer()
                 }
@@ -1185,17 +1648,37 @@ private struct OnboardingMetricSlider: View {
                 HStack(alignment: .lastTextBaseline, spacing: 7) {
                     Text(valueText)
                         .font(.system(size: 56, weight: .heavy))
+                        .foregroundStyle(gradientStops != nil ? accentColor : .primary)
                         .contentTransition(.numericText(value: value))
-                    Text(localizedKey(unit))
+                        .animation(.snappy(duration: 0.18), value: accentColor)
+                    Text(onboardingLocalizedString(unit))
                         .font(.title2.weight(.black))
                         .foregroundStyle(PulseTheme.secondaryText)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
 
-                Slider(value: $value, in: range, step: step)
-                    .tint(.white)
+                ZStack(alignment: .leading) {
+                    if let gradientStops {
+                        GeometryReader { proxy in
+                            Capsule()
+                                .fill(LinearGradient(stops: gradientStops, startPoint: .leading, endPoint: .trailing))
+                                .frame(height: 6)
+                                .opacity(0.88)
+                                .overlay(
+                                    Capsule()
+                                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                                )
+                                .padding(.vertical, 12)
+                        }
+                        .frame(height: 30)
+                        .allowsHitTesting(false)
+                    }
 
-                TickRail(progress: progress)
+                    Slider(value: $value, in: range, step: step)
+                        .tint(gradientStops != nil ? accentColor : .white)
+                }
+
+                TickRail(progress: progress, activeColor: accentColor)
                     .frame(height: 30)
             }
         }
@@ -1205,6 +1688,7 @@ private struct OnboardingMetricSlider: View {
 
 private struct TickRail: View {
     let progress: Double
+    var activeColor: Color = .white
 
     var body: some View {
         GeometryReader { proxy in
@@ -1222,10 +1706,10 @@ private struct TickRail: View {
                 }
 
                 Rectangle()
-                    .fill(.white)
+                    .fill(activeColor)
                     .frame(width: 3, height: 30)
                     .offset(x: activeX - 1.5)
-                    .shadow(color: .white.opacity(0.36), radius: 8)
+                    .shadow(color: activeColor.opacity(0.6), radius: 8)
             }
         }
         .accessibilityHidden(true)
@@ -1239,7 +1723,7 @@ private struct EquipmentChip: View {
 
     var body: some View {
         Button(action: action) {
-            Text(localizedKey(title))
+            Text(onboardingLocalizedString(title))
                 .font(.subheadline.weight(.bold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
@@ -1266,74 +1750,13 @@ private struct FlowLayout<Content: View>: View {
     }
 }
 
-private struct HeroSignal: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Text(localizedKey(title))
-                .font(.caption.weight(.bold))
-                .foregroundStyle(PulseTheme.secondaryText)
-            Text(value)
-                .font(.subheadline.weight(.black))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(PulseTheme.card)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-}
-
-private struct OnboardingBenefit: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-
-    var body: some View {
-        PulseCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(PulseTheme.accent)
-                Text(localizedKey(title))
-                    .font(.headline)
-                Text(localizedKey(subtitle))
-                    .font(.caption)
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-}
-
-private struct OnboardingSignal: View {
-    let title: String
-    let value: String
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(localizedKey(title))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(PulseTheme.secondaryText)
-            Text(value)
-                .font(.headline)
-                .foregroundStyle(color)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 private struct GenerationPill: View {
     let title: String
     let value: String
 
     var body: some View {
         VStack(spacing: 4) {
-            Text(localizedKey(title))
+            Text(onboardingLocalizedString(title))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
             Text(value)
@@ -1376,7 +1799,7 @@ private struct GenerationStepRow: View {
                 }
                 .frame(width: 26, height: 26)
 
-                Text(localizedKey(title))
+                Text(onboardingLocalizedString(title))
                     .font(.subheadline.weight(isActive ? .bold : .medium))
                     .foregroundStyle(isActive ? .white : (isCompleted ? .white.opacity(0.75) : PulseTheme.secondaryText))
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1398,148 +1821,164 @@ private struct GenerationStepRow: View {
         }
         .onAppear { pulse = isActive }
         .onChange(of: isActive) { _, v in pulse = v }
-        .animation(.spring(response: 0.4, dampingFraction: 0.78), value: isCompleted)
-        .animation(.spring(response: 0.4, dampingFraction: 0.78), value: isActive)
     }
 }
 
-private struct PlanProjectionCard: View {
+// MARK: - Transformation Projection 12-Week Chart (Photo 3 Redesign)
+
+private struct TransformationProjection12WeekCard: View {
     let plan: WorkoutPlan
     let weeklySetTotal: Int
     let goal: UserProfile.MainGoal
     let experience: UserProfile.Experience
     let focusMuscles: [String]
     let locationID: String
+    let sex: UserProfile.Sex?
 
-    private struct WeekPoint: Identifiable {
-        let id: Int
-        let sets: Int
+    private struct WeekTrendPoint: Identifiable {
+        var id: Int { week }
+        let week: Int
+        let strengthKg: Double
+        let muscleGainKg: Double
+        let fatLossPercent: Double
         let isDeload: Bool
     }
 
-    private var projection: [WeekPoint] {
-        let total = max(1, plan.totalWeeks)
-        return (1...total).map { week in
+    private var trendData: [WeekTrendPoint] {
+        let isFemale = (sex == .female)
+        let total = max(4, min(12, plan.totalWeeks))
+
+        // Goal-tailored multipliers for strength, muscle & fat
+        let strengthBase: Double
+        let muscleBase: Double
+        let fatBase: Double
+
+        switch goal {
+        case .buildMuscle:
+            strengthBase = 22.0; muscleBase = isFemale ? 2.4 : 3.8; fatBase = 1.5
+        case .loseFat:
+            strengthBase = 12.0; muscleBase = isFemale ? 1.0 : 1.6; fatBase = 5.4
+        case .bodyRecomposition:
+            strengthBase = 18.0; muscleBase = isFemale ? 1.8 : 2.8; fatBase = 3.8
+        case .getStronger:
+            strengthBase = 28.0; muscleBase = isFemale ? 1.6 : 2.4; fatBase = 1.0
+        case .stayActive:
+            strengthBase = 10.0; muscleBase = isFemale ? 0.8 : 1.2; fatBase = 2.0
+        }
+
+        return (1...total).map { w in
             let mesoLen = 4
-            let mesocycle = (week - 1) / mesoLen
-            let weekInMeso = ((week - 1) % mesoLen) + 1
-            let isDeload = weekInMeso == mesoLen && total >= 8
-            let sets: Int
-            if isDeload {
-                sets = Int(Double(weeklySetTotal) * (1.0 + Double(mesocycle) * 0.12) * 0.68)
-            } else {
-                let factor = 1.0 + Double(mesocycle) * 0.12 + Double(weekInMeso - 1) * 0.05
-                sets = Int(Double(weeklySetTotal) * factor)
-            }
-            return WeekPoint(id: week, sets: sets, isDeload: isDeload)
+            let weekInMeso = ((w - 1) % mesoLen) + 1
+            let isDeload = (weekInMeso == mesoLen)
+
+            let progressRatio = Double(w) / Double(total)
+            let logFactor = log2(1.0 + progressRatio * 3.0) / 2.0 // Realistic dimishing returns curve
+
+            let str = strengthBase * logFactor * (isDeload ? 0.92 : 1.0)
+            let mus = muscleBase * logFactor
+            let fat = fatBase * logFactor
+
+            return WeekTrendPoint(
+                week: w,
+                strengthKg: str,
+                muscleGainKg: mus,
+                fatLossPercent: fat,
+                isDeload: isDeload
+            )
         }
     }
 
-    private var axisWeeks: [Int] {
-        let total = plan.totalWeeks
-        if total <= 4 { return Array(1...total) }
-        if total <= 8 { return [1, 4, total] }
-        return Array(stride(from: 1, through: total, by: 4))
+    private var maxStrength: Double {
+        trendData.map(\.strengthKg).max() ?? 20.0
     }
 
-    private struct TagEntry: Identifiable {
-        let id: Int
-        let icon: String
-        let text: String
+    private var maxMuscle: Double {
+        trendData.map(\.muscleGainKg).max() ?? 3.0
     }
 
-    private var tags: [TagEntry] {
-        var result: [TagEntry] = []
-        result.append(TagEntry(id: 0, icon: goal.icon, text: goal.shortTitle))
-        result.append(TagEntry(id: 1, icon: experience.icon, text: experience.shortLabel))
-        if !focusMuscles.isEmpty {
-            let label = focusMuscles.prefix(2).joined(separator: " · ")
-            result.append(TagEntry(id: 2, icon: "sparkle", text: label))
-        }
-        let location = OnboardingLocationCatalog.location(for: locationID)
-        result.append(TagEntry(id: 3, icon: location.icon, text: localizedString(location.titleKey)))
-        return result
+    private var maxFat: Double {
+        trendData.map(\.fatLossPercent).max() ?? 4.0
     }
 
     var body: some View {
         PulseCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(localizedString("onboarding_plan_projection_title"))
-                            .font(.headline)
-                        Text(localizedString("onboarding_plan_projection_caption"))
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(PulseTheme.secondaryText)
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(localizedString("onboarding_projection_title"))
+                            .font(.headline.weight(.bold))
+                        Spacer()
+                        Text(localizedString("onboarding_projection_badge_ai"))
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .tracking(0.6)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(PulseTheme.accent)
+                            .clipShape(Capsule())
                     }
-                    Spacer()
+                    Text(localizedString("onboarding_projection_subtitle"))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
                 }
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(tags) { tag in
-                            Label(tag.text, systemImage: tag.icon)
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(PulseTheme.textSecondary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(PulseTheme.grouped)
-                                .clipShape(Capsule())
-                        }
-                    }
-                    .padding(.vertical, 2)
+                // Multi-metric legend badges
+                HStack(spacing: 8) {
+                    LegendPill(
+                        color: PulseTheme.ringStand,
+                        label: String(format: "Fuerza +%.0f%%", maxStrength),
+                        icon: "arrow.up.right"
+                    )
+                    LegendPill(
+                        color: PulseTheme.warning,
+                        label: String(format: "Músculo +%.1fkg", maxMuscle),
+                        icon: "bolt.fill"
+                    )
+                    LegendPill(
+                        color: Color(red: 1.0, green: 0.35, blue: 0.35),
+                        label: String(format: "Grasa -%.1f%%", maxFat),
+                        icon: "arrow.down.right"
+                    )
                 }
 
-                Chart(projection) { point in
-                    BarMark(
-                        x: .value("Week", point.id),
-                        y: .value("Sets", point.sets),
-                        width: .ratio(0.62)
-                    )
-                    .foregroundStyle(
-                        point.isDeload
-                            ? AnyShapeStyle(PulseTheme.ringStand.opacity(0.22))
-                            : AnyShapeStyle(LinearGradient(
-                                colors: [PulseTheme.ringStand.opacity(0.85), PulseTheme.accent],
-                                startPoint: .bottom,
-                                endPoint: .top
-                            ))
-                    )
-                    .clipShape(.rect(cornerRadius: PulseTheme.smallRadius))
-
-                    LineMark(
-                        x: .value("Week", point.id),
-                        y: .value("Sets", point.sets)
-                    )
-                    .interpolationMethod(.catmullRom)
-                    .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
-                    .foregroundStyle(PulseTheme.textPrimary.opacity(0.85))
-                    .symbol {
-                        Circle()
-                            .fill(point.isDeload ? PulseTheme.ringStand : PulseTheme.textPrimary)
-                            .frame(width: 5, height: 5)
-                    }
-
-                    AreaMark(
-                        x: .value("Week", point.id),
-                        y: .value("Sets", point.sets)
-                    )
-                    .interpolationMethod(.catmullRom)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [PulseTheme.textPrimary.opacity(0.14), PulseTheme.textPrimary.opacity(0.0)],
-                            startPoint: .top,
-                            endPoint: .bottom
+                // 12-Week Multi-Curve Chart
+                Chart {
+                    ForEach(trendData) { pt in
+                        LineMark(
+                            x: .value("Semana", "S\(pt.week)"),
+                            y: .value("Fuerza", pt.strengthKg),
+                            series: .value("Métrica", "Fuerza")
                         )
-                    )
+                        .interpolationMethod(.catmullRom)
+                        .foregroundStyle(PulseTheme.ringStand)
+                        .lineStyle(StrokeStyle(lineWidth: 2.6, lineCap: .round))
+
+                        LineMark(
+                            x: .value("Semana", "S\(pt.week)"),
+                            y: .value("Músculo", pt.muscleGainKg * 6.0),
+                            series: .value("Métrica", "Músculo")
+                        )
+                        .interpolationMethod(.catmullRom)
+                        .foregroundStyle(PulseTheme.warning)
+                        .lineStyle(StrokeStyle(lineWidth: 2.2, lineCap: .round, dash: [4, 3]))
+
+                        LineMark(
+                            x: .value("Semana", "S\(pt.week)"),
+                            y: .value("Grasa", pt.fatLossPercent * 4.0),
+                            series: .value("Métrica", "Grasa")
+                        )
+                        .interpolationMethod(.catmullRom)
+                        .foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.35))
+                        .lineStyle(StrokeStyle(lineWidth: 2.0, lineCap: .round))
+                    }
                 }
                 .chartYAxis {
                     AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
                         AxisGridLine()
-                            .foregroundStyle(PulseTheme.secondaryText.opacity(0.14))
+                            .foregroundStyle(PulseTheme.separator.opacity(0.5))
                         AxisValueLabel {
-                            if let sets = value.as(Int.self) {
-                                Text("\(sets)")
+                            if let val = value.as(Double.self) {
+                                Text("\(Int(val))%")
                                     .font(.caption2)
                                     .foregroundStyle(PulseTheme.secondaryText)
                             }
@@ -1547,19 +1986,72 @@ private struct PlanProjectionCard: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks(values: axisWeeks) { value in
+                    AxisMarks { value in
                         AxisValueLabel {
-                            if let week = value.as(Int.self) {
-                                Text(localizedString("onboarding_plan_wk") + "\(week)")
-                                    .font(.caption2)
+                            if let wStr = value.as(String.self) {
+                                Text(wStr)
+                                    .font(.caption2.weight(.bold))
                                     .foregroundStyle(PulseTheme.secondaryText)
                             }
                         }
                     }
                 }
-                .frame(height: 140)
+                .frame(height: 160)
+
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(PulseTheme.accent)
+                    Text(onboardingLocalizedString("onboarding_projection_recalibrate_hint"))
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(10)
+                .background(PulseTheme.grouped)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                    Text(onboardingLocalizedString("onboarding_results_disclaimer"))
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 4)
+                .padding(.top, 2)
             }
         }
+    }
+}
+
+private struct LegendPill: View {
+    let color: Color
+    let label: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 7, height: 7)
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .black))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(color.opacity(0.12))
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(color.opacity(0.3), lineWidth: 0.8)
+        )
     }
 }
 
@@ -1650,7 +2142,7 @@ private struct PlanExerciseRow: View {
                         Image(systemName: "lock.fill")
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(PulseTheme.accent)
-                        Text("onboarding_pro_sets_reps_load")
+                        Text(onboardingLocalizedString("onboarding_pro_sets_reps_load"))
                             .font(.caption.weight(.bold))
                             .foregroundStyle(PulseTheme.accent)
                     }
@@ -1775,14 +2267,14 @@ private struct PlanUnlockProCard: View {
                     PlanBenefitRow(icon: "chart.line.uptrend.xyaxis", text: "onboarding_pro_benefit_overload")
                     PlanBenefitRow(icon: "scalemass.fill", text: "onboarding_pro_benefit_weights")
                     PlanBenefitRow(icon: "text.bubble.fill", text: "onboarding_pro_benefit_cues")
-                    PlanBenefitRow(icon: "lock.open.fill", text: localizedFormat("onboarding_pro_all_days_fmt", daysPerWeek, totalWeeks))
+                    PlanBenefitRow(icon: "lock.open.fill", text: localizedFormat("onboarding_pro_all_days_fmt", max(daysPerWeek, 4), max(totalWeeks, 8)))
                 }
 
                 Button(action: onUnlock) {
                     HStack(spacing: 8) {
                         Image(systemName: "bolt.fill")
                             .font(.subheadline.weight(.black))
-                        Text("onboarding_pro_unlock_cta")
+                        Text(onboardingLocalizedString("onboarding_pro_unlock_cta"))
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
@@ -1813,7 +2305,7 @@ private struct PlanBenefitRow: View {
                 .font(.caption.weight(.bold))
                 .foregroundStyle(PulseTheme.accent)
                 .frame(width: 18)
-            Text(localizedString(text))
+            Text(onboardingLocalizedString(text))
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.primary)
         }
@@ -1825,27 +2317,32 @@ private struct OnboardingProgressBodyHero: View {
     let daysPerWeek: Int
     let minutes: Int
 
-    private var progressHeatmap: [MuscleIntensity] {
+    // Multi-tone heatmaps for Male & Female models
+    private var maleHeatmap: [MuscleIntensity] {
         [
-            MuscleIntensity(muscle: .chest, intensity: 0.92, color: .white.opacity(0.88)),
-            MuscleIntensity(muscle: .upperChest, intensity: 1.0, color: .white),
-            MuscleIntensity(muscle: .lowerChest, intensity: 0.82, color: .white.opacity(0.78)),
-            MuscleIntensity(muscle: .upperBack, intensity: 0.96, color: .white.opacity(0.92)),
-            MuscleIntensity(muscle: .rhomboids, intensity: 0.86, color: .white.opacity(0.80)),
-            MuscleIntensity(muscle: .trapezius, intensity: 0.74, color: .white.opacity(0.68)),
-            MuscleIntensity(muscle: .deltoids, intensity: 0.92, color: .white.opacity(0.88)),
-            MuscleIntensity(muscle: .frontDeltoid, intensity: 0.84, color: .white.opacity(0.76)),
-            MuscleIntensity(muscle: .rearDeltoid, intensity: 0.84, color: .white.opacity(0.76)),
-            MuscleIntensity(muscle: .biceps, intensity: 0.78, color: .white.opacity(0.72)),
-            MuscleIntensity(muscle: .triceps, intensity: 0.78, color: .white.opacity(0.72)),
-            MuscleIntensity(muscle: .abs, intensity: 1.0, color: .white),
-            MuscleIntensity(muscle: .upperAbs, intensity: 0.96, color: .white.opacity(0.90)),
-            MuscleIntensity(muscle: .lowerAbs, intensity: 0.88, color: .white.opacity(0.82)),
-            MuscleIntensity(muscle: .obliques, intensity: 0.80, color: .white.opacity(0.74)),
-            MuscleIntensity(muscle: .quadriceps, intensity: 0.86, color: .white.opacity(0.80)),
-            MuscleIntensity(muscle: .hamstring, intensity: 0.78, color: .white.opacity(0.72)),
-            MuscleIntensity(muscle: .gluteal, intensity: 0.74, color: .white.opacity(0.68)),
-            MuscleIntensity(muscle: .calves, intensity: 0.68, color: .white.opacity(0.62))
+            MuscleIntensity(muscle: .chest, intensity: 1.0, color: Color(red: 0.18, green: 0.8, blue: 0.44)),      // Emerald
+            MuscleIntensity(muscle: .upperChest, intensity: 0.95, color: Color(red: 1.0, green: 0.76, blue: 0.03)), // Gold
+            MuscleIntensity(muscle: .deltoids, intensity: 0.92, color: Color(red: 0.0, green: 0.9, blue: 1.0)),     // Cyan
+            MuscleIntensity(muscle: .frontDeltoid, intensity: 0.88, color: Color(red: 0.0, green: 0.9, blue: 1.0)),
+            MuscleIntensity(muscle: .biceps, intensity: 0.85, color: Color(red: 1.0, green: 0.44, blue: 0.2)),     // Orange
+            MuscleIntensity(muscle: .triceps, intensity: 0.85, color: Color(red: 1.0, green: 0.44, blue: 0.2)),
+            MuscleIntensity(muscle: .abs, intensity: 0.98, color: Color(red: 1.0, green: 0.76, blue: 0.03)),        // Gold
+            MuscleIntensity(muscle: .upperAbs, intensity: 0.95, color: Color(red: 1.0, green: 0.76, blue: 0.03)),
+            MuscleIntensity(muscle: .lowerAbs, intensity: 0.88, color: Color(red: 0.18, green: 0.8, blue: 0.44)),
+            MuscleIntensity(muscle: .quadriceps, intensity: 0.88, color: Color(red: 0.0, green: 0.9, blue: 1.0))
+        ]
+    }
+
+    private var femaleHeatmap: [MuscleIntensity] {
+        [
+            MuscleIntensity(muscle: .gluteal, intensity: 1.0, color: Color(red: 1.0, green: 0.25, blue: 0.5)),      // Rose Pink
+            MuscleIntensity(muscle: .hamstring, intensity: 0.92, color: Color(red: 1.0, green: 0.44, blue: 0.26)),  // Coral
+            MuscleIntensity(muscle: .quadriceps, intensity: 0.88, color: Color(red: 1.0, green: 0.76, blue: 0.03)), // Gold
+            MuscleIntensity(muscle: .upperBack, intensity: 0.85, color: Color(red: 0.15, green: 0.65, blue: 0.6)),   // Teal
+            MuscleIntensity(muscle: .trapezius, intensity: 0.78, color: Color(red: 0.15, green: 0.65, blue: 0.6)),
+            MuscleIntensity(muscle: .deltoids, intensity: 0.82, color: Color(red: 0.0, green: 0.9, blue: 1.0)),     // Cyan
+            MuscleIntensity(muscle: .obliques, intensity: 0.88, color: Color(red: 1.0, green: 0.25, blue: 0.5)),
+            MuscleIntensity(muscle: .calves, intensity: 0.75, color: Color(red: 1.0, green: 0.76, blue: 0.03))
         ]
     }
 
@@ -1853,14 +2350,14 @@ private struct OnboardingProgressBodyHero: View {
         ZStack {
             backgroundGlow
 
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 GeometryReader { proxy in
                     let modelWidth = min((proxy.size.width + 42) / 2, 186)
 
                     HStack(spacing: -42) {
-                        bodyFigure(gender: .male, side: .front, scale: 1.18)
+                        bodyFigure(gender: .male, side: .front, scale: 1.18, heatmap: maleHeatmap)
                             .frame(width: modelWidth, height: proxy.size.height)
-                        bodyFigure(gender: .female, side: .back, scale: 0.94)
+                        bodyFigure(gender: .female, side: .back, scale: 0.94, heatmap: femaleHeatmap)
                             .frame(width: modelWidth, height: proxy.size.height)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1871,12 +2368,10 @@ private struct OnboardingProgressBodyHero: View {
                 .padding(.top, 22)
                 .padding(.horizontal, 4)
 
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     fatTrendBadge
-                        .frame(width: 90, height: 58)
                     Spacer(minLength: 4)
                     strengthBadge
-                        .frame(width: 90, height: 58)
                 }
                 .padding(.horizontal, 14)
                 .padding(.bottom, 14)
@@ -1888,9 +2383,9 @@ private struct OnboardingProgressBodyHero: View {
         .accessibilityLabel("Strength and muscle progress preview")
     }
 
-    private func bodyFigure(gender: BodyGender, side: BodySide, scale: CGFloat) -> some View {
+    private func bodyFigure(gender: BodyGender, side: BodySide, scale: CGFloat, heatmap: [MuscleIntensity]) -> some View {
         BodyView(gender: gender, side: side, style: .onboardingMonochromeProgress)
-            .heatmap(progressHeatmap, configuration: .onboardingMonochromeProgress)
+            .heatmap(heatmap, configuration: .onboardingMultiToneHeatmap)
             .disabled(true)
             .accessibilityHidden(true)
             .scaleEffect(scale, anchor: .center)
@@ -1928,75 +2423,48 @@ private struct OnboardingProgressBodyHero: View {
     }
 
     private var strengthBadge: some View {
-        VStack(spacing: 5) {
+        HStack(spacing: 8) {
             Image(systemName: "arrow.up.right")
                 .font(.headline.weight(.black))
-            Text("Strength")
-                .font(.caption2.weight(.black))
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-            Text("muscle +")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(PulseTheme.mediaSubtext.opacity(0.76))
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
+                .foregroundStyle(PulseTheme.ringStand)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(localizedString("onboarding_body_hero_strength_muscle"))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.primary)
+                Text(localizedString("onboarding_body_hero_strength_est"))
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(PulseTheme.ringStand)
+            }
         }
-        .foregroundStyle(PulseTheme.mediaText)
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(PulseTheme.mediaText.opacity(0.08), in: RoundedRectangle(cornerRadius: PulseTheme.largeRadius, style: .continuous))
+        .padding(.vertical, 8)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.largeRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: PulseTheme.largeRadius, style: .continuous)
-                .stroke(PulseTheme.mediaText.opacity(0.16), lineWidth: 1)
+                .stroke(PulseTheme.ringStand.opacity(0.3), lineWidth: 1)
         }
     }
 
     private var fatTrendBadge: some View {
-        VStack(spacing: 5) {
-            Image(systemName: "arrow.down.forward")
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.down.right")
                 .font(.headline.weight(.black))
-            Text("Fat stores")
-                .font(.caption2.weight(.black))
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-            Text("trend down")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(PulseTheme.mediaSubtext.opacity(0.76))
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
+                .foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.35))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(localizedString("onboarding_body_hero_fat_loss"))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.primary)
+                Text(localizedString("onboarding_body_hero_fat_est"))
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.35))
+            }
         }
-        .foregroundStyle(PulseTheme.mediaSubtext)
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(PulseTheme.mediaScrimStrong.opacity(0.45), in: RoundedRectangle(cornerRadius: PulseTheme.largeRadius, style: .continuous))
+        .padding(.vertical, 8)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.largeRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: PulseTheme.largeRadius, style: .continuous)
-                .stroke(PulseTheme.mediaText.opacity(0.10), lineWidth: 1)
-        }
-    }
-
-    private var setupBadge: some View {
-        HStack(spacing: 6) {
-            Text(goal)
-            Circle()
-                .fill(PulseTheme.mediaText.opacity(0.4))
-                .frame(width: 4, height: 4)
-            Text("\(daysPerWeek)d")
-            Circle()
-                .fill(PulseTheme.mediaText.opacity(0.4))
-                .frame(width: 4, height: 4)
-            Text("\(minutes)m")
-        }
-        .font(.caption.weight(.black))
-        .foregroundStyle(PulseTheme.mediaSubtext)
-        .lineLimit(1)
-        .minimumScaleFactor(0.78)
-        .padding(.horizontal, 10)
-        .frame(height: 42)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay {
-            Capsule()
-                .stroke(PulseTheme.mediaText.opacity(0.14), lineWidth: 1)
+                .stroke(Color(red: 1.0, green: 0.35, blue: 0.35).opacity(0.3), lineWidth: 1)
         }
     }
 }
@@ -2192,6 +2660,15 @@ private extension HeatmapConfiguration {
         gradientDirection: .topToBottom,
         gradientLowIntensityFactor: 0.72
     )
+
+    static let onboardingMultiToneHeatmap = HeatmapConfiguration(
+        colorScale: .repsMultiTone,
+        interpolation: .linear,
+        threshold: 0.01,
+        isGradientFillEnabled: true,
+        gradientDirection: .topToBottom,
+        gradientLowIntensityFactor: 0.8
+    )
 }
 
 private extension HeatmapColorScale {
@@ -2205,5 +2682,12 @@ private extension HeatmapColorScale {
         .white.opacity(0.34),
         .white.opacity(0.70),
         .white
+    ])
+
+    static let repsMultiTone = HeatmapColorScale(colors: [
+        Color(red: 0.18, green: 0.8, blue: 0.44),
+        Color(red: 1.0, green: 0.76, blue: 0.03),
+        Color(red: 0.0, green: 0.9, blue: 1.0),
+        Color(red: 1.0, green: 0.25, blue: 0.5)
     ])
 }

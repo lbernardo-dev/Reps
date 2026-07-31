@@ -1108,9 +1108,8 @@
 				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}",
 				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
 				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist",
-				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
-				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
-				"$(TARGET_BUILD_DIR)/$(PRODUCT_NAME).debug.dylib",
+				"$(SRCROOT)/Reps/GoogleService-Info.plist",
+				"${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}",
 			);
 			name = "Firebase Crashlytics";
 			outputFileListPaths = (
@@ -1120,7 +1119,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\nmkdir -p \"${DERIVED_FILE_DIR}/Crashlytics\"\ntouch \"${DERIVED_FILE_DIR}/Crashlytics/${TARGET_NAME}-${CURRENT_PROJECT_VERSION}.stamp\"\n";
+			shellScript = "if [ -f \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\" ]; then\n  RUN_SCRIPT=\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\nelif [ -f \"${BUILD_DIR}/../../SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\" ]; then\n  RUN_SCRIPT=\"${BUILD_DIR}/../../SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\nelse\n  RUN_SCRIPT=$(find \"${BUILD_DIR%/Build/*}\" -name \"run\" -path \"*/Crashlytics/run\" 2>/dev/null | head -n 1)\nfi\n\nif [ -n \"$RUN_SCRIPT\" ] && [ -f \"$RUN_SCRIPT\" ]; then\n  \"$RUN_SCRIPT\" -gsp \"${SRCROOT}/Reps/GoogleService-Info.plist\" -p ios \"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}\"\n  mkdir -p \"${DERIVED_FILE_DIR}/Crashlytics\"\n  touch \"${DERIVED_FILE_DIR}/Crashlytics/${TARGET_NAME}-${CURRENT_PROJECT_VERSION}.stamp\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

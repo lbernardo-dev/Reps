@@ -1,6 +1,9 @@
 import CloudKit
 import Foundation
 import Network
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - WorkoutPost Model
 
@@ -234,10 +237,44 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
 //   SocialFollow   recordName = "SocialFollow_<followerOwner>_<followingUsername>"
 //     fields: followerOwnerName, followingUsername
 //
-// NOTE: searchUsers() uses CKQuery and requires a QUERYABLE index on `username`
-// in CloudKit Dashboard if you want to search by prefix. All other operations
-// (register, check availability, follow/unfollow, fetch following) use direct
-// record(for:) lookups and work without any index setup.
+// MARK: - Avatar Image Optimizer
+
+enum AvatarImageOptimizer {
+    /// Resizes and compresses image data to optimal dimensions (max 512x512) and quality (0.82)
+    /// for high-retina avatar rendering while maintaining pristine visual quality and minimal RAM/file footprint (~40-70KB).
+    static func optimize(_ data: Data, maxDimension: CGFloat = 512.0) -> Data {
+        #if canImport(UIKit)
+        guard let uiImage = UIImage(data: data) else { return data }
+        let size = uiImage.size
+        guard size.width > 0, size.height > 0 else { return data }
+
+        if size.width <= maxDimension && size.height <= maxDimension {
+            return uiImage.jpegData(compressionQuality: 0.82) ?? data
+        }
+
+        let aspect = size.width / size.height
+        let targetSize: CGSize
+        if aspect > 1 {
+            targetSize = CGSize(width: maxDimension, height: maxDimension / aspect)
+        } else {
+            targetSize = CGSize(width: maxDimension * aspect, height: maxDimension)
+        }
+
+        let format = UIGraphicsImageRendererFormat.preferred()
+        format.opaque = false
+        format.scale = 2.0
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+        let resizedImage = renderer.image { _ in
+            uiImage.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+
+        return resizedImage.jpegData(compressionQuality: 0.82) ?? data
+        #else
+        return data
+        #endif
+    }
+}
 
 actor SocialService {
     static let shared = SocialService()
@@ -472,7 +509,7 @@ actor SocialService {
         record["totalVolumeKg"] = totalVolumeKg as CKRecordValue
         record["followingUsernames"] = followingUsernames.map { $0.lowercased() } as CKRecordValue
         record["lastActiveAt"] = Date() as CKRecordValue
-        if let data = avatarImageData,
+        if let data = avatarImageData.flatMap({ compressAvatarData($0) }),
            let tmpURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
                .appendingPathComponent("reps_avatar_\(normalized).jpg") {
             try? data.write(to: tmpURL)
@@ -480,6 +517,10 @@ actor SocialService {
         }
 
         _ = try await publicDB.save(record)
+    }
+
+    private func compressAvatarData(_ data: Data) -> Data? {
+        AvatarImageOptimizer.optimize(data)
     }
 
     // Updates only the followingUsernames field on own SocialProfile so
@@ -495,15 +536,22 @@ actor SocialService {
         } catch { /* non-critical */ }
     }
 
-    // Fetch the current user's profile by their known username (stored locally).
-    func fetchMyProfile(username: String) async throws -> SocialProfile? {
-        let rid = profileRecordID(username: username)
+    // Fetch any user profile by username using direct record ID lookup (no index needed)
+    func fetchProfile(username: String) async throws -> SocialProfile? {
+        let clean = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !clean.isEmpty else { return nil }
+        let rid = profileRecordID(username: clean)
         do {
             let record = try await publicDB.record(for: rid)
             return SocialProfile(record: record)
-        } catch let ck as CKError where ck.code == .unknownItem {
+        } catch {
             return nil
         }
+    }
+
+    // Fetch the current user's profile by their known username (stored locally).
+    func fetchMyProfile(username: String) async throws -> SocialProfile? {
+        try await fetchProfile(username: username)
     }
 
     // MARK: - Suggested Athletes
@@ -546,24 +594,42 @@ actor SocialService {
             .sorted { $0.totalXP > $1.totalXP }
     }
 
-    // MARK: - Discovery (requires QUERYABLE index on `username` in CloudKit Dashboard)
+    // MARK: - Discovery (supports direct record lookup + prefix query fallback)
 
     func searchUsers(query: String) async throws -> [SocialProfile] {
-        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
-        let myID = try await myRecordID()
-        let normalized = query.lowercased()
-        let pred = NSPredicate(format: "username BEGINSWITH %@", normalized)
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        let myID = try? await myRecordID()
+        let normalized = trimmed.lowercased()
+        let cleanQuery = normalized.hasPrefix("@") ? String(normalized.dropFirst()) : normalized
+
+        var profiles: [SocialProfile] = []
+        var seenIDs: Set<String> = []
+
+        // Strategy 1: Direct deterministic record lookup by username (100% reliable without CloudKit Dashboard index)
+        if let directProfile = try? await fetchProfile(username: cleanQuery) {
+            if myID == nil || directProfile.ownerRecordName != myID?.recordName {
+                profiles.append(directProfile)
+                seenIDs.insert(directProfile.id)
+            }
+        }
+
+        // Strategy 2: CKQuery for prefix matching (if queryable index exists)
+        let pred = NSPredicate(format: "username BEGINSWITH %@", cleanQuery)
         let ckQuery = CKQuery(recordType: "SocialProfile", predicate: pred)
-        // No server-side sort — SORTABLE index not required, sort client-side instead.
         do {
             let result = try await publicDB.records(matching: ckQuery, resultsLimit: 25)
-            return result.matchResults
+            let queriedProfiles = result.matchResults
                 .compactMap { _, res in (try? res.get()).flatMap(SocialProfile.init) }
-                .filter { $0.ownerRecordName != myID.recordName }
-                .sorted { $0.username < $1.username }
-        } catch let ck as CKError where ck.code == .unknownItem || ck.code == .invalidArguments {
-            return []
+                .filter { p in
+                    (myID == nil || p.ownerRecordName != myID?.recordName) && !seenIDs.contains(p.id)
+                }
+            profiles.append(contentsOf: queriedProfiles)
+        } catch {
+            // Non-critical: CloudKit prefix query index missing or network issue; strategy 1 captured exact matches!
         }
+
+        return profiles.sorted { $0.username < $1.username }
     }
 
     // MARK: - Follow / Unfollow

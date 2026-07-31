@@ -1015,9 +1015,9 @@ struct SocialHubView: View {
             } else if !searchResults.isEmpty {
                 PulseCard {
                     VStack(spacing: 0) {
-                        ForEach(Array(searchResults.enumerated()), id: \.element.id) { idx, profile in
+                        ForEach(searchResults) { profile in
                             searchResultRow(profile) { saveRecentSearch(profile.username) }
-                            if idx < searchResults.count - 1 { Divider() }
+                            if profile.id != searchResults.last?.id { Divider() }
                         }
                     }
                 }
