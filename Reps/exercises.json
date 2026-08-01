@@ -1,0 +1,1069 @@
+[
+    
+    {
+        "bodyPart": "chest",
+        "equipment": "machine",
+        "id": "0051",
+        "name": "pec deck machine fly",
+        "target": "chest",
+        "secondaryMuscles": [
+            "shoulders"
+        ],
+        "instructions": [
+            "Sit on the pec deck machine and adjust the seat so your arms are parallel to the floor.",
+            "Place your forearms against the arm pads or grip the handles with elbows bent at 90 degrees.",
+            "Press the arm pads together in front of your chest by contracting your pectoral muscles.",
+            "Pause at the peak of the contraction and squeeze your chest.",
+            "Slowly allow the arm pads to return to the starting position and repeat for the desired number of repetitions."
+        ],
+        "description": "The pec deck machine fly is a machine exercise targeting the chest. The guided range of motion isolates the pectoral muscles and maintains constant tension throughout, making it effective for chest development with reduced risk of shoulder strain.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "chest",
+        "equipment": "body weight",
+        "id": "0052",
+        "name": "svend press chest",
+        "target": "chest",
+        "secondaryMuscles": [
+            "shoulders",
+            "triceps"
+        ],
+        "instructions": [
+            "Stand upright and hold a pair of weight plates pressed together at chest level with both palms.",
+            "Press the plates outward from your chest until your arms are nearly fully extended.",
+            "Squeeze the plates together throughout the entire movement to engage the inner chest.",
+            "Slowly pull the plates back towards your chest in a controlled manner.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The svend press is a chest exercise using weight plates to create medial force on the pectoral muscles. By pressing the plates together while extending and retracting the arms, it effectively isolates the inner chest and improves mind-muscle connection.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "cardio",
+        "equipment": "machine",
+        "id": "0053",
+        "name": "air bike sprint",
+        "target": "quads",
+        "secondaryMuscles": [
+            "upper legs",
+            "abs",
+            "shoulders"
+        ],
+        "instructions": [
+            "Sit on the air bike and adjust the seat so your legs are slightly bent at full extension.",
+            "Grip the moving handles with both hands.",
+            "Begin pedaling and pumping the handles simultaneously at maximum effort.",
+            "Sprint at full intensity for the desired interval duration.",
+            "Slow down gradually and rest before repeating."
+        ],
+        "description": "The air bike sprint is a high-intensity cardio exercise targeting the entire body. Using both the pedals and arm handles simultaneously, it elevates heart rate rapidly and burns a high number of calories, making it effective for conditioning and fat loss.",
+        "difficulty": "intermediate",
+        "category": "cardio"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "barbell",
+        "id": "0054",
+        "name": "barbell back squat",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "upper legs",
+            "lower back"
+        ],
+        "instructions": [
+            "Position a barbell on your upper traps and step back from the rack with feet shoulder-width apart.",
+            "Point your toes slightly outward and keep your chest up and core braced.",
+            "Descend by bending your knees and pushing your hips back until your thighs are parallel to the floor.",
+            "Drive through your heels to extend your knees and hips and return to the standing position.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The barbell back squat is the foundational lower body compound exercise targeting the quadriceps. With a barbell on the upper back, it trains the entire leg and builds functional strength, muscle mass, and athletic power.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "barbell",
+        "id": "0055",
+        "name": "barbell bulgarian split squat",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "upper legs",
+            "lower back"
+        ],
+        "instructions": [
+            "Stand in front of a bench and hold a barbell across your upper traps.",
+            "Extend one leg behind you and rest the top of your foot on the bench.",
+            "Lower your back knee toward the floor by bending your front knee, keeping your torso upright.",
+            "Descend until your front thigh is parallel to the floor.",
+            "Drive through your front heel to return to the starting position and repeat, then switch legs."
+        ],
+        "description": "The barbell Bulgarian split squat is a unilateral lower body exercise targeting the quadriceps. The elevated rear leg increases the range of motion and demands greater balance, making it an excellent movement for building leg strength and correcting imbalances.",
+        "difficulty": "advanced",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "barbell",
+        "id": "0056",
+        "name": "barbell front squat",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "abs",
+            "upper legs"
+        ],
+        "instructions": [
+            "Position a barbell in a front rack across the front of your shoulders with your elbows raised high.",
+            "Stand with feet shoulder-width apart and toes slightly pointed out.",
+            "Keeping your elbows high and torso upright, descend by bending your knees and hips.",
+            "Lower until your thighs are parallel to the floor or below.",
+            "Drive through your heels to return to the standing position and repeat."
+        ],
+        "description": "The barbell front squat is a compound lower body exercise targeting the quadriceps. Holding the bar in a front rack position shifts the torso more upright, placing greater emphasis on the quads and core compared to the back squat.",
+        "difficulty": "advanced",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "barbell",
+        "id": "0057",
+        "name": "barbell hip thrust",
+        "target": "glutes",
+        "secondaryMuscles": [
+            "upper legs",
+            "lower back",
+            "abs"
+        ],
+        "instructions": [
+            "Sit on the floor with your upper back against a bench and a padded barbell across your hips.",
+            "Plant your feet flat on the floor hip-width apart with knees bent.",
+            "Drive through your heels to thrust your hips upward until your body forms a straight line from knees to shoulders.",
+            "Squeeze your glutes at the top of the movement.",
+            "Lower your hips back toward the floor in a controlled manner and repeat for the desired number of repetitions."
+        ],
+        "description": "The barbell hip thrust is a compound exercise targeting the gluteal muscles. Performed with the upper back elevated on a bench, it allows for a full range of hip extension under heavy load, making it the most effective exercise for glute development.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "barbell",
+        "id": "0058",
+        "name": "barbell march",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "abs",
+            "lower back"
+        ],
+        "instructions": [
+            "Hold a barbell across your upper traps as in a back squat position with feet hip-width apart.",
+            "Brace your core and maintain an upright posture.",
+            "Lift one knee upward to hip height in a marching motion while keeping your stance foot flat.",
+            "Lower your foot and repeat the movement with the opposite leg.",
+            "Continue alternating legs in a controlled marching motion for the desired number of repetitions."
+        ],
+        "description": "The barbell march is a loaded unilateral exercise targeting the quadriceps and core. Marching with a barbell on the back challenges single-leg stability, hip flexor strength, and core bracing under load.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "barbell",
+        "id": "0059",
+        "name": "barbell reverse lunges",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "upper legs",
+            "abs"
+        ],
+        "instructions": [
+            "Stand upright with a barbell across your upper traps and feet together.",
+            "Step one foot directly backward and lower your back knee toward the floor.",
+            "Continue descending until your front thigh is parallel to the floor.",
+            "Push through your front heel to bring your back foot forward to the starting position.",
+            "Alternate legs for the desired number of repetitions."
+        ],
+        "description": "The barbell reverse lunge is a compound lower body exercise targeting the quadriceps. Stepping backward reduces shear force on the knee compared to a forward lunge, making it effective for building leg strength and stability.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "barbell",
+        "id": "0060",
+        "name": "barbell romanian deadlift",
+        "target": "upper legs",
+        "secondaryMuscles": [
+            "glutes",
+            "lower back"
+        ],
+        "instructions": [
+            "Stand with feet hip-width apart holding a barbell in front of your thighs with an overhand grip.",
+            "Keep a soft bend in your knees and your back flat throughout the movement.",
+            "Hinge at the hips and push them back as you lower the bar along your legs.",
+            "Continue lowering until you feel a deep stretch in your hamstrings.",
+            "Drive your hips forward to return to the upright position and repeat for the desired number of repetitions."
+        ],
+        "description": "The barbell Romanian deadlift is a hip hinge exercise targeting the hamstrings and glutes. By maintaining a soft knee bend and hinging at the hips, it stretches and loads the posterior chain through a long range of motion.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "cable",
+        "id": "0061",
+        "name": "cable leg kickback",
+        "target": "glutes",
+        "secondaryMuscles": [
+            "upper legs",
+            "lower back"
+        ],
+        "instructions": [
+            "Attach an ankle strap to the low pulley of a cable machine and secure it to one ankle.",
+            "Face the machine and hold the frame for support, keeping your body slightly inclined.",
+            "Keeping your knee straight, kick your strapped leg backward and upward as far as possible.",
+            "Squeeze your glute at the top of the movement.",
+            "Slowly return your leg to the starting position and repeat, then switch legs."
+        ],
+        "description": "The cable leg kickback is an isolation exercise targeting the gluteal muscles. Using a cable machine provides constant resistance throughout the range of motion, making it effective for glute activation, shaping, and strength.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "cardio",
+        "equipment": "machine",
+        "id": "0062",
+        "name": "cycling",
+        "target": "quads",
+        "secondaryMuscles": [
+            "upper legs",
+            "lower legs",
+            "glutes"
+        ],
+        "instructions": [
+            "Mount a stationary bike and adjust the seat height so your leg has a slight bend at full pedal extension.",
+            "Place your feet in the pedal straps and grip the handlebars.",
+            "Begin pedaling at a comfortable cadence, maintaining an upright or forward-leaning posture.",
+            "Adjust the resistance as needed to reach your target intensity level.",
+            "Continue for the desired duration, then gradually slow to a cool down pace."
+        ],
+        "description": "Cycling is a low-impact cardio exercise targeting the quadriceps. Whether performed on a stationary bike or outdoors, it improves cardiovascular endurance and lower body muscular endurance while being gentle on the joints.",
+        "difficulty": "beginner",
+        "category": "cardio"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "dumbbell",
+        "id": "0063",
+        "name": "dumbbell bulgarian split squat",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "upper legs"
+        ],
+        "instructions": [
+            "Stand in front of a bench and hold a dumbbell in each hand at your sides.",
+            "Extend one leg back and rest the top of your foot on the bench.",
+            "Lower your back knee toward the floor by bending your front knee.",
+            "Descend until your front thigh is parallel to the floor.",
+            "Drive through your front heel to return to the starting position and repeat, then switch legs."
+        ],
+        "description": "The dumbbell Bulgarian split squat is a unilateral lower body exercise targeting the quadriceps. Holding dumbbells allows for a natural arm position while the elevated rear foot increases range of motion and unilateral leg strength.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "dumbbell",
+        "id": "0064",
+        "name": "dumbbell goblet squat",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "abs"
+        ],
+        "instructions": [
+            "Stand with feet shoulder-width apart holding a dumbbell vertically at chest level with both hands cupping the top end.",
+            "Keep your elbows tucked in and your chest up.",
+            "Descend into a squat by bending your knees and pushing your hips back until your thighs are parallel to the floor.",
+            "Drive through your heels to return to the standing position.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The dumbbell goblet squat is a lower body exercise targeting the quadriceps. Holding the dumbbell at chest height encourages an upright torso and proper squat mechanics, making it an excellent teaching tool and effective quad builder.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "dumbbell",
+        "id": "0065",
+        "name": "dumbbell hip hinge",
+        "target": "upper legs",
+        "secondaryMuscles": [
+            "glutes",
+            "lower back"
+        ],
+        "instructions": [
+            "Stand with feet hip-width apart holding a dumbbell in each hand at your sides.",
+            "Keep a slight bend in your knees and your back flat throughout the movement.",
+            "Hinge at the hips and push them back as you lower your torso toward the floor.",
+            "Lower until you feel a stretch in your hamstrings, then drive your hips forward to return to standing.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The dumbbell hip hinge is a fundamental movement pattern exercise targeting the hamstrings and posterior chain. It teaches proper hip hinge mechanics, which are foundational for movements like the deadlift and Romanian deadlift.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "dumbbell",
+        "id": "0066",
+        "name": "dumbbell jump squat",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "upper legs",
+            "lower legs"
+        ],
+        "instructions": [
+            "Stand with feet shoulder-width apart holding a light dumbbell in each hand at your sides.",
+            "Perform a squat by bending your knees and pushing your hips back to thigh-parallel depth.",
+            "Explosively drive through your heels to jump off the ground as high as possible.",
+            "Land softly with bent knees to absorb the impact.",
+            "Immediately descend into the next squat and repeat for the desired number of repetitions."
+        ],
+        "description": "The dumbbell jump squat is a plyometric exercise targeting the quadriceps and developing lower body explosive power. Adding light dumbbell resistance increases the training stimulus while the jumping motion improves athleticism and conditioning.",
+        "difficulty": "intermediate",
+        "category": "plyometrics"
+    },
+    {
+        "bodyPart": "cardio",
+        "equipment": "machine",
+        "id": "0067",
+        "name": "elliptical hiit machine",
+        "target": "quads",
+        "secondaryMuscles": [
+            "upper legs",
+            "lower legs",
+            "shoulders"
+        ],
+        "instructions": [
+            "Step onto the elliptical machine and grip the moving handles.",
+            "Set a high resistance level appropriate for interval training.",
+            "Push and pull the handles while driving through the pedals at maximum effort for the work interval.",
+            "Reduce your pace to a slow recovery stride for the rest interval.",
+            "Continue alternating between work and rest intervals for the desired duration."
+        ],
+        "description": "Elliptical HIIT is a low-impact cardio machine workout targeting the quadriceps and full body. Alternating between high-intensity and recovery intervals maximizes caloric expenditure and cardiovascular conditioning with minimal joint stress.",
+        "difficulty": "intermediate",
+        "category": "cardio"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "machine",
+        "id": "0068",
+        "name": "hack squat machine",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "upper legs"
+        ],
+        "instructions": [
+            "Position yourself on the hack squat machine with your back against the pad and shoulders under the shoulder pads.",
+            "Place your feet shoulder-width apart on the platform with toes slightly pointed out.",
+            "Release the safety handles and lower the sled by bending your knees to 90 degrees or below.",
+            "Drive through your heels to extend your knees and return to the starting position.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The hack squat machine is a leg press-style exercise targeting the quadriceps. The guided range of motion allows for heavy loading with back support, making it highly effective for building quad mass and strength.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "machine",
+        "id": "0069",
+        "name": "hip abduction machine",
+        "target": "glutes",
+        "secondaryMuscles": [
+            "upper legs"
+        ],
+        "instructions": [
+            "Sit on the hip abduction machine with your outer thighs resting against the padded levers.",
+            "Adjust the starting position so your legs are together and feet are flat on the foot rests.",
+            "Push your legs outward against the resistance by abducting your hips as far as comfortable.",
+            "Pause at the end of the range of motion, then slowly return your legs to the starting position.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The hip abduction machine is an isolation exercise targeting the glutes and hip abductors. By pushing the legs outward against resistance, it strengthens the outer glutes and hip stabilizers, improving lower body balance and athletic performance.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "kettlebell",
+        "id": "0070",
+        "name": "kettlebell hold march",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "abs",
+            "lower back"
+        ],
+        "instructions": [
+            "Stand upright holding a kettlebell in each hand at your sides.",
+            "Brace your core and maintain an upright posture with shoulders back.",
+            "Lift one knee upward to hip height in a controlled marching motion.",
+            "Lower that foot to the floor and immediately lift the opposite knee.",
+            "Continue alternating legs in a slow, deliberate march for the desired number of repetitions."
+        ],
+        "description": "The kettlebell hold march is a loaded unilateral exercise targeting the quadriceps and core. Marching while holding kettlebells challenges hip flexor strength, single-leg balance, and core stability under load.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "kettlebell",
+        "id": "0071",
+        "name": "kettlebell lift up",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "lower back",
+            "shoulders"
+        ],
+        "instructions": [
+            "Stand with feet hip-width apart and a kettlebell on the floor between your feet.",
+            "Hinge at the hips and bend your knees to grip the kettlebell handle with both hands.",
+            "Brace your core and maintain a flat back as you prepare to lift.",
+            "Drive through your heels and extend your hips and knees to stand upright, lifting the kettlebell.",
+            "Lower the kettlebell back to the floor in a controlled manner and repeat."
+        ],
+        "description": "The kettlebell lift up is a fundamental compound exercise targeting the quadriceps. This basic lifting pattern mirrors the deadlift and builds overall lower body strength, posterior chain engagement, and safe lifting mechanics.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "kettlebell",
+        "id": "0072",
+        "name": "kettlebell swing",
+        "target": "glutes",
+        "secondaryMuscles": [
+            "upper legs",
+            "lower back",
+            "shoulders"
+        ],
+        "instructions": [
+            "Stand with feet slightly wider than shoulder-width and the kettlebell on the floor in front of you.",
+            "Hinge at the hips to grip the kettlebell with both hands and hike it back between your legs.",
+            "Explosively drive your hips forward to propel the kettlebell upward to chest or shoulder height.",
+            "Allow the kettlebell to swing back down and hike it back between your legs, hinging at the hips.",
+            "Repeat the swing in a fluid, continuous motion for the desired number of repetitions."
+        ],
+        "description": "The kettlebell swing is a dynamic hip hinge exercise targeting the glutes and hamstrings. The explosive hip extension develops posterior chain power and conditioning, making it one of the most effective full-body conditioning movements.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "machine",
+        "id": "0073",
+        "name": "leg extension machine",
+        "target": "quads",
+        "secondaryMuscles": [],
+        "instructions": [
+            "Sit on the leg extension machine and adjust the back pad so your knees align with the machine's pivot point.",
+            "Place your shins behind the padded lever and grip the handles at your sides.",
+            "Extend your legs upward by straightening your knees until your legs are parallel to the floor.",
+            "Pause at the top and squeeze your quadriceps.",
+            "Slowly lower the lever back to the starting position and repeat for the desired number of repetitions."
+        ],
+        "description": "The leg extension machine is an isolation exercise targeting the quadriceps. By extending the knee against resistance, it directly strengthens the quads without engaging the posterior chain, making it ideal for targeted quad development.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "machine",
+        "id": "0074",
+        "name": "leg press machine",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "upper legs"
+        ],
+        "instructions": [
+            "Sit on the leg press machine and place your feet shoulder-width apart on the platform.",
+            "Release the safety handles and lower the platform by bending your knees toward your chest.",
+            "Stop when your knees reach approximately 90 degrees or your lower back begins to lift off the seat.",
+            "Drive through your heels to extend your knees and push the platform back to the starting position.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The leg press machine is a compound lower body exercise targeting the quadriceps. The machine allows for heavy loading with back support, making it effective for building quad strength and muscle mass as a supplement to free weight squatting.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "machine",
+        "id": "0075",
+        "name": "lying leg curl machine",
+        "target": "upper legs",
+        "secondaryMuscles": [
+            "lower legs",
+            "glutes"
+        ],
+        "instructions": [
+            "Lie face down on the leg curl machine and position the pad just above your heels.",
+            "Grip the handles beneath the bench for stability.",
+            "Curl your heels toward your glutes by bending your knees as far as the machine allows.",
+            "Pause at the top and squeeze your hamstrings.",
+            "Slowly lower your legs back to the starting position and repeat for the desired number of repetitions."
+        ],
+        "description": "The lying leg curl machine is an isolation exercise targeting the hamstrings. Performed face-down, it curls the lower leg toward the glutes against resistance, directly strengthening the hamstrings and improving knee flexion strength.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "cardio",
+        "equipment": "body weight",
+        "id": "0076",
+        "name": "rope wave",
+        "target": "shoulders",
+        "secondaryMuscles": [
+            "upper arms",
+            "abs",
+            "upper legs"
+        ],
+        "instructions": [
+            "Hold one end of a battle rope in each hand and stand in a half-squat position.",
+            "Brace your core and keep your feet shoulder-width apart.",
+            "Rapidly raise and lower one arm while the other arm descends, creating alternating waves in the rope.",
+            "Maintain a continuous, powerful wave motion for the desired interval duration.",
+            "Rest and repeat for the desired number of sets."
+        ],
+        "description": "The rope wave is a battle rope exercise targeting the shoulders and providing full-body conditioning. The alternating wave motion engages the shoulders, arms, and core simultaneously, making it an excellent cardiovascular and muscular endurance exercise.",
+        "difficulty": "intermediate",
+        "category": "cardio"
+    },
+    {
+        "bodyPart": "cardio",
+        "equipment": "machine",
+        "id": "0077",
+        "name": "rowing machine",
+        "target": "back",
+        "secondaryMuscles": [
+            "upper legs",
+            "shoulders",
+            "abs"
+        ],
+        "instructions": [
+            "Sit on the rowing machine, secure your feet in the straps, and grip the handle with both hands.",
+            "Begin with your knees bent, leaning slightly forward, and arms extended.",
+            "Drive through your legs to extend your knees while simultaneously leaning back slightly.",
+            "As your legs reach full extension, pull the handle toward your lower chest by bending your elbows.",
+            "Reverse the sequence to return to the starting position and repeat for the desired duration."
+        ],
+        "description": "The rowing machine is a full-body cardio exercise targeting the back. It combines a leg drive, core engagement, and upper body pull in a single fluid motion, providing excellent cardiovascular conditioning and muscular endurance training.",
+        "difficulty": "beginner",
+        "category": "cardio"
+    },
+    {
+        "bodyPart": "cardio",
+        "equipment": "machine",
+        "id": "0078",
+        "name": "run on treadmill",
+        "target": "quads",
+        "secondaryMuscles": [
+            "upper legs",
+            "lower legs",
+            "glutes"
+        ],
+        "instructions": [
+            "Step onto the treadmill and set your desired speed and incline level.",
+            "Begin walking and gradually increase the speed to your running pace.",
+            "Maintain an upright posture with a slight forward lean and land softly on your midfoot.",
+            "Swing your arms in coordination with your legs to maintain rhythm.",
+            "Continue running for the desired duration, then gradually decrease speed to a walking cool down."
+        ],
+        "description": "Running on a treadmill is a cardio exercise targeting the lower body and cardiovascular system. It provides controlled running conditions with adjustable speed and incline, making it suitable for building aerobic capacity and lower body endurance.",
+        "difficulty": "beginner",
+        "category": "cardio"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "machine",
+        "id": "0079",
+        "name": "seated leg curl machine",
+        "target": "upper legs",
+        "secondaryMuscles": [
+            "lower legs",
+            "glutes"
+        ],
+        "instructions": [
+            "Sit on the seated leg curl machine and adjust the back pad so your knees align with the pivot point.",
+            "Place your legs over the top pad and secure the lower pad just above your ankles.",
+            "Curl your legs downward by bending your knees as far as the machine allows.",
+            "Pause at the bottom and squeeze your hamstrings.",
+            "Slowly return your legs to the starting position and repeat for the desired number of repetitions."
+        ],
+        "description": "The seated leg curl machine is an isolation exercise targeting the hamstrings. The seated position changes the angle of hip flexion compared to the lying curl, creating a different stimulus on the hamstring muscles for complete development.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "machine",
+        "id": "0080",
+        "name": "seated overhead press",
+        "target": "delts",
+        "secondaryMuscles": [
+            "triceps",
+            "traps"
+        ],
+        "instructions": [
+            "Sit on a shoulder press machine and adjust the seat so the handles are at shoulder height.",
+            "Grip the handles with both hands and plant your feet flat on the floor.",
+            "Press the handles upward until your arms are fully extended overhead.",
+            "Pause briefly at the top, then slowly lower the handles back to shoulder height.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The seated overhead press machine is a shoulder exercise targeting the deltoids. The machine provides a guided range of motion and back support, making it a safe and effective option for building shoulder strength and size.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "dumbbell",
+        "id": "0081",
+        "name": "step-ups (weighted)",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "upper legs"
+        ],
+        "instructions": [
+            "Stand in front of a box or bench holding a dumbbell in each hand at your sides.",
+            "Step one foot up onto the surface and drive through that heel to lift your body up.",
+            "Bring your back foot up to stand fully on the box.",
+            "Step the leading foot back down to the floor followed by the trailing foot.",
+            "Alternate the leading leg or complete all repetitions on one side before switching."
+        ],
+        "description": "Weighted step-ups are a unilateral compound exercise targeting the quadriceps and glutes. Stepping up onto an elevated surface with added dumbbell resistance builds single-leg strength, stability, and functional lower body power.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "cardio",
+        "equipment": "machine",
+        "id": "0082",
+        "name": "stepmill machine version 1",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "lower legs",
+            "upper legs"
+        ],
+        "instructions": [
+            "Step onto the stepmill machine and grip the handrails lightly for balance.",
+            "Set your desired speed on the control panel.",
+            "Begin stepping at a comfortable pace, placing your full foot on each step.",
+            "Drive through your heel with each step to engage your glutes and quads.",
+            "Continue for the desired duration, maintaining an upright posture and minimizing reliance on the handrails."
+        ],
+        "description": "The stepmill machine version 1 is a cardio exercise targeting the quadriceps and glutes. Continuously stepping on a rotating staircase provides sustained lower body conditioning and cardiovascular challenge, making it effective for fat loss and endurance.",
+        "difficulty": "beginner",
+        "category": "cardio"
+    },
+    {
+        "bodyPart": "cardio",
+        "equipment": "machine",
+        "id": "0083",
+        "name": "stepmill machine",
+        "target": "quads",
+        "secondaryMuscles": [
+            "glutes",
+            "lower legs",
+            "upper legs"
+        ],
+        "instructions": [
+            "Mount the stepmill and set your target speed and duration.",
+            "Step onto the rotating staircase and begin climbing at a steady pace.",
+            "Keep your torso upright and engage your core throughout the exercise.",
+            "Drive through each step using your full foot to activate the glutes and quads.",
+            "Complete the session for the desired duration, then slow down to cool off before dismounting."
+        ],
+        "description": "The stepmill machine is a cardio and lower body exercise targeting the quadriceps. Simulating continuous stair climbing, it challenges the cardiovascular system and lower body muscles simultaneously for an efficient conditioning workout.",
+        "difficulty": "intermediate",
+        "category": "cardio"
+    },
+    {
+        "bodyPart": "upper legs",
+        "equipment": "machine",
+        "id": "0084",
+        "name": "stiff-legged deadlift machine",
+        "target": "upper legs",
+        "secondaryMuscles": [
+            "glutes",
+            "lower back"
+        ],
+        "instructions": [
+            "Stand on the platform of a deadlift machine with feet hip-width apart and grip the handles.",
+            "Keep your legs nearly straight with a slight bend in your knees.",
+            "Hinge at the hips and lower the handles along your legs until you feel a deep hamstring stretch.",
+            "Drive your hips forward to return to the upright starting position.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The stiff-legged deadlift machine is an exercise targeting the hamstrings and lower back. Using the machine provides a guided path and additional safety, while the straight-leg position maximizes hamstring stretch and tension throughout the movement.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "upper arms",
+        "equipment": "cable",
+        "id": "0085",
+        "name": "triceps pushdown (cable - rope)",
+        "target": "triceps",
+        "secondaryMuscles": [
+            "lower arms"
+        ],
+        "instructions": [
+            "Attach a rope handle to the high pulley of a cable machine and stand facing the machine.",
+            "Grasp the rope with both hands using a neutral grip and tuck your elbows close to your sides.",
+            "Push the rope downward by extending your arms until they are fully straight.",
+            "At the bottom, spread the rope ends apart slightly to maximize tricep contraction.",
+            "Slowly allow the rope to rise back to the starting position and repeat for the desired number of repetitions."
+        ],
+        "description": "The cable triceps pushdown with a rope is a cable exercise targeting the triceps. The rope attachment allows the wrists to rotate into a neutral position and the ends to splay at the bottom, maximizing tricep contraction and development.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "cardio",
+        "equipment": "machine",
+        "id": "0086",
+        "name": "walk on treadmill",
+        "target": "quads",
+        "secondaryMuscles": [
+            "upper legs",
+            "lower legs",
+            "glutes"
+        ],
+        "instructions": [
+            "Step onto the treadmill and set a comfortable walking speed and incline.",
+            "Begin walking at your chosen pace, maintaining an upright posture.",
+            "Swing your arms naturally in coordination with your stride.",
+            "Keep your gaze forward and avoid looking down at your feet.",
+            "Continue walking for the desired duration, then gradually bring the belt to a stop."
+        ],
+        "description": "Walking on a treadmill is a low-impact cardio exercise targeting the lower body. It provides a controlled and accessible way to improve cardiovascular health and lower body endurance, suitable for all fitness levels.",
+        "difficulty": "beginner",
+        "category": "cardio"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "dumbbell",
+        "id": "0087",
+        "name": "arnold press dumbbell",
+        "target": "delts",
+        "secondaryMuscles": [
+            "triceps",
+            "traps",
+            "upper arms"
+        ],
+        "instructions": [
+            "Sit on a bench with back support and hold a dumbbell in each hand at chest height, palms facing you.",
+            "Begin the press by rotating your palms to face forward as you push the dumbbells upward.",
+            "Continue pressing until your arms are fully extended overhead.",
+            "Reverse the motion, rotating your palms back to face you as you lower the dumbbells to chest height.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The Arnold press is a dumbbell shoulder exercise targeting all three heads of the deltoid. The rotational component of the press engages the front, side, and rear delts throughout the movement, providing more complete shoulder development than a standard press.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "barbell",
+        "id": "0088",
+        "name": "barbell overhead press standing",
+        "target": "delts",
+        "secondaryMuscles": [
+            "triceps",
+            "traps",
+            "abs"
+        ],
+        "instructions": [
+            "Stand with feet shoulder-width apart and hold a barbell at shoulder height with an overhand grip.",
+            "Brace your core and maintain a neutral spine throughout the movement.",
+            "Press the barbell directly overhead until your arms are fully extended.",
+            "Pause at the top, then slowly lower the barbell back to the starting position.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The standing barbell overhead press is a compound shoulder exercise targeting the deltoids. Pressing a barbell overhead while standing requires full body stabilization and builds significant shoulder strength, making it a foundational upper body movement.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "barbell",
+        "id": "0089",
+        "name": "barbell upright row",
+        "target": "delts",
+        "secondaryMuscles": [
+            "traps",
+            "biceps"
+        ],
+        "instructions": [
+            "Stand upright holding a barbell with an overhand grip, hands approximately shoulder-width apart.",
+            "Let the bar hang in front of your thighs with your arms extended.",
+            "Pull the bar upward along your body by raising your elbows above the level of your hands.",
+            "Continue pulling until the bar reaches chin height and your elbows are above your shoulders.",
+            "Slowly lower the bar back to the starting position and repeat for the desired number of repetitions."
+        ],
+        "description": "The barbell upright row is a compound shoulder exercise targeting the deltoids and trapezius. Pulling the bar upward along the body develops upper shoulder width and trap thickness, though proper form is important to protect the shoulder joint.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "dumbbell",
+        "id": "0090",
+        "name": "dumbbell overhead standard",
+        "target": "delts",
+        "secondaryMuscles": [
+            "triceps",
+            "traps"
+        ],
+        "instructions": [
+            "Stand with feet shoulder-width apart and hold a dumbbell in each hand at shoulder height, palms facing forward.",
+            "Brace your core and maintain an upright posture.",
+            "Press the dumbbells upward until your arms are fully extended overhead.",
+            "Pause briefly at the top, then slowly lower the dumbbells back to shoulder height.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The standard dumbbell overhead press is a compound shoulder exercise targeting the deltoids. Pressing dumbbells overhead while standing builds shoulder strength and stability, with core engagement required to maintain an upright posture under load.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "dumbbell",
+        "id": "0091",
+        "name": "dumbbell upright row",
+        "target": "delts",
+        "secondaryMuscles": [
+            "traps",
+            "biceps"
+        ],
+        "instructions": [
+            "Stand upright holding a dumbbell in each hand with a neutral grip in front of your thighs.",
+            "Pull the dumbbells upward along your body by raising your elbows above the level of your hands.",
+            "Continue pulling until the dumbbells reach chest height and your elbows are at shoulder level.",
+            "Pause at the top, then slowly lower the dumbbells back to the starting position.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The dumbbell upright row is a shoulder exercise targeting the deltoids and trapezius. Using dumbbells allows for a more natural wrist path compared to a barbell, reducing shoulder joint stress while effectively building upper shoulder width.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "dumbbell",
+        "id": "0092",
+        "name": "front raise (dumbbell)",
+        "target": "delts",
+        "secondaryMuscles": [
+            "chest",
+            "traps"
+        ],
+        "instructions": [
+            "Stand upright holding a dumbbell in each hand in front of your thighs with palms facing your body.",
+            "Keep a slight bend in your elbows and your back straight.",
+            "Raise one or both dumbbells forward and upward until your arms are parallel to the floor.",
+            "Pause briefly at the top, then slowly lower the dumbbells back to the starting position.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The dumbbell front raise is an isolation exercise targeting the anterior deltoid. Raising the arms forward directly challenges the front shoulder head, building definition and strength in the front of the shoulder.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "body weight",
+        "id": "0093",
+        "name": "front raise (weighted plate)",
+        "target": "delts",
+        "secondaryMuscles": [
+            "chest",
+            "traps"
+        ],
+        "instructions": [
+            "Stand upright and hold a weight plate with both hands at the 3 and 9 o'clock positions in front of your thighs.",
+            "Keep a slight bend in your elbows and your core engaged.",
+            "Raise the plate forward and upward in a controlled arc until your arms are parallel to the floor.",
+            "Pause briefly at the top, then slowly lower the plate back to the starting position.",
+            "Repeat for the desired number of repetitions."
+        ],
+        "description": "The weighted plate front raise is a shoulder exercise targeting the anterior deltoid. Holding a plate requires grip strength and keeps both hands working together, providing a different stimulus to the front delt compared to dumbbell variations.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "kettlebell",
+        "id": "0094",
+        "name": "kettlebell overhead press",
+        "target": "delts",
+        "secondaryMuscles": [
+            "triceps",
+            "traps",
+            "abs"
+        ],
+        "instructions": [
+            "Stand with feet shoulder-width apart and hold a kettlebell in one hand at shoulder height in the rack position.",
+            "Brace your core and keep your elbow pointing forward.",
+            "Press the kettlebell straight overhead until your arm is fully extended.",
+            "Pause at the top, then slowly lower the kettlebell back to the rack position.",
+            "Repeat for the desired number of repetitions, then switch arms."
+        ],
+        "description": "The kettlebell overhead press is a unilateral shoulder exercise targeting the deltoids. The offset center of mass of the kettlebell challenges wrist stability and shoulder control, building functional shoulder strength and core stability.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "cable",
+        "id": "0095",
+        "name": "cable cross lateral raise",
+        "target": "lateral delts",
+        "secondaryMuscles": [
+            "supraspinatus",
+            "upper traps"
+        ],
+        "instructions": [
+            "Stand between two low cable pulleys and grasp the opposite handle with each hand so the cables cross in front of your body.",
+            "Stand upright with your feet shoulder-width apart, keep your core braced, and maintain a slight bend in your elbows.",
+            "Raise both arms out to your sides until they are approximately parallel to the floor.",
+            "Pause briefly at the top while squeezing your lateral deltoids.",
+            "Slowly lower the handles back to the starting position under control and repeat."
+        ],
+        "description": "The cable cross lateral raise is an isolation exercise that targets the lateral deltoids. Performing the movement with dual low cables provides constant tension throughout the entire range of motion, helping improve shoulder width while minimizing momentum.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "dumbbell",
+        "id": "0096",
+        "name": "lateral raises (dumbbell)",
+        "target": "delts",
+        "secondaryMuscles": [
+            "traps"
+        ],
+        "instructions": [
+            "Stand upright holding a dumbbell in each hand at your sides with a neutral grip.",
+            "Keep a slight bend in your elbows and your core engaged.",
+            "Raise both dumbbells out to the sides in a wide arc until your arms are parallel to the floor.",
+            "Pause briefly at the top and squeeze your medial delts.",
+            "Slowly lower the dumbbells back to the starting position and repeat for the desired number of repetitions."
+        ],
+        "description": "Dumbbell lateral raises are the primary isolation exercise targeting the medial deltoid. By raising the arms out to the side, it directly develops shoulder width and contributes to the characteristic rounded shoulder appearance.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "machine",
+        "id": "0097",
+        "name": "lateral raise machine",
+        "target": "lateral delts",
+        "secondaryMuscles": [
+            "upper traps",
+            "supraspinatus"
+        ],
+        "instructions": [
+            "Stand on the platform of the lateral raise machine and position your upper arms against the pads.",
+            "Keep your chest up, core engaged, and maintain a slight bend in your elbows.",
+            "Raise the pads outward by abducting your shoulders until your upper arms are approximately parallel to the floor.",
+            "Pause briefly at the top and squeeze your lateral deltoids.",
+            "Slowly lower the weight back to the starting position under control and repeat."
+        ],
+        "description": "The lateral raise machine is an isolation exercise that targets the lateral (middle) deltoids to build shoulder width. The machine provides a fixed movement path and consistent resistance, making it easier to maintain proper form while minimizing momentum.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "machine",
+        "id": "0098",
+        "name": "military press (seated - smith machine)",
+        "target": "delts",
+        "secondaryMuscles": [
+            "triceps",
+            "traps"
+        ],
+        "instructions": [
+            "Set a bench inside a smith machine and adjust the bar to shoulder height.",
+            "Sit on the bench and grip the bar with an overhand grip slightly wider than shoulder-width.",
+            "Unrack the bar and hold it at the front of your shoulders.",
+            "Press the bar upward until your arms are fully extended overhead.",
+            "Slowly lower the bar back to the starting position and repeat for the desired number of repetitions."
+        ],
+        "description": "The seated military press on the smith machine is a shoulder exercise targeting the deltoids. The guided bar path of the smith machine allows for strict pressing form and heavy loading, building shoulder strength with additional safety.",
+        "difficulty": "intermediate",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "machine",
+        "id": "0099",
+        "name": "rear delt fly (reverse pec deck)",
+        "target": "delts",
+        "secondaryMuscles": [
+            "rhomboids",
+            "traps"
+        ],
+        "instructions": [
+            "Sit facing the pec deck machine and adjust the seat so your arms are parallel to the floor.",
+            "Grip the handles with a neutral grip and keep a slight bend in your elbows.",
+            "Pull the handles outward and backward in a wide arcing motion by squeezing your rear delts and shoulder blades together.",
+            "Pause at the peak of the contraction.",
+            "Slowly return the handles to the starting position and repeat for the desired number of repetitions."
+        ],
+        "description": "The reverse pec deck fly is a machine exercise targeting the posterior deltoid. By reversing the pec deck movement, it isolates the rear shoulder and upper back retractors, improving posture and building balanced shoulder development.",
+        "difficulty": "beginner",
+        "category": "strength"
+    },
+    {
+        "bodyPart": "shoulders",
+        "equipment": "cable",
+        "id": "0100",
+        "name": "rear delt cable fly",
+        "target": "rear delts",
+        "secondaryMuscles": [
+            "rhomboids",
+            "middle traps"
+        ],
+        "instructions": [
+            "Stand between two cable pulleys set at shoulder height.",
+            "Grasp the opposite cable handle with each hand and step back until there is tension on the cables.",
+            "Maintain a slight bend in your elbows and keep your chest up throughout the movement.",
+            "Pull your arms outward and backward in a wide arc until they are in line with your shoulders.",
+            "Squeeze your rear delts and upper back at the end of the movement.",
+            "Slowly return to the starting position under control and repeat."
+        ],
+        "description": "The rear delt cable fly is an isolation exercise that targets the posterior deltoids while maintaining constant tension throughout the movement. Using cables provides a greater range of motion than machines and helps improve shoulder balance, posture, and upper back strength.",
+        "difficulty": "beginner",
+        "category": "strength"
+    }
+]

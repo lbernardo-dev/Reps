@@ -340,6 +340,36 @@ extension Exercise {
         secondaryMuscleWeights[muscle] ?? Self.defaultSecondaryInvolvement
     }
 
+    /// Resolución de la URL del vídeo del ejercicio (comprobando que corresponda canónicamente al ejercicio y sea una URL válida).
+    var localVideoURL: URL? {
+        guard let videoURL, !videoURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        let trimmed = videoURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Validar que el vídeo pertenezca realmente a este ejercicio
+        guard ExerciseVideoCatalog.isMatch(videoFile: trimmed, exerciseName: name, aliases: aliases) else {
+            return nil
+        }
+
+        if trimmed.lowercased().hasPrefix("http://") || trimmed.lowercased().hasPrefix("https://") {
+            return URL(string: trimmed)
+        }
+
+        let nsString = trimmed as NSString
+        let fileName = nsString.deletingPathExtension
+        let ext = nsString.pathExtension.isEmpty ? "mp4" : nsString.pathExtension
+
+        if let bundleURL = Bundle.main.url(forResource: fileName, withExtension: ext)
+            ?? Bundle.main.url(forResource: fileName, withExtension: ext, subdirectory: "ExerciseVideos")
+            ?? Bundle.main.url(forResource: trimmed, withExtension: nil)
+            ?? Bundle.main.url(forResource: trimmed, withExtension: nil, subdirectory: "ExerciseVideos") {
+            return bundleURL
+        }
+
+        return nil
+    }
+
     var mediaAssetURL: URL? {
         guard let mediaURL,
               !mediaURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -357,6 +387,30 @@ extension Exercise {
         return trimmedURL
             .addingPercentEncoding(withAllowedCharacters: allowedCharacters)
             .flatMap(URL.init(string:))
+    }
+
+    func localizedName(language: String = RepsLocalization.language) -> String {
+        RepsText.exerciseName(name, language: language)
+    }
+
+    func localizedMuscleGroup(language: String = RepsLocalization.language) -> String {
+        RepsText.muscle(muscleGroup, language: language)
+    }
+
+    func localizedSecondaryMuscles(language: String = RepsLocalization.language) -> [String] {
+        secondaryMuscles.map { RepsText.muscle($0, language: language) }
+    }
+
+    func localizedEquipment(language: String = RepsLocalization.language) -> String {
+        RepsText.equipment(equipment, language: language)
+    }
+
+    func localizedInstructions(language: String = RepsLocalization.language) -> String? {
+        RepsText.localizedInstructions(for: name, defaultInstructions: instructions, language: language)
+    }
+
+    func localizedCommonMistakes(language: String = RepsLocalization.language) -> [String] {
+        RepsText.localizedCommonMistakes(for: name, defaultMistakes: commonMistakes, language: language)
     }
 }
 

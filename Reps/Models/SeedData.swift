@@ -1,6 +1,185 @@
 import Foundation
 
+struct ExerciseVideoCatalog {
+    static let validMap: [String: Set<String>] = [
+        "0051.mp4": ["pecdeckmachinefly", "pecdeckfly", "pecdeck", "butterflymachine", "seatedchestflymachine"],
+        "0052.mp4": ["svendpresschest", "svendpress"],
+        "0053.mp4": ["airbikesprint", "airbike", "assaultbike"],
+        "0054.mp4": ["barbellbacksquat", "barbellsquat", "backsquat", "squat"],
+        "0055.mp4": ["barbellbulgariansplitsquat"],
+        "0056.mp4": ["barbellfrontsquat", "frontsquat"],
+        "0057.mp4": ["barbellhipthrust", "hipthrust"],
+        "0058.mp4": ["barbellmarch"],
+        "0059.mp4": ["barbellreverselunges", "barbellreverselunge", "reverselunge"],
+        "0060.mp4": ["barbellromaniandeadlift", "romaniandeadlift"],
+        "0061.mp4": ["cablelegkickback", "cableglutekickback"],
+        "0062.mp4": ["cycling", "stationarybike"],
+        "0063.mp4": ["dumbbellbulgariansplitsquat"],
+        "0064.mp4": ["dumbbellgobletsquat", "gobletsquat"],
+        "0065.mp4": ["dumbbellhiphinge"],
+        "0066.mp4": ["dumbbelljumpsquat", "jumpsquat"],
+        "0067.mp4": ["ellipticalhiitmachine", "elliptical", "ellipticalmachine"],
+        "0068.mp4": ["hacksquatmachine", "hacksquat"],
+        "0069.mp4": ["hipabductionmachine", "hipabduction", "seatedhipabduction"],
+        "0070.mp4": ["kettlebellholdmarch", "kettlebellmarch"],
+        "0071.mp4": ["kettlebellliftup", "kettlebelldeadlift"],
+        "0072.mp4": ["kettlebellswing"],
+        "0073.mp4": ["legextensionmachine", "legextension"],
+        "0074.mp4": ["legpressmachine", "legpress"],
+        "0075.mp4": ["lyinglegcurlmachine", "lyinglegcurl"],
+        "0076.mp4": ["ropewave", "battleropes"],
+        "0077.mp4": ["rowingmachine", "rower"],
+        "0078.mp4": ["runontreadmill", "treadmillrunning", "treadmillrun"],
+        "0079.mp4": ["seatedlegcurlmachine", "seatedlegcurl"],
+        "0080.mp4": ["seatedoverheadpress", "seateddumbbellpress"],
+        "0081.mp4": ["stepupsweighted", "stepup", "dumbbellstepup", "weightedstepup"],
+        "0082.mp4": ["stepmillmachineversion1", "stairmaster"],
+        "0083.mp4": ["stepmillmachine", "stepmill"],
+        "0084.mp4": ["stiffleggeddeadliftmachine", "stiffleggeddeadlift"],
+        "0085.mp4": ["tricepspushdowncablerope", "cabletricepspushdown", "ropepushdown"],
+        "0086.mp4": ["walkontreadmill", "treadmillwalking", "treadmillwalk"],
+        "0087.mp4": ["arnoldpressdumbbell", "arnoldpress", "dumbbellarnoldpress"],
+        "0088.mp4": ["barbelloverheadpressstanding", "overheadpress", "strictpress"],
+        "0089.mp4": ["barbelluprightrow", "uprightrow"],
+        "0090.mp4": ["dumbbelloverheadstandard", "dumbbelloverheadpress"],
+        "0091.mp4": ["dumbbelluprightrow"],
+        "0092.mp4": ["frontraisedumbbell", "frontraise", "dumbbellfrontraise"],
+        "0093.mp4": ["frontraiseweightedplate", "platefrontraise"],
+        "0094.mp4": ["kettlebelloverheadpress"],
+        "0095.mp4": ["cablecrosslateralraise", "cablelateralraise"],
+        "0096.mp4": ["lateralraisesdumbbell", "lateralraise", "dumbbelllateralraise"],
+        "0097.mp4": ["lateralraisemachine", "machinelateralraise"],
+        "0098.mp4": ["militarypressseatedsmithmachine", "smithmachineoverheadpress"],
+        "0099.mp4": ["reardeltflyreversepecdeck", "reversepecdeck", "reversefly", "reardeltfly"],
+        "0100.mp4": ["reardeltcablefly", "cablereardeltfly"]
+    ]
+
+    static func normKey(_ text: String) -> String {
+        text.lowercased()
+            .folding(options: .diacriticInsensitive, locale: .current)
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .joined()
+    }
+
+    static func isMatch(videoFile: String?, exerciseName: String, aliases: [String]) -> Bool {
+        guard let videoFile, !videoFile.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        let fileName = (videoFile as NSString).lastPathComponent.lowercased()
+        guard let allowedKeys = validMap[fileName] else {
+            return videoFile.lowercased().hasPrefix("http://") || videoFile.lowercased().hasPrefix("https://")
+        }
+
+        let candidateKeys = ([exerciseName] + aliases).map(normKey)
+        for key in candidateKeys {
+            if allowedKeys.contains(key) {
+                return true
+            }
+        }
+        return false
+    }
+}
+
 enum SeedData {
+    private struct BundledCatalogItem: Decodable {
+        let id: String?
+        let name: String?
+        let aliases: [String]?
+        let category: String?
+        let body_part: String?
+        let bodyPart: String?
+        let muscle_group: String?
+        let muscleGroup: String?
+        let target: String?
+        let primary_muscles: [String]?
+        let secondary_muscles: [String]?
+        let secondaryMuscles: [String]?
+        let equipment: String?
+        let instructions: [String]?
+        let instructions_text: String?
+        let description: String?
+        let video_file: String?
+        let video_name: String?
+        let video_url: String?
+        let videoURL: String?
+        let image_url: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id, name, aliases, category, equipment, target, description
+            case body_part = "body_part"
+            case bodyPart = "bodyPart"
+            case muscle_group = "muscle_group"
+            case muscleGroup = "muscleGroup"
+            case primary_muscles = "primary_muscles"
+            case secondary_muscles = "secondary_muscles"
+            case secondaryMuscles = "secondaryMuscles"
+            case instructions
+            case instructions_text = "instructions_text"
+            case video_file = "video_file"
+            case video_name = "video_name"
+            case video_url = "video_url"
+            case videoURL = "videoURL"
+            case image_url = "image_url"
+        }
+    }
+
+    static var bundledCatalog: [Exercise] {
+        guard let url = Bundle.main.url(forResource: "exercises", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let items = try? JSONDecoder().decode([BundledCatalogItem].self, from: data) else {
+            return SeedData.exercises
+        }
+        let bundled = items.compactMap { item -> Exercise? in
+            guard let name = item.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+
+            let rawMuscle = item.bodyPart ?? item.target ?? item.body_part ?? item.muscle_group ?? item.muscleGroup ?? item.primary_muscles?.first ?? "General"
+            let muscle = rawMuscle.capitalized
+            let secondaries = (item.secondaryMuscles ?? item.secondary_muscles ?? []).map(\.capitalized)
+
+            let derivedAliases: [String] = {
+                var list = item.aliases ?? []
+                let lower = name.lowercased()
+                if lower.contains("pec deck") {
+                    list.append(contentsOf: ["Pec Deck Fly", "Pec Deck", "Butterfly Machine", "Seated Chest Fly Machine"])
+                }
+                if lower.contains("bulgarian split squat") {
+                    list.append(contentsOf: ["Bulgarian Split Squat", "Split Squat"])
+                }
+                if lower.contains("barbell back squat") || lower.contains("barbell squat") {
+                    list.append(contentsOf: ["Barbell Squat", "Back Squat", "Squat"])
+                }
+                return Array(Set(list))
+            }()
+
+            let rawVideo = item.video_file ?? item.video_name ?? item.video_url ?? item.videoURL ?? item.id.map { "\($0).mp4" }
+            let video: String? = {
+                guard let rawVideo, ExerciseVideoCatalog.isMatch(videoFile: rawVideo, exerciseName: name, aliases: derivedAliases) else {
+                    return nil
+                }
+                return rawVideo
+            }()
+
+            let mergedInstructions: String? = {
+                if let arr = item.instructions, !arr.isEmpty {
+                    return arr.enumerated().map { "\($0 + 1). \($1)" }.joined(separator: "\n")
+                }
+                return item.instructions_text ?? item.description
+            }()
+
+            return Exercise(
+                id: UUID(),
+                name: name,
+                aliases: derivedAliases,
+                muscleGroup: muscle,
+                secondaryMuscles: secondaries,
+                equipment: (item.equipment?.capitalized) ?? "Ninguno",
+                mediaURL: item.image_url ?? FreeExerciseDBIndex.lookupImageURL(name: name, aliases: derivedAliases),
+                videoURL: video,
+                instructions: mergedInstructions ?? FreeExerciseDBIndex.lookupInstructions(name: name, aliases: item.aliases ?? [], language: RepsLocalization.language),
+                notes: item.description,
+                sourceName: "exercises-dataset"
+            )
+        }
+        return uniqueExercises(SeedData.exercises + bundled)
+    }
     static let bench = Exercise(name: "Barbell Bench Press", muscleGroup: "Chest", equipment: "Barbell")
     static let incline = Exercise(name: "Incline Dumbbell Press", muscleGroup: "Chest", equipment: "Dumbbells")
     static let overhead = Exercise(name: "Overhead Press", muscleGroup: "Shoulders", equipment: "Barbell")
@@ -906,7 +1085,31 @@ enum SeedData {
     }
 
     private static func instructions(for name: String, muscleGroup: String) -> String {
-        "Set up with control, brace before each rep, move through a comfortable range of motion, and keep tension on \(muscleGroup.lowercased()) throughout \(name.lowercased())."
+        let lower = name.lowercased()
+        if lower.contains("bench press") {
+            return "1. Lie flat on the bench with feet planted on the floor. Grip the bar slightly wider than shoulder-width.\n2. Unrack the bar and lower it under control to your mid-chest while inhaling.\n3. Keep your elbows angled at ~45° and press explosively up until arms are extended."
+        } else if lower.contains("squat") {
+            return "1. Position the bar across your upper back or hold weights firmly at chest level. Stand with feet shoulder-width apart.\n2. Inhale, brace your core, and lower your hips down and back until thighs are parallel to the floor.\n3. Drive through your heels to return to standing while exhaling."
+        } else if lower.contains("deadlift") {
+            return "1. Stand with feet hip-width apart and the bar over your mid-foot. Hinge at hips to grip the bar.\n2. Pull your chest up, flatten your back, and engage your lats.\n3. Drive through your legs to stand up tall without arching your lower back."
+        } else if lower.contains("row") {
+            return "1. Hinge forward at the hips with a flat back and core engaged.\n2. Pull the weight towards your lower ribs/navel, driving your elbows back.\n3. Pause briefly at full contraction, then lower with control."
+        } else if lower.contains("pull-up") || lower.contains("chin-up") || lower.contains("pulldown") {
+            return "1. Grip the bar or handles and hang with arms fully extended.\n2. Depress your shoulder blades and pull your chest up towards the bar.\n3. Squeeze your lats at the top, then lower smoothly back down."
+        } else if lower.contains("press") {
+            return "1. Set up in a stable stance or bench position with weights at shoulder level.\n2. Brace your core and press upward smoothly until arms are fully extended.\n3. Lower the weight under control back to the starting position."
+        } else if lower.contains("curl") {
+            return "1. Stand or sit upright holding the weight with palms facing forward.\n2. Keep your upper arms tucked at your sides and curl the weight upward by flexing your biceps.\n3. Squeeze at the peak, then lower slowly."
+        } else if lower.contains("extension") || lower.contains("pushdown") || lower.contains("dip") {
+            return "1. Position your body or grip the handles with your core braced.\n2. Extend your elbows smoothly, concentrating the tension on your triceps.\n3. Return to the starting position under control."
+        } else if lower.contains("raise") {
+            return "1. Hold the weights at your sides with knees slightly bent.\n2. Raise the weights smoothly in a wide arc until parallel with your shoulders.\n3. Pause briefly, then lower slowly."
+        } else if lower.contains("lunge") || lower.contains("step-up") || lower.contains("split squat") {
+            return "1. Stand upright with core braced. Step forward/backward or onto a raised platform.\n2. Lower your hips until both knees form roughly 90-degree angles.\n3. Push through the front heel to return to the starting position."
+        } else if lower.contains("plank") {
+            return "1. Place forearms on the floor with elbows under shoulders and toes grounded.\n2. Maintain a straight line from head to heels by squeezing glutes and abdominal muscles.\n3. Hold the position while breathing steadily."
+        }
+        return "1. Position yourself with proper spinal alignment and a braced core.\n2. Execute the movement smoothly through a full range of motion, keeping tension on your \(muscleGroup.lowercased()).\n3. Return to the starting position under control."
     }
 
     private static func commonMistakes(for type: Exercise.ExerciseType) -> [String] {

@@ -636,8 +636,8 @@ struct PlansView: View {
                             tryOpenCreatePlan()
                         } label: {
                             Label(
-                                store.monetization.hasProAccess ? localizedString("create_plan") : localizedString("create_plan_pro_locked"),
-                                systemImage: store.monetization.hasProAccess ? "plus" : "lock.fill"
+                                isProOrHasNoPlan ? localizedString("create_plan") : localizedString("create_plan_pro_locked"),
+                                systemImage: isProOrHasNoPlan ? "plus" : "lock.fill"
                             )
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)

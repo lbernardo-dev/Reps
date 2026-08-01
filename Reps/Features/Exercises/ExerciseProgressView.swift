@@ -43,7 +43,7 @@ struct ExerciseProgressView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 18) {
-                Text(currentExercise.name)
+                Text(currentExercise.localizedName(language: store.userProfile.preferredLanguage))
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
@@ -329,14 +329,7 @@ struct ExerciseProgressView: View {
                     Label("exercise_technique", systemImage: "list.clipboard")
                         .font(.headline)
                     Spacer()
-                    if let videoURL = currentExercise.videoURL, let url = URL(string: videoURL) {
-                        Link(destination: url) {
-                            Image(systemName: "play.circle.fill")
-                                .font(.title3)
-                                .foregroundStyle(PulseTheme.accent)
-                        }
-                        .accessibilityLabel("open_exercise_video")
-                    } else if ExerciseVisualResolver.hasValidCustomVideo(currentExercise.customVideoData) {
+                    if ExerciseVisualResolver.hasValidCustomVideo(currentExercise.customVideoData) {
                         Button {
                             showLocalVideoPlayer = true
                         } label: {
@@ -348,22 +341,29 @@ struct ExerciseProgressView: View {
                     }
                 }
 
+                if let videoURL = currentExercise.localVideoURL {
+                    ExerciseLoopVideoPlayer(videoURL: videoURL)
+                        .frame(height: 210)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+
                 if instructionsText.isEmpty {
                     Text("this_exercise_does_not_yet_have_detailed_instructions_if_it_comes_from_open_sour")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                 } else {
-                    Text(instructionsText)
+                    AppleTranslatedText(instructionsText)
                         .font(.subheadline)
                         .foregroundStyle(.primary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                if !currentExercise.commonMistakes.isEmpty {
+                let mistakes = currentExercise.localizedCommonMistakes(language: store.userProfile.preferredLanguage)
+                if !mistakes.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("avoid")
                             .font(.subheadline.weight(.semibold))
-                        ForEach(currentExercise.commonMistakes, id: \.self) { mistake in
+                        ForEach(mistakes, id: \.self) { mistake in
                             Label(mistake, systemImage: "exclamationmark.triangle")
                                 .font(.caption)
                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -408,7 +408,7 @@ struct ExerciseProgressView: View {
     }
 
     private var instructionsText: String {
-        currentExercise.instructions?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        currentExercise.localizedInstructions(language: store.userProfile.preferredLanguage)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
 }

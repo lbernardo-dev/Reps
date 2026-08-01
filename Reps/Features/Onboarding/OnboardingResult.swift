@@ -16,11 +16,19 @@ enum OnboardingPlanBuilder {
         sessionLengthMinutes: Int?,
         focusMuscles: [String]
     ) -> WorkoutPlan {
-        // Honor the user's actual schedule choice (1-7 days/week, see the
-        // onboarding schedule step) instead of silently clamping it into 2-6.
         let dayCount = max(1, min(profile.weeklyTrainingDays, 7))
         let exerciseCount = exerciseCount(for: sessionLengthMinutes)
         let restBetweenExercises = restBetweenExercises(for: profile.experience)
+
+        var weeks = 12
+        if let eventDate = profile.targetEventDate {
+            let daysDiff = Calendar.current.dateComponents([.day], from: .now, to: eventDate).day ?? 0
+            if daysDiff > 0 {
+                // Minimum guardrail: 4 weeks for physiological safety and real transformation
+                weeks = max(4, min(24, Int(ceil(Double(daysDiff) / 7.0))))
+            }
+        }
+
         let days = makeDays(
             profile: profile,
             bodyMetric: bodyMetric,
@@ -30,24 +38,16 @@ enum OnboardingPlanBuilder {
             focusMuscles: focusMuscles
         )
 
-        var weeks = 8
-        if let eventDate = profile.targetEventDate {
-            let daysDiff = Calendar.current.dateComponents([.day], from: .now, to: eventDate).day ?? 0
-            if daysDiff > 0 {
-                weeks = max(3, min(24, daysDiff / 7))
-            }
+        let planName: String
+        if let eventName = profile.targetEventName, !eventName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            planName = localizedFormat("plan_for_name_format", eventName)
+        } else {
+            planName = localizedString("adapted_base_plan")
         }
-
-        let planName = profile.targetEventName != nil && !profile.targetEventName!.isEmpty
-            ? localizedFormat("plan_for_name_format", profile.targetEventName!)
-            : localizedString("adapted_base_plan")
 
         return WorkoutPlan(
             name: planName,
             location: profile.trainingLocation,
-            // The predefined splits below top out at 6 distinct sessions, so a
-            // 7-day request still yields 6 real days — report the actual count
-            // rather than a number the plan doesn't contain.
             daysPerWeek: days.count,
             currentWeek: 1,
             totalWeeks: weeks,
@@ -60,7 +60,6 @@ enum OnboardingPlanBuilder {
 
     /// Generates a single recommended workout day calibrated to the user's
     /// current recovery level and the muscle groups most in need of stimulus.
-    /// Battery ≥80 → full exercise count; 55-79 → normal; <55 → reduced load.
     static func makeRecommendedDay(
         profile: UserProfile,
         bodyMetric: BodyMetric,
@@ -80,7 +79,7 @@ enum OnboardingPlanBuilder {
             ? ["Chest", "Back", "Legs", "Shoulders", "Core"]
             : undertrainedMuscles
 
-        let primaryGroup = focusMuscles.first ?? "Full Body"
+        let primaryGroup = focusMuscles.first ?? localizedString("full_body")
         var seen = Set<String>()
         let allGroups = (focusMuscles + ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Glutes"])
             .filter { seen.insert($0).inserted }
@@ -172,12 +171,20 @@ enum OnboardingPlanBuilder {
         bodyMetric: BodyMetric,
         isFocus: Bool
     ) -> WorkoutExercise {
+        let isTightDeadline: Bool
+        if let eventDate = profile.targetEventDate {
+            let daysUntil = Calendar.current.dateComponents([.day], from: .now, to: eventDate).day ?? 0
+            isTightDeadline = (1...60).contains(daysUntil)
+        } else {
+            isTightDeadline = false
+        }
+
         let sets: Int
         switch profile.experience {
         case .beginner:
-            sets = isFocus ? 3 : 2
+            sets = isFocus ? (isTightDeadline ? 4 : 3) : 2
         case .intermediate:
-            sets = isFocus ? 4 : 3
+            sets = isFocus ? (isTightDeadline ? 4 : 3) : 3
         case .advanced:
             sets = isFocus ? 5 : 4
         }
@@ -187,19 +194,32 @@ enum OnboardingPlanBuilder {
         switch profile.mainGoal {
         case .getStronger:
             repRange = exercise.trackingType == .duration ? "30-45 sec" : "5-8"
-            rest = 150
+            rest = isTightDeadline ? 120 : 150
         case .loseFat:
-            repRange = exercise.trackingType == .duration ? "40-60 sec" : "10-15"
-            rest = 60
+            repRange = exercise.trackingType == .duration ? "45-60 sec" : "12-15"
+            rest = isTightDeadline ? 50 : 60
         case .bodyRecomposition:
-            repRange = exercise.trackingType == .duration ? "35-50 sec" : "8-12"
-            rest = 75
+            repRange = exercise.trackingType == .duration ? "40-50 sec" : "10-12"
+            rest = isTightDeadline ? 60 : 75
         case .stayActive:
             repRange = exercise.trackingType == .duration ? "30-45 sec" : "8-12"
             rest = 75
         case .buildMuscle:
-            repRange = exercise.trackingType == .duration ? "30-45 sec" : "8-12"
+            repRange = exercise.trackingType == .duration ? "35-45 sec" : "8-12"
             rest = 90
+        }
+
+        let customCue: String?
+        if isTightDeadline {
+            if profile.mainGoal == .loseFat || profile.mainGoal == .bodyRecomposition {
+                customCue = localizedString("cues_event_accelerated_toning")
+            } else {
+                customCue = localizedString("cues_event_strength_peak")
+            }
+        } else if isFocus {
+            customCue = localizedString("cues_onboarding_priority")
+        } else {
+            customCue = nil
         }
 
         let previous = startingLoad(for: exercise, bodyMetric: bodyMetric, profile: profile, reps: repRange)
@@ -212,32 +232,37 @@ enum OnboardingPlanBuilder {
             priority: isFocus ? .primary : .secondary,
             progressionType: profile.experience == .beginner ? .linear : .doubleProgression,
             targetRIR: profile.experience == .advanced ? 1 : 2,
-            cues: isFocus ? localizedString("cues_onboarding_priority") : nil
+            cues: customCue
         )
     }
 
-    private static func exercisePool(for location: UserProfile.TrainingLocation, equipment: [String]) -> [Exercise] {
-        let normalizedEquipment = Set(equipment.map { $0.lowercased() })
-        let hasHomeEquipment = normalizedEquipment.contains("dumbbells")
-            || normalizedEquipment.contains("resistance band")
-            || normalizedEquipment.contains("resistance bands")
-            || normalizedEquipment.contains("bodyweight")
-            || normalizedEquipment.contains("kettlebell")
-        let prefersHome = location == .home || (location == .both && hasHomeEquipment)
+    private static func matchesEquipment(_ exercise: Exercise, availableEquipment: [String], location: UserProfile.TrainingLocation) -> Bool {
+        let eq = exercise.equipment.lowercased()
+        let req = exercise.requiredEquipment.map { $0.lowercased() }
+        let allEq = (req + [eq]).joined(separator: " ")
+        let normalizedEq = Set(availableEquipment.map { $0.lowercased() })
 
-        if prefersHome {
-            return [
-                SeedData.floorPress, SeedData.gobletSquat, SeedData.bandRow, SeedData.splitSquat,
-                SeedData.pushup, SeedData.romanianDeadlift, SeedData.lateralRaise, SeedData.curl,
-                SeedData.tricepsExtension, SeedData.plank, SeedData.mountainClimber, SeedData.calfRaise
-            ]
+        // Bodyweight exercises accessible everywhere
+        if allEq.contains("bodyweight") || allEq.contains("body weight") || allEq.contains("ninguno") || allEq.contains("none") || eq.isEmpty {
+            return true
         }
 
-        return [
-            SeedData.bench, SeedData.squat, SeedData.deadlift, SeedData.row, SeedData.incline,
-            SeedData.overhead, SeedData.pullup, SeedData.lunge, SeedData.romanianDeadlift,
-            SeedData.lateralRaise, SeedData.curl, SeedData.tricepsExtension, SeedData.plank
-        ]
+        // Home location check
+        if location == .home && exercise.environment == .gym {
+            return false
+        }
+
+        // Equipment match
+        if normalizedEq.isEmpty { return true }
+        return normalizedEq.contains { userEq in
+            allEq.contains(userEq) || userEq.contains(eq)
+        }
+    }
+
+    private static func exercisePool(for location: UserProfile.TrainingLocation, equipment: [String]) -> [Exercise] {
+        let fullCatalog = SeedData.bundledCatalog
+        let filtered = fullCatalog.filter { matchesEquipment($0, availableEquipment: equipment, location: location) }
+        return filtered.isEmpty ? fullCatalog : filtered
     }
 
     private static func splitNames(for dayCount: Int) -> [TrainingSplit] {
@@ -279,16 +304,20 @@ enum OnboardingPlanBuilder {
     }
 
     private static func matches(_ exercise: Exercise, group: String) -> Bool {
-        let value = "\(exercise.name) \(exercise.muscleGroup) \(exercise.secondaryMuscles.joined(separator: " "))".lowercased()
+        let name = exercise.name.lowercased()
+        let muscle = exercise.muscleGroup.lowercased()
+        let secondaries = exercise.secondaryMuscles.map { $0.lowercased() }.joined(separator: " ")
+        let value = "\(name) \(muscle) \(secondaries)"
+
         switch group {
-        case "Chest": return value.contains("chest") || value.contains("press") || value.contains("push")
-        case "Back": return value.contains("back") || value.contains("row") || value.contains("pull") || value.contains("deadlift")
-        case "Shoulders": return value.contains("shoulder") || value.contains("delt") || value.contains("overhead") || value.contains("face")
-        case "Arms": return value.contains("arm") || value.contains("curl") || value.contains("tricep")
-        case "Legs": return value.contains("leg") || value.contains("squat") || value.contains("lunge") || value.contains("calf")
-        case "Glutes": return value.contains("glute") || value.contains("hip") || value.contains("romanian") || value.contains("split")
-        case "Core": return value.contains("core") || value.contains("plank") || value.contains("climber")
-        default: return false
+        case "Chest": return muscle.contains("chest") || muscle.contains("pecho") || value.contains("chest") || value.contains("press") || value.contains("push") || value.contains("pecho") || value.contains("flexi")
+        case "Back": return muscle.contains("back") || muscle.contains("espalda") || muscle.contains("lat") || value.contains("back") || value.contains("row") || value.contains("pull") || value.contains("deadlift") || value.contains("remo") || value.contains("dorsal")
+        case "Shoulders": return muscle.contains("shoulder") || muscle.contains("hombro") || muscle.contains("delt") || value.contains("shoulder") || value.contains("delt") || value.contains("overhead") || value.contains("press militar") || value.contains("elevac")
+        case "Arms": return muscle.contains("bicep") || muscle.contains("tricep") || muscle.contains("arm") || muscle.contains("brazo") || value.contains("arm") || value.contains("curl") || value.contains("tricep") || value.contains("bicep")
+        case "Legs": return muscle.contains("leg") || muscle.contains("quad") || muscle.contains("hamstring") || muscle.contains("pierna") || value.contains("leg") || value.contains("squat") || value.contains("lunge") || value.contains("calf") || value.contains("sentadilla") || value.contains("zancada")
+        case "Glutes": return muscle.contains("glute") || muscle.contains("glúteo") || value.contains("glute") || value.contains("hip") || value.contains("romanian") || value.contains("split") || value.contains("puente")
+        case "Core": return muscle.contains("core") || muscle.contains("abs") || muscle.contains("abdomen") || value.contains("core") || value.contains("plank") || value.contains("climber") || value.contains("crunch") || value.contains("plancha")
+        default: return muscle.contains(group.lowercased()) || value.contains(group.lowercased())
         }
     }
 

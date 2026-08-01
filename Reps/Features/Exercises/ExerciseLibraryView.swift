@@ -31,9 +31,14 @@ private actor ExerciseLibraryWorker {
 
         let filtered = input.exercises.filter { exercise in
             if state.selectedPath == .muscles, !state.selectedMuscleSegments.isEmpty {
-                guard !Set(MuscleLoadCalculator.segments(for: exercise))
-                    .isDisjoint(with: state.selectedMuscleSegments)
-                else { return false }
+                let exerciseSegments = MuscleLoadCalculator.segments(for: exercise)
+                if let primarySegment = exerciseSegments.first {
+                    guard state.selectedMuscleSegments.contains(primarySegment)
+                       || (state.selectedMuscleSegments.count > 1 && !Set(exerciseSegments).isDisjoint(with: state.selectedMuscleSegments))
+                    else { return false }
+                } else {
+                    guard !Set(exerciseSegments).isDisjoint(with: state.selectedMuscleSegments) else { return false }
+                }
             } else if state.selectedPath == .filters {
                 guard state.selectedMuscle == "All" || exercise.muscleGroup == state.selectedMuscle else {
                     return false
@@ -57,7 +62,17 @@ private actor ExerciseLibraryWorker {
             return input.searchIndex.matches(exercise, query: normalizedQuery)
         }
 
-        return ExerciseLibraryFilterOutput(exercises: filtered)
+        var seenIDs = Set<UUID>()
+        var seenKeys = Set<String>()
+        var deduplicated: [Exercise] = []
+        for exercise in filtered {
+            guard seenIDs.insert(exercise.id).inserted else { continue }
+            let key = "\(exercise.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines))|\(exercise.equipment.lowercased().trimmingCharacters(in: .whitespacesAndNewlines))"
+            guard seenKeys.insert(key).inserted else { continue }
+            deduplicated.append(exercise)
+        }
+
+        return ExerciseLibraryFilterOutput(exercises: deduplicated)
     }
 
     private static func matchesAvailableEquipment(
@@ -133,9 +148,10 @@ struct ExerciseLibraryView: View {
     }
 
     private var shouldPrepareFilteredExercises: Bool {
+        if selectedCategory != .all { return true }
         switch selectedPath {
         case .muscles:
-            return !selectedMuscleSegments.isEmpty
+            return !selectedMuscleSegments.isEmpty || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .filters:
             return hasActiveFeatureFilter
         case .rehab:
@@ -171,10 +187,7 @@ struct ExerciseLibraryView: View {
         }
 
         if showLoading {
-            withAnimation(.snappy(duration: 0.18)) {
-                isPreparingExerciseResults = true
-                hasPreparedExerciseResults = false
-            }
+            isPreparingExerciseResults = true
         }
 
         let input = ExerciseLibraryFilterInput(
@@ -183,18 +196,12 @@ struct ExerciseLibraryView: View {
             searchIndex: searchIndex
         )
 
-        exerciseResultTask = Task { @MainActor in
-            if showLoading {
-                try? await Task.sleep(for: .milliseconds(110))
-            } else {
-                await Task.yield()
-            }
-
+        exerciseResultTask = Task(priority: .userInitiated) { @MainActor in
             guard !Task.isCancelled else { return }
             let output = await ExerciseLibraryWorker.shared.filter(input)
             guard !Task.isCancelled else { return }
 
-            withAnimation(.snappy(duration: 0.22)) {
+            withAnimation(.snappy(duration: 0.15)) {
                 preparedFilteredExercises = output.exercises
                 isPreparingExerciseResults = false
                 hasPreparedExerciseResults = true
@@ -354,7 +361,9 @@ struct ExerciseLibraryView: View {
                     .background(PulseTheme.accent.opacity(0.12), in: Capsule())
             }
 
-            if exercises.isEmpty {
+            if isPreparingExerciseResults {
+                exerciseResultsLoadingPanel
+            } else if exercises.isEmpty {
                 PulseEmptyState(
                     title: "no_exercises_found",
                     message: "try_removing_a_filter_or_searching_by_muscle_equipment_or_exercise_name",
@@ -363,17 +372,80 @@ struct ExerciseLibraryView: View {
                 .padding(18)
                 .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
             } else {
-                ForEach(groupedExercises(from: exercises), id: \.0) { group, exercises in
-                    ExerciseGroupCard(
-                        title: displayName(forMuscle: group),
-                        exercises: exercises,
-                        language: store.userProfile.preferredLanguage,
-                        gender: store.userProfile.muscleMapGender,
-                        catalog: store.exercises
-                    )
+                // LazyVStack PLANO: SwiftUI solo instancia las filas visibles en pantalla.
+                // ExerciseGroupCard usaba VStack(ForEach) eager → 50+ BodyView activos → crash Metal.
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
+                    ForEach(flatExerciseRows(from: exercises), id: \.rowID) { row in
+                        switch row {
+                        case .header(let title, let count):
+                            HStack {
+                                Text(title)
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Text("\(count)")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+
+                        case .exercise(let exercise, let isLast):
+                            VStack(spacing: 0) {
+                                NavigationLink {
+                                    ExerciseDetailView(exercise: exercise)
+                                } label: {
+                                    ExerciseLibraryRow(
+                                        exercise: exercise,
+                                        language: store.userProfile.preferredLanguage,
+                                        gender: store.userProfile.muscleMapGender,
+                                        catalog: store.exercises
+                                    )
+                                    .padding(.horizontal, 16)
+                                }
+                                .buttonStyle(.plain)
+
+                                if !isLast {
+                                    Divider()
+                                        .overlay(PulseTheme.separator)
+                                        .padding(.leading, 86)
+                                }
+                            }
+                        }
+                    }
                 }
+                .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                        .stroke(PulseTheme.cardStroke, lineWidth: 1)
+                }
+                .padding(.horizontal, 0)
             }
         }
+    }
+
+    // Tipo de fila plana para el LazyVStack
+    private enum ExerciseListRow {
+        case header(title: String, count: Int)
+        case exercise(Exercise, isLast: Bool)
+
+        var rowID: String {
+            switch self {
+            case .header(let title, _): return "h-\(title)"
+            case .exercise(let e, _):  return "e-\(e.id.uuidString)"
+            }
+        }
+    }
+
+    private func flatExerciseRows(from exercises: [Exercise]) -> [ExerciseListRow] {
+        var rows: [ExerciseListRow] = []
+        for (group, groupExercises) in groupedExercises(from: exercises) {
+            rows.append(.header(title: displayName(forMuscle: group), count: groupExercises.count))
+            for (idx, exercise) in groupExercises.enumerated() {
+                rows.append(.exercise(exercise, isLast: idx == groupExercises.count - 1))
+            }
+        }
+        return rows
     }
 
     private var exerciseResultsLoadingPanel: some View {
@@ -383,6 +455,7 @@ struct ExerciseLibraryView: View {
             layout: .panel,
             showsPercentage: false
         )
+        .frame(minHeight: 220)
         .transition(.opacity.combined(with: .scale(scale: 0.98)))
     }
 
@@ -416,7 +489,7 @@ struct ExerciseLibraryView: View {
                             selectedSegments: $selectedMuscleSegments,
                             isBodySelectorExpanded: $isBodySelectorExpanded,
                             resultCount: preparedFilteredExercises.count,
-                            isLoadingResults: isPreparingExerciseResults || !hasPreparedExerciseResults
+                            isLoadingResults: isPreparingExerciseResults && shouldPrepareFilteredExercises
                         )
 
                         if selectedMuscleSegments.isEmpty {
@@ -425,8 +498,6 @@ struct ExerciseLibraryView: View {
                                 selectedSegments: $selectedMuscleSegments,
                                 gender: store.userProfile.muscleMapGender
                             )
-                        } else if isPreparingExerciseResults || !hasPreparedExerciseResults {
-                            exerciseResultsLoadingPanel
                         } else {
                             exerciseResults(for: preparedFilteredExercises)
                         }
@@ -435,8 +506,6 @@ struct ExerciseLibraryView: View {
 
                         if !hasActiveFeatureFilter {
                             FeatureFilterPrompt()
-                        } else if isPreparingExerciseResults || !hasPreparedExerciseResults {
-                            exerciseResultsLoadingPanel
                         } else {
                             exerciseResults(for: preparedFilteredExercises)
                         }
@@ -667,9 +736,12 @@ struct ExerciseLibrarySearchIndex: Sendable {
                 exercise.id,
                 Self.normalized([
                     exercise.name,
+                    RepsText.exerciseName(exercise.name, language: "es"),
                     exercise.aliases.joined(separator: " "),
                     exercise.muscleGroup,
+                    RepsText.muscle(exercise.muscleGroup, language: "es"),
                     exercise.equipment,
+                    RepsText.equipment(exercise.equipment, language: "es"),
                     exercise.requiredEquipment.joined(separator: " "),
                     exercise.tags.joined(separator: " "),
                     exercise.instructions ?? "",
@@ -1252,6 +1324,9 @@ private struct ExerciseGroupCard: View {
 
 private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable, CustomizableSection {
     case all
+    case withVideo
+    case withImage
+    case withInstructions
     case home
     case gym
     case bodyweight
@@ -1264,6 +1339,9 @@ private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable, Custom
     var title: String {
         switch self {
         case .all: localizedString("All")
+        case .withVideo: localizedString("Con Vídeo")
+        case .withImage: localizedString("Con Foto")
+        case .withInstructions: localizedString("Con Instrucciones")
         case .home: localizedString("Home")
         case .gym: localizedString("Gym")
         case .bodyweight: localizedString("Bodyweight")
@@ -1276,6 +1354,9 @@ private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable, Custom
     var systemImage: String {
         switch self {
         case .all: "square.grid.2x2"
+        case .withVideo: "video.fill"
+        case .withImage: "photo.fill"
+        case .withInstructions: "text.book.closed.fill"
         case .home: "house"
         case .gym: "dumbbell"
         case .bodyweight: "figure.strengthtraining.traditional"
@@ -1293,6 +1374,18 @@ private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable, Custom
         switch self {
         case .all:
             return true
+        case .withVideo:
+            let hasLocalVideo = exercise.localVideoURL != nil
+            let hasCustomVideo = ExerciseVisualResolver.hasValidCustomVideo(exercise.customVideoData)
+            return hasLocalVideo || hasCustomVideo
+        case .withImage:
+            let hasMediaAsset = exercise.mediaAssetURL != nil
+            let hasMediaURL = !(exercise.mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            let hasCustomImage = ExerciseVisualResolver.hasValidCustomImage(exercise.customImageData)
+            let hasVideoThumb = ExerciseVisualResolver.hasValidCustomImage(exercise.customVideoThumbnailData)
+            return hasMediaAsset || hasMediaURL || hasCustomImage || hasVideoThumb
+        case .withInstructions:
+            return exercise.instructions != nil && !exercise.instructions!.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .home:
             return exercise.environment == .home || exercise.environment == .both
         case .gym:
@@ -1312,11 +1405,15 @@ private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable, Custom
 }
 
 private enum ExerciseTextLocalizer {
-    static func muscle(_ value: String, language: String = Locale.current.language.languageCode?.identifier ?? "en") -> String {
+    static func name(_ value: String, language: String = RepsLocalization.language) -> String {
+        RepsText.exerciseName(value, language: language)
+    }
+
+    static func muscle(_ value: String, language: String = RepsLocalization.language) -> String {
         RepsText.muscle(value, language: language)
     }
 
-    static func equipment(_ value: String, language: String = Locale.current.language.languageCode?.identifier ?? "en") -> String {
+    static func equipment(_ value: String, language: String = RepsLocalization.language) -> String {
         RepsText.equipment(value, language: language)
     }
 }
@@ -1324,11 +1421,11 @@ private enum ExerciseTextLocalizer {
 private extension Exercise.ExerciseType {
     var localizedTitle: String {
         switch self {
-        case .strength: "Strength"
-        case .cardio: "Cardio"
-        case .mobility: "Mobility"
-        case .stretching: "Stretching"
-        case .hiit: "HIIT"
+        case .strength: localizedString("Strength")
+        case .cardio: localizedString("Cardio")
+        case .mobility: localizedString("Mobility")
+        case .stretching: localizedString("Stretching")
+        case .hiit: localizedString("HIIT")
         }
     }
 }
@@ -1336,9 +1433,9 @@ private extension Exercise.ExerciseType {
 private extension Exercise.Difficulty {
     var localizedTitle: String {
         switch self {
-        case .low: "Beginner"
-        case .medium: "Intermediate"
-        case .high: "Advanced"
+        case .low: localizedString("Beginner")
+        case .medium: localizedString("Intermediate")
+        case .high: localizedString("Advanced")
         }
     }
 
@@ -1354,9 +1451,9 @@ private extension Exercise.Difficulty {
 private extension Exercise.Environment {
     var localizedTitle: String {
         switch self {
-        case .home: "Home"
-        case .gym: "Gym"
-        case .both: "Home and gym"
+        case .home: localizedString("Home")
+        case .gym: localizedString("Gym")
+        case .both: localizedString("Home and gym")
         }
     }
 
@@ -1389,7 +1486,7 @@ private struct ExerciseLibraryRow: View {
                 .frame(width: 58, height: 58)
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
             VStack(alignment: .leading, spacing: 4) {
-                Text(exercise.name)
+                Text(ExerciseTextLocalizer.name(exercise.name, language: language))
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
@@ -1501,7 +1598,7 @@ private struct InstructionStepRow: View {
                 .frame(width: 26, height: 26)
                 .background(PulseTheme.accent)
                 .clipShape(Circle())
-            Text(text)
+            AppleTranslatedText(text)
                 .font(.body)
                 .foregroundStyle(PulseTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1609,7 +1706,7 @@ struct ExerciseDetailView: View {
     }
 
     private var instructionSteps: [String] {
-        ExerciseInstructionParser.steps(from: currentExercise.instructions)
+        ExerciseInstructionParser.steps(from: currentExercise.localizedInstructions(language: store.userProfile.preferredLanguage))
     }
 
     private var points: [FitnessMetrics.ExerciseProgressPoint] {
@@ -1747,7 +1844,7 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(currentExercise.name)
+                    Text(currentExercise.localizedName(language: store.userProfile.preferredLanguage))
                         .font(.largeTitle.bold())
                         .lineLimit(3)
                         .minimumScaleFactor(0.74)
@@ -1871,10 +1968,11 @@ struct ExerciseDetailView: View {
                             InstructionStepRow(index: index + 1, text: step)
                         }
                     }
-                    if !currentExercise.commonMistakes.isEmpty {
+                    let mistakes = currentExercise.localizedCommonMistakes(language: store.userProfile.preferredLanguage)
+                    if !mistakes.isEmpty {
                         Divider()
                         CardTitle("avoid")
-                        ForEach(currentExercise.commonMistakes, id: \.self) { mistake in
+                        ForEach(mistakes, id: \.self) { mistake in
                             Label(mistake, systemImage: "exclamationmark.triangle")
                                 .font(.subheadline)
                                 .foregroundStyle(PulseTheme.secondaryText)
@@ -2162,6 +2260,7 @@ struct ExerciseHeroMedia: View {
     var height: CGFloat = 320
 
     @State private var showVideoPlayer = false
+    @State private var showFullscreenVideo = false
 
     private var hasGuideVideo: Bool {
         ExerciseVisualResolver.hasValidCustomVideo(exercise.customVideoData)
@@ -2172,15 +2271,25 @@ struct ExerciseHeroMedia: View {
             GeometryReader { proxy in
                 let size = proxy.size
                 ZStack(alignment: .bottomLeading) {
+                    // 1. Multimedia del usuario (foto o miniatura de vídeo personalizado)
                     if let data = exercise.customImageData,
                        let image = UIImage(data: data) {
                         ExerciseHeroFillImage(image: image, size: size)
                     } else if let thumbnailData = exercise.customVideoThumbnailData,
                               let image = UIImage(data: thumbnailData) {
                         ExerciseHeroFillImage(image: image, size: size)
-                    } else if let url = exercise.mediaAssetURL {
+                    }
+                    // 2. Vídeo si existe (.mp4 local o stream)
+                    else if let videoURL = exercise.localVideoURL {
+                        ExerciseLoopVideoPlayer(videoURL: videoURL)
+                            .frame(width: size.width, height: size.height)
+                    }
+                    // 3. Foto del catálogo
+                    else if let url = exercise.mediaAssetURL {
                         ExerciseReferenceImage(exercise: exercise, url: url, size: size, gender: gender)
-                    } else {
+                    }
+                    // 4. Modelo 3D / Mapa de anatomía vectorial
+                    else {
                         ExerciseHeroFallback(exercise: exercise, gender: gender)
                             .frame(width: size.width, height: size.height)
                     }
@@ -2206,6 +2315,29 @@ struct ExerciseHeroMedia: View {
                             .frame(maxWidth: max(size.width - 32, 0), alignment: .leading)
                     }
                     .padding(16)
+
+                    if let videoURL = exercise.localVideoURL {
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Button {
+                                    showFullscreenVideo = true
+                                } label: {
+                                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .padding(10)
+                                        .background(.ultraThinMaterial, in: Circle())
+                                        .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 1))
+                                        .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 3)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Ver vídeo a pantalla completa")
+                            }
+                            Spacer()
+                        }
+                        .padding(8)
+                    }
                 }
                 .frame(width: size.width, height: size.height)
                 .background(PulseTheme.grouped)
@@ -2237,6 +2369,11 @@ struct ExerciseHeroMedia: View {
             if let videoData = exercise.customVideoData {
                 ExerciseGuideVideoPlayerSheet(videoData: videoData, title: exercise.name)
                     .repsSheetPresentation()
+            }
+        }
+        .fullScreenCover(isPresented: $showFullscreenVideo) {
+            if let videoURL = exercise.localVideoURL {
+                FullscreenExerciseVideoView(videoURL: videoURL, title: exercise.name)
             }
         }
     }

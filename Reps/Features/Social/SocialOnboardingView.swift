@@ -38,6 +38,8 @@ struct SocialOnboardingView: View {
         isICloudBlocked || !store.userProfile.socialCapabilitiesAllowed
     }
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -87,6 +89,14 @@ struct SocialOnboardingView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .CKAccountChanged)) { _ in
             Task { await refreshICloudStatus() }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task {
+                    await refreshAgeStatus()
+                    await refreshICloudStatus()
+                }
+            }
         }
     }
 

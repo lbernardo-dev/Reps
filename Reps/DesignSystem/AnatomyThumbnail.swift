@@ -20,10 +20,6 @@ struct ExerciseAnatomyThumbnail: View {
         Group {
             if descriptor.muscles.isEmpty {
                 cardioFallback
-            } else if let image = renderedImage ?? AnatomyThumbnailImageCache.shared.image(for: cacheKey) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
             } else {
                 AnatomyThumbnailCanvas(
                     gender: gender,
@@ -42,17 +38,6 @@ struct ExerciseAnatomyThumbnail: View {
         )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(localizedFormat("anatomy_muscles_accessibility_format", exercise.name))
-        .onAppear {
-            guard renderedImage == nil, !descriptor.muscles.isEmpty else { return }
-            renderedImage = AnatomyThumbnailImageCache.shared.render(
-                key: cacheKey,
-                gender: gender,
-                primarySide: descriptor.region.side,
-                region: descriptor.region,
-                size: size,
-                intensities: descriptor.thumbnailHeatmap
-            )
-        }
     }
 
     private var cacheKey: String {
@@ -116,11 +101,7 @@ struct MuscleGroupAnatomyThumbnail: View {
 
     var body: some View {
         Group {
-            if let image = renderedImage ?? AnatomyThumbnailImageCache.shared.image(for: cacheKey) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else if segment != nil {
+            if segment != nil {
                 SegmentAnatomyThumbnailCanvas(
                     gender: gender,
                     region: descriptor.region,
@@ -139,28 +120,6 @@ struct MuscleGroupAnatomyThumbnail: View {
         .background(anatomyThumbnailBackground)
         .clipShape(RoundedRectangle(cornerRadius: min(16, size * 0.25), style: .continuous))
         .accessibilityHidden(true)
-        .onAppear {
-            guard renderedImage == nil else { return }
-            let thumbnailHeatmap = descriptor.thumbnailHeatmap(primaryIntensity: max(0.35, min(intensity, 1)))
-            if segment != nil {
-                renderedImage = AnatomyThumbnailImageCache.shared.renderSegment(
-                    key: cacheKey,
-                    gender: gender,
-                    region: descriptor.region,
-                    size: size,
-                    intensities: thumbnailHeatmap
-                )
-            } else {
-                renderedImage = AnatomyThumbnailImageCache.shared.render(
-                    key: cacheKey,
-                    gender: gender,
-                    primarySide: descriptor.region.side,
-                    region: descriptor.region,
-                    size: size,
-                    intensities: thumbnailHeatmap
-                )
-            }
-        }
     }
 
     private var cacheKey: String {

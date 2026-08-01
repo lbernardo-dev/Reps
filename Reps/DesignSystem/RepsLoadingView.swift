@@ -3,6 +3,7 @@ import SwiftUI
 struct RepsLoadingView: View {
     enum Layout {
         case splash
+        case fullOverlay
         case panel
         case compact
     }
@@ -32,10 +33,14 @@ struct RepsLoadingView: View {
         ZStack {
             if layout == .splash {
                 atmosphericBackground
+            } else if layout == .fullOverlay {
+                fullOverlayBackground
             }
 
             VStack(spacing: spacing) {
-                Spacer(minLength: layout == .splash ? 80 : 0)
+                if layout == .splash || layout == .fullOverlay {
+                    Spacer(minLength: 40)
+                }
 
                 VStack(spacing: layout == .compact ? 14 : 22) {
                     RepsBrandLockup(size: brandSize)
@@ -46,20 +51,24 @@ struct RepsLoadingView: View {
                         .frame(maxWidth: maxContentWidth)
                 }
 
-                Spacer(minLength: layout == .splash ? 72 : 0)
+                if layout == .splash || layout == .fullOverlay {
+                    Spacer(minLength: 40)
+                }
             }
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
         }
-        .frame(maxWidth: .infinity, maxHeight: layout == .splash ? .infinity : nil)
+        .frame(maxWidth: .infinity, maxHeight: (layout == .splash || layout == .fullOverlay) ? .infinity : nil)
         .background {
-            if layout != .splash {
+            if layout == .panel {
                 PulseTheme.card
+            } else if layout == .compact {
+                PulseTheme.card.opacity(0.9)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay {
-            if layout != .splash {
+            if layout == .panel || layout == .compact {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(PulseTheme.separator, lineWidth: 1)
             }
@@ -104,6 +113,29 @@ struct RepsLoadingView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .ignoresSafeArea()
+        }
+    }
+
+    private var fullOverlayBackground: some View {
+        ZStack {
+            PulseTheme.background.opacity(0.82).ignoresSafeArea()
+
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+
+            RadialGradient(
+                colors: [
+                    PulseTheme.accent.opacity(0.28),
+                    PulseTheme.accent.opacity(0.08),
+                    .clear
+                ],
+                center: .center,
+                startRadius: 10,
+                endRadius: 320
+            )
+            .scaleEffect(glowScale)
             .ignoresSafeArea()
         }
     }
@@ -157,7 +189,7 @@ struct RepsLoadingView: View {
 
     private var brandSize: RepsBrandLockup.Size {
         switch layout {
-        case .splash: .large
+        case .splash, .fullOverlay: .large
         case .panel: .medium
         case .compact: .small
         }
@@ -165,7 +197,7 @@ struct RepsLoadingView: View {
 
     private var spacing: CGFloat {
         switch layout {
-        case .splash: 36
+        case .splash, .fullOverlay: 36
         case .panel: 20
         case .compact: 14
         }
@@ -173,7 +205,7 @@ struct RepsLoadingView: View {
 
     private var statusFont: Font {
         switch layout {
-        case .splash: .subheadline.weight(.semibold)
+        case .splash, .fullOverlay: .subheadline.weight(.semibold)
         case .panel: .footnote.weight(.semibold)
         case .compact: .caption.weight(.semibold)
         }
@@ -181,7 +213,7 @@ struct RepsLoadingView: View {
 
     private var maxContentWidth: CGFloat {
         switch layout {
-        case .splash: 330
+        case .splash, .fullOverlay: 330
         case .panel: 280
         case .compact: 220
         }
@@ -189,7 +221,7 @@ struct RepsLoadingView: View {
 
     private var horizontalPadding: CGFloat {
         switch layout {
-        case .splash: 30
+        case .splash, .fullOverlay: 30
         case .panel: 24
         case .compact: 16
         }
@@ -197,7 +229,7 @@ struct RepsLoadingView: View {
 
     private var verticalPadding: CGFloat {
         switch layout {
-        case .splash: 40
+        case .splash, .fullOverlay: 40
         case .panel: 24
         case .compact: 16
         }
@@ -205,7 +237,7 @@ struct RepsLoadingView: View {
 
     private var cornerRadius: CGFloat {
         switch layout {
-        case .splash: 0
+        case .splash, .fullOverlay: 0
         case .panel: PulseTheme.cardRadius
         case .compact: 18
         }
@@ -339,6 +371,27 @@ private struct RepsBarbellMark: View {
 private extension Comparable {
     func clamped(to limits: ClosedRange<Self>) -> Self {
         min(max(self, limits.lowerBound), limits.upperBound)
+    }
+}
+
+extension View {
+    func repsLoadingOverlay(
+        isPresented: Bool,
+        messages: [String] = [],
+        progress: Double? = nil
+    ) -> some View {
+        self.overlay {
+            if isPresented {
+                RepsLoadingView(
+                    messages: messages,
+                    progress: progress,
+                    layout: .fullOverlay,
+                    showsPercentage: false
+                )
+                .transition(.opacity.animation(.easeInOut(duration: 0.28)))
+                .ignoresSafeArea()
+            }
+        }
     }
 }
 

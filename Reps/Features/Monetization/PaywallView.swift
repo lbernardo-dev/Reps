@@ -86,8 +86,16 @@ struct PaywallView: View {
             closeButton
         }
         .padding(.top, 4)
-        .padding(.bottom, 4)
+        .padding(.bottom, 8)
         .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+        .background(
+            LinearGradient(
+                colors: [PulseTheme.background, PulseTheme.background.opacity(0.85), .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .top)
+        )
     }
 
     private var restoreButton: some View {
@@ -135,16 +143,24 @@ struct PaywallView: View {
         VStack(alignment: .leading, spacing: 10) {
             PaywallIconMark()
                 .frame(maxWidth: .infinity)
+                .padding(.top, 12)
 
-            Text("reps_pro")
-                .font(.system(size: 46, weight: .black, design: .rounded))
+            Text(localizedString("reps_pro"))
+                .font(.system(size: 44, weight: .black, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [PulseTheme.accent, PulseTheme.fitOrange],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
 
-            Text("train_for_a_full_week_for_free")
+            Text(localizedString("train_for_a_full_week_for_free"))
                 .font(.title2.weight(.black))
 
-            Text("your_plan_advanced_analytics_and_automatic_progression_are_unlocked_today_cancel")
+            Text(localizedString("your_plan_advanced_analytics_and_automatic_progression_are_unlocked_today_cancel"))
                 .font(.body.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -852,27 +868,49 @@ private struct PlanComparisonCard: View {
     private var proFeatures: [ProductFeature] { ProductAccess.proFeatures }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            freeRecap
+        VStack(alignment: .leading, spacing: 14) {
+            freeRecapCard
             proHighlight
         }
     }
 
-    private var freeRecap: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(localizedString("paywall_free_recap_title"))
-                .font(.caption.weight(.bold))
-                .foregroundStyle(PulseTheme.secondaryText)
-            Text(freeFeatureSummary)
-                .font(.caption)
-                .foregroundStyle(PulseTheme.tertiaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 4)
-    }
+    private var freeRecapCard: some View {
+        PulseCard(backgroundColor: PulseTheme.grouped) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        Text(localizedString("paywall_free_tier_title"))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(PulseTheme.textPrimary)
+                    }
 
-    private var freeFeatureSummary: String {
-        ProductAccess.freeFeatures.map(\.title).joined(separator: " · ")
+                    Spacer()
+
+                    Text(localizedString("paywall_free_included_badge"))
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(PulseTheme.card)
+                        .clipShape(Capsule())
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(localizedString("paywall_free_bullet_1"), systemImage: "checkmark")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                    Label(localizedString("paywall_free_bullet_2"), systemImage: "checkmark")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                    Label(localizedString("paywall_free_bullet_3"), systemImage: "checkmark")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+        }
     }
 
     private var proHighlight: some View {

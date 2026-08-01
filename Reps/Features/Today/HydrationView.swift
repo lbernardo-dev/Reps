@@ -401,29 +401,31 @@ struct WaterBottleGauge: View {
     }
 
     private func waterFill(time: TimeInterval, bottleW: CGFloat, bottleH: CGFloat) -> some View {
-        let fillH = bottleH * CGFloat(fraction)
-        return ZStack(alignment: .bottom) {
-            LiquidWaveShape(phase: time * 2.8, level: CGFloat(fraction))
-                .fill(
-                    LinearGradient(
-                        colors: [color, color.opacity(0.65), color.opacity(0.88)],
-                        startPoint: .bottom, endPoint: .top
+        ZStack(alignment: .bottom) {
+            if fraction > 0 {
+                LiquidWaveShape(phase: time * 2.8, level: CGFloat(fraction))
+                    .fill(
+                        LinearGradient(
+                            colors: [color, color.opacity(0.75), color.opacity(0.92)],
+                            startPoint: .bottom, endPoint: .top
+                        )
                     )
-                )
-                .frame(width: bottleW, height: max(12, fillH + 8))
-                .shadow(color: color.opacity(0.38), radius: 10)
+                    .frame(width: bottleW, height: bottleH)
+                    .shadow(color: color.opacity(0.4), radius: 10)
 
-            // Small bubbles
-            GeometryReader { geo in
-                ForEach(0..<4) { i in
-                    let xOff = sin(time + Double(i) * 2.0) * 14
-                    let yCycle = CGFloat((Int(time * 22.0) + i * 45) % 140)
-                    if yCycle < fillH {
+                // Small rising bubbles
+                GeometryReader { geo in
+                    let fillH = bottleH * CGFloat(fraction)
+                    ForEach(0..<5, id: \.self) { i in
+                        let xOff = sin(time * 2.0 + Double(i) * 1.8) * 14
+                        let yCycle = CGFloat((Int(time * 26.0) + i * 38) % max(Int(fillH), 1))
                         Circle()
-                            .fill(Color.white.opacity(0.28))
-                            .frame(width: CGFloat(3 + (i % 2)))
-                            .position(x: geo.size.width / 2 + CGFloat(xOff),
-                                      y: geo.size.height - yCycle)
+                            .fill(Color.white.opacity(0.35))
+                            .frame(width: CGFloat(3 + (i % 3)))
+                            .position(
+                                x: geo.size.width / 2 + CGFloat(xOff),
+                                y: geo.size.height - yCycle
+                            )
                     }
                 }
             }

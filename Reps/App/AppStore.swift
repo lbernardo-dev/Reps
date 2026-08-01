@@ -1100,14 +1100,29 @@ final class AppStore {
     func logWater(liters: Double) {
         let logHour = Calendar.current.component(.hour, from: Date())
         let isFirstEverLog = health.latestDailyMetrics.allSatisfy { $0.waterLiters == 0 }
+
+        let calendar = Calendar.current
+        let today = Date()
+        if let index = health.latestDailyMetrics.firstIndex(where: { calendar.isDate($0.date, inSameDayAs: today) }) {
+            health.latestDailyMetrics[index].waterLiters += liters
+        } else {
+            let newMetric = DailyHealthMetric(
+                date: today,
+                steps: 0,
+                activeEnergyKcal: 0,
+                dietaryEnergyKcal: 0,
+                waterLiters: liters
+            )
+            health.latestDailyMetrics.append(newMetric)
+        }
+        updateTrainingBattery()
+
         Task { @MainActor [weak self] in
             guard let self else { return }
             try? await healthKitService.saveDailyNutrition(waterLiters: liters, dietaryEnergyKcal: nil)
-            if let dailyMetrics = try? await healthKitService.fetchDailyMetrics() {
+            if let dailyMetrics = try? await healthKitService.fetchDailyMetrics(), !dailyMetrics.isEmpty {
                 health.latestDailyMetrics = dailyMetrics
                 health.lastSyncDate = .now
-            } else {
-                refreshHealthKitDataIfNeeded(force: true, reason: "water_logged")
             }
             evaluateHydrationAchievements(isFirstEverLog: isFirstEverLog, logHour: logHour)
         }
@@ -2501,9 +2516,8 @@ final class AppStore {
                 preferredLanguage: userProfile.preferredLanguage,
                 exercisesData: nil,
                 estimatedMaxHeartRate: watchEstimatedMaxHeartRate,
-                // Basic workout logging on Apple Watch is part of the free core loop.
-                // Pro continues to gate advanced analytics and progression on iPhone.
-                hasWatchAccess: true
+                // Apple Watch integration is an exclusive Pro feature as advertised on the Paywall.
+                hasWatchAccess: hasFeatureAccess(.watchIntegration)
             )
         }
 
@@ -4556,12 +4570,94 @@ final class AppStore {
         return try? JSONDecoder().decode(AppSnapshot.self, from: data)
     }
 
-    private func mergeSeedExercises(into storedExercises: [Exercise]) -> [Exercise] {
-        let curatedStored = storedExercises.filter { $0.sourceName != "free-exercise-db" }
-        let existingNames = Set(curatedStored.map { $0.name.lowercased() })
-        let missing = SeedData.exercises.filter { !existingNames.contains($0.name.lowercased()) }
-        return curatedStored + missing
+    private func normalizeExerciseKey(_ text: String) -> String {
+        text.lowercased()
+            .folding(options: .diacriticInsensitive, locale: .current)
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .joined()
     }
+
+    private func strippedExerciseKey(_ text: String) -> String {
+        let norm = normalizeExerciseKey(text)
+        let wordsToRemove = [
+            "machine", "version1", "version2", "standard", "weighted",
+            "standing", "seated", "chest", "dumbbell", "barbell", "cable",
+            "kettlebell", "smithmachine", "rope", "sprint"
+        ]
+        var cleaned = norm
+        for word in wordsToRemove {
+            cleaned = cleaned.replacingOccurrences(of: word, with: "")
+        }
+        return cleaned
+    }
+
+    private func mergeSeedExercises(into storedExercises: [Exercise]) -> [Exercise] {
+        var merged: [Exercise] = []
+        var exactMap: [String: Int] = [:]
+
+        func registerKeys(for exercise: Exercise, at index: Int) {
+            let keys = ([exercise.name] + exercise.aliases).map(normalizeExerciseKey).filter { !$0.isEmpty }
+            for k in keys {
+                if exactMap[k] == nil { exactMap[k] = index }
+            }
+        }
+
+        func findMatchIndex(for exercise: Exercise) -> Int? {
+            let keys = ([exercise.name] + exercise.aliases).map(normalizeExerciseKey).filter { !$0.isEmpty }
+            for k in keys {
+                if let idx = exactMap[k] { return idx }
+            }
+            return nil
+        }
+
+        // 1. Cargar primero los 50 ejercicios con vídeo canónicos del catálogo en O(M)
+        for item in SeedData.bundledCatalog {
+            merged.append(item)
+            registerKeys(for: item, at: merged.count - 1)
+        }
+
+        // 2. Fusionar los ejercicios guardados o semillas adicionales en O(N)
+        for stored in storedExercises {
+            var sanitized = stored
+            // Limpiar videoURL no válidos que no pertenezcan al catálogo canónico
+            if let v = sanitized.videoURL, !v.isEmpty,
+               !ExerciseVideoCatalog.isMatch(videoFile: v, exerciseName: sanitized.name, aliases: sanitized.aliases) {
+                sanitized.videoURL = nil
+            }
+
+            if let idx = findMatchIndex(for: sanitized) {
+                // Preservar la información del catálogo si la del stored es nula
+                if sanitized.videoURL != nil && !sanitized.videoURL!.isEmpty {
+                    merged[idx].videoURL = sanitized.videoURL
+                }
+                if merged[idx].instructions == nil || merged[idx].instructions?.isEmpty == true {
+                    merged[idx].instructions = sanitized.instructions
+                }
+                if merged[idx].mediaURL == nil || merged[idx].mediaURL?.isEmpty == true {
+                    merged[idx].mediaURL = sanitized.mediaURL
+                }
+                if let customImg = sanitized.customImageData {
+                    merged[idx].customImageData = customImg
+                }
+                if let customVid = sanitized.customVideoData {
+                    merged[idx].customVideoData = customVid
+                }
+                if let notes = sanitized.notes, !notes.isEmpty {
+                    merged[idx].notes = notes
+                }
+                if !sanitized.aliases.isEmpty {
+                    let set = Set(merged[idx].aliases + sanitized.aliases)
+                    merged[idx].aliases = Array(set)
+                }
+            } else {
+                merged.append(sanitized)
+                registerKeys(for: sanitized, at: merged.count - 1)
+            }
+        }
+
+        return merged
+    }
+
 
     private func mergeSeedWorkouts(into storedWorkouts: [WorkoutDay]) -> [WorkoutDay] {
         let existingTitles = Set(storedWorkouts.map { $0.title.lowercased() })
@@ -4919,7 +5015,7 @@ private extension CardioLog {
 }
 
 private struct OpenExerciseLibraryClient {
-    private let datasetURL = URL(string: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json")!
+    private let datasetURL = URL(string: "https://raw.githubusercontent.com/lbernardo-dev/free-exercise-db/main/dist/exercises.json")!
 
     enum FetchResult {
         /// The server confirmed (via ETag) that the dataset is unchanged since
@@ -4998,7 +5094,7 @@ private struct OpenExerciseRecord: Decodable {
             sourceID: id,
             sourceName: "free-exercise-db",
             sourceLicense: "Unlicense",
-            sourceURL: "https://github.com/yuhonas/free-exercise-db"
+            sourceURL: "https://github.com/lbernardo-dev/free-exercise-db"
         )
     }
 
@@ -5058,7 +5154,7 @@ private struct OpenExerciseRecord: Decodable {
         .joined(separator: "\n")
     }
 
-    private static let imageBaseURL = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/"
+    private static let imageBaseURL = "https://raw.githubusercontent.com/lbernardo-dev/free-exercise-db/main/exercises/"
 
     private static func displayMuscleGroup(_ rawValue: String) -> String {
         switch rawValue.lowercased() {

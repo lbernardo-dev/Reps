@@ -28,11 +28,34 @@ enum MuscleFilterMode: String, CaseIterable, Identifiable {
 /// library by muscle. Mirrors `InteractiveBodyHeatmap` (Progress tab) in
 /// layout/style but is selection-only — no load heatmap.
 struct ExerciseBodyMuscleSelector: View {
-    let gender: BodyGender
+    @Binding var selectedGender: BodyGender
     @Binding var selectedSegments: Set<MuscleSegment>
+
+    init(gender: Binding<BodyGender>, selectedSegments: Binding<Set<MuscleSegment>>) {
+        self._selectedGender = gender
+        self._selectedSegments = selectedSegments
+    }
+
+    init(gender: BodyGender, selectedSegments: Binding<Set<MuscleSegment>>) {
+        self._selectedGender = .constant(gender)
+        self._selectedSegments = selectedSegments
+    }
 
     var body: some View {
         VStack(spacing: 10) {
+            HStack {
+                Spacer()
+                Picker(localizedString("Sex"), selection: $selectedGender) {
+                    Text(RepsLocalization.language == "es" ? "Hombre" : "Male").tag(BodyGender.male)
+                    Text(RepsLocalization.language == "es" ? "Mujer" : "Female").tag(BodyGender.female)
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 210)
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.top, 4)
+
             GeometryReader { proxy in
                 let bodyWidth = proxy.size.width * 0.72
                 let visualScale = min(1.24, max(1.1, proxy.size.width / 360))
@@ -93,7 +116,7 @@ struct ExerciseBodyMuscleSelector: View {
     }
 
     private func bodyView(side: BodySide) -> some View {
-        BodyView(gender: gender, side: side, style: .repsDark)
+        BodyView(gender: selectedGender, side: side, style: .repsDark)
             .selected(selectedMuscles)
             .pulseSelected(speed: 1.35)
             .onMuscleSelected { muscle, _ in

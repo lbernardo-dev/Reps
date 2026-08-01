@@ -125,6 +125,8 @@ struct ProfileSetupView: View {
             OnboardingSetupStepView(draft: $draft)
         case .goal:
             OnboardingGoalStepView(draft: $draft)
+        case .timeline:
+            OnboardingTimelineStepView(draft: $draft)
         case .experience:
             OnboardingExperienceStepView(draft: $draft)
         case .schedule:
@@ -437,6 +439,7 @@ private enum OnboardingStep: String, CaseIterable, Identifiable {
     case value
     case setup
     case goal
+    case timeline
     case experience
     case schedule
     case equipment
@@ -454,6 +457,34 @@ private enum OnboardingStep: String, CaseIterable, Identifiable {
         case .generating: "onboarding_btn_see_my_plan"
         case .ready: "onboarding_btn_unlock_plan"
         default: "onboarding_btn_continue"
+        }
+    }
+}
+
+private enum PlanHorizonMode: String, CaseIterable, Identifiable, Hashable {
+    case lifestyle
+    case specificEvent
+
+    var id: String { rawValue }
+
+    var titleKey: String {
+        switch self {
+        case .lifestyle: "onboarding_horizon_lifestyle_title"
+        case .specificEvent: "onboarding_horizon_event_title"
+        }
+    }
+
+    var subtitleKey: String {
+        switch self {
+        case .lifestyle: "onboarding_horizon_lifestyle_subtitle"
+        case .specificEvent: "onboarding_horizon_event_subtitle"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .lifestyle: "infinity"
+        case .specificEvent: "calendar.badge.clock"
         }
     }
 }
@@ -491,6 +522,9 @@ private enum BodyMapPreference: String, CaseIterable, Identifiable {
 
 private struct OnboardingDraft {
     var mainGoal: UserProfile.MainGoal = .buildMuscle
+    var targetHorizonMode: PlanHorizonMode = .lifestyle
+    var targetEventName: String? = nil
+    var targetEventDate: Date? = nil
     var experience: UserProfile.Experience = .intermediate
     var weeklyTrainingDays = 4
     var sessionLengthMinutes = 60
@@ -569,6 +603,14 @@ private struct OnboardingDraft {
         profile.dateOfBirth = Calendar.current.date(byAdding: .year, value: -age, to: .now)
         profile.sex = bodyMapPreference.profileSex
         profile.preferredLanguage = preferredLanguage
+
+        if targetHorizonMode == .specificEvent {
+            profile.targetEventName = targetEventName
+            profile.targetEventDate = targetEventDate
+        } else {
+            profile.targetEventName = nil
+            profile.targetEventDate = nil
+        }
         return profile
     }
 
@@ -753,6 +795,9 @@ private struct OnboardingRichSetupOptionCard: View {
                             Text(badgeText)
                                 .font(.system(size: 10, weight: .black, design: .rounded))
                                 .tracking(0.6)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .layoutPriority(1)
                                 .foregroundStyle(isSelected ? PulseTheme.onColor(badgeColor) : badgeColor)
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 3)
@@ -844,6 +889,190 @@ private struct OnboardingGoalStepView: View {
     }
 }
 
+private struct OnboardingTimelineStepView: View {
+    @Binding var draft: OnboardingDraft
+
+    private var minimumEventDate: Date {
+        Calendar.current.date(byAdding: .day, value: 28, to: .now) ?? .now
+    }
+
+    private var maximumEventDate: Date {
+        Calendar.current.date(byAdding: .day, value: 180, to: .now) ?? .now
+    }
+
+    private var selectedEventDateBinding: Binding<Date> {
+        Binding(
+            get: {
+                if let current = draft.targetEventDate, current >= minimumEventDate {
+                    return current
+                }
+                return minimumEventDate
+            },
+            set: { newDate in
+                if newDate < minimumEventDate {
+                    draft.targetEventDate = minimumEventDate
+                } else if newDate > maximumEventDate {
+                    draft.targetEventDate = maximumEventDate
+                } else {
+                    draft.targetEventDate = newDate
+                }
+            }
+        )
+    }
+
+    private let presets: [(titleKey: String, icon: String)] = [
+        ("onboarding_event_preset_wedding", "sparkles"),
+        ("onboarding_event_preset_summer", "sun.max.fill"),
+        ("onboarding_event_preset_sports", "trophy.fill"),
+        ("onboarding_event_preset_personal", "target")
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            OnboardingTitle(
+                title: "onboarding_timeline_title",
+                subtitle: "onboarding_timeline_subtitle"
+            )
+
+            horizonModeSelector
+
+            if draft.targetHorizonMode == .specificEvent {
+                eventDetailsForm
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    private var horizonModeSelector: some View {
+        VStack(spacing: 12) {
+            ForEach(PlanHorizonMode.allCases, id: \.self) { mode in
+                let isSelected = draft.targetHorizonMode == mode
+                let tintColor = mode == .specificEvent ? PulseTheme.accent : Color.primary
+                OnboardingOptionCard(
+                    title: mode.titleKey,
+                    subtitle: mode.subtitleKey,
+                    icon: mode.icon,
+                    tint: tintColor,
+                    isSelected: isSelected
+                ) {
+                    selectHorizonMode(mode)
+                }
+            }
+        }
+    }
+
+    private func selectHorizonMode(_ mode: PlanHorizonMode) {
+        draft.targetHorizonMode = mode
+        if mode == .specificEvent && draft.targetEventDate == nil {
+            draft.targetEventDate = minimumEventDate
+        }
+    }
+
+    private var eventDetailsForm: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(localizedKey("onboarding_event_type_label"))
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(PulseTheme.secondaryText)
+
+            presetChipsView
+            eventNameInputView
+            eventDatePickerView
+            guardrailNoteView
+        }
+    }
+
+    private var presetChipsView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(presets, id: \.titleKey) { preset in
+                    let presetTitle = localizedString(preset.titleKey)
+                    let isSelected = draft.targetEventName == presetTitle
+                    Button {
+                        HapticService.selection()
+                        draft.targetEventName = presetTitle
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: preset.icon)
+                                .font(.caption.weight(.bold))
+                            Text(localizedKey(preset.titleKey))
+                                .font(.caption.weight(.bold))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(isSelected ? PulseTheme.accent.opacity(0.18) : PulseTheme.card)
+                        .foregroundStyle(isSelected ? PulseTheme.accent : Color.primary)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(isSelected ? PulseTheme.accent : PulseTheme.separator, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var eventNameInputView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localizedKey("onboarding_event_name_prompt"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+
+            TextField(
+                localizedString("onboarding_event_name_placeholder"),
+                text: Binding(
+                    get: { draft.targetEventName ?? "" },
+                    set: { draft.targetEventName = $0.isEmpty ? nil : $0 }
+                )
+            )
+            .font(.subheadline)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(PulseTheme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(PulseTheme.separator, lineWidth: 1)
+            )
+        }
+    }
+
+    private var eventDatePickerView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localizedKey("onboarding_event_date_label"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+
+            DatePicker(
+                "",
+                selection: selectedEventDateBinding,
+                in: minimumEventDate...maximumEventDate,
+                displayedComponents: [.date]
+            )
+            .datePickerStyle(.graphical)
+            .tint(PulseTheme.accent)
+            .padding(8)
+            .background(PulseTheme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+    }
+
+    private var guardrailNoteView: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "shield.checkmark.fill")
+                .font(.footnote)
+                .foregroundStyle(PulseTheme.accent)
+            Text(localizedKey("onboarding_event_guardrail_note"))
+                .font(.caption)
+                .foregroundStyle(PulseTheme.secondaryText)
+        }
+        .padding(12)
+        .background(PulseTheme.accent.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
 private struct OnboardingExperienceStepView: View {
     @Binding var draft: OnboardingDraft
 
@@ -871,8 +1100,163 @@ private struct OnboardingExperienceStepView: View {
     }
 }
 
+// MARK: - AI Target Recommendation Engine
+
+private struct OnboardingTargetRecommendation {
+    let suggestedDays: Int
+    let suggestedDuration: Int
+    let suggestedLocationID: String
+    let suggestedEquipment: [String]
+    let scheduleExplanation: String
+    let equipmentExplanation: String
+
+    static func calculate(for draft: OnboardingDraft) -> OnboardingTargetRecommendation? {
+        guard draft.targetHorizonMode == .specificEvent else { return nil }
+
+        let weeks: Int
+        if let eventDate = draft.targetEventDate {
+            let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: eventDate).day ?? 84
+            weeks = max(1, Int(ceil(Double(daysRemaining) / 7.0)))
+        } else {
+            weeks = 12
+        }
+
+        let eventOrGoal: String
+        if let eventName = draft.targetEventName, !eventName.trimmingCharacters(in: .whitespaces).isEmpty {
+            eventOrGoal = eventName
+        } else {
+            eventOrGoal = onboardingLocalizedString(draft.mainGoal.title)
+        }
+
+        let days: Int
+        let duration: Int
+        let locationID = OnboardingLocationCatalog.defaultLocation.id
+
+        if weeks <= 6 {
+            days = 5
+            duration = 60
+        } else if weeks <= 12 {
+            switch draft.mainGoal {
+            case .buildMuscle, .getStronger:
+                days = 5
+                duration = 60
+            case .loseFat, .bodyRecomposition:
+                days = 5
+                duration = 45
+            case .stayActive:
+                days = 4
+                duration = 60
+            }
+        } else {
+            days = 4
+            duration = 60
+        }
+
+        let scheduleExpFmt = onboardingLocalizedString("onboarding_schedule_ai_recommendation_reason")
+        let scheduleExp = String(format: scheduleExpFmt, eventOrGoal, weeks, days, duration)
+
+        let equipmentExpFmt = onboardingLocalizedString("onboarding_equipment_ai_recommendation_reason")
+        let equipmentExp = String(format: equipmentExpFmt, eventOrGoal, weeks)
+
+        return OnboardingTargetRecommendation(
+            suggestedDays: days,
+            suggestedDuration: duration,
+            suggestedLocationID: locationID,
+            suggestedEquipment: OnboardingLocationCatalog.defaultLocation.equipment,
+            scheduleExplanation: scheduleExp,
+            equipmentExplanation: equipmentExp
+        )
+    }
+}
+
+private struct OnboardingAISuggestionBanner: View {
+    let explanation: String
+    let actionTitle: String
+    let isApplied: Bool
+    let onApply: () -> Void
+
+    var body: some View {
+        PulseCard(contentPadding: 16) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.fitOrange))
+                        .frame(width: 32, height: 32)
+                        .background(PulseTheme.fitOrange)
+                        .clipShape(Circle())
+                        .shadow(color: PulseTheme.fitOrange.opacity(0.4), radius: 6, y: 2)
+
+                    Text(onboardingLocalizedString("onboarding_ai_suggestion_badge"))
+                        .font(.caption.weight(.black))
+                        .tracking(0.6)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.fitOrange))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(PulseTheme.fitOrange)
+                        .clipShape(Capsule())
+
+                    Spacer()
+
+                    if isApplied {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption.weight(.bold))
+                            Text(onboardingLocalizedString("onboarding_ai_suggestion_applied"))
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(PulseTheme.fitOrange)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(PulseTheme.fitOrange.opacity(0.16))
+                        .clipShape(Capsule())
+                    }
+                }
+
+                Text(explanation)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(PulseTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if !isApplied {
+                    Button(action: onApply) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "wand.and.stars")
+                                .font(.subheadline.weight(.bold))
+                            Text(actionTitle)
+                                .font(.subheadline.weight(.bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 42)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.fitOrange))
+                        .background(PulseTheme.fitOrange)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .shadow(color: PulseTheme.fitOrange.opacity(0.35), radius: 8, y: 3)
+                    }
+                    .buttonStyle(.plain)
+                    .pressableFeedback(scale: 0.96)
+                }
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
+                .stroke(PulseTheme.fitOrange.opacity(0.85), lineWidth: 1.5)
+        )
+        .shadow(color: PulseTheme.fitOrange.opacity(0.20), radius: 12, y: 4)
+    }
+}
+
 private struct OnboardingScheduleStepView: View {
     @Binding var draft: OnboardingDraft
+
+    private var recommendation: OnboardingTargetRecommendation? {
+        OnboardingTargetRecommendation.calculate(for: draft)
+    }
+
+    private var isRecommendationApplied: Bool {
+        guard let rec = recommendation else { return false }
+        return draft.weeklyTrainingDays == rec.suggestedDays && draft.sessionLengthMinutes == rec.suggestedDuration
+    }
 
     private var scheduleHelperText: String {
         switch draft.weeklyTrainingDays {
@@ -904,12 +1288,24 @@ private struct OnboardingScheduleStepView: View {
                 subtitle: "onboarding_schedule_subtitle"
             )
 
+            if let rec = recommendation {
+                OnboardingAISuggestionBanner(
+                    explanation: rec.scheduleExplanation,
+                    actionTitle: String(format: onboardingLocalizedString("onboarding_schedule_ai_apply_btn"), rec.suggestedDays, rec.suggestedDuration),
+                    isApplied: isRecommendationApplied
+                ) {
+                    draft.weeklyTrainingDays = rec.suggestedDays
+                    draft.sessionLengthMinutes = rec.suggestedDuration
+                }
+            }
+
             OnboardingNumberPicker(
                 title: "onboarding_schedule_days_label",
                 value: $draft.weeklyTrainingDays,
                 options: Array(1...7),
                 unit: "onboarding_schedule_days_unit",
-                helper: scheduleHelperText
+                helper: scheduleHelperText,
+                suggestedValue: recommendation?.suggestedDays
             )
 
             OnboardingNumberPicker(
@@ -917,14 +1313,30 @@ private struct OnboardingScheduleStepView: View {
                 value: $draft.sessionLengthMinutes,
                 options: [15, 30, 45, 60, 75, 90],
                 unit: "onboarding_schedule_duration_unit",
-                helper: durationHelperText
+                helper: durationHelperText,
+                suggestedValue: recommendation?.suggestedDuration
             )
+        }
+        .onAppear {
+            if let rec = recommendation, draft.weeklyTrainingDays == 4 && draft.sessionLengthMinutes == 60 {
+                draft.weeklyTrainingDays = rec.suggestedDays
+                draft.sessionLengthMinutes = rec.suggestedDuration
+            }
         }
     }
 }
 
 private struct OnboardingEquipmentStepView: View {
     @Binding var draft: OnboardingDraft
+
+    private var recommendation: OnboardingTargetRecommendation? {
+        OnboardingTargetRecommendation.calculate(for: draft)
+    }
+
+    private var isRecommendationApplied: Bool {
+        guard let rec = recommendation else { return false }
+        return draft.selectedLocationID == rec.suggestedLocationID
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -933,14 +1345,30 @@ private struct OnboardingEquipmentStepView: View {
                 subtitle: "onboarding_equipment_subtitle"
             )
 
+            if let rec = recommendation {
+                OnboardingAISuggestionBanner(
+                    explanation: rec.equipmentExplanation,
+                    actionTitle: onboardingLocalizedString("onboarding_equipment_ai_apply_btn"),
+                    isApplied: isRecommendationApplied
+                ) {
+                    if let defaultLoc = OnboardingLocationCatalog.locations.first(where: { $0.id == rec.suggestedLocationID }) {
+                        draft.applyLocation(defaultLoc)
+                    }
+                }
+            }
+
             VStack(spacing: 12) {
                 ForEach(OnboardingLocationCatalog.locations) { location in
+                    let isSuggestedLocation = recommendation?.suggestedLocationID == location.id
                     OnboardingOptionCard(
                         title: location.title,
                         subtitle: location.subtitle,
                         icon: location.icon,
-                        tint: PulseTheme.recovery,
-                        isSelected: draft.selectedLocationID == location.id
+                        tint: isSuggestedLocation ? PulseTheme.fitOrange : PulseTheme.recovery,
+                        isSelected: draft.selectedLocationID == location.id,
+                        badgeText: isSuggestedLocation ? onboardingLocalizedString("onboarding_badge_suggested_ai") : nil,
+                        badgeColor: PulseTheme.fitOrange,
+                        isSuggested: isSuggestedLocation
                     ) {
                         draft.applyLocation(location)
                     }
@@ -954,9 +1382,11 @@ private struct OnboardingEquipmentStepView: View {
 
                     FlowLayout(spacing: 10) {
                         ForEach(OnboardingLocationCatalog.coreEquipment, id: \.self) { equipment in
+                            let isSuggestedEquip = recommendation?.suggestedEquipment.contains(equipment) ?? false
                             EquipmentChip(
                                 title: OnboardingLocationCatalog.localizedEquipmentKey(equipment),
-                                isSelected: draft.availableEquipment.contains(equipment)
+                                isSelected: draft.availableEquipment.contains(equipment),
+                                isSuggested: isSuggestedEquip
                             ) {
                                 draft.toggleEquipment(equipment)
                             }
@@ -966,6 +1396,13 @@ private struct OnboardingEquipmentStepView: View {
                     Text(onboardingLocalizedString("onboarding_equipment_refine_hint"))
                         .font(.caption.weight(.medium))
                         .foregroundStyle(PulseTheme.secondaryText)
+                }
+            }
+        }
+        .onAppear {
+            if let rec = recommendation, draft.selectedLocationID != rec.suggestedLocationID {
+                if let defaultLoc = OnboardingLocationCatalog.locations.first(where: { $0.id == rec.suggestedLocationID }) {
+                    draft.applyLocation(defaultLoc)
                 }
             }
         }
@@ -1173,6 +1610,7 @@ private struct OnboardingGeneratingStepView: View {
     let generationPulse: Bool
 
     @State private var testimonialIndex = 0
+    @State private var shimmerOffset: CGFloat = -1.0
 
     private static let planTestimonials: [(text: String, author: String)] = [
         (text: "Al fin tengo un plan adaptado a mi horario y equipamiento real.", author: "Alex R."),
@@ -1204,39 +1642,103 @@ private struct OnboardingGeneratingStepView: View {
     }
 
     private var planGeneratingView: some View {
-        VStack(alignment: .leading, spacing: 26) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(onboardingLocalizedString("onboarding_personalizing_title"))
-                    .font(.system(size: 34, weight: .heavy))
-                Text(onboardingLocalizedString("onboarding_personalizing_subtitle"))
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(PulseTheme.secondaryText)
-            }
-            .padding(.top, 8)
+        VStack(alignment: .leading, spacing: 22) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(onboardingLocalizedString("onboarding_personalizing_title"))
+                        .font(.system(size: 32, weight: .heavy))
+                    Text(onboardingLocalizedString("onboarding_personalizing_subtitle"))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text(localizedString("onboarding_badge_progress"))
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .tracking(1.2)
+                Spacer()
+
+                // Live Glowing Percentage Counter
+                VStack(alignment: .trailing, spacing: 2) {
+                    HStack(spacing: 2) {
+                        Text("\(Int(generationProgress * 100))")
+                            .font(.system(size: 38, weight: .black, design: .rounded).monospacedDigit())
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [PulseTheme.ringStand, PulseTheme.accent, PulseTheme.fitOrange],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .contentTransition(.numericText(value: generationProgress * 100))
+                        Text("%")
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(PulseTheme.fitOrange)
+                    }
+
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(PulseTheme.fitOrange)
+                            .frame(width: 6, height: 6)
+                            .scaleEffect(generationPulse ? 1.4 : 0.8)
+                            .animation(.easeInOut(duration: 0.6).repeatForever(), value: generationPulse)
+                        Text(onboardingLocalizedString("onboarding_ai_suggestion_badge"))
+                            .font(.system(size: 9, weight: .black))
+                            .tracking(0.6)
+                            .foregroundStyle(PulseTheme.fitOrange)
+                    }
+                }
+                .padding(.top, 4)
+            }
+            .padding(.top, 6)
+
+            // High-Tech Glowing Progress Bar with Animated Shimmer Beam
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(localizedString("onboarding_badge_progress"))
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .tracking(1.4)
+                    Spacer()
+                    Text(generationStatusText.isEmpty ? onboardingLocalizedString("onboarding_gen_live_ai_analyzing") : generationStatusText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PulseTheme.accent)
+                        .lineLimit(1)
+                }
 
                 GeometryReader { proxy in
+                    let barWidth = max(16, proxy.size.width * generationProgress)
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(.white.opacity(0.10))
+                            .fill(.white.opacity(0.08))
+
                         Capsule()
                             .fill(LinearGradient(
-                                colors: [PulseTheme.ringStand, PulseTheme.accent],
+                                colors: [PulseTheme.ringStand, PulseTheme.accent, PulseTheme.fitOrange],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             ))
-                            .frame(width: max(16, proxy.size.width * generationProgress))
+                            .frame(width: barWidth)
+                            .shadow(color: PulseTheme.fitOrange.opacity(0.35), radius: 6, y: 0)
+
+                        // Shimmer highlight beam
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.clear, .white.opacity(0.6), .clear],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: 50, height: 7)
+                            .offset(x: barWidth * shimmerOffset)
+                            .mask(
+                                Capsule()
+                                    .frame(width: barWidth)
+                            )
                     }
                 }
-                .frame(height: 5)
+                .frame(height: 7)
             }
 
-            PulseCard {
+            // Checklist Card with Active Step Glow
+            PulseCard(contentPadding: 16) {
                 let stepTitles: [String] = [
                     "onboarding_step_saving_profile",
                     "onboarding_step_preferences",
@@ -1255,29 +1757,52 @@ private struct OnboardingGeneratingStepView: View {
                 }
             }
 
+            // Glassmorphic Testimonial Card with Star Rating
             PulseCard(backgroundColor: PulseTheme.grouped) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Image(systemName: "quote.opening")
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(PulseTheme.tertiaryText)
+                    HStack {
+                        HStack(spacing: 3) {
+                            ForEach(0..<5, id: \.self) { _ in
+                                Image(systemName: "star.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(PulseTheme.fitOrange)
+                            }
+                        }
+
+                        Spacer()
+
+                        Text(onboardingLocalizedString("onboarding_gen_verified_user"))
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
 
                     Text(Self.planTestimonials[testimonialIndex].text)
                         .font(.body.weight(.medium))
                         .italic()
-                        .foregroundStyle(PulseTheme.textSecondary)
+                        .foregroundStyle(PulseTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                         .id(testimonialIndex)
-                        .transition(.opacity)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
 
-                    Text("— \(Self.planTestimonials[testimonialIndex].author)")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.secondaryText)
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.accent)
+                        Text(Self.planTestimonials[testimonialIndex].author)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
                 }
             }
 
             Spacer(minLength: 16)
         }
         .frame(maxWidth: .infinity)
+        .onAppear {
+            withAnimation(.linear(duration: 1.8).repeatForever(autoreverses: false)) {
+                shimmerOffset = 1.0
+            }
+        }
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(3.5))
@@ -1353,6 +1878,8 @@ private struct OnboardingReadyStepView: View {
     let weeklySetTotal: Int
     let onUnlockPro: () -> Void
 
+    @State private var showingArchitectureSheet = false
+
     private var selectedGender: BodyGender {
         draft.bodyMapPreference.bodyGender
     }
@@ -1400,6 +1927,31 @@ private struct OnboardingReadyStepView: View {
                     GenerationPill(title: onboardingLocalizedString("onboarding_pill_weeks"), value: "\(generatedPlan.totalWeeks)")
                 }
 
+                Button {
+                    showingArchitectureSheet = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles.tv.fill")
+                            .font(.subheadline.weight(.bold))
+                        Text(onboardingLocalizedString("onboarding_plan_architecture_btn"))
+                            .font(.subheadline.weight(.bold))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 48)
+                    .foregroundStyle(PulseTheme.fitOrange)
+                    .background(PulseTheme.fitOrange.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(PulseTheme.fitOrange.opacity(0.35), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .pressableFeedback(scale: 0.97)
+
                 if let firstDay = generatedPlan.days.first {
                     PlanDay1LockedPreviewCard(
                         day: firstDay,
@@ -1413,7 +1965,10 @@ private struct OnboardingReadyStepView: View {
                 if generatedPlan.days.count > 1 {
                     PlanLockedDaysCard(
                         plan: generatedPlan,
-                        isPro: store.monetization.hasProAccess
+                        isPro: store.monetization.hasProAccess,
+                        onTapDay: { _ in
+                            showingArchitectureSheet = true
+                        }
                     )
                 }
             }
@@ -1425,6 +1980,16 @@ private struct OnboardingReadyStepView: View {
                     onUnlock: onUnlockPro
                 )
             }
+        }
+        .sheet(isPresented: $showingArchitectureSheet) {
+            PlanArchitectureDetailSheet(
+                plan: generatedPlan,
+                draft: draft,
+                exercises: store.exercises,
+                gender: selectedGender,
+                isPro: store.monetization.hasProAccess,
+                onUnlockPro: onUnlockPro
+            )
         }
     }
 }
@@ -1515,6 +2080,9 @@ private struct OnboardingOptionCard: View {
     let icon: String
     let tint: Color
     let isSelected: Bool
+    var badgeText: String? = nil
+    var badgeColor: Color = PulseTheme.fitOrange
+    var isSuggested: Bool = false
     let action: () -> Void
 
     var body: some View {
@@ -1528,9 +2096,26 @@ private struct OnboardingOptionCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(onboardingLocalizedString(title))
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+                    HStack(spacing: 8) {
+                        Text(onboardingLocalizedString(title))
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+
+                        if let badgeText {
+                            Text(badgeText)
+                                .font(.system(size: 10, weight: .black, design: .rounded))
+                                .tracking(0.6)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .layoutPriority(1)
+                                .foregroundStyle(PulseTheme.onColor(badgeColor))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(badgeColor)
+                                .clipShape(Capsule())
+                        }
+                    }
+
                     Text(onboardingLocalizedString(subtitle))
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(PulseTheme.secondaryText)
@@ -1546,13 +2131,13 @@ private struct OnboardingOptionCard: View {
             .padding(15)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-            .background(isSelected ? .white.opacity(0.08) : PulseTheme.card)
+            .background(isSelected ? (isSuggested ? PulseTheme.fitOrange.opacity(0.12) : .white.opacity(0.08)) : PulseTheme.card)
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous)
-                    .stroke(isSelected ? tint.opacity(0.9) : PulseTheme.separator, lineWidth: isSelected ? 1.8 : 1)
+                    .stroke(isSuggested ? PulseTheme.fitOrange : (isSelected ? tint.opacity(0.9) : PulseTheme.separator), lineWidth: isSuggested ? 2 : (isSelected ? 1.8 : 1))
             )
-            .shadow(color: isSelected ? tint.opacity(0.20) : .clear, radius: 10, y: 4)
+            .shadow(color: isSuggested ? PulseTheme.fitOrange.opacity(0.3) : (isSelected ? tint.opacity(0.20) : .clear), radius: 10, y: 4)
         }
         .buttonStyle(.plain)
         .pressableFeedback(scale: 0.965)
@@ -1566,6 +2151,7 @@ private struct OnboardingNumberPicker: View {
     let options: [Int]
     let unit: String
     let helper: String
+    var suggestedValue: Int? = nil
 
     var body: some View {
         PulseCard(contentPadding: 18) {
@@ -1593,17 +2179,34 @@ private struct OnboardingNumberPicker: View {
 
                 HStack(spacing: 8) {
                     ForEach(options, id: \.self) { option in
+                        let isSelected = value == option
+                        let isSuggested = suggestedValue == option
+
                         Button {
                             value = option
                         } label: {
-                            Text(option == 90 && unit == "onboarding_schedule_duration_unit" ? "90+" : "\(option)")
-                                .font(.headline.monospacedDigit())
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .foregroundStyle(value == option ? .black : PulseTheme.secondaryText)
-                                .background(value == option ? .white : PulseTheme.grouped)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            VStack(spacing: 2) {
+                                Text(option == 90 && unit == "onboarding_schedule_duration_unit" ? "90+" : "\(option)")
+                                    .font(.headline.monospacedDigit())
+                                if isSuggested {
+                                    Text("IA")
+                                        .font(.system(size: 8, weight: .black))
+                                        .foregroundStyle(isSelected ? PulseTheme.onColor(PulseTheme.fitOrange) : PulseTheme.fitOrange)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .foregroundStyle(isSelected ? (isSuggested ? PulseTheme.onColor(PulseTheme.fitOrange) : .black) : (isSuggested ? PulseTheme.fitOrange : PulseTheme.secondaryText))
+                            .background(isSelected ? (isSuggested ? PulseTheme.fitOrange : .white) : PulseTheme.grouped)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(
+                                        isSuggested ? PulseTheme.fitOrange : Color.clear,
+                                        lineWidth: isSuggested ? 2 : 0
+                                    )
+                            )
                         }
                         .buttonStyle(.plain)
                         .pressableFeedback(scale: 0.94)
@@ -1719,20 +2322,33 @@ private struct TickRail: View {
 private struct EquipmentChip: View {
     let title: String
     let isSelected: Bool
+    var isSuggested: Bool = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(onboardingLocalizedString(title))
-                .font(.subheadline.weight(.bold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
-                .padding(.horizontal, 14)
-                .frame(height: 40)
-                .contentShape(Capsule())
-                .foregroundStyle(isSelected ? .black : PulseTheme.secondaryText)
-                .background(isSelected ? PulseTheme.accent : PulseTheme.grouped)
-                .clipShape(Capsule())
+            HStack(spacing: 5) {
+                Text(onboardingLocalizedString(title))
+                    .font(.subheadline.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                if isSuggested && !isSelected {
+                    Circle()
+                        .fill(PulseTheme.fitOrange)
+                        .frame(width: 6, height: 6)
+                }
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 40)
+            .contentShape(Capsule())
+            .foregroundStyle(isSelected ? (isSuggested ? PulseTheme.onColor(PulseTheme.fitOrange) : .black) : (isSuggested ? PulseTheme.fitOrange : PulseTheme.secondaryText))
+            .background(isSelected ? (isSuggested ? PulseTheme.fitOrange : PulseTheme.accent) : PulseTheme.grouped)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(isSuggested ? PulseTheme.fitOrange.opacity(0.85) : Color.clear, lineWidth: isSuggested ? 1.6 : 0)
+            )
         }
         .buttonStyle(.plain)
         .pressableFeedback(scale: 0.94)
@@ -1784,36 +2400,58 @@ private struct GenerationStepRow: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 22, weight: .bold))
                             .foregroundStyle(PulseTheme.ringStand)
+                            .transition(.scale.combined(with: .opacity))
                     } else if isActive {
-                        Circle()
-                            .stroke(PulseTheme.ringStand, lineWidth: 2.5)
-                            .frame(width: 22, height: 22)
-                            .scaleEffect(pulse ? 1.15 : 0.88)
-                            .opacity(pulse ? 1 : 0.55)
-                            .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
+                        ZStack {
+                            Circle()
+                                .stroke(PulseTheme.fitOrange.opacity(0.3), lineWidth: 3.5)
+                                .frame(width: 24, height: 24)
+
+                            Circle()
+                                .trim(from: 0, to: 0.7)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [PulseTheme.fitOrange, PulseTheme.accent],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+                                )
+                                .frame(width: 22, height: 22)
+                                .rotationEffect(.degrees(pulse ? 360 : 0))
+                                .animation(.linear(duration: 1.0).repeatForever(autoreverses: false), value: pulse)
+                        }
                     } else {
                         Circle()
-                            .stroke(.white.opacity(0.22), lineWidth: 1.5)
+                            .stroke(.white.opacity(0.18), lineWidth: 1.5)
                             .frame(width: 22, height: 22)
                     }
                 }
                 .frame(width: 26, height: 26)
 
                 Text(onboardingLocalizedString(title))
-                    .font(.subheadline.weight(isActive ? .bold : .medium))
-                    .foregroundStyle(isActive ? .white : (isCompleted ? .white.opacity(0.75) : PulseTheme.secondaryText))
+                    .font(.subheadline.weight(isActive ? .bold : (isCompleted ? .semibold : .regular)))
+                    .foregroundStyle(isActive ? .white : (isCompleted ? .white.opacity(0.9) : PulseTheme.secondaryText))
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                if isActive {
+                    SparkleParticleView()
+                }
             }
-            .padding(.vertical, 11)
-            .padding(.horizontal, 4)
-            .background(isActive ? .white.opacity(0.07) : .clear)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 10)
+            .background(isActive ? PulseTheme.fitOrange.opacity(0.10) : (isCompleted ? .white.opacity(0.02) : .clear))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(isActive ? PulseTheme.fitOrange.opacity(0.4) : Color.clear, lineWidth: 1)
+            )
 
             if !isLast {
                 HStack(spacing: 14) {
                     Rectangle()
-                        .fill(isCompleted ? PulseTheme.ringStand.opacity(0.5) : .white.opacity(0.14))
-                        .frame(width: 1.5, height: 14)
+                        .fill(isCompleted ? PulseTheme.ringStand.opacity(0.7) : (isActive ? PulseTheme.fitOrange.opacity(0.4) : .white.opacity(0.12)))
+                        .frame(width: 2, height: 14)
                         .frame(width: 26)
                     Spacer()
                 }
@@ -1821,6 +2459,24 @@ private struct GenerationStepRow: View {
         }
         .onAppear { pulse = isActive }
         .onChange(of: isActive) { _, v in pulse = v }
+        .sensoryFeedback(.selection, trigger: isCompleted)
+    }
+}
+
+private struct SparkleParticleView: View {
+    @State private var isSparkling = false
+
+    var body: some View {
+        Image(systemName: "sparkles")
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(PulseTheme.fitOrange)
+            .scaleEffect(isSparkling ? 1.2 : 0.8)
+            .opacity(isSparkling ? 1.0 : 0.4)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
+                    isSparkling = true
+                }
+            }
     }
 }
 
@@ -2162,6 +2818,7 @@ private struct PlanExerciseRow: View {
 private struct PlanLockedDaysCard: View {
     let plan: WorkoutPlan
     let isPro: Bool
+    var onTapDay: ((WorkoutDay) -> Void)? = nil
 
     var otherDays: [WorkoutDay] {
         Array(plan.days.dropFirst())
@@ -2188,25 +2845,34 @@ private struct PlanLockedDaysCard: View {
                 .padding(.bottom, 14)
 
                 ForEach(Array(otherDays.prefix(isPro ? otherDays.count : 3).enumerated()), id: \.offset) { index, day in
-                    HStack(spacing: 10) {
-                        if isPro {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(PulseTheme.ringStand)
-                        } else {
-                            Image(systemName: "lock.fill")
-                                .foregroundStyle(PulseTheme.accent.opacity(0.7))
+                    Button {
+                        onTapDay?(day)
+                    } label: {
+                        HStack(spacing: 10) {
+                            if isPro {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(PulseTheme.ringStand)
+                            } else {
+                                Image(systemName: "lock.fill")
+                                    .foregroundStyle(PulseTheme.accent.opacity(0.7))
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(day.title)
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(isPro ? .primary : PulseTheme.secondaryText)
+                                Text(verbatim: localizedFormat("onboarding_plan_exer_dot_min_fmt", day.exercises.count, day.durationMinutes))
+                                    .font(.caption)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(PulseTheme.tertiaryText)
                         }
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(day.title)
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(isPro ? .primary : PulseTheme.secondaryText)
-                            Text(verbatim: localizedFormat("onboarding_plan_exer_dot_min_fmt", day.exercises.count, day.durationMinutes))
-                                .font(.caption)
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
-                        Spacer()
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
                     }
-                    .padding(.vertical, 6)
+                    .buttonStyle(.plain)
 
                     if index < min(otherDays.count, isPro ? otherDays.count : 3) - 1 {
                         Divider()
@@ -2215,24 +2881,365 @@ private struct PlanLockedDaysCard: View {
                 }
 
                 if !isPro && otherDays.count > 3 {
-                    ZStack(alignment: .center) {
-                        Rectangle()
-                            .fill(PulseTheme.grouped.opacity(0.78))
-                            .frame(height: 56)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Button {
+                        if let firstRemaining = otherDays.dropFirst(3).first {
+                            onTapDay?(firstRemaining)
+                        }
+                    } label: {
+                        ZStack(alignment: .center) {
+                            Rectangle()
+                                .fill(PulseTheme.grouped.opacity(0.78))
+                                .frame(height: 56)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                        HStack(spacing: 8) {
-                            Image(systemName: "lock.fill")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(PulseTheme.accent)
-                            Text(verbatim: localizedFormat("onboarding_plan_more_days_blk_fmt", otherDays.count - 3))
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(PulseTheme.accent)
+                            HStack(spacing: 8) {
+                                Image(systemName: "lock.fill")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(PulseTheme.accent)
+                                Text(verbatim: localizedFormat("onboarding_plan_more_days_blk_fmt", otherDays.count - 3))
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(PulseTheme.accent)
+                            }
                         }
                     }
+                    .buttonStyle(.plain)
                     .padding(.top, 8)
                 }
             }
+        }
+    }
+}
+
+// MARK: - Plan Architecture & Rest Detail Sheet (Protected DRM & High Value)
+
+private struct PlanArchitectureDetailSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let plan: WorkoutPlan
+    let draft: OnboardingDraft
+    let exercises: [Exercise]
+    let gender: BodyGender
+    let isPro: Bool
+    let onUnlockPro: () -> Void
+
+    var muscleFrequencyMap: [(muscle: String, count: Int, sets: Int)] {
+        var map = [String: (count: Int, sets: Int)]()
+        for day in plan.days {
+            for item in day.exercises {
+                let key = item.exercise.muscleGroup
+                let current = map[key] ?? (count: 0, sets: 0)
+                map[key] = (count: current.count + 1, sets: current.sets + item.targetSets)
+            }
+        }
+        return map.map { (muscle: $0.key, count: $0.value.count, sets: $0.value.sets) }
+            .sorted { $0.sets > $1.sets }
+    }
+
+    var cadenceDescription: String {
+        switch plan.daysPerWeek {
+        case 5, 6:
+            return onboardingLocalizedString("onboarding_cadence_consecutive")
+        default:
+            return onboardingLocalizedString("onboarding_cadence_interleaved")
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            SecureContainerView {
+                ZStack {
+                    PulseTheme.background
+                        .ignoresSafeArea()
+
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(alignment: .leading, spacing: 20) {
+                            // Header Banner
+                            PulseCard(backgroundColor: PulseTheme.card) {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack {
+                                        Text(onboardingLocalizedString("onboarding_plan_architecture_title"))
+                                            .font(.title3.weight(.heavy))
+                                            .foregroundStyle(.primary)
+
+                                        Spacer()
+
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "lock.shield.fill")
+                                                .font(.caption2.weight(.bold))
+                                            Text(onboardingLocalizedString("onboarding_plan_anti_copy_badge"))
+                                                .font(.system(size: 9, weight: .black))
+                                                .tracking(0.6)
+                                        }
+                                        .foregroundStyle(PulseTheme.onColor(PulseTheme.fitOrange))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(PulseTheme.fitOrange)
+                                        .clipShape(Capsule())
+                                    }
+
+                                    HStack(spacing: 12) {
+                                        Label("\(plan.totalWeeks) sem", systemImage: "calendar")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(PulseTheme.accent)
+                                        Label("\(plan.daysPerWeek) días/sem", systemImage: "figure.run")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(PulseTheme.ringStand)
+                                        Label(onboardingLocalizedString(OnboardingLocationCatalog.location(for: draft.selectedLocationID).title), systemImage: "building.2.fill")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(PulseTheme.secondaryText)
+                                    }
+                                }
+                            }
+
+                            // Section 1: Tiempos de Descanso Científicos
+                            PulseCard {
+                                VStack(alignment: .leading, spacing: 14) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "timer")
+                                            .font(.headline.weight(.bold))
+                                            .foregroundStyle(PulseTheme.fitOrange)
+                                        Text(onboardingLocalizedString("onboarding_section_rest_times"))
+                                            .font(.headline.weight(.bold))
+                                    }
+
+                                    Divider().overlay(PulseTheme.separator)
+
+                                    HStack(alignment: .top, spacing: 12) {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(onboardingLocalizedString("onboarding_rest_between_sets_title"))
+                                                .font(.subheadline.weight(.bold))
+                                                .foregroundStyle(.primary)
+                                            Text(onboardingLocalizedString("onboarding_rest_between_sets_val"))
+                                                .font(.caption.weight(.medium))
+                                                .foregroundStyle(PulseTheme.secondaryText)
+                                        }
+                                        Spacer()
+                                    }
+
+                                    HStack(alignment: .top, spacing: 12) {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(onboardingLocalizedString("onboarding_rest_between_exercises_title"))
+                                                .font(.subheadline.weight(.bold))
+                                                .foregroundStyle(.primary)
+                                            Text(onboardingLocalizedString("onboarding_rest_between_exercises_val"))
+                                                .font(.caption.weight(.medium))
+                                                .foregroundStyle(PulseTheme.secondaryText)
+                                        }
+                                        Spacer()
+                                    }
+                                }
+                            }
+
+                            // Section 2: Cadencia y Distribución Semanal
+                            PulseCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "calendar.badge.clock")
+                                            .font(.headline.weight(.bold))
+                                            .foregroundStyle(PulseTheme.accent)
+                                        Text(onboardingLocalizedString("onboarding_section_schedule_distribution"))
+                                            .font(.headline.weight(.bold))
+                                    }
+
+                                    Divider().overlay(PulseTheme.separator)
+
+                                    Text(cadenceDescription)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(PulseTheme.textPrimary)
+                                }
+                            }
+
+                            // Section 3: Frecuencia por Grupo Muscular
+                            PulseCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "figure.strengthtraining.traditional")
+                                            .font(.headline.weight(.bold))
+                                            .foregroundStyle(PulseTheme.ringStand)
+                                        Text(onboardingLocalizedString("onboarding_section_muscle_frequency"))
+                                            .font(.headline.weight(.bold))
+                                    }
+
+                                    Divider().overlay(PulseTheme.separator)
+
+                                    FlowLayout(spacing: 8) {
+                                        ForEach(muscleFrequencyMap, id: \.muscle) { item in
+                                            HStack(spacing: 5) {
+                                                Text(onboardingLocalizedString(item.muscle))
+                                                    .font(.caption.weight(.bold))
+                                                Text("• \(item.sets) series (\(item.count)x/sem)")
+                                                    .font(.caption.weight(.medium))
+                                                    .foregroundStyle(PulseTheme.secondaryText)
+                                            }
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 6)
+                                            .background(PulseTheme.grouped)
+                                            .clipShape(Capsule())
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Section 4: Desglose Completo de Días del Plan
+                            VStack(alignment: .leading, spacing: 14) {
+                                Text(onboardingLocalizedString("onboarding_section_full_days_breakdown"))
+                                    .font(.headline.weight(.bold))
+
+                                ForEach(Array(plan.days.enumerated()), id: \.offset) { dayIndex, day in
+                                    PulseCard {
+                                        VStack(alignment: .leading, spacing: 12) {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(day.title)
+                                                        .font(.subheadline.weight(.heavy))
+                                                        .foregroundStyle(.primary)
+                                                    Text("\(day.exercises.count) ejercicios · \(day.durationMinutes) min")
+                                                        .font(.caption.weight(.medium))
+                                                        .foregroundStyle(PulseTheme.secondaryText)
+                                                }
+                                                Spacer()
+                                                if !isPro && dayIndex > 0 {
+                                                    Label("Pro Preview", systemImage: "lock.fill")
+                                                        .font(.caption2.weight(.bold))
+                                                        .foregroundStyle(PulseTheme.fitOrange)
+                                                        .padding(.horizontal, 8)
+                                                        .padding(.vertical, 4)
+                                                        .background(PulseTheme.fitOrange.opacity(0.14))
+                                                        .clipShape(Capsule())
+                                                }
+                                            }
+
+                                            Divider().overlay(PulseTheme.separator)
+
+                                            ForEach(Array(day.exercises.enumerated()), id: \.offset) { exIndex, item in
+                                                PlanExerciseRow(
+                                                    item: item,
+                                                    gender: gender,
+                                                    language: draft.preferredLanguage,
+                                                    exercises: exercises,
+                                                    isLocked: !isPro && dayIndex > 0
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        .padding(16)
+                    }
+                    .overlay(WatermarkOverlayView())
+                }
+            }
+            .navigationTitle(onboardingLocalizedString("onboarding_plan_architecture_title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(onboardingLocalizedString("onboarding_btn_continue")) {
+                        dismiss()
+                    }
+                    .font(.subheadline.weight(.bold))
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if !isPro {
+                    VStack(spacing: 8) {
+                        Button {
+                            dismiss()
+                            onUnlockPro()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "bolt.fill")
+                                    .font(.headline.weight(.bold))
+                                Text(onboardingLocalizedString("onboarding_pro_unlock_cta"))
+                                    .font(.headline.weight(.heavy))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                            .background(PulseTheme.accent)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .shadow(color: PulseTheme.accent.opacity(0.35), radius: 10, y: 4)
+                        }
+                        .buttonStyle(.plain)
+                        .pressableFeedback(scale: 0.96)
+                    }
+                    .padding(16)
+                    .background(PulseTheme.background.opacity(0.92))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Screenshot Protection & DRM Secure Container View
+
+private class PassthroughSecureTextField: UITextField {
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        for subview in subviews {
+            let convertedPoint = self.convert(point, to: subview)
+            if let hit = subview.hitTest(convertedPoint, with: event) {
+                return hit
+            }
+        }
+        return nil
+    }
+}
+
+private struct SecureContainerView<Content: View>: UIViewRepresentable {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let field = PassthroughSecureTextField()
+        field.isSecureTextEntry = true
+
+        guard let secureContainer = field.subviews.first else {
+            let host = UIHostingController(rootView: content)
+            return host.view
+        }
+
+        secureContainer.isUserInteractionEnabled = true
+        let host = UIHostingController(rootView: content)
+        host.view.backgroundColor = .clear
+        host.view.translatesAutoresizingMaskIntoConstraints = false
+        secureContainer.addSubview(host.view)
+
+        NSLayoutConstraint.activate([
+            host.view.topAnchor.constraint(equalTo: secureContainer.topAnchor),
+            host.view.bottomAnchor.constraint(equalTo: secureContainer.bottomAnchor),
+            host.view.leadingAnchor.constraint(equalTo: secureContainer.leadingAnchor),
+            host.view.trailingAnchor.constraint(equalTo: secureContainer.trailingAnchor)
+        ])
+
+        return field
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
+}
+
+private struct WatermarkOverlayView: View {
+    var body: some View {
+        GeometryReader { proxy in
+            let text = onboardingLocalizedString("onboarding_watermark_text")
+            VStack(spacing: 36) {
+                ForEach(0..<12, id: \.self) { _ in
+                    HStack(spacing: 24) {
+                        ForEach(0..<4, id: \.self) { _ in
+                            Text(text)
+                                .font(.system(size: 11, weight: .black))
+                                .tracking(1.0)
+                                .foregroundStyle(PulseTheme.fitOrange.opacity(0.12))
+                                .rotationEffect(.degrees(-22))
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                    }
+                }
+            }
+            .frame(width: proxy.size.width * 1.5, height: proxy.size.height * 1.5)
+            .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            .allowsHitTesting(false)
         }
     }
 }

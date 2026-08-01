@@ -6,6 +6,7 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
     case value
     case setup
     case goal
+    case timeline
     case experience
     case schedule
     case equipment
@@ -23,6 +24,34 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         case .generating: "onboarding_btn_see_my_plan"
         case .ready: "onboarding_btn_unlock_plan"
         default: "onboarding_btn_continue"
+        }
+    }
+}
+
+enum PlanHorizonMode: String, CaseIterable, Identifiable {
+    case lifestyle
+    case specificEvent
+
+    var id: String { rawValue }
+
+    var titleKey: String {
+        switch self {
+        case .lifestyle: "onboarding_horizon_lifestyle_title"
+        case .specificEvent: "onboarding_horizon_event_title"
+        }
+    }
+
+    var subtitleKey: String {
+        switch self {
+        case .lifestyle: "onboarding_horizon_lifestyle_subtitle"
+        case .specificEvent: "onboarding_horizon_event_subtitle"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .lifestyle: "infinity"
+        case .specificEvent: "calendar.badge.clock"
         }
     }
 }
@@ -60,6 +89,9 @@ enum BodyMapPreference: String, CaseIterable, Identifiable {
 
 struct OnboardingDraft {
     var mainGoal: UserProfile.MainGoal = .buildMuscle
+    var targetHorizonMode: PlanHorizonMode = .lifestyle
+    var targetEventName: String? = nil
+    var targetEventDate: Date? = nil
     var experience: UserProfile.Experience = .intermediate
     var weeklyTrainingDays = 4
     var sessionLengthMinutes = 60
@@ -138,6 +170,14 @@ struct OnboardingDraft {
         profile.dateOfBirth = Calendar.current.date(byAdding: .year, value: -age, to: .now)
         profile.sex = bodyMapPreference.profileSex
         profile.preferredLanguage = preferredLanguage
+
+        if targetHorizonMode == .specificEvent {
+            profile.targetEventName = targetEventName
+            profile.targetEventDate = targetEventDate
+        } else {
+            profile.targetEventName = nil
+            profile.targetEventDate = nil
+        }
         return profile
     }
 

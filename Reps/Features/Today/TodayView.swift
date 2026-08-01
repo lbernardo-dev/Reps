@@ -477,6 +477,7 @@ private struct TodayViewContent: View {
     @State private var homeWeatherDay: FitnessWeatherDay = .today
     @State private var isOutdoorInsightsExpanded = true
     @State private var showNotifications = false
+    @State private var showWeeklyPlanProgressSheet = false
     @State private var recommendedWorkout: WorkoutDay? = nil
     @State private var recommendedWorkoutToConfirm: WorkoutDay?
     @State private var showRestartConfirmation = false
@@ -497,7 +498,7 @@ private struct TodayViewContent: View {
 
     private func startFocusWorkout() {
         guard !store.isPlanDayLocked(focusWorkout) else {
-            store.requireFeature(.customRoutines, source: .programLibrary)
+            store.presentPaywall(source: .planActivation, feature: nil, trigger: .featureGate)
             return
         }
         guard focusWorkoutAlreadyCompletedToday else {
@@ -694,6 +695,10 @@ private struct TodayViewContent: View {
             }
             .sheet(item: $planToEdit) { plan in
                 CreatePlanView(existingPlan: plan)
+                    .repsSheetPresentation()
+            }
+            .sheet(isPresented: $showWeeklyPlanProgressSheet) {
+                WeeklyPlanProgressDetailView(model: model, store: store)
                     .repsSheetPresentation()
             }
             .navigationDestination(isPresented: $showProfile) {
@@ -924,7 +929,11 @@ private struct TodayViewContent: View {
             weeklyTarget: hasActivePlan ? store.activePlan.daysPerWeek : store.userProfile.weeklyTrainingDays,
             weeklyVolumeKg: FitnessMetrics.totalVolumeKg(for: weekSessions),
             weeklyVolumeUnit: displayedVolumeUnit,
-            barPoints: weeklyProgressBarPoints
+            barPoints: weeklyProgressBarPoints,
+            onTapSessions: {
+                HapticService.selection()
+                showWeeklyPlanProgressSheet = true
+            }
         )
     }
 
@@ -988,7 +997,7 @@ private struct TodayViewContent: View {
             if destination == .workouts {
                 Button {
                     HapticService.selection()
-                    planToEdit = store.activePlan
+                    showWeeklyPlanProgressSheet = true
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: icon)
@@ -1282,33 +1291,18 @@ private struct TodayViewContent: View {
             let isFocusLocked = store.isPlanDayLocked(focusWorkout)
 
             if isFocusLocked {
-                HStack(spacing: 10) {
-                    Button {
-                        HapticService.selection()
-                        store.requireFeature(.customRoutines, source: .programLibrary)
-                    } label: {
-                        Label(localizedString("unlock_with_pro_button"), systemImage: "lock.fill")
-                            .font(.headline.weight(.black))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
-                            .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        HapticService.selection()
-                        store.requireFeature(.customRoutines, source: .programLibrary)
-                    } label: {
-                        Image(systemName: "lock.fill")
-                            .font(.headline.weight(.black))
-                            .frame(width: 54, height: 54)
-                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
-                            .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(localizedString("unlock_with_pro_button"))
+                Button {
+                    HapticService.selection()
+                    store.presentPaywall(source: .planActivation, feature: nil, trigger: .featureGate)
+                } label: {
+                    Label(localizedString("unlock_with_pro_button"), systemImage: "lock.fill")
+                        .font(.headline.weight(.black))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                        .background(PulseTheme.accent, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                 }
+                .buttonStyle(.plain)
             } else {
                 HStack(spacing: 10) {
                     Button {
@@ -6619,6 +6613,7 @@ struct WeeklyProgressHeroCard: View {
     let weeklyVolumeKg: Double
     let weeklyVolumeUnit: String
     let barPoints: [WeeklyBarPoint]
+    var onTapSessions: (() -> Void)? = nil
 
     @State private var barsAnimated = false
     private let chartPlotHeight: CGFloat = 32
@@ -6653,21 +6648,26 @@ struct WeeklyProgressHeroCard: View {
                         .opacity(0.25)
 
                     // Sessions this week
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 5) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.caption.weight(.black))
-                                .foregroundStyle(PulseTheme.growth)
-                            Text("\(completedThisWeek)/\(weeklyTarget)")
-                                .font(.system(size: 26, weight: .black, design: .rounded).monospacedDigit())
-                                .foregroundStyle(.primary)
+                    Button {
+                        onTapSessions?()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.caption.weight(.black))
+                                    .foregroundStyle(PulseTheme.growth)
+                                Text("\(completedThisWeek)/\(weeklyTarget)")
+                                    .font(.system(size: 26, weight: .black, design: .rounded).monospacedDigit())
+                                    .foregroundStyle(.primary)
+                            }
+                            Text("sessions_2")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .textCase(.uppercase)
+                                .tracking(0.5)
                         }
-                        Text("sessions_2")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .textCase(.uppercase)
-                            .tracking(0.5)
                     }
+                    .buttonStyle(.plain)
 
                     Spacer()
 
@@ -6785,4 +6785,177 @@ struct WeeklyBarPoint: Identifiable {
     let normalizedHeight: Double   // 0.0 – 1.0
     let hasActivity: Bool
     let isToday: Bool
+}
+
+/// Sheet interactiva que muestra el detalle del progreso del plan semanal cuando el usuario pulsa
+/// la pill `0/4` o el resumen semanal.
+fileprivate struct WeeklyPlanProgressDetailView: View {
+    let model: TodayRenderModel
+    let store: AppStore
+    @Environment(\.dismiss) private var dismiss
+
+    private var activePlan: WorkoutPlan {
+        store.activePlan
+    }
+
+    private var weekSessions: [WorkoutSession] {
+        model.weekSessions.sorted { $0.date > $1.date }
+    }
+
+    private var targetSessions: Int {
+        model.hasActivePlan ? activePlan.daysPerWeek : store.userProfile.weeklyTrainingDays
+    }
+
+    private var completionRatio: Double {
+        guard targetSessions > 0 else { return 0 }
+        return min(Double(model.completedThisWeek) / Double(targetSessions), 1.0)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    headerView
+                    completedSessionsView
+                    if model.hasActivePlan && !activePlan.days.isEmpty {
+                        activePlanDaysView
+                    }
+                }
+                .padding()
+            }
+            .background(PulseTheme.background.ignoresSafeArea())
+            .navigationTitle(RepsLocalization.language.hasPrefix("es") ? "Detalle de progreso" : "Progress Detail")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(RepsLocalization.language.hasPrefix("es") ? "Cerrar" : "Close") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private var headerView: some View {
+        VStack(spacing: 16) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(RepsLocalization.language.hasPrefix("es") ? "Progreso semanal" : "Weekly Progress")
+                        .font(.headline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                    Text("\(model.completedThisWeek) / \(targetSessions)")
+                        .font(.system(size: 38, weight: .black, design: .rounded).monospacedDigit())
+                        .foregroundStyle(PulseTheme.growth)
+                    Text(RepsLocalization.language.hasPrefix("es") ? "sesiones completadas esta semana" : "sessions completed this week")
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .stroke(PulseTheme.growth.opacity(0.2), lineWidth: 8)
+                    Circle()
+                        .trim(from: 0, to: completionRatio)
+                        .stroke(PulseTheme.growth, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    Text("\(Int(completionRatio * 100))%")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: 64, height: 64)
+            }
+
+            ProgressView(value: completionRatio)
+                .tint(PulseTheme.growth)
+        }
+        .padding(18)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var completedSessionsView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(RepsLocalization.language.hasPrefix("es") ? "Sesiones realizadas esta semana" : "Sessions completed this week")
+                .font(.title3.bold())
+
+            if weekSessions.isEmpty {
+                VStack(spacing: 10) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 36))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                    Text(RepsLocalization.language.hasPrefix("es") ? "Aún no has registrado sesiones esta semana." : "No sessions logged this week yet.")
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+                .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 16))
+            } else {
+                ForEach(weekSessions, id: \.id) { session in
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(PulseTheme.growth)
+                        VStack(alignment: .leading, spacing: 3) {
+                            let titleText = session.workoutTitle.isEmpty ? (RepsLocalization.language.hasPrefix("es") ? "Entrenamiento" : "Workout") : session.workoutTitle
+                            Text(titleText)
+                                .font(.headline)
+                            HStack(spacing: 8) {
+                                Text(session.date.formatted(date: .abbreviated, time: .shortened))
+                                Text("·")
+                                Text("\(session.durationMinutes) min")
+                                let volKg = session.sets.reduce(0.0) { $0 + ($1.weightKg * Double($1.reps)) }
+                                if volKg > 0 {
+                                    Text("·")
+                                    Text("\(Int(volKg)) kg")
+                                }
+                            }
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+                    }
+                    .padding(14)
+                    .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 14))
+                }
+            }
+        }
+    }
+
+    private var activePlanDaysView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(RepsLocalization.language.hasPrefix("es") ? "Días de tu plan activo" : "Active Plan Days")
+                .font(.title3.bold())
+
+            ForEach(activePlan.days, id: \.id) { day in
+                let isDone = weekSessions.contains { $0.workoutTitle.lowercased() == day.title.lowercased() }
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(day.title)
+                            .font(.headline)
+                        let countText = "\(day.exercises.count) " + (RepsLocalization.language.hasPrefix("es") ? "ejercicios" : "exercises")
+                        Text(countText)
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                    Spacer()
+                    if isDone {
+                        Label(RepsLocalization.language.hasPrefix("es") ? "Completado" : "Completed", systemImage: "checkmark.circle.fill")
+                            .font(.caption.bold())
+                            .foregroundStyle(PulseTheme.growth)
+                    } else {
+                        Text(RepsLocalization.language.hasPrefix("es") ? "Pendiente" : "Pending")
+                            .font(.caption.bold())
+                            .foregroundStyle(PulseTheme.warning)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(PulseTheme.warning.opacity(0.15), in: Capsule())
+                    }
+                }
+                .padding(14)
+                .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
 }

@@ -1,6 +1,7 @@
 import CryptoKit
 import MuscleMap
 import SwiftUI
+@preconcurrency import Translation
 
 private extension UIColor {
     var rgbaComponents: (red: Double, green: Double, blue: Double, alpha: Double) {
@@ -1060,56 +1061,419 @@ enum RepsText {
     }
 
     private static let spanishExerciseDictionary: [String: String] = [
+        // Pecho / Chest
         "barbell bench press": "Press de Banca con Barra",
         "incline barbell bench press": "Press Inclinado con Barra",
+        "decline barbell bench press": "Press Declinado con Barra",
+        "close grip bench press": "Press de Banca Agarre Cerrado",
+        "wide grip bench press": "Press de Banca Agarre Ancho",
+        "paused bench press": "Press de Banca con Pausa",
+        "spoto press": "Press Spoto",
+        "floor press": "Press en Suelo (Floor Press)",
+        "pin press": "Press con Pins",
+        "board press": "Press con Tabla",
         "dumbbell bench press": "Press con Mancuernas en Banco Plano",
         "incline dumbbell bench press": "Press Inclinado con Mancuernas",
+        "decline dumbbell press": "Press Declinado con Mancuernas",
         "dumbbell flyes": "Aperturas con Mancuernas",
+        "dumbbell fly": "Aperturas con Mancuernas",
+        "incline dumbbell fly": "Aperturas Inclinadas con Mancuernas",
+        "dumbbell pullover": "Pullover con Mancuerna",
+        "neutral grip dumbbell press": "Press con Mancuernas Agarre Neutro",
+        "single arm dumbbell bench press": "Press de Banca a Una Mano",
+        "dumbbell squeeze press": "Press Squeeze con Mancuernas",
+        "dumbbell floor press": "Press en Suelo con Mancuernas",
+        "alternating dumbbell press": "Press Alternado con Mancuernas",
+        "low incline dumbbell press": "Press Inclinación Baja con Mancuernas",
+        "cable chest fly": "Cruces de Poleas para Pecho",
+        "low cable fly": "Aperturas desde Polea Baja",
+        "high cable fly": "Aperturas desde Polea Alta",
+        "single arm cable press": "Press en Polea a Una Mano",
+        "cable crossover": "Cruces de Poleas (Crossover)",
+        "cable incline press": "Press Inclinado en Polea",
+        "cable decline press": "Press Declinado en Polea",
+        "standing cable chest press": "Press de Pecho de Pie en Polea",
+        "cable squeeze press": "Press Squeeze en Polea",
+        "cable around the world": "Around The World en Polea",
+        "machine chest press": "Press de Pecho en Máquina",
+        "incline machine press": "Press Inclinado en Máquina",
+        "decline machine press": "Press Declinado en Máquina",
+        "pec deck fly": "Contractora de Pecho (Pec Deck)",
+        "seated chest fly machine": "Máquina de Aperturas de Pecho",
+        "hammer strength chest press": "Press de Pecho Hammer Strength",
+        "smith machine bench press": "Press de Banca en Multipower",
+        "smith machine incline press": "Press Inclinado en Multipower",
+        "assisted chest dip": "Fondos de Pecho Asistidos",
+        "machine pullover": "Pullover en Máquina",
+        "push-up": "Flexiones de Pecho",
         "push-ups": "Flexiones de Pecho",
-        "lat pulldown": "Jalón al Pecho en Polea",
-        "barbell row": "Remo con Barra",
-        "dumbbell row": "Remo a una Mano con Mancuerna",
-        "seated cable row": "Remo Sentado en Polea",
-        "pull-ups": "Dominadas Pronadas",
-        "chin-ups": "Dominadas Supinas",
-        "barbell squat": "Sentadillas Traseras con Barra",
-        "goblet squat": "Sentadillas Goblet con Mancuerna",
-        "leg press": "Prensa de Piernas",
-        "romanian deadlift": "Peso Muerto Rumano",
+        "incline push-up": "Flexiones Inclinadas",
+        "decline push-up": "Flexiones Declinadas",
+        "diamond push-up": "Flexiones Diamante",
+        "wide push-up": "Flexiones Abiertas",
+        "archer push-up": "Flexiones Arquero",
+        "pike push-up": "Flexiones en Pica",
+        "deficit push-up": "Flexiones en Déficit",
+        "ring push-up": "Flexiones en Anillas",
+        "chest dip": "Fondos de Pecho en Paralelas",
+        
+        // Espalda / Back
         "barbell deadlift": "Peso Muerto Convencional",
-        "hip thrust": "Empuje de Cadera con Barra (Hip Thrust)",
+        "romanian deadlift": "Peso Muerto Rumano",
+        "barbell row": "Remo con Barra",
+        "pendlay row": "Remo Pendlay con Barra",
+        "t-bar row": "Remo en Barra T",
+        "meadows row": "Remo Meadows",
+        "snatch grip deadlift": "Peso Muerto Agarre Ancho",
+        "rack pull": "Tirones desde Soporte (Rack Pull)",
+        "good morning": "Buenos Días con Barra",
+        "seal row": "Remo Seal en Banco",
+        "barbell pullover": "Pullover con Barra",
+        "yates row": "Remo Yates",
+        "dumbbell row": "Remo a una Mano con Mancuerna",
+        "chest supported dumbbell row": "Remo Apoyado en Banco con Mancuernas",
+        "single arm dumbbell row": "Remo Unilateral con Mancuerna",
+        "incline dumbbell row": "Remo Inclinado con Mancuernas",
+        "renegade row": "Remo Renegado (Renegade Row)",
+        "dumbbell romanian deadlift": "Peso Muerto Rumano con Mancuernas",
+        "dumbbell shrug": "Encogimientos con Mancuernas",
+        "dumbbell reverse fly": "Pájaro / Aperturas Invertidas con Mancuernas",
+        "prone dumbbell y raise": "Elevación en Y Proclive con Mancuernas",
+        "lat pulldown": "Jalón al Pecho en Polea",
+        "close grip lat pulldown": "Jalón al Pecho Agarre Estrecho",
+        "wide grip lat pulldown": "Jalón al Pecho Agarre Ancho",
+        "single arm lat pulldown": "Jalón al Pecho Unilateral",
+        "straight arm pulldown": "Jalón con Brazos Rectos en Polea",
+        "seated cable row": "Remo Sentado en Polea",
+        "low cable row": "Remo en Polea Baja",
+        "high cable row": "Remo en Polea Alta",
+        "face pull": "Jalón a la Cara (Face Pull)",
+        "band face pull": "Face Pull con Banda elástica",
+        "cable pullover": "Pullover en Polea",
+        "cable rear delt row": "Remo para Deltoides Posterior en Polea",
+        "kneeling cable pulldown": "Jalón en Polea de Rodillas",
+        "pull-up": "Dominadas Pronadas",
+        "pull-ups": "Dominadas Pronadas",
+        "chin-up": "Dominadas Supinas",
+        "chin-ups": "Dominadas Supinas",
+        "neutral grip pull-up": "Dominadas Agarre Neutro",
+        "wide grip pull-up": "Dominadas Agarre Ancho",
+        "negative pull-up": "Dominadas Negativas",
+        "assisted pull-up": "Dominadas Asistidas",
+        "inverted row": "Remo Invertido",
+        "band row": "Remo con Banda de Resistencia",
+        "ring row": "Remo en Anillas",
+        "scapular pull-up": "Dominadas Escapulares",
+        "dead hang": "Suspensión Pasiva (Dead Hang)",
+
+        // Piernas y Glúteos / Legs & Glutes
+        "barbell squat": "Sentadillas Traseras con Barra",
+        "front squat": "Sentadilla Frontal con Barra",
+        "paused squat": "Sentadilla con Pausa",
+        "box squat": "Sentadilla a la Caja",
+        "zercher squat": "Sentadilla Zercher",
+        "barbell lunge": "Zancadas con Barra",
+        "barbell reverse lunge": "Zancadas Invertidas con Barra",
         "barbell hip thrust": "Empuje de Cadera con Barra (Hip Thrust)",
+        "hip thrust": "Empuje de Cadera con Barra (Hip Thrust)",
+        "barbell glute bridge": "Puente de Glúteos con Barra",
         "glute bridge": "Puente de Glúteos",
-        "walking lunges": "Zancadas Caminando con Mancuernas",
-        "bulgarian split squat": "Sentadilla Búlgara con Mancuernas",
+        "single leg glute bridge": "Puente de Glúteos a Una Pierna",
+        "frog pump": "Elevación Frog Pump",
+        "donkey kick": "Patada de Glúteo (Donkey Kick)",
+        "fire hydrant": "Elevación Lateral de Cadera (Fire Hydrant)",
+        "bodyweight reverse lunge": "Zancadas Invertidas Peso Corporal",
+        "bodyweight step-up": "Subidas al Banco Peso Corporal",
+        "curtsy lunge": "Zancada Cruzada (Curtsy Lunge)",
+        "wall sit": "Sentadilla en la Pared (Wall Sit)",
+        "barbell calf raise": "Elevación de Talones con Barra",
         "standing calf raise": "Elevación de Talones de Pie",
         "seated calf raise": "Elevación de Talones Sentado",
-        "overhead dumbbell press": "Press Militar con Mancuernas",
-        "barbell overhead press": "Press Militar con Barra",
-        "dumbbell lateral raise": "Elevaciones Laterales con Mancuernas",
-        "face pull": "Jalón a la Cara en Polea (Face Pull)",
-        "dumbbell bicep curl": "Curl de Bíceps con Mancuernas",
-        "hammer curl": "Curl Martillo con Mancuernas",
-        "triceps rope pushdown": "Extensión de Tríceps en Polea con Cuerda",
-        "skull crushers": "Extensión de Tríceps en Banco (Skull Crushers)",
-        "hanging leg raise": "Elevación de Piernas Colgado",
-        "plank": "Plancha Abdominal Isométrica",
-        "cable woodchopper": "Corte de Madera en Polea (Woodchopper)",
+        "barbell split squat": "Sentadilla Dividida con Barra",
+        "safety bar squat": "Sentadilla con Barra de Seguridad",
+        "goblet squat": "Sentadilla Goblet con Mancuerna",
+        "dumbbell squat": "Sentadilla con Mancuernas",
+        "walking lunge": "Zancadas Caminando con Mancuernas",
+        "walking lunges": "Zancadas Caminando con Mancuernas",
+        "reverse lunge": "Zancadas Invertidas",
+        "dumbbell step-up": "Subidas al Banco con Mancuernas",
+        "bulgarian split squat": "Sentadilla Búlgara con Mancuernas",
+        "split squat": "Sentadilla Búlgara con Mancuernas",
+        "dumbbell calf raise": "Elevación de Talones con Mancuernas",
+        "dumbbell hip thrust": "Empuje de Cadera con Mancuerna",
+        "dumbbell sumo squat": "Sentadilla Sumo con Mancuerna",
+        "dumbbell cossack squat": "Sentadilla Coseca con Mancuerna",
+        "dumbbell hamstring curl": "Curl Femoral con Mancuerna",
+        "leg press": "Prensa de Piernas",
+        "hack squat": "Sentadilla Hack",
+        "leg extension": "Extensión de Cuádriceps en Máquina",
+        "seated leg curl": "Curl Femoral Sentado",
+        "lying leg curl": "Curl Femoral Tumbado",
+        "standing leg curl": "Curl Femoral de Pie",
+        "hip abduction machine": "Máquina de Abducción de Cadera",
+        "hip adduction machine": "Máquina de Adducción de Cadera",
+        "standing calf raise machine": "Elevación de Talones en Máquina de Pie",
+        "smith machine squat": "Sentadilla en Multipower",
+        "glute kickback machine": "Máquina de Patada de Glúteo",
         "cable kickback": "Patada de Glúteo en Polea",
         "glute kickback": "Patada de Glúteo en Polea",
+
+        // Hombros y Brazos / Shoulders & Arms
+        "overhead press": "Press Militar con Barra",
+        "barbell overhead press": "Press Militar con Barra",
+        "overhead dumbbell press": "Press Militar con Mancuernas",
+        "dumbbell lateral raise": "Elevaciones Laterales con Mancuernas",
+        "lateral raise": "Elevaciones Laterales con Mancuernas",
         "cable lateral raise": "Elevaciones Laterales en Polea",
+        "dumbbell bicep curl": "Curl de Bíceps con Mancuernas",
+        "dumbbell curl": "Curl de Bíceps con Mancuernas",
+        "curl": "Curl de Bíceps con Mancuernas",
+        "hammer curl": "Curl Martillo con Mancuernas",
         "ez bar bicep curl": "Curl de Bíceps con Barra Z",
+        "triceps rope pushdown": "Extensión de Tríceps en Polea con Cuerda",
+        "overhead triceps extension": "Extensión de Tríceps sobre la Cabeza",
+        "triceps extension": "Extensión de Tríceps sobre la Cabeza",
+        "skull crushers": "Extensión de Tríceps en Banco (Skull Crushers)",
         "triceps dip": "Fondos de Tríceps",
-        "chest dip": "Fondos de Pecho en Paralelas"
+
+        // Core & Cardio
+        "plank": "Plancha Abdominal Isométrica",
+        "hanging leg raise": "Elevación de Piernas Colgado",
+        "mountain climber": "Escaladores (Mountain Climbers)",
+        "cable woodchopper": "Corte de Madera en Polea (Woodchopper)",
+        "kettlebell swing": "Balanceo con Pesa Rusa (Kettlebell Swing)",
+        "stationary bike": "Bicicleta Estática",
+        "treadmill run": "Carrera en Cinta",
+        "rowing machine": "Remo en Ergómetro"
     ]
+
+    private static let spanishMuscleDictionary: [String: String] = [
+        "full body": "Cuerpo Completo",
+        "fullbody": "Cuerpo Completo",
+        "chest": "Pecho",
+        "back": "Espalda",
+        "shoulders": "Hombros",
+        "biceps": "Bíceps",
+        "triceps": "Tríceps",
+        "forearms": "Antebrazos",
+        "abs": "Abdominales",
+        "abdominals": "Abdominales",
+        "core": "Core",
+        "quads": "Cuádriceps",
+        "quadriceps": "Cuádriceps",
+        "hamstrings": "Isquiotibiales",
+        "calves": "Gemelos",
+        "glutes": "Glúteos",
+        "lats": "Dorsales",
+        "traps": "Trapecios",
+        "lower back": "Zona Lumbar",
+        "neck": "Cuello",
+        "adductors": "Aductores",
+        "abductors": "Abductores"
+    ]
+
+    private static let spanishEquipmentDictionary: [String: String] = [
+        "bodyweight": "Peso Corporal",
+        "body weight": "Peso Corporal",
+        "body only": "Peso Corporal",
+        "barbell": "Barra",
+        "dumbbell": "Mancuerna",
+        "dumbbells": "Mancuernas",
+        "cable": "Polea",
+        "machine": "Máquina",
+        "resistance band": "Banda de Resistencia",
+        "band": "Banda de Resistencia",
+        "kettlebell": "Pesa Rusa",
+        "kettlebells": "Pesa Rusa",
+        "smith machine": "Multipower",
+        "ez bar": "Barra Z",
+        "e-z curl bar": "Barra Z",
+        "pull-up bar": "Barra de Dominadas",
+        "pullup bar": "Barra de Dominadas",
+        "parallel bars": "Paralelas",
+        "gym mat": "Colchoneta",
+        "mat": "Colchoneta",
+        "bench": "Banco",
+        "other": "Otro",
+        "none": "Ninguno"
+    ]
+
+    static func localizedInstructions(for exerciseName: String, defaultInstructions: String?, language: String) -> String? {
+        let norm = normalized(exerciseName)
+        if let customES = spanishInstructionsDictionary[norm] {
+            return customES
+        }
+        if let datasetInstructions = FreeExerciseDBIndex.lookupInstructions(name: exerciseName, language: language) {
+            return datasetInstructions
+        }
+        if let defaultInstructions, !defaultInstructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let isSpanish = language.lowercased().hasPrefix("es") || RepsLocalization.language.hasPrefix("es")
+            if isSpanish {
+                return translateInstructionText(defaultInstructions)
+            }
+            return defaultInstructions
+        }
+        return nil
+    }
+
+    static func localizedCommonMistakes(for exerciseName: String, defaultMistakes: [String], language: String) -> [String] {
+        let isSpanish = language.lowercased().hasPrefix("es") || RepsLocalization.language.hasPrefix("es")
+        guard isSpanish else {
+            return defaultMistakes
+        }
+        let norm = normalized(exerciseName)
+        if let customES = spanishMistakesDictionary[norm] {
+            return customES
+        }
+        if !defaultMistakes.isEmpty {
+            return defaultMistakes.map(translateInstructionText)
+        }
+        return [
+            "Perder la curvatura neutra de la espalda",
+            "Mover el peso de forma incontrolada o usar impulso excesivo",
+            "No completar el rango de movimiento completo (ROM)",
+            "Descuidar la respiración adecuada durante la fase concéntrica"
+        ]
+    }
+
+    private static let spanishInstructionsDictionary: [String: String] = [
+        "barbell bench press": """
+        1. Posición inicial: Túmbate en el banco plano con los pies bien apoyados en el suelo. Sujeta la barra con agarre prono a la anchura de los hombros o ligeramente superior.
+        2. Desbloqueo y descenso: Desengancha la barra y colócala sobre tu pecho. Inhala y baja la barra de forma controlada hasta la parte media del esternón.
+        3. Empuje: Mantén los codos a 45° respecto al torso. Exhala y empuja la barra hacia arriba de forma explosiva manteniendo los omóplatos retraídos contra el banco.
+        4. Bloqueo: Extiende los brazos sin bloquear bruscamente los codos en el punto superior.
+        """,
+        "incline barbell bench press": """
+        1. Posición inicial: Ajusta el banco inclinado entre 30° y 45°. Coloca los pies firmes en el suelo y agarra la barra a la anchura de los hombros.
+        2. Descenso: Inhala y desciende la barra de manera controlada hacia la parte alta del pecho (debajo de las clavículas).
+        3. Empuje: Exhala y empuja verticalmente hacia arriba contrayendo la porción clavicular del pectoral.
+        """,
+        "dumbbell bench press": """
+        1. Posición inicial: Siéntate en el banco con un par de mancuernas sobre tus muslos. Túmbate impulsándolas hacia arriba hasta posicionarlas sobre el pecho.
+        2. Descenso: Inhala y baja las mancuernas abriendo los codos a unos 45°, sintiendo el estiramiento en el pectoral.
+        3. Empuje: Exhala y junta sutilmente las mancuernas arriba sin llegar a chocar en la cima.
+        """,
+        "barbell squat": """
+        1. Preparación: Apoya la barra sobre el trapecio (barra alta) o deltoides posterior (barra baja). Desengancha y da dos pasos atrás.
+        2. Descenso: Inhala profundamente creando presión intraabdominal. Rompe caderas y rodillas simultáneamente bajando de forma controlada hasta superar la paralela.
+        3. Ascenso: Mantén el pecho arriba y las rodillas alineadas con las puntas de los pies. Exhala mientras empujas con los talones hasta la posición inicial.
+        """,
+        "goblet squat": """
+        1. Posición inicial: Sostén una mancuerna o pesa rusa pegada al pecho con ambas manos a la altura del esternón. Pies al ancho de hombros.
+        2. Ejecución: Baja en sentadilla manteniendo la espalda erguida y guiando los codos por dentro de las rodillas. Empuja el suelo al subir.
+        """,
+        "romanian deadlift": """
+        1. Posición inicial: De pie sujetando la barra o mancuernas delante de los muslos. Pies al ancho de caderas, rodillas ligeramente flexionadas.
+        2. Flexión de cadera: Inhala y lleva la cadera hacia atrás como si quisieras tocar una pared detrás de ti, deslizando la carga pegada a las piernas.
+        3. Extensión: Siente el estiramiento en isquiotibiales y glúteos. Exhala y contrae los glúteos para volver a erguirte sin hiperextender la zona lumbar.
+        """,
+        "barbell deadlift": """
+        1. Posición inicial: Colócate con los pies a la anchura de caderas y la barra sobre el medio del pie. Agarra la barra por fuera de las piernas.
+        2. Preparación: Tensa los dorsales, abre el pecho y bloquea la espalda neutra.
+        3. Empuje: Inhala, crea tensión previa y empuja el suelo con las piernas manteniendo la barra pegada al cuerpo hasta ponerte erguido. Exhala al completar.
+        """,
+        "hip thrust": """
+        1. Posición inicial: Apoya la parte media de la espalda en un banco. Coloca la barra acolchada sobre el pliegue de la cadera con los pies firmes a 90° de rodilla arriba.
+        2. Empuje: Inhala y empuja con los talones elevando la cadera hacia el techo hasta alinear tronco y muslos.
+        3. Contracción: Aprieta los glúteos 1 segundo arriba con la mirada al frente y baja de forma controlada.
+        """,
+        "pull-up": """
+        1. Posición inicial: Cuélgate de la barra con agarre prono a una anchura superior a los hombros.
+        2. Tracción: Inhala, activa las escápulas tirando hacia abajo y eleva el pecho hacia la barra dirigiendo los codos hacia tus costados.
+        3. Pico y descenso: Supera la barra con la barbilla, exhala y desciende con control total.
+        """,
+        "lat pulldown": """
+        1. Ajuste: Siéntate en la máquina ajustando el rodillo sobre los muslos. Agarra la barra prono amplio.
+        2. Ejecución: Inclina levemente el torso atrás, inhala y lleva la barra al pecho superior retrayendo las escápulas. Exhala al completar la contracción.
+        """,
+        "barbell row": """
+        1. Posición inicial: Inclina el torso hacia adelante a unos 45° con la espalda neutra y las rodillas ligeramente flexionadas.
+        2. Tracción: Tira de la barra hacia la parte baja del abdomen/ombligo llevando los codos atrás. Exhala al contraer la espalda.
+        """,
+        "dumbbell lateral raise": """
+        1. Posición inicial: De pie con mancuernas a los lados del cuerpo y una ligera flexión de codos.
+        2. Elevación: Eleva los brazos hacia los lados en el plano escapular (30° hacia adelante) hasta la altura de los hombros. Exhala arriba.
+        """,
+        "plank": """
+        1. Posición inicial: Apoya antebrazos y puntas de los pies en el suelo.
+        2. Alineación: Mantén una línea recta desde la cabeza a los talones, apretando abdomen, glúteos y cuádriceps de forma isométrica sin dejar caer la pelvis.
+        """
+    ]
+
+    private static let spanishMistakesDictionary: [String: [String]] = [
+        "barbell bench press": [
+            "Rebotar la barra bruscamente contra el esternón",
+            "Abrir los codos a 90° respecto al torso aumentando el estrés en el hombro",
+            "Despegar los glúteos del banco durante la fase de empuje",
+            "Perder la retracción escapular y la tensión en la espalda alta"
+        ],
+        "barbell squat": [
+            "Permitir que las rodillas colapsen hacia adentro (valgo de rodilla)",
+            "Curvar la zona lumbar en la parte inferior del movimiento (butt wink)",
+            "Despegar los talones del suelo desplazando el peso sobre las puntas",
+            "Mirar hacia arriba excesivamente hiperextendiendo el cuello"
+        ],
+        "romanian deadlift": [
+            "Curvar la columna lumbar durante el descenso",
+            "Doblar las rodillas en exceso convirtiéndolo en una sentadilla",
+            "Alejar la barra o mancuernas de las piernas",
+            "Hiperextender la espalda al erguirse en lugar de bloquear con glúteos"
+        ],
+        "pull-up": [
+            "Usar impulso o balanceo de piernas (kipping) sin control",
+            "No completar el rango de movimiento abajo (no extender los brazos)",
+            "Encoger los hombros hacia las orejas al tirar",
+            "Llevar los codos demasiado atrás en lugar de hacia los costados"
+        ]
+    ]
+
+    private static func translateInstructionText(_ text: String) -> String {
+        var result = text
+        let replacements: [(String, String)] = [
+            ("Set up with control, brace before each rep, move through a comfortable range of motion, and keep tension on", "Posiciónate con control, activa el abdomen antes de cada repetición, mantén un rango de movimiento cómodo y conserva la tensión en"),
+            ("Set up with control, brace before each rep, move through a comfortable range of motion, and keep tension", "Posiciónate con control, activa el abdomen antes de cada repetición, mantén un rango de movimiento cómodo y conserva la tensión"),
+            ("throughout", "durante todo el movimiento de"),
+            ("Set up a bench at", "Ajusta el banco a"),
+            ("Set up bench at", "Ajusta el banco a"),
+            ("Maintain proper form", "Mantén una técnica correcta"),
+            ("Keep your core engaged", "Mantén el abdomen contraído"),
+            ("Keep core engaged", "Mantén el abdomen activo"),
+            ("Drive through your heels", "Empuja con los talones"),
+            ("Lower with control", "Baja con control"),
+            ("Exhale as you push", "Exhala al empujar"),
+            ("Exhale as you pull", "Exhala al tirar"),
+            ("Inhale on the way down", "Inhala durante el descenso"),
+            ("Pause for a second at the top", "Pausa un segundo en el punto máximo"),
+            ("Focus on muscle contraction", "Concéntrate en la contracción muscular"),
+            ("Avoid arching your lower back", "Evita arquear la zona lumbar"),
+            ("Perform smooth, controlled repetitions", "Realiza repeticiones fluidas y controladas"),
+            ("Losing brace", "Perder la activación del core o firmeza lumbar"),
+            ("Using momentum", "Usar impulso o balanceo excesivo"),
+            ("Cutting the range of motion short", "Acortar el rango de movimiento completo"),
+            ("Loss of lumbar neutrality", "Perder la curvatura neutra de la espalda"),
+            ("Excessive speed", "Velocidad excesiva sin control")
+        ]
+        for (pattern, sub) in replacements {
+            result = result.replacingOccurrences(of: pattern, with: sub, options: .caseInsensitive)
+        }
+        return result
+    }
 
     private static func localizedTerm(prefix: String, value: String, defaultValue: String, language: String) -> String {
         let key = "\(prefix).\(slug(value))"
         if let localized = localizedCatalogValue(key, defaultValue: defaultValue, language: language), localized != key && localized != defaultValue {
             return localized
         }
-        if language.lowercased().hasPrefix("es") && prefix == "exercise" {
-            if let spanish = spanishExerciseDictionary[normalized(value)] {
+        let isSpanish = language.lowercased().hasPrefix("es") || RepsLocalization.language.hasPrefix("es")
+        if isSpanish {
+            let norm = normalized(value)
+            if prefix == "exercise", let spanish = spanishExerciseDictionary[norm] {
+                return spanish
+            }
+            if prefix == "muscle", let spanish = spanishMuscleDictionary[norm] {
+                return spanish
+            }
+            if prefix == "equipment", let spanish = spanishEquipmentDictionary[norm] {
                 return spanish
             }
         }
@@ -2163,17 +2527,37 @@ struct ExerciseMediaThumbnail: View, Equatable {
     var body: some View {
         let visualExercise = ExerciseVisualResolver.resolved(exercise, catalog: catalog)
         ZStack {
+            // 1. Multimedia personalizada del usuario
             if let data = visualExercise.customImageData,
                let image = ExerciseThumbnailImageCache.shared.image(for: data, exerciseID: visualExercise.id) {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
-            } else if let url = visualExercise.mediaAssetURL {
+            }
+            // 2. Foto del catálogo (carga asíncrona no bloqueante)
+            else if let url = visualExercise.mediaAssetURL {
                 RemoteExerciseImage(url: url) {
                     fallback(for: visualExercise)
                 }
-            } else {
+            }
+            // 3. Modelo 3D / Anatómico (también para ejercicios con vídeo en lista)
+            else {
                 fallback(for: visualExercise)
+            }
+
+            // Badge de vídeo superpuesto – indica que hay vídeo sin reproducirlo en lista
+            if visualExercise.localVideoURL != nil
+                || ExerciseVisualResolver.hasValidCustomVideo(visualExercise.customVideoData) {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(.white, Color.black.opacity(0.5))
+                            .padding(6)
+                    }
+                }
             }
         }
         .background(PulseTheme.grouped)
@@ -2232,6 +2616,17 @@ enum ExerciseVisualResolver {
             resolved.mediaURL = catalogExercise.mediaURL
         }
 
+        // Propagate catalog videoURL when this exercise doesn't have one yet
+        if resolved.videoURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
+            resolved.videoURL = catalogExercise.videoURL
+        }
+
+        if resolved.mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
+            if let indexedURL = FreeExerciseDBIndex.lookupImageURL(name: resolved.name, aliases: resolved.aliases) {
+                resolved.mediaURL = indexedURL
+            }
+        }
+
         return resolved
     }
 
@@ -2241,29 +2636,21 @@ enum ExerciseVisualResolver {
         }
         let resolvedName = normalized(resolved.name)
         let resolvedEquipment = normalized(resolved.equipment)
-        let resolvedMuscleGroup = normalized(resolved.muscleGroup)
 
         return candidates.first { candidate in
             normalized(candidate.name) == resolvedName
                 && normalized(candidate.equipment) == resolvedEquipment
         } ?? candidates.first { candidate in
-            normalized(candidate.name) == resolvedName
-                && normalized(candidate.muscleGroup) == resolvedMuscleGroup
-        } ?? candidates.first { candidate in
             let candidateNames = ([candidate.name] + candidate.aliases).map(normalized)
             return candidateNames.contains(resolvedName)
                 && normalized(candidate.equipment) == resolvedEquipment
-        } ?? candidates.first { candidate in
-            let candidateName = normalized(candidate.name)
-            return candidateName.contains(resolvedName)
-                && normalized(candidate.equipment) == resolvedEquipment
-                && normalized(candidate.muscleGroup) == resolvedMuscleGroup
         }
     }
 
     private static func hasVisualReference(_ exercise: Exercise) -> Bool {
         hasValidCustomImage(exercise.customImageData)
             || !(exercise.mediaURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            || !(exercise.videoURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
 
     static func hasValidCustomImage(_ data: Data?) -> Bool {
@@ -2304,14 +2691,9 @@ struct RemoteExerciseImage<Fallback: View>: View {
                     .scaledToFill()
                     .transition(.opacity)
             } else {
+                // Mostrar fallback directamente; sin ProgressView giratorio en lista
+                // (N spinners simultáneos saturan el driver Metal del simulador)
                 fallback
-                    .overlay {
-                        if !didFail {
-                            ProgressView()
-                                .controlSize(.small)
-                                .tint(PulseTheme.accent)
-                        }
-                    }
             }
         }
         .task(id: url) {
@@ -2321,16 +2703,25 @@ struct RemoteExerciseImage<Fallback: View>: View {
     }
 
     private func load() async {
+        // 1. Caché en memoria (síncrono, MainActor)
         if let cached = RemoteExerciseImageCache.shared.image(for: url) {
             image = cached
-            didFail = false
             return
         }
 
+        // 2. Caché de disco (asíncrono, background – no bloquea el hilo principal)
+        if let diskImage = await Task.detached(priority: .utility) { [url] in
+            RemoteExerciseImageCache.loadFromDisk(url)
+        }.value {
+            RemoteExerciseImageCache.shared.setMemory(diskImage, for: url)
+            image = diskImage
+            return
+        }
+
+        // 3. Red (fallará silenciosamente en modo offline)
         do {
             let loaded = try await RemoteExerciseImageCache.shared.load(url)
             image = loaded
-            didFail = false
         } catch {
             didFail = true
         }
@@ -2349,16 +2740,27 @@ final class RemoteExerciseImageCache {
         return baseURL.appendingPathComponent("RemoteExerciseImages", isDirectory: true)
     }()
 
+    // Solo memoria – seguro llamar desde @MainActor
     func image(for url: URL) -> UIImage? {
-        if let cached = cache.object(forKey: url as NSURL) {
-            return cached
-        }
+        cache.object(forKey: url as NSURL)
+    }
 
-        guard let data = try? Data(contentsOf: cacheFileURL(for: url)),
-              let image = UIImage(data: data) else {
-            return nil
-        }
+    // Guardar en memoria (desde MainActor tras carga de disco)
+    func setMemory(_ image: UIImage, for url: URL) {
         cache.setObject(image, forKey: url as NSURL)
+    }
+
+    // Leer de disco – nonisolated para llamarse desde Task.detached
+    nonisolated static func loadFromDisk(_ url: URL) -> UIImage? {
+        let fileManager = FileManager.default
+        let baseURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let cacheDir = baseURL.appendingPathComponent("RemoteExerciseImages", isDirectory: true)
+        let digest = CryptoKit.SHA256.hash(data: Data(url.absoluteString.utf8))
+        let filename = digest.map { String(format: "%02x", $0) }.joined() + ".img"
+        let fileURL = cacheDir.appendingPathComponent(filename, isDirectory: false)
+        guard let data = try? Data(contentsOf: fileURL),
+              let image = UIImage(data: data) else { return nil }
         return image
     }
 
@@ -2369,7 +2771,8 @@ final class RemoteExerciseImageCache {
 
         var request = URLRequest(url: url)
         request.cachePolicy = .returnCacheDataElseLoad
-        request.timeoutInterval = 18
+        // Timeout corto – la app es offline, no queremos esperas largas por fila
+        request.timeoutInterval = 3
         request.setValue("image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8", forHTTPHeaderField: "Accept")
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -2643,4 +3046,49 @@ struct InlineMetricFlowLayout: Layout {
     }
     .screenBackground()
     .preferredColorScheme(.dark)
+}
+
+// MARK: - Native Apple Neural Translation View
+struct AppleTranslatedText: View {
+    let sourceText: String
+    let fallbackText: String
+
+    @State private var translatedText: String?
+    @State private var configuration: TranslationSession.Configuration?
+
+    init(_ text: String, fallback: String? = nil) {
+        self.sourceText = text
+        self.fallbackText = fallback ?? text
+    }
+
+    var body: some View {
+        let isSpanish = RepsLocalization.language.hasPrefix("es")
+        let textToDisplay = (isSpanish ? (translatedText ?? fallbackText) : sourceText)
+
+        #if targetEnvironment(simulator)
+        Text(textToDisplay)
+        #else
+        Text(textToDisplay)
+            .translationTask(configuration) { session in
+                let target = sourceText
+                guard !target.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                if let response = try? await session.translate(target) {
+                    let trimmed = response.targetText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        await MainActor.run {
+                            translatedText = trimmed
+                        }
+                    }
+                }
+            }
+            .onChange(of: sourceText, initial: true) { _, newText in
+                guard isSpanish && !newText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                if configuration == nil {
+                    configuration = .init(source: Locale.Language(identifier: "en"), target: Locale.Language(identifier: "es"))
+                } else {
+                    configuration?.invalidate()
+                }
+            }
+        #endif
+    }
 }
