@@ -7,8 +7,8 @@ import SwiftUI
 struct ProfileSetupView: View {
     @Environment(AppStore.self) private var store
 
-    @State private var draft = OnboardingDraft()
-    @State private var step: OnboardingStep = .hero
+    @State private var draft: OnboardingDraft
+    @State private var step: OnboardingStep
     @State private var cachedPlan: WorkoutPlan?
     @State private var generationProgress = 0.0
     @State private var generationStatusText = localizedString("onboarding_gen_preparing")
@@ -20,11 +20,24 @@ struct ProfileSetupView: View {
 
     var onFinish: (OnboardingResult) -> Void
 
+    init(
+        initialStep: OnboardingStep = .hero,
+        initialDraft: OnboardingDraft? = nil,
+        onFinish: @escaping (OnboardingResult) -> Void
+    ) {
+        _step = State(initialValue: initialStep)
+        _draft = State(initialValue: initialDraft ?? OnboardingDraft())
+        self.onFinish = onFinish
+    }
+
     private var activeSteps: [OnboardingStep] {
-        if draft.buildsOwnPlan {
-            return [.hero, .value, .name, .setup, .goal, .equipment, .ready]
+        var base: [OnboardingStep] = draft.buildsOwnPlan
+            ? [.value, .name, .setup, .goal, .equipment, .ready]
+            : [.value, .name, .setup, .goal, .timeline, .experience, .schedule, .equipment, .baseline, .focus, .generating, .ready]
+        if step == .hero {
+            base.insert(.hero, at: 0)
         }
-        return OnboardingStep.allCases
+        return base
     }
 
     private var stepIndex: Int {
@@ -446,7 +459,7 @@ struct HealthBMIMetrics {
 
 // MARK: - Onboarding Types & Draft
 
-private enum OnboardingStep: String, CaseIterable, Identifiable {
+enum OnboardingStep: String, CaseIterable, Identifiable {
     case hero
     case value
     case name
@@ -474,7 +487,7 @@ private enum OnboardingStep: String, CaseIterable, Identifiable {
     }
 }
 
-private enum PlanHorizonMode: String, CaseIterable, Identifiable, Hashable {
+enum PlanHorizonMode: String, CaseIterable, Identifiable, Hashable {
     case lifestyle
     case specificEvent
 
@@ -502,7 +515,7 @@ private enum PlanHorizonMode: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
-private enum BodyMapPreference: String, CaseIterable, Identifiable {
+enum BodyMapPreference: String, CaseIterable, Identifiable {
     case mapA
     case mapB
     case preferNotToSay
@@ -533,7 +546,7 @@ private enum BodyMapPreference: String, CaseIterable, Identifiable {
     }
 }
 
-private struct OnboardingDraft {
+struct OnboardingDraft {
     var displayName: String = ""
     var mainGoal: UserProfile.MainGoal = .buildMuscle
     var targetHorizonMode: PlanHorizonMode = .lifestyle
@@ -552,6 +565,45 @@ private struct OnboardingDraft {
     var focusMuscles: Set<String> = []
     var preferredLanguage = UserProfile.deviceDefaultLanguage
     var buildsOwnPlan = false
+
+    init() {}
+
+    init(profile: UserProfile) {
+        self.displayName = profile.displayName ?? profile.alias ?? ""
+        self.mainGoal = profile.mainGoal
+        self.experience = profile.experience
+        self.weeklyTrainingDays = profile.weeklyTrainingDays
+        self.sessionLengthMinutes = profile.preferredSessionLengthMinutes ?? 60
+        self.trainingLocation = profile.trainingLocation
+        self.availableEquipment = profile.availableEquipment.isEmpty
+            ? OnboardingLocationCatalog.defaultLocation.equipment
+            : profile.availableEquipment
+        self.preferredLanguage = profile.preferredLanguage
+
+        if let dob = profile.dateOfBirth {
+            let years = Calendar.current.dateComponents([.year], from: dob, to: .now).year ?? 32
+            self.age = max(14, min(85, years))
+        }
+
+        if let sex = profile.sex {
+            switch sex {
+            case .male: self.bodyMapPreference = .mapA
+            case .female: self.bodyMapPreference = .mapB
+            case .other: self.bodyMapPreference = .preferNotToSay
+            }
+        }
+
+        if let eventName = profile.targetEventName {
+            self.targetEventName = eventName
+            self.targetEventDate = profile.targetEventDate
+            self.targetHorizonMode = .specificEvent
+        }
+
+        let locID = OnboardingLocationCatalog.locations.first {
+            $0.profileLocation == profile.trainingLocation
+        }?.id ?? OnboardingLocationCatalog.defaultLocation.id
+        self.selectedLocationID = locID
+    }
 
     static let focusOptions = ["Chest", "Back", "Shoulders", "Arms", "Legs", "Glutes", "Core"]
 

@@ -25488,6 +25488,23 @@
         }
       }
     },
+    "exports_backups_cloud_sync_and_data_privacy": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exports, backups, cloud sync, and data privacy"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportaciones, copias de seguridad, nube y privacidad"
+          }
+        }
+      }
+    },
     "csv_backups_restore_privacy_and_delete": {
       "extractionState": "stale",
       "localizations": {
@@ -54931,6 +54948,346 @@
           "stringUnit": {
             "state": "translated",
             "value": "Establece tu punto de partida"
+          }
+        }
+      }
+    },
+    "onboarding_step_format": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Step %lld of %lld"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paso %lld de %lld"
+          }
+        }
+      }
+    },
+    "tour_skip_guide": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip guide"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omitir guía"
+          }
+        }
+      }
+    },
+    "tour_next_step": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente"
+          }
+        }
+      }
+    },
+    "tour_finish_step": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Got it!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Entendido!"
+          }
+        }
+      }
+    },
+    "tour_step1_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quick guide"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guía rápida"
+          }
+        }
+      }
+    },
+    "tour_step1_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In 6 simple steps we'll show you the essentials of Reps to master your workouts."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En 6 sencillos pasos te enseñamos lo esencial de Reps para dominar tus entrenamientos."
+          }
+        }
+      }
+    },
+    "tour_step2_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today's Routine"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pantalla Principal (Hoy)"
+          }
+        }
+      }
+    },
+    "tour_step2_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your daily command center: start today's routine in one tap, log free workouts, or check your rest summary."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu centro de mando diario: inicia tu rutina del día en un toque, registra entrenos libres o consulta tu resumen de descanso."
+          }
+        }
+      }
+    },
+    "tour_step3_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routines & Plans"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutinas y Planes"
+          }
+        }
+      }
+    },
+    "tour_step3_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create and manage custom routines, generate automatic routines based on your equipment, or explore active plans."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea y administra tus rutinas personalizadas, genera rutinas automáticas según tu equipamiento o explora tus planes activos."
+          }
+        }
+      }
+    },
+    "tour_step4_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progress & Records"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progreso y Récords"
+          }
+        }
+      }
+    },
+    "tour_step4_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track your training volume, current streak, personal records (PRs), consistency charts, and progress photos."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visualiza tu volumen de carga, racha actual, récords personales (PRs), gráfico de consistencia y fotos de progreso."
+          }
+        }
+      }
+    },
+    "tour_step5_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exercise Library"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biblioteca de Ejercicios"
+          }
+        }
+      }
+    },
+    "tour_step5_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explore hundreds of exercises categorized by muscle group, search by equipment, or create custom exercises."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explora cientos de ejercicios clasificados por grupo muscular, busca por equipamiento o crea tus propios ejercicios."
+          }
+        }
+      }
+    },
+    "tour_step6_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profile & Header Actions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil y Acciones del Header"
+          }
+        }
+      }
+    },
+    "tour_step6_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Access top header actions (+), recalibrate your plan anytime, manage gym passes, body metrics, and app settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accede a las acciones del menú superior (+), recalibra tu plan en cualquier momento, gestiona pases de gimnasio, datos y ajustes."
+          }
+        }
+      }
+    },
+    "tour_replay_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interactive App Tour"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guía Interactiva de la App"
+          }
+        }
+      }
+    },
+    "tour_replay_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replay the interactive walkthrough of the main menu and actions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repite el recorrido guiado por el menú principal y las funciones"
+          }
+        }
+      }
+    },
+    "onboarding_reconfigure_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recalibrate Plan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recalibrar Plan"
+          }
+        }
+      }
+    },
+    "onboarding_reconfigure_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjust your goal, frequency & equipment"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajusta tu objetivo, frecuencia y equipo"
           }
         }
       }

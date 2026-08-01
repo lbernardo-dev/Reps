@@ -75,6 +75,7 @@ final class AppStore {
     /// Set by `reps://social` (no username) — the Friends widget's tap target.
     /// Consumed by ProfileView to push SocialHubView once Profile is on screen.
     var pendingSocialHubPresentation = false
+    var showAppGuidedTour: Bool = false
     var unreadFeedCount: Int = 0
     var hasUnreadBell: Bool = false
     /// In-app notification inbox (bell). Single source of truth so the list and

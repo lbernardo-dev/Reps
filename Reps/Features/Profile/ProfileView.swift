@@ -754,16 +754,46 @@ struct ProfileView: View {
 
     private var settingsCard: some View {
         PulseCard {
-            NavigationLink {
-                SettingsView()
-            } label: {
-                PulseListRow(
-                    title: "settings",
-                    subtitle: "units_language_theme_widgets_reminders_and_pro_preferences",
-                    systemImage: "gearshape.fill"
-                )
+            VStack(spacing: 0) {
+                NavigationLink {
+                    SettingsView()
+                } label: {
+                    PulseListRow(
+                        title: "settings",
+                        subtitle: "units_language_theme_widgets_reminders_and_pro_preferences",
+                        systemImage: "gearshape.fill"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+                    .padding(.vertical, 8)
+
+                Button {
+                    store.showAppGuidedTour = true
+                } label: {
+                    PulseListRow(
+                        title: "tour_replay_title",
+                        subtitle: "tour_replay_subtitle",
+                        systemImage: "sparkles"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+                    .padding(.vertical, 8)
+
+                Button {
+                    activeSheet = .reconfigureOnboarding
+                } label: {
+                    PulseListRow(
+                        title: "onboarding_reconfigure_title",
+                        subtitle: "onboarding_reconfigure_subtitle",
+                        systemImage: "arrow.triangle.2.circlepath"
+                    )
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
     }
 
@@ -814,6 +844,15 @@ struct ProfileView: View {
                             store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
                         }
                     }
+
+                    ProfileToolButton(
+                        title: "onboarding_reconfigure_title",
+                        subtitle: "onboarding_reconfigure_subtitle",
+                        systemImage: "arrow.triangle.2.circlepath",
+                        color: PulseTheme.accent
+                    ) {
+                        activeSheet = .reconfigureOnboarding
+                    }
                 }
             }
 
@@ -823,8 +862,8 @@ struct ProfileView: View {
                 } label: {
                     PulseListRow(
                         title: "data_center",
-                        subtitle: "csv_backups_restore_privacy_and_delete",
-                        systemImage: "externaldrive.badge.icloud"
+                        subtitle: "exports_backups_cloud_sync_and_data_privacy",
+                        systemImage: "externaldrive.fill"
                     )
                 }
                 .buttonStyle(.plain)
@@ -879,6 +918,15 @@ struct ProfileView: View {
             SocialOnboardingView()
         case .equipmentRoutineWizard:
             EquipmentRoutineWizardView(profile: store.userProfile)
+        case .reconfigureOnboarding:
+            ProfileSetupView(
+                initialStep: .value,
+                initialDraft: OnboardingDraft(profile: store.userProfile),
+                onFinish: { result in
+                    store.completeOnboarding(result: result)
+                    activeSheet = nil
+                }
+            )
         }
     }
 
@@ -1825,6 +1873,7 @@ private enum ProfileSheet: Identifiable {
     case subscription
     case socialOnboarding
     case equipmentRoutineWizard
+    case reconfigureOnboarding
 
     var id: String {
         switch self {
@@ -1840,6 +1889,7 @@ private enum ProfileSheet: Identifiable {
         case .subscription: "subscription"
         case .socialOnboarding: "socialOnboarding"
         case .equipmentRoutineWizard: "equipmentRoutineWizard"
+        case .reconfigureOnboarding: "reconfigureOnboarding"
         }
     }
 }
