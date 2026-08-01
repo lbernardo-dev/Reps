@@ -267,7 +267,18 @@ struct GymVisit: Codable, Identifiable, Hashable {
     }
 }
 
-struct Exercise: Codable, Identifiable, Hashable {
+enum PreferredHeroMedia: String, Codable, CaseIterable, Identifiable {
+    case automatic = "auto"
+    case catalogVideo = "catalog_video"
+    case customVideo = "custom_video"
+    case catalogImage = "catalog_image"
+    case customImage = "custom_image"
+    case anatomyModel = "anatomy_model"
+
+    var id: String { rawValue }
+}
+
+struct Exercise: Identifiable, Codable, Hashable, Sendable {
     enum TrackingType: String, Codable {
         case weightReps
         case repsOnly
@@ -320,6 +331,7 @@ struct Exercise: Codable, Identifiable, Hashable {
     /// Poster frame for `customVideoData`, used as a static preview before playback.
     var customVideoThumbnailData: Data?
     var videoURL: String?
+    var preferredHeroMedia: PreferredHeroMedia? = nil
     var mediaBookmarks: [ExerciseMediaBookmark] = []
     var instructions: String?
     var commonMistakes: [String] = []

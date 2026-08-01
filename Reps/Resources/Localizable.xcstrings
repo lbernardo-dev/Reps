@@ -274,17 +274,18 @@
       }
     },
     "full_body": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Full Body"
+            "value": "Full body"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cuerpo Completo"
+            "value": "Cuerpo completo"
           }
         }
       }
@@ -36224,23 +36225,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Full Body Mobility Flow"
-          }
-        }
-      }
-    },
-    "full_body": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Full body"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cuerpo completo"
           }
         }
       }
@@ -92639,6 +92623,310 @@
           "stringUnit": {
             "state": "translated",
             "value": "¡Copiado!"
+          }
+        }
+      }
+    },
+    "multimedia": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Multimedia"
+          }
+        }
+      }
+    },
+    "hero_media_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active Hero Media"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media Principal en Hero"
+          }
+        }
+      }
+    },
+    "hero_media_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose which video or image is shown in the exercise hero header"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige qué vídeo o imagen se muestra en la cabecera del ejercicio"
+          }
+        }
+      }
+    },
+    "reset_auto": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset to auto"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restablecer a automático"
+          }
+        }
+      }
+    },
+    "videos_gallery": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Videos Gallery"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Galería de Vídeos"
+          }
+        }
+      }
+    },
+    "official_catalog_video": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Official Catalog Video"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vídeo Oficial del Catálogo"
+          }
+        }
+      }
+    },
+    "custom_user_video": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom Recorded Video"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vídeo Grabado por Ti"
+          }
+        }
+      }
+    },
+    "saved_offline": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved locally"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardado localmente"
+          }
+        }
+      }
+    },
+    "active_hero": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active in Hero"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el Hero"
+          }
+        }
+      }
+    },
+    "use_in_hero": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use in Hero"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar en Hero"
+          }
+        }
+      }
+    },
+    "record_or_add_video": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record or Add Guide Video"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabar o Añadir Vídeo de Guía"
+          }
+        }
+      }
+    },
+    "images_and_models": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Images and Models"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imágenes y Modelos"
+          }
+        }
+      }
+    },
+    "official_catalog_image": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Official Catalog Image"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imagen Oficial del Catálogo"
+          }
+        }
+      }
+    },
+    "custom_user_photo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom Photo"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto Personal"
+          }
+        }
+      }
+    },
+    "anatomy_model_3d": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3D Anatomy Model"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modelo Anatómico 3D"
+          }
+        }
+      }
+    },
+    "vector_muscles_map": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active muscle map"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mapa de músculos activo"
+          }
+        }
+      }
+    },
+    "bookmarks_and_links": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bookmarks & Links"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enlaces y Marcadores"
+          }
+        }
+      }
+    },
+    "no_bookmarks_added_yet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No bookmarks added yet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay marcadores añadidos"
+          }
+        }
+      }
+    },
+    "add_external_video_link": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add External Video Link"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir Enlace o Vídeo Externo"
           }
         }
       }

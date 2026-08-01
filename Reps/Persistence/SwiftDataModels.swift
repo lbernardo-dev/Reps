@@ -230,6 +230,7 @@ final class ExerciseRecord {
     @Attribute(.externalStorage) var customVideoData: Data?
     @Attribute(.externalStorage) var customVideoThumbnailData: Data?
     var videoURL: String?
+    var preferredHeroMediaRaw: String?
     var mediaBookmarksData: Data?
     var instructions: String?
     var commonMistakesData: Data?
@@ -259,6 +260,7 @@ final class ExerciseRecord {
         customVideoData = exercise.customVideoData
         customVideoThumbnailData = exercise.customVideoThumbnailData
         videoURL = exercise.videoURL
+        preferredHeroMediaRaw = exercise.preferredHeroMedia?.rawValue
         mediaBookmarksData = encodeExerciseMediaBookmarks(exercise.mediaBookmarks)
         instructions = exercise.instructions
         commonMistakesData = encodeStrings(exercise.commonMistakes)
@@ -290,6 +292,7 @@ final class ExerciseRecord {
             customVideoData: customVideoData,
             customVideoThumbnailData: customVideoThumbnailData,
             videoURL: videoURL,
+            preferredHeroMedia: preferredHeroMediaRaw.flatMap(PreferredHeroMedia.init(rawValue:)),
             mediaBookmarks: decodeExerciseMediaBookmarks(mediaBookmarksData),
             instructions: instructions,
             commonMistakes: decodeStrings(commonMistakesData),

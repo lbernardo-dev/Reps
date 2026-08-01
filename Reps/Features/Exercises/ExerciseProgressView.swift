@@ -13,16 +13,18 @@ struct ExerciseProgressView: View {
     @State private var showLocalVideoPlayer = false
 
     private enum ExerciseDetailTab: String, CaseIterable, Identifiable {
-        case instructions = "Instrucciones"
-        case info = "Info"
-        case history = "Historial"
+        case instructions = "instructions"
+        case media = "media"
+        case info = "info"
+        case history = "history"
 
         var id: String { rawValue }
 
         var localizedTitle: String {
             switch self {
             case .instructions: localizedString("instructions")
-            case .info: "Info"
+            case .media: localizedString("multimedia")
+            case .info: localizedString("info")
             case .history: localizedString("history")
             }
         }
@@ -55,6 +57,8 @@ struct ExerciseProgressView: View {
                 Group {
                     switch selectedTab {
                     case .instructions:
+                        instructionsContent
+                    case .media:
                         instructionsContent
                     case .info:
                         infoContent

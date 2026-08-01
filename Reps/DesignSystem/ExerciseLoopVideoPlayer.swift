@@ -1,5 +1,6 @@
 import AVFoundation
 import AVKit
+import MuscleMap
 import SwiftUI
 
 // MARK: - Video Poster Thumbnail (lista segura, sin AVPlayerLayer)
@@ -173,11 +174,59 @@ struct FullscreenExerciseVideoView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        FullscreenExerciseMediaView(
+            title: title,
+            videoURL: videoURL
+        )
+    }
+}
+
+struct FullscreenExerciseMediaView: View {
+    let title: String
+    var videoURL: URL? = nil
+    var videoData: Data? = nil
+    var image: UIImage? = nil
+    var imageURL: URL? = nil
+    var exercise: Exercise? = nil
+    var gender: BodyGender = .male
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            ExerciseLoopVideoPlayer(videoURL: videoURL, videoGravity: .resizeAspect)
+            if let videoURL {
+                ExerciseLoopVideoPlayer(videoURL: videoURL, videoGravity: .resizeAspect)
+                    .ignoresSafeArea()
+            } else if let videoData {
+                ExerciseGuideVideoPlayerSheet(videoData: videoData, title: title)
+                    .ignoresSafeArea()
+            } else if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .ignoresSafeArea()
+            } else if let imageURL {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable()
+                            .scaledToFit()
+                    case .failure, .empty:
+                        ProgressView()
+                            .tint(.white)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
                 .ignoresSafeArea()
+            } else if let exercise {
+                GeometryReader { proxy in
+                    ExerciseAnatomyThumbnail(exercise: exercise, gender: gender, size: max(proxy.size.width, proxy.size.height) * 0.7)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .ignoresSafeArea()
+            }
 
             VStack {
                 HStack(alignment: .top) {
@@ -185,7 +234,7 @@ struct FullscreenExerciseVideoView: View {
                         Text(title)
                             .font(.title2.weight(.bold))
                             .foregroundStyle(.white)
-                        Text("DEMOSTRACIÓN TÉCNICA HD")
+                        Text(videoURL != nil || videoData != nil ? "DEMOSTRACIÓN TÉCNICA HD" : "REFERENCIA VISUAL HD")
                             .font(.caption.weight(.bold))
                             .textCase(.uppercase)
                             .foregroundStyle(.white.opacity(0.65))
@@ -200,6 +249,8 @@ struct FullscreenExerciseVideoView: View {
                             .font(.system(size: 32, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.9), .white.opacity(0.2))
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Cerrar")
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 56)

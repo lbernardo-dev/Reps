@@ -1681,14 +1681,16 @@ struct ExerciseDetailView: View {
     @State private var selectedHistoryRange = ExerciseHistoryRange.sixMonths
 
     private enum ExerciseTab: String, CaseIterable, Identifiable {
-        case instructions = "Instrucciones"
-        case info = "Información"
-        case history = "Historial"
+        case instructions = "instructions"
+        case media = "media"
+        case info = "info"
+        case history = "history"
         var id: String { rawValue }
         
         var localizedTitle: String {
             switch self {
             case .instructions: return localizedString("instructions")
+            case .media: return localizedString("multimedia")
             case .info: return localizedString("info")
             case .history: return localizedString("history")
             }
@@ -1748,7 +1750,7 @@ struct ExerciseDetailView: View {
                         } label: {
                             VStack(spacing: 12) {
                                 Text(tab.localizedTitle)
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.system(size: 14, weight: .bold))
                                     .foregroundStyle(selectedTab == tab ? PulseTheme.ringStand : PulseTheme.secondaryText)
                                     .frame(maxWidth: .infinity)
                                 
@@ -1773,6 +1775,8 @@ struct ExerciseDetailView: View {
                     switch selectedTab {
                     case .instructions:
                         instructionsTabContent
+                    case .media:
+                        mediaTabContent
                     case .info:
                         infoTabContent
                     case .history:
@@ -1837,6 +1841,396 @@ struct ExerciseDetailView: View {
     }
 
     // --- TAB CONTENTS ---
+
+    private var mediaTabContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            ExerciseHeroMedia(exercise: currentExercise, gender: store.userProfile.muscleMapGender)
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(localizedString("hero_media_title"))
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(Color.primary)
+                            Text(localizedString("hero_media_subtitle"))
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+
+                        if currentExercise.preferredHeroMedia != nil && currentExercise.preferredHeroMedia != .automatic {
+                            Button {
+                                var updated = currentExercise
+                                updated.preferredHeroMedia = .automatic
+                                store.updateExercise(updated)
+                            } label: {
+                                Text(localizedString("reset_auto"))
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(PulseTheme.accent)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(PulseTheme.accent.opacity(0.12))
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    CardTitle("videos_gallery")
+
+                    if let videoURL = currentExercise.localVideoURL {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(PulseTheme.grouped)
+                                    .frame(width: 70, height: 70)
+                                Image(systemName: "video.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundStyle(PulseTheme.accent)
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(localizedString("official_catalog_video"))
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(Color.primary)
+                                Text("MP4 HD 1080p")
+                                    .font(.caption)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            Spacer()
+
+                            Button {
+                                var updated = currentExercise
+                                updated.preferredHeroMedia = .catalogVideo
+                                store.updateExercise(updated)
+                            } label: {
+                                HStack(spacing: 4) {
+                                    if currentExercise.preferredHeroMedia == .catalogVideo {
+                                        Image(systemName: "checkmark.circle.fill")
+                                        Text(localizedString("active_hero"))
+                                    } else {
+                                        Text(localizedString("use_in_hero"))
+                                    }
+                                }
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(currentExercise.preferredHeroMedia == .catalogVideo ? PulseTheme.accent : Color.primary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(currentExercise.preferredHeroMedia == .catalogVideo ? PulseTheme.accent.opacity(0.15) : PulseTheme.grouped)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    if let customVid = currentExercise.customVideoData, ExerciseVisualResolver.hasValidCustomVideo(customVid) {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                if let thumbData = currentExercise.customVideoThumbnailData, let img = UIImage(data: thumbData) {
+                                    Image(uiImage: img)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 70, height: 70)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                } else {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(PulseTheme.grouped)
+                                        .frame(width: 70, height: 70)
+                                    Image(systemName: "film")
+                                        .font(.system(size: 24))
+                                        .foregroundStyle(PulseTheme.accent)
+                                }
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(localizedString("custom_user_video"))
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(Color.primary)
+                                Text(localizedString("saved_offline"))
+                                    .font(.caption)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            Spacer()
+
+                            HStack(spacing: 8) {
+                                Button {
+                                    var updated = currentExercise
+                                    updated.preferredHeroMedia = .customVideo
+                                    store.updateExercise(updated)
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        if currentExercise.preferredHeroMedia == .customVideo {
+                                            Image(systemName: "checkmark.circle.fill")
+                                            Text(localizedString("active_hero"))
+                                        } else {
+                                            Text(localizedString("use_in_hero"))
+                                        }
+                                    }
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(currentExercise.preferredHeroMedia == .customVideo ? PulseTheme.accent : Color.primary)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .background(currentExercise.preferredHeroMedia == .customVideo ? PulseTheme.accent.opacity(0.15) : PulseTheme.grouped)
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    var updated = currentExercise
+                                    updated.customVideoData = nil
+                                    updated.customVideoThumbnailData = nil
+                                    if updated.preferredHeroMedia == .customVideo {
+                                        updated.preferredHeroMedia = .automatic
+                                    }
+                                    store.updateExercise(updated)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(PulseTheme.warning)
+                                        .padding(8)
+                                        .background(PulseTheme.warning.opacity(0.12))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    ExerciseMediaPickerMenu(
+                        hasCustomImage: ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData),
+                        hasCustomVideo: ExerciseVisualResolver.hasValidCustomVideo(currentExercise.customVideoData),
+                        onImageCaptured: { data in
+                            var updated = currentExercise
+                            updated.customImageData = data
+                            store.updateExercise(updated)
+                        },
+                        onVideoCaptured: { data, thumbnail in
+                            var updated = currentExercise
+                            updated.customVideoData = data
+                            updated.customVideoThumbnailData = thumbnail
+                            store.updateExercise(updated)
+                        },
+                        onDeleteImage: {
+                            var updated = currentExercise
+                            updated.customImageData = nil
+                            store.updateExercise(updated)
+                        },
+                        onDeleteVideo: {
+                            var updated = currentExercise
+                            updated.customVideoData = nil
+                            updated.customVideoThumbnailData = nil
+                            store.updateExercise(updated)
+                        }
+                    ) {
+                        Label("record_or_add_video", systemImage: "video.badge.plus")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .foregroundStyle(PulseTheme.accent)
+                            .background(PulseTheme.accent.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                }
+            }
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    CardTitle("images_and_models")
+
+                    if let mediaURL = currentExercise.mediaAssetURL {
+                        HStack(spacing: 14) {
+                            RemoteExerciseImage(url: mediaURL) {
+                                RoundedRectangle(cornerRadius: 12).fill(PulseTheme.grouped)
+                            }
+                            .frame(width: 70, height: 70)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(localizedString("official_catalog_image"))
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(Color.primary)
+                                Text(localizedString("visual_reference"))
+                                    .font(.caption)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            Spacer()
+
+                            Button {
+                                var updated = currentExercise
+                                updated.preferredHeroMedia = .catalogImage
+                                store.updateExercise(updated)
+                            } label: {
+                                HStack(spacing: 4) {
+                                    if currentExercise.preferredHeroMedia == .catalogImage {
+                                        Image(systemName: "checkmark.circle.fill")
+                                        Text(localizedString("active_hero"))
+                                    } else {
+                                        Text(localizedString("use_in_hero"))
+                                    }
+                                }
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(currentExercise.preferredHeroMedia == .catalogImage ? PulseTheme.accent : Color.primary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(currentExercise.preferredHeroMedia == .catalogImage ? PulseTheme.accent.opacity(0.15) : PulseTheme.grouped)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    if let customImg = currentExercise.customImageData, let uiImg = UIImage(data: customImg) {
+                        HStack(spacing: 14) {
+                            Image(uiImage: uiImg)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 70, height: 70)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(localizedString("custom_user_photo"))
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(Color.primary)
+                                Text(localizedString("saved_offline"))
+                                    .font(.caption)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            Spacer()
+
+                            HStack(spacing: 8) {
+                                Button {
+                                    var updated = currentExercise
+                                    updated.preferredHeroMedia = .customImage
+                                    store.updateExercise(updated)
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        if currentExercise.preferredHeroMedia == .customImage {
+                                            Image(systemName: "checkmark.circle.fill")
+                                            Text(localizedString("active_hero"))
+                                        } else {
+                                            Text(localizedString("use_in_hero"))
+                                        }
+                                    }
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(currentExercise.preferredHeroMedia == .customImage ? PulseTheme.accent : Color.primary)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .background(currentExercise.preferredHeroMedia == .customImage ? PulseTheme.accent.opacity(0.15) : PulseTheme.grouped)
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    var updated = currentExercise
+                                    updated.customImageData = nil
+                                    if updated.preferredHeroMedia == .customImage {
+                                        updated.preferredHeroMedia = .automatic
+                                    }
+                                    store.updateExercise(updated)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(PulseTheme.warning)
+                                        .padding(8)
+                                        .background(PulseTheme.warning.opacity(0.12))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    HStack(spacing: 14) {
+                        ExerciseAnatomyThumbnail(exercise: currentExercise, gender: store.userProfile.muscleMapGender, size: 70)
+                            .frame(width: 70, height: 70)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(localizedString("anatomy_model_3d"))
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(Color.primary)
+                            Text(localizedString("vector_muscles_map"))
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        Spacer()
+
+                        Button {
+                            var updated = currentExercise
+                            updated.preferredHeroMedia = .anatomyModel
+                            store.updateExercise(updated)
+                        } label: {
+                            HStack(spacing: 4) {
+                                if currentExercise.preferredHeroMedia == .anatomyModel {
+                                    Image(systemName: "checkmark.circle.fill")
+                                    Text(localizedString("active_hero"))
+                                } else {
+                                    Text(localizedString("use_in_hero"))
+                                }
+                            }
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(currentExercise.preferredHeroMedia == .anatomyModel ? PulseTheme.accent : Color.primary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(currentExercise.preferredHeroMedia == .anatomyModel ? PulseTheme.accent.opacity(0.15) : PulseTheme.grouped)
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            PulseCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    CardTitle("bookmarks_and_links")
+
+                    if currentExercise.mediaBookmarks.isEmpty {
+                        Text(localizedString("no_bookmarks_added_yet"))
+                            .font(.subheadline)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    } else {
+                        ForEach(currentExercise.mediaBookmarks) { bookmark in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(bookmark.title)
+                                        .font(.subheadline.weight(.bold))
+                                        .foregroundStyle(Color.primary)
+                                    Text(bookmark.urlString)
+                                        .font(.caption)
+                                        .foregroundStyle(PulseTheme.accent)
+                                        .lineLimit(1)
+                                }
+                                Spacer()
+
+                                Link(destination: URL(string: bookmark.urlString) ?? URL(string: "https://google.com")!) {
+                                    Image(systemName: "arrow.up.right.square")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(PulseTheme.accent)
+                                }
+                            }
+                        }
+                    }
+
+                    Button {
+                        showBookmarkEditor = true
+                    } label: {
+                        Label("add_external_video_link", systemImage: "bookmark.badge.plus")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .foregroundStyle(PulseTheme.accent)
+                            .background(PulseTheme.accent.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                }
+            }
+        }
+    }
 
     private var instructionsTabContent: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -2256,11 +2650,42 @@ private struct ExerciseThumbnail: View {
 
 struct ExerciseHeroMedia: View {
     let exercise: Exercise
-    var gender: BodyGender = .male
+    let gender: BodyGender
     var height: CGFloat = 320
 
     @State private var showVideoPlayer = false
-    @State private var showFullscreenVideo = false
+    @State private var showFullscreenMedia = false
+
+    private var activeMediaMode: PreferredHeroMedia {
+        if let preferred = exercise.preferredHeroMedia, preferred != .automatic {
+            switch preferred {
+            case .catalogVideo:
+                if exercise.localVideoURL != nil { return .catalogVideo }
+            case .customVideo:
+                if ExerciseVisualResolver.hasValidCustomVideo(exercise.customVideoData) { return .customVideo }
+            case .customImage:
+                if ExerciseVisualResolver.hasValidCustomImage(exercise.customImageData) { return .customImage }
+            case .catalogImage:
+                if exercise.mediaAssetURL != nil { return .catalogImage }
+            case .anatomyModel:
+                return .anatomyModel
+            case .automatic:
+                break
+            }
+        }
+
+        if ExerciseVisualResolver.hasValidCustomImage(exercise.customImageData) {
+            return .customImage
+        } else if let thumbnailData = exercise.customVideoThumbnailData, UIImage(data: thumbnailData) != nil {
+            return .customVideo
+        } else if exercise.localVideoURL != nil {
+            return .catalogVideo
+        } else if exercise.mediaAssetURL != nil {
+            return .catalogImage
+        } else {
+            return .anatomyModel
+        }
+    }
 
     private var hasGuideVideo: Bool {
         ExerciseVisualResolver.hasValidCustomVideo(exercise.customVideoData)
@@ -2271,25 +2696,37 @@ struct ExerciseHeroMedia: View {
             GeometryReader { proxy in
                 let size = proxy.size
                 ZStack(alignment: .bottomLeading) {
-                    // 1. Multimedia del usuario (foto o miniatura de vídeo personalizado)
-                    if let data = exercise.customImageData,
-                       let image = UIImage(data: data) {
-                        ExerciseHeroFillImage(image: image, size: size)
-                    } else if let thumbnailData = exercise.customVideoThumbnailData,
-                              let image = UIImage(data: thumbnailData) {
-                        ExerciseHeroFillImage(image: image, size: size)
-                    }
-                    // 2. Vídeo si existe (.mp4 local o stream)
-                    else if let videoURL = exercise.localVideoURL {
-                        ExerciseLoopVideoPlayer(videoURL: videoURL)
-                            .frame(width: size.width, height: size.height)
-                    }
-                    // 3. Foto del catálogo
-                    else if let url = exercise.mediaAssetURL {
-                        ExerciseReferenceImage(exercise: exercise, url: url, size: size, gender: gender)
-                    }
-                    // 4. Modelo 3D / Mapa de anatomía vectorial
-                    else {
+                    switch activeMediaMode {
+                    case .customImage:
+                        if let data = exercise.customImageData, let image = UIImage(data: data) {
+                            ExerciseHeroFillImage(image: image, size: size)
+                        } else {
+                            ExerciseHeroFallback(exercise: exercise, gender: gender)
+                                .frame(width: size.width, height: size.height)
+                        }
+                    case .customVideo:
+                        if let thumbnailData = exercise.customVideoThumbnailData, let image = UIImage(data: thumbnailData) {
+                            ExerciseHeroFillImage(image: image, size: size)
+                        } else {
+                            ExerciseHeroFallback(exercise: exercise, gender: gender)
+                                .frame(width: size.width, height: size.height)
+                        }
+                    case .catalogVideo:
+                        if let videoURL = exercise.localVideoURL {
+                            ExerciseLoopVideoPlayer(videoURL: videoURL)
+                                .frame(width: size.width, height: size.height)
+                        } else {
+                            ExerciseHeroFallback(exercise: exercise, gender: gender)
+                                .frame(width: size.width, height: size.height)
+                        }
+                    case .catalogImage:
+                        if let url = exercise.mediaAssetURL {
+                            ExerciseReferenceImage(exercise: exercise, url: url, size: size, gender: gender)
+                        } else {
+                            ExerciseHeroFallback(exercise: exercise, gender: gender)
+                                .frame(width: size.width, height: size.height)
+                        }
+                    case .anatomyModel, .automatic:
                         ExerciseHeroFallback(exercise: exercise, gender: gender)
                             .frame(width: size.width, height: size.height)
                     }
@@ -2316,38 +2753,34 @@ struct ExerciseHeroMedia: View {
                     }
                     .padding(16)
 
-                    if let videoURL = exercise.localVideoURL {
-                        VStack {
-                            HStack {
-                                Spacer()
-                                Button {
-                                    showFullscreenVideo = true
-                                } label: {
-                                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                        .font(.system(size: 15, weight: .bold))
-                                        .foregroundStyle(.white)
-                                        .padding(10)
-                                        .background(.ultraThinMaterial, in: Circle())
-                                        .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 1))
-                                        .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 3)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Ver vídeo a pantalla completa")
-                            }
+                    VStack {
+                        HStack {
                             Spacer()
+                            Button {
+                                showFullscreenMedia = true
+                            } label: {
+                                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(10)
+                                    .background(.ultraThinMaterial, in: Circle())
+                                    .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 1))
+                                    .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 3)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Ver a pantalla completa")
                         }
-                        .padding(8)
+                        Spacer()
                     }
+                    .padding(12)
                 }
                 .frame(width: size.width, height: size.height)
                 .background(PulseTheme.grouped)
                 .clipShape(RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
-                .contentShape(Rectangle())
                 .clipped()
-                .allowsHitTesting(false)
             }
 
-            if hasGuideVideo {
+            if hasGuideVideo && activeMediaMode != .catalogVideo {
                 Button {
                     showVideoPlayer = true
                 } label: {
@@ -2364,20 +2797,44 @@ struct ExerciseHeroMedia: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
-        .accessibilityLabel("Imagen grande de referencia de \(exercise.name)")
+        .accessibilityLabel("Imagen de referencia de \(exercise.name)")
         .sheet(isPresented: $showVideoPlayer) {
             if let videoData = exercise.customVideoData {
                 ExerciseGuideVideoPlayerSheet(videoData: videoData, title: exercise.name)
                     .repsSheetPresentation()
             }
         }
-        .fullScreenCover(isPresented: $showFullscreenVideo) {
-            if let videoURL = exercise.localVideoURL {
-                FullscreenExerciseVideoView(videoURL: videoURL, title: exercise.name)
+        .fullScreenCover(isPresented: $showFullscreenMedia) {
+            switch activeMediaMode {
+            case .catalogVideo:
+                FullscreenExerciseMediaView(
+                    title: exercise.name,
+                    videoURL: exercise.localVideoURL
+                )
+            case .customVideo:
+                FullscreenExerciseMediaView(
+                    title: exercise.name,
+                    videoData: exercise.customVideoData
+                )
+            case .customImage:
+                FullscreenExerciseMediaView(
+                    title: exercise.name,
+                    image: exercise.customImageData.flatMap(UIImage.init(data:))
+                )
+            case .catalogImage:
+                FullscreenExerciseMediaView(
+                    title: exercise.name,
+                    imageURL: exercise.mediaAssetURL
+                )
+            case .anatomyModel, .automatic:
+                FullscreenExerciseMediaView(
+                    title: exercise.name,
+                    exercise: exercise,
+                    gender: gender
+                )
             }
         }
     }
-
 }
 
 private struct ExerciseHeroFillImage: View {
