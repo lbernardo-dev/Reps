@@ -238,8 +238,8 @@ final class AppStore {
                 restore(snapshot, persistImmediately: false)
             } else {
                 persistence.save(currentSnapshot)
-                SharedWorkoutStore.save(sharedWorkoutSnapshot())
             }
+            SharedWorkoutStore.save(sharedWorkoutSnapshot(), forceReload: true)
             RepsLocalization.use(userProfile.preferredLanguage)
 
             // Yield between these heavy, uninterrupted MainActor steps so the run

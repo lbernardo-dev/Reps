@@ -16,30 +16,30 @@ struct RepsFriendsProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> RepsFriendsEntry {
         RepsFriendsEntry(
             date: .now,
-            entries: [
-                SharedLeaderboardEntry(rank: 1, username: "you", xp: 2100, isMe: true),
-                SharedLeaderboardEntry(rank: 2, username: "friend1", xp: 1800, isMe: false),
-                SharedLeaderboardEntry(rank: 3, username: "friend2", xp: 1400, isMe: false)
-            ],
-            snapshot: SharedWorkoutStore.load(),
+            entries: SharedLeaderboardStore.samplePlaceholder,
+            snapshot: .samplePlaceholder,
             configuredBackgroundColor: .system
         )
     }
 
     func snapshot(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> RepsFriendsEntry {
-        RepsFriendsEntry(
+        let snapshot = context.isPreview ? .samplePlaceholder : SharedWorkoutStore.load()
+        let entries = context.isPreview ? SharedLeaderboardStore.samplePlaceholder : SharedLeaderboardStore.load()
+        return RepsFriendsEntry(
             date: .now,
-            entries: SharedLeaderboardStore.load(),
-            snapshot: SharedWorkoutStore.load(),
+            entries: entries,
+            snapshot: snapshot,
             configuredBackgroundColor: configuration.backgroundColor
         )
     }
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsFriendsEntry> {
+        let snapshot = context.isPreview ? .samplePlaceholder : SharedWorkoutStore.load()
+        let entries = context.isPreview ? SharedLeaderboardStore.samplePlaceholder : SharedLeaderboardStore.load()
         let entry = RepsFriendsEntry(
             date: .now,
-            entries: SharedLeaderboardStore.load(),
-            snapshot: SharedWorkoutStore.load(),
+            entries: entries,
+            snapshot: snapshot,
             configuredBackgroundColor: configuration.backgroundColor
         )
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: .now) ?? .now

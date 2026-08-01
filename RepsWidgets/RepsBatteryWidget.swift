@@ -13,15 +13,17 @@ struct RepsBatteryProvider: AppIntentTimelineProvider {
     typealias Intent = RepsWidgetConfigurationIntent
 
     func placeholder(in context: Context) -> RepsBatteryEntry {
-        RepsBatteryEntry(date: .now, snapshot: .empty, configuredBackgroundColor: .system)
+        RepsBatteryEntry(date: .now, snapshot: .samplePlaceholder, configuredBackgroundColor: .system)
     }
 
     func snapshot(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> RepsBatteryEntry {
-        RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
+        let snapshot = context.isPreview ? .samplePlaceholder : SharedWorkoutStore.load()
+        return RepsBatteryEntry(date: .now, snapshot: snapshot, configuredBackgroundColor: configuration.backgroundColor)
     }
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsBatteryEntry> {
-        let entry = RepsBatteryEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
+        let snapshot = context.isPreview ? .samplePlaceholder : SharedWorkoutStore.load()
+        let entry = RepsBatteryEntry(date: .now, snapshot: snapshot, configuredBackgroundColor: configuration.backgroundColor)
         return Timeline(entries: [entry], policy: .after(nextMidnight()))
     }
 }

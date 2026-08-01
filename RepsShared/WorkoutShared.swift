@@ -570,6 +570,12 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
     var estimatedMaxHeartRate: Double? = nil
     /// Whether the user holds an active Pro entitlement — synced from iOS so the Watch can gate Pro-only features.
     var hasWatchAccess: Bool = true
+    /// Body weight evolution tracking properties
+    var currentWeightKg: Double? = nil
+    var startingWeightKg: Double? = nil
+    var targetWeightKg: Double? = nil
+    var weeklyWeightDeltaKg: Double? = nil
+    var weightHistoryValues: [Double]? = nil
 
     /// Decoded planned exercises from `exercisesData`, if present.
     var plannedExercises: [SharedPlannedExercise] {
@@ -634,6 +640,72 @@ struct SharedWorkoutSnapshot: Codable, Hashable {
         widgetAccentColorName: "system",
         preferredLanguage: "es"
     )
+
+    static var samplePlaceholder: SharedWorkoutSnapshot {
+        let isSpanish = RepsLocalization.language == "es"
+        return SharedWorkoutSnapshot(
+            hasActiveWorkout: false,
+            planTitle: isSpanish ? "Fuerza e Hipertrofia" : "Strength & Hypertrophy",
+            workoutTitle: "StreakReps",
+            sessionTitle: nil,
+            elapsedSeconds: 0,
+            pausedSeconds: 0,
+            completedSets: 0,
+            totalSets: 0,
+            volumeKg: 0,
+            isPaused: false,
+            exerciseName: nil,
+            exerciseIndex: nil,
+            totalExercises: nil,
+            currentExerciseCompletedSets: nil,
+            currentExerciseTotalSets: nil,
+            currentSetWeightKg: nil,
+            currentSetReps: nil,
+            restSeconds: nil,
+            restDurationSeconds: nil,
+            estimatedRemainingSeconds: nil,
+            waterLiters: 1.8,
+            musicTitle: nil,
+            musicArtist: nil,
+            isMusicPlaying: nil,
+            nextExerciseName: nil,
+            exerciseHistorySummary: nil,
+            gymPassName: nil,
+            gymMembershipID: nil,
+            gymCodeValue: nil,
+            gymCodeType: nil,
+            heartRate: 68,
+            activeEnergyKcal: 450,
+            isRouteWorkout: false,
+            isOutdoorRoute: nil,
+            routeDistanceKm: nil,
+            routePaceSecondsPerKm: nil,
+            routeSpeedKmh: nil,
+            routePointCount: nil,
+            routeSteps: nil,
+            summary: isSpanish ? "Sin entrenamiento activo" : "No active workout",
+            updatedAt: .now,
+            streakDays: 7,
+            weeklyCompletion: 0.8,
+            trainingBatteryLevel: 88,
+            trainingBatteryState: "charged",
+            trainingBatteryTitle: isSpanish ? "Óptima disposición" : "Optimal Readiness",
+            trainingBatterySuggestion: isSpanish ? "Recuperación alta" : "High Recovery",
+            trainingBatterySystemImage: "battery.100percent",
+            nextWorkoutDayName: isSpanish ? "Empuje & Torso A" : "Push & Core Power",
+            nextWorkoutDayDescription: isSpanish ? "5 ejercicios · ~45 min" : "5 exercises · ~45 min",
+            widgetAccentColorName: "system",
+            preferredLanguage: RepsLocalization.language,
+            exercisesData: nil,
+            estimatedMaxHeartRate: 190,
+            hasWatchAccess: true,
+            currentWeightKg: 78.5,
+            startingWeightKg: 82.0,
+            targetWeightKg: 75.0,
+            weeklyWeightDeltaKg: -0.4,
+            weightHistoryValues: [79.2, 79.0, 78.8, 78.9, 78.6, 78.5]
+        )
+    }
 
     #if DEBUG || targetEnvironment(simulator)
     static func watchASODemo(language: String) -> SharedWorkoutSnapshot {
@@ -950,6 +1022,14 @@ enum SharedLeaderboardStore {
     private static let key = "friendsLeaderboardSnapshot"
     private static let widgetKind = "RepsFriendsWidget"
 
+    static var samplePlaceholder: [SharedLeaderboardEntry] {
+        [
+            SharedLeaderboardEntry(rank: 1, username: "Alex Rivera", xp: 14500, isMe: false),
+            SharedLeaderboardEntry(rank: 2, username: "You", xp: 12800, isMe: true),
+            SharedLeaderboardEntry(rank: 3, username: "Sarah Chen", xp: 11200, isMe: false)
+        ]
+    }
+
     static func save(_ entries: [SharedLeaderboardEntry]) {
         guard RepsAppGroup.isAvailable,
               let defaults = UserDefaults(suiteName: RepsAppGroup.identifier),
@@ -966,8 +1046,9 @@ enum SharedLeaderboardStore {
         guard RepsAppGroup.isAvailable,
               let defaults = UserDefaults(suiteName: RepsAppGroup.identifier),
               let data = defaults.data(forKey: key),
-              let entries = try? JSONDecoder().decode([SharedLeaderboardEntry].self, from: data) else {
-            return []
+              let entries = try? JSONDecoder().decode([SharedLeaderboardEntry].self, from: data),
+              !entries.isEmpty else {
+            return samplePlaceholder
         }
         return entries
     }

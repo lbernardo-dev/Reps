@@ -22,7 +22,7 @@ struct ProfileSetupView: View {
 
     private var activeSteps: [OnboardingStep] {
         if draft.buildsOwnPlan {
-            return [.hero, .value, .setup, .goal, .equipment, .ready]
+            return [.hero, .value, .name, .setup, .goal, .equipment, .ready]
         }
         return OnboardingStep.allCases
     }
@@ -121,6 +121,8 @@ struct ProfileSetupView: View {
             OnboardingHeroStepView()
         case .value:
             OnboardingValueStepView(draft: $draft)
+        case .name:
+            OnboardingNameStepView(draft: $draft)
         case .setup:
             OnboardingSetupStepView(draft: $draft)
         case .goal:
@@ -189,6 +191,16 @@ struct ProfileSetupView: View {
                 .buttonStyle(.plain)
                 .pressableFeedback(scale: 0.98)
             }
+
+            // Privacy Note Badge
+            HStack(spacing: 4) {
+                Image(systemName: "lock.fill")
+                    .font(.caption2)
+                Text(localizedString("onboarding_privacy_note"))
+                    .font(.caption2.weight(.medium))
+            }
+            .foregroundStyle(PulseTheme.secondaryText.opacity(0.85))
+            .padding(.top, 2)
         }
         .padding(.horizontal, PulseTheme.screenHorizontalPadding)
         .padding(.top, 8)
@@ -437,6 +449,7 @@ struct HealthBMIMetrics {
 private enum OnboardingStep: String, CaseIterable, Identifiable {
     case hero
     case value
+    case name
     case setup
     case goal
     case timeline
@@ -521,6 +534,7 @@ private enum BodyMapPreference: String, CaseIterable, Identifiable {
 }
 
 private struct OnboardingDraft {
+    var displayName: String = ""
     var mainGoal: UserProfile.MainGoal = .buildMuscle
     var targetHorizonMode: PlanHorizonMode = .lifestyle
     var targetEventName: String? = nil
@@ -594,6 +608,8 @@ private struct OnboardingDraft {
 
     func makeProfile() -> UserProfile {
         var profile = UserProfile()
+        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        profile.displayName = trimmedName.isEmpty ? nil : trimmedName
         profile.mainGoal = mainGoal
         profile.experience = experience
         profile.weeklyTrainingDays = weeklyTrainingDays
@@ -699,6 +715,86 @@ private struct OnboardingValueStepView: View {
             }
             .padding(.horizontal, 4)
             .padding(.top, 2)
+        }
+    }
+}
+
+private struct OnboardingNameStepView: View {
+    @Binding var draft: OnboardingDraft
+    @FocusState private var isNameFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            OnboardingTitle(
+                title: "onboarding_official_title",
+                subtitle: "onboarding_official_subtitle"
+            )
+
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.fill")
+                        .font(.title3)
+                        .foregroundStyle(isNameFocused ? PulseTheme.accent : PulseTheme.secondaryText)
+
+                    TextField(
+                        onboardingLocalizedString("onboarding_name_placeholder"),
+                        text: $draft.displayName
+                    )
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(PulseTheme.textPrimary)
+                    .autocorrectionDisabled()
+                    .focused($isNameFocused)
+
+                    if !draft.displayName.isEmpty {
+                        Button {
+                            draft.displayName = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(PulseTheme.card)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(isNameFocused ? PulseTheme.accent : Color.white.opacity(0.08), lineWidth: isNameFocused ? 2 : 1)
+                )
+
+                let firstName = UserProfile.firstName(from: draft.displayName)
+                if !firstName.isEmpty {
+                    HStack(spacing: 10) {
+                        Image(systemName: "sparkles")
+                            .font(.headline)
+                            .foregroundStyle(PulseTheme.accent)
+                        Text(verbatim: String(format: onboardingLocalizedString("onboarding_nice_to_meet_you_format"), firstName))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(PulseTheme.textPrimary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(PulseTheme.accent.opacity(0.12))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(PulseTheme.accent.opacity(0.3), lineWidth: 1)
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                isNameFocused = true
+            }
         }
     }
 }
@@ -1500,30 +1596,45 @@ private struct OnboardingBaselineStepView: View {
                 }
             }
 
+            // New Sex / Anatomy Selection Cards at Original Bottom Position
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(onboardingLocalizedString("onboarding_baseline_anatomy_label"))
-                        .font(.headline)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(PulseTheme.textPrimary)
                     Text(onboardingLocalizedString("onboarding_baseline_anatomy_subtitle"))
                         .font(.caption.weight(.medium))
                         .foregroundStyle(PulseTheme.secondaryText)
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         ForEach(BodyMapPreference.allCases) { preference in
+                            let isSelected = draft.bodyMapPreference == preference
                             Button {
-                                draft.bodyMapPreference = preference
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    draft.bodyMapPreference = preference
+                                }
                             } label: {
-                                Text(onboardingLocalizedString(preference.title))
-                                    .font(.caption.weight(.bold))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 38)
-                                    .contentShape(Capsule())
-                                    .foregroundStyle(draft.bodyMapPreference == preference ? .black : PulseTheme.secondaryText)
-                                    .background(draft.bodyMapPreference == preference ? .white : PulseTheme.grouped)
-                                    .clipShape(Capsule())
+                                VStack(spacing: 8) {
+                                    Image(systemName: preference == .mapA ? "figure.stand" : (preference == .mapB ? "figure.stand.dress" : "person.fill"))
+                                        .font(.system(size: 24, weight: .bold))
+                                        .foregroundStyle(isSelected ? PulseTheme.accent : PulseTheme.secondaryText)
+                                    Text(onboardingLocalizedString(preference.title))
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(isSelected ? PulseTheme.textPrimary : PulseTheme.secondaryText)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 72)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .fill(isSelected ? PulseTheme.accent.opacity(0.12) : PulseTheme.grouped)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(isSelected ? PulseTheme.accent : Color.white.opacity(0.06), lineWidth: isSelected ? 2 : 1)
+                                )
                             }
                             .buttonStyle(.plain)
-                            .pressableFeedback(scale: 0.94)
+                            .pressableFeedback(scale: 0.95)
                         }
                     }
                 }

@@ -13,15 +13,16 @@ struct RepsWorkoutProvider: AppIntentTimelineProvider {
     typealias Intent = RepsWidgetConfigurationIntent
 
     func placeholder(in context: Context) -> RepsWorkoutEntry {
-        RepsWorkoutEntry(date: .now, snapshot: .empty, configuredBackgroundColor: .system)
+        RepsWorkoutEntry(date: .now, snapshot: .samplePlaceholder, configuredBackgroundColor: .system)
     }
 
     func snapshot(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> RepsWorkoutEntry {
-        RepsWorkoutEntry(date: .now, snapshot: SharedWorkoutStore.load(), configuredBackgroundColor: configuration.backgroundColor)
+        let snapshot = context.isPreview ? .samplePlaceholder : SharedWorkoutStore.load()
+        return RepsWorkoutEntry(date: .now, snapshot: snapshot, configuredBackgroundColor: configuration.backgroundColor)
     }
 
     func timeline(for configuration: RepsWidgetConfigurationIntent, in context: Context) async -> Timeline<RepsWorkoutEntry> {
-        let snapshot = SharedWorkoutStore.load()
+        let snapshot = context.isPreview ? .samplePlaceholder : SharedWorkoutStore.load()
         let entry = RepsWorkoutEntry(date: .now, snapshot: snapshot, configuredBackgroundColor: configuration.backgroundColor)
         let policy: TimelineReloadPolicy = snapshot.hasActiveWorkout
             ? .atEnd
@@ -47,25 +48,23 @@ struct RepsWorkoutWidget: Widget {
 
 extension View {
     func repsWidgetBackground(_ color: WidgetColor) -> some View {
-        let gradientFill = LinearGradient(
-            colors: [
+        let isSystem = (color == .system)
+        let bgGradient = LinearGradient(
+            colors: isSystem ? [
+                Color(uiColor: .secondarySystemGroupedBackground),
+                Color(uiColor: .systemGroupedBackground)
+            ] : [
                 color.widgetBackgroundFill,
-                color.widgetBackgroundFill.opacity(0.88),
-                Color.black
+                color.widgetBackgroundFill.opacity(0.85)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
-        return ZStack {
-            ContainerRelativeShape()
-                .fill(gradientFill)
-            self
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(for: .widget) {
-            ContainerRelativeShape()
-                .fill(gradientFill)
-        }
+
+        return self
+            .containerBackground(for: .widget) {
+                bgGradient
+            }
     }
 }
 

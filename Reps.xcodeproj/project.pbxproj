@@ -147,6 +147,7 @@
 		990133AA0AC6E04F09815E16 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3659C8528135CC1735E2D7BD /* HealthKitService.swift */; };
 		9A7197D0B65A1726E4766451 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = A6FA26F88CFF42517FA854A5 /* RevenueCatUI */; };
 		9D6C2CA9B9BC38E180888A76 /* RepsBatteryWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DAAE09638B4291B3E89483 /* RepsBatteryWidget.swift */; };
+		A1B2C3D4E5F6012345678910 /* RepsWeightWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6012345678911 /* RepsWeightWidget.swift */; };
 		9F6D0433BC46DF7D9D6FCCBC /* ProgressProInsightsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB58EC48831AF89BE4E6A7E9 /* ProgressProInsightsCard.swift */; };
 		A1EE8255CBAF7C557CE9A4BC /* MuscleVolume.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0A97C79C7E907579CBFCBD /* MuscleVolume.swift */; };
 		A30508DF06F62FE5A3DAA06B /* AdaptiveLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E0109F5F66F9AC44B8016D4 /* AdaptiveLayout.swift */; };
@@ -278,6 +279,7 @@
 		0ECBBCF60B8C5057CAB72E32 /* TelemetryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryService.swift; sourceTree = "<group>"; };
 		117AEA2EFA85E9B47847E6CC /* WatchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchTheme.swift; sourceTree = "<group>"; };
 		12DAAE09638B4291B3E89483 /* RepsBatteryWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsBatteryWidget.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6012345678911 /* RepsWeightWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsWeightWidget.swift; sourceTree = "<group>"; };
 		130E4F75D706852645E5A1F1 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
 		139C9662D78E951B54E33A7E /* RepsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepsApp.swift; sourceTree = "<group>"; };
 		13EF4F5A4D286C5E6639121F /* ActiveWorkoutFeedbackPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutFeedbackPanel.swift; sourceTree = "<group>"; };
@@ -839,6 +841,7 @@
 				E4D0A3F50CC0E82A7B1081F9 /* Info.plist */,
 				B31D5E2BE507A45C4B26BED6 /* InfoPlist.xcstrings */,
 				12DAAE09638B4291B3E89483 /* RepsBatteryWidget.swift */,
+				A1B2C3D4E5F6012345678911 /* RepsWeightWidget.swift */,
 				96F240FA1D49782F58CDB521 /* RepsFriendsWidget.swift */,
 				4C811B078B70CCB8A2E188B7 /* RepsStreakWidget.swift */,
 				BE3B39142A43DB573171B14F /* RepsWidgets.entitlements */,
@@ -1323,6 +1326,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9D6C2CA9B9BC38E180888A76 /* RepsBatteryWidget.swift in Sources */,
+				A1B2C3D4E5F6012345678910 /* RepsWeightWidget.swift in Sources */,
 				DA79A3AAA95C4B3664799090 /* RepsFriendsWidget.swift in Sources */,
 				4868809856A6649B45831D2C /* RepsStartWorkoutIntent.swift in Sources */,
 				8E6E8B3A65A1B200DCDFDD93 /* RepsStreakWidget.swift in Sources */,
@@ -1399,6 +1403,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = L2B56644F5;
 				INFOPLIST_FILE = Reps/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -1446,7 +1452,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 101202607291;
+				CURRENT_PROJECT_VERSION = 102202608011;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1513,7 +1519,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 101202607291;
+				CURRENT_PROJECT_VERSION = 102202608011;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1544,6 +1550,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = L2B56644F5;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RepsWatch/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1624,6 +1632,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = RepsWidgets/RepsWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = L2B56644F5;
 				INFOPLIST_FILE = RepsWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (

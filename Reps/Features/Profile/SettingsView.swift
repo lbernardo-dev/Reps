@@ -757,8 +757,8 @@ private struct WidgetSettingsScreen: View {
                 accentColor: colorForWidgetName(store.userProfile.widgetAccentColorName)
             ) {
                 WorkoutWidgetPreviewView(
-                    routineName: store.activePlan.days.first?.title ?? "Push & Core Power",
-                    exerciseCount: 5,
+                    routineName: store.todaysWorkout.title.isEmpty ? (store.activePlan.days.first?.title ?? localizedString("workout_today")) : store.todaysWorkout.title,
+                    exerciseCount: max(store.todaysWorkout.exercises.count, 4),
                     color: colorForWidgetName(store.userProfile.widgetAccentColorName),
                     size: workoutWidgetSize
                 )
@@ -785,7 +785,7 @@ private struct WidgetSettingsScreen: View {
                 accentColor: .orange
             ) {
                 StreakWidgetPreviewView(
-                    streakDays: max(store.streakDays, 7),
+                    streakDays: max(store.streakDays, 1),
                     color: colorForWidgetName(store.userProfile.widgetAccentColorName),
                     size: streakWidgetSize
                 )
@@ -812,8 +812,8 @@ private struct WidgetSettingsScreen: View {
                 accentColor: .green
             ) {
                 BatteryWidgetPreviewView(
-                    batteryLevel: 88,
-                    statusText: "Optimal Readiness",
+                    batteryLevel: store.trainingBattery.level,
+                    statusText: store.trainingBattery.title,
                     color: colorForWidgetName(store.userProfile.widgetAccentColorName)
                 )
             } controls: {
@@ -832,7 +832,51 @@ private struct WidgetSettingsScreen: View {
                 }
             }
 
-            // 4. Live Activity & Dynamic Island Preview & Settings
+            // 4. Weight Evolution Widget Preview & Settings (NEW!)
+            WidgetPreviewCard(
+                title: settingsDisplayText("weight_widget"),
+                subtitle: settingsDisplayText("weight_widget_desc"),
+                systemImage: "scalemass.fill",
+                accentColor: PulseTheme.accent
+            ) {
+                WeightWidgetPreviewView(
+                    currentWeight: store.currentWeight > 0 ? store.currentWeight : 78.5,
+                    deltaKg: -0.4,
+                    unit: store.displayedWeight.unit,
+                    targetWeight: store.userProfile.targetWeightKg ?? 75.0,
+                    color: colorForWidgetName(store.userProfile.widgetAccentColorName)
+                )
+            } controls: {
+                HStack {
+                    Text(settingsDisplayText("weight_goal"))
+                        .font(SettingsTypography.rowTitle)
+                        .foregroundStyle(PulseTheme.textPrimary)
+                    Spacer()
+                    Text(String(format: "%.1f %@", store.userProfile.targetWeightKg ?? 75.0, store.displayedWeight.unit))
+                        .font(SettingsTypography.rowTitle.weight(.bold))
+                        .foregroundStyle(PulseTheme.accent)
+                }
+            }
+
+            // 5. Friends & Community Widget Preview
+            WidgetPreviewCard(
+                title: settingsDisplayText("friends_widget"),
+                subtitle: settingsDisplayText("friends_widget_desc"),
+                systemImage: "person.3.fill",
+                accentColor: .blue
+            ) {
+                FriendsWidgetPreviewView(
+                    friendName: store.userProfile.alias ?? "Alex Rivera",
+                    activityText: localizedString("leg_day_pr"),
+                    color: colorForWidgetName(store.userProfile.widgetAccentColorName)
+                )
+            } controls: {
+                Toggle(settingsDisplayText("show_community_activity"), isOn: $showFriendsActivity)
+                    .font(SettingsTypography.rowTitle)
+                    .tint(PulseTheme.accent)
+            }
+
+            // 6. Live Activity & Dynamic Island Preview & Settings
             WidgetPreviewCard(
                 title: settingsDisplayText("live_activity_preview"),
                 subtitle: settingsDisplayText("live_activity_desc"),
@@ -840,8 +884,8 @@ private struct WidgetSettingsScreen: View {
                 accentColor: PulseTheme.accent
             ) {
                 LiveActivityPreviewView(
-                    exerciseName: "Bench Press",
-                    setInfo: "Set 3 of 4 · 80 kg",
+                    exerciseName: store.activeWorkoutStatus?.exerciseName ?? "Bench Press",
+                    setInfo: store.activeWorkoutStatus != nil ? "Set \(store.activeWorkoutStatus?.currentExerciseCompletedSets ?? 1) of \(store.activeWorkoutStatus?.currentExerciseTotalSets ?? 4)" : "Set 3 of 4 · 80 kg",
                     timeText: "42:15",
                     color: colorForWidgetName(store.userProfile.widgetAccentColorName)
                 )
@@ -1040,6 +1084,86 @@ private struct BatteryWidgetPreviewView: View {
                 }
             }
             .frame(width: 14, height: 50)
+        }
+        .padding(12)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct WeightWidgetPreviewView: View {
+    let currentWeight: Double
+    let deltaKg: Double
+    let unit: String
+    let targetWeight: Double
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "scalemass.fill")
+                        .foregroundStyle(color)
+                    Text("WEIGHT EVOLUTION")
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(color)
+                }
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(String(format: "%.1f", currentWeight))
+                        .font(.system(size: 28, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                    Text(unit)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                Text(String(format: "%+.1f %@ this week", deltaKg, unit))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(deltaKg <= 0 ? Color.green : Color.orange)
+            }
+            Spacer()
+            // Mini chart sparkline
+            HStack(alignment: .bottom, spacing: 3) {
+                ForEach([79.2, 79.0, 78.8, 78.9, 78.6, 78.5], id: \.self) { val in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(color.opacity(val == 78.5 ? 1.0 : 0.4))
+                        .frame(width: 6, height: CGFloat((val - 77.0) * 15))
+                }
+            }
+            .padding(8)
+            .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .padding(12)
+        .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct FriendsWidgetPreviewView: View {
+    let friendName: String
+    let activityText: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                Image(systemName: "person.fill")
+                    .foregroundStyle(color)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(friendName)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white)
+                Text(activityText)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            Spacer()
+            Image(systemName: "hand.thumbsup.fill")
+                .font(.caption)
+                .padding(8)
+                .background(color.opacity(0.15), in: Circle())
+                .foregroundStyle(color)
         }
         .padding(12)
         .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -1756,6 +1880,12 @@ private let settingsEnglishFallbacks: [String: String] = [
     "streak_widget_desc": "Tracks daily consistency and training streak",
     "battery_widget": "Recovery & Energy Widget",
     "battery_widget_desc": "Monitors body battery, readiness, and HRV status",
+    "weight_widget": "Weight Evolution Widget",
+    "weight_widget_desc": "Tracks body weight changes, weekly trends, and goal progress",
+    "weight_goal": "Goal Weight",
+    "friends_widget": "Friends & Community Widget",
+    "friends_widget_desc": "Displays recent friend workouts, rankings, and cheer nudges",
+    "show_community_activity": "Show Community Activity",
     "live_activity_preview": "Live Activity & Dynamic Island",
     "live_activity_desc": "Real-time workout controls on Lock Screen and Dynamic Island",
     "widget_size": "Widget Size",
@@ -1815,6 +1945,12 @@ private let settingsSpanishFallbacks: [String: String] = [
     "streak_widget_desc": "Seguimiento de racha diaria y constancia",
     "battery_widget": "Widget de Recuperación y Batería",
     "battery_widget_desc": "Monitorea la batería corporal, disposición y HRV",
+    "weight_widget": "Widget de Evolución de Peso",
+    "weight_widget_desc": "Seguimiento de peso corporal, tendencia semanal y objetivo",
+    "weight_goal": "Peso Objetivo",
+    "friends_widget": "Widget de Amigos y Comunidad",
+    "friends_widget_desc": "Muestra entrenamientos de amigos, ranking y actividad social",
+    "show_community_activity": "Mostrar Actividad de la Comunidad",
     "live_activity_preview": "Live Activity y Dynamic Island",
     "live_activity_desc": "Controles en tiempo real en Pantalla de Bloqueo e Island",
     "widget_size": "Tamaño del Widget",
