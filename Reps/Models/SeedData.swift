@@ -6,17 +6,17 @@ struct ExerciseVideoCatalog {
         "0052.mp4": ["svendpresschest", "svendpress"],
         "0053.mp4": ["airbikesprint", "airbike", "assaultbike"],
         "0054.mp4": ["barbellbacksquat", "barbellsquat", "backsquat", "squat"],
-        "0055.mp4": ["barbellbulgariansplitsquat"],
+        "0055.mp4": ["barbellbulgariansplitsquat", "barbellsplitsquat"],
         "0056.mp4": ["barbellfrontsquat", "frontsquat"],
-        "0057.mp4": ["barbellhipthrust", "hipthrust"],
+        "0057.mp4": ["barbellhipthrust", "hipthrust", "barbellglutebridge"],
         "0058.mp4": ["barbellmarch"],
         "0059.mp4": ["barbellreverselunges", "barbellreverselunge", "reverselunge"],
-        "0060.mp4": ["barbellromaniandeadlift", "romaniandeadlift"],
-        "0061.mp4": ["cablelegkickback", "cableglutekickback"],
-        "0062.mp4": ["cycling", "stationarybike"],
-        "0063.mp4": ["dumbbellbulgariansplitsquat"],
+        "0060.mp4": ["barbellromaniandeadlift", "romaniandeadlift", "dumbbellromaniandeadlift"],
+        "0061.mp4": ["cablelegkickback", "cableglutekickback", "glutekickbackmachine"],
+        "0062.mp4": ["cycling", "stationarybike", "spinbike"],
+        "0063.mp4": ["dumbbellbulgariansplitsquat", "bulgariansplitsquat"],
         "0064.mp4": ["dumbbellgobletsquat", "gobletsquat"],
-        "0065.mp4": ["dumbbellhiphinge"],
+        "0065.mp4": ["dumbbellhiphinge", "dumbbellhipthrust"],
         "0066.mp4": ["dumbbelljumpsquat", "jumpsquat"],
         "0067.mp4": ["ellipticalhiitmachine", "elliptical", "ellipticalmachine"],
         "0068.mp4": ["hacksquatmachine", "hacksquat"],
@@ -33,19 +33,19 @@ struct ExerciseVideoCatalog {
         "0079.mp4": ["seatedlegcurlmachine", "seatedlegcurl"],
         "0080.mp4": ["seatedoverheadpress", "seateddumbbellpress"],
         "0081.mp4": ["stepupsweighted", "stepup", "dumbbellstepup", "weightedstepup"],
-        "0082.mp4": ["stepmillmachineversion1", "stairmaster"],
+        "0082.mp4": ["stepmillmachineversion1", "stairmaster", "stairclimber"],
         "0083.mp4": ["stepmillmachine", "stepmill"],
         "0084.mp4": ["stiffleggeddeadliftmachine", "stiffleggeddeadlift"],
-        "0085.mp4": ["tricepspushdowncablerope", "cabletricepspushdown", "ropepushdown"],
-        "0086.mp4": ["walkontreadmill", "treadmillwalking", "treadmillwalk"],
+        "0085.mp4": ["tricepspushdowncablerope", "cabletricepspushdown", "ropepushdown", "tricepspushdown", "ropetricepspushdown"],
+        "0086.mp4": ["walkontreadmill", "treadmillwalking", "treadmillwalk", "inclinetreadmillwalk"],
         "0087.mp4": ["arnoldpressdumbbell", "arnoldpress", "dumbbellarnoldpress"],
         "0088.mp4": ["barbelloverheadpressstanding", "overheadpress", "strictpress"],
         "0089.mp4": ["barbelluprightrow", "uprightrow"],
-        "0090.mp4": ["dumbbelloverheadstandard", "dumbbelloverheadpress"],
+        "0090.mp4": ["dumbbelloverheadstandard", "dumbbelloverheadpress", "dumbbellshoulderpress", "seateddumbbellpress"],
         "0091.mp4": ["dumbbelluprightrow"],
         "0092.mp4": ["frontraisedumbbell", "frontraise", "dumbbellfrontraise"],
         "0093.mp4": ["frontraiseweightedplate", "platefrontraise"],
-        "0094.mp4": ["kettlebelloverheadpress"],
+        "0094.mp4": ["kettlebelloverheadpress", "kettlebellpress"],
         "0095.mp4": ["cablecrosslateralraise", "cablelateralraise"],
         "0096.mp4": ["lateralraisesdumbbell", "lateralraise", "dumbbelllateralraise"],
         "0097.mp4": ["lateralraisemachine", "machinelateralraise"],
@@ -75,6 +75,20 @@ struct ExerciseVideoCatalog {
             }
         }
         return false
+    }
+
+    /// Reverse lookup: returns the video filename for a given exercise name/aliases,
+    /// or nil if no video exists in the catalog for this exercise.
+    static func videoFile(for exerciseName: String, aliases: [String] = []) -> String? {
+        let candidateKeys = ([exerciseName] + aliases).map(normKey)
+        for (file, allowedKeys) in validMap {
+            for key in candidateKeys {
+                if allowedKeys.contains(key) {
+                    return file
+                }
+            }
+        }
+        return nil
     }
 }
 
@@ -915,9 +929,11 @@ enum SeedData {
     private static var expandedCatalogExercises: [Exercise] {
         exerciseFamilies.flatMap { family in
             family.names.map { name in
-                Exercise(
+                let exerciseAliases = aliases(for: name)
+                let video = ExerciseVideoCatalog.videoFile(for: name, aliases: exerciseAliases)
+                return Exercise(
                     name: name,
-                    aliases: aliases(for: name),
+                    aliases: exerciseAliases,
                     muscleGroup: family.muscleGroup,
                     secondaryMuscles: secondaryMuscles(for: family.muscleGroup),
                     equipment: family.equipment,
@@ -927,6 +943,7 @@ enum SeedData {
                     difficulty: family.difficulty,
                     environment: family.environment,
                     tags: family.tags + patternTags(for: name),
+                    videoURL: video,
                     instructions: instructions(for: name, muscleGroup: family.muscleGroup),
                     commonMistakes: commonMistakes(for: family.exerciseType),
                     sourceName: "StreakReps seed catalog",
