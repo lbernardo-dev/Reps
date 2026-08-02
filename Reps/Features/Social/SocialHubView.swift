@@ -37,8 +37,10 @@ struct SocialHubView: View {
     @State private var toastIsError: Bool = false
     @State private var profileToReport: SocialProfile? = nil
     @State private var showReportSheet: Bool = false
+    @State private var showPaywall: Bool = false
+    @State private var showAdminFullScreen: Bool = false
 
-    private enum Tab { case feed, friends, challenges, discover, moderation }
+    private enum Tab { case feed, friends, challenges, discover }
 
     private static let recentSearchesKey = "social_recent_searches"
 
@@ -50,6 +52,14 @@ struct SocialHubView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 20) {
                         myProfileCard
+
+                        if !store.hasProAccess {
+                            SocialLimitsPanel(
+                                activeChallengesCount: store.activeChallenges.count,
+                                onUnlockPro: { showPaywall = true }
+                            )
+                        }
+
                         tabPicker
 
                         switch tab {
@@ -57,7 +67,6 @@ struct SocialHubView: View {
                         case .friends: friendsSection
                         case .challenges: challengesSection
                         case .discover: discoverSection
-                        case .moderation: SocialModerationAdminView()
                         }
 
                         Spacer(minLength: 40)
@@ -76,6 +85,16 @@ struct SocialHubView: View {
                         )
                     }
                 }
+                .sheet(isPresented: $showPaywall) {
+                    PaywallView(presentation: .init(source: .socialLimits))
+                        .environment(store)
+                }
+                .fullScreenCover(isPresented: $showAdminFullScreen) {
+                    NavigationStack {
+                        SocialModerationAdminView()
+                    }
+                    .environment(store)
+                }
             } else {
                 socialAgeBlockedView
             }
@@ -85,7 +104,8 @@ struct SocialHubView: View {
         .safeAreaInset(edge: .top) {
             PulseHeaderBar(
                 title: localizedString("social_hub"),
-                subtitleKey: "friends_2"
+                subtitleKey: "friends_2",
+                hideSocialLink: true
             ) {
                 socialHeaderActions
             }
@@ -295,6 +315,21 @@ struct SocialHubView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(localizedString("connect_with_friends"))
             }
+
+            if store.isCurrentUserManagerOrAdmin {
+                Button {
+                    HapticService.selection()
+                    showAdminFullScreen = true
+                } label: {
+                    Image(systemName: "shield.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.red)
+                        .frame(width: PulseTheme.minTapTarget, height: PulseTheme.minTapTarget)
+                        .navigationGlassCircle(.secondary, tint: .red)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "social_admin_panel_title"))
+            }
         }
     }
 
@@ -347,6 +382,14 @@ struct SocialHubView: View {
                             Text("\(xp) XP")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
+                            if store.hasProAccess {
+                                Text(String(localized: "social_xp_boost_badge"))
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                                    .padding(.horizontal, 7).padding(.vertical, 3)
+                                    .background(LinearGradient(colors: [PulseTheme.accent, PulseTheme.ringStand], startPoint: .leading, endPoint: .trailing))
+                                    .clipShape(Capsule())
+                            }
                         }
                     }
 
@@ -470,9 +513,6 @@ struct SocialHubView: View {
             tabButton(title: localizedString("friends_2"), value: .friends)
             tabButton(title: localizedString("challenge_tab"), value: .challenges)
             tabButton(title: localizedString("social_discover"), value: .discover)
-            if store.isCurrentUserManagerOrAdmin {
-                tabButton(title: "🛡️ Admin", value: .moderation)
-            }
         }
         .padding(3)
         .background(PulseTheme.grouped)
@@ -1687,8 +1727,18 @@ struct SocialHubView: View {
                         showToast(localizedFormat("social_unfollow_success_format", profile.username))
                     }
                 } else {
+                    if !store.hasProAccess && !SocialLimitsManager.shared.canSendInviteToday(hasProAccess: false) {
+                        await MainActor.run {
+                            followingInProgress.remove(profile.id)
+                            showToast(String(localized: "social_limit_reached_invite_desc"), isError: true)
+                            showPaywall = true
+                        }
+                        return
+                    }
+
                     try await SocialService.shared.follow(profile, myUsername: myUsername)
                     await MainActor.run {
+                        SocialLimitsManager.shared.recordInviteSent()
                         following.append(profile)
                         let uname = profile.username.lowercased()
                         if !store.userProfile.socialFollowingUsernames.contains(uname) {

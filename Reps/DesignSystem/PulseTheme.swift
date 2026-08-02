@@ -1875,6 +1875,7 @@ struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
     let subtitleKey: String?
     let backAction: (() -> Void)?
     let showsGlobalActions: Bool
+    let hideSocialLink: Bool
     let titleContent: TitleContent
     let accessory: Accessory
     @Environment(AppStore.self) private var store
@@ -1883,12 +1884,14 @@ struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
         subtitleKey: String? = nil,
         backAction: (() -> Void)? = nil,
         showsGlobalActions: Bool = true,
+        hideSocialLink: Bool = false,
         @ViewBuilder titleContent: () -> TitleContent,
         @ViewBuilder accessory: () -> Accessory
     ) {
         self.subtitleKey = subtitleKey
         self.backAction = backAction
         self.showsGlobalActions = showsGlobalActions
+        self.hideSocialLink = hideSocialLink
         self.titleContent = titleContent()
         self.accessory = accessory()
     }
@@ -1926,7 +1929,8 @@ struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
                 accessory
                 if showsGlobalActions {
                     PulseHeaderGlobalActions(
-                        isSocialEnabled: store.userProfile.socialEnabled && store.userProfile.socialCapabilitiesAllowed && store.userProfile.socialUsername != nil
+                        isSocialEnabled: store.userProfile.socialEnabled && store.userProfile.socialCapabilitiesAllowed && store.userProfile.socialUsername != nil,
+                        hideSocialLink: hideSocialLink
                     )
                 }
             }
@@ -1970,10 +1974,11 @@ struct PulseHeaderBar<TitleContent: View, Accessory: View>: View {
 
 private struct PulseHeaderGlobalActions: View {
     let isSocialEnabled: Bool
+    var hideSocialLink: Bool = false
 
     var body: some View {
         HStack(spacing: 10) {
-            if isSocialEnabled {
+            if isSocialEnabled && !hideSocialLink {
                 NavigationLink {
                     SocialHubView()
                 } label: {
@@ -2021,9 +2026,10 @@ extension PulseHeaderBar where TitleContent == PulseHeaderTitleText {
         subtitleKey: String? = nil,
         backAction: (() -> Void)? = nil,
         showsGlobalActions: Bool = true,
+        hideSocialLink: Bool = false,
         @ViewBuilder accessory: () -> Accessory
     ) {
-        self.init(subtitleKey: subtitleKey, backAction: backAction, showsGlobalActions: showsGlobalActions) {
+        self.init(subtitleKey: subtitleKey, backAction: backAction, showsGlobalActions: showsGlobalActions, hideSocialLink: hideSocialLink) {
             PulseHeaderTitleText(title: title)
         } accessory: {
             accessory()
@@ -2710,9 +2716,9 @@ struct RemoteExerciseImage<Fallback: View>: View {
         }
 
         // 2. Caché de disco (asíncrono, background – no bloquea el hilo principal)
-        if let diskImage = await Task.detached(priority: .utility) { [url] in
+        if let diskImage = await Task.detached(priority: .utility, operation: { [url] in
             RemoteExerciseImageCache.loadFromDisk(url)
-        }.value {
+        }).value {
             RemoteExerciseImageCache.shared.setMemory(diskImage, for: url)
             image = diskImage
             return

@@ -1883,7 +1883,7 @@ struct ExerciseDetailView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     CardTitle("videos_gallery")
 
-                    if let videoURL = currentExercise.localVideoURL {
+                    if currentExercise.localVideoURL != nil {
                         HStack(spacing: 14) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 12)

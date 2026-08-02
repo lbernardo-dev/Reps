@@ -64,6 +64,8 @@
 		44292EBA25710C4E03974E19 /* SleepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCA3265A727CA7F80DE9B96 /* SleepView.swift */; };
 		44295E89D16DD70BC73628C0 /* SocialOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FBD066F81690661D21DAB00 /* SocialOnboardingView.swift */; };
 		A1B2C3D4E5F6010203040506 /* SocialReportSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6010203040507 /* SocialReportSheetView.swift */; };
+		B1C2D3E4F5A6010203040506 /* SocialLimitsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6010203040507 /* SocialLimitsManager.swift */; };
+		B1C2D3E4F5A6010203040508 /* SocialLimitsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6010203040509 /* SocialLimitsPanel.swift */; };
 		A1B2C3D4E5F6010203040508 /* SocialModerationAdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6010203040509 /* SocialModerationAdminView.swift */; };
 		47A4A6F9AB551103D0155F43 /* WorkoutHistoryRouteCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EDF14DDC963B2B7CA315864 /* WorkoutHistoryRouteCards.swift */; };
 		47E91A50F5EC4BF65DCD1803 /* ProgressModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44A841EBF1551C2B890BBA3E /* ProgressModels.swift */; };
@@ -349,6 +351,8 @@
 		6E370781AA207875F4813E3C /* ChallengeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeDetailView.swift; sourceTree = "<group>"; };
 		6FBD066F81690661D21DAB00 /* SocialOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialOnboardingView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6010203040507 /* SocialReportSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialReportSheetView.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6010203040507 /* SocialLimitsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialLimitsManager.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6010203040509 /* SocialLimitsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialLimitsPanel.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6010203040509 /* SocialModerationAdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialModerationAdminView.swift; sourceTree = "<group>"; };
 		758BC64AFD9F0F51E80AFD3D /* OnboardingLocationCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingLocationCatalog.swift; sourceTree = "<group>"; };
 		75F48E903FC027A25C691AD9 /* WorkoutReceiptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutReceiptView.swift; sourceTree = "<group>"; };
@@ -892,6 +896,8 @@
 				6DAB8A3B56BCAE9A06BA4E3F /* SocialHubView.swift */,
 				6FBD066F81690661D21DAB00 /* SocialOnboardingView.swift */,
 				A1B2C3D4E5F6010203040507 /* SocialReportSheetView.swift */,
+				B1C2D3E4F5A6010203040507 /* SocialLimitsManager.swift */,
+				B1C2D3E4F5A6010203040509 /* SocialLimitsPanel.swift */,
 				A1B2C3D4E5F6010203040509 /* SocialModerationAdminView.swift */,
 				370FA49279C2A8AAFC6AA89A /* SocialProfileDetailView.swift */,
 				CE6092BF76BD4B8174BE4933 /* WorkoutPostCard.swift */,
@@ -1300,6 +1306,8 @@
 				B5460ABE3BFCDB94CC695F44 /* SocialHubView.swift in Sources */,
 				44295E89D16DD70BC73628C0 /* SocialOnboardingView.swift in Sources */,
 				A1B2C3D4E5F6010203040506 /* SocialReportSheetView.swift in Sources */,
+				B1C2D3E4F5A6010203040506 /* SocialLimitsManager.swift in Sources */,
+				B1C2D3E4F5A6010203040508 /* SocialLimitsPanel.swift in Sources */,
 				A1B2C3D4E5F6010203040508 /* SocialModerationAdminView.swift in Sources */,
 				726FF8016C151D1036C0EEC9 /* SocialProfileDetailView.swift in Sources */,
 				ECEC0E2542C138655D968F5F /* SocialService.swift in Sources */,

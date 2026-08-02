@@ -204,6 +204,7 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
     case planActivation
     case programLibrary
     case proInsights
+    case socialLimits
 
     var id: String { rawValue }
 
@@ -222,6 +223,7 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
         case .planActivation:           return localizedString("paywall_plan_activation_title")
         case .programLibrary:           return localizedString("paywall_program_library_title")
         case .proInsights:              return localizedString("paywall_pro_insights_title")
+        case .socialLimits:             return localizedString("paywall_social_limits_title")
         }
     }
 
@@ -240,6 +242,7 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
         case .planActivation:           return localizedString("paywall_plan_activation_subtitle")
         case .programLibrary:           return localizedString("paywall_program_library_subtitle")
         case .proInsights:              return localizedString("paywall_pro_insights_subtitle")
+        case .socialLimits:             return localizedString("paywall_social_limits_subtitle")
         }
     }
 
@@ -253,11 +256,19 @@ enum PaywallSource: String, Codable, CaseIterable, Identifiable {
         case .shareCards, .receiptGallery:       return localizedString("paywall_preview_share_progress")
         case .multiplePlans, .planActivation, .programLibrary: return localizedString("paywall_preview_multiple_plans")
         case .proInsights:                       return localizedString("paywall_preview_pro_insights")
+        case .socialLimits:                      return localizedString("paywall_social_limits_title")
         }
     }
 
     var previewBullets: [String] {
         switch self {
+        case .socialLimits:
+            return [
+                localizedString("paywall_social_bullet_1"),
+                localizedString("paywall_social_bullet_2"),
+                localizedString("paywall_social_bullet_3"),
+                localizedString("paywall_social_bullet_4")
+            ]
         case .onboarding:
             return [localizedString("paywall_onboarding_bullet_1"), localizedString("paywall_onboarding_bullet_2")]
         case .profileSubscription:
@@ -301,6 +312,12 @@ struct PaywallPresentation: Identifiable, Equatable {
     let source: PaywallSource
     let feature: ProductFeature?
     let trigger: PaywallTrigger
+
+    init(source: PaywallSource, feature: ProductFeature? = nil, trigger: PaywallTrigger = .featureGate) {
+        self.source = source
+        self.feature = feature
+        self.trigger = trigger
+    }
 }
 
 struct MonetizationState: Codable, Equatable {

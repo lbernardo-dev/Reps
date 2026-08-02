@@ -3,7 +3,7 @@
     {
       "filename" : "app-icon-1024.png",
       "idiom" : "universal",
-      "scale" : "1x",
+      "platform" : "watchos",
       "size" : "1024x1024"
     }
   ],

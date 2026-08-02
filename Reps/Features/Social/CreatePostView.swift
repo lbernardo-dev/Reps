@@ -185,6 +185,13 @@ struct CreatePostView: View {
     private func publish() {
         guard store.userProfile.socialCapabilitiesAllowed else { return }
         guard let uname = store.userProfile.socialUsername else { return }
+
+        if !store.hasProAccess && !SocialLimitsManager.shared.canPostToday(hasProAccess: false) {
+            errorMessage = String(localized: "social_limit_reached_post_desc")
+            HapticService.notification(.error)
+            return
+        }
+
         let dname = store.userProfile.displayName ?? uname
         let text = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         let photos = selectedImages.compactMap { $0.jpegData(compressionQuality: 0.7) }
@@ -198,6 +205,7 @@ struct CreatePostView: View {
                     photoDataList: photos
                 ) {
                     await MainActor.run {
+                        SocialLimitsManager.shared.recordPostSent()
                         store.feedPosts.insert(post, at: 0)
                         isPosting = false
                         onPosted?()

@@ -11,6 +11,7 @@ struct CreateChallengeView: View {
     @State private var endDate = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
     @State private var isCreating = false
     @State private var error: String?
+    @State private var showPaywall = false
 
     private var lang: String { store.userProfile.preferredLanguage }
 
@@ -62,12 +63,21 @@ struct CreateChallengeView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(presentation: .init(source: .socialLimits))
+                    .environment(store)
+            }
         }
     }
 
     private func createChallenge() async {
         guard store.userProfile.socialCapabilitiesAllowed else { return }
         guard let uname = store.userProfile.socialUsername else { return }
+        guard store.hasProAccess else {
+            error = String(localized: "social_create_challenge_pro_only_desc")
+            showPaywall = true
+            return
+        }
         let dname = store.userProfile.displayName ?? uname
         isCreating = true
         error = nil

@@ -1055,7 +1055,7 @@ actor SocialService {
         // profile and anyone already surfaced in the feed).
         let cachedIDs = loadCachedPostIDs().map { CKRecord.ID(recordName: $0) }
         guard !cachedIDs.isEmpty,
-              let fetched = try? await try getPublicDB().records(for: cachedIDs) else { return [] }
+              let fetched = try? await getPublicDB().records(for: cachedIDs) else { return [] }
         return fetched.values
             .compactMap { res in (try? res.get()).flatMap(WorkoutPost.init) }
             .filter { $0.ownerUsername.lowercased() == uname }
@@ -1080,7 +1080,7 @@ actor SocialService {
         let pred = NSPredicate(value: true)
         let query = CKQuery(recordType: "WorkoutPost", predicate: pred)
         query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        if let result = try? await try getPublicDB().records(matching: query, resultsLimit: limit * 2) {
+        if let result = try? await getPublicDB().records(matching: query, resultsLimit: limit * 2) {
             let posts = result.matchResults
                 .compactMap { _, res in (try? res.get()).flatMap(WorkoutPost.init) }
                 .filter { !excluded.contains($0.ownerUsername.lowercased()) }
@@ -1093,7 +1093,7 @@ actor SocialService {
         // Fallback: rank whatever this device already has cached locally.
         let cachedIDs = loadCachedPostIDs().map { CKRecord.ID(recordName: $0) }
         guard !cachedIDs.isEmpty,
-              let fetched = try? await try getPublicDB().records(for: cachedIDs) else { return [] }
+              let fetched = try? await getPublicDB().records(for: cachedIDs) else { return [] }
         return fetched.values
             .compactMap { res in (try? res.get()).flatMap(WorkoutPost.init) }
             .filter { !excluded.contains($0.ownerUsername.lowercased()) }
@@ -1236,7 +1236,7 @@ actor SocialService {
             try await getPublicDB().deleteRecord(withID: rid)
         } catch {
             let altID = CKRecord.ID(recordName: "SocialBan_\(targetUsername.lowercased())")
-            try? await getPublicDB().deleteRecord(withID: altID)
+            _ = try? await getPublicDB().deleteRecord(withID: altID)
         }
     }
 
@@ -1287,7 +1287,7 @@ actor SocialService {
             try await getPublicDB().deleteRecord(withID: rid)
         } catch {
             let altID = CKRecord.ID(recordName: "SocialModerator_\(targetUsername.lowercased())")
-            try? await getPublicDB().deleteRecord(withID: altID)
+            _ = try? await getPublicDB().deleteRecord(withID: altID)
         }
     }
 
@@ -1628,7 +1628,7 @@ actor SocialService {
             for pid in postIDs {
                 let ids = (index[pid] ?? []).map { CKRecord.ID(recordName: $0) }
                 guard !ids.isEmpty else { continue }
-                if let results = try? await try getPublicDB().records(for: ids) {
+                if let results = try? await getPublicDB().records(for: ids) {
                     let comments = results.values
                         .compactMap { try? $0.get() }
                         .compactMap(WorkoutComment.init)
@@ -1699,9 +1699,9 @@ actor SocialService {
         commentNote.shouldSendContentAvailable = true
         commentSub.notificationInfo = commentNote
 
-        _ = try? await try getPublicDB().save(followSub)
-        _ = try? await try getPublicDB().save(likeSub)
-        _ = try? await try getPublicDB().save(commentSub)
+        _ = try? await getPublicDB().save(followSub)
+        _ = try? await getPublicDB().save(likeSub)
+        _ = try? await getPublicDB().save(commentSub)
     }
 
     // MARK: - Activity actor resolution
@@ -1711,7 +1711,7 @@ actor SocialService {
     // so the in-app activity entry can show and link to them.
 
     func resolveActivityActor(recordID: CKRecord.ID) async -> (kind: String, username: String)? {
-        guard let record = try? await try getPublicDB().record(for: recordID) else { return nil }
+        guard let record = try? await getPublicDB().record(for: recordID) else { return nil }
         switch record.recordType {
         case "SocialFollow":
             guard let uname = record["followerUsername"] as? String else { return nil }
@@ -1958,7 +1958,7 @@ extension SocialService {
         try await requireICloudAccount()
         let rid = participationRecordID(challengeID: challengeID, username: username)
         // Check if already joined.
-        if (try? await try getPublicDB().record(for: rid)) != nil { return }
+        if (try? await getPublicDB().record(for: rid)) != nil { return }
         let record = CKRecord(recordType: "ChallengeParticipation", recordID: rid)
         record["challengeID"]              = challengeID as CKRecordValue
         record["participantUsername"]      = username.lowercased() as CKRecordValue
@@ -1968,10 +1968,10 @@ extension SocialService {
 
         // Optimistically bump participantCount on the challenge record.
         let crid = challengeRecordID(challengeID)
-        if let cr = try? await try getPublicDB().record(for: crid) {
+        if let cr = try? await getPublicDB().record(for: crid) {
             let current = (cr["participantCount"] as? Int64) ?? 0
             cr["participantCount"] = (current + 1) as CKRecordValue
-            _ = try? await try getPublicDB().save(cr)
+            _ = try? await getPublicDB().save(cr)
         }
     }
 
@@ -2003,7 +2003,7 @@ extension SocialService {
     /// Fetch the current user's participation record for a single challenge.
     func myParticipation(challengeID: String, username: String) async -> ChallengeParticipation? {
         let rid = participationRecordID(challengeID: challengeID, username: username)
-        guard let record = try? await try getPublicDB().record(for: rid) else { return nil }
+        guard let record = try? await getPublicDB().record(for: rid) else { return nil }
         return ChallengeParticipation(record: record)
     }
 }

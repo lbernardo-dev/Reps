@@ -22,6 +22,8 @@ struct SocialModerationAdminView: View {
         var id: String { rawValue }
     }
 
+    @Environment(\.dismiss) private var dismiss
+
     @State private var activeTab: AdminTab = .users
     @State private var userFilter: UserFilter = .all
     @State private var searchText: String = ""
@@ -40,8 +42,8 @@ struct SocialModerationAdminView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Admin Banner Header
-            adminHeader
+            // Moderation Header Bar
+            moderationHeader
 
             // Segmented Picker
             Picker("", selection: $activeTab) {
@@ -59,6 +61,7 @@ struct SocialModerationAdminView: View {
             }
         }
         .background(PulseTheme.grouped)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await loadAllData()
         }
@@ -83,32 +86,61 @@ struct SocialModerationAdminView: View {
         }
     }
 
-    // MARK: - Admin Header
+    // MARK: - Moderation Header
 
-    private var adminHeader: some View {
-        HStack {
-            Image(systemName: "shield.checkmark.fill")
-                .font(.title2)
-                .foregroundStyle(PulseTheme.accent)
+    private var moderationHeader: some View {
+        HStack(spacing: 12) {
+            // Shield Icon
+            Image(systemName: "shield.fill")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.red)
+                .frame(width: 36, height: 36)
+                .background(Color.red.opacity(0.14))
+                .clipShape(Circle())
+
+            // Title + Subtitle to the right of shield
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "social_admin_panel_title"))
-                    .font(.headline)
-                Text(String(localized: "social_admin_panel_subtitle"))
-                    .font(.caption)
-                    .foregroundStyle(PulseTheme.secondaryText)
-            }
-            Spacer()
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
 
-            Button {
-                Task { await loadAllData() }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.body)
-                    .foregroundStyle(PulseTheme.accent)
+                Text(String(localized: "social_admin_panel_subtitle"))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            // Refresh & Red Close Buttons
+            HStack(spacing: 10) {
+                Button {
+                    HapticService.selection()
+                    Task { await loadAllData() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(PulseTheme.accent)
+                        .frame(width: 36, height: 36)
+                        .navigationGlassCircle(.secondary, tint: PulseTheme.accent)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.red)
+                        .frame(width: 36, height: 36)
+                        .navigationGlassCircle(.secondary, tint: .red)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-        .padding(.vertical, 12)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
         .background(PulseTheme.card)
     }
 
@@ -137,6 +169,8 @@ struct SocialModerationAdminView: View {
                 }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            .fixedSize(horizontal: false, vertical: true)
 
             // Search Bar
             HStack {
