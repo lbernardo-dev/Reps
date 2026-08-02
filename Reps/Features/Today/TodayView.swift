@@ -11,7 +11,7 @@ import WeatherKit
 /// every other card, per explicit request rather than pinned Apple-Rings-style.
 private enum TodaySection: String, CustomizableSection {
     case greeting, hero, weeklyProgress, weather, insights, continuity
-    case signals, wellness, plan, shortcuts, recommendedWorkout, progression
+    case signals, wellness, care, plan, shortcuts, recommendedWorkout, progression
 
     var id: String { rawValue }
 
@@ -27,6 +27,7 @@ private enum TodaySection: String, CustomizableSection {
         case .progression: localizedString("progression")
         case .signals: localizedString("today_signals")
         case .wellness: localizedString("recovery_2")
+        case .care: localizedString("community_care_title")
         case .plan: localizedString("plan_3")
         case .shortcuts: localizedString("shortcuts")
         }
@@ -44,6 +45,7 @@ private enum TodaySection: String, CustomizableSection {
         case .progression: "arrow.up.right.circle.fill"
         case .signals: "gauge.with.dots.needle.67percent"
         case .wellness: "heart.text.square.fill"
+        case .care: "heart.2.fill"
         case .plan: "bolt.fill"
         case .shortcuts: "square.grid.2x2.fill"
         }
@@ -826,7 +828,7 @@ private struct TodayViewContent: View {
             return store.activeWorkoutStatus == nil && recommendedWorkout != nil && !hasActivePlan
         case .progression:
             return !focusProgressionRecommendations.isEmpty
-        case .signals, .wellness, .shortcuts:
+        case .signals, .wellness, .care, .shortcuts:
             return true
         case .plan:
             return hasActivePlan
@@ -890,6 +892,9 @@ private struct TodayViewContent: View {
                 .stickyHeaderTitle(section.title)
         case .wellness:
             wellnessWidgets
+                .stickyHeaderTitle(section.title)
+        case .care:
+            CommunityCareCard(onSelectTab: onSelectTab)
                 .stickyHeaderTitle(section.title)
         case .plan:
             planSection

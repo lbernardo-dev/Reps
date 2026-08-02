@@ -44,6 +44,10 @@ targets:
           enabled: 1
     sources:
       - path: Reps
+        excludes:
+          - "Features/Onboarding/Steps"
+          - "Features/Onboarding/Components"
+          - "Features/Onboarding/AppGuidedTourView.swift"
       - path: RepsShared
     info:
       path: Reps/Info.plist

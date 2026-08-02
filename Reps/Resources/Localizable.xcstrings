@@ -1,6 +1,90 @@
 {
   "sourceLanguage" : "es",
   "strings" : {
+    "community_care_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Community Care" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Comunidad Care" } }
+      }
+    },
+    "about_care_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "About Reps Care" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Acerca de Reps Care" } }
+      }
+    },
+    "about_care_description" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reps Care lets you connect with community friends — stay aware of their health and activity changes, remind them to move, and cheer them on during every workout." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Reps Care te permite conectarte con tus amigos de la comunidad: mantente al tanto de su salud y cambios de actividad, recuérdales moverse y anímalos en cada entrenamiento." } }
+      }
+    },
+    "about_care_privacy_notice" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Health and activity data is only shared with confirmed community friends, securely kept, and auto-protected." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Los datos de salud y actividad solo se comparten con amigos confirmados de la comunidad y se conservan de forma segura." } }
+      }
+    },
+    "customize_favorites_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Customize Your Favorites" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Personalizar Favoritos" } }
+      }
+    },
+    "customize_favorites_subtitle" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Choose who appears on your home. Drag to reorder." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elige quién aparece en tu inicio. Arrastra para reordenar." } }
+      }
+    },
+    "care_more_fun_with_friends" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "It's more fun with community friends" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Es más divertido con amigos de la comunidad" } }
+      }
+    },
+    "care_more_fun_subtitle" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Connect with family & friends — care and grow together" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Conecta con amigos y familiares: cuida tu salud y creced juntos" } }
+      }
+    },
+    "invite_friends_action" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Invite friends" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Invitar amigos" } }
+      }
+    },
+    "cheer_friend" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cheer on" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "¡Ánimo!" } }
+      }
+    },
+    "community_care_no_friends_title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No friends followed yet" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No sigues a ningún amigo aún" } }
+      }
+    },
+    "community_care_no_friends_subtitle" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Search for friends in the Community tab to add them to your health panel." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Busca a tus amigos en la pestaña Comunidad para agregarlos a tu panel de salud." } }
+      }
+    },
+    "community_care_find_friends" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Find friends" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Buscar amigos" } }
+      }
+    },
+    "community_care_cheered_toast" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You sent cheers to @%@! 💪" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "¡Le has enviado ánimos a @%@! 💪" } }
+      }
+    },
     "" : {
       "localizations" : {
         "en" : {
