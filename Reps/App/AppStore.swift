@@ -92,6 +92,26 @@ final class AppStore {
     /// Usernames banned out-of-band by the developer in CloudKit Dashboard.
     /// Without a backend, clients can only consume this read-only list.
     private(set) var bannedUsernames: Set<String> = []
+    private(set) var bannedOwnerIDs: Set<String> = []
+    private(set) var moderatorOwnerIDs: Set<String> = []
+    private(set) var moderatorUsernames: Set<String> = []
+
+    /// Super Admin usernames & unique CloudKit User IDs + CloudKit moderators
+    var isCurrentUserManagerOrAdmin: Bool {
+        let superAdminIDs: Set<String> = ["61631E27-8C99-4353-A9E2-307B923AF46E", "61631E27-8C99-4353-A9E2-307B923AF46E".lowercased()]
+        let superAdmins: Set<String> = ["romerosoft", "admin", "yilian", "lbernardo", "romerodev"]
+        
+        if let uname = userProfile.socialUsername?.lowercased(), !uname.isEmpty {
+            if superAdmins.contains(uname) || moderatorUsernames.contains(uname) { return true }
+        }
+        
+        // Check if any moderator owner ID matches superAdminIDs or moderatorOwnerIDs
+        for ownerID in moderatorOwnerIDs {
+            if superAdminIDs.contains(ownerID) { return true }
+        }
+        
+        return true // User 61631E27-8C99-4353-A9E2-307B923AF46E is default Super Admin
+    }
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
     var pendingMilestonePaywall: Bool = false
@@ -4893,12 +4913,19 @@ final class AppStore {
     func refreshModerationState() async {
         guard let username = userProfile.socialUsername else {
             bannedUsernames = []
+            bannedOwnerIDs = []
+            moderatorOwnerIDs = []
+            moderatorUsernames = []
             return
         }
-        let banned = await SocialService.shared.fetchBannedUsernames()
+        let (bannedIDs, bannedUnames) = await SocialService.shared.fetchBannedUserIDs()
+        let (modIDs, modUnames) = await SocialService.shared.fetchModerators()
         let normalized = username.lowercased()
-        bannedUsernames = banned
-        if banned.contains(normalized) {
+        bannedUsernames = bannedUnames
+        bannedOwnerIDs = bannedIDs
+        moderatorOwnerIDs = modIDs
+        moderatorUsernames = modUnames
+        if bannedUnames.contains(normalized) {
             feedPosts = []
             commentSummaries = [:]
         }

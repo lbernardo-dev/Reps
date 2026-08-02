@@ -19,6 +19,7 @@ struct SocialProfileDetailView: View {
     @State private var isLoading = true
     @State private var isFollowActionInProgress = false
     @State private var selectedPost: WorkoutPost?
+    @State private var showReportSheet: Bool = false
 
     private var isMe: Bool {
         store.userProfile.socialUsername?.lowercased() == username.lowercased()
@@ -64,6 +65,31 @@ struct SocialProfileDetailView: View {
             })
             .environment(store)
             .repsSheetPresentation()
+        }
+        .sheet(isPresented: $showReportSheet) {
+            if let p = profile {
+                SocialReportSheetView(
+                    targetType: "user",
+                    targetProfile: p,
+                    targetPostID: nil,
+                    targetUsername: p.username
+                )
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button(role: .destructive) {
+                        showReportSheet = true
+                    } label: {
+                        Label(String(localized: "social_report_user_btn"), systemImage: "flag")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.body)
+                        .foregroundStyle(PulseTheme.accent)
+                }
+            }
         }
     }
 
@@ -384,23 +410,26 @@ struct SocialProfileDetailView: View {
     private func toggleFollow() async {
         guard store.userProfile.socialCapabilitiesAllowed else { return }
         guard let profile else { return }
+        guard let myUsername = store.userProfile.socialUsername, !myUsername.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         isFollowActionInProgress = true
         do {
             if isFollowing {
                 try await SocialService.shared.unfollow(profile)
                 store.userProfile.socialFollowingUsernames.removeAll { $0 == username.lowercased() }
+                HapticService.notification(.success)
             } else {
-                try await SocialService.shared.follow(profile, myUsername: store.userProfile.socialUsername ?? "")
+                try await SocialService.shared.follow(profile, myUsername: myUsername)
                 if !store.userProfile.socialFollowingUsernames.contains(username.lowercased()) {
                     store.userProfile.socialFollowingUsernames.append(username.lowercased())
                 }
+                HapticService.notification(.success)
             }
-            if let myUsername = store.userProfile.socialUsername {
-                let newList = store.userProfile.socialFollowingUsernames
-                Task.detached { await SocialService.shared.updateMyFollowingList(myUsername: myUsername, followingUsernames: newList) }
-            }
+            let newList = store.userProfile.socialFollowingUsernames
+            Task.detached { await SocialService.shared.updateMyFollowingList(myUsername: myUsername, followingUsernames: newList) }
             followerCount = await SocialService.shared.fetchFollowerCount(myUsername: username)
-        } catch { /* UI stays consistent */ }
+        } catch {
+            HapticService.notification(.error)
+        }
         isFollowActionInProgress = false
     }
 }

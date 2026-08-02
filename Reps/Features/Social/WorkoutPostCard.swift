@@ -26,6 +26,7 @@ struct WorkoutPostCard: View {
     var onModeratorAction: (() -> Void)? = nil
 
     @State private var showLikeBurst = false
+    @State private var showReportSheet = false
 
     private var isRecent: Bool { post.createdAt.timeIntervalSinceNow > -7200 }
 
@@ -101,7 +102,7 @@ struct WorkoutPostCard: View {
 
                 Menu {
                     Button {
-                        Task { _ = await store.reportSocialPost(post) }
+                        showReportSheet = true
                     } label: {
                         Label(localizedString("social_report_post"), systemImage: "flag")
                     }

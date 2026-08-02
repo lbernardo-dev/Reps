@@ -1,3 +1,4 @@
+#if canImport(ActivityKit) && !os(watchOS)
 import ActivityKit
 import WidgetKit
 import SwiftUI
@@ -786,3 +787,4 @@ struct RepsProgressStyle: ProgressViewStyle {
         .frame(height: 6)
     }
 }
+#endif

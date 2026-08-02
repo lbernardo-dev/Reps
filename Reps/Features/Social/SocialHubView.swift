@@ -32,8 +32,13 @@ struct SocialHubView: View {
     @State private var selectedChallenge: SocialChallenge? = nil
     @State private var didLoadInitialData = false
     @State private var searchTask: Task<Void, Never>?
+    @State private var pendingInvites: [PendingInvite] = []
+    @State private var toastMessage: String? = nil
+    @State private var toastIsError: Bool = false
+    @State private var profileToReport: SocialProfile? = nil
+    @State private var showReportSheet: Bool = false
 
-    private enum Tab { case feed, friends, challenges, discover }
+    private enum Tab { case feed, friends, challenges, discover, moderation }
 
     private static let recentSearchesKey = "social_recent_searches"
 
@@ -52,6 +57,7 @@ struct SocialHubView: View {
                         case .friends: friendsSection
                         case .challenges: challengesSection
                         case .discover: discoverSection
+                        case .moderation: SocialModerationAdminView()
                         }
 
                         Spacer(minLength: 40)
@@ -60,6 +66,16 @@ struct SocialHubView: View {
                     .padding(.bottom, 124)
                 }
                 .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+                .sheet(isPresented: $showReportSheet) {
+                    if let p = profileToReport {
+                        SocialReportSheetView(
+                            targetType: "user",
+                            targetProfile: p,
+                            targetPostID: nil,
+                            targetUsername: p.username
+                        )
+                    }
+                }
             } else {
                 socialAgeBlockedView
             }
@@ -163,6 +179,24 @@ struct SocialHubView: View {
             SocialOnboardingView()
                 .environment(store)
                 .repsSheetPresentation()
+        }
+        .overlay(alignment: .bottom) {
+            if let msg = toastMessage {
+                HStack(spacing: 8) {
+                    Image(systemName: toastIsError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                        .foregroundStyle(toastIsError ? .red : PulseTheme.accent)
+                    Text(msg)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(PulseTheme.card)
+                .clipShape(Capsule())
+                .shadow(color: .black.opacity(0.35), radius: 8, x: 0, y: 4)
+                .padding(.bottom, 40)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
     }
 
@@ -436,6 +470,9 @@ struct SocialHubView: View {
             tabButton(title: localizedString("friends_2"), value: .friends)
             tabButton(title: localizedString("challenge_tab"), value: .challenges)
             tabButton(title: localizedString("social_discover"), value: .discover)
+            if store.isCurrentUserManagerOrAdmin {
+                tabButton(title: "🛡️ Admin", value: .moderation)
+            }
         }
         .padding(3)
         .background(PulseTheme.grouped)
@@ -984,6 +1021,10 @@ struct SocialHubView: View {
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
             if searchText.isEmpty {
+                // Pending invitations
+                if !pendingInvites.isEmpty {
+                    pendingInvitationsSection
+                }
                 // Recent searches
                 if !recentSearches.isEmpty {
                     recentSearchesSection
@@ -993,7 +1034,7 @@ struct SocialHubView: View {
                     suggestedSection
                 } else if isLoadingSuggested {
                     PulseCard { PulseSkeleton(height: 60) }
-                } else if recentSearches.isEmpty {
+                } else if recentSearches.isEmpty && pendingInvites.isEmpty {
                     PulseCard {
                         PulseEmptyState(
                             title: "social_find_friends",
@@ -1194,8 +1235,121 @@ struct SocialHubView: View {
         }
     }
 
+    // MARK: - Pending Invitations Section
+
+    private var pendingInvitationsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(localizedString("social_pending_invitations"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Spacer()
+                Text("\(pendingInvites.count)")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(PulseTheme.accent)
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(PulseTheme.accent.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 4)
+
+            PulseCard {
+                VStack(spacing: 0) {
+                    ForEach(Array(pendingInvites.enumerated()), id: \.element.id) { idx, invite in
+                        pendingInviteRow(invite)
+                        if idx < pendingInvites.count - 1 { Divider() }
+                    }
+                }
+            }
+        }
+    }
+
+    private func pendingInviteRow(_ invite: PendingInvite) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                HapticService.selection()
+                selectedProfileUsername = invite.username
+            } label: {
+                HStack(spacing: 12) {
+                    avatarCircle(data: invite.avatarImageData, username: invite.username, isMe: false, size: 44)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(invite.displayName.isEmpty ? "@\(invite.username)" : invite.displayName)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            Text(localizedString("social_pending"))
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.orange)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.12))
+                                .clipShape(Capsule())
+                        }
+
+                        HStack(spacing: 6) {
+                            if !invite.displayName.isEmpty {
+                                Text("@\(invite.username)")
+                                    .font(.caption)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            Text(localizedFormat("player_level_abbr_title_format", "\(invite.level)", invite.levelTitle))
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                let inviteText = localizedFormat("social_invite_text", invite.username, invite.username)
+                ShareLink(item: inviteText) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(localizedString("social_resend_invite"))
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(PulseTheme.accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(PulseTheme.accent.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    HapticService.selection()
+                    removePendingInvite(username: invite.username)
+                    let uname = invite.username.lowercased()
+                    following.removeAll { $0.username.lowercased() == uname }
+                    store.userProfile.socialFollowingUsernames.removeAll { $0 == uname }
+                    if let dummyProfile = searchResults.first(where: { $0.username.lowercased() == uname }) ?? following.first(where: { $0.username.lowercased() == uname }) {
+                        Task { try? await SocialService.shared.unfollow(dummyProfile) }
+                    }
+                    showToast(localizedFormat("social_invite_cancelled_format", invite.username))
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .padding(8)
+                        .background(PulseTheme.grouped)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
+    }
+
     private func searchResultRow(_ profile: SocialProfile, onTap: @escaping () -> Void = {}) -> some View {
         let alreadyFollowing = following.contains(where: { $0.id == profile.id })
+        let isPending = pendingInvites.contains(where: { $0.id == profile.id })
         let inProgress = followingInProgress.contains(profile.id)
 
         return HStack(spacing: 12) {
@@ -1205,22 +1359,49 @@ struct SocialHubView: View {
                 onTap()
             } label: {
                 HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(PulseTheme.accent.opacity(0.1))
-                            .frame(width: 40, height: 40)
-                        Text(String(profile.username.prefix(1)).uppercased())
-                            .font(.system(size: 17, weight: .black, design: .rounded))
-                            .foregroundStyle(PulseTheme.accent)
+                    ZStack(alignment: .bottomTrailing) {
+                        avatarCircle(data: profile.avatarImageData, username: profile.username, isMe: false, size: 48)
+                        if profile.isOnline {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 12, height: 12)
+                                .overlay(Circle().stroke(PulseTheme.grouped, lineWidth: 2))
+                        }
                     }
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("@\(profile.username)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-                        Text(localizedFormat("player_level_abbr_title_format", "\(profile.level)", profile.levelTitle))
-                            .font(.caption)
-                            .foregroundStyle(PulseTheme.secondaryText)
+                        HStack(spacing: 6) {
+                            Text(profile.displayName.isEmpty ? "@\(profile.username)" : profile.displayName)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            if profile.totalXP > 0 {
+                                Text("\(profile.totalXP) XP")
+                                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(PulseTheme.accent)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(PulseTheme.accent.opacity(0.12))
+                                    .clipShape(Capsule())
+                            }
+                        }
+
+                        HStack(spacing: 6) {
+                            if !profile.displayName.isEmpty {
+                                Text("@\(profile.username)")
+                                    .font(.caption)
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            Text(localizedFormat("player_level_abbr_title_format", "\(profile.level)", profile.levelTitle))
+                                .font(.caption)
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+
+                        if profile.totalSessions > 0 {
+                            Text("\(profile.totalSessions) \(localizedString("social_workouts"))")
+                                .font(.system(size: 10))
+                                .foregroundStyle(PulseTheme.secondaryText.opacity(0.8))
+                        }
                     }
                 }
             }
@@ -1232,24 +1413,41 @@ struct SocialHubView: View {
                 toggleFollow(profile: profile)
             } label: {
                 if inProgress {
-                    ProgressView().tint(.white).scaleEffect(0.8)
-                        .frame(width: 72)
+                    ProgressView().tint(alreadyFollowing || isPending ? PulseTheme.accent : .black).scaleEffect(0.8)
+                        .frame(width: 84, height: 32)
                 } else if alreadyFollowing {
-                    Text(localizedString("social_following_button"))
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.accent)
-                        .frame(width: 80)
-                        .padding(.vertical, 6)
-                        .background(PulseTheme.accent.opacity(0.1))
-                        .clipShape(Capsule())
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(localizedString("social_following_button"))
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(PulseTheme.accent)
+                    .frame(width: 90, height: 32)
+                    .background(PulseTheme.accent.opacity(0.12))
+                    .clipShape(Capsule())
+                } else if isPending {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(localizedString("social_pending"))
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(.orange)
+                    .frame(width: 90, height: 32)
+                    .background(Color.orange.opacity(0.12))
+                    .clipShape(Capsule())
                 } else {
-                    Text(localizedString("social_follow"))
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.black)
-                        .frame(width: 80)
-                        .padding(.vertical, 6)
-                        .background(PulseTheme.accent)
-                        .clipShape(Capsule())
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.badge.plus")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(localizedString("social_follow"))
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(width: 84, height: 32)
+                    .background(PulseTheme.accent)
+                    .clipShape(Capsule())
                 }
             }
             .buttonStyle(.plain)
@@ -1259,12 +1457,67 @@ struct SocialHubView: View {
         .padding(.horizontal, 4)
     }
 
+    // MARK: - Toast & Pending Invites Helpers
+
+    private func showToast(_ message: String, isError: Bool = false) {
+        toastMessage = message
+        toastIsError = isError
+        if isError {
+            HapticService.notification(.error)
+        } else {
+            HapticService.notification(.success)
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            if toastMessage == message {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    toastMessage = nil
+                }
+            }
+        }
+    }
+
+    private func loadPendingInvites() {
+        if let data = UserDefaults.standard.data(forKey: "social_pending_invites_v1"),
+           let invites = try? JSONDecoder().decode([PendingInvite].self, from: data) {
+            pendingInvites = invites
+        }
+    }
+
+    private func savePendingInvites() {
+        if let data = try? JSONEncoder().encode(pendingInvites) {
+            UserDefaults.standard.set(data, forKey: "social_pending_invites_v1")
+        }
+    }
+
+    private func addPendingInvite(profile: SocialProfile) {
+        let invite = PendingInvite(
+            username: profile.username,
+            displayName: profile.displayName,
+            avatarImageData: profile.avatarImageData,
+            level: profile.level,
+            levelTitle: profile.levelTitle,
+            sentAt: Date()
+        )
+        if !pendingInvites.contains(where: { $0.id == invite.id }) {
+            pendingInvites.append(invite)
+            savePendingInvites()
+        }
+    }
+
+    private func removePendingInvite(username: String) {
+        pendingInvites.removeAll { $0.id == username.lowercased() }
+        savePendingInvites()
+    }
+
     // MARK: - Data loading
 
     private func loadInitialDataIfNeeded() async {
         guard store.userProfile.socialCapabilitiesAllowed else { return }
         guard !didLoadInitialData else { return }
         didLoadInitialData = true
+
+        loadPendingInvites()
 
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await loadFollowing() }
@@ -1404,38 +1657,58 @@ struct SocialHubView: View {
     }
 
     private func toggleFollow(profile: SocialProfile) {
-        guard store.userProfile.socialCapabilitiesAllowed else { return }
+        guard store.userProfile.socialCapabilitiesAllowed else {
+            showToast(localizedString("social_age_gate_verify"), isError: true)
+            return
+        }
+        guard let myUsername = store.userProfile.socialUsername, !myUsername.trimmingCharacters(in: .whitespaces).isEmpty else {
+            Task {
+                if await store.ensureSocialAgeEligibility() {
+                    await MainActor.run {
+                        showSocialOnboarding = true
+                    }
+                }
+            }
+            return
+        }
+
         let alreadyFollowing = following.contains(where: { $0.id == profile.id })
+        let isPending = pendingInvites.contains(where: { $0.id == profile.id })
         followingInProgress.insert(profile.id)
+
         Task {
             do {
-                if alreadyFollowing {
+                if alreadyFollowing || isPending {
                     try await SocialService.shared.unfollow(profile)
                     await MainActor.run {
                         following.removeAll { $0.id == profile.id }
+                        removePendingInvite(username: profile.username)
                         store.userProfile.socialFollowingUsernames.removeAll { $0 == profile.username.lowercased() }
+                        showToast(localizedFormat("social_unfollow_success_format", profile.username))
                     }
                 } else {
-                    try await SocialService.shared.follow(profile, myUsername: store.userProfile.socialUsername ?? "")
+                    try await SocialService.shared.follow(profile, myUsername: myUsername)
                     await MainActor.run {
                         following.append(profile)
                         let uname = profile.username.lowercased()
                         if !store.userProfile.socialFollowingUsernames.contains(uname) {
                             store.userProfile.socialFollowingUsernames.append(uname)
                         }
+                        addPendingInvite(profile: profile)
+                        showToast(localizedFormat("social_invite_sent_format", profile.username))
                     }
                 }
-                // Update own SocialProfile.followingUsernames so friend-of-friend works
-                if let myUsername = store.userProfile.socialUsername {
-                    let newList = store.userProfile.socialFollowingUsernames
-                    Task.detached {
-                        await SocialService.shared.updateMyFollowingList(myUsername: myUsername, followingUsernames: newList)
-                    }
+                let newList = store.userProfile.socialFollowingUsernames
+                Task.detached {
+                    await SocialService.shared.updateMyFollowingList(myUsername: myUsername, followingUsernames: newList)
                 }
             } catch {
-                // Silently fail — UI stays consistent
+                await MainActor.run {
+                    showToast(error.localizedDescription, isError: true)
+                }
             }
             await MainActor.run { _ = followingInProgress.remove(profile.id) }
         }
     }
 }
+

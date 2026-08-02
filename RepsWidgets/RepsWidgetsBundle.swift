@@ -14,6 +14,8 @@ struct RepsWidgetsBundle: WidgetBundle {
         RepsFriendsWidget()
         RepsWeightWidget()
         RepsStartWorkoutControl()
+        #if canImport(ActivityKit) && !os(watchOS)
         RepsWorkoutLiveActivity()
+        #endif
     }
 }

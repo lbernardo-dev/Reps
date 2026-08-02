@@ -222,6 +222,26 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
         return Date().timeIntervalSince(t) < 600 // 10 min window
     }
 
+    init(id: String? = nil, username: String, displayName: String = "", ownerRecordName: String = "", bio: String = "", location: String = "", activePlanName: String = "", level: Int = 1, levelTitle: String = "Rookie", totalXP: Int = 0, totalSessions: Int = 0, streakDays: Int = 0, totalVolumeKg: Double = 0, updatedAt: Date = Date(), followingUsernames: [String] = [], avatarImageData: Data? = nil, lastActiveAt: Date? = nil) {
+        self.id = id ?? username.lowercased()
+        self.username = username
+        self.displayName = displayName.isEmpty ? username : displayName
+        self.ownerRecordName = ownerRecordName
+        self.bio = bio
+        self.location = location
+        self.activePlanName = activePlanName
+        self.level = level
+        self.levelTitle = levelTitle
+        self.totalXP = totalXP
+        self.totalSessions = totalSessions
+        self.streakDays = streakDays
+        self.totalVolumeKg = totalVolumeKg
+        self.updatedAt = updatedAt
+        self.followingUsernames = followingUsernames
+        self.avatarImageData = avatarImageData
+        self.lastActiveAt = lastActiveAt
+    }
+
     init?(record: CKRecord) {
         guard
             let username = record["username"] as? String,
@@ -252,6 +272,66 @@ struct SocialProfile: Identifiable, Equatable, Hashable, Sendable {
         }
     }
 }
+
+// MARK: - Pending Invite Model
+
+struct PendingInvite: Identifiable, Codable, Equatable, Hashable, Sendable {
+    var id: String { username.lowercased() }
+    let username: String
+    let displayName: String
+    let avatarImageData: Data?
+    let level: Int
+    let levelTitle: String
+    let sentAt: Date
+}
+
+// MARK: - Social Report Model
+
+struct SocialReport: Identifiable, Codable, Equatable, Hashable, Sendable {
+    let id: String
+    let targetType: String // "user", "post", "comment"
+    let targetOwnerRecordName: String
+    let targetUsername: String
+    let targetID: String // post/comment ID if applicable
+    let reporterOwnerRecordName: String
+    let reporterUsername: String
+    let reasonCategory: String // "spam", "harassment", "inappropriate", "other"
+    let reasonNotes: String
+    let createdAt: Date
+    var status: String // "pending", "resolved", "dismissed"
+    var avatarImageData: Data? // hydrated dynamically for reported user UI
+
+    init(record: CKRecord) {
+        self.id = record.recordID.recordName
+        self.targetType = record["targetType"] as? String ?? "user"
+        self.targetOwnerRecordName = record["targetOwnerRecordName"] as? String ?? ""
+        self.targetUsername = record["targetUsername"] as? String ?? ""
+        self.targetID = record["targetID"] as? String ?? ""
+        self.reporterOwnerRecordName = record["reporterOwnerRecordName"] as? String ?? ""
+        self.reporterUsername = record["reporterUsername"] as? String ?? ""
+        self.reasonCategory = record["reasonCategory"] as? String ?? "other"
+        self.reasonNotes = record["reasonNotes"] as? String ?? ""
+        self.createdAt = record["createdAt"] as? Date ?? record.creationDate ?? Date()
+        self.status = record["status"] as? String ?? "pending"
+        self.avatarImageData = nil
+    }
+
+    init(id: String = UUID().uuidString, targetType: String, targetOwnerRecordName: String, targetUsername: String, targetID: String = "", reporterOwnerRecordName: String, reporterUsername: String, reasonCategory: String, reasonNotes: String, createdAt: Date = Date(), status: String = "pending", avatarImageData: Data? = nil) {
+        self.id = id
+        self.targetType = targetType
+        self.targetOwnerRecordName = targetOwnerRecordName
+        self.targetUsername = targetUsername
+        self.targetID = targetID
+        self.reporterOwnerRecordName = reporterOwnerRecordName
+        self.reporterUsername = reporterUsername
+        self.reasonCategory = reasonCategory
+        self.reasonNotes = reasonNotes
+        self.createdAt = createdAt
+        self.status = status
+        self.avatarImageData = avatarImageData
+    }
+}
+
 
 // MARK: - Service
 //
@@ -1101,21 +1181,169 @@ actor SocialService {
         _ = try await getPublicDB().save(record)
     }
 
-    // MARK: Moderation (developer-managed, read-only in app)
+    // MARK: - Moderation & Administration (ID-based Unique Identification)
 
-    /// Fetches every currently-banned username so clients can filter feeds and
-    /// threads. Records must be created/deleted outside the app in CloudKit
-    /// Dashboard, with public write access disabled in the production schema.
-    func fetchBannedUsernames() async -> Set<String> {
+    /// Fetches every currently-banned user by immutable ownerRecordName and username.
+    func fetchBannedUserIDs() async -> (ownerIDs: Set<String>, usernames: Set<String>) {
         let query = CKQuery(recordType: "SocialBan", predicate: NSPredicate(value: true))
         do {
             let result = try await getPublicDB().records(matching: query, resultsLimit: 1000)
-            return Set(result.matchResults.compactMap { _, res in
-                (try? res.get())?["bannedUsername"] as? String
-            })
+            var ids: Set<String> = []
+            var usernames: Set<String> = []
+            for (_, res) in result.matchResults {
+                if let record = try? res.get() {
+                    if let owner = record["bannedOwnerRecordName"] as? String, !owner.isEmpty {
+                        ids.insert(owner)
+                    }
+                    if let uname = record["bannedUsername"] as? String, !uname.isEmpty {
+                        usernames.insert(uname.lowercased())
+                    }
+                }
+            }
+            return (ids, usernames)
         } catch {
-            return []
+            return ([], [])
         }
+    }
+
+    func fetchBannedUsernames() async -> Set<String> {
+        let (_, usernames) = await fetchBannedUserIDs()
+        return usernames
+    }
+
+    /// Bans a user using their immutable CloudKit User ID (ownerRecordName) + username.
+    func banUser(targetProfile: SocialProfile, reason: String, bannedByUsername: String) async throws {
+        try await requireICloudAccount()
+        let myID = try await myRecordID()
+        let ownerID = targetProfile.ownerRecordName
+        let normalizedUsername = targetProfile.username.lowercased()
+        let rid = CKRecord.ID(recordName: "SocialBan_\(ownerID)")
+        let record = CKRecord(recordType: "SocialBan", recordID: rid)
+        record["bannedOwnerRecordName"] = ownerID as CKRecordValue
+        record["bannedUsername"] = normalizedUsername as CKRecordValue
+        record["reason"] = reason as CKRecordValue
+        record["bannedByOwnerRecordName"] = myID.recordName as CKRecordValue
+        record["bannedByUsername"] = bannedByUsername.lowercased() as CKRecordValue
+        record["createdAt"] = Date() as CKRecordValue
+        _ = try await getPublicDB().save(record)
+    }
+
+    /// Unbans a user by ownerRecordName and username.
+    func unbanUser(targetOwnerRecordName: String, targetUsername: String) async throws {
+        let ownerID = targetOwnerRecordName.isEmpty ? targetUsername.lowercased() : targetOwnerRecordName
+        let rid = CKRecord.ID(recordName: "SocialBan_\(ownerID)")
+        do {
+            try await getPublicDB().deleteRecord(withID: rid)
+        } catch {
+            let altID = CKRecord.ID(recordName: "SocialBan_\(targetUsername.lowercased())")
+            try? await getPublicDB().deleteRecord(withID: altID)
+        }
+    }
+
+    /// Fetches all active moderators by ownerRecordName and username.
+    func fetchModerators() async -> (ownerIDs: Set<String>, usernames: Set<String>) {
+        let query = CKQuery(recordType: "SocialModerator", predicate: NSPredicate(value: true))
+        do {
+            let result = try await getPublicDB().records(matching: query, resultsLimit: 1000)
+            var ids: Set<String> = []
+            var usernames: Set<String> = []
+            for (_, res) in result.matchResults {
+                if let record = try? res.get() {
+                    if let owner = record["moderatorOwnerRecordName"] as? String, !owner.isEmpty {
+                        ids.insert(owner)
+                    }
+                    if let uname = record["moderatorUsername"] as? String, !uname.isEmpty {
+                        usernames.insert(uname.lowercased())
+                    }
+                }
+            }
+            return (ids, usernames)
+        } catch {
+            return ([], [])
+        }
+    }
+
+    /// Promotes a user to Moderator using their immutable CloudKit User ID (ownerRecordName).
+    func addModerator(targetProfile: SocialProfile, addedByUsername: String) async throws {
+        try await requireICloudAccount()
+        let myID = try await myRecordID()
+        let ownerID = targetProfile.ownerRecordName
+        let normalizedUsername = targetProfile.username.lowercased()
+        let rid = CKRecord.ID(recordName: "SocialModerator_\(ownerID)")
+        let record = CKRecord(recordType: "SocialModerator", recordID: rid)
+        record["moderatorOwnerRecordName"] = ownerID as CKRecordValue
+        record["moderatorUsername"] = normalizedUsername as CKRecordValue
+        record["assignedByOwnerRecordName"] = myID.recordName as CKRecordValue
+        record["assignedByUsername"] = addedByUsername.lowercased() as CKRecordValue
+        record["createdAt"] = Date() as CKRecordValue
+        _ = try await getPublicDB().save(record)
+    }
+
+    /// Removes moderator privileges from a user.
+    func removeModerator(targetOwnerRecordName: String, targetUsername: String) async throws {
+        let ownerID = targetOwnerRecordName.isEmpty ? targetUsername.lowercased() : targetOwnerRecordName
+        let rid = CKRecord.ID(recordName: "SocialModerator_\(ownerID)")
+        do {
+            try await getPublicDB().deleteRecord(withID: rid)
+        } catch {
+            let altID = CKRecord.ID(recordName: "SocialModerator_\(targetUsername.lowercased())")
+            try? await getPublicDB().deleteRecord(withID: altID)
+        }
+    }
+
+    // MARK: - Reporting System
+
+    /// Submits a user/post/comment report to CloudKit.
+    func submitReport(targetType: String, targetOwnerRecordName: String, targetUsername: String, targetID: String = "", reasonCategory: String, reasonNotes: String, reporterUsername: String) async throws {
+        try await requireICloudAccount()
+        let myID = try await myRecordID()
+        let reportID = UUID().uuidString
+        let rid = CKRecord.ID(recordName: "SocialReport_\(reportID)")
+        let record = CKRecord(recordType: "SocialReport", recordID: rid)
+        record["targetType"] = targetType as CKRecordValue
+        record["targetOwnerRecordName"] = targetOwnerRecordName as CKRecordValue
+        record["targetUsername"] = targetUsername.lowercased() as CKRecordValue
+        record["targetID"] = targetID as CKRecordValue
+        record["reporterOwnerRecordName"] = myID.recordName as CKRecordValue
+        record["reporterUsername"] = reporterUsername.lowercased() as CKRecordValue
+        record["reasonCategory"] = reasonCategory as CKRecordValue
+        record["reasonNotes"] = reasonNotes as CKRecordValue
+        record["createdAt"] = Date() as CKRecordValue
+        record["status"] = "pending" as CKRecordValue
+        _ = try await getPublicDB().save(record)
+    }
+
+    /// Fetches all pending reports for moderator review.
+    func fetchPendingReports() async throws -> [SocialReport] {
+        let pred = NSPredicate(format: "status == %@", "pending")
+        let query = CKQuery(recordType: "SocialReport", predicate: pred)
+        do {
+            let result = try await getPublicDB().records(matching: query, resultsLimit: 100)
+            let reports = result.matchResults.compactMap { _, res in
+                (try? res.get()).map(SocialReport.init)
+            }
+            return reports.sorted { $0.createdAt > $1.createdAt }
+        } catch {
+            // Fallback for missing queryable index: fetch without predicate and filter in memory
+            let query = CKQuery(recordType: "SocialReport", predicate: NSPredicate(value: true))
+            let result = try await getPublicDB().records(matching: query, resultsLimit: 200)
+            let reports = result.matchResults.compactMap { _, res in
+                (try? res.get()).map(SocialReport.init)
+            }.filter { $0.status == "pending" }
+            return reports.sorted { $0.createdAt > $1.createdAt }
+        }
+    }
+
+    /// Dismisses a report.
+    func dismissReport(reportID: String) async throws {
+        let rid = CKRecord.ID(recordName: reportID.hasPrefix("SocialReport_") ? reportID : "SocialReport_\(reportID)")
+        try await getPublicDB().deleteRecord(withID: rid)
+    }
+
+    /// Deletes a reported post.
+    func deleteReportedPost(postID: String) async throws {
+        let rid = CKRecord.ID(recordName: postID.hasPrefix("WorkoutPost_") ? postID : "WorkoutPost_\(postID)")
+        try await getPublicDB().deleteRecord(withID: rid)
     }
 
     // MARK: - Comments (offline-first, deferred sync)
