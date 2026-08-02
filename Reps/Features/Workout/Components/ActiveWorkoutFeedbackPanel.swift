@@ -214,4 +214,3 @@ struct ExerciseBookmarkStrip: View {
         }
     }
 }
-

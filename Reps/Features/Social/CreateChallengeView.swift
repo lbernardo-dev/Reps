@@ -27,7 +27,7 @@ struct CreateChallengeView: View {
                 Section(header: Text(localizedString("challenge_metric"))) {
                     Picker(localizedString("challenge_metric"), selection: $metric) {
                         ForEach(SocialChallenge.Metric.allCases) { m in
-                            Text(localizedString("challenge_metric_\(m.rawValue)")).tag(m)
+                            Text(localizedString("challenge_metric_m_rawvalue")).tag(m)
                         }
                     }
                     .pickerStyle(.inline)

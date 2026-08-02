@@ -41,7 +41,7 @@ struct RehabLibraryView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(PulseTheme.secondaryText)
-                    TextField(localizedString("Search exercises"), text: $searchText)
+                    TextField(localizedString("search_exercises"), text: $searchText)
                         .textFieldStyle(.plain)
                     if !searchText.isEmpty {
                         Button {
@@ -56,7 +56,7 @@ struct RehabLibraryView: View {
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        structureFilterPill(nil, title: localizedString("All"), systemImage: "square.grid.2x2")
+                        structureFilterPill(nil, title: localizedString("all_6a720856"), systemImage: "square.grid.2x2")
                         ForEach(RehabExercise.StructureFocus.allCases) { structure in
                             structureFilterPill(structure, title: structure.title.resolved(language: language), systemImage: structure.systemImage)
                         }

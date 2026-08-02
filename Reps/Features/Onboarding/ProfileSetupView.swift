@@ -2177,7 +2177,7 @@ private struct OnboardingProgressHeader: View {
                         .navigationGlassCircle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Atrás")
+                .accessibilityLabel(localizedString("back"))
             } else {
                 Color.clear
                     .frame(width: 38, height: 38)
@@ -3143,7 +3143,7 @@ private struct PlanArchitectureDetailSheet: View {
                                         Label("\(plan.totalWeeks) sem", systemImage: "calendar")
                                             .font(.caption.weight(.bold))
                                             .foregroundStyle(PulseTheme.accent)
-                                        Label("\(plan.daysPerWeek) días/sem", systemImage: "figure.run")
+                                        Label(localizedFormat("plan_days_per_week", plan.daysPerWeek), systemImage: "figure.run")
                                             .font(.caption.weight(.bold))
                                             .foregroundStyle(PulseTheme.ringStand)
                                         Label(onboardingLocalizedString(OnboardingLocationCatalog.location(for: draft.selectedLocationID).title), systemImage: "building.2.fill")
@@ -3229,7 +3229,7 @@ private struct PlanArchitectureDetailSheet: View {
                                             HStack(spacing: 5) {
                                                 Text(onboardingLocalizedString(item.muscle))
                                                     .font(.caption.weight(.bold))
-                                                Text("• \(item.sets) series (\(item.count)x/sem)")
+                                                Text(localizedFormat("plan_exercise_frequency_format", item.sets, item.count))
                                                     .font(.caption.weight(.medium))
                                                     .foregroundStyle(PulseTheme.secondaryText)
                                             }

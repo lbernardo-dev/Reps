@@ -229,6 +229,7 @@ final class ExerciseRecord {
     @Attribute(.externalStorage) var customImageData: Data?
     @Attribute(.externalStorage) var customVideoData: Data?
     @Attribute(.externalStorage) var customVideoThumbnailData: Data?
+    @Attribute(.externalStorage) var customMediaData: Data?
     var videoURL: String?
     var preferredHeroMediaRaw: String?
     var mediaBookmarksData: Data?
@@ -259,6 +260,7 @@ final class ExerciseRecord {
         customImageData = exercise.customImageData
         customVideoData = exercise.customVideoData
         customVideoThumbnailData = exercise.customVideoThumbnailData
+        customMediaData = encodeExerciseCustomMedia(exercise.customMedia)
         videoURL = exercise.videoURL
         preferredHeroMediaRaw = exercise.preferredHeroMedia?.rawValue
         mediaBookmarksData = encodeExerciseMediaBookmarks(exercise.mediaBookmarks)
@@ -291,6 +293,7 @@ final class ExerciseRecord {
             customImageData: customImageData,
             customVideoData: customVideoData,
             customVideoThumbnailData: customVideoThumbnailData,
+            customMedia: decodeExerciseCustomMedia(customMediaData),
             videoURL: videoURL,
             preferredHeroMedia: preferredHeroMediaRaw.flatMap(PreferredHeroMedia.init(rawValue:)),
             mediaBookmarks: decodeExerciseMediaBookmarks(mediaBookmarksData),
@@ -1117,6 +1120,16 @@ private func decodeExerciseMediaBookmarks(_ data: Data?) -> [ExerciseMediaBookma
     }
 
     return (try? JSONDecoder().decode([ExerciseMediaBookmark].self, from: data)) ?? []
+}
+
+private func encodeExerciseCustomMedia(_ media: [ExerciseCustomMedia]) -> Data? {
+    guard !media.isEmpty else { return nil }
+    return try? JSONEncoder().encode(media)
+}
+
+private func decodeExerciseCustomMedia(_ data: Data?) -> [ExerciseCustomMedia] {
+    guard let data else { return [] }
+    return (try? JSONDecoder().decode([ExerciseCustomMedia].self, from: data)) ?? []
 }
 
 private func encodeRoutePoints(_ points: [RoutePoint]) -> Data? {

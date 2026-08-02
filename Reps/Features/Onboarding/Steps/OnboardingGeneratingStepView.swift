@@ -53,7 +53,7 @@ struct OnboardingGeneratingStepView: View {
             .padding(.top, 8)
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("PROGRESO")
+                Text(localizedString("progress"))
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(PulseTheme.secondaryText)
                     .tracking(1.2)

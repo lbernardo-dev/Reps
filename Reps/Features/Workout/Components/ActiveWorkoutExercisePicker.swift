@@ -241,10 +241,10 @@ struct ExercisePickerSheet: View {
 private extension Exercise.ExerciseType {
     var localizedTitle: String {
         switch self {
-        case .strength: localizedString("Strength")
+        case .strength: localizedString("strength_24d3e4fd")
         case .cardio: "Cardio"
-        case .mobility: localizedString("Mobility")
-        case .stretching: localizedString("Stretching")
+        case .mobility: localizedString("mobility_1f880bb1")
+        case .stretching: localizedString("stretching")
         case .hiit: "HIIT"
         }
     }
@@ -253,9 +253,9 @@ private extension Exercise.ExerciseType {
 private extension Exercise.Difficulty {
     var localizedTitle: String {
         switch self {
-        case .low: localizedString("Beginner")
-        case .medium: localizedString("Intermediate")
-        case .high: localizedString("Advanced")
+        case .low: localizedString("beginner_60575a6e")
+        case .medium: localizedString("intermediate_b1cfe72f")
+        case .high: localizedString("advanced_4d064726")
         }
     }
 }
@@ -263,9 +263,9 @@ private extension Exercise.Difficulty {
 private extension Exercise.Environment {
     var localizedTitle: String {
         switch self {
-        case .home: localizedString("Home")
-        case .gym: localizedString("Gym")
-        case .both: localizedString("Home and gym")
+        case .home: localizedString("home_70f8bb9a")
+        case .gym: localizedString("gym_bc435923")
+        case .both: localizedString("home_and_gym_8df533a4")
         }
     }
 }

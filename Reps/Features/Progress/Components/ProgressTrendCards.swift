@@ -240,4 +240,3 @@ struct TrendTile: View {
       .background(color.opacity(0.13), in: Circle())
   }
 }
-

@@ -239,4 +239,3 @@ final class WorkoutAudioRecorder: NSObject, ObservableObject, AVAudioRecorderDel
         }
     }
 }
-

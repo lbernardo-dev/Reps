@@ -68,59 +68,10 @@ struct CommunityCareCard: View {
             let activeFriends = getActiveFavorites()
 
             if activeFriends.isEmpty {
-                // Empty state CTA: Invite friends banner
-                VStack(spacing: 16) {
-                    HStack(spacing: -12) {
-                        EmptyAvatarBubble(name: "A", color: .orange)
-                        EmptyAvatarBubble(name: "M", color: .pink)
-                        EmptyAvatarBubble(name: "C", color: .green)
-                        EmptyAvatarBubble(name: "L", color: .purple)
-                    }
-                    .padding(.top, 8)
-
-                    VStack(spacing: 6) {
-                        Text(String(localized: "care_more_fun_with_friends"))
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundStyle(.primary)
-                            .multilineTextAlignment(.center)
-
-                        Text(String(localized: "care_more_fun_subtitle"))
-                            .font(.caption)
-                            .foregroundStyle(PulseTheme.secondaryText)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 16)
-                    }
-
-                    Button {
-                        HapticService.selection()
-                        onSelectTab?(.profile)
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "person.badge.plus")
-                                .font(.system(size: 16, weight: .bold))
-                            Text(String(localized: "invite_friends_action"))
-                                .font(.subheadline.weight(.bold))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 22)
-                        .padding(.vertical, 10)
-                        .background(
-                            LinearGradient(
-                                colors: [PulseTheme.accent, PulseTheme.accent.opacity(0.85)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(Capsule())
-                        .shadow(color: PulseTheme.accent.opacity(0.3), radius: 6, x: 0, y: 3)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, 6)
+                InviteFriendsBanner {
+                    HapticService.selection()
+                    onSelectTab?(.profile)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(PulseTheme.card)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             } else {
                 // Active Friends Banner Grid & Interaction Rows
                 VStack(spacing: 14) {
@@ -306,19 +257,107 @@ private struct RealAvatarBubbleView: View {
     }
 }
 
-private struct EmptyAvatarBubble: View {
-    let name: String
-    let color: Color
+private struct InviteFriendsBanner: View {
+    let inviteAction: () -> Void
 
     var body: some View {
-        ZStack {
+        VStack(spacing: 14) {
+            InviteFriendsArtwork()
+                .padding(.top, 4)
+
+            VStack(spacing: 6) {
+                Text(String(localized: "care_more_fun_with_friends"))
+                    .font(.system(size: 21, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(String(localized: "care_more_fun_subtitle"))
+                    .font(.subheadline)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button(action: inviteAction) {
+                Label(String(localized: "invite_friends_action"), systemImage: "person.crop.circle.badge.plus")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(PulseTheme.accent, in: Capsule())
+                    .shadow(color: PulseTheme.accent.opacity(0.32), radius: 10, x: 0, y: 5)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 20)
+        .background(PulseTheme.card)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// A native SF Symbols illustration that echoes the layered Memoji composition
+/// used by Apple Health while avoiding a dependency on bundled artwork.
+private struct InviteFriendsArtwork: View {
+    var body: some View {
+        HStack(spacing: -18) {
+            InviteFriendAvatar(
+                symbol: "person.crop.circle.fill",
+                color: Color.orange,
+                size: 66,
+                badge: "figure.walk"
+            )
+            .offset(y: 4)
+
+            InviteFriendAvatar(
+                symbol: "person.crop.circle.fill",
+                color: Color.pink,
+                size: 88,
+                badge: "applewatch"
+            )
+            .zIndex(1)
+
+            InviteFriendAvatar(
+                symbol: "person.crop.circle.fill",
+                color: Color.mint,
+                size: 66,
+                badge: "heart.fill"
+            )
+            .offset(y: 4)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct InviteFriendAvatar: View {
+    let symbol: String
+    let color: Color
+    let size: CGFloat
+    let badge: String
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
             Circle()
-                .fill(color.opacity(0.2))
-                .frame(width: 48, height: 48)
+                .fill(color.gradient)
+                .frame(width: size, height: size)
                 .overlay(Circle().stroke(PulseTheme.card, lineWidth: 3))
-            Text(name)
-                .font(.headline.weight(.bold))
-                .foregroundStyle(color)
+
+            Image(systemName: symbol)
+                .font(.system(size: size * 0.62, weight: .medium))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.white.opacity(0.92))
+
+            Image(systemName: badge)
+                .font(.system(size: size * 0.22, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: size * 0.36, height: size * 0.36)
+                .background(PulseTheme.grouped, in: Circle())
+                .overlay(Circle().stroke(PulseTheme.card, lineWidth: 2))
+                .offset(x: 2, y: 2)
         }
     }
 }

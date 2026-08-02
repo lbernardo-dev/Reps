@@ -86,6 +86,9 @@ struct SocialOnboardingView: View {
         .task {
             await refreshAgeStatus()
             await refreshICloudStatus()
+            if await store.restoreSocialProfileIfNeeded() {
+                dismiss()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .CKAccountChanged)) { _ in
             Task { await refreshICloudStatus() }
@@ -545,6 +548,10 @@ struct SocialOnboardingView: View {
             case .usernameTaken:
                 availabilityStatus = .taken
             case .malformedChallengeRecord:
+                errorMessage = socialError.localizedDescription
+            case .notAuthorized:
+                errorMessage = socialError.localizedDescription
+            case .postNotFound:
                 errorMessage = socialError.localizedDescription
             }
         } else {

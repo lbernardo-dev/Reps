@@ -45,7 +45,7 @@ struct ExerciseBodyMuscleSelector: View {
         VStack(spacing: 10) {
             HStack {
                 Spacer()
-                Picker(localizedString("Sex"), selection: $selectedGender) {
+                Picker(localizedString("sex"), selection: $selectedGender) {
                     Text(RepsLocalization.language == "es" ? "Hombre" : "Male").tag(BodyGender.male)
                     Text(RepsLocalization.language == "es" ? "Mujer" : "Female").tag(BodyGender.female)
                 }
@@ -102,7 +102,7 @@ struct ExerciseBodyMuscleSelector: View {
                             HapticService.selection()
                             selectedSegments.removeAll()
                         } label: {
-                            Text(localizedString("Clear"))
+                            Text(localizedString("clear"))
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }

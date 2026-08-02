@@ -18,7 +18,7 @@ private enum TrainSection: String, CustomizableSection {
         case .library: localizedString("libraries")
         case .tools: localizedString("tools")
         case .yourPlans: localizedString("your_plans")
-        case .calendar: localizedString("Calendar")
+        case .calendar: localizedString("calendar")
         }
     }
 
@@ -87,6 +87,7 @@ struct PlansView: View {
     @State private var recommendedWorkout: WorkoutDay? = nil
     @State private var recommendedWorkoutToConfirm: WorkoutDay?
     @State private var workoutToStart: WorkoutDay?
+    @State private var workoutToInspect: WorkoutDay?
     @State private var showEditLayout = false
 
     /// A few exercises spanning distinct muscle groups, for the library collage.
@@ -192,21 +193,27 @@ struct PlansView: View {
             .navigationDestination(item: $workoutToStart) { workout in
                 ActiveWorkoutView(workout: workout, origin: .routine)
             }
+            .navigationDestination(item: $workoutToInspect) { workout in
+                WorkoutDetailView(workout: workout)
+            }
             .fullScreenCover(isPresented: $showCalendar) {
                 CalendarView()
             }
             .alert("recommended_workout_alert_title", isPresented: recommendedWorkoutConfirmationBinding) {
-                Button("Cancelar", role: .cancel) {
+                Button(localizedString("cancel"), role: .cancel) {
                     recommendedWorkoutToConfirm = nil
                 }
                 Button("recommended_workout_alert_confirm") {
                     guard let workout = recommendedWorkoutToConfirm else { return }
-                    store.activateRecommendedWorkoutPlan(from: workout)
+                    guard store.activateRecommendedWorkoutPlan(from: workout) else {
+                        recommendedWorkoutToConfirm = nil
+                        return
+                    }
                     recommendedWorkoutToConfirm = nil
                     workoutToStart = workout
                 }
             } message: {
-                Text("Se seleccionará como plan de entrenamiento activo.")
+                Text(localizedString("active_plan_selection_message"))
             }
             .toolbar(.hidden, for: .navigationBar)
             .onAppear { buildRecommendedWorkoutIfNeeded() }
@@ -328,6 +335,10 @@ struct PlansView: View {
                 LazyVStack(spacing: 10) {
                     ForEach(inactivePlans) { plan in
                         PlanCard(plan: plan, isLocked: !canManagePlan(plan)) {
+                            guard canManagePlan(plan) else {
+                                store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+                                return
+                            }
                             selectedPlanForDetail = plan
                         } onActivate: {
                             tryActivateSavedPlan(plan)
@@ -377,7 +388,7 @@ struct PlansView: View {
                         .background(PulseTheme.accent, in: Circle())
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(localizedString("Calendar"))
+                        Text(localizedString("calendar"))
                             .font(.headline)
                             .foregroundStyle(.primary)
                         Text(localizedString("view_day_in_calendar"))
@@ -514,8 +525,9 @@ struct PlansView: View {
             SectionHeader(title: "training_days_section")
             LazyVStack(spacing: 10) {
                 ForEach(store.activePlan.days) { day in
-                    NavigationLink {
-                        WorkoutDetailView(workout: day)
+                    Button {
+                        guard store.requireWorkoutAccess(day) else { return }
+                        workoutToInspect = day
                     } label: {
                         PlanDayRow(day: day, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                     }
@@ -1416,6 +1428,7 @@ private struct PlanDetailSheet: View {
     let isLocked: Bool
     let onActivate: () -> Void
     let onEdit: () -> Void
+    @State private var selectedDay: WorkoutDay?
 
     private var locationColor: Color {
         switch plan.location {
@@ -1473,8 +1486,12 @@ private struct PlanDetailSheet: View {
                                 .font(.headline)
                             LazyVStack(spacing: 10) {
                                 ForEach(plan.days) { day in
-                                    NavigationLink {
-                                        WorkoutDetailView(workout: day)
+                                    Button {
+                                        guard !isLocked else {
+                                            onActivate()
+                                            return
+                                        }
+                                        selectedDay = day
                                     } label: {
                                         PlanDayRow(day: day, gender: store.userProfile.muscleMapGender, catalog: store.exercises)
                                     }
@@ -1492,6 +1509,9 @@ private struct PlanDetailSheet: View {
             .screenBackground()
             .navigationTitle(Text(plan.name))
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(item: $selectedDay) { day in
+                WorkoutDetailView(workout: day)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(localizedString("cancel")) { dismiss() }
@@ -1652,10 +1672,13 @@ private struct PlanDayRow: View {
 }
 
 private struct PlanMusicCard: View {
+    @Environment(AppStore.self) private var store
     let plan: WorkoutPlan
-    let onEdit: () -> Void
+    let onEditPlan: () -> Void
     @Environment(\.openURL) private var openURL
     @StateObject private var musicPlayer = WorkoutAppleMusicPlayer.shared
+    @State private var showMusicConnector = false
+    @State private var showPlaylistManager = false
 
     private var primaryPlaylist: PlanPlaylist? {
         plan.playlists.first
@@ -1668,7 +1691,13 @@ private struct PlanMusicCard: View {
                     Label("plan_music", systemImage: "music.note.list")
                         .font(.headline)
                     Spacer()
-                    Button(action: onEdit) {
+                    Button {
+                        if plan.playlists.isEmpty {
+                            showMusicConnector = true
+                        } else {
+                            showPlaylistManager = true
+                        }
+                    } label: {
                         Image(systemName: plan.playlists.isEmpty ? "plus.circle.fill" : "slider.horizontal.3")
                             .font(.title3.weight(.bold))
                             .foregroundStyle(PulseTheme.accent)
@@ -1710,7 +1739,9 @@ private struct PlanMusicCard: View {
                     Text("add_an_apple_music_playlist_to_start_it_from_the_workout")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
-                    Button(action: onEdit) {
+                    Button {
+                        showMusicConnector = true
+                    } label: {
                         Label("conectar_playlist", systemImage: "link.badge.plus")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
@@ -1720,7 +1751,29 @@ private struct PlanMusicCard: View {
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
                 }
+
+                Button(action: onEditPlan) {
+                    Label("edit_plan", systemImage: "pencil")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 42)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
+        }
+        .sheet(isPresented: $showMusicConnector) {
+            MusicIntegrationSheet { playlist in
+                replacePrimaryPlaylist(with: playlist)
+            }
+            .repsSheetPresentation()
+        }
+        .sheet(isPresented: $showPlaylistManager) {
+            PlanPlaylistManagerSheet(playlists: plan.playlists) { playlists in
+                updatePlaylists(playlists)
+            }
+            .repsSheetPresentation()
         }
     }
 
@@ -1744,6 +1797,115 @@ private struct PlanMusicCard: View {
             return
         }
         openURL(url)
+    }
+
+    private func replacePrimaryPlaylist(with playlist: PlanPlaylist) {
+        var updated = plan
+        if updated.playlists.isEmpty {
+            updated.playlists = [playlist]
+        } else {
+            updated.playlists[0] = playlist
+        }
+        store.updatePlan(updated)
+    }
+
+    private func updatePlaylists(_ playlists: [PlanPlaylist]) {
+        var updated = plan
+        updated.playlists = playlists
+        store.updatePlan(updated)
+    }
+}
+
+/// Music configuration is deliberately separate from `CreatePlanView`: changing
+/// a playlist must not send the athlete back through the plan-editing wizard.
+private struct PlanPlaylistManagerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let onSave: ([PlanPlaylist]) -> Void
+
+    @State private var playlists: [PlanPlaylist]
+    @State private var showMusicConnector = false
+    @State private var replacesPrimary = true
+
+    init(playlists: [PlanPlaylist], onSave: @escaping ([PlanPlaylist]) -> Void) {
+        self.onSave = onSave
+        _playlists = State(initialValue: playlists)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("plan_music") {
+                    if playlists.isEmpty {
+                        ContentUnavailableView("add_playlist", systemImage: "music.note.list")
+                    } else {
+                        ForEach(Array(playlists.enumerated()), id: \.element.id) { index, playlist in
+                            HStack(spacing: 12) {
+                                PlaylistProviderBadge(provider: playlist.provider)
+                                    .frame(width: 42, height: 42)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(playlist.title)
+                                        .font(.headline)
+                                    Text(index == 0 ? "Apple Music · Principal" : "Apple Music")
+                                        .font(.caption)
+                                        .foregroundStyle(PulseTheme.secondaryText)
+                                }
+                                Spacer()
+                                if index == 0 {
+                                    Text("Principal")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(PulseTheme.accent)
+                                }
+                                Button(role: .destructive) {
+                                    playlists.remove(at: index)
+                                    onSave(playlists)
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                .accessibilityLabel(localizedString("delete"))
+                            }
+                        }
+                    }
+                }
+
+                Section {
+                    Button {
+                        replacesPrimary = true
+                        showMusicConnector = true
+                    } label: {
+                        Label("Cambiar lista principal", systemImage: "arrow.triangle.2.circlepath")
+                    }
+
+                    Button {
+                        replacesPrimary = false
+                        showMusicConnector = true
+                    } label: {
+                        Label(String(localized: "add_another_playlist"), systemImage: "plus.circle")
+                    }
+                }
+            }
+            .navigationTitle("edit_playlists")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("done") { dismiss() }
+                }
+            }
+            .sheet(isPresented: $showMusicConnector) {
+                MusicIntegrationSheet { playlist in
+                    if replacesPrimary {
+                        if playlists.isEmpty {
+                            playlists = [playlist]
+                        } else {
+                            playlists[0] = playlist
+                        }
+                    } else if !playlists.contains(where: { $0.urlString == playlist.urlString }) {
+                        playlists.append(playlist)
+                    }
+                    onSave(playlists)
+                }
+                .repsSheetPresentation()
+            }
+        }
     }
 }
 

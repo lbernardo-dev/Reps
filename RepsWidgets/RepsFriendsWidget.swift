@@ -91,7 +91,7 @@ private struct RepsFriendsWidgetView: View {
                 Text("#\(me.rank)")
                     .font(.system(size: 32, weight: .black, design: .rounded))
                     .foregroundStyle(theme.foreground)
-                Text(localizedFormat("among %@ friends", String(entry.entries.count)))
+                Text(localizedFormat("among_value_friends", String(entry.entries.count)))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(theme.secondaryForeground)
                     .multilineTextAlignment(.center)

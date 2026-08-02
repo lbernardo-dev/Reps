@@ -260,7 +260,7 @@ final class WatchWorkoutModel: NSObject, CLLocationManagerDelegate {
             mode = .phoneRoute
         } else if configuration.activityType == .traditionalStrengthTraining {
             mode = .standaloneStrength
-            standaloneTitle = localizedString("Strength")
+            standaloneTitle = localizedString("strength_24d3e4fd")
         }
 
         startTimer()
@@ -1368,7 +1368,7 @@ extension WatchWorkoutModel: WCSessionDelegate {
 
     // MARK: - Standalone strength
 
-    func startStrengthWorkout(title: String = localizedString("Strength")) {
+    func startStrengthWorkout(title: String = localizedString("strength_24d3e4fd")) {
         guard mode == .none, session == nil else { return }
         standaloneTitle = title
         let startDate = Date()
@@ -1393,7 +1393,7 @@ extension WatchWorkoutModel: WCSessionDelegate {
         guard mode == .standaloneStrength, startedAt != nil else { return }
         var snap = SharedWorkoutSnapshot.empty
         snap.hasActiveWorkout = true
-        snap.workoutTitle = standaloneTitle.isEmpty ? localizedString("Strength") : standaloneTitle
+        snap.workoutTitle = standaloneTitle.isEmpty ? localizedString("strength_24d3e4fd") : standaloneTitle
         snap.sessionTitle = localizedString("watch_session_started_watch")
         snap.elapsedSeconds = elapsedSeconds
         snap.completedSets = totalCompletedSets
@@ -1428,7 +1428,7 @@ extension WatchWorkoutModel: WCSessionDelegate {
         guard shared.contains(where: { $0.sets.contains(where: \.completed) }) else { return nil }
         return WatchStrengthWorkoutSummary(
             id: standaloneWorkoutID ?? UUID(),
-            title: standaloneTitle.isEmpty ? localizedString("Strength") : standaloneTitle,
+            title: standaloneTitle.isEmpty ? localizedString("strength_24d3e4fd") : standaloneTitle,
             startedAt: startedAt,
             endedAt: endDate,
             durationSeconds: max(Int(endDate.timeIntervalSince(startedAt)) - currentPausedSeconds, 1),

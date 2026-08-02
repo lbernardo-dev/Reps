@@ -333,7 +333,7 @@ struct AchievementsView: View {
                             .font(.caption)
                             .foregroundStyle(PulseTheme.accent)
                     } else {
-                        Text("\(lvl.totalXP) XP · \(lvl.xpToNextLevel) XP para el siguiente nivel")
+                        Text(localizedFormat("achievement_next_level_format", lvl.totalXP, lvl.xpToNextLevel))
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
                     }

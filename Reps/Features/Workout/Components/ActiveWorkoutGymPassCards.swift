@@ -68,4 +68,3 @@ struct ActiveCodePreview: View {
         return UIImage(ciImage: output.transformed(by: CGAffineTransform(scaleX: 8, y: 8)))
     }
 }
-

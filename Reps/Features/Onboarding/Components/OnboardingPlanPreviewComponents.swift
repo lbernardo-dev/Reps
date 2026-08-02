@@ -546,7 +546,7 @@ struct OnboardingProgressBodyHero: View {
                 .font(.caption2.weight(.black))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
-            Text("músculo +")
+            Text(localizedString("muscle_plus"))
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(PulseTheme.mediaSubtext.opacity(0.76))
                 .lineLimit(1)

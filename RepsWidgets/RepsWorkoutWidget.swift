@@ -239,11 +239,11 @@ extension SharedWorkoutSnapshot {
 
     var stateLabel: String {
         if isRouteWorkout {
-            if isPaused { return localizedString("PAUSA") }
+            if isPaused { return localizedString("pausa") }
             return localizedString(isOutdoorRoute == false ? "CINTA" : "RUTA")
         }
         if restEndDate != nil {
-            return localizedString("DESCANSO")
+            return localizedString("descanso")
         }
         return localizedString(isPaused ? "PAUSA" : "ACTIVO")
     }

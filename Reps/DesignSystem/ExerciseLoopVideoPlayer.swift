@@ -120,7 +120,7 @@ struct ExerciseLoopVideoPlayer: View {
                             Image(systemName: "play.circle.fill")
                                 .font(.system(size: 36))
                                 .foregroundStyle(PulseTheme.tertiaryText)
-                            Text("Sin vídeo de demostración")
+                            Text(localizedString("no_demo_video"))
                                 .font(.caption)
                                 .foregroundStyle(PulseTheme.tertiaryText)
                         }
@@ -250,7 +250,7 @@ struct FullscreenExerciseMediaView: View {
                             .foregroundStyle(.white.opacity(0.9), .white.opacity(0.2))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Cerrar")
+                    .accessibilityLabel(localizedString("close"))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 56)

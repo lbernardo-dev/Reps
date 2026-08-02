@@ -10,6 +10,24 @@ struct RepsTests {
         RepsLocalization.use("es")
     }
 
+    @Test func socialAuthorizationUsesOnlyImmutableOwnerIDs() {
+        let superAdminID = SocialAuthorization.superAdminOwnerRecordName
+        let moderatorID = "moderator-owner-id"
+
+        #expect(SocialAuthorization.isSuperAdmin(ownerRecordName: superAdminID))
+        #expect(SocialAuthorization.isSuperAdmin(ownerRecordName: superAdminID.lowercased()))
+        #expect(!SocialAuthorization.isSuperAdmin(ownerRecordName: "romerosoft"))
+        #expect(!SocialAuthorization.isSuperAdmin(ownerRecordName: nil))
+        #expect(SocialAuthorization.canModerate(
+            ownerRecordName: moderatorID,
+            moderatorOwnerRecordNames: [moderatorID]
+        ))
+        #expect(!SocialAuthorization.canModerate(
+            ownerRecordName: "ordinary-user",
+            moderatorOwnerRecordNames: [moderatorID]
+        ))
+    }
+
     @Test func vitalsPathPromotionPolicyLimitsEligibleTabsAndChoosesPlacement() {
         let topPromotion = VitalsPathPromotionPolicy.promotion(
             for: .today,
@@ -85,11 +103,38 @@ struct RepsTests {
         let savedPlan = WorkoutPlan(name: "Saved Plan", location: .gym, daysPerWeek: 1, currentWeek: 1, totalWeeks: 4, completion: 0, days: [workout])
         store.addPlan(savedPlan, activate: false)
 
-        store.activateRecommendedWorkoutPlan(from: workout)
+        #expect(!store.activateRecommendedWorkoutPlan(from: workout))
 
         #expect(store.plans.count == 1)
         #expect(!store.hasActiveTrainingPlan)
         #expect(store.activePaywall?.source == .multiplePlans)
+    }
+
+    @Test @MainActor func freePlanLockedDayCannotBeScheduledOrStartedThroughAnotherFlow() {
+        let store = AppStore(persistence: SwiftDataPersistence(inMemory: true))
+        store.plans = []
+        store.activePlan = .empty
+        store.scheduledWorkouts = []
+        let firstDay = WorkoutDay(title: "Free day", subtitle: "Test", durationMinutes: 30, exercises: [])
+        let lockedDay = WorkoutDay(title: "Pro day", subtitle: "Test", durationMinutes: 30, exercises: [])
+        let plan = WorkoutPlan(
+            name: "Free generated plan",
+            location: .gym,
+            daysPerWeek: 2,
+            currentWeek: 1,
+            totalWeeks: 4,
+            completion: 0,
+            days: [firstDay, lockedDay]
+        )
+        store.addPlan(plan, activate: true)
+        let inaccessibleDay = store.activePlan.days[1]
+        store.scheduledWorkouts = []
+
+        #expect(store.isWorkoutLocked(inaccessibleDay))
+        #expect(!store.addScheduledWorkout(inaccessibleDay, date: .now))
+        #expect(!store.startActiveWorkout(inaccessibleDay))
+        #expect(store.activePaywall?.source == .planActivation)
+        #expect(store.activeWorkoutStatus == nil)
     }
 
     @Test @MainActor func exerciseCatalogSelectionRemainsAvailableForFreeUsers() {

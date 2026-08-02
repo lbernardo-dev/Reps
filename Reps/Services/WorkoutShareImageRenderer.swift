@@ -275,7 +275,7 @@ private struct PRShareCardView: View {
                                 .foregroundStyle(PulseTheme.accent)
                         }
 
-                        Text("NUEVO RÉCORD PERSONAL")
+                        Text(localizedString("personal_record"))
                             .font(.system(size: 11, weight: .black, design: .rounded))
                             .kerning(2)
                             .foregroundStyle(PulseTheme.accent)

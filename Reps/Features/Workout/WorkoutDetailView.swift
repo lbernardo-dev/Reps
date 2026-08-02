@@ -93,7 +93,11 @@ struct WorkoutDetailView: View {
             let isLocked = store.isPlanDayLocked(selectedWorkout, in: parentPlan ?? store.activePlan)
             if isLocked {
                 Button {
-                    store.requireFeature(.customRoutines, source: .programLibrary)
+                    // The button is rendered from the plan-specific lock state.
+                    // Present directly instead of re-resolving the day globally:
+                    // previews and generated-plan sheets can hold a plan that has
+                    // not yet been inserted into `store.plans`.
+                    store.presentPaywall(source: .planActivation, feature: nil, trigger: .featureGate)
                 } label: {
                     Label(localizedString("unlock_with_pro_button"), systemImage: "lock.fill")
                         .font(.headline)
@@ -191,6 +195,7 @@ struct WorkoutDetailView: View {
                 ForEach(days) { day in
                     let isSelected = day.id == selectedWorkout.id
                     Button {
+                        guard store.requireWorkoutAccess(day) else { return }
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                             selectedWorkout = day
                         }

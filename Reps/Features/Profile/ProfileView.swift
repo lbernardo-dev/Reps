@@ -622,7 +622,7 @@ struct ProfileView: View {
                             GymVisitTimelineView()
                         } label: {
                             HStack(spacing: 3) {
-                                Text("Ver más")
+                                Text(localizedString("view_more"))
                                 Image(systemName: "chevron.right")
                             }
                             .font(.caption.weight(.bold))
@@ -1405,7 +1405,7 @@ struct ProfileView: View {
         case ..<18.5: localizedString("bajo")
         case 18.5..<25: localizedString("normal")
         case 25..<30: localizedString("alto")
-        default: localizedString("muy alto")
+        default: localizedString("muy_alto")
         }
     }
 

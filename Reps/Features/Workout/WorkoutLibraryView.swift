@@ -81,7 +81,8 @@ private struct WorkoutTemplateRow: View {
                     Button("editar") { onEdit() }
                     Button("add_to_active_plan") { store.addWorkoutToActivePlan(workout) }
                     Button("schedule") {
-                        store.addScheduledWorkout(workout, date: .now)
+                        guard store.requireWorkoutAccess(workout) else { return }
+                        _ = store.addScheduledWorkout(workout, date: .now)
                     }
                     Button("delete", role: .destructive) {
                         store.deleteWorkoutTemplate(workout)
@@ -104,7 +105,8 @@ private struct WorkoutTemplateRow: View {
                 .buttonStyle(WorkoutPillButtonStyle())
 
                 Button {
-                    store.addScheduledWorkout(workout, date: .now)
+                    guard store.requireWorkoutAccess(workout) else { return }
+                    _ = store.addScheduledWorkout(workout, date: .now)
                 } label: {
                     Label("schedule_today", systemImage: "calendar.badge.plus")
                 }

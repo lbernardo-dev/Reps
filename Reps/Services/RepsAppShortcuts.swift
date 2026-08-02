@@ -34,18 +34,22 @@ struct StreakStatusIntent: AppIntent {
 struct StartRecommendedWorkoutIntent: AppIntent {
     static let title: LocalizedStringResource = "intent_start_recommended_workout_title"
     static let description = IntentDescription("intent_start_recommended_workout_description")
+    static let openAppWhenRun = true
 
-    func perform() async throws -> some IntentResult & OpensIntent {
-        .result(opensIntent: OpenURLIntent(URL(string: "reps://workout/recommended")!))
+    func perform() async throws -> some IntentResult {
+        RepsAppShortcutRoute.enqueue(.recommendedWorkout)
+        return .result()
     }
 }
 
 struct OpenTrainingProgressIntent: AppIntent {
     static let title: LocalizedStringResource = "intent_open_training_progress_title"
     static let description = IntentDescription("intent_open_training_progress_description")
+    static let openAppWhenRun = true
 
-    func perform() async throws -> some IntentResult & OpensIntent {
-        .result(opensIntent: OpenURLIntent(URL(string: "reps://progress")!))
+    func perform() async throws -> some IntentResult {
+        RepsAppShortcutRoute.enqueue(.progress)
+        return .result()
     }
 }
 

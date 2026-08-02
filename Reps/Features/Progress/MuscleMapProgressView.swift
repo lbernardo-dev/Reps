@@ -712,7 +712,13 @@ private struct MuscleExerciseContributionRow: View {
                     .font(.headline)
                     .foregroundStyle(.primary)
                     .lineLimit(2)
-                Text("\(item.completedSets) series de \(item.repText)\(isIndirect ? " (cuentan como \(item.effectiveSetsText))" : "") · \(item.relativeDate)")
+                Text(localizedFormat(
+                    "exercise_series_detail",
+                    item.completedSets,
+                    item.repText,
+                    isIndirect ? localizedFormat("exercise_indirect_sets", item.effectiveSetsText) : "",
+                    item.relativeDate
+                ))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(2)
@@ -995,7 +1001,7 @@ struct RepsProgressiveSegmentBar: View {
                     .shadow(color: isActive ? color.opacity(0.34) : Color.clear, radius: 2, x: 0, y: 0)
             }
         }
-        .accessibilityLabel("\(Int(value.rounded())) de 12 series semanales")
+        .accessibilityLabel(localizedFormat("weekly_sets_progress", Int(value.rounded()), 12))
     }
 
     private func fillColor(for index: Int) -> Color {

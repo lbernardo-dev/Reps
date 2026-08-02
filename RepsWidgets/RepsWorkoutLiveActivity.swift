@@ -92,7 +92,7 @@ struct RepsWorkoutLiveActivity: Widget {
             HStack(spacing: 24) {
                 // Time
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: localizedString("Time"))
+                    Text(verbatim: localizedString("time_6c82e6dd"))
                         .font(.system(size: 9, weight: .black))
                         .foregroundStyle(theme.secondaryForeground)
                         .textCase(.uppercase)
@@ -107,7 +107,7 @@ struct RepsWorkoutLiveActivity: Widget {
 
                 // Distance
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: localizedString("Distance"))
+                    Text(verbatim: localizedString("distance_42320809"))
                         .font(.system(size: 9, weight: .black))
                         .foregroundStyle(theme.secondaryForeground)
                         .textCase(.uppercase)

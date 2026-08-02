@@ -144,9 +144,10 @@ struct CompetitiveRecommendationRow: View {
           .buttonStyle(.plain)
           .padding(.top, 4)
         }
-      }
     }
   }
+}
+
 
   private var actionTitle: String {
     switch recommendation.action {
@@ -163,4 +164,3 @@ struct CompetitiveRecommendationRow: View {
     }
   }
 }
-

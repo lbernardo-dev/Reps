@@ -220,7 +220,7 @@ struct HRZoneDurationCard: View {
   }
 
   private var zones: [Zone] {
-    (0..<5).map { Zone(id: $0, name: localizedString("zone_\($0 + 1)_label"), color: PulseTheme.hrZones[$0]) }
+    (0..<5).map { Zone(id: $0, name: localizedString("zone_0_1_label"), color: PulseTheme.hrZones[$0]) }
   }
 
   private var estimatedMaxHR: Double {

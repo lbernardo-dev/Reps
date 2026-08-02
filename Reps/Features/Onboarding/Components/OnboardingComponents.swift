@@ -20,7 +20,7 @@ struct OnboardingProgressHeader: View {
                         .navigationGlassCircle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Atrás")
+                .accessibilityLabel(localizedString("back"))
             } else {
                 Color.clear
                     .frame(width: 38, height: 38)

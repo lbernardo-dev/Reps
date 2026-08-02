@@ -228,7 +228,7 @@ struct AdvancedSetFields: View {
             }
 
             if let previousRestSeconds = set.previousRestSeconds {
-                Label("\(previousRestSeconds)s descanso real previo", systemImage: "timer")
+                Label(localizedFormat("rest_actual_previous_format", previousRestSeconds), systemImage: "timer")
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
             }

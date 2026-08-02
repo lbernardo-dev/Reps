@@ -41,4 +41,3 @@ struct ExerciseAnalyticsListView: View {
     .mainTabBarHidden()
   }
 }
-

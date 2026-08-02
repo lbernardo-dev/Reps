@@ -5,11 +5,14 @@ import Foundation
 /// `Localizable.xcstrings` and resolved the same way `RepsText` resolves
 /// muscle/equipment names: by switching on `preferredLanguage` at read time.
 struct RehabLocalizedText: Codable, Hashable {
-    var en: String
-    var es: String
+    let key: String
+
+    init(key: String) {
+        self.key = key
+    }
 
     func resolved(language: String) -> String {
-        language.hasPrefix("es") ? es : en
+        String(localized: String.LocalizationValue(key), bundle: .main, locale: Locale(identifier: language))
     }
 }
 
@@ -33,14 +36,14 @@ struct RehabExercise: Codable, Identifiable, Hashable {
 
         var title: RehabLocalizedText {
             switch self {
-            case .shoulder: RehabLocalizedText(en: "Shoulder", es: "Hombro")
-            case .elbow: RehabLocalizedText(en: "Elbow", es: "Codo")
-            case .wrist: RehabLocalizedText(en: "Wrist", es: "Muñeca")
-            case .knee: RehabLocalizedText(en: "Knee", es: "Rodilla")
-            case .ankle: RehabLocalizedText(en: "Ankle / Achilles", es: "Tobillo / Aquiles")
-            case .hip: RehabLocalizedText(en: "Hip", es: "Cadera")
-            case .lowerBack: RehabLocalizedText(en: "Lower back", es: "Lumbar")
-            case .neck: RehabLocalizedText(en: "Neck", es: "Cuello")
+            case .shoulder: RehabLocalizedText(key: "rehab_shoulder")
+            case .elbow: RehabLocalizedText(key: "rehab_elbow")
+            case .wrist: RehabLocalizedText(key: "rehab_wrist")
+            case .knee: RehabLocalizedText(key: "rehab_knee")
+            case .ankle: RehabLocalizedText(key: "rehab_ankle_achilles")
+            case .hip: RehabLocalizedText(key: "rehab_hip")
+            case .lowerBack: RehabLocalizedText(key: "rehab_lower_back")
+            case .neck: RehabLocalizedText(key: "rehab_neck")
             }
         }
 
@@ -81,9 +84,9 @@ struct RehabExercise: Codable, Identifiable, Hashable {
 
         var title: RehabLocalizedText {
             switch self {
-            case .tendon: RehabLocalizedText(en: "Tendon", es: "Tendón")
-            case .joint: RehabLocalizedText(en: "Joint", es: "Articulación")
-            case .muscle: RehabLocalizedText(en: "Muscle", es: "Músculo")
+            case .tendon: RehabLocalizedText(key: "rehab_tendon")
+            case .joint: RehabLocalizedText(key: "rehab_joint")
+            case .muscle: RehabLocalizedText(key: "rehab_muscle")
             }
         }
 
@@ -107,11 +110,11 @@ struct RehabExercise: Codable, Identifiable, Hashable {
 
         var title: RehabLocalizedText {
             switch self {
-            case .isometricHold: RehabLocalizedText(en: "Isometric hold", es: "Isométrico mantenido")
-            case .eccentric: RehabLocalizedText(en: "Eccentric loading", es: "Carga excéntrica")
-            case .mobility: RehabLocalizedText(en: "Controlled mobility", es: "Movilidad controlada")
-            case .activation: RehabLocalizedText(en: "Muscle activation", es: "Activación muscular")
-            case .stretch: RehabLocalizedText(en: "Stretch", es: "Estiramiento")
+            case .isometricHold: RehabLocalizedText(key: "rehab_isometric_hold")
+            case .eccentric: RehabLocalizedText(key: "rehab_eccentric_loading")
+            case .mobility: RehabLocalizedText(key: "rehab_controlled_mobility")
+            case .activation: RehabLocalizedText(key: "rehab_muscle_activation")
+            case .stretch: RehabLocalizedText(key: "rehab_stretch")
             }
         }
     }
@@ -125,9 +128,9 @@ struct RehabExercise: Codable, Identifiable, Hashable {
 
         var title: RehabLocalizedText {
             switch self {
-            case .acute: RehabLocalizedText(en: "Acute phase", es: "Fase aguda")
-            case .subacute: RehabLocalizedText(en: "Subacute phase", es: "Fase subaguda")
-            case .returnToActivity: RehabLocalizedText(en: "Return to activity", es: "Vuelta a la actividad")
+            case .acute: RehabLocalizedText(key: "rehab_acute_phase")
+            case .subacute: RehabLocalizedText(key: "rehab_subacute_phase")
+            case .returnToActivity: RehabLocalizedText(key: "rehab_return_to_activity")
             }
         }
     }

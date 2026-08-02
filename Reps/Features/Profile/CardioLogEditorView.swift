@@ -26,7 +26,7 @@ struct CardioLogEditorView: View {
                     DatePicker("date_2", selection: $date)
                     TextField("duration_min_2", text: $duration)
                         .keyboardType(.numberPad)
-                    TextField("Distancia (\(store.userProfile.distanceUnit.rawValue))", text: $distance)
+                    TextField(localizedFormat("distance_unit_format", store.userProfile.distanceUnit.rawValue), text: $distance)
                         .keyboardType(.decimalPad)
                 }
 

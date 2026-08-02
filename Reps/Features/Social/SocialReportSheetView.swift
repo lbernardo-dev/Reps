@@ -135,7 +135,8 @@ struct SocialReportSheetView: View {
     }
 
     private func submitReport() {
-        guard !isSubmitting else { return }
+        guard !isSubmitting,
+              store.userProfile.socialUsername?.caseInsensitiveCompare(targetUsername) != .orderedSame else { return }
         isSubmitting = true
         errorMessage = nil
 

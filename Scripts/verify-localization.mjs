@@ -81,37 +81,17 @@ function extractLocalizedLookupKeys(source) {
   return keys;
 }
 
+function extractUserFacingLiterals(source) {
+  const values = [];
+  const pattern = /\b(?:Text|Button|Label|Toggle|Picker|Section|TextField|SecureField|navigationTitle|accessibilityLabel|alert|confirmationDialog)\(\s*"((?:\\.|[^"\\])*)"/g;
+  for (const match of source.matchAll(pattern)) values.push(match[1]);
+  return values;
+}
+
 function stripSwiftComments(source) {
   return source
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/(^|[^:])\/\/.*$/gm, "$1");
-}
-
-function stripRehabLocalizedText(source, relativePath) {
-  if (!relativePath.startsWith("Reps/Models/Rehab")) return source;
-
-  const pairPattern =
-    /RehabLocalizedText\(\s*en:\s*"((?:\\.|[^"\\])*)"\s*,\s*es:\s*"((?:\\.|[^"\\])*)"\s*\)/gs;
-
-  return source.replace(pairPattern, (_match, english, spanish) => {
-    if (!english.trim() || !spanish.trim()) {
-      errors.push(`${relativePath}: RehabLocalizedText has an empty en/es value`);
-    } else if (strongSpanishInEnglish.test(english)) {
-      errors.push(`${relativePath}: RehabLocalizedText English value still looks Spanish -> "${english}"`);
-    }
-    if (!samePlaceholders(english, spanish)) {
-      errors.push(`${relativePath}: RehabLocalizedText placeholder mismatch -> "${english}"`);
-    }
-    return "";
-  });
-}
-
-function stripLocalizedFallbackTables(source, relativePath) {
-  if (relativePath !== "RepsShared/WorkoutShared.swift") return source;
-  return source.replace(
-    /private static let localizedFallbacks:[\s\S]*?\n    \]\n\n    private static func normalizedSupportedLanguage/,
-    "\n    private static func normalizedSupportedLanguage"
-  );
 }
 
 const spanishSignal = /[\u00C1\u00C9\u00CD\u00D3\u00DA\u00D1\u00E1\u00E9\u00ED\u00F3\u00FA\u00F1\u00BF\u00A1]|\b(entreno|entrenos|sesion|sesiones|serie|series|siguiente|guardar|cancelar|cerrar|peso|altura|fecha|agua|descanso|ejercicio|objetivo|permiso|anade|anadir|metricas|cuerpo|gimnasio|notificaciones|microfono|camara|fotos|semana|semanales|dias|calorias|duracion|distancia|notas|compartir|biblioteca|progreso|rutina|programa|activa|mostrar|marcar|perfil|salud|logros|recibos|calendario|volver|empezar|plantillas|hoy|ayer)\b/i;
@@ -134,8 +114,8 @@ function samePlaceholders(a, b) {
 }
 
 for (const [relativePath, catalog] of catalogs) {
-  if (catalog.sourceLanguage !== "es") {
-    errors.push(`${relativePath}: expected sourceLanguage "es", got "${catalog.sourceLanguage}"`);
+  if (catalog.sourceLanguage !== "en") {
+    errors.push(`${relativePath}: expected sourceLanguage "en", got "${catalog.sourceLanguage}"`);
   }
   let staleCount = 0;
   for (const [key, entry] of Object.entries(catalog.strings)) {
@@ -145,7 +125,14 @@ for (const [relativePath, catalog] of catalogs) {
       staleCount += 1;
     }
 
-    if (isStale) continue;
+    if (isStale) {
+      errors.push(`${relativePath}: stale entry remains in the release catalog -> "${key}"`);
+      continue;
+    }
+
+    if (relativePath === "Reps/Resources/Localizable.xcstrings" && !/^[a-z][a-z0-9]*(_[a-z0-9]+)*$/.test(key)) {
+      errors.push(`${relativePath}: key is not snake_case -> "${key}"`);
+    }
 
     for (const language of ["en", "es"]) {
       const unit = entry.localizations?.[language]?.stringUnit;
@@ -172,8 +159,8 @@ for (const [relativePath, catalog] of catalogs) {
 const project = fs.readFileSync(path.join(root, "Reps.xcodeproj/project.pbxproj"), "utf8");
 const localizableResourceCount = (project.match(/Localizable\.xcstrings in Resources/g) ?? []).length;
 const infoPlistResourceCount = (project.match(/InfoPlist\.xcstrings in Resources/g) ?? []).length;
-if (!project.includes("developmentRegion = es;")) {
-  errors.push("Reps.xcodeproj/project.pbxproj: developmentRegion is not es");
+if (!project.includes("developmentRegion = en;")) {
+  errors.push("Reps.xcodeproj/project.pbxproj: developmentRegion is not en");
 }
 if (localizableResourceCount < 3) {
   errors.push(`Expected Localizable.xcstrings in at least 3 resource phases, found ${localizableResourceCount}`);
@@ -193,8 +180,7 @@ for (const swiftFile of walk(root)) {
     }
   }
 
-  const auditedSource = stripLocalizedFallbackTables(stripRehabLocalizedText(source, relativePath), relativePath);
-  for (const value of extractSwiftStrings(auditedSource)) {
+  for (const value of extractUserFacingLiterals(source)) {
     if (spanishSignal.test(value) && !localizableKeys.has(value)) {
       errors.push(`${relativePath}: Spanish literal is not present in Localizable.xcstrings -> "${value}"`);
     }

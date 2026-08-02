@@ -12,9 +12,9 @@ struct QuickBodyMetricEditorView: View {
         NavigationStack {
             Form {
                 Section("top_metrics") {
-                    TextField("Peso (\(store.displayedWeight.unit))", text: $weight)
+                    TextField(localizedFormat("weight_unit_format", store.displayedWeight.unit), text: $weight)
                         .keyboardType(.decimalPad)
-                    TextField("Altura (\(store.displayedHeight.unit))", text: $height)
+                    TextField(localizedFormat("height_unit_format", store.displayedHeight.unit), text: $height)
                         .keyboardType(.decimalPad)
                 }
             }

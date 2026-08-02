@@ -169,7 +169,7 @@ struct SocialModerationAdminView: View {
                 }
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)
             }
-            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            .scrollBounceBehavior(.basedOnSize)
             .fixedSize(horizontal: false, vertical: true)
 
             // Search Bar
@@ -316,13 +316,15 @@ struct SocialModerationAdminView: View {
 
                 Divider()
 
-                if isMod {
-                    Button(role: .destructive, action: { removeMod(profile) }) {
-                        Label(String(localized: "social_admin_action_revoke_mod"), systemImage: "shield.slash")
-                    }
-                } else {
-                    Button(action: { addMod(profile) }) {
-                        Label(String(localized: "social_admin_action_grant_mod"), systemImage: "shield.badge.plus")
+                if store.isCurrentUserSuperAdmin {
+                    if isMod {
+                        Button(role: .destructive, action: { removeMod(profile) }) {
+                            Label(String(localized: "social_admin_action_revoke_mod"), systemImage: "shield.slash")
+                        }
+                    } else {
+                        Button(action: { addMod(profile) }) {
+                            Label(String(localized: "social_admin_action_grant_mod"), systemImage: "shield.badge.plus")
+                        }
                     }
                 }
             } label: {

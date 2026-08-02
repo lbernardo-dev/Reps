@@ -82,10 +82,16 @@ struct ActiveWorkoutView: View {
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let origin: WorkoutSession.Origin
+    private let startsImmediately: Bool
 
-    init(workout: WorkoutDay, origin: WorkoutSession.Origin = .routine) {
+    init(
+        workout: WorkoutDay,
+        origin: WorkoutSession.Origin = .routine,
+        startsImmediately: Bool = false
+    ) {
         self.workout = workout
         self.origin = origin
+        self.startsImmediately = startsImmediately
         _plannedDurationMinutes = State(initialValue: workout.isCardioMovement ? 0 : workout.durationMinutes)
     }
 
@@ -253,8 +259,15 @@ struct ActiveWorkoutView: View {
             handleTimerTick()
         }
         .onAppear {
+            guard store.requireWorkoutAccess(workout) else {
+                dismiss()
+                return
+            }
             prepareWorkoutIfNeeded()
             applyAutoProgressionIfNeeded()
+            if startsImmediately, !isSessionStarted {
+                startPreparedSession()
+            }
             if let status = store.activeWorkoutStatus, store.activeWorkout?.id == workout.id {
                 elapsedSeconds = status.effectiveElapsedSeconds()
                 pausedSeconds  = status.effectivePausedSeconds()
@@ -622,7 +635,10 @@ struct ActiveWorkoutView: View {
         lastSensorRefreshSecond = -999
         hasShownDurationAlert = false
         workoutSensorSummary = nil
-        store.startPreparedActiveWorkout(workout, drafts: exerciseDrafts, startedAt: startDate)
+        guard store.startPreparedActiveWorkout(workout, drafts: exerciseDrafts, startedAt: startDate) else {
+            dismiss()
+            return
+        }
         TimerSoundCue.start(enabled: store.userProfile.audibleWorkoutCuesEnabled)
         if isRouteCandidate {
             routeTracker.startNewRoute(startedAt: startDate)
@@ -1389,7 +1405,7 @@ struct ActiveWorkoutView: View {
                         .frame(width: 42, height: 42)
                         .background(navyLift, in: RoundedRectangle(cornerRadius: PulseTheme.controlRadius, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Registrar agua")
+                        Text(localizedString("log_water"))
                             .font(.headline.weight(.bold))
                             .foregroundStyle(.white)
                         Text(String(format: "%.2f L", waterLiters))

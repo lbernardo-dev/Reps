@@ -2,6 +2,7 @@ import CryptoKit
 import PhotosUI
 import MuscleMap
 import SwiftUI
+import UniformTypeIdentifiers
 
 private struct ExerciseLibrarySearchInput: @unchecked Sendable {
     let exercises: [Exercise]
@@ -227,16 +228,16 @@ struct ExerciseLibraryView: View {
         VStack(spacing: 16) {
             CatalogSectionHeader(
                 eyebrow: localizedString("characteristics"),
-                title: localizedString("Filter by goal, place and material"),
-                subtitle: localizedString("Combine type, muscle group, equipment and difficulty to narrow the catalog.")
+                title: localizedString("filter_by_goal_place_and_material"),
+                subtitle: localizedString("combine_type_muscle_group_equipment_and_difficulty_to_narrow_the_catalog")
             )
 
             ExerciseSearchField(searchText: $searchText)
 
             categoryScroller
 
-            Picker(localizedString("Training type"), selection: $selectedType) {
-                Text(localizedString("All")).tag(Optional<Exercise.ExerciseType>.none)
+            Picker(localizedString("training_type_0105f54e"), selection: $selectedType) {
+                Text(localizedString("all_6a720856")).tag(Optional<Exercise.ExerciseType>.none)
                 ForEach(Exercise.ExerciseType.allCases) { type in
                     Text(localizedKey(type.localizedTitle)).tag(Optional(type))
                 }
@@ -244,7 +245,7 @@ struct ExerciseLibraryView: View {
             .pickerStyle(.segmented)
 
             VStack(spacing: 0) {
-                FilterMenuRow(title: localizedString("Muscle group"), value: displayName(forMuscle: selectedMuscle)) {
+                FilterMenuRow(title: localizedString("muscle_group"), value: displayName(forMuscle: selectedMuscle)) {
                     ForEach(muscles, id: \.self) { muscle in
                         Button(displayName(forMuscle: muscle)) {
                             selectedMuscle = muscle
@@ -254,7 +255,7 @@ struct ExerciseLibraryView: View {
 
                 filterDivider
 
-                FilterMenuRow(title: localizedString("Equipment"), value: displayName(forEquipment: selectedEquipment)) {
+                FilterMenuRow(title: localizedString("equipment"), value: displayName(forEquipment: selectedEquipment)) {
                     ForEach(equipmentOptions, id: \.self) { equipment in
                         Button(displayName(forEquipment: equipment)) {
                             selectedEquipment = equipment
@@ -264,8 +265,8 @@ struct ExerciseLibraryView: View {
 
                 filterDivider
 
-                FilterMenuRow(title: localizedString("Environment"), value: environmentFilterTitle) {
-                    Button(localizedString("Any environment")) {
+                FilterMenuRow(title: localizedString("environment"), value: environmentFilterTitle) {
+                    Button(localizedString("any_environment_0db63b25")) {
                         selectedEnvironment = nil
                     }
                     ForEach(Exercise.Environment.allCases) { environment in
@@ -277,8 +278,8 @@ struct ExerciseLibraryView: View {
 
                 filterDivider
 
-                FilterMenuRow(title: localizedString("Difficulty"), value: difficultyFilterTitle) {
-                    Button(localizedString("Any difficulty")) {
+                FilterMenuRow(title: localizedString("difficulty"), value: difficultyFilterTitle) {
+                    Button(localizedString("any_difficulty_324bac01")) {
                         selectedDifficulty = nil
                     }
                     ForEach(Exercise.Difficulty.allCases) { difficulty in
@@ -290,7 +291,7 @@ struct ExerciseLibraryView: View {
 
                 filterDivider
 
-                Toggle(localizedString("Only my equipment"), isOn: $onlyAvailableEquipment)
+                Toggle(localizedString("only_my_equipment"), isOn: $onlyAvailableEquipment)
             }
             .padding(16)
             .background(PulseTheme.card, in: RoundedRectangle(cornerRadius: PulseTheme.cardRadius, style: .continuous))
@@ -305,8 +306,8 @@ struct ExerciseLibraryView: View {
         VStack(spacing: 14) {
             CatalogSectionHeader(
                 eyebrow: localizedString("rehabilitation"),
-                title: localizedString("Recover tendons, joints and muscles"),
-                subtitle: localizedString("Use a separate catalog with controlled protocols, pain guidance and recovery stages.")
+                title: localizedString("recover_tendons_joints_and_muscles"),
+                subtitle: localizedString("use_a_separate_catalog_with_controlled_protocols_pain_guidance_and_recovery_stages")
             )
 
             NavigationLink {
@@ -317,9 +318,9 @@ struct ExerciseLibraryView: View {
             .buttonStyle(PressableCardStyle())
 
             HStack(spacing: 10) {
-                RehabFocusTile(title: localizedString("Tendons"), systemImage: "bolt.horizontal", tint: PulseTheme.warning)
-                RehabFocusTile(title: localizedString("Joints"), systemImage: "circle.hexagongrid", tint: PulseTheme.ringStand)
-                RehabFocusTile(title: localizedString("Muscles"), systemImage: "figure.strengthtraining.functional", tint: PulseTheme.accent)
+                RehabFocusTile(title: localizedString("tendons"), systemImage: "bolt.horizontal", tint: PulseTheme.warning)
+                RehabFocusTile(title: localizedString("joints"), systemImage: "circle.hexagongrid", tint: PulseTheme.ringStand)
+                RehabFocusTile(title: localizedString("muscles"), systemImage: "figure.strengthtraining.functional", tint: PulseTheme.accent)
             }
         }
     }
@@ -350,7 +351,7 @@ struct ExerciseLibraryView: View {
     private func exerciseResults(for exercises: [Exercise]) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text(localizedString("Exercises"))
+                Text(localizedString("exercises"))
                     .font(.title3.weight(.bold))
                 Spacer()
                 Text("\(exercises.count)")
@@ -567,7 +568,7 @@ struct ExerciseLibraryView: View {
             }
             .safeAreaInset(edge: .top) {
                 PulseHeaderBar(
-                    title: localizedString("Exercise Library"),
+                    title: localizedString("exercise_library"),
                     subtitleKey: "Browse and add movements",
                     backAction: isTabRoot ? nil : { dismiss() }
                 ) {
@@ -599,9 +600,9 @@ struct ExerciseLibraryView: View {
                 if store.isSyncingExerciseLibrary {
                     RepsLoadingView(
                         messages: [
-                            localizedString("Updating exercise library..."),
-                            localizedString("Completing media and instructions..."),
-                            localizedString("Keeping your catalog ready...")
+                            localizedString("updating_exercise_library"),
+                            localizedString("completing_media_and_instructions"),
+                            localizedString("keeping_your_catalog_ready")
                         ],
                         progress: nil,
                         layout: .compact,
@@ -776,17 +777,17 @@ private enum ExerciseLibraryPath: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .muscles: localizedString("Muscles")
-        case .filters: localizedString("Characteristics")
-        case .rehab: localizedString("Rehab")
+        case .muscles: localizedString("muscles")
+        case .filters: localizedString("characteristics_2fa17410")
+        case .rehab: localizedString("rehab")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .muscles: localizedString("Tap the body model")
-        case .filters: localizedString("Choose exact filters")
-        case .rehab: localizedString("Recovery protocols")
+        case .muscles: localizedString("tap_the_body_model")
+        case .filters: localizedString("choose_exact_filters")
+        case .rehab: localizedString("recovery_protocols")
         }
     }
 
@@ -902,7 +903,7 @@ private struct ExerciseSearchField: View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(PulseTheme.secondaryText)
-            TextField(localizedString("Search exercises"), text: $searchText)
+            TextField(localizedString("search_exercises"), text: $searchText)
                 .textFieldStyle(.plain)
             if !searchText.isEmpty {
                 Button {
@@ -934,9 +935,9 @@ private struct MuscleCatalogPanel: View {
     var body: some View {
         VStack(spacing: 16) {
             CatalogSectionHeader(
-                eyebrow: localizedString("direct muscle selection"),
-                title: localizedString("Tap a muscle and browse matching exercises"),
-                subtitle: localizedString("The model highlights the selected region and the catalog groups results by muscle.")
+                eyebrow: localizedString("direct_muscle_selection"),
+                title: localizedString("tap_a_muscle_and_browse_matching_exercises"),
+                subtitle: localizedString("the_model_highlights_the_selected_region_and_the_catalog_groups_results_by_muscle")
             )
 
             VStack(spacing: 14) {
@@ -999,7 +1000,7 @@ private struct MuscleCatalogPanel: View {
                         .foregroundStyle(PulseTheme.secondaryText)
                     Spacer()
                     if !selectedSegments.isEmpty {
-                        Button(localizedString("Clear")) {
+                        Button(localizedString("clear")) {
                             HapticService.selection()
                             selectedSegments.removeAll()
                         }
@@ -1019,7 +1020,7 @@ private struct MuscleCatalogPanel: View {
 
     private var resultSummary: String {
         if selectedSegments.isEmpty {
-            return localizedString("Select one or more muscles")
+            return localizedString("select_one_or_more_muscles")
         }
 
         if isLoadingResults {
@@ -1035,10 +1036,10 @@ private struct RehabHeroCard: View {
         HStack(spacing: 14) {
             PulseIconBadge(systemImage: "figure.walk.motion", tint: PulseTheme.ringStand, size: 54, isFilled: true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(localizedString("Rehabilitation library"))
+                Text(localizedString("rehabilitation_library"))
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.primary)
-                Text(localizedString("Browse protocols by region, structure and recovery stage."))
+                Text(localizedString("browse_protocols_by_region_structure_and_recovery_stage"))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1097,7 +1098,7 @@ private struct MuscleShortcutGrid: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(localizedString("Muscle groups"))
+            Text(localizedString("muscle_groups"))
                 .font(.headline.weight(.bold))
                 .foregroundStyle(.primary)
 
@@ -1197,7 +1198,7 @@ private struct ExerciseFilterLayoutEditorSheet: View {
                     }
                 }
 
-                Section(localizedString("Muscle groups")) {
+                Section(localizedString("muscle_groups")) {
                     ForEach(visibleMuscles) { segment in
                         Label(segment.title, systemImage: segment.systemImage)
                     }
@@ -1253,10 +1254,10 @@ private struct FeatureFilterPrompt: View {
         HStack(alignment: .top, spacing: 12) {
             PulseIconBadge(systemImage: "slider.horizontal.3", tint: PulseTheme.ringStand, size: 44)
             VStack(alignment: .leading, spacing: 4) {
-                Text(localizedString("Choose at least one characteristic"))
+                Text(localizedString("choose_at_least_one_characteristic"))
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.primary)
-                Text(localizedString("Search, pick a category, or adjust any filter to load a focused exercise list."))
+                Text(localizedString("search_pick_a_category_or_adjust_any_filter_to_load_a_focused_exercise_list"))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1338,16 +1339,16 @@ private enum ExerciseLibraryCategory: String, CaseIterable, Identifiable, Custom
 
     var title: String {
         switch self {
-        case .all: localizedString("All")
-        case .withVideo: localizedString("Con Vídeo")
-        case .withImage: localizedString("Con Foto")
-        case .withInstructions: localizedString("Con Instrucciones")
-        case .home: localizedString("Home")
-        case .gym: localizedString("Gym")
-        case .bodyweight: localizedString("Bodyweight")
-        case .freeWeights: localizedString("Free weights")
-        case .machines: localizedString("Machines")
-        case .cardio: localizedString("Cardio")
+        case .all: localizedString("all_6a720856")
+        case .withVideo: localizedString("con_video")
+        case .withImage: localizedString("con_foto")
+        case .withInstructions: localizedString("con_instrucciones")
+        case .home: localizedString("home_70f8bb9a")
+        case .gym: localizedString("gym_bc435923")
+        case .bodyweight: localizedString("bodyweight_4aa2dcf8")
+        case .freeWeights: localizedString("free_weights")
+        case .machines: localizedString("machines")
+        case .cardio: localizedString("cardio")
         }
     }
 
@@ -1421,11 +1422,11 @@ private enum ExerciseTextLocalizer {
 private extension Exercise.ExerciseType {
     var localizedTitle: String {
         switch self {
-        case .strength: localizedString("Strength")
-        case .cardio: localizedString("Cardio")
-        case .mobility: localizedString("Mobility")
-        case .stretching: localizedString("Stretching")
-        case .hiit: localizedString("HIIT")
+        case .strength: localizedString("strength_24d3e4fd")
+        case .cardio: localizedString("cardio")
+        case .mobility: localizedString("mobility_1f880bb1")
+        case .stretching: localizedString("stretching")
+        case .hiit: localizedString("hiit")
         }
     }
 }
@@ -1433,17 +1434,17 @@ private extension Exercise.ExerciseType {
 private extension Exercise.Difficulty {
     var localizedTitle: String {
         switch self {
-        case .low: localizedString("Beginner")
-        case .medium: localizedString("Intermediate")
-        case .high: localizedString("Advanced")
+        case .low: localizedString("beginner_60575a6e")
+        case .medium: localizedString("intermediate_b1cfe72f")
+        case .high: localizedString("advanced_4d064726")
         }
     }
 
     var localizedDisplayName: String {
         switch self {
-        case .low: localizedString("Beginner")
-        case .medium: localizedString("Intermediate")
-        case .high: localizedString("Advanced")
+        case .low: localizedString("beginner_60575a6e")
+        case .medium: localizedString("intermediate_b1cfe72f")
+        case .high: localizedString("advanced_4d064726")
         }
     }
 }
@@ -1451,17 +1452,17 @@ private extension Exercise.Difficulty {
 private extension Exercise.Environment {
     var localizedTitle: String {
         switch self {
-        case .home: localizedString("Home")
-        case .gym: localizedString("Gym")
-        case .both: localizedString("Home and gym")
+        case .home: localizedString("home_70f8bb9a")
+        case .gym: localizedString("gym_bc435923")
+        case .both: localizedString("home_and_gym_8df533a4")
         }
     }
 
     var localizedDisplayName: String {
         switch self {
-        case .home: localizedString("Home")
-        case .gym: localizedString("Gym")
-        case .both: localizedString("Home and gym")
+        case .home: localizedString("home_70f8bb9a")
+        case .gym: localizedString("gym_bc435923")
+        case .both: localizedString("home_and_gym_8df533a4")
         }
     }
 }
@@ -1790,7 +1791,7 @@ struct ExerciseDetailView: View {
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         }
         .screenBackground()
-        .navigationTitle(localizedString("Exercise"))
+        .navigationTitle(localizedString("exercise_20863c83"))
         .navigationBarTitleDisplayMode(.inline)
         .mainTabBarHidden()
         .toolbar {
@@ -2264,14 +2265,14 @@ struct ExerciseDetailView: View {
                         Button {
                             showAddToPlan = true
                         } label: {
-                            ExerciseActionButton(title: localizedString("Add to plan"), systemImage: "plus.rectangle.on.rectangle")
+                            ExerciseActionButton(title: localizedString("add_to_plan_8ce82b2f"), systemImage: "plus.rectangle.on.rectangle")
                         }
                         .buttonStyle(.plain)
 
                         Button {
                             showSchedule = true
                         } label: {
-                            ExerciseActionButton(title: localizedString("Schedule"), systemImage: "calendar.badge.plus")
+                            ExerciseActionButton(title: localizedString("schedule_0a8adac9"), systemImage: "calendar.badge.plus")
                         }
                         .buttonStyle(.plain)
                     }
@@ -2354,7 +2355,7 @@ struct ExerciseDetailView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     CardTitle("instructions")
                     if instructionSteps.isEmpty {
-                        Text(localizedString("This exercise does not include detailed instructions yet."))
+                        Text(localizedString("this_exercise_does_not_include_detailed_instructions_yet"))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
@@ -2388,7 +2389,7 @@ struct ExerciseDetailView: View {
                     }
                     if let mediaURL = currentExercise.mediaURL, !mediaURL.isEmpty {
                         Divider()
-                        Label(localizedString("Execution reference image"), systemImage: "photo")
+                        Label(localizedString("execution_reference_image"), systemImage: "photo")
                             .font(.subheadline)
                             .foregroundStyle(PulseTheme.accent)
                             .lineLimit(2)
@@ -2438,12 +2439,12 @@ struct ExerciseDetailView: View {
 
     private var infoTabContent: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text(localizedString("Anatomy Map"))
+            Text(localizedString("anatomy_map"))
                 .font(.title3.bold())
             
             ExerciseMuscleInfoPanel(exercise: currentExercise, gender: store.userProfile.muscleMapGender)
             
-            Text(localizedString("Muscles Worked"))
+            Text(localizedString("muscles_worked_896b79db"))
                 .font(.headline)
             
             PulseCard {
@@ -2521,7 +2522,7 @@ struct ExerciseDetailView: View {
                     HStack {
                         Text(String(format: localizedString("bodyweight_2"), result.ratio))
                         Spacer()
-                        Text("1RM \(Int(best1RM)) kg · \(localizedString("bw")) \(Int(store.currentWeight)) kg")
+                        Text("1RM \(Int(best1RM)) kg · \(localizedString("bodyweight")) \(Int(store.currentWeight)) kg")
                     }
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
@@ -3086,7 +3087,7 @@ struct ExerciseMediaBookmarkEditor: View {
     var onSave: (() -> Void)? = nil
 
     @State private var title = ""
-    @State private var source: ExerciseMediaBookmark.Source = .youtube
+    @State private var source: ExerciseMediaBookmark.Source = .other
     @State private var urlString = ""
     @State private var minutes = 0
     @State private var seconds = 0
@@ -3142,7 +3143,7 @@ struct ExerciseMediaBookmarkEditor: View {
                             Text(sourceTitle(source)).tag(source)
                         }
                     }
-                    TextField("video_or_post_url", text: $urlString)
+                    TextField("image_or_video_url", text: $urlString)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -3198,17 +3199,21 @@ struct ExerciseMediaBookmarkEditor: View {
     }
 
     private var canAdd: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        && URL(string: urlString.trimmingCharacters(in: .whitespacesAndNewlines)) != nil
+        guard let url = URL(string: urlString.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return false
+        }
+        return (url.scheme == "https" || url.scheme == "http") && url.host != nil
     }
 
     private func addBookmark() {
+        let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallbackTitle = URL(string: trimmedURL)?.host ?? localizedString("other_label")
         let totalDuration = durationMinutes * 60 + durationSeconds
         bookmarks.append(
             ExerciseMediaBookmark(
-                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? fallbackTitle : title.trimmingCharacters(in: .whitespacesAndNewlines),
                 source: source,
-                urlString: urlString.trimmingCharacters(in: .whitespacesAndNewlines),
+                urlString: trimmedURL,
                 timestampSeconds: minutes == 0 && seconds == 0 ? nil : minutes * 60 + seconds,
                 playbackDurationSeconds: totalDuration > 0 ? totalDuration : nil,
                 note: note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : note
@@ -3278,6 +3283,10 @@ struct AddCustomExerciseView: View {
     @State private var customImageData: Data?
     @State private var customVideoData: Data?
     @State private var customVideoThumbnailData: Data?
+    @State private var selectedMediaItems: [PhotosPickerItem] = []
+    @State private var customMedia: [ExerciseCustomMedia]
+    @State private var mediaBookmarks: [ExerciseMediaBookmark]
+    @State private var showOnlineLinks = false
 
     private var isEditing: Bool { existingExercise != nil }
 
@@ -3293,6 +3302,22 @@ struct AddCustomExerciseView: View {
         _customImageData = State(initialValue: existingExercise?.customImageData)
         _customVideoData = State(initialValue: existingExercise?.customVideoData)
         _customVideoThumbnailData = State(initialValue: existingExercise?.customVideoThumbnailData)
+        _mediaBookmarks = State(initialValue: existingExercise?.mediaBookmarks ?? [])
+        var initialCustomMedia = existingExercise?.customMedia ?? []
+        // Upgrade a legacy single photo/video in memory the first time it is
+        // edited, so attaching another item never discards the original guide.
+        if initialCustomMedia.isEmpty, let imageData = existingExercise?.customImageData {
+            initialCustomMedia.append(ExerciseCustomMedia(kind: .image, data: imageData))
+        }
+        if initialCustomMedia.isEmpty || !initialCustomMedia.contains(where: { $0.kind == .video }),
+           let videoData = existingExercise?.customVideoData {
+            initialCustomMedia.append(ExerciseCustomMedia(
+                kind: .video,
+                data: videoData,
+                thumbnailData: existingExercise?.customVideoThumbnailData
+            ))
+        }
+        _customMedia = State(initialValue: initialCustomMedia)
     }
 
     var body: some View {
@@ -3313,42 +3338,59 @@ struct AddCustomExerciseView: View {
                 }
 
                 Section("imagen_y_guia") {
-                    if let customImageData, let image = UIImage(data: customImageData) {
-                        ExerciseMediaPreviewRow(image: Image(uiImage: image), label: "own_photo") {
-                            self.customImageData = nil
+                    if customMedia.isEmpty {
+                        if let customImageData, let image = UIImage(data: customImageData) {
+                            ExerciseMediaPreviewRow(image: Image(uiImage: image), label: "own_photo") {
+                                self.customImageData = nil
+                            }
                         }
-                    }
-                    if let customVideoData, ExerciseVisualResolver.hasValidCustomVideo(customVideoData) {
-                        ExerciseMediaPreviewRow(
-                            image: customVideoThumbnailData.flatMap(UIImage.init(data:)).map(Image.init(uiImage:)),
-                            systemImage: "video.fill",
-                            label: "own_video"
-                        ) {
-                            self.customVideoData = nil
-                            self.customVideoThumbnailData = nil
+                        if let customVideoData, ExerciseVisualResolver.hasValidCustomVideo(customVideoData) {
+                            ExerciseMediaPreviewRow(
+                                image: customVideoThumbnailData.flatMap(UIImage.init(data:)).map(Image.init(uiImage:)),
+                                systemImage: "video.fill",
+                                label: "own_video"
+                            ) {
+                                self.customVideoData = nil
+                                self.customVideoThumbnailData = nil
+                            }
+                        }
+                    } else {
+                        ForEach(customMedia) { media in
+                            ExerciseMediaPreviewRow(
+                                image: previewImage(for: media),
+                                systemImage: media.kind == .video ? "video.fill" : "photo",
+                                label: media.kind == .video ? "own_video" : "own_photo"
+                            ) {
+                                removeCustomMedia(media)
+                            }
                         }
                     }
 
-                    ExerciseMediaPickerMenu(
-                        hasCustomImage: customImageData != nil,
-                        hasCustomVideo: ExerciseVisualResolver.hasValidCustomVideo(customVideoData),
-                        onImageCaptured: { customImageData = $0 },
-                        onVideoCaptured: { data, thumbnail in
-                            customVideoData = data
-                            customVideoThumbnailData = thumbnail
-                        },
-                        onDeleteImage: { customImageData = nil },
-                        onDeleteVideo: {
-                            customVideoData = nil
-                            customVideoThumbnailData = nil
-                        }
+                    PhotosPicker(
+                        selection: $selectedMediaItems,
+                        maxSelectionCount: 10,
+                        matching: .any(of: [.images, .videos])
                     ) {
                         Label("attach_photo_or_video", systemImage: "photo.badge.plus")
+                    }
+                    .onChange(of: selectedMediaItems) { _, items in
+                        guard !items.isEmpty else { return }
+                        Task { await importMedia(items) }
                     }
 
                     TextField("image_or_video_url", text: $mediaURL)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
+                        .autocorrectionDisabled()
+
+                    Button {
+                        showOnlineLinks = true
+                    } label: {
+                        Label(
+                            localizedFormat("bookmarks_count_format", mediaBookmarks.count),
+                            systemImage: "link.badge.plus"
+                        )
+                    }
                     TextField("instructions", text: $instructions, axis: .vertical)
                         .lineLimit(3...6)
                     TextField("notes_2", text: $notes, axis: .vertical)
@@ -3372,6 +3414,8 @@ struct AddCustomExerciseView: View {
                         updated.customImageData = customImageData
                         updated.customVideoData = customVideoData
                         updated.customVideoThumbnailData = customVideoThumbnailData
+                        updated.customMedia = customMedia
+                        updated.mediaBookmarks = mediaBookmarks
                         updated.instructions = instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : instructions
                         updated.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
                         if isEditing {
@@ -3384,6 +3428,63 @@ struct AddCustomExerciseView: View {
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+        }
+        .sheet(isPresented: $showOnlineLinks) {
+            ExerciseMediaBookmarkEditor(bookmarks: $mediaBookmarks)
+        }
+    }
+
+    private func previewImage(for media: ExerciseCustomMedia) -> Image? {
+        let data = media.kind == .video ? media.thumbnailData : media.data
+        return data.flatMap(UIImage.init(data:)).map(Image.init(uiImage:))
+    }
+
+    private func removeCustomMedia(_ media: ExerciseCustomMedia) {
+        customMedia.removeAll { $0.id == media.id }
+        synchronizeLegacyCustomMedia()
+    }
+
+    private func importMedia(_ items: [PhotosPickerItem]) async {
+        var imported: [ExerciseCustomMedia] = []
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self), !data.isEmpty else { continue }
+            if item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) }) {
+                let temporaryURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("reps-custom-exercise-\(UUID().uuidString).mov")
+                try? data.write(to: temporaryURL)
+                let thumbnail = await VideoThumbnail.generate(from: temporaryURL)
+                try? FileManager.default.removeItem(at: temporaryURL)
+                imported.append(ExerciseCustomMedia(
+                    kind: .video,
+                    data: data,
+                    thumbnailData: thumbnail?.jpegData(compressionQuality: 0.7)
+                ))
+            } else if UIImage(data: data) != nil {
+                imported.append(ExerciseCustomMedia(kind: .image, data: data))
+            }
+        }
+
+        guard !imported.isEmpty else {
+            selectedMediaItems = []
+            return
+        }
+        customMedia.append(contentsOf: imported)
+        synchronizeLegacyCustomMedia()
+        selectedMediaItems = []
+    }
+
+    private func synchronizeLegacyCustomMedia() {
+        if let image = customMedia.first(where: { $0.kind == .image }) {
+            customImageData = image.data
+        } else {
+            customImageData = nil
+        }
+        if let video = customMedia.first(where: { $0.kind == .video }) {
+            customVideoData = video.data
+            customVideoThumbnailData = video.thumbnailData
+        } else {
+            customVideoData = nil
+            customVideoThumbnailData = nil
         }
     }
 }

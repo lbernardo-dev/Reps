@@ -95,6 +95,7 @@ struct CommentsView: View {
             }
             Spacer(minLength: 0)
 
+            if !isCurrentUser(comment.ownerUsername) {
             Menu {
                 Button {
                     Task {
@@ -122,9 +123,14 @@ struct CommentsView: View {
                     .frame(width: 32, height: 32)
             }
             .accessibilityLabel(localizedString("social_moderation_actions"))
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+
+    private func isCurrentUser(_ username: String) -> Bool {
+        store.userProfile.socialUsername?.caseInsensitiveCompare(username) == .orderedSame
     }
 
     // MARK: - Input

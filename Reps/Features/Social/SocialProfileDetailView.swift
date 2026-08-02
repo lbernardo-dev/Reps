@@ -60,8 +60,16 @@ struct SocialProfileDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .sheet(item: $selectedPost) { post in
-            PostDetailSheet(post: post, onProfileTap: {}, onModeratorDelete: {
-                posts.removeAll { $0.id == post.id }
+            PostDetailSheet(post: post, onProfileTap: {}, onPostChanged: { changedPost in
+                if let changedPost {
+                    if let index = posts.firstIndex(where: { $0.id == changedPost.id }) {
+                        posts[index] = changedPost
+                    }
+                    selectedPost = changedPost
+                } else {
+                    posts.removeAll { $0.id == post.id }
+                    selectedPost = nil
+                }
             })
             .environment(store)
             .repsSheetPresentation()
@@ -77,7 +85,8 @@ struct SocialProfileDetailView: View {
             }
         }
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            if !isMe {
+                ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button(role: .destructive) {
                         showReportSheet = true
@@ -88,6 +97,7 @@ struct SocialProfileDetailView: View {
                     Image(systemName: "ellipsis.circle")
                         .font(.body)
                         .foregroundStyle(PulseTheme.accent)
+                }
                 }
             }
         }
@@ -399,10 +409,9 @@ struct SocialProfileDetailView: View {
         }
         isLoading = true
         async let profileTask = SocialService.shared.fetchMyProfile(username: username)
-        async let postsTask = SocialService.shared.fetchPosts(username: username)
         async let countTask = SocialService.shared.fetchFollowerCount(myUsername: username)
         profile = try? await profileTask
-        posts = await postsTask
+        posts = (isMe || isFollowing) ? await SocialService.shared.fetchPosts(username: username) : []
         followerCount = await countTask
         isLoading = false
     }
@@ -412,16 +421,19 @@ struct SocialProfileDetailView: View {
         guard let profile else { return }
         guard let myUsername = store.userProfile.socialUsername, !myUsername.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         isFollowActionInProgress = true
+        let wasFollowing = isFollowing
         do {
-            if isFollowing {
+            if wasFollowing {
                 try await SocialService.shared.unfollow(profile)
                 store.userProfile.socialFollowingUsernames.removeAll { $0 == username.lowercased() }
+                posts = []
                 HapticService.notification(.success)
             } else {
-                try await SocialService.shared.follow(profile, myUsername: myUsername)
+                try await SocialService.shared.follow(profile)
                 if !store.userProfile.socialFollowingUsernames.contains(username.lowercased()) {
                     store.userProfile.socialFollowingUsernames.append(username.lowercased())
                 }
+                posts = await SocialService.shared.fetchPosts(username: username)
                 HapticService.notification(.success)
             }
             let newList = store.userProfile.socialFollowingUsernames
@@ -444,7 +456,7 @@ private struct PostDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     let post: WorkoutPost
     var onProfileTap: () -> Void
-    var onModeratorDelete: (() -> Void)? = nil
+    var onPostChanged: ((WorkoutPost?) -> Void)? = nil
 
     @State private var isLiked = false
     @State private var isLiking = false
@@ -452,10 +464,10 @@ private struct PostDetailSheet: View {
     @State private var commentSummary: CommentSummary?
     @State private var showComments = false
 
-    init(post: WorkoutPost, onProfileTap: @escaping () -> Void, onModeratorDelete: (() -> Void)? = nil) {
+    init(post: WorkoutPost, onProfileTap: @escaping () -> Void, onPostChanged: ((WorkoutPost?) -> Void)? = nil) {
         self.post = post
         self.onProfileTap = onProfileTap
-        self.onModeratorDelete = onModeratorDelete
+        self.onPostChanged = onPostChanged
         _likeCount = State(initialValue: post.likeCount)
     }
 
@@ -476,9 +488,11 @@ private struct PostDetailSheet: View {
                     onProfileTap: onProfileTap,
                     onLike: toggleLike,
                     onComment: { showComments = true },
-                    onModeratorAction: {
-                        onModeratorDelete?()
-                        dismiss()
+                    onPostChanged: { changedPost in
+                        onPostChanged?(changedPost)
+                        if changedPost == nil {
+                            dismiss()
+                        }
                     }
                 )
                 .padding(.horizontal, PulseTheme.screenHorizontalPadding)

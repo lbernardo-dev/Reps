@@ -21,9 +21,6 @@ struct SocialHubView: View {
     @State private var likingInProgress: Set<String> = []
     @State private var suggestedProfiles: [SocialProfile] = []
     @State private var isLoadingSuggested = false
-    @State private var explorePosts: [WorkoutPost] = []
-    @State private var isLoadingExplore = false
-    @State private var selectedExplorePost: WorkoutPost? = nil
     @State private var recentSearches: [String] = []
     @State private var commentsPost: WorkoutPost? = nil
     @State private var showCreatePost = false
@@ -105,6 +102,7 @@ struct SocialHubView: View {
             PulseHeaderBar(
                 title: localizedString("social_hub"),
                 subtitleKey: "friends_2",
+                backAction: { dismiss() },
                 hideSocialLink: true
             ) {
                 socialHeaderActions
@@ -146,49 +144,6 @@ struct SocialHubView: View {
         .sheet(item: $commentsPost) { post in
             CommentsView(post: post)
                 .repsSheetPresentation()
-        }
-        .sheet(item: $selectedExplorePost) { post in
-            NavigationStack {
-                ScrollView {
-                    WorkoutPostCard(
-                        post: post,
-                        isLiked: likedPostIDs.contains(post.id),
-                        isLiking: likingInProgress.contains(post.id),
-                        commentSummary: store.commentSummaries[post.id],
-                        onProfileTap: {
-                            // Dismiss first — this sheet's NavigationStack is
-                            // separate from the one that owns
-                            // $selectedProfileUsername's destination.
-                            HapticService.selection()
-                            let username = post.ownerUsername
-                            selectedExplorePost = nil
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                selectedProfileUsername = username
-                            }
-                        },
-                        onLike: { toggleLike(post: post) },
-                        onComment: {
-                            selectedExplorePost = nil
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                commentsPost = post
-                            }
-                        },
-                        onModeratorAction: {
-                            explorePosts.removeAll { $0.id == post.id }
-                            selectedExplorePost = nil
-                        }
-                    )
-                    .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                    .padding(.top, 16)
-                }
-                .screenBackground()
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button(localizedString("close")) { selectedExplorePost = nil }
-                    }
-                }
-            }
-            .repsSheetPresentation()
         }
         .sheet(isPresented: $showCreatePost) {
             CreatePostView()
@@ -346,7 +301,7 @@ struct SocialHubView: View {
         let weekSessions = store.workoutSessions.filter { $0.date >= weekStart }
         let weekVolume = Int(FitnessMetrics.totalVolumeKg(for: weekSessions))
         return PulseCard {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 14) {
                     ZStack {
                         Circle()
@@ -369,28 +324,13 @@ struct SocialHubView: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(verbatim: uname.map { "@\($0)" } ?? localizedString("social_username_label"))
                             .font(.headline)
-                        HStack(spacing: 6) {
-                            Text(localizedFormat("player_level_abbr_title_format", "\(lvl.level)", lvl.title))
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .foregroundStyle(PulseTheme.accent)
-                                .padding(.horizontal, 7).padding(.vertical, 3)
-                                .background(PulseTheme.accent.opacity(0.10))
-                                .clipShape(Capsule())
-                            Text("\(xp) XP")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                            if store.hasProAccess {
-                                Text(String(localized: "social_xp_boost_badge"))
-                                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
-                                    .padding(.horizontal, 7).padding(.vertical, 3)
-                                    .background(LinearGradient(colors: [PulseTheme.accent, PulseTheme.ringStand], startPoint: .leading, endPoint: .trailing))
-                                    .clipShape(Capsule())
-                            }
-                        }
+                        Text(localizedFormat("player_level_abbr_title_format", "\(lvl.level)", lvl.title))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(1)
                     }
 
                     Spacer()
@@ -406,6 +346,33 @@ struct SocialHubView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                }
+
+                // Use equally sized information tiles instead of content-sized
+                // capsules. A long title or the Pro boost can no longer push
+                // the remaining profile information out of alignment.
+                HStack(spacing: 8) {
+                    profileOverviewMetric(
+                        value: "\(lvl.level)",
+                        label: lvl.title,
+                        systemImage: "trophy.fill",
+                        color: PulseTheme.accent
+                    )
+                    profileOverviewMetric(
+                        value: "\(xp)",
+                        label: "XP",
+                        systemImage: "bolt.fill",
+                        color: PulseTheme.secondaryText
+                    )
+                    if store.hasProAccess {
+                        profileOverviewMetric(
+                            value: "+10%",
+                            label: "XP Boost",
+                            systemImage: "sparkles",
+                            color: PulseTheme.ringStand,
+                            emphasized: true
+                        )
+                    }
                 }
 
                 if !bio.isEmpty || !loc.isEmpty {
@@ -425,12 +392,21 @@ struct SocialHubView: View {
                 }
 
                 if !plan.isEmpty {
-                    Label(plan, systemImage: "calendar.badge.checkmark")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.accent)
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(PulseTheme.accent.opacity(0.08))
-                        .clipShape(Capsule())
+                    HStack(spacing: 8) {
+                        Image(systemName: "calendar.badge.checkmark")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(PulseTheme.accent)
+                            .frame(width: 22)
+                        Text(plan)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(PulseTheme.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
 
                 HStack(spacing: 8) {
@@ -492,6 +468,39 @@ struct SocialHubView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(color.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func profileOverviewMetric(
+        value: String,
+        label: String,
+        systemImage: String,
+        color: Color,
+        emphasized: Bool = false
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.bold))
+                Text(value)
+                    .font(.system(size: 17, weight: .black, design: .rounded).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+            .foregroundStyle(emphasized ? PulseTheme.onColor(color) : color)
+
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(emphasized ? PulseTheme.onColor(color).opacity(0.86) : PulseTheme.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+        .background(
+            emphasized ? AnyShapeStyle(LinearGradient(colors: [PulseTheme.accent, PulseTheme.ringStand], startPoint: .leading, endPoint: .trailing)) : AnyShapeStyle(color.opacity(0.10)),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
     }
 
     private func statPill(value: String, label: String) -> some View {
@@ -752,7 +761,7 @@ struct SocialHubView: View {
                         Text(ch.title)
                             .font(.subheadline.weight(.bold))
                             .lineLimit(1)
-                        Text(localizedString("challenge_metric_\(ch.metric.rawValue)"))
+                        Text(localizedString("challenge_metric_ch_metric_rawvalue"))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -1104,100 +1113,7 @@ struct SocialHubView: View {
                 }
             }
 
-            if searchText.isEmpty {
-                if !explorePosts.isEmpty {
-                    exploreSection
-                } else if isLoadingExplore {
-                    exploreSkeletonSection
-                }
-            }
         }
-    }
-
-    // MARK: - Explore Grid
-    //
-    // Beyond search/suggested-accounts, a grid of recent posts ranked by
-    // likes — the closest approximation of a "trending" feed this CloudKit
-    // public-DB backend can offer without a custom ranking service.
-
-    private var exploreSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(localizedString("social_explore_posts"))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(PulseTheme.secondaryText)
-                .padding(.horizontal, 4)
-
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)], spacing: 2) {
-                ForEach(explorePosts) { post in
-                    Button {
-                        HapticService.selection()
-                        selectedExplorePost = post
-                    } label: {
-                        explorePostTile(post)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-        }
-    }
-
-    private var exploreSkeletonSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(localizedString("social_explore_posts"))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(PulseTheme.secondaryText)
-                .padding(.horizontal, 4)
-
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)], spacing: 2) {
-                ForEach(0..<6, id: \.self) { _ in
-                    GeometryReader { proxy in
-                        PulseSkeleton(height: proxy.size.width, cornerRadius: 0)
-                    }
-                    .aspectRatio(1, contentMode: .fit)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-        }
-    }
-
-    private func explorePostTile(_ post: WorkoutPost) -> some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .bottomLeading) {
-                if let firstPhoto = post.photoDataList.first, let img = UIImage(data: firstPhoto) {
-                    Image(uiImage: img)
-                        .resizable().scaledToFill()
-                        .frame(width: proxy.size.width, height: proxy.size.width)
-                        .clipped()
-                } else {
-                    Rectangle().fill(PulseTheme.accent.opacity(0.10))
-                    VStack(spacing: 4) {
-                        Image(systemName: "dumbbell.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(PulseTheme.accent)
-                        Text(post.workoutTitle)
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(.primary)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 4)
-                    }
-                    .frame(width: proxy.size.width, height: proxy.size.width)
-                }
-                if post.likeCount > 0 {
-                    HStack(spacing: 3) {
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 9, weight: .bold))
-                        Text("\(post.likeCount)")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                    }
-                    .foregroundStyle(.white)
-                    .shadow(radius: 2)
-                    .padding(6)
-                }
-            }
-        }
-        .aspectRatio(1, contentMode: .fit)
     }
 
     // MARK: - Recent Searches
@@ -1557,21 +1473,23 @@ struct SocialHubView: View {
         guard !didLoadInitialData else { return }
         didLoadInitialData = true
 
+        _ = await store.restoreSocialProfileIfNeeded()
+
         loadPendingInvites()
 
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await loadFollowing() }
             group.addTask { await loadSuggested() }
-            group.addTask { await loadExplore() }
             group.addTask { await store.refreshModerationState() }
             if store.feedPosts.isEmpty {
                 group.addTask { await store.loadFeed() }
             }
             if store.activeChallenges.isEmpty {
                 group.addTask { await store.loadChallenges() }
-            }
         }
     }
+}
+
 
     private func loadSuggested() async {
         guard store.userProfile.socialCapabilitiesAllowed else { return }
@@ -1585,17 +1503,6 @@ struct SocialHubView: View {
             suggestedProfiles = profiles
         } catch {}
         isLoadingSuggested = false
-    }
-
-    private func loadExplore() async {
-        guard store.userProfile.socialCapabilitiesAllowed else { return }
-        isLoadingExplore = true
-        var excluded = Set(store.userProfile.socialFollowingUsernames.map { $0.lowercased() })
-        excluded.formUnion(store.userProfile.socialBlockedUsernames.map { $0.lowercased() })
-        excluded.formUnion(store.bannedUsernames)
-        if let mine = store.userProfile.socialUsername { excluded.insert(mine.lowercased()) }
-        explorePosts = await SocialService.shared.fetchExplorePosts(excluding: excluded)
-        isLoadingExplore = false
     }
 
     private func saveRecentSearch(_ username: String) {
@@ -1736,7 +1643,7 @@ struct SocialHubView: View {
                         return
                     }
 
-                    try await SocialService.shared.follow(profile, myUsername: myUsername)
+                    try await SocialService.shared.follow(profile)
                     await MainActor.run {
                         SocialLimitsManager.shared.recordInviteSent()
                         following.append(profile)
@@ -1761,4 +1668,3 @@ struct SocialHubView: View {
         }
     }
 }
-

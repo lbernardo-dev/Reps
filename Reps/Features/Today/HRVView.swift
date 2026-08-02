@@ -409,7 +409,7 @@ struct HRVFrequencyRing: View {
                 .frame(width: 170, height: 170)
 
             VStack(spacing: 3) {
-                Text(localizedString("HRV").uppercased())
+                Text(localizedString("hrv").uppercased())
                     .font(.system(size: 8, weight: .black, design: .rounded))
                     .tracking(1.2)
                     .foregroundStyle(PulseTheme.secondaryText)

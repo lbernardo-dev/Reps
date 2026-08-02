@@ -280,6 +280,22 @@ enum PreferredHeroMedia: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// A locally stored image or video selected by the user as exercise guidance.
+/// Keeping each item separately lets custom exercises retain an ordered, mixed
+/// gallery instead of replacing the previous photo or video.
+struct ExerciseCustomMedia: Identifiable, Codable, Hashable, Sendable {
+    enum Kind: String, Codable, Sendable {
+        case image
+        case video
+    }
+
+    var id = UUID()
+    var kind: Kind
+    var data: Data
+    /// Still frame used for a lightweight video preview.
+    var thumbnailData: Data?
+}
+
 struct Exercise: Identifiable, Codable, Hashable, Sendable {
     enum TrackingType: String, Codable {
         case weightReps
@@ -332,6 +348,10 @@ struct Exercise: Identifiable, Codable, Hashable, Sendable {
     var customVideoData: Data?
     /// Poster frame for `customVideoData`, used as a static preview before playback.
     var customVideoThumbnailData: Data?
+    /// Ordered local gallery of photos and videos attached to a custom exercise.
+    /// The legacy single-item fields above remain populated for compatibility with
+    /// existing exercise views and saved data.
+    var customMedia: [ExerciseCustomMedia] = []
     var videoURL: String?
     var preferredHeroMedia: PreferredHeroMedia? = nil
     var mediaBookmarks: [ExerciseMediaBookmark] = []

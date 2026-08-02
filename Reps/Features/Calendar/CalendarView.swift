@@ -9,6 +9,7 @@ struct CalendarView: View {
     @State private var selectedDate = Date()
     @State private var showNotifications = false
     @State private var notificationWorkout: WorkoutDay?
+    @State private var scheduledWorkoutToStart: WorkoutDay?
     @State private var monthRenderModel = CalendarMonthRenderModel.empty
 
     var body: some View {
@@ -128,13 +129,15 @@ struct CalendarView: View {
                                     .font(.caption.weight(.bold))
                                     .foregroundStyle(PulseTheme.accent)
                                 ForEach(plannedSessions) { scheduled in
-                                    NavigationLink {
-                                        ActiveWorkoutView(workout: scheduled.workoutDay)
+                                    Button {
+                                        guard store.requireWorkoutAccess(scheduled.workoutDay) else { return }
+                                        scheduledWorkoutToStart = scheduled.workoutDay
                                     } label: {
                                         CalendarPlannedWorkoutRow(
                                             scheduled: scheduled,
                                             gender: store.userProfile.muscleMapGender,
-                                            catalog: store.exercises
+                                            catalog: store.exercises,
+                                            isLocked: store.isWorkoutLocked(scheduled.workoutDay)
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -223,6 +226,9 @@ struct CalendarView: View {
                 NotificationsView()
             }
             .navigationDestination(item: $notificationWorkout) { workout in
+                ActiveWorkoutView(workout: workout)
+            }
+            .navigationDestination(item: $scheduledWorkoutToStart) { workout in
                 ActiveWorkoutView(workout: workout)
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -465,6 +471,10 @@ struct CalendarView: View {
             return
         }
 
+        guard store.requireWorkoutAccess(scheduled.workoutDay) else {
+            store.calendarWorkoutToOpenID = nil
+            return
+        }
         notificationWorkout = scheduled.workoutDay
         store.calendarWorkoutToOpenID = nil
     }
@@ -588,6 +598,7 @@ private struct CalendarPlannedWorkoutRow: View {
     let scheduled: ScheduledWorkout
     let gender: BodyGender
     let catalog: [Exercise]
+    let isLocked: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -603,7 +614,7 @@ private struct CalendarPlannedWorkoutRow: View {
                     .foregroundStyle(PulseTheme.secondaryText)
             }
             Spacer()
-            Image(systemName: "play.fill")
+            Image(systemName: isLocked ? "lock.fill" : "play.fill")
                 .foregroundStyle(PulseTheme.onColor(PulseTheme.playControl))
                 .frame(width: 42, height: 42)
                 .background(PulseTheme.playControl)
@@ -649,7 +660,13 @@ struct ScheduleWorkoutView: View {
                     if hasActivePlan {
                         Picker("training", selection: $selectedWorkoutID) {
                             ForEach(store.activePlan.days) { workout in
-                                Text(workout.title).tag(Optional(workout.id))
+                                HStack {
+                                    Text(workout.title)
+                                    if store.isPlanDayLocked(workout) {
+                                        Image(systemName: "lock.fill")
+                                    }
+                                }
+                                .tag(Optional(workout.id))
                             }
                         }
                     } else {
@@ -675,8 +692,10 @@ struct ScheduleWorkoutView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("save") {
-                        store.addScheduledWorkout(selectedWorkout, date: date)
-                        dismiss()
+                        guard store.requireWorkoutAccess(selectedWorkout) else { return }
+                        if store.addScheduledWorkout(selectedWorkout, date: date) {
+                            dismiss()
+                        }
                     }
                 }
             }

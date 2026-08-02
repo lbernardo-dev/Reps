@@ -96,21 +96,20 @@ final class AppStore {
     private(set) var moderatorOwnerIDs: Set<String> = []
     private(set) var moderatorUsernames: Set<String> = []
 
-    /// Super Admin usernames & unique CloudKit User IDs + CloudKit moderators
+    /// Immutable CloudKit owner record name for the signed-in social account.
+    private(set) var currentSocialOwnerRecordName: String?
+
+    var isCurrentUserSuperAdmin: Bool {
+        SocialAuthorization.isSuperAdmin(ownerRecordName: currentSocialOwnerRecordName)
+    }
+
+    /// Superadmin and explicitly assigned moderators can review moderation data.
+    /// Only the superadmin may grant or revoke moderator access.
     var isCurrentUserManagerOrAdmin: Bool {
-        let superAdminIDs: Set<String> = ["61631E27-8C99-4353-A9E2-307B923AF46E", "61631E27-8C99-4353-A9E2-307B923AF46E".lowercased()]
-        let superAdmins: Set<String> = ["romerosoft", "admin", "yilian", "lbernardo", "romerodev"]
-        
-        if let uname = userProfile.socialUsername?.lowercased(), !uname.isEmpty {
-            if superAdmins.contains(uname) || moderatorUsernames.contains(uname) { return true }
-        }
-        
-        // Check if any moderator owner ID matches superAdminIDs or moderatorOwnerIDs
-        for ownerID in moderatorOwnerIDs {
-            if superAdminIDs.contains(ownerID) { return true }
-        }
-        
-        return true // User 61631E27-8C99-4353-A9E2-307B923AF46E is default Super Admin
+        SocialAuthorization.canModerate(
+            ownerRecordName: currentSocialOwnerRecordName,
+            moderatorOwnerRecordNames: moderatorOwnerIDs
+        )
     }
     var savedShareCards: [SavedShareCard] = [] { didSet { save(scope: .savedShareCards) } }
     var finishedSessionForSummary: WorkoutSession? = nil
@@ -150,6 +149,7 @@ final class AppStore {
     /// Set by the free-workout deep link and consumed by the root quick-action
     /// presenter. Keeping this in app state makes cold Shortcut launches reliable.
     var pendingFreeWorkoutPresentation = false
+    @ObservationIgnored private var isRestoringSocialProfile = false
     var pendingAchievementUnlocks: [AchievementUnlockBanner] = []
     var activePaywall: PaywallPresentation? {
         didSet {
@@ -514,6 +514,24 @@ final class AppStore {
         }
     }
 
+    /// Applies an App Shortcut request that was persisted before the system
+    /// launched (or foregrounded) the app. This deliberately does not use a
+    /// custom URL: App Intents can open the app directly via `openAppWhenRun`.
+    func consumePendingAppShortcutRoute() {
+        guard let route = RepsAppShortcutRoute.dequeue() else { return }
+
+        switch route {
+        case .freeWorkout:
+            pendingMainTabSelection = .today
+            pendingFreeWorkoutPresentation = true
+        case .recommendedWorkout:
+            pendingMainTabSelection = .today
+            pendingSystemWorkoutStart = true
+        case .progress:
+            pendingMainTabSelection = .progress
+        }
+    }
+
     var todaysWorkout: WorkoutDay {
         let calendar = Calendar.current
         if let scheduled = scheduledWorkouts.first(where: { calendar.isDateInToday($0.date) }) {
@@ -703,8 +721,31 @@ final class AppStore {
     func isPlanDayLocked(_ day: WorkoutDay, in plan: WorkoutPlan? = nil) -> Bool {
         guard !hasProAccess else { return false }
         let targetPlan = plan ?? activePlan
-        guard let index = targetPlan.days.firstIndex(where: { $0.id == day.id || $0.title == day.title }) else { return false }
+        guard let index = targetPlan.days.firstIndex(where: { $0.id == day.id }) else { return false }
         return index > 0
+    }
+
+    /// A plan day may reach the workout flow from Today, Calendar, notifications,
+    /// or a deep link. Keep the entitlement decision here so every route agrees.
+    func isWorkoutLocked(_ workout: WorkoutDay) -> Bool {
+        if activePlan.days.contains(where: { $0.id == workout.id }) {
+            return isPlanDayLocked(workout, in: activePlan)
+        }
+        if let plan = plans.first(where: { $0.days.contains(where: { $0.id == workout.id }) }) {
+            return isPlanDayLocked(workout, in: plan)
+        }
+        return false
+    }
+
+    @discardableResult
+    func requireWorkoutAccess(
+        _ workout: WorkoutDay,
+        source: PaywallSource = .planActivation,
+        trigger: PaywallTrigger = .featureGate
+    ) -> Bool {
+        guard isWorkoutLocked(workout) else { return true }
+        presentPaywall(source: source, feature: nil, trigger: trigger)
+        return false
     }
 
     func hasFeatureAccess(_ feature: ProductFeature) -> Bool {
@@ -1739,7 +1780,9 @@ final class AppStore {
         return session
     }
 
-    func startActiveWorkout(_ workout: WorkoutDay, elapsedSeconds: Int = 0, pausedSeconds: Int = 0, isPaused: Bool = false) {
+    @discardableResult
+    func startActiveWorkout(_ workout: WorkoutDay, elapsedSeconds: Int = 0, pausedSeconds: Int = 0, isPaused: Bool = false) -> Bool {
+        guard requireWorkoutAccess(workout) else { return false }
         let isRouteWorkout = Self.isRouteWorkout(workout)
         let isOutdoorRoute = Self.isOutdoorRoute(workout)
         activeWorkout = workout
@@ -1775,9 +1818,12 @@ final class AppStore {
             "exercise_count": workout.exercises.count,
             "origin_has_active_plan": activePlan.days.contains { $0.id == workout.id }
         ])
+        return true
     }
 
-    func startPreparedActiveWorkout(_ workout: WorkoutDay, drafts: [ExerciseSessionDraft], isPaused: Bool = false, startedAt: Date = .now) {
+    @discardableResult
+    func startPreparedActiveWorkout(_ workout: WorkoutDay, drafts: [ExerciseSessionDraft], isPaused: Bool = false, startedAt: Date = .now) -> Bool {
+        guard requireWorkoutAccess(workout) else { return false }
         var preparedWorkout = workout
         preparedWorkout.exercises = drafts.map(\.workoutExercise)
         let isRouteWorkout = Self.isRouteWorkout(preparedWorkout)
@@ -1806,6 +1852,7 @@ final class AppStore {
             "exercise_count": preparedWorkout.exercises.count,
             "origin_has_active_plan": activePlan.days.contains { $0.id == workout.id }
         ])
+        return true
     }
 
     private static func isRouteWorkout(_ workout: WorkoutDay) -> Bool {
@@ -2635,10 +2682,11 @@ final class AppStore {
         }
     }
 
-    func activateRecommendedWorkoutPlan(from workout: WorkoutDay) {
+    @discardableResult
+    func activateRecommendedWorkoutPlan(from workout: WorkoutDay) -> Bool {
         guard monetization.hasProAccess else {
             presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
-            return
+            return false
         }
 
         var recommendedWorkout = workout
@@ -2654,6 +2702,7 @@ final class AppStore {
             days: [recommendedWorkout]
         )
         addPlan(plan, activate: true)
+        return true
     }
 
     func activatePlan(_ plan: WorkoutPlan) {
@@ -2684,7 +2733,9 @@ final class AppStore {
         ])
     }
 
-    func selectWorkoutDayForToday(_ day: WorkoutDay) {
+    @discardableResult
+    func selectWorkoutDayForToday(_ day: WorkoutDay) -> Bool {
+        guard requireWorkoutAccess(day) else { return false }
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         
@@ -2705,6 +2756,7 @@ final class AppStore {
         }
         
         save()
+        return true
     }
 
     func restoreSuggestedWorkoutForToday() {
@@ -2715,7 +2767,8 @@ final class AppStore {
         scheduledWorkouts.removeAll { calendar.isDate($0.date, inSameDayAs: today) }
         
         // Re-generate schedule for today (meaning the active plan's current day will be scheduled)
-        if let day = activePlan.normalizedActiveDay {
+        if let day = activePlan.normalizedActiveDay,
+           !isWorkoutLocked(day) {
             let scheduled = ScheduledWorkout(date: Date(), workoutDay: day, status: .scheduled)
             scheduledWorkouts.append(scheduled)
         }
@@ -3137,7 +3190,9 @@ final class AppStore {
         return (merged, addedCount, mergedCount)
     }
 
-    func addScheduledWorkout(_ workoutDay: WorkoutDay, date: Date) {
+    @discardableResult
+    func addScheduledWorkout(_ workoutDay: WorkoutDay, date: Date) -> Bool {
+        guard !isWorkoutLocked(workoutDay) else { return false }
         scheduledWorkouts.append(ScheduledWorkout(date: date, workoutDay: workoutDay, status: .scheduled))
         normalizeScheduledWorkouts()
         TelemetryService.shared.log(.workoutScheduled, parameters: [
@@ -3150,6 +3205,7 @@ final class AppStore {
                 to: Calendar.current.startOfDay(for: date)
             ).day ?? 0
         ])
+        return true
     }
 
     func addGoal(_ goal: Goal) {
@@ -4663,6 +4719,9 @@ final class AppStore {
                 if let customVid = sanitized.customVideoData {
                     merged[idx].customVideoData = customVid
                 }
+                if !sanitized.customMedia.isEmpty {
+                    merged[idx].customMedia = sanitized.customMedia
+                }
                 if let notes = sanitized.notes, !notes.isEmpty {
                     merged[idx].notes = notes
                 }
@@ -4866,7 +4925,8 @@ final class AppStore {
 
     func reportSocialPost(_ post: WorkoutPost, reason: String = "user_report") async -> Bool {
         guard userProfile.socialCapabilitiesAllowed,
-              let reporter = userProfile.socialUsername else { return false }
+              let reporter = userProfile.socialUsername,
+              reporter.caseInsensitiveCompare(post.ownerUsername) != .orderedSame else { return false }
         do {
             try await SocialService.shared.reportContent(
                 contentID: post.id,
@@ -4884,7 +4944,8 @@ final class AppStore {
 
     func blockSocialUser(_ username: String) async -> Bool {
         guard userProfile.socialCapabilitiesAllowed,
-              let blocker = userProfile.socialUsername else { return false }
+              let blocker = userProfile.socialUsername,
+              blocker.caseInsensitiveCompare(username) != .orderedSame else { return false }
         let normalized = username.lowercased()
         if !userProfile.socialBlockedUsernames.contains(normalized) {
             userProfile.socialBlockedUsernames.append(normalized)
@@ -4912,12 +4973,14 @@ final class AppStore {
     /// capable of safely authorizing moderator actions.
     func refreshModerationState() async {
         guard let username = userProfile.socialUsername else {
+            currentSocialOwnerRecordName = nil
             bannedUsernames = []
             bannedOwnerIDs = []
             moderatorOwnerIDs = []
             moderatorUsernames = []
             return
         }
+        currentSocialOwnerRecordName = try? await SocialService.shared.myRecordID().recordName
         let (bannedIDs, bannedUnames) = await SocialService.shared.fetchBannedUserIDs()
         let (modIDs, modUnames) = await SocialService.shared.fetchModerators()
         let normalized = username.lowercased()
@@ -4952,12 +5015,49 @@ final class AppStore {
         userProfile.autoShareWorkouts = false
         userProfile.socialFollowingUsernames = []
         userProfile.socialBlockedUsernames = []
+        await SocialService.shared.forgetRecoveredProfile()
         feedPosts = []
         commentSummaries = [:]
         unreadFeedCount = 0
         activeChallenges = []
         bannedUsernames = []
         return true
+    }
+
+    /// Reconnects a social profile after a reinstall. The profile is verified
+    /// against the active iCloud account before any local state is restored.
+    @discardableResult
+    func restoreSocialProfileIfNeeded() async -> Bool {
+        guard userProfile.socialCapabilitiesAllowed, !isRestoringSocialProfile else { return false }
+
+        if let username = userProfile.socialUsername, !username.isEmpty {
+            await SocialService.shared.rememberProfileUsernameForRecovery(username)
+            return false
+        }
+
+        isRestoringSocialProfile = true
+        defer { isRestoringSocialProfile = false }
+
+        do {
+            guard let profile = try await SocialService.shared.recoverProfileForCurrentICloudUser() else {
+                return false
+            }
+            userProfile.socialUsername = profile.username
+            userProfile.socialBio = profile.bio
+            userProfile.socialLocation = profile.location
+            userProfile.socialFollowingUsernames = profile.followingUsernames
+            userProfile.socialEnabled = true
+            if !profile.displayName.isEmpty {
+                userProfile.displayName = profile.displayName
+            }
+            if let avatar = profile.avatarImageData, !avatar.isEmpty {
+                userProfile.avatarImageData = avatar
+            }
+            return true
+        } catch {
+            TelemetryService.shared.record(error, context: "social_profile_recovery")
+            return false
+        }
     }
 
     /// Flushes queued (offline) comments. Called on foreground.

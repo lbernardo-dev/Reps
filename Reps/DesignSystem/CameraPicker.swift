@@ -3,6 +3,7 @@ import AVKit
 import SwiftUI
 import PhotosUI
 import UIKit
+import UniformTypeIdentifiers
 
 /// UIKit camera picker wrapped for SwiftUI.
 /// Falls back gracefully when the camera is not available (simulator, denied).
@@ -232,8 +233,8 @@ struct ExerciseMediaPickerMenu<LabelContent: View>: View {
     @State private var showCamera = false
     @State private var showVideoCamera = false
     @State private var showPermissionDenied = false
-    @State private var galleryImageItem: PhotosPickerItem?
-    @State private var galleryVideoItem: PhotosPickerItem?
+    @State private var showGalleryPicker = false
+    @State private var galleryItems: [PhotosPickerItem] = []
 
     var body: some View {
         Menu {
@@ -285,12 +286,10 @@ struct ExerciseMediaPickerMenu<LabelContent: View>: View {
                 #endif
             }
 
-            PhotosPicker(selection: $galleryImageItem, matching: .images) {
-                Label("choose_from_gallery", systemImage: "photo.on.rectangle")
-            }
-
-            PhotosPicker(selection: $galleryVideoItem, matching: .videos) {
-                Label("choose_video_from_gallery", systemImage: "video.badge.plus")
+            Button {
+                showGalleryPicker = true
+            } label: {
+                Label("attach_photo_or_video", systemImage: "photo.on.rectangle")
             }
 
             if hasCustomImage {
@@ -307,6 +306,12 @@ struct ExerciseMediaPickerMenu<LabelContent: View>: View {
         } label: {
             label()
         }
+        .photosPicker(
+            isPresented: $showGalleryPicker,
+            selection: $galleryItems,
+            maxSelectionCount: 1,
+            matching: .any(of: [.images, .videos])
+        )
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker(isPresented: $showCamera) { image in
                 if let data = image.jpegData(compressionQuality: 0.8) {
@@ -321,28 +326,26 @@ struct ExerciseMediaPickerMenu<LabelContent: View>: View {
             }
             .ignoresSafeArea()
         }
-        .onChange(of: galleryImageItem) { _, item in
+        .onChange(of: galleryItems) { _, items in
             Task {
-                defer { galleryImageItem = nil }
-                guard let data = try? await item?.loadTransferable(type: Data.self),
-                      UIImage(data: data) != nil else { return }
-                onImageCaptured(data)
-            }
-        }
-        .onChange(of: galleryVideoItem) { _, item in
-            Task {
-                defer { galleryVideoItem = nil }
-                guard let data = try? await item?.loadTransferable(type: Data.self), !data.isEmpty else { return }
-                let tempURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("reps-gallery-video-\(UUID().uuidString).mov")
-                do {
-                    try data.write(to: tempURL)
-                } catch {
-                    return
+                defer { galleryItems = [] }
+                guard let item = items.first,
+                      let data = try? await item.loadTransferable(type: Data.self),
+                      !data.isEmpty else { return }
+                if item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) }) {
+                    let tempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("reps-gallery-video-\(UUID().uuidString).mov")
+                    do {
+                        try data.write(to: tempURL)
+                    } catch {
+                        return
+                    }
+                    let thumbnail = await VideoThumbnail.generate(from: tempURL)
+                    try? FileManager.default.removeItem(at: tempURL)
+                    onVideoCaptured(data, thumbnail?.jpegData(compressionQuality: 0.7))
+                } else if UIImage(data: data) != nil {
+                    onImageCaptured(data)
                 }
-                let thumbnail = await VideoThumbnail.generate(from: tempURL)
-                try? FileManager.default.removeItem(at: tempURL)
-                onVideoCaptured(data, thumbnail?.jpegData(compressionQuality: 0.7))
             }
         }
         .alert("permission_denied", isPresented: $showPermissionDenied) {

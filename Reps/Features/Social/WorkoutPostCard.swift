@@ -19,14 +19,15 @@ struct WorkoutPostCard: View {
     var onProfileTap: () -> Void
     var onLike: () -> Void
     var onComment: () -> Void
-    /// Called after a moderator successfully deletes or bans from this card,
-    /// so callers holding their own local post list (explore grid, profile
-    /// grid) can remove it too. The main feed doesn't need this — it reads
-    /// `store.feedPosts` directly, which AppStore already updates.
-    var onModeratorAction: (() -> Void)? = nil
+    /// Called after an edit or deletion so callers with a separate post list
+    /// (explore/profile) can keep it in sync. `nil` means the post was deleted.
+    var onPostChanged: ((WorkoutPost?) -> Void)? = nil
 
     @State private var showLikeBurst = false
     @State private var showReportSheet = false
+    @State private var postToEdit: WorkoutPost?
+    @State private var showDeleteConfirmation = false
+    @State private var actionError: String?
 
     private var isRecent: Bool { post.createdAt.timeIntervalSinceNow > -7200 }
 
@@ -60,6 +61,27 @@ struct WorkoutPostCard: View {
                 actionBar
                 commentsPreview
             }
+        }
+        .sheet(item: $postToEdit) { post in
+            EditPostView(post: post) { updatedPost in
+                applyPostChange(updatedPost)
+            }
+            .environment(store)
+            .repsSheetPresentation()
+        }
+        .alert("Delete post?", isPresented: $showDeleteConfirmation) {
+            Button("Delete", role: .destructive) { deletePost() }
+            Button(localizedString("cancel"), role: .cancel) { }
+        } message: {
+            Text("This action cannot be undone.")
+        }
+        .alert(localizedString("ok"), isPresented: Binding(
+            get: { actionError != nil },
+            set: { if !$0 { actionError = nil } }
+        )) {
+            Button(localizedString("ok")) { actionError = nil }
+        } message: {
+            Text(actionError ?? "")
         }
     }
 
@@ -101,15 +123,28 @@ struct WorkoutPostCard: View {
                 }
 
                 Menu {
-                    Button {
-                        showReportSheet = true
-                    } label: {
-                        Label(localizedString("social_report_post"), systemImage: "flag")
-                    }
-                    Button(role: .destructive) {
-                        Task { _ = await store.blockSocialUser(post.ownerUsername) }
-                    } label: {
-                        Label(localizedString("social_block_user"), systemImage: "person.crop.circle.badge.xmark")
+                    if canManagePost {
+                        Button {
+                            postToEdit = post
+                        } label: {
+                            Label("Edit post", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            showDeleteConfirmation = true
+                        } label: {
+                            Label("Delete post", systemImage: "trash")
+                        }
+                    } else {
+                        Button {
+                            showReportSheet = true
+                        } label: {
+                            Label(localizedString("social_report_post"), systemImage: "flag")
+                        }
+                        Button(role: .destructive) {
+                            Task { _ = await store.blockSocialUser(post.ownerUsername) }
+                        } label: {
+                            Label(localizedString("social_block_user"), systemImage: "person.crop.circle.badge.xmark")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -123,6 +158,33 @@ struct WorkoutPostCard: View {
         .padding(.horizontal, 14)
         .padding(.top, 14)
         .padding(.bottom, 10)
+    }
+
+    private var canManagePost: Bool {
+        store.userProfile.socialUsername?.caseInsensitiveCompare(post.ownerUsername) == .orderedSame
+            || store.isCurrentUserManagerOrAdmin
+    }
+
+    private func applyPostChange(_ updatedPost: WorkoutPost) {
+        if let index = store.feedPosts.firstIndex(where: { $0.id == updatedPost.id }) {
+            store.feedPosts[index] = updatedPost
+        }
+        onPostChanged?(updatedPost)
+    }
+
+    private func deletePost() {
+        Task {
+            do {
+                try await SocialService.shared.deletePost(post)
+                await MainActor.run {
+                    store.feedPosts.removeAll { $0.id == post.id }
+                    store.commentSummaries[post.id] = nil
+                    onPostChanged?(nil)
+                }
+            } catch {
+                await MainActor.run { actionError = error.localizedDescription }
+            }
+        }
     }
 
     // MARK: Photo (leads the card, double-tap to like)

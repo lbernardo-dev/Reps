@@ -45,7 +45,7 @@ private enum TodaySection: String, CustomizableSection {
         case .progression: "arrow.up.right.circle.fill"
         case .signals: "gauge.with.dots.needle.67percent"
         case .wellness: "heart.text.square.fill"
-        case .care: "heart.2.fill"
+        case .care: "heart.fill"
         case .plan: "bolt.fill"
         case .shortcuts: "square.grid.2x2.fill"
         }
@@ -474,6 +474,7 @@ private struct TodayViewContent: View {
     @State private var showProfile = false
     @State private var showFreeWorkoutStart = false
     @State private var planToEdit: WorkoutPlan?
+    @State private var workoutToReview: WorkoutDay?
     @State private var workoutToStart: WorkoutDay?
     @State private var showWeatherDetail = false
     @State private var homeWeatherDay: FitnessWeatherDay = .today
@@ -723,7 +724,14 @@ private struct TodayViewContent: View {
                 }
             }
             .navigationDestination(item: $workoutToStart) { workout in
-                ActiveWorkoutView(workout: workout, origin: workout.id == freeWorkout.id ? .free : .routine)
+                ActiveWorkoutView(
+                    workout: workout,
+                    origin: workout.id == freeWorkout.id ? .free : .routine,
+                    startsImmediately: true
+                )
+            }
+            .navigationDestination(item: $workoutToReview) { workout in
+                WorkoutDetailView(workout: workout)
             }
             .navigationDestination(isPresented: $showFreeWorkoutStart) {
                 FreeWorkoutStartView()
@@ -775,17 +783,20 @@ private struct TodayViewContent: View {
                 }
             }
             .alert("recommended_workout_alert_title", isPresented: recommendedWorkoutConfirmationBinding) {
-                Button("Cancelar", role: .cancel) {
+                Button(localizedString("cancel"), role: .cancel) {
                     recommendedWorkoutToConfirm = nil
                 }
                 Button("recommended_workout_alert_confirm") {
                     guard let workout = recommendedWorkoutToConfirm else { return }
-                    store.activateRecommendedWorkoutPlan(from: workout)
+                    guard store.activateRecommendedWorkoutPlan(from: workout) else {
+                        recommendedWorkoutToConfirm = nil
+                        return
+                    }
                     recommendedWorkoutToConfirm = nil
                     workoutToStart = workout
                 }
             } message: {
-                Text("Se seleccionará como plan de entrenamiento activo.")
+                Text(localizedString("active_plan_selection_message"))
             }
             .alert(localizedString("already_completed_today_title"), isPresented: $showRestartConfirmation) {
                 Button(localizedString("cancel"), role: .cancel) {}
@@ -1313,7 +1324,7 @@ private struct TodayViewContent: View {
                     Button {
                         HapticService.selection()
                         if hasActivePlan {
-                            planToEdit = store.activePlan
+                            workoutToReview = focusWorkout
                         } else {
                             perform(dailyCoachRecommendation.action)
                         }
@@ -6833,7 +6844,7 @@ fileprivate struct WeeklyPlanProgressDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(RepsLocalization.language.hasPrefix("es") ? "Cerrar" : "Close") {
+                    Button(RepsLocalization.language.hasPrefix("es") ? localizedString("close") : "Close") {
                         dismiss()
                     }
                 }

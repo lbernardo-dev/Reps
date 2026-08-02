@@ -202,6 +202,7 @@ struct RepsApp: App {
                     PermissionService.shared.refreshAll()
                     await Task.yield()
                     store.startBackgroundServicesIfNeeded()
+                    store.consumePendingAppShortcutRoute()
 
                     if store.userProfile.onboardingCompleted,
                        store.userProfile.remindersEnabled {
@@ -241,6 +242,7 @@ struct RepsApp: App {
                 store.stopPossibleExternalActivityMonitoring()
             }
             if newPhase == .active {
+                store.consumePendingAppShortcutRoute()
                 guard didHandleInitialActivePhase else {
                     didHandleInitialActivePhase = true
                     return

@@ -124,7 +124,7 @@ struct DeveloperMenuView: View {
                 }
                 Button("cancel", role: .cancel) {}
             } message: {
-                Text("Se reemplazara el estado local por un perfil Pro con 12 meses de entrenos, salud, fotos, gimnasio, objetivos y calendario.")
+                Text(localizedString("developer_pro_profile_replace_message"))
             }
             .confirmationDialog(
                 "delete_all_data",
