@@ -9772,7 +9772,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conecta Apple Watch o Apple Health para ver datos de sueno."
+            "value": "Conecta Apple Watch o Apple Health para ver datos de sueño."
           }
         }
       }
@@ -25852,7 +25852,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sueno de anoche"
+            "value": "Sueño de anoche"
           }
         }
       }
@@ -26054,13 +26054,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(level)"
+            "value": "Level"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "\\(level)"
+            "value": "Nivel"
           }
         }
       }
@@ -31421,6 +31421,70 @@
           "stringUnit": {
             "state": "translated",
             "value": "Leídas"
+          }
+        }
+      }
+    },
+    "notifications_empty_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pending notifications"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin notificaciones pendientes"
+          }
+        }
+      }
+    },
+    "notifications_empty_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You are all caught up! New alerts and updates will appear here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Estás al día! Las nuevas alertas y novedades aparecerán aquí."
+          }
+        }
+      }
+    },
+    "notifications_read_empty_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No read notifications"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin notificaciones leídas"
+          }
+        }
+      }
+    },
+    "notifications_read_empty_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications you mark as read will move to this list."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notificaciones que marques como leídas se moverán a esta lista."
           }
         }
       }
@@ -51494,13 +51558,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "steps"
+            "value": "Steps"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "pasos"
+            "value": "Pasos"
           }
         }
       }
@@ -51558,13 +51622,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "steps / day"
+            "value": "Steps / day"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "pasos / dia"
+            "value": "Pasos / día"
           }
         }
       }
@@ -51814,13 +51878,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "steps today"
+            "value": "Steps today"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "pasos hoy"
+            "value": "Pasos hoy"
           }
         }
       }
@@ -58230,13 +58294,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "weekly trend"
+            "value": "Weekly trend"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "tendencia semanal"
+            "value": "Tendencia semanal"
           }
         }
       }

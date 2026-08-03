@@ -435,6 +435,7 @@ enum MetricDomain: String, CaseIterable, Identifiable {
     case activity
     case body
     case nutrition
+    case hydration
     case weather
 
     var id: String { rawValue }
@@ -449,6 +450,7 @@ enum MetricDomain: String, CaseIterable, Identifiable {
         case .activity: "activity"
         case .body: "body_metrics"
         case .nutrition: "nutrition"
+        case .hydration: "hydration"
         case .weather: "weather"
         }
     }
@@ -463,6 +465,7 @@ enum MetricDomain: String, CaseIterable, Identifiable {
         case .activity: "figure.walk"
         case .body: "scalemass.fill"
         case .nutrition: "flame.fill"
+        case .hydration: "drop.fill"
         case .weather: "sun.max.fill"
         }
     }
@@ -471,12 +474,13 @@ enum MetricDomain: String, CaseIterable, Identifiable {
         switch self {
         case .strength: PulseTheme.semanticAction
         case .recovery: PulseTheme.semanticHealth
-        case .cardio: PulseTheme.semanticProgress
+        case .cardio: Color(red: 0.0, green: 0.80, blue: 1.0)
         case .heartRate: PulseTheme.semanticEffort
-        case .sleep: PulseTheme.semanticProgress
+        case .sleep: Color(red: 0.48, green: 0.38, blue: 0.98)
         case .activity: PulseTheme.semanticWarning
         case .body: PulseTheme.semanticHealth
         case .nutrition: PulseTheme.semanticWarning
+        case .hydration: PulseTheme.ringStand
         case .weather: PulseTheme.semanticProgress
         }
     }
@@ -485,12 +489,13 @@ enum MetricDomain: String, CaseIterable, Identifiable {
         switch self {
         case .strength: PulseTheme.semanticHealth.opacity(0.70)
         case .recovery: PulseTheme.semanticHealth.opacity(0.58)
-        case .cardio: PulseTheme.semanticProgress.opacity(0.62)
+        case .cardio: Color(red: 0.0, green: 0.80, blue: 1.0).opacity(0.62)
         case .heartRate: PulseTheme.semanticEffort.opacity(0.64)
-        case .sleep: PulseTheme.semanticProgress.opacity(0.54)
+        case .sleep: Color(red: 0.48, green: 0.38, blue: 0.98).opacity(0.65)
         case .activity: PulseTheme.semanticWarning.opacity(0.62)
         case .body: PulseTheme.semanticHealth.opacity(0.46)
         case .nutrition: PulseTheme.semanticWarning.opacity(0.58)
+        case .hydration: PulseTheme.ringStand.opacity(0.60)
         case .weather: PulseTheme.semanticProgress.opacity(0.50)
         }
     }
@@ -586,8 +591,10 @@ enum TrackedMetric: String, CaseIterable, Identifiable {
             return .sleep
         case .steps:
             return .activity
-        case .activeEnergy, .hydration:
+        case .activeEnergy:
             return .nutrition
+        case .hydration:
+            return .hydration
         case .exerciseMinutes, .sessions, .volume:
             return .strength
         case .vo2Max, .distance:

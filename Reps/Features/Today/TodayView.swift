@@ -1170,8 +1170,8 @@ private struct TodayViewContent: View {
                     value: store.todayHealthMetric.map { "\(Int($0.steps))" } ?? "--",
                     subtitle: localizedString("steps_today"),
                     systemImage: TrackedMetric.steps.systemImage,
-                    color: TrackedMetric.steps.tint,
-                    domain: TrackedMetric.steps.domain
+                    color: MetricDomain.heartRate.tint,
+                    domain: .heartRate
                 )
                 TrainingSignalTile(
                     title: localizedString("progress_2"),
@@ -3160,7 +3160,7 @@ private struct TrainingSignalTile: View {
         HStack(alignment: .center, spacing: 10) {
             PulseIconBadge(
                 systemImage: systemImage,
-                tint: hasData ? tileTint : PulseTheme.secondaryText.opacity(0.4),
+                tint: tileTint,
                 size: 34,
                 radius: PulseTheme.smallRadius
             )
@@ -3545,12 +3545,12 @@ private struct WellnessWidget: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
-                        PulseIconBadge(systemImage: systemImage, tint: hasData ? (customTint ?? domain.tint) : PulseTheme.semanticNeutral, size: 30, radius: PulseTheme.smallRadius)
+                        PulseIconBadge(systemImage: systemImage, tint: customTint ?? domain.tint, size: 30, radius: PulseTheme.smallRadius)
                         Text(localizedKey(title))
                             .font(.system(size: 10, weight: .black, design: .rounded))
                             .textCase(.uppercase)
                             .tracking(0.2)
-                            .foregroundStyle(PulseTheme.secondaryText)
+                            .foregroundStyle(PulseTheme.textPrimary.opacity(0.85))
                             .lineLimit(2)
                             .minimumScaleFactor(0.82)
                     }
@@ -3828,7 +3828,7 @@ private struct WidgetVisualDecoration: View {
                     HeartbeatWaveVisual(color: domain.tint)
                 case .strength:
                     ConcentricRingVisual(progress: 0.70, color: domain.tint)
-                case .nutrition:
+                case .hydration, .nutrition:
                     WaterDropsVisual(color: domain.tint)
                 case .heartRate:
                     HeartbeatWaveVisual(color: domain.tint)
@@ -5719,22 +5719,55 @@ private struct WeatherDataStateCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if case .locationDenied = phase {
-                Button(localizedString("settings")) {
-                    PermissionService.shared.openSettings()
+                Button(action: { PermissionService.shared.openSettings() }) {
+                    Text(localizedString("settings").capitalizingFirstLetter())
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(PulseTheme.grouped, in: Capsule())
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(PressableCardStyle())
             } else if case .locationPermissionNeeded = phase {
-                Button(localizedString("weather_enable_location"), action: enableLocation)
-                    .buttonStyle(.borderedProminent)
+                Button(action: enableLocation) {
+                    Text(localizedString("weather_enable_location").capitalizingFirstLetter())
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Color.black)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(MetricDomain.weather.tint, in: Capsule())
+                }
+                .buttonStyle(PressableCardStyle())
             } else if case .failed = phase {
-                Button(localizedString("weather_retry"), action: retry)
-                    .buttonStyle(.bordered)
+                Button(action: retry) {
+                    Text(localizedString("weather_retry").capitalizingFirstLetter())
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(PulseTheme.grouped, in: Capsule())
+                }
+                .buttonStyle(PressableCardStyle())
             } else if case .serviceActivating = phase {
-                Button(localizedString("weather_retry"), action: retry)
-                    .buttonStyle(.bordered)
+                Button(action: retry) {
+                    Text(localizedString("weather_retry").capitalizingFirstLetter())
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(PulseTheme.grouped, in: Capsule())
+                }
+                .buttonStyle(PressableCardStyle())
             } else if case .loaded = phase {
-                Button(localizedString("weather_retry"), action: retry)
-                    .buttonStyle(.bordered)
+                Button(action: retry) {
+                    Text(localizedString("weather_retry").capitalizingFirstLetter())
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PulseTheme.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(PulseTheme.grouped, in: Capsule())
+                }
+                .buttonStyle(PressableCardStyle())
             }
         }
         .padding(16)

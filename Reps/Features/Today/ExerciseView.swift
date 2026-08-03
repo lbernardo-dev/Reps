@@ -98,7 +98,7 @@ struct ExerciseView: View {
                         Text("\(Int(todaySteps))")
                             .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
                             .foregroundStyle(TrackedMetric.steps.tint)
-                        Text(localizedString("steps_today"))
+                        Text(localizedString("steps_today").capitalizingFirstLetter())
                             .font(.caption2)
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
@@ -213,7 +213,12 @@ struct ExerciseView: View {
     private var insightsCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
-                Label(localizedString("insights_and_flags"), systemImage: "lightbulb.fill").font(.headline)
+                HStack(spacing: 8) {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundStyle(.yellow)
+                    Text(localizedString("insights_and_flags"))
+                }
+                .font(.headline)
                 if fraction >= 1.0 {
                     HealthInsightRow(icon: "checkmark.circle.fill", color: PulseTheme.ringStand,
                                title: localizedString("exercise_goal_reached"),

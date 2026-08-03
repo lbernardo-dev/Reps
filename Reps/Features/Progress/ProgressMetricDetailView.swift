@@ -18,12 +18,13 @@ enum MetricDetailRange: String, CaseIterable, Identifiable {
   var id: String { rawValue }
 
   var title: String {
-    switch self {
+    let key: String = switch self {
     case .today: "today"
     case .week: "week_label"
     case .month: "month_label"
     case .year: "year_label"
     }
+    return localizedString(key).capitalizingFirstLetter()
   }
 
   var days: Int {

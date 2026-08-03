@@ -254,11 +254,27 @@ struct HydrationView: View {
     private var weeklyTrendCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
-                Text(localizedString("weekly_trend")).font(.headline)
+                Text(localizedString("weekly_trend").capitalizingFirstLetter()).font(.headline)
                 if weeklyMetrics.isEmpty {
-                    Text(localizedString("no_health_data"))
-                        .font(.subheadline).foregroundStyle(PulseTheme.secondaryText)
-                        .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
+                    ZStack {
+                        let calendar = Calendar.current
+                        let placeholderPoints = (0..<7).map { offset in
+                            let date = calendar.date(byAdding: .day, value: -6 + offset, to: Date()) ?? Date()
+                            let label = calendar.shortWeekdaySymbol(for: date)
+                            return DomainTrendPoint(label: label, date: date, value: 1.5)
+                        }
+                        DomainBarTrendChart(
+                            domain: .hydration,
+                            points: placeholderPoints,
+                            valueFormat: { _ in "" },
+                            height: 120
+                        )
+                        .opacity(0.18)
+
+                        Text(localizedString("no_health_data").capitalizingFirstLetter())
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
                 } else {
                     let dayFmt: DateFormatter = {
                         let f = DateFormatter(); f.dateFormat = "EEE"; return f
@@ -306,7 +322,12 @@ struct HydrationView: View {
     private var insightsCard: some View {
         PulseCard {
             VStack(alignment: .leading, spacing: 14) {
-                Label(localizedString("insights_and_flags"), systemImage: "lightbulb.fill").font(.headline)
+                HStack(spacing: 8) {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundStyle(.yellow)
+                    Text(localizedString("insights_and_flags"))
+                }
+                .font(.headline)
                 if fraction >= 1.0 {
                     HealthInsightRow(icon: "checkmark.circle.fill", color: TrackedMetric.hydration.tint,
                                title: localizedString("hydration_goal_reached"),

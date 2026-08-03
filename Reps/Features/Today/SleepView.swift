@@ -350,7 +350,12 @@ struct SleepView: View {
     private var insightsCard: some View {
         GlassMetricCard(domain: domain) {
             VStack(alignment: .leading, spacing: 14) {
-                Label(localizedString("insights_and_flags"), systemImage: "lightbulb.fill").font(.headline)
+                HStack(spacing: 8) {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundStyle(.yellow)
+                    Text(localizedString("insights_and_flags"))
+                }
+                .font(.headline)
 
                 if let avg = weeklyAvg {
                     if avg >= sleepGoalHours {
@@ -390,12 +395,6 @@ struct SleepView: View {
     }
 }
 
-private extension Calendar {
-    func shortWeekdaySymbol(for date: Date) -> String {
-        let idx = component(.weekday, from: date) - 1
-        return shortWeekdaySymbols[idx]
-    }
-}
 
 #Preview {
     NavigationStack {

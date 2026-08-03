@@ -117,10 +117,32 @@ struct HeartRateView: View {
                 Text(localizedString("thirty_day_trend")).font(.headline)
 
                 if historyMetrics.isEmpty {
-                    Text(localizedString("hr_no_data"))
-                        .font(.subheadline)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
+                    ZStack {
+                        let calendar = Calendar.current
+                        let placeholderPoints = (0..<7).map { offset in
+                            let date = calendar.date(byAdding: .day, value: -6 + offset, to: Date()) ?? Date()
+                            let label = calendar.shortWeekdaySymbol(for: date)
+                            return DomainTrendPoint(label: label, date: date, value: 65)
+                        }
+                        DomainLineTrendChart(
+                            domain: domain,
+                            points: placeholderPoints,
+                            valueFormat: { _ in "" },
+                            height: 120
+                        )
+                        .opacity(0.18)
+
+                        VStack(spacing: 6) {
+                            Image(systemName: "heart.text.square")
+                                .font(.title3)
+                                .foregroundStyle(domain.tint.opacity(0.8))
+                            Text(localizedString("hr_no_data"))
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 16)
+                        }
+                    }
                 } else {
                     let dayFmt: DateFormatter = {
                         let f = DateFormatter(); f.dateFormat = "d"; return f
@@ -216,7 +238,12 @@ struct HeartRateView: View {
     private var insightsCard: some View {
         GlassMetricCard(domain: domain) {
             VStack(alignment: .leading, spacing: 14) {
-                Label(localizedString("insights_and_flags"), systemImage: "lightbulb.fill").font(.headline)
+                HStack(spacing: 8) {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundStyle(.yellow)
+                    Text(localizedString("insights_and_flags"))
+                }
+                .font(.headline)
 
                 if let latest = latestResting, let avg = avgResting7 {
                     if latest - avg <= 5 {
@@ -246,7 +273,7 @@ struct HeartRateView: View {
     }
 }
 
-private extension Calendar {
+extension Calendar {
     func shortWeekdaySymbol(for date: Date) -> String {
         let idx = component(.weekday, from: date) - 1
         return shortWeekdaySymbols[idx]

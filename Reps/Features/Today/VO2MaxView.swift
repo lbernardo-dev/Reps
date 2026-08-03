@@ -230,7 +230,12 @@ struct VO2MaxView: View {
     private var insightsCard: some View {
         GlassMetricCard(domain: .cardio) {
             VStack(alignment: .leading, spacing: 14) {
-                Label(localizedString("insights_and_flags"), systemImage: "lightbulb.fill").font(.headline)
+                HStack(spacing: 8) {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundStyle(.yellow)
+                    Text(localizedString("insights_and_flags"))
+                }
+                .font(.headline)
 
                 switch zone {
                 case .excellent:

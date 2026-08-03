@@ -342,7 +342,12 @@ struct StepsView: View {
     private var insightsCard: some View {
         GlassMetricCard(domain: domain) {
             VStack(alignment: .leading, spacing: 14) {
-                Label(localizedString("insights_and_flags"), systemImage: "lightbulb.fill").font(.headline)
+                HStack(spacing: 8) {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundStyle(.yellow)
+                    Text(localizedString("insights_and_flags"))
+                }
+                .font(.headline)
 
                 if let best = bestDay {
                     let calendar = Calendar.current
@@ -382,12 +387,6 @@ struct StepsView: View {
     }
 }
 
-private extension Calendar {
-    func shortWeekdaySymbol(for date: Date) -> String {
-        let idx = component(.weekday, from: date) - 1
-        return shortWeekdaySymbols[idx]
-    }
-}
 
 /// Month grid of day cells, filled when that day's step goal was met —
 /// the competitor's "154% · 12,331 / 8,000 steps" calendar pattern, built

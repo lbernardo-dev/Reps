@@ -94,12 +94,13 @@ enum ProgressRange: String, CaseIterable, Identifiable {
   var id: String { rawValue }
 
   var title: String {
-    switch self {
+    let key: String = switch self {
     case .week: "week_label"
     case .month: "month_label"
     case .year: "year_label"
     case .all: "all_time_label"
     }
+    return localizedString(key).capitalizingFirstLetter()
   }
 
   var subtitle: String {
