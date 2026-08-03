@@ -3366,10 +3366,24 @@ struct AddCustomExerciseView: View {
                         }
                     }
 
-                    PhotosPicker(
-                        selection: $selectedMediaItems,
+                    MediaSourceMenu(
                         maxSelectionCount: 10,
-                        matching: .any(of: [.images, .videos])
+                        photoPickerItems: $selectedMediaItems,
+                        matching: .any(of: [.images, .videos]),
+                        onCameraCapture: { image in
+                            if let data = image.jpegData(compressionQuality: 0.8) {
+                                customMedia.append(ExerciseCustomMedia(kind: .image, data: data))
+                                synchronizeLegacyCustomMedia()
+                            }
+                        },
+                        onVideoCapture: { data, thumbnail in
+                            customMedia.append(ExerciseCustomMedia(
+                                kind: .video,
+                                data: data,
+                                thumbnailData: thumbnail?.jpegData(compressionQuality: 0.7)
+                            ))
+                            synchronizeLegacyCustomMedia()
+                        }
                     ) {
                         Label("attach_photo_or_video", systemImage: "photo.badge.plus")
                     }

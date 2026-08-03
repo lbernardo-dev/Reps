@@ -54,7 +54,7 @@ struct GoalsView: View {
             .padding(.bottom, 32)
         }
         .background(PulseTheme.background)
-        .navigationTitle("goals_title")
+        .navigationTitle(localizedString("goals_title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -110,7 +110,7 @@ struct GoalsView: View {
             Text("\(value)")
                 .font(.title2.bold())
                 .foregroundStyle(color)
-            Text(localizedKey(labelKey))
+            Text(localizedString(labelKey))
                 .font(.caption)
                 .foregroundStyle(PulseTheme.secondaryText)
         }
@@ -146,7 +146,7 @@ struct GoalsView: View {
             Button {
                 activeSheet = .newGoal
             } label: {
-                Label("goal_add_first", systemImage: "plus")
+                Label(localizedString("goal_add_first"), systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PulseTheme.accent)
             }
@@ -362,7 +362,7 @@ struct GoalEditorView: View {
                             Text(k.localizedDisplayName)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.primary)
-                            Text(localizedKey(k.hintKey))
+                            Text(localizedString(k.hintKey))
                                 .font(.caption)
                                 .foregroundStyle(PulseTheme.secondaryText)
                         }

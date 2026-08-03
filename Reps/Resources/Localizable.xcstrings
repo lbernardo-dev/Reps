@@ -11846,13 +11846,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remove your social profile and activity"
+            "value": "Remove public presence"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elimina tu perfil social y su actividad"
+            "value": "Eliminar presencia pública"
           }
         }
       }
@@ -23868,7 +23868,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Importar desde Strong"
+            "value": "Importar de Strong"
           }
         }
       }
@@ -25542,13 +25542,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready to share"
+            "value": "File ready"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Listo para compartir"
+            "value": "Archivo listo"
           }
         }
       }
@@ -52556,7 +52556,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Migra tu historial"
+            "value": "Migrar tu historial"
           }
         }
       }
@@ -62045,6 +62045,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Registrar visita al gimnasio"
+          }
+        }
+      }
+    },
+    "olympic_bar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olympic bar"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra olímpica"
+          }
+        }
+      }
+    },
+    "women_bar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Women's bar"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra de mujer"
+          }
+        }
+      }
+    },
+    "technique_bar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Technique bar"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra de técnica"
+          }
+        }
+      }
+    },
+    "z_bar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EZ bar"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra Z"
+          }
+        }
+      }
+    },
+    "plates_count_weight_singular_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%dx plate of %@ %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%dx disco de %@ %@"
           }
         }
       }

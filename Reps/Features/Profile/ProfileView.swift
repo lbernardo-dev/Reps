@@ -1047,8 +1047,8 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: localizedString("import_from_strong"),
-                            subtitle: localizedString("strong_import_subtitle"),
+                            title: "import_from_strong",
+                            subtitle: "strong_import_subtitle",
                             systemImage: "tray.and.arrow.down",
                             color: .purple
                         ) {
@@ -1056,8 +1056,8 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: localizedString("backup_label"),
-                            subtitle: localizedString(backupExportURL == nil ? "generate_json" : "json_ready"),
+                            title: "backup_label",
+                            subtitle: backupExportURL == nil ? "generate_json" : "json_ready",
                             systemImage: "externaldrive",
                             color: PulseTheme.accent
                         ) {
@@ -1069,11 +1069,11 @@ struct ProfileView: View {
                         if let backupExportURL {
                             ShareLink(item: backupExportURL) {
                                 ProfileToolCard(
-                                    title: localizedString("share_backup"),
-                                    subtitle: localizedString("full_copy"),
+                                    title: "share_backup",
+                                    subtitle: "full_copy",
                                     systemImage: "doc.badge.gearshape",
                                     color: PulseTheme.accent,
-                                    badge: localizedString("listo")
+                                    badge: "listo"
                                 )
                             }
                             .buttonStyle(.plain)
@@ -1098,7 +1098,7 @@ struct ProfileView: View {
                                 return localizedString("icloud_backup_pending")
                             }()
                             ProfileToolCard(
-                                title: localizedString("icloud_backup"),
+                                title: "icloud_backup",
                                 subtitle: iCloudStatusSubtitle,
                                 systemImage: "icloud.and.arrow.up",
                                 color: .blue
@@ -1761,7 +1761,7 @@ private struct ProfileToolSection<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(localizedKey(title))
+            Text(localizedString(title))
                 .font(.headline)
                 .padding(.horizontal, 2)
 
@@ -1814,7 +1814,7 @@ private struct ProfileToolCard: View {
                 Spacer(minLength: 6)
 
                 if let badge {
-                    Text(localizedKey(badge))
+                    Text(localizedString(badge))
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(color)
                         .padding(.horizontal, 7)
@@ -1830,13 +1830,13 @@ private struct ProfileToolCard: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(localizedKey(title))
+                Text(localizedString(title))
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.82)
 
-                Text(localizedKey(subtitle))
+                Text(localizedString(subtitle))
                     .font(.caption)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .lineLimit(2)

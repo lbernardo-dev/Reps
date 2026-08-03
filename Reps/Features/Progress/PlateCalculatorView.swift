@@ -287,7 +287,8 @@ struct PlateCalculatorView: View {
                                         Circle()
                                             .fill(item.color)
                                             .frame(width: 12, height: 12)
-                                        Text(localizedFormat("plates_count_weight_format", item.count, item.weight.formatted(), unit))
+                                        let formatKey = item.count == 1 ? "plates_count_weight_singular_format" : "plates_count_weight_format"
+                                        Text(localizedFormat(formatKey, item.count, item.weight.formatted(), unit))
                                             .font(.subheadline)
                                         Spacer()
                                         Text("\(Double(item.count) * item.weight, specifier: "%.1f") \(unit)")

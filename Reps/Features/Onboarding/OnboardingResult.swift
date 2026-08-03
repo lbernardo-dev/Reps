@@ -54,7 +54,8 @@ enum OnboardingPlanBuilder {
             completion: 0,
             days: days,
             targetEventName: profile.targetEventName,
-            targetEventDate: profile.targetEventDate
+            targetEventDate: profile.targetEventDate,
+            isOnboardingPlan: true
         )
     }
 

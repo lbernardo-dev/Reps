@@ -17,43 +17,43 @@ struct CardioLogEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("activity_2") {
-                    Picker("training_type", selection: $activityType) {
+                Section(localizedString("activity_2")) {
+                    Picker(localizedString("training_type"), selection: $activityType) {
                         ForEach(CardioLog.ActivityType.allCases) { type in
-                            Text(localizedKey(type.displayName)).tag(type)
+                            Text(localizedString(type.displayName)).tag(type)
                         }
                     }
-                    DatePicker("date_2", selection: $date)
-                    TextField("duration_min_2", text: $duration)
+                    DatePicker(localizedString("date_2"), selection: $date)
+                    TextField(localizedString("duration_min_2"), text: $duration)
                         .keyboardType(.numberPad)
                     TextField(localizedFormat("distance_unit_format", store.userProfile.distanceUnit.rawValue), text: $distance)
                         .keyboardType(.decimalPad)
                 }
 
-                Section("intensidad") {
-                    TextField("fc_media", text: $averageHeartRate)
+                Section(localizedString("intensidad")) {
+                    TextField(localizedString("fc_media"), text: $averageHeartRate)
                         .keyboardType(.decimalPad)
-                    TextField("maximum_hr", text: $maxHeartRate)
+                    TextField(localizedString("maximum_hr"), text: $maxHeartRate)
                         .keyboardType(.decimalPad)
-                    TextField("calories_2", text: $calories)
+                    TextField(localizedString("calories_2"), text: $calories)
                         .keyboardType(.decimalPad)
-                    TextField("rpe_1_10", text: $rpe)
+                    TextField(localizedString("rpe_1_10"), text: $rpe)
                         .keyboardType(.decimalPad)
                 }
 
-                Section("notes_2") {
-                    TextField("sensaciones_ritmo_molestias", text: $notes, axis: .vertical)
+                Section(localizedString("notes_2")) {
+                    TextField(localizedString("sensaciones_ritmo_molestias"), text: $notes, axis: .vertical)
                         .lineLimit(3...5)
                 }
             }
-            .navigationTitle("registrar_cardio")
+            .navigationTitle(localizedString("registrar_cardio"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("cancel") { dismiss() }
+                    Button(localizedString("cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("save") { save() }
+                    Button(localizedString("save")) { save() }
                         .disabled(Int(duration) == nil)
                 }
             }
@@ -95,7 +95,7 @@ private extension CardioLog.ActivityType {
         case .outdoorRun: "outdoor_run"
         case .walking: "walking"
         case .rowing: "rowing"
-        case .hiit: "HIIT"
+        case .hiit: "hiit"
         case .other: "other"
         }
     }

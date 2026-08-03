@@ -57,6 +57,7 @@ struct CameraPicker: UIViewControllerRepresentable {
 struct MediaSourceMenu<LabelContent: View>: View {
     let maxSelectionCount: Int
     @Binding var photoPickerItems: [PhotosPickerItem]
+    var matching: PHPickerFilter = .images
     let onCameraCapture: (UIImage) -> Void
     /// When provided, a "Record video" option is added (video data + poster frame).
     var onVideoCapture: ((Data, UIImage?) -> Void)? = nil
@@ -127,7 +128,7 @@ struct MediaSourceMenu<LabelContent: View>: View {
         } label: {
             label()
         }
-        .photosPicker(isPresented: $showGalleryPicker, selection: $photoPickerItems, maxSelectionCount: maxSelectionCount, matching: .images)
+        .photosPicker(isPresented: $showGalleryPicker, selection: $photoPickerItems, maxSelectionCount: maxSelectionCount, matching: matching)
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker(isPresented: $showCamera) { image in
                 onCameraCapture(image)

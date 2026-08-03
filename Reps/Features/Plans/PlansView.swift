@@ -63,8 +63,22 @@ struct PlansView: View {
         store.activatePlan(plan)
     }
 
+    private func canEditPlan(_ plan: WorkoutPlan) -> Bool {
+        if store.monetization.hasProAccess {
+            return true
+        }
+        if plan.isOnboardingPlan || plan.name == localizedString("adapted_base_plan") {
+            return false
+        }
+        return true
+    }
+
     private func tryEditPlan(_ plan: WorkoutPlan) {
         guard canManagePlan(plan) else {
+            store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
+            return
+        }
+        guard canEditPlan(plan) else {
             store.presentPaywall(source: .multiplePlans, feature: nil, trigger: .featureGate)
             return
         }
@@ -513,13 +527,11 @@ struct PlansView: View {
             plan: store.activePlan,
             summary: store.activePlanExecutionSummary,
             locationTitle: locationTitle(store.activePlan.location),
-            onEdit: { planToEdit = store.activePlan },
+            onEdit: { tryEditPlan(store.activePlan) },
             onDeactivate: { store.deactivatePlan(store.activePlan) }
         )
 
-        PlanMusicCard(plan: store.activePlan) {
-            planToEdit = store.activePlan
-        }
+        PlanMusicCard(plan: store.activePlan)
 
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "training_days_section")
@@ -1679,7 +1691,6 @@ private struct PlanDayRow: View {
 private struct PlanMusicCard: View {
     @Environment(AppStore.self) private var store
     let plan: WorkoutPlan
-    let onEditPlan: () -> Void
     @Environment(\.openURL) private var openURL
     @StateObject private var musicPlayer = WorkoutAppleMusicPlayer.shared
     @State private var showMusicConnector = false
@@ -1696,18 +1707,16 @@ private struct PlanMusicCard: View {
                     Label("plan_music", systemImage: "music.note.list")
                         .font(.headline)
                     Spacer()
-                    Button {
-                        if plan.playlists.isEmpty {
-                            showMusicConnector = true
-                        } else {
+                    if !plan.playlists.isEmpty {
+                        Button {
                             showPlaylistManager = true
+                        } label: {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(PulseTheme.accent)
                         }
-                    } label: {
-                        Image(systemName: plan.playlists.isEmpty ? "plus.circle.fill" : "slider.horizontal.3")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(PulseTheme.accent)
+                        .accessibilityLabel(localizedString("edit_playlists"))
                     }
-                    .accessibilityLabel(plan.playlists.isEmpty ? localizedString("add_playlist") : localizedString("edit_playlists"))
                 }
 
                 if let primaryPlaylist {
@@ -1740,10 +1749,23 @@ private struct PlanMusicCard: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.secondaryText)
                     }
+
+                    Button {
+                        showPlaylistManager = true
+                    } label: {
+                        Label("edit_playlists", systemImage: "pencil")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 42)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                            .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
                 } else {
                     Text("add_an_apple_music_playlist_to_start_it_from_the_workout")
                         .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
+
                     Button {
                         showMusicConnector = true
                     } label: {
@@ -1755,17 +1777,8 @@ private struct PlanMusicCard: View {
                             .background(PulseTheme.accent.opacity(0.12))
                             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
                     }
+                    .buttonStyle(.plain)
                 }
-
-                Button(action: onEditPlan) {
-                    Label("edit_plan", systemImage: "pencil")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 42)
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .background(PulseTheme.grouped, in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
-                }
-                .buttonStyle(.plain)
             }
         }
         .sheet(isPresented: $showMusicConnector) {

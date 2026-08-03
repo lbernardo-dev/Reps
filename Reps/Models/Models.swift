@@ -131,7 +131,7 @@ struct UserProfile: Codable {
         case strength      = "calorie_goal_strength"
         case buildMuscle   = "calorie_goal_build_muscle"
         var id: String { rawValue }
-        var localizedLabel: String { localizedTitle(rawValue) }
+        var localizedLabel: String { localizedString(rawValue) }
     }
 
     var sleepTargetHours: Double = 7.5
@@ -594,6 +594,7 @@ struct WorkoutPlan: Codable, Identifiable {
     var currentDayIndex: Int? = 0
     var targetEventName: String? = nil
     var targetEventDate: Date? = nil
+    var isOnboardingPlan: Bool = false
 
     var activeDayIndex: Int {
         get { currentDayIndex ?? 0 }

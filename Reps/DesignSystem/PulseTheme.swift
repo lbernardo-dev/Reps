@@ -1961,7 +1961,7 @@ struct PulseChip: View {
     var isSelected = false
 
     var body: some View {
-        Text(localizedKey(title))
+        Text(localizedString(title))
             .font(.subheadline.weight(.semibold))
             .lineLimit(1)
             .minimumScaleFactor(0.85)
@@ -1982,11 +1982,11 @@ struct PulseEmptyState: View {
         HStack(alignment: .top, spacing: 14) {
             PulseIconBadge(systemImage: systemImage, tint: PulseTheme.semanticNeutral, size: 44)
             VStack(alignment: .leading, spacing: 5) {
-                Text(localizedKey(title))
+                Text(localizedString(title))
                     .font(.headline.weight(.bold))
                     .foregroundStyle(PulseTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(localizedKey(message))
+                Text(localizedString(message))
                     .font(.subheadline)
                     .foregroundStyle(PulseTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

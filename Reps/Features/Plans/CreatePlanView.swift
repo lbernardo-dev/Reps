@@ -140,33 +140,41 @@ struct CreatePlanView: View {
                 .scrollBounceBehavior(.basedOnSize, axes: .vertical)
                 .screenBackground()
             }
-            .navigationTitle(isEditing ? "edit_plan" : "create_plan")
+            .navigationTitle(localizedString(isEditing ? "edit_plan" : "create_plan"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("cancel") { dismiss() }
+                    Button(localizedString("cancel")) { dismiss() }
                 }
             }
             .safeAreaInset(edge: .bottom) {
                 HStack(spacing: 12) {
                     Button { previousStep() } label: {
-                        Label("back_2", systemImage: "chevron.left")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .foregroundStyle(PulseTheme.textPrimary)
-                            .navigationGlassCapsule(step == .basics ? .disabled : .secondary)
+                        Label {
+                            Text(localizedString("back_2"))
+                        } icon: {
+                            Image(systemName: "chevron.left")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .foregroundStyle(PulseTheme.textPrimary)
+                        .navigationGlassCapsule(step == .basics ? .disabled : .secondary)
                     }
                     .disabled(step == .basics)
                     .opacity(step == .basics ? 0.45 : 1)
 
                     Button { nextOrSave() } label: {
-                        Label(localizedString(step == .musicReview ? "plan_save_cta" : "continue_plan"), systemImage: step == .musicReview ? "checkmark" : "chevron.right")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .foregroundStyle(PulseTheme.textPrimary)
-                            .navigationGlassCapsule(canContinue ? .primary : .disabled)
+                        Label {
+                            Text(localizedString(step == .musicReview ? "plan_save_cta" : "continue_plan"))
+                        } icon: {
+                            Image(systemName: step == .musicReview ? "checkmark" : "chevron.right")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .foregroundStyle(PulseTheme.textPrimary)
+                        .navigationGlassCapsule(canContinue ? .primary : .disabled)
                     }
                     .disabled(!canContinue)
                 }

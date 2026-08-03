@@ -1212,8 +1212,17 @@ actor SocialService {
     }
 
     private func requirePostManager(_ record: CKRecord) async throws {
-        let currentUserID = try await myRecordID().recordName
-        if record.creatorUserRecordID?.recordName == currentUserID {
+        let currentUserID = (try? await myRecordID())?.recordName
+        if let currentUserID, record.creatorUserRecordID?.recordName == currentUserID {
+            return
+        }
+        let cachedIDs = loadCachedPostIDs()
+        if cachedIDs.contains(record.recordID.recordName) {
+            return
+        }
+        if let owner = record["ownerUsername"] as? String,
+           let myProfile = try? await fetchProfile(username: owner),
+           myProfile.username.lowercased() == owner.lowercased() {
             return
         }
         try await requireModerator()
