@@ -1206,13 +1206,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Care lets you connect with community friends — stay aware of their health and activity changes, remind them to move, and cheer them on during every workout."
+            "value": "StreakReps Community lets you connect with community friends — stay aware of their health and activity changes, remind them to move, and cheer them on during every workout."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reps Care te permite conectarte con tus amigos de la comunidad: mantente al tanto de su salud y cambios de actividad, recuérdales moverse y anímalos en cada entrenamiento."
+            "value": "Comunidad StreakReps te permite conectarte con tus amigos de la comunidad: mantente al tanto de su salud y cambios de actividad, recuérdales moverse y anímalos en cada entrenamiento."
           }
         }
       }
@@ -1238,13 +1238,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "About Reps Care"
+            "value": "About StreakReps Community"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Acerca de Reps Care"
+            "value": "Acerca de Comunidad StreakReps"
           }
         }
       }
@@ -8854,13 +8854,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Community Care"
+            "value": "Community"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Comunidad Care"
+            "value": "Comunidad"
           }
         }
       }
@@ -22001,6 +22001,38 @@
         }
       }
     },
+    "freshness_factor_explanation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evaluates accumulated fatigue from recent sessions, active plan pressure, and body stress loads."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evalúa la fatiga acumulada de sesiones recientes, la exigencia de tu plan activo y la carga de estrés corporal."
+          }
+        }
+      }
+    },
+    "freshness_factor_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freshness Factors"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Factores de frescura"
+          }
+        }
+      }
+    },
     "health_training": {
       "localizations": {
         "en": {
@@ -22013,6 +22045,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Health + entrenamiento"
+          }
+        }
+      }
+    },
+    "how_it_s_calculated": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How it's calculated"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cómo se calcula"
+          }
+        }
+      }
+    },
+    "recovery_factor_explanation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Combines real rest days, sleep quality, heart rate variability (HRV), and perceived energy level."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Combina días de descanso real, la calidad del sueño, la variabilidad de la frecuencia cardíaca (VFC) y tu percepción de energía."
           }
         }
       }
@@ -26054,13 +26118,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exercise library"
+            "value": "Catalog"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Biblioteca de ejercicios"
+            "value": "Catálogo"
           }
         }
       }
@@ -41558,13 +41622,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "RECOVERY CREDITS (+)"
+            "value": "Recovery credits (+)"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "CRÉDITO DE RECUPERACIÓN (+)"
+            "value": "Crédito de recuperación (+)"
           }
         }
       }
@@ -48054,13 +48118,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shortcuts"
+            "value": "Quick Shortcuts"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atajos"
+            "value": "Accesos rápidos"
           }
         }
       }
@@ -48774,13 +48838,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Smart Shortcuts"
+            "value": "Quick Shortcuts"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Smart Shortcuts"
+            "value": "Accesos rápidos"
           }
         }
       }
@@ -52358,13 +52422,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "STRESS LOADS (-)"
+            "value": "Stress loads (-)"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "CARGAS DE ESTRÉS (-)"
+            "value": "Cargas de estrés (-)"
           }
         }
       }

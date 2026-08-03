@@ -29,6 +29,13 @@ struct SetCompletionFeedback: Identifiable, Equatable {
     let setNumber: Int
 }
 
+struct WaterLogFeedback: Identifiable, Equatable {
+    let id = UUID()
+    let addedMl: Int
+    let totalMl: Int
+    let totalLiters: Double
+}
+
 struct SetCompletionFeedbackBanner: View {
     let feedback: SetCompletionFeedback
     let onUndo: () -> Void

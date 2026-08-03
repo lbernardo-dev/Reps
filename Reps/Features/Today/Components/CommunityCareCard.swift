@@ -13,41 +13,6 @@ struct CommunityCareCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Header: Care title + Info (i) button + Edit > button
-            HStack(alignment: .center) {
-                HStack(spacing: 6) {
-                    Text(String(localized: "community_care_title"))
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
-
-                    Button {
-                        HapticService.selection()
-                        showAboutSheet = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(PulseTheme.secondaryText)
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                Spacer()
-
-                Button {
-                    HapticService.selection()
-                    showCustomizeSheet = true
-                } label: {
-                    HStack(spacing: 2) {
-                        Text(localizedString("edit_action"))
-                            .font(.subheadline.weight(.semibold))
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.bold))
-                    }
-                    .foregroundStyle(PulseTheme.secondaryText)
-                }
-                .buttonStyle(.plain)
-            }
-
             // Toast feedback if cheered
             if let toastText {
                 HStack(spacing: 8) {
@@ -68,13 +33,49 @@ struct CommunityCareCard: View {
             let activeFriends = getActiveFavorites()
 
             if activeFriends.isEmpty {
-                InviteFriendsBanner {
-                    HapticService.selection()
-                    onSelectTab?(.profile)
-                }
+                InviteFriendsBanner(
+                    inviteAction: {
+                        HapticService.selection()
+                        onSelectTab?(.profile)
+                    },
+                    onShowAbout: {
+                        HapticService.selection()
+                        showAboutSheet = true
+                    },
+                    onShowCustomize: {
+                        HapticService.selection()
+                        showCustomizeSheet = true
+                    }
+                )
             } else {
                 // Active Friends Banner Grid & Interaction Rows
                 VStack(spacing: 14) {
+                    // Top-right action icons inside card (info & edit pencil)
+                    HStack {
+                        Spacer()
+                        HStack(spacing: 12) {
+                            Button {
+                                HapticService.selection()
+                                showAboutSheet = true
+                            } label: {
+                                Image(systemName: "info.circle")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                HapticService.selection()
+                                showCustomizeSheet = true
+                            } label: {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundStyle(PulseTheme.secondaryText)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
                     // Overlapping Real Avatars Header Row
                     HStack(spacing: -12) {
                         ForEach(activeFriends.prefix(5)) { friend in
@@ -259,11 +260,37 @@ private struct RealAvatarBubbleView: View {
 
 private struct InviteFriendsBanner: View {
     let inviteAction: () -> Void
+    var onShowAbout: (() -> Void)? = nil
+    var onShowCustomize: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 14) {
+            // Top-right action icons inside card (info & edit pencil)
+            HStack {
+                Spacer()
+                HStack(spacing: 12) {
+                    if let onShowAbout {
+                        Button(action: onShowAbout) {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if let onShowCustomize {
+                        Button(action: onShowCustomize) {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(PulseTheme.secondaryText)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
             InviteFriendsArtwork()
-                .padding(.top, 4)
+                .padding(.top, -4)
 
             VStack(spacing: 6) {
                 Text(String(localized: "care_more_fun_with_friends"))
@@ -293,7 +320,7 @@ private struct InviteFriendsBanner: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
-        .padding(.vertical, 20)
+        .padding(.vertical, 18)
         .background(PulseTheme.card)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .accessibilityElement(children: .contain)
@@ -341,15 +368,20 @@ private struct InviteFriendAvatar: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            Circle()
-                .fill(color.gradient)
-                .frame(width: size, height: size)
-                .overlay(Circle().stroke(PulseTheme.card, lineWidth: 3))
+            ZStack {
+                Circle()
+                    .fill(color.gradient)
+                    .frame(width: size, height: size)
 
-            Image(systemName: symbol)
-                .font(.system(size: size * 0.62, weight: .medium))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.white.opacity(0.92))
+                Image(systemName: symbol)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.white.opacity(0.95))
+            }
+            .overlay(Circle().stroke(PulseTheme.card, lineWidth: 3))
 
             Image(systemName: badge)
                 .font(.system(size: size * 0.22, weight: .bold))

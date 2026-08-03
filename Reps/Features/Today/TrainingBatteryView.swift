@@ -174,12 +174,10 @@ struct TrainingBatteryView: View {
 
                 // Upcoming Workout Projection Simulator
                 workoutProjectionSimulator
-
-                Spacer(minLength: 40)
             }
             .padding(.top, DetailNavigationHeaderBar.contentTopPadding)
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-            .padding(.bottom, 60)
+            .padding(.bottom, 24)
         }
         .overlay(alignment: .top) {
             DetailNavigationHeaderBar(title: localizedString("training_battery")) {

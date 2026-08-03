@@ -145,6 +145,10 @@ struct StrengthWorkoutDetailsCard: View {
             RouteWorkoutMetric(title: localizedString("active_kcal_label"), value: session.activeKilocaloriesText, color: PulseTheme.ringMove)
             RouteWorkoutMetric(title: localizedString("avg_heart_rate"), value: session.averageHeartRate.map { localizedFormat("heart_rate_bpm_format", Int($0)) } ?? "--", color: PulseTheme.ringMove)
             RouteWorkoutMetric(title: localizedString("max_heart_rate"), value: session.maxHeartRate.map { localizedFormat("heart_rate_bpm_format", Int($0)) } ?? "--", color: PulseTheme.ringMove)
+            if let water = session.waterLiters, water > 0 {
+                let totalMl = Int(round(water * 1000))
+                RouteWorkoutMetric(title: localizedString("water_label"), value: "\(totalMl) ml (\(String(format: "%.2f L", water)))", color: Color(red: 0.23, green: 0.60, blue: 0.98))
+            }
         }
         .padding(24)
         .background(Color.black)

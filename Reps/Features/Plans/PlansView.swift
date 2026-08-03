@@ -915,6 +915,11 @@ private struct PlanMetricTile: View {
     let systemImage: String
     let tint: Color
 
+    private var capitalizedLabel: String {
+        guard let first = label.first else { return label }
+        return first.uppercased() + label.dropFirst()
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack {
@@ -929,7 +934,7 @@ private struct PlanMetricTile: View {
                 .font(.system(size: 19, weight: .black, design: .rounded).monospacedDigit())
                 .lineLimit(1)
                 .minimumScaleFactor(0.66)
-            Text(label)
+            Text(capitalizedLabel)
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .lineLimit(2)

@@ -8,29 +8,29 @@ struct CommunityCareAboutSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            CareHeroGraphic()
-                .padding(.top, 18)
-                .entryEffect(isVisible: hasAppeared, offset: 18, reduceMotion: reduceMotion)
+            Spacer(minLength: 8)
 
-            VStack(spacing: 10) {
-                Text(String(localized: "about_care_title"))
-                    .font(.system(size: 27, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
+            VStack(spacing: 16) {
+                CareHeroGraphic()
 
-                Text(String(localized: "about_care_description"))
-                    .font(.subheadline)
-                    .foregroundStyle(PulseTheme.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(spacing: 10) {
+                    Text(String(localized: "about_care_title"))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+
+                    Text(String(localized: "about_care_description"))
+                        .font(.subheadline)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                CarePrivacyNotice()
             }
-            .padding(.top, 16)
             .entryEffect(isVisible: hasAppeared, offset: 14, reduceMotion: reduceMotion)
 
-            CarePrivacyNotice()
-                .padding(.top, 20)
-                .entryEffect(isVisible: hasAppeared, offset: 10, reduceMotion: reduceMotion)
-
-            Spacer(minLength: 22)
+            Spacer(minLength: 16)
 
             Button {
                 HapticService.selection()

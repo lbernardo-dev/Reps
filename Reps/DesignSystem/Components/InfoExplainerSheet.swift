@@ -28,7 +28,8 @@ struct InfoExplainerSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                         Text(localizedKey(title))
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(PulseTheme.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
 
                         Spacer(minLength: 0)
@@ -38,6 +39,7 @@ struct InfoExplainerSheet: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(localizedKey(section.heading))
                                 .font(.subheadline.weight(.bold))
+                                .foregroundStyle(PulseTheme.textPrimary)
                             Text(localizedKey(section.body))
                                 .font(.subheadline)
                                 .foregroundStyle(PulseTheme.secondaryText)

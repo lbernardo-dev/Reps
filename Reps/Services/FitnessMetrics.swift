@@ -2240,6 +2240,7 @@ enum WorkoutSessionBuilder {
         let pausedSeconds: Int
         let displayedRouteDistanceKm: Double
         let displayedRoutePaceSecondsPerKm: Double?
+        let waterLiters: Double
     }
 
     static func session(from input: Input) -> WorkoutSession {
@@ -2282,7 +2283,8 @@ enum WorkoutSessionBuilder {
             heartRateBefore: input.sensorSummary?.heartRateBefore,
             heartRateAfter: input.sensorSummary?.heartRateAfter,
             averageHeartRate: input.sensorSummary?.averageHeartRate,
-            maxHeartRate: input.sensorSummary?.maxHeartRate
+            maxHeartRate: input.sensorSummary?.maxHeartRate,
+            waterLiters: input.waterLiters > 0 ? input.waterLiters : nil
         )
     }
 

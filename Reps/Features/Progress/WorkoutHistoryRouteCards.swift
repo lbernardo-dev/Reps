@@ -57,6 +57,10 @@ struct RouteWorkoutDetailsCard: View {
             RouteWorkoutMetric(title: localizedString("avg_pace"), value: session.averagePaceSecondsPerKm.map { WorkoutHistoryFormat.paceAppleStyle($0, includesUnit: true) } ?? "--", color: PulseTheme.ringStand)
             RouteWorkoutMetric(title: localizedString("avg_heart_rate"), value: session.averageHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
             RouteWorkoutMetric(title: localizedString("max_heart_rate"), value: session.maxHeartRate.map { "\(Int($0))BPM" } ?? "--", color: PulseTheme.ringMove)
+            if let water = session.waterLiters, water > 0 {
+                let totalMl = Int(round(water * 1000))
+                RouteWorkoutMetric(title: localizedString("water_label"), value: "\(totalMl) ml (\(String(format: "%.2f L", water)))", color: Color(red: 0.23, green: 0.60, blue: 0.98))
+            }
         }
         .padding(24)
         .background(Color.black)

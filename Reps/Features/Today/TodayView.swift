@@ -45,7 +45,7 @@ private enum TodaySection: String, CustomizableSection {
         case .progression: "arrow.up.right.circle.fill"
         case .signals: "gauge.with.dots.needle.67percent"
         case .wellness: "heart.text.square.fill"
-        case .care: "heart.fill"
+        case .care: "person.2.fill"
         case .plan: "bolt.fill"
         case .shortcuts: "square.grid.2x2.fill"
         }
@@ -905,8 +905,15 @@ private struct TodayViewContent: View {
             wellnessWidgets
                 .stickyHeaderTitle(section.title)
         case .care:
-            CommunityCareCard(onSelectTab: onSelectTab)
-                .stickyHeaderTitle(section.title)
+            VStack(alignment: .leading, spacing: 12) {
+                TodaySectionHeader(
+                    systemImage: TodaySection.care.systemImage,
+                    tint: PulseTheme.accent,
+                    titleKey: "community_care_title"
+                )
+                CommunityCareCard(onSelectTab: onSelectTab)
+            }
+            .stickyHeaderTitle(section.title)
         case .plan:
             planSection
                 .stickyHeaderTitle(section.title)
@@ -2521,7 +2528,14 @@ private struct TodaySectionHeader: View {
     let systemImage: String
     let tint: Color
     let titleKey: String
-    let subtitleKey: String
+    let subtitleKey: String?
+
+    init(systemImage: String, tint: Color, titleKey: String, subtitleKey: String? = nil) {
+        self.systemImage = systemImage
+        self.tint = tint
+        self.titleKey = titleKey
+        self.subtitleKey = subtitleKey
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 7) {
@@ -2534,9 +2548,11 @@ private struct TodaySectionHeader: View {
                 Text(localizedString(titleKey))
                     .font(.headline.weight(.black))
                     .foregroundStyle(PulseTheme.textPrimary)
-                Text(localizedString(subtitleKey))
-                    .font(.caption)
-                    .foregroundStyle(PulseTheme.secondaryText)
+                if let subtitleKey, !subtitleKey.isEmpty {
+                    Text(localizedString(subtitleKey))
+                        .font(.caption)
+                        .foregroundStyle(PulseTheme.secondaryText)
+                }
             }
         }
         .padding(.horizontal, 2)
@@ -3569,6 +3585,11 @@ private struct PlanExecutionTile: View {
     let systemImage: String
     let tint: Color
 
+    private var capitalizedLabel: String {
+        guard let first = label.first else { return label }
+        return first.uppercased() + label.dropFirst()
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Image(systemName: systemImage)
@@ -3578,7 +3599,7 @@ private struct PlanExecutionTile: View {
                 .font(.headline.weight(.black).monospacedDigit())
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
-            Text(label)
+            Text(capitalizedLabel)
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(PulseTheme.secondaryText)
                 .lineLimit(1)

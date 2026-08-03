@@ -75,6 +75,7 @@ struct ActiveWorkoutView: View {
     @State private var showExerciseDetails = false
     @State private var showMusicConnector = false
     @State private var setCompletionFeedback: SetCompletionFeedback?
+    @State private var waterToastFeedback: WaterLogFeedback?
 
     private var exerciseDrafts: [ExerciseSessionDraft] {
         get { store.activeWorkoutDrafts }
@@ -245,14 +246,41 @@ struct ActiveWorkoutView: View {
     var body: some View {
         activeWorkoutContent
         .overlay(alignment: .bottom) {
-            if let feedback = setCompletionFeedback {
-                SetCompletionFeedbackBanner(feedback: feedback) {
-                    undoLastCompletedSet()
+            VStack(spacing: 8) {
+                if let feedback = waterToastFeedback {
+                    HStack(spacing: 12) {
+                        Image(systemName: "waterbottle.fill")
+                            .font(.headline.weight(.black))
+                            .foregroundStyle(Color(red: 0.23, green: 0.60, blue: 0.98))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("+250 ml de agua registrados")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.white)
+                            Text("Total en esta sesión: \(feedback.totalMl) ml (\(String(format: "%.2f L", feedback.totalLiters)))")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color(red: 0.02, green: 0.13, blue: 0.27).opacity(0.96), in: RoundedRectangle(cornerRadius: PulseTheme.mediumRadius, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: PulseTheme.mediumRadius)
+                            .stroke(Color(red: 0.23, green: 0.60, blue: 0.98).opacity(0.4), lineWidth: 1)
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-                .padding(.bottom, 18)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+
+                if let feedback = setCompletionFeedback {
+                    SetCompletionFeedbackBanner(feedback: feedback) {
+                        undoLastCompletedSet()
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
+            .padding(.horizontal, PulseTheme.screenHorizontalPadding)
+            .padding(.bottom, 18)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
@@ -764,7 +792,8 @@ struct ActiveWorkoutView: View {
                 routePoints: routeTracker.routePoints,
                 pausedSeconds: pausedSeconds,
                 displayedRouteDistanceKm: displayedRouteMetrics.distanceKm,
-                displayedRoutePaceSecondsPerKm: displayedRouteMetrics.paceSecondsPerKm
+                displayedRoutePaceSecondsPerKm: displayedRouteMetrics.paceSecondsPerKm,
+                waterLiters: waterLiters
             )
         )
         store.applyAimForMoreIntent(from: exerciseDrafts, dayID: workout.id)
@@ -1447,7 +1476,9 @@ struct ActiveWorkoutView: View {
                         Text(localizedString("log_water"))
                             .font(.headline.weight(.bold))
                             .foregroundStyle(.white)
-                        Text(String(format: "%.2f L", waterLiters))
+                        let totalMl = Int(round(waterLiters * 1000))
+                        let waterSubtitleText = totalMl > 0 ? "\(totalMl) ml (\(String(format: "%.2f L", waterLiters)))" : "0 ml (0.00 L)"
+                        Text(waterSubtitleText)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.72))
                     }
@@ -2092,8 +2123,10 @@ struct ActiveWorkoutView: View {
                     }
                 }()
 
+                let totalWaterMl = Int(round(waterLiters * 1000))
+                let waterVal = totalWaterMl > 0 ? "\(totalWaterMl) ml" : "0 ml"
                 SessionMetricStrip(metrics: [
-                    .init(title: "Agua", value: String(format: "%.2f L", waterLiters), icon: "waterbottle.fill", tintColor: Color.blue),
+                    .init(title: "Agua", value: waterVal, icon: "waterbottle.fill", tintColor: Color.blue),
                     .init(title: "Kcal", value: energyVal, icon: "flame.fill", tintColor: Color.orange),
                     .init(title: "Pulso", value: displayedRouteMetrics.heartRateText, icon: "heart.fill", tintColor: Color.red)
                 ])
@@ -2596,10 +2629,25 @@ struct ActiveWorkoutView: View {
         if !isSessionStarted {
             startPreparedSession()
         }
+        let updatedLiters = min(waterLiters + 0.25, 8)
         withAnimation(.snappy(duration: 0.18)) {
-            waterLiters = min(waterLiters + 0.25, 8)
+            waterLiters = updatedLiters
         }
         publishActiveWorkoutStatus()
+
+        let totalMl = Int(round(updatedLiters * 1000))
+        let feedback = WaterLogFeedback(addedMl: 250, totalMl: totalMl, totalLiters: updatedLiters)
+        withAnimation {
+            waterToastFeedback = feedback
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            if waterToastFeedback?.id == feedback.id {
+                withAnimation {
+                    waterToastFeedback = nil
+                }
+            }
+        }
     }
 
     private func toggleSessionAudioNote() {
