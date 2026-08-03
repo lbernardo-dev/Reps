@@ -13,6 +13,7 @@ enum NotificationService {
         case achievementUnlocked
         case gymRenewal
         case completeImportedWorkout
+        case socialActivity
     }
 
     /// User-tappable action surfaced on the notification (long-press / Notification Center).
@@ -36,6 +37,7 @@ enum NotificationService {
         let kind: Kind
         let scheduledWorkoutID: UUID?
         let scheduledDate: Date?
+        var socialUsername: String? = nil
         var action: Action = .open
 
         func with(action: Action) -> NotificationTarget {
@@ -43,6 +45,7 @@ enum NotificationService {
                 kind: kind,
                 scheduledWorkoutID: scheduledWorkoutID,
                 scheduledDate: scheduledDate,
+                socialUsername: socialUsername,
                 action: action
             )
         }
@@ -71,6 +74,7 @@ enum NotificationService {
     private static let kindKey = "notification_kind"
     private static let scheduledWorkoutIDKey = "scheduled_workout_id"
     private static let scheduledWorkoutDateKey = "scheduled_workout_date"
+    private static let socialUsernameKey = "social_username"
 
     static func requestAuthorization() async throws -> Bool {
         try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
@@ -512,12 +516,12 @@ enum NotificationService {
 
     /// Turns a CloudKit social subscription push into a visible local notification.
     /// `subscriptionID` is the one set in SocialService ("new-follower-…" / "new-like-…" / "new-comment-…").
-    static func postCloudKitSocialNotification(subscriptionID: String) {
-        guard let request = socialRequest(subscriptionID: subscriptionID) else { return }
+    static func postCloudKitSocialNotification(subscriptionID: String, actorUsername: String? = nil) {
+        guard let request = socialRequest(subscriptionID: subscriptionID, actorUsername: actorUsername) else { return }
         UNUserNotificationCenter.current().add(request)
     }
 
-    private static func socialRequest(subscriptionID: String) -> UNNotificationRequest? {
+    private static func socialRequest(subscriptionID: String, actorUsername: String? = nil) -> UNNotificationRequest? {
         let content = UNMutableNotificationContent()
         content.sound = .default
         content.threadIdentifier = "social"
@@ -535,8 +539,10 @@ enum NotificationService {
             return nil
         }
 
-        // No routing kind: tapping simply opens the app (the social hub is not a
-        // root tab), which keeps the launch path free of navigation side effects.
+        content.userInfo = [kindKey: Kind.socialActivity.rawValue]
+        if let actorUsername, !actorUsername.isEmpty {
+            content.userInfo[socialUsernameKey] = actorUsername.lowercased()
+        }
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         let request = UNNotificationRequest(
             identifier: "\(socialPrefix)\(UUID().uuidString)",
@@ -683,11 +689,13 @@ enum NotificationService {
 
         let scheduledWorkoutID = (userInfo[scheduledWorkoutIDKey] as? String).flatMap(UUID.init(uuidString:))
         let scheduledDate = (userInfo[scheduledWorkoutDateKey] as? String).flatMap(date(from:))
+        let socialUsername = userInfo[socialUsernameKey] as? String
 
         return NotificationTarget(
             kind: kind,
             scheduledWorkoutID: scheduledWorkoutID,
-            scheduledDate: scheduledDate
+            scheduledDate: scheduledDate,
+            socialUsername: socialUsername
         )
     }
 
@@ -797,6 +805,9 @@ enum NotificationService {
         }
         if let scheduledDate = target.scheduledDate {
             userInfo[scheduledWorkoutDateKey] = iso8601String(from: scheduledDate)
+        }
+        if let socialUsername = target.socialUsername {
+            userInfo[socialUsernameKey] = socialUsername
         }
         return userInfo
     }

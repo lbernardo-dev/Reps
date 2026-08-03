@@ -21,12 +21,18 @@ struct SocialProfileDetailView: View {
     @State private var isFollowActionInProgress = false
     @State private var selectedPost: WorkoutPost?
     @State private var showReportSheet: Bool = false
+    @State private var isConnectionAccepted = false
 
     private var isMe: Bool {
         store.userProfile.socialUsername?.lowercased() == username.lowercased()
     }
-    private var isFollowing: Bool {
+    private var hasOutgoingRelationship: Bool {
         store.userProfile.socialFollowingUsernames.contains(username.lowercased())
+    }
+    private var relationshipButtonKey: String {
+        if isConnectionAccepted { return "social_following_button" }
+        if hasOutgoingRelationship { return "social_pending" }
+        return "social_follow"
     }
 
     var body: some View {
@@ -89,17 +95,28 @@ struct SocialProfileDetailView: View {
         .toolbar {
             if !isMe {
                 ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button(role: .destructive) {
-                        showReportSheet = true
+                    Menu {
+                        Button(role: .destructive) {
+                            showReportSheet = true
+                        } label: {
+                            Label(String(localized: "social_report_user_btn"), systemImage: "flag")
+                        }
+                        Button(role: .destructive) {
+                            Task {
+                                if await store.blockSocialUser(username) {
+                                    profile = nil
+                                    posts = []
+                                }
+                            }
+                        } label: {
+                            Label(localizedString("social_block_user"), systemImage: "person.crop.circle.badge.xmark")
+                        }
                     } label: {
-                        Label(String(localized: "social_report_user_btn"), systemImage: "flag")
+                        Image(systemName: "ellipsis")
+                            .font(.body.weight(.bold))
+                            .foregroundStyle(PulseTheme.accentOnCard)
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.body)
-                        .foregroundStyle(PulseTheme.accent)
-                }
+                    .accessibilityLabel(Text("more"))
                 }
             }
         }
@@ -208,22 +225,22 @@ struct SocialProfileDetailView: View {
                     } label: {
                         HStack(spacing: 8) {
                             if isFollowActionInProgress {
-                                ProgressView().tint(isFollowing ? PulseTheme.accentOnCard : .black)
+                                ProgressView().tint(hasOutgoingRelationship ? PulseTheme.accentOnCard : .black)
                             } else {
-                                Image(systemName: isFollowing ? "checkmark" : "person.badge.plus")
+                                Image(systemName: isConnectionAccepted ? "checkmark" : (hasOutgoingRelationship ? "clock" : "person.badge.plus"))
                                     .font(.subheadline.weight(.bold))
-                                Text(localizedString(isFollowing ? "social_following_button" : "social_follow"))
+                                Text(localizedString(relationshipButtonKey))
                                     .font(.subheadline.weight(.bold))
                             }
                         }
                         .frame(maxWidth: .infinity, minHeight: 48)
-                        .foregroundStyle(isFollowing ? PulseTheme.accentOnCard : .black)
+                        .foregroundStyle(hasOutgoingRelationship ? PulseTheme.accentOnCard : .black)
                         .background(
-                            isFollowing ? PulseTheme.accent.opacity(0.10) : PulseTheme.accent,
+                            hasOutgoingRelationship ? PulseTheme.accent.opacity(0.10) : PulseTheme.accent,
                             in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
                         )
                         .overlay {
-                            if isFollowing {
+                            if hasOutgoingRelationship {
                                 RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
                                     .stroke(PulseTheme.accent.opacity(0.30), lineWidth: 1)
                             }
@@ -353,7 +370,7 @@ struct SocialProfileDetailView: View {
                 myValue: "\(store.streakDays)d",
                 theirValue: "\(profile.streakDays)d",
                 outcome: comparisonOutcome(store.streakDays, profile.streakDays)
-            )
+            ),
         ]
 
         return PulseCard(contentPadding: 0) {
@@ -580,18 +597,40 @@ struct SocialProfileDetailView: View {
                 .padding(.vertical, 8)
             }
         } else {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)], spacing: 2) {
-                ForEach(posts) { post in
-                    Button {
-                        HapticService.selection()
-                        selectedPost = post
-                    } label: {
-                        postTile(post)
-                    }
-                    .buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(localizedString("social_workouts"))
+                        .font(.headline)
+                    Spacer()
+                    Text("\(posts.count)")
+                        .font(.caption.weight(.bold).monospacedDigit())
+                        .foregroundStyle(PulseTheme.secondaryText)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(PulseTheme.grouped, in: Capsule())
                 }
+
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 2),
+                        GridItem(.flexible(), spacing: 2),
+                        GridItem(.flexible(), spacing: 2),
+                    ],
+                    spacing: 2
+                ) {
+                    ForEach(posts) { post in
+                        Button {
+                            HapticService.selection()
+                            selectedPost = post
+                        } label: {
+                            postTile(post)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(post.workoutTitle)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
             }
-            .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
         }
     }
 
@@ -646,11 +685,26 @@ struct SocialProfileDetailView: View {
             isLoading = false
             return
         }
+        let normalized = username.lowercased()
+        let blocked = Set(store.userProfile.socialBlockedUsernames.map { $0.lowercased() })
+        guard !blocked.contains(normalized), !store.bannedUsernames.contains(normalized) else {
+            profile = nil
+            posts = []
+            followerCount = 0
+            isLoading = false
+            return
+        }
         isLoading = true
+        let myUsername = store.userProfile.socialUsername ?? ""
         async let profileTask = SocialService.shared.fetchMyProfile(username: username)
         async let countTask = SocialService.shared.fetchFollowerCount(myUsername: username)
+        async let incomingTask: [SocialProfile] = (try? await SocialService.shared.fetchFollowerProfiles(myUsername: myUsername)) ?? []
         profile = try? await profileTask
-        posts = (isMe || isFollowing) ? await SocialService.shared.fetchPosts(username: username) : []
+        let incoming = await incomingTask
+        isConnectionAccepted = hasOutgoingRelationship && incoming.contains {
+            $0.username.caseInsensitiveCompare(username) == .orderedSame
+        }
+        posts = (isMe || isConnectionAccepted) ? await SocialService.shared.fetchPosts(username: username) : []
         followerCount = await countTask
         isLoading = false
     }
@@ -660,11 +714,12 @@ struct SocialProfileDetailView: View {
         guard let profile else { return }
         guard let myUsername = store.userProfile.socialUsername, !myUsername.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         isFollowActionInProgress = true
-        let wasFollowing = isFollowing
+        let hadOutgoingRelationship = hasOutgoingRelationship
         do {
-            if wasFollowing {
+            if hadOutgoingRelationship {
                 try await SocialService.shared.unfollow(profile)
                 store.userProfile.socialFollowingUsernames.removeAll { $0 == username.lowercased() }
+                isConnectionAccepted = false
                 posts = []
                 HapticService.notification(.success)
             } else {
@@ -672,7 +727,11 @@ struct SocialProfileDetailView: View {
                 if !store.userProfile.socialFollowingUsernames.contains(username.lowercased()) {
                     store.userProfile.socialFollowingUsernames.append(username.lowercased())
                 }
-                posts = await SocialService.shared.fetchPosts(username: username)
+                let incoming = (try? await SocialService.shared.fetchFollowerProfiles(myUsername: myUsername)) ?? []
+                isConnectionAccepted = incoming.contains {
+                    $0.username.caseInsensitiveCompare(username) == .orderedSame
+                }
+                posts = isConnectionAccepted ? await SocialService.shared.fetchPosts(username: username) : []
                 HapticService.notification(.success)
             }
             let newList = store.userProfile.socialFollowingUsernames

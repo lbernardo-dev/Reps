@@ -1553,19 +1553,21 @@ struct SocialHubView: View {
 
         loadPendingInvites()
 
+        // Moderation/block state must be available before any public profiles
+        // are rendered; loading it concurrently could briefly surface hidden users.
+        await store.refreshModerationState()
+
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await loadFollowing() }
             group.addTask { await loadSuggested() }
-            group.addTask { await store.refreshModerationState() }
             if store.feedPosts.isEmpty {
                 group.addTask { await store.loadFeed() }
             }
             if store.activeChallenges.isEmpty {
                 group.addTask { await store.loadChallenges() }
+            }
         }
     }
-}
-
 
     private func loadSuggested() async {
         guard store.userProfile.socialCapabilitiesAllowed else { return }
@@ -1576,7 +1578,12 @@ struct SocialHubView: View {
                 followingUsernames: store.userProfile.socialFollowingUsernames,
                 followingProfiles: following
             )
-            suggestedProfiles = profiles
+            let blocked = Set(store.userProfile.socialBlockedUsernames.map { $0.lowercased() })
+            suggestedProfiles = profiles.filter {
+                !blocked.contains($0.username.lowercased())
+                    && !store.bannedUsernames.contains($0.username.lowercased())
+                    && !store.bannedOwnerIDs.contains($0.ownerRecordName)
+            }
         } catch {}
         isLoadingSuggested = false
     }
@@ -1623,25 +1630,46 @@ struct SocialHubView: View {
         do {
             let usernames = store.userProfile.socialFollowingUsernames
             async let followingTask = SocialService.shared.fetchFollowing(myFollowingUsernames: usernames)
-            async let countTask = SocialService.shared.fetchFollowerCount(myUsername: store.userProfile.socialUsername ?? "")
             async let followersTask: [SocialProfile] = (try? await SocialService.shared.fetchFollowerProfiles(
                 myUsername: store.userProfile.socialUsername ?? ""
             )) ?? []
-            let (f, count, followerProfiles) = try await (followingTask, countTask, followersTask)
-            following = f
-            followerCount = count
+            let (outgoingProfiles, followerProfiles) = try await (followingTask, followersTask)
             let outgoing = Set(usernames.map { $0.lowercased() })
-            incomingInvites = followerProfiles.filter { !outgoing.contains($0.username.lowercased()) }
-
-            // A reciprocal follow is the receiver's acceptance. Clear the
-            // sender-side pending marker as soon as that relationship appears.
-            let mutualUsernames = Set(followerProfiles.map { $0.username.lowercased() })
-            if pendingInvites.contains(where: { mutualUsernames.contains($0.username.lowercased()) }) {
-                pendingInvites.removeAll { mutualUsernames.contains($0.username.lowercased()) }
-                savePendingInvites()
+            let incoming = Set(followerProfiles.map { $0.username.lowercased() })
+            let blocked = Set(store.userProfile.socialBlockedUsernames.map { $0.lowercased() })
+            let isVisible: (SocialProfile) -> Bool = { profile in
+                !blocked.contains(profile.username.lowercased())
+                    && !store.bannedUsernames.contains(profile.username.lowercased())
+                    && !store.bannedOwnerIDs.contains(profile.ownerRecordName)
             }
-            Task.detached { [f] in await store.checkLeaderboardChanges(following: f) }
-            saveLeaderboardToWidget(following: f)
+
+            // A connection is accepted only when both users follow each other.
+            // One-way follows remain requests and never enter the friends/feed list.
+            following = outgoingProfiles.filter { incoming.contains($0.username.lowercased()) && isVisible($0) }
+            followerCount = following.count
+            incomingInvites = followerProfiles.filter {
+                !outgoing.contains($0.username.lowercased()) && isVisible($0)
+            }
+
+            let existingSentDates = Dictionary(
+                uniqueKeysWithValues: pendingInvites.map { ($0.id, $0.sentAt) }
+            )
+            pendingInvites = outgoingProfiles
+                .filter { !incoming.contains($0.username.lowercased()) && isVisible($0) }
+                .map { profile in
+                    PendingInvite(
+                        username: profile.username,
+                        displayName: profile.displayName,
+                        avatarImageData: profile.avatarImageData,
+                        level: profile.level,
+                        levelTitle: profile.levelTitle,
+                        sentAt: existingSentDates[profile.username.lowercased()] ?? .now
+                    )
+                }
+            savePendingInvites()
+            let acceptedFollowing = following
+            Task.detached { [acceptedFollowing] in await store.checkLeaderboardChanges(following: acceptedFollowing) }
+            saveLeaderboardToWidget(following: acceptedFollowing)
         } catch {
             loadError = error.localizedDescription
         }
@@ -1683,7 +1711,12 @@ struct SocialHubView: View {
                 await MainActor.run {
                     guard !Task.isCancelled else { return }
                     guard searchText == q else { return }
-                    searchResults = results
+                    let blocked = Set(store.userProfile.socialBlockedUsernames.map { $0.lowercased() })
+                    searchResults = results.filter {
+                        !blocked.contains($0.username.lowercased())
+                            && !store.bannedUsernames.contains($0.username.lowercased())
+                            && !store.bannedOwnerIDs.contains($0.ownerRecordName)
+                    }
                     isSearching = false
                 }
             } catch {
@@ -1738,7 +1771,6 @@ struct SocialHubView: View {
                     try await SocialService.shared.follow(profile)
                     await MainActor.run {
                         SocialLimitsManager.shared.recordInviteSent()
-                        following.append(profile)
                         let uname = profile.username.lowercased()
                         if !store.userProfile.socialFollowingUsernames.contains(uname) {
                             store.userProfile.socialFollowingUsernames.append(uname)

@@ -182,6 +182,7 @@ private extension CKError {
 enum SocialServiceError: LocalizedError, Equatable, Sendable {
     case iCloudUnavailable(SocialICloudAccountIssue)
     case usernameTaken
+    case invalidUsername
     case malformedChallengeRecord
     case notAuthorized
     case postNotFound
@@ -192,6 +193,8 @@ enum SocialServiceError: LocalizedError, Equatable, Sendable {
             issue.localizedMessage
         case .usernameTaken:
             localizedString("social_username_taken")
+        case .invalidUsername:
+            localizedString("social_username_hint")
         case .malformedChallengeRecord:
             localizedString("social_challenge_save_failed")
         case .notAuthorized:
@@ -409,6 +412,7 @@ actor SocialService {
     }
 
     private var _myRecordID: CKRecord.ID?
+    private var verifiedOwnedUsername: String?
 
     // MARK: - Reachability
     //
@@ -457,6 +461,7 @@ actor SocialService {
 
         if issue != nil {
             _myRecordID = nil
+            verifiedOwnedUsername = nil
         }
         return issue
         #endif
@@ -510,6 +515,50 @@ actor SocialService {
         CKRecord.ID(recordName: "SocialFollow_\(followerOwner)_\(followingUsername.lowercased())")
     }
 
+    private func normalizedUsername(_ username: String) throws -> String {
+        let normalized = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard (3...20).contains(normalized.count),
+              normalized.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" }) else {
+            throw SocialServiceError.invalidUsername
+        }
+        return normalized
+    }
+
+    private func sanitizedPublicText(
+        _ value: String,
+        limit: Int,
+        allowsNewlines: Bool = false
+    ) -> String {
+        let scalars = value.unicodeScalars.filter { scalar in
+            if CharacterSet.controlCharacters.contains(scalar) {
+                return allowsNewlines && (scalar == "\n" || scalar == "\t")
+            }
+            return true
+        }
+        return String(String.UnicodeScalarView(scalars))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(limit)
+            .description
+    }
+
+    /// Prevents accidental identity spoofing inside the client by verifying
+    /// that a username-bearing write belongs to the active iCloud account.
+    /// CloudKit security roles remain the actual server-side boundary.
+    private func requireOwnedUsername(_ username: String) async throws {
+        #if targetEnvironment(simulator)
+        return
+        #else
+        let normalized = try normalizedUsername(username)
+        if verifiedOwnedUsername == normalized { return }
+        let myID = try await myRecordID()
+        guard let profile = try await fetchProfile(username: normalized),
+              profile.ownerRecordName == myID.recordName else {
+            throw SocialServiceError.notAuthorized
+        }
+        verifiedOwnedUsername = normalized
+        #endif
+    }
+
     /// Restores the profile bound to the signed-in iCloud account. The
     /// ubiquitous value gives reinstalls a direct record lookup; the owner-ID
     /// query is a migration path for profiles created before this recovery key
@@ -552,7 +601,8 @@ actor SocialService {
         return true
         #else
         try await requireICloudAccount()
-        let rid = profileRecordID(username: username)
+        let normalized = try normalizedUsername(username)
+        let rid = profileRecordID(username: normalized)
         do {
             let record = try await getPublicDB().record(for: rid)
             // Record exists — taken unless it belongs to the current user.
@@ -579,23 +629,44 @@ actor SocialService {
     /// This reuses the same production field required by follower count and
     /// new-follower subscriptions; it introduces no new CloudKit schema.
     func fetchFollowerProfiles(myUsername: String) async throws -> [SocialProfile] {
-        let normalized = myUsername.lowercased()
-        guard !normalized.isEmpty else { return [] }
+        let normalized = try normalizedUsername(myUsername)
 
         let query = CKQuery(
             recordType: "SocialFollow",
             predicate: NSPredicate(format: "followingUsername == %@", normalized)
         )
         let result = try await getPublicDB().records(matching: query, resultsLimit: 200)
-        let ownerNames = Set(result.matchResults.compactMap { _, recordResult in
+        let ownerNames: Set<String> = Set(result.matchResults.compactMap { _, recordResult -> String? in
             guard let record = try? recordResult.get() else { return nil }
             return record["followerOwnerName"] as? String
         })
 
         var profiles: [SocialProfile] = []
+        var unresolvedOwnerNames = ownerNames
         for ownerName in ownerNames {
             if let profile = try? await fetchProfile(ownerRecordName: ownerName) {
                 profiles.append(profile)
+                unresolvedOwnerNames.remove(ownerName)
+            }
+        }
+
+        // Production may temporarily lack the ownerRecordName index even when
+        // SocialProfile itself is queryable. Fall back to an unfiltered scan so
+        // incoming invitations still resolve instead of disappearing silently.
+        if !unresolvedOwnerNames.isEmpty {
+            var page = try await getPublicDB().records(
+                matching: CKQuery(recordType: "SocialProfile", predicate: NSPredicate(value: true)),
+                resultsLimit: 200
+            )
+            while true {
+                for (_, recordResult) in page.matchResults {
+                    guard let record = try? recordResult.get(),
+                          let profile = SocialProfile(record: record),
+                          unresolvedOwnerNames.remove(profile.ownerRecordName) != nil else { continue }
+                    profiles.append(profile)
+                }
+                guard !unresolvedOwnerNames.isEmpty, let cursor = page.queryCursor else { break }
+                page = try await getPublicDB().records(continuingMatchFrom: cursor, resultsLimit: 200)
             }
         }
         return profiles.sorted { $0.username < $1.username }
@@ -690,7 +761,7 @@ actor SocialService {
         #else
         try await requireICloudAccount()
         let myID = try await myRecordID()
-        let normalized = username.lowercased()
+        let normalized = try normalizedUsername(username)
         let rid = profileRecordID(username: normalized)
 
         // An iCloud account owns at most one social profile. This prevents a
@@ -716,10 +787,10 @@ actor SocialService {
         }
 
         record["username"] = normalized as CKRecordValue
-        record["displayName"] = displayName as CKRecordValue
-        record["bio"] = bio as CKRecordValue
-        record["location"] = location as CKRecordValue
-        record["activePlanName"] = activePlanName as CKRecordValue
+        record["displayName"] = sanitizedPublicText(displayName, limit: 50) as CKRecordValue
+        record["bio"] = sanitizedPublicText(bio, limit: 160, allowsNewlines: true) as CKRecordValue
+        record["location"] = sanitizedPublicText(location, limit: 80) as CKRecordValue
+        record["activePlanName"] = sanitizedPublicText(activePlanName, limit: 80) as CKRecordValue
         record["level"] = Int64(level) as CKRecordValue
         record["levelTitle"] = levelTitle as CKRecordValue
         record["totalXP"] = Int64(totalXP) as CKRecordValue
@@ -738,6 +809,7 @@ actor SocialService {
         do {
             _ = try await getPublicDB().save(record)
             SocialProfileRecoveryStore.save(username: normalized)
+            verifiedOwnedUsername = normalized
         } catch let error as CKError where error.code == .serverRecordChanged {
             // The username is the deterministic record ID. A simultaneous
             // create can only succeed for one owner; turn the collision into
@@ -756,6 +828,11 @@ actor SocialService {
     func updateMyFollowingList(myUsername: String, followingUsernames: [String]) async {
         guard !myUsername.isEmpty else { return }
         guard await iCloudAccountIssue() == nil else { return }
+        do {
+            try await requireOwnedUsername(myUsername)
+        } catch {
+            return
+        }
         let rid = profileRecordID(username: myUsername.lowercased())
         do {
             let record = try await getPublicDB().record(for: rid)
@@ -860,10 +937,33 @@ actor SocialService {
         return profiles.sorted { $0.username < $1.username }
     }
 
+    /// Moderation-only directory query. Ordinary discovery intentionally
+    /// requires a non-empty search string to avoid exposing the full directory.
+    func fetchAllProfilesForModeration(limit: Int = 500) async throws -> [SocialProfile] {
+        try await requireModerator()
+        let query = CKQuery(recordType: "SocialProfile", predicate: NSPredicate(value: true))
+        var page = try await getPublicDB().records(matching: query, resultsLimit: min(limit, 200))
+        var profiles: [SocialProfile] = []
+        while true {
+            profiles.append(contentsOf: page.matchResults.compactMap { _, result in
+                (try? result.get()).flatMap(SocialProfile.init)
+            })
+            guard profiles.count < limit, let cursor = page.queryCursor else { break }
+            page = try await getPublicDB().records(
+                continuingMatchFrom: cursor,
+                resultsLimit: min(limit - profiles.count, 200)
+            )
+        }
+        return profiles.sorted { $0.username < $1.username }
+    }
+
     // MARK: - Follow / Unfollow
 
     func follow(_ profile: SocialProfile) async throws {
         let myID = try await myRecordID()
+        guard profile.ownerRecordName != myID.recordName else {
+            throw SocialServiceError.notAuthorized
+        }
         let fid = followRecordID(followerOwner: myID.recordName, followingUsername: profile.username)
         let record = CKRecord(recordType: "SocialFollow", recordID: fid)
         record["followerOwnerName"] = myID.recordName as CKRecordValue
@@ -988,11 +1088,12 @@ actor SocialService {
         return
         #else
         try await requireICloudAccount()
+        try await requireOwnedUsername(username)
         let rid = postRecordID(username: username, sessionID: sessionID)
         let record = CKRecord(recordType: "WorkoutPost", recordID: rid)
         record["ownerUsername"] = username.lowercased() as CKRecordValue
-        record["ownerDisplayName"] = displayName as CKRecordValue
-        record["workoutTitle"] = workoutTitle as CKRecordValue
+        record["ownerDisplayName"] = sanitizedPublicText(displayName, limit: 50) as CKRecordValue
+        record["workoutTitle"] = sanitizedPublicText(workoutTitle, limit: 120) as CKRecordValue
         record["durationSeconds"] = Int64(durationSeconds) as CKRecordValue
         record["volumeKg"] = volumeKg as CKRecordValue
         record["exerciseNames"] = exerciseNames as CKRecordValue
@@ -1032,13 +1133,15 @@ actor SocialService {
         return post
         #else
         try await requireICloudAccount()
+        try await requireOwnedUsername(username)
+        let sanitizedCaption = sanitizedPublicText(caption, limit: 1_000, allowsNewlines: true)
         let postID = "WorkoutPost_\(username.lowercased())_\(UUID().uuidString)"
         let rid = CKRecord.ID(recordName: postID)
         let record = CKRecord(recordType: "WorkoutPost", recordID: rid)
         record["ownerUsername"] = username.lowercased() as CKRecordValue
-        record["ownerDisplayName"] = displayName as CKRecordValue
-        record["workoutTitle"] = caption as CKRecordValue
-        record["caption"] = caption as CKRecordValue
+        record["ownerDisplayName"] = sanitizedPublicText(displayName, limit: 50) as CKRecordValue
+        record["workoutTitle"] = sanitizedCaption as CKRecordValue
+        record["caption"] = sanitizedCaption as CKRecordValue
         record["durationSeconds"] = Int64(0) as CKRecordValue
         record["volumeKg"] = Double(0) as CKRecordValue
         record["exerciseNames"] = [String]() as CKRecordValue
@@ -1077,9 +1180,9 @@ actor SocialService {
         let recordID = CKRecord.ID(recordName: post.id)
         let record = try await getPublicDB().record(for: recordID)
         try await requirePostManager(record)
-        record["workoutTitle"] = title as CKRecordValue
+        record["workoutTitle"] = sanitizedPublicText(title, limit: 120) as CKRecordValue
         if let caption, !caption.isEmpty {
-            record["caption"] = caption as CKRecordValue
+            record["caption"] = sanitizedPublicText(caption, limit: 1_000, allowsNewlines: true) as CKRecordValue
         } else {
             record["caption"] = nil
         }
@@ -1231,6 +1334,7 @@ actor SocialService {
     }
 
     func likePost(_ post: WorkoutPost, likerUsername: String) async throws {
+        try await requireOwnedUsername(likerUsername)
         let myID = try await myRecordID()
         let lid = likeRecordID(likerOwner: myID.recordName, postRecordName: post.id)
         let record = CKRecord(recordType: "WorkoutLike", recordID: lid)
@@ -1272,26 +1376,26 @@ actor SocialService {
         reason: String,
         reporterUsername: String
     ) async throws {
-        try await requireICloudAccount()
         guard ownerUsername.caseInsensitiveCompare(reporterUsername) != .orderedSame else {
             throw SocialServiceError.notAuthorized
         }
-        let myID = try await myRecordID()
-        let record = CKRecord(recordType: "SocialReport")
-        record["contentID"] = contentID as CKRecordValue
-        record["contentType"] = contentType as CKRecordValue
-        record["ownerUsername"] = ownerUsername.lowercased() as CKRecordValue
-        record["reason"] = reason as CKRecordValue
-        record["reporterUsername"] = reporterUsername.lowercased() as CKRecordValue
-        record["reporterOwnerName"] = myID.recordName as CKRecordValue
-        record["reportedAt"] = Date() as CKRecordValue
-        _ = try await getPublicDB().save(record)
+        let targetProfile = try await fetchProfile(username: ownerUsername)
+        try await submitReport(
+            targetType: contentType,
+            targetOwnerRecordName: targetProfile?.ownerRecordName ?? "",
+            targetUsername: ownerUsername,
+            targetID: contentID,
+            reasonCategory: reason,
+            reasonNotes: "",
+            reporterUsername: reporterUsername
+        )
     }
 
     /// Persists a block relationship in CloudKit. The local profile is updated
     /// by AppStore before/alongside this call so the block is immediate offline.
     func blockUser(username: String, blockerUsername: String) async throws {
         try await requireICloudAccount()
+        try await requireOwnedUsername(blockerUsername)
         guard username.caseInsensitiveCompare(blockerUsername) != .orderedSame else {
             throw SocialServiceError.notAuthorized
         }
@@ -1443,6 +1547,7 @@ actor SocialService {
     /// Submits a user/post/comment report to CloudKit.
     func submitReport(targetType: String, targetOwnerRecordName: String, targetUsername: String, targetID: String = "", reasonCategory: String, reasonNotes: String, reporterUsername: String) async throws {
         try await requireICloudAccount()
+        try await requireOwnedUsername(reporterUsername)
         let myID = try await myRecordID()
         guard targetOwnerRecordName != myID.recordName,
               targetUsername.caseInsensitiveCompare(reporterUsername) != .orderedSame else {
@@ -1458,7 +1563,7 @@ actor SocialService {
         record["reporterOwnerRecordName"] = myID.recordName as CKRecordValue
         record["reporterUsername"] = reporterUsername.lowercased() as CKRecordValue
         record["reasonCategory"] = reasonCategory as CKRecordValue
-        record["reasonNotes"] = reasonNotes as CKRecordValue
+        record["reasonNotes"] = String(reasonNotes.prefix(280)) as CKRecordValue
         record["createdAt"] = Date() as CKRecordValue
         record["status"] = "pending" as CKRecordValue
         _ = try await getPublicDB().save(record)
@@ -1466,6 +1571,7 @@ actor SocialService {
 
     /// Fetches all pending reports for moderator review.
     func fetchPendingReports() async throws -> [SocialReport] {
+        try await requireModerator()
         let pred = NSPredicate(format: "status == %@", "pending")
         let query = CKQuery(recordType: "SocialReport", predicate: pred)
         do {
@@ -1487,12 +1593,14 @@ actor SocialService {
 
     /// Dismisses a report.
     func dismissReport(reportID: String) async throws {
+        try await requireModerator()
         let rid = CKRecord.ID(recordName: reportID.hasPrefix("SocialReport_") ? reportID : "SocialReport_\(reportID)")
         try await getPublicDB().deleteRecord(withID: rid)
     }
 
     /// Deletes a reported post.
     func deleteReportedPost(postID: String) async throws {
+        try await requireModerator()
         let rid = CKRecord.ID(recordName: postID.hasPrefix("WorkoutPost_") ? postID : "WorkoutPost_\(postID)")
         try await getPublicDB().deleteRecord(withID: rid)
     }
@@ -1665,6 +1773,7 @@ actor SocialService {
     /// Pushes a single comment to CloudKit using its stable local record name so
     /// retries are idempotent.
     private func pushComment(_ comment: WorkoutComment, postID: String, postOwnerUsername: String) async throws -> WorkoutComment {
+        try await requireOwnedUsername(comment.ownerUsername)
         let myID = try await myRecordID()
         let rid = CKRecord.ID(recordName: comment.id)
         let record = CKRecord(recordType: "WorkoutComment", recordID: rid)
@@ -1673,9 +1782,9 @@ actor SocialService {
         // to the commenter without an extra profile lookup.
         record["postOwnerUsername"] = postOwnerUsername.lowercased() as CKRecordValue
         record["ownerUsername"] = comment.ownerUsername as CKRecordValue
-        record["ownerDisplayName"] = comment.ownerDisplayName as CKRecordValue
+        record["ownerDisplayName"] = sanitizedPublicText(comment.ownerDisplayName, limit: 50) as CKRecordValue
         record["ownerRecordName"] = myID.recordName as CKRecordValue
-        record["text"] = comment.text as CKRecordValue
+        record["text"] = sanitizedPublicText(comment.text, limit: 1_000, allowsNewlines: true) as CKRecordValue
 
         var tmpURL: URL?
         defer { if let u = tmpURL { try? FileManager.default.removeItem(at: u) } }
@@ -1808,11 +1917,14 @@ actor SocialService {
     // Subscribes to CloudKit push for social activity targeting myUsername.
     // Requires QUERYABLE indexes on `followingUsername` (SocialFollow) and
     // `postOwnerUsername` (WorkoutLike) in CloudKit Dashboard.
-    // Silently no-ops when subscription save fails.
+    // Returns false when the production schema/indexes do not allow setup so
+    // callers and telemetry can distinguish a real subscription failure.
 
-    func subscribeToSocialActivity(myUsername: String) async {
-        guard await iCloudAccountIssue() == nil else { return }
-        let username = myUsername.lowercased()
+    @discardableResult
+    func subscribeToSocialActivity(myUsername: String) async -> Bool {
+        guard await iCloudAccountIssue() == nil,
+              let username = try? normalizedUsername(myUsername),
+              let database = try? getPublicDB() else { return false }
 
         // New follower
         let followPred = NSPredicate(format: "followingUsername == %@", username)
@@ -1850,9 +1962,43 @@ actor SocialService {
         commentNote.shouldSendContentAvailable = true
         commentSub.notificationInfo = commentNote
 
-        _ = try? await getPublicDB().save(followSub)
-        _ = try? await getPublicDB().save(likeSub)
-        _ = try? await getPublicDB().save(commentSub)
+        let subscriptions: [CKSubscription] = [followSub, likeSub, commentSub]
+        let existingIDs = Set(((try? await database.allSubscriptions()) ?? []).map(\.subscriptionID))
+        var succeeded = true
+        for subscription in subscriptions where !existingIDs.contains(subscription.subscriptionID) {
+            do {
+                _ = try await database.save(subscription)
+            } catch let error as CKError where error.code == .serverRecordChanged {
+                // Another launch/device installed the deterministic subscription.
+                continue
+            } catch {
+                succeeded = false
+                await MainActor.run {
+                    TelemetryService.shared.record(error, context: "social_subscription_save")
+                }
+            }
+        }
+        return succeeded
+    }
+
+    func unsubscribeFromSocialActivity(myUsername: String) async {
+        guard let username = try? normalizedUsername(myUsername),
+              let database = try? getPublicDB() else { return }
+        for subscriptionID in [
+            "new-follower-\(username)",
+            "new-like-\(username)",
+            "new-comment-\(username)"
+        ] {
+            do {
+                _ = try await database.deleteSubscription(withID: subscriptionID)
+            } catch let error as CKError where error.code == .unknownItem {
+                continue
+            } catch {
+                await MainActor.run {
+                    TelemetryService.shared.record(error, context: "social_subscription_delete")
+                }
+            }
+        }
     }
 
     // MARK: - Activity actor resolution
@@ -1938,8 +2084,8 @@ actor SocialService {
             predicate: NSPredicate(format: "blockerOwnerName == %@", myID.recordName)
         )
         try await deleteRecords(
-            type: "ContentReport",
-            predicate: NSPredicate(format: "reporterUsername == %@", normalized)
+            type: "SocialReport",
+            predicate: NSPredicate(format: "reporterOwnerRecordName == %@", myID.recordName)
         )
 
         // Outgoing follows use deterministic IDs, so no query/index is needed.
@@ -2087,16 +2233,17 @@ extension SocialService {
         creatorDisplayName: String
     ) async throws -> SocialChallenge {
         try await requireICloudAccount()
+        try await requireOwnedUsername(creatorUsername)
         let uuid = UUID().uuidString
         let rid = challengeRecordID(uuid)
         let record = CKRecord(recordType: "Challenge", recordID: rid)
-        record["title"]                = title as CKRecordValue
-        record["description"]          = description as CKRecordValue
+        record["title"]                = sanitizedPublicText(title, limit: 100) as CKRecordValue
+        record["description"]          = sanitizedPublicText(description, limit: 500, allowsNewlines: true) as CKRecordValue
         record["metric"]               = metric.rawValue as CKRecordValue
         record["startDate"]            = startDate as CKRecordValue
         record["endDate"]              = endDate as CKRecordValue
         record["creatorUsername"]      = creatorUsername.lowercased() as CKRecordValue
-        record["creatorDisplayName"]   = creatorDisplayName as CKRecordValue
+        record["creatorDisplayName"]   = sanitizedPublicText(creatorDisplayName, limit: 50) as CKRecordValue
         record["participantCount"]     = Int64(0) as CKRecordValue
         _ = try await getPublicDB().save(record)
         guard let ch = SocialChallenge(record: record) else {
@@ -2131,13 +2278,14 @@ extension SocialService {
         displayName: String
     ) async throws {
         try await requireICloudAccount()
+        try await requireOwnedUsername(username)
         let rid = participationRecordID(challengeID: challengeID, username: username)
         // Check if already joined.
         if (try? await getPublicDB().record(for: rid)) != nil { return }
         let record = CKRecord(recordType: "ChallengeParticipation", recordID: rid)
         record["challengeID"]              = challengeID as CKRecordValue
         record["participantUsername"]      = username.lowercased() as CKRecordValue
-        record["participantDisplayName"]   = displayName as CKRecordValue
+        record["participantDisplayName"]   = sanitizedPublicText(displayName, limit: 50) as CKRecordValue
         record["currentValue"]             = Double(0) as CKRecordValue
         _ = try await getPublicDB().save(record)
 
@@ -2152,6 +2300,11 @@ extension SocialService {
 
     func updateMyChallengeProgress(challengeID: String, username: String, value: Double) async {
         guard await iCloudAccountIssue() == nil else { return }
+        do {
+            try await requireOwnedUsername(username)
+        } catch {
+            return
+        }
         let rid = participationRecordID(challengeID: challengeID, username: username)
         do {
             let record = try await getPublicDB().record(for: rid)

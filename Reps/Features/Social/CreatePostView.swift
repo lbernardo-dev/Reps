@@ -44,6 +44,9 @@ struct CreatePostView: View {
                             TextField(localizedString("post_caption_placeholder"), text: $caption, axis: .vertical)
                                 .font(.body)
                                 .lineLimit(4...10)
+                                .onChange(of: caption) { _, value in
+                                    if value.count > 1_000 { caption = String(value.prefix(1_000)) }
+                                }
                         }
                     }
 

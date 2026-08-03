@@ -503,7 +503,7 @@ struct SocialModerationAdminView: View {
         await store.refreshModerationState()
 
         // Fetch users
-        let found = (try? await SocialService.shared.searchUsers(query: "")) ?? []
+        let found = (try? await SocialService.shared.fetchAllProfilesForModeration()) ?? []
         await MainActor.run {
             self.usersList = found
             self.isLoadingUsers = false

@@ -20,8 +20,14 @@ struct CreateChallengeView: View {
             Form {
                 Section {
                     TextField(localizedString("challenge_title_placeholder"), text: $title)
+                        .onChange(of: title) { _, value in
+                            if value.count > 100 { title = String(value.prefix(100)) }
+                        }
                     TextField(localizedString("challenge_description_placeholder"), text: $description, axis: .vertical)
                         .lineLimit(2...5)
+                        .onChange(of: description) { _, value in
+                            if value.count > 500 { description = String(value.prefix(500)) }
+                        }
                 }
 
                 Section(header: Text(localizedString("challenge_metric"))) {

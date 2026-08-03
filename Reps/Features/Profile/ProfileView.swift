@@ -568,6 +568,7 @@ struct ProfileView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(localizedString("add_gym_pass"))
                     Button { activeSheet = .addGymVisit } label: {
                         Image(systemName: "mappin.and.ellipse")
                             .font(.headline)
@@ -577,6 +578,7 @@ struct ProfileView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(localizedString("log_gym_visit"))
                 }
 
                 if store.gymPasses.isEmpty {

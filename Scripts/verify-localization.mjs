@@ -73,11 +73,18 @@ function extractSwiftStrings(source) {
 
 function extractLocalizedLookupKeys(source) {
   const keys = [];
-  const lookupPattern = /\blocalized(?:String|Format)\(\s*"((?:\\.|[^"\\])*)"/g;
+  const lookupPattern = /\b(?:localizedString|localizedKey|localizedTitle|localizedFormat|onboardingLocalizedString|settingsDisplayText|settingsFormatText)\(\s*"((?:\\.|[^"\\])*)"/g;
   for (const match of source.matchAll(lookupPattern)) {
     if (match[1].includes("\\(")) continue;
     keys.push(match[1]);
   }
+  return keys;
+}
+
+function extractLocalizedComponentKeys(source) {
+  const keys = [];
+  const pattern = /\b(?:title|subtitle|label|message|description|placeholder|prompt|header|footer|emptyTitle|emptySubtitle):\s*"([a-z][a-z0-9_]{2,})"/g;
+  for (const match of source.matchAll(pattern)) keys.push(match[1]);
   return keys;
 }
 
@@ -130,10 +137,6 @@ for (const [relativePath, catalog] of catalogs) {
       continue;
     }
 
-    if (relativePath === "Reps/Resources/Localizable.xcstrings" && !/^[a-z][a-z0-9]*(_[a-z0-9]+)*$/.test(key)) {
-      errors.push(`${relativePath}: key is not snake_case -> "${key}"`);
-    }
-
     for (const language of ["en", "es"]) {
       const unit = entry.localizations?.[language]?.stringUnit;
       if (!unit?.value) {
@@ -169,21 +172,42 @@ if (infoPlistResourceCount < 3) {
   errors.push(`Expected InfoPlist.xcstrings in at least 3 resource phases, found ${infoPlistResourceCount}`);
 }
 
+const userFacingCatalogKeys = new Set();
+
 for (const swiftFile of walk(root)) {
   const relativePath = path.relative(root, swiftFile);
   if (relativePath.startsWith("Scripts/")) continue;
   if (relativePath.startsWith("RepsTests/")) continue;
   const source = stripSwiftComments(fs.readFileSync(swiftFile, "utf8"));
   for (const key of extractLocalizedLookupKeys(source)) {
+    userFacingCatalogKeys.add(key);
     if (!localizableKeys.has(key)) {
       errors.push(`${relativePath}: localized lookup key is not present in Localizable.xcstrings -> "${key}"`);
     }
   }
 
-  for (const value of extractUserFacingLiterals(source)) {
-    if (spanishSignal.test(value) && !localizableKeys.has(value)) {
-      errors.push(`${relativePath}: Spanish literal is not present in Localizable.xcstrings -> "${value}"`);
+  for (const key of extractLocalizedComponentKeys(source)) {
+    userFacingCatalogKeys.add(key);
+    if (!localizableKeys.has(key)) {
+      errors.push(`${relativePath}: localized component key is not present in Localizable.xcstrings -> "${key}"`);
     }
+  }
+
+  for (const value of extractUserFacingLiterals(source)) {
+    if (value.includes("\\(") || !/[A-Za-z\u00C0-\u017F]/.test(value)) continue;
+    userFacingCatalogKeys.add(value);
+    if (!localizableKeys.has(value)) {
+      const kind = spanishSignal.test(value) ? "Spanish literal" : "user-facing literal";
+      errors.push(`${relativePath}: ${kind} is not present in Localizable.xcstrings -> "${value}"`);
+    }
+  }
+}
+
+
+for (const key of userFacingCatalogKeys) {
+  const spanish = localizable.strings[key]?.localizations?.es?.stringUnit?.value;
+  if (key.includes("_") && spanish === key) {
+    errors.push(`Reps/Resources/Localizable.xcstrings: user-facing key is exposed as its Spanish value -> "${key}"`);
   }
 }
 

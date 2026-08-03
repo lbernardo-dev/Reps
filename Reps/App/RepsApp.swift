@@ -109,19 +109,22 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
             completionHandler(.noData)
             return
         }
-        NotificationService.postCloudKitSocialNotification(subscriptionID: subscriptionID)
-
         // The banner above is transient (system notification center only) — also
         // resolve who actually followed/liked and persist a durable in-app
         // activity entry so it still shows up in the Notifications tab after
         // the banner is dismissed, with a working link to their profile.
         guard let queryNotification = ckNotification as? CKQueryNotification,
               let recordID = queryNotification.recordID else {
-            completionHandler(.noData)
+            NotificationService.postCloudKitSocialNotification(subscriptionID: subscriptionID)
+            completionHandler(.newData)
             return
         }
         Task {
             if let actor = await SocialService.shared.resolveActivityActor(recordID: recordID) {
+                NotificationService.postCloudKitSocialNotification(
+                    subscriptionID: subscriptionID,
+                    actorUsername: actor.username
+                )
                 let event: NotificationEvent = switch actor.kind {
                 case "follow":
                     NotificationEvent(
@@ -155,6 +158,8 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
                     )
                 }
                 AppStore.persistActivityEventFromBackground(event)
+            } else {
+                NotificationService.postCloudKitSocialNotification(subscriptionID: subscriptionID)
             }
             completionHandler(.newData)
         }

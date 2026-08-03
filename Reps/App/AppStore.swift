@@ -465,6 +465,15 @@ final class AppStore {
                 scheduledWorkoutID: nil,
                 action: target.action
             )
+        case .socialActivity:
+            pendingSocialSearch = target.socialUsername
+            pendingSocialHubPresentation = true
+            notificationDestination = NotificationDestination(
+                tab: .profile,
+                focusDate: nil,
+                scheduledWorkoutID: nil,
+                action: target.action
+            )
         default:
             // gymRenewal and notifications without a navigable root land on Hoy.
             notificationDestination = NotificationDestination(
@@ -4806,7 +4815,17 @@ final class AppStore {
         case .workout: userProfile.notifyWorkoutActivity = enabled
         case .achievement: userProfile.notifyAchievements = enabled
         case .coaching: userProfile.notifyCoachingTips = enabled
-        case .social: userProfile.socialNotificationsEnabled = enabled
+        case .social:
+            userProfile.socialNotificationsEnabled = enabled
+            if let username = userProfile.socialUsername {
+                Task {
+                    if enabled {
+                        await SocialService.shared.subscribeToSocialActivity(myUsername: username)
+                    } else {
+                        await SocialService.shared.unsubscribeFromSocialActivity(myUsername: username)
+                    }
+                }
+            }
         }
     }
 
@@ -4916,8 +4935,13 @@ final class AppStore {
             unreadFeedCount = 0
             return
         }
-        var usernames = userProfile.socialFollowingUsernames
-        if let own = userProfile.socialUsername { usernames.append(own.lowercased()) }
+        guard let own = userProfile.socialUsername else { return }
+        let incomingProfiles = (try? await SocialService.shared.fetchFollowerProfiles(myUsername: own)) ?? []
+        let incomingUsernames = Set(incomingProfiles.map { $0.username.lowercased() })
+        var usernames = userProfile.socialFollowingUsernames.filter {
+            incomingUsernames.contains($0.lowercased())
+        }
+        usernames.append(own.lowercased())
         guard !usernames.isEmpty else { return }
         // Drain any comments written while offline before refreshing.
         await SocialService.shared.flushOutbox()
@@ -4925,9 +4949,12 @@ final class AppStore {
         do {
             let posts = try await SocialService.shared.fetchFeed(followingUsernames: usernames)
             let blocked = Set(userProfile.socialBlockedUsernames.map { $0.lowercased() })
-            feedPosts = posts.filter { !blocked.contains($0.ownerUsername.lowercased()) && !bannedUsernames.contains($0.ownerUsername.lowercased()) }
+            feedPosts = posts.filter {
+                !blocked.contains($0.ownerUsername.lowercased())
+                    && !bannedUsernames.contains($0.ownerUsername.lowercased())
+            }
             let lastCheck = lastFeedCheckDate
-            unreadFeedCount = posts.filter { $0.createdAt > lastCheck }.count
+            unreadFeedCount = feedPosts.filter { $0.createdAt > lastCheck }.count
         } catch {}
         isFeedLoading = false
         // Comment digests load after the feed is visible so they never delay it.
@@ -4965,8 +4992,20 @@ final class AppStore {
             userProfile.socialBlockedUsernames.append(normalized)
         }
         feedPosts.removeAll { $0.ownerUsername.lowercased() == normalized }
+        commentSummaries = commentSummaries.mapValues { summary in
+            guard summary.lastComment?.ownerUsername.lowercased() == normalized else { return summary }
+            return CommentSummary(count: summary.count, lastComment: nil)
+        }
         do {
             try await SocialService.shared.blockUser(username: normalized, blockerUsername: blocker)
+            if let profile = try await SocialService.shared.fetchProfile(username: normalized) {
+                try? await SocialService.shared.unfollow(profile)
+            }
+            userProfile.socialFollowingUsernames.removeAll { $0.lowercased() == normalized }
+            await SocialService.shared.updateMyFollowingList(
+                myUsername: blocker,
+                followingUsernames: userProfile.socialFollowingUsernames
+            )
             return true
         } catch {
             TelemetryService.shared.record(error, context: "social_block_user")

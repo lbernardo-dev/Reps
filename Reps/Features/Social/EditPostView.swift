@@ -30,9 +30,15 @@ struct EditPostView: View {
         NavigationStack {
             Form {
                 Section("Post") {
-                    TextField("Title", text: $title)
-                    TextField("Caption", text: $caption, axis: .vertical)
+                    TextField("post_title", text: $title)
+                        .onChange(of: title) { _, value in
+                            if value.count > 120 { title = String(value.prefix(120)) }
+                        }
+                    TextField("post_caption", text: $caption, axis: .vertical)
                         .lineLimit(3...8)
+                        .onChange(of: caption) { _, value in
+                            if value.count > 1_000 { caption = String(value.prefix(1_000)) }
+                        }
                 }
             }
             .navigationTitle("Edit post")

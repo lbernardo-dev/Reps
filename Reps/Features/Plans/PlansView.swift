@@ -1978,7 +1978,7 @@ struct PlanPlaylistEditor: View {
                 VStack(spacing: 12) {
                     TextField("playlist_name", text: $title)
                         .textFieldStyle(.roundedBorder)
-                    TextField("https://music.apple.com/...", text: $urlString)
+                    TextField("apple_music_url_placeholder", text: $urlString)
                         .textFieldStyle(.roundedBorder)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)

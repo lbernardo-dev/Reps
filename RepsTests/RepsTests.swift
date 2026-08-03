@@ -28,6 +28,17 @@ struct RepsTests {
         ))
     }
 
+    @Test func socialNotificationTargetRoutesToActorProfile() {
+        let target = NotificationService.notificationTarget(from: [
+            "notification_kind": "socialActivity",
+            "social_username": "yilian"
+        ])
+
+        #expect(target?.kind == .socialActivity)
+        #expect(target?.socialUsername == "yilian")
+        #expect(target?.with(action: .open).socialUsername == "yilian")
+    }
+
     @Test func vitalsPathPromotionPolicyLimitsEligibleTabsAndChoosesPlacement() {
         let topPromotion = VitalsPathPromotionPolicy.promotion(
             for: .today,

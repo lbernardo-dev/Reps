@@ -548,6 +548,8 @@ struct SocialOnboardingView: View {
                 availabilityStatus = .iCloudUnavailable
             case .usernameTaken:
                 availabilityStatus = .taken
+            case .invalidUsername:
+                availabilityStatus = .tooShort
             case .malformedChallengeRecord:
                 errorMessage = socialError.localizedDescription
             case .notAuthorized:

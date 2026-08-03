@@ -150,6 +150,9 @@ struct CommentsView: View {
                 .padding(.vertical, 8)
                 .background(PulseTheme.grouped)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .onChange(of: draftText) { _, value in
+                    if value.count > 1_000 { draftText = String(value.prefix(1_000)) }
+                }
 
             Button {
                 let text = draftText
@@ -206,10 +209,10 @@ struct CommentsView: View {
         }
         // Instant first paint from the local cache (works fully offline)…
         let cached = await SocialService.shared.cachedComments(postID: post.id)
-        comments = cached
+        comments = visibleComments(cached)
         isLoading = cached.isEmpty
         // …then reconcile with CloudKit when online (no-op otherwise).
-        comments = await SocialService.shared.fetchComments(postID: post.id)
+        comments = visibleComments(await SocialService.shared.fetchComments(postID: post.id))
         isLoading = false
     }
 
@@ -234,5 +237,13 @@ struct CommentsView: View {
         await store.refreshCommentSummary(postID: post.id)
         HapticService.selection()
         isSending = false
+    }
+
+    private func visibleComments(_ source: [WorkoutComment]) -> [WorkoutComment] {
+        let blocked = Set(store.userProfile.socialBlockedUsernames.map { $0.lowercased() })
+        return source.filter {
+            !blocked.contains($0.ownerUsername.lowercased())
+                && !store.bannedUsernames.contains($0.ownerUsername.lowercased())
+        }
     }
 }
