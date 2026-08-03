@@ -2028,7 +2028,7 @@ struct ExerciseDetailView: View {
                             store.updateExercise(updated)
                         }
                     ) {
-                        Label("record_or_add_video", systemImage: "video.badge.plus")
+                        Label(localizedString("record_or_add_video"), systemImage: "video.badge.plus")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
@@ -2220,7 +2220,7 @@ struct ExerciseDetailView: View {
                     Button {
                         showBookmarkEditor = true
                     } label: {
-                        Label("add_external_video_link", systemImage: "bookmark.badge.plus")
+                        Label(localizedString("add_link_or_external_video"), systemImage: "link.badge.plus")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
@@ -2240,12 +2240,9 @@ struct ExerciseDetailView: View {
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(currentExercise.localizedName(language: store.userProfile.preferredLanguage))
-                        .font(.largeTitle.bold())
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.74)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .font(.title2.bold())
                     Text("\(ExerciseTextLocalizer.muscle(currentExercise.muscleGroup, language: store.userProfile.preferredLanguage)) · \(ExerciseTextLocalizer.equipment(currentExercise.equipment, language: store.userProfile.preferredLanguage))")
+                        .font(.subheadline)
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -2256,7 +2253,7 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    CardTitle("Use this exercise")
+                    CardTitle("use_this_exercise")
                     Label(trackingLabel, systemImage: "chart.bar.fill")
                         .foregroundStyle(PulseTheme.secondaryText)
                         .lineLimit(2)
@@ -2315,7 +2312,7 @@ struct ExerciseDetailView: View {
                                 store.updateExercise(updated)
                             }
                         ) {
-                            Label("cambiar_imagen_o_video", systemImage: "photo.badge.plus")
+                            Label(localizedString("cambiar_imagen_o_video"), systemImage: "photo.badge.plus")
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
@@ -2327,7 +2324,7 @@ struct ExerciseDetailView: View {
                         Button {
                             showBookmarkEditor = true
                         } label: {
-                            Label("marcadores", systemImage: "bookmark.fill")
+                            Label(localizedString("marcadores"), systemImage: "bookmark.fill")
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
@@ -2338,12 +2335,12 @@ struct ExerciseDetailView: View {
                     }
 
                     if ExerciseVisualResolver.hasValidCustomImage(currentExercise.customImageData) {
-                        Label("imagen_propia_guardada_offline", systemImage: "checkmark.seal.fill")
+                        Label(localizedString("imagen_propia_guardada_offline"), systemImage: "checkmark.seal.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.accent)
                     }
                     if ExerciseVisualResolver.hasValidCustomVideo(currentExercise.customVideoData) {
-                        Label("video_propio_guardado_offline", systemImage: "checkmark.seal.fill")
+                        Label(localizedString("video_propio_guardado_offline"), systemImage: "checkmark.seal.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PulseTheme.accent)
                     }
@@ -2380,7 +2377,7 @@ struct ExerciseDetailView: View {
 
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    CardTitle("Reference")
+                    CardTitle("reference")
                     if let notes = currentExercise.notes, !notes.isEmpty {
                         Text(notes)
                             .foregroundStyle(PulseTheme.secondaryText)
