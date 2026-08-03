@@ -75,7 +75,7 @@ private struct RepsWeightWidgetView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "scalemass.fill")
                         .font(.caption2)
-                    Text("WEIGHT EVOLUTION")
+                    Text(localizedKey("weight_evolution"))
                         .font(.system(size: 9, weight: .bold))
                 }
                 .foregroundStyle(.secondary)
@@ -88,7 +88,7 @@ private struct RepsWeightWidgetView: View {
             .widgetURL(URL(string: "reps://weight"))
 
         case .accessoryInline:
-            Text(String(format: "Weight: %.1f kg (%+.1f kg)", currentKg, deltaKg))
+            Text("\(localizedKey("weight")): \(String(format: "%.1f", currentKg)) kg (\(String(format: "%+.1f", deltaKg)) kg)")
                 .widgetURL(URL(string: "reps://weight"))
 
         case .systemSmall:
@@ -127,7 +127,7 @@ private struct SmallWeightWidgetView: View {
                     Image(systemName: "scalemass.fill")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(theme.tint)
-                    Text("WEIGHT")
+                        Text(localizedKey("weight"))
                         .font(.system(size: 9, weight: .black))
                         .foregroundStyle(theme.tint)
                 }
@@ -184,7 +184,7 @@ private struct MediumWeightWidgetView: View {
                     Image(systemName: "scalemass.fill")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(theme.tint)
-                    Text("BODY WEIGHT")
+                    Text(localizedKey("body_weight"))
                         .font(.system(size: 10, weight: .black))
                         .foregroundStyle(theme.tint)
                 }
@@ -264,16 +264,16 @@ private struct LargeWeightWidgetView: View {
                         .font(.title3.weight(.bold))
                         .foregroundStyle(theme.tint)
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("BODY WEIGHT EVOLUTION")
+                        Text(localizedKey("body_weight_evolution"))
                             .font(.caption2.weight(.black))
                             .foregroundStyle(theme.tint)
-                        Text("Progress & Trend")
+                        Text(localizedKey("progress_and_trend"))
                             .font(.headline.weight(.bold))
                             .foregroundStyle(theme.foreground)
                     }
                 }
                 Spacer()
-                Text(String(format: "Target: %.1f kg", targetKg))
+                Text("\(localizedKey("target")): \(String(format: "%.1f", targetKg)) kg")
                     .font(.caption.weight(.bold))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
@@ -284,7 +284,7 @@ private struct LargeWeightWidgetView: View {
             // Stat Cards
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("CURRENT")
+                Text(localizedKey("current"))
                         .font(.system(size: 9, weight: .black))
                         .foregroundStyle(theme.secondaryForeground)
                     Text(String(format: "%.1f kg", currentKg))
@@ -337,7 +337,7 @@ private struct LargeWeightWidgetView: View {
                     .font(.caption.weight(.bold))
                     .foregroundStyle(theme.tint)
                 Spacer()
-                Text("Tap to open")
+                Text(localizedKey("tap_to_open"))
                     .font(.caption2)
                     .foregroundStyle(theme.secondaryForeground)
             }

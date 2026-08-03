@@ -244,7 +244,7 @@ private struct MuscleCoverageSummaryCard: View {
                     .frame(width: 62, height: 62)
 
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("muscle_map")
+                        Text(localizedKey("muscle_map"))
                             .font(.caption.weight(.black))
                             .textCase(.uppercase)
                             .foregroundStyle(PulseTheme.ringStand)

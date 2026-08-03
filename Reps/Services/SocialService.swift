@@ -575,6 +575,32 @@ actor SocialService {
         } catch { return 0 }
     }
 
+    /// Resolves the public profiles behind follows targeting `myUsername`.
+    /// This reuses the same production field required by follower count and
+    /// new-follower subscriptions; it introduces no new CloudKit schema.
+    func fetchFollowerProfiles(myUsername: String) async throws -> [SocialProfile] {
+        let normalized = myUsername.lowercased()
+        guard !normalized.isEmpty else { return [] }
+
+        let query = CKQuery(
+            recordType: "SocialFollow",
+            predicate: NSPredicate(format: "followingUsername == %@", normalized)
+        )
+        let result = try await getPublicDB().records(matching: query, resultsLimit: 200)
+        let ownerNames = Set(result.matchResults.compactMap { _, recordResult in
+            guard let record = try? recordResult.get() else { return nil }
+            return record["followerOwnerName"] as? String
+        })
+
+        var profiles: [SocialProfile] = []
+        for ownerName in ownerNames {
+            if let profile = try? await fetchProfile(ownerRecordName: ownerName) {
+                profiles.append(profile)
+            }
+        }
+        return profiles.sorted { $0.username < $1.username }
+    }
+
     func pingActivity(myUsername: String) async {
         guard !myUsername.isEmpty else { return }
         guard await iCloudAccountIssue() == nil else { return }
@@ -746,7 +772,7 @@ actor SocialService {
         do {
             let record = try await getPublicDB().record(for: rid)
             return SocialProfile(record: record)
-        } catch {
+        } catch let error as CKError where error.code == .unknownItem {
             return nil
         }
     }
@@ -809,7 +835,7 @@ actor SocialService {
         var seenIDs: Set<String> = []
 
         // Strategy 1: Direct deterministic record lookup by username (100% reliable without CloudKit Dashboard index)
-        if let directProfile = try? await fetchProfile(username: cleanQuery) {
+        if let directProfile = try await fetchProfile(username: cleanQuery) {
             if myID == nil || directProfile.ownerRecordName != myID?.recordName {
                 profiles.append(directProfile)
                 seenIDs.insert(directProfile.id)

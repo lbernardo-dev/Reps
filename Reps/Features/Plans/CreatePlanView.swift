@@ -161,7 +161,7 @@ struct CreatePlanView: View {
                     .opacity(step == .basics ? 0.45 : 1)
 
                     Button { nextOrSave() } label: {
-                        Label(step == .musicReview ? "plan_save_cta" : "continue_plan", systemImage: step == .musicReview ? "checkmark" : "chevron.right")
+                        Label(localizedString(step == .musicReview ? "plan_save_cta" : "continue_plan"), systemImage: step == .musicReview ? "checkmark" : "chevron.right")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
@@ -241,9 +241,9 @@ struct CreatePlanView: View {
                 PulseCard(backgroundColor: PulseTheme.accent.opacity(0.10)) {
                     Label {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("plan_smart_defaults_title")
+                            Text(localizedString("plan_smart_defaults_title"))
                                 .font(.headline)
-                            Text("plan_smart_defaults_body")
+                            Text(localizedString("plan_smart_defaults_body"))
                                 .font(.caption.weight(.medium))
                                 .foregroundStyle(PulseTheme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -268,7 +268,7 @@ struct CreatePlanView: View {
                     .pickerStyle(.segmented)
                     if !isEditing {
                         Toggle("activate_on_save", isOn: $activateImmediately)
-                        Text("activate_on_save_loss_hint")
+                        Text(localizedString("activate_on_save_loss_hint"))
                             .font(.caption.weight(.medium))
                             .foregroundStyle(PulseTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -283,9 +283,9 @@ struct CreatePlanView: View {
                             Image(systemName: "calendar.badge.clock")
                                 .foregroundStyle(PulseTheme.accent)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("do_you_have_a_target_event")
+                                Text(localizedString("do_you_have_a_target_event"))
                                     .font(.headline)
-                                Text("adapt_duration_according_to_deadline")
+                                Text(localizedString("adapt_duration_according_to_deadline"))
                                     .font(.caption)
                                     .foregroundStyle(PulseTheme.secondaryText)
                             }
@@ -296,7 +296,7 @@ struct CreatePlanView: View {
                         Divider()
 
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("event_name")
+                            Text(localizedString("event_name"))
                                 .font(.caption.bold())
                                 .foregroundStyle(PulseTheme.secondaryText)
                             TextField("ex_wedding_vacation_marathon", text: $targetEventName)

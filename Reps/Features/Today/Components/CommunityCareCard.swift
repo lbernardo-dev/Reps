@@ -38,7 +38,7 @@ struct CommunityCareCard: View {
                     showCustomizeSheet = true
                 } label: {
                     HStack(spacing: 2) {
-                        Text(String(localized: "edit_action", defaultValue: "Edit"))
+                        Text(localizedString("edit_action"))
                             .font(.subheadline.weight(.semibold))
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.bold))
@@ -126,10 +126,10 @@ struct CommunityCareCard: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: hasCheered ? "checkmark.circle.fill" : "bolt.heart.fill")
                                             .font(.system(size: 12, weight: .bold))
-                                        Text(hasCheered ? String(localized: "cheer_friend") : String(localized: "cheer_friend"))
+                                        Text(localizedString("cheer_friend"))
                                             .font(.caption.weight(.bold))
                                     }
-                                    .foregroundStyle(hasCheered ? .green : .white)
+                                    .foregroundStyle(hasCheered ? .green : PulseTheme.onColor(PulseTheme.accent))
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
                                     .background(hasCheered ? Color.green.opacity(0.15) : PulseTheme.accent)
@@ -282,7 +282,7 @@ private struct InviteFriendsBanner: View {
             Button(action: inviteAction) {
                 Label(String(localized: "invite_friends_action"), systemImage: "person.crop.circle.badge.plus")
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
                     .background(PulseTheme.accent, in: Capsule())

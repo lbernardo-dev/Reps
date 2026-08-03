@@ -316,7 +316,7 @@ struct ActiveWorkoutCommandCard: View {
                     )
                 } else {
                     HStack(spacing: 8) {
-                        CommandSignal(title: "Target", value: setTarget, systemImage: "scope", color: PulseTheme.accent)
+                        CommandSignal(title: localizedString("target"), value: setTarget, systemImage: "scope", color: PulseTheme.accent)
                         if let suggestion {
                             CommandSignal(title: localizedString("suggestion"), value: suggestion, systemImage: "sparkles", color: PulseTheme.accent)
                         } else if let history {

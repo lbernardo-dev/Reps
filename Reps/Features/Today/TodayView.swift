@@ -1469,7 +1469,7 @@ private struct TodayViewContent: View {
             .frame(width: 54, height: 54)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(localizedString(isPaused ? "PAUSED" : "IN PROGRESS"))
+                Text(localizedString(isPaused ? "paused" : "in_progress"))
                     .font(.system(size: 10, weight: .black, design: .rounded))
                     .tracking(1.8)
                     .foregroundStyle(Color.orange)
@@ -1773,7 +1773,7 @@ private struct TodayViewContent: View {
                     .background(isPaused ? PulseTheme.playControl : PulseTheme.pauseControl)
                     .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
             }
-            .accessibilityLabel(isPaused ? "Resume workout" : "Pause workout")
+            .accessibilityLabel(localizedString(isPaused ? "resume_workout" : "pause_workout"))
 
             Button {
                 store.finishActiveWorkoutFromSummaryCard()

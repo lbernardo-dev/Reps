@@ -30,11 +30,10 @@ struct OnboardingHeroStepView: View {
                         startPoint: .leading,
                         endPoint: .trailing
                     ))
-                Text("\(Text("onboarding_hero_meet"))\(brandText)\(Text("onboarding_hero_partner"))")
+                Text("\(Text("onboarding_hero_meet")) \(brandText)")
                     .font(.system(size: 38, weight: .heavy))
                     .multilineTextAlignment(.center)
-                    .lineLimit(4)
-                    .minimumScaleFactor(0.76)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text("onboarding_hero_tagline")
                     .font(.body.weight(.medium))

@@ -69,11 +69,11 @@ struct WorkoutPostCard: View {
             .environment(store)
             .repsSheetPresentation()
         }
-        .alert("Delete post?", isPresented: $showDeleteConfirmation) {
-            Button("Delete", role: .destructive) { deletePost() }
+        .alert(localizedString("social_delete_post_title"), isPresented: $showDeleteConfirmation) {
+            Button(localizedString("social_delete_post_action"), role: .destructive) { deletePost() }
             Button(localizedString("cancel"), role: .cancel) { }
         } message: {
-            Text("This action cannot be undone.")
+            Text(localizedString("social_delete_post_message"))
         }
         .alert(localizedString("ok"), isPresented: Binding(
             get: { actionError != nil },
@@ -127,12 +127,12 @@ struct WorkoutPostCard: View {
                         Button {
                             postToEdit = post
                         } label: {
-                            Label("Edit post", systemImage: "pencil")
+                            Label(localizedString("social_edit_post"), systemImage: "pencil")
                         }
                         Button(role: .destructive) {
                             showDeleteConfirmation = true
                         } label: {
-                            Label("Delete post", systemImage: "trash")
+                            Label(localizedString("social_delete_post_action"), systemImage: "trash")
                         }
                     } else {
                         Button {

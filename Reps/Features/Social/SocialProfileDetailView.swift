@@ -11,6 +11,7 @@ import SwiftUI
 
 struct SocialProfileDetailView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let username: String
 
     @State private var profile: SocialProfile?
@@ -52,8 +53,9 @@ struct SocialProfileDetailView: View {
                 Spacer(minLength: 40)
             }
             .padding(.horizontal, PulseTheme.screenHorizontalPadding)
-            .padding(.top, 16)
+            .padding(.top, 12)
         }
+        .contentMargins(.top, 48, for: .scrollContent)
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .screenBackground()
         .navigationTitle(Text(verbatim: "@\(username)"))
@@ -107,97 +109,148 @@ struct SocialProfileDetailView: View {
 
     private func profileHeaderCard(_ profile: SocialProfile) -> some View {
         PulseCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 14) {
-                    avatarCircle(data: profile.avatarImageData, username: profile.username, size: 64)
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 14) {
+                    avatarCircle(data: profile.avatarImageData, username: profile.username, size: 72)
+                        .overlay(alignment: .bottomTrailing) {
+                            if profile.isOnline {
+                                Circle()
+                                    .fill(PulseTheme.semanticHealth)
+                                    .frame(width: 15, height: 15)
+                                    .overlay { Circle().stroke(PulseTheme.card, lineWidth: 3) }
+                                    .accessibilityHidden(true)
+                            }
+                        }
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 7) {
                         Text(verbatim: "@\(profile.username)")
-                            .font(.headline)
-                        HStack(spacing: 6) {
-                            Text(localizedFormat("player_level_abbr_title_format", "\(profile.level)", profile.levelTitle))
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .foregroundStyle(PulseTheme.accent)
-                                .padding(.horizontal, 7).padding(.vertical, 3)
-                                .background(PulseTheme.accent.opacity(0.10))
-                                .clipShape(Capsule())
-                            Text("\(profile.totalXP) XP")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
+                            .font(.title3.weight(.bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 6) {
+                                levelBadge(profile)
+                                xpLabel(profile.totalXP)
+                            }
+                            VStack(alignment: .leading, spacing: 5) {
+                                levelBadge(profile)
+                                xpLabel(profile.totalXP)
+                            }
+                        }
+
+                        if profile.isOnline {
+                            Label(localizedString("social_online"), systemImage: "circle.fill")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(PulseTheme.semanticHealth)
                         }
                     }
-
-                    Spacer()
-
-                    if profile.isOnline {
-                        Text(localizedString("social_online"))
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.green)
-                            .padding(.horizontal, 7).padding(.vertical, 3)
-                            .background(.green.opacity(0.12))
-                            .clipShape(Capsule())
-                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .accessibilityElement(children: .combine)
 
                 if !profile.bio.isEmpty || !profile.location.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if !profile.location.isEmpty {
-                            Label(profile.location, systemImage: "mappin")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PulseTheme.secondaryText)
-                        }
+                    VStack(alignment: .leading, spacing: 6) {
                         if !profile.bio.isEmpty {
                             Text(profile.bio)
                                 .font(.subheadline)
-                                .foregroundStyle(.primary.opacity(0.85))
+                                .foregroundStyle(.primary.opacity(0.88))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if !profile.location.isEmpty {
+                            Label(profile.location, systemImage: "mappin.and.ellipse")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(PulseTheme.secondaryText)
                         }
                     }
                 }
 
                 if !profile.activePlanName.isEmpty {
-                    Label(profile.activePlanName, systemImage: "calendar.badge.checkmark")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.accent)
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(PulseTheme.accent.opacity(0.08))
-                        .clipShape(Capsule())
+                    HStack(spacing: 10) {
+                        Image(systemName: "calendar.badge.checkmark")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(PulseTheme.accentOnCard)
+                            .frame(width: 28, height: 28)
+                            .background(PulseTheme.accent.opacity(0.12), in: Circle())
+                        Text(profile.activePlanName)
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(PulseTheme.accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .accessibilityElement(children: .combine)
                 }
 
                 Divider()
 
-                HStack {
-                    statPill(value: "\(profile.followingUsernames.count)", label: localizedString("social_following"))
-                    Divider().frame(height: 24)
-                    statPill(value: "\(followerCount)", label: localizedString("social_followers"))
-                    Divider().frame(height: 24)
-                    statPill(value: "\(profile.totalSessions)", label: localizedString("social_workouts"))
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: 12) {
+                        statPill(value: "\(profile.followingUsernames.count)", label: localizedString("social_following"))
+                        Divider()
+                        statPill(value: "\(followerCount)", label: localizedString("social_followers"))
+                        Divider()
+                        statPill(value: "\(profile.totalSessions)", label: localizedString("social_workouts"))
+                    }
+                } else {
+                    HStack(spacing: 0) {
+                        statPill(value: "\(profile.followingUsernames.count)", label: localizedString("social_following"))
+                        Divider().frame(height: 30)
+                        statPill(value: "\(followerCount)", label: localizedString("social_followers"))
+                        Divider().frame(height: 30)
+                        statPill(value: "\(profile.totalSessions)", label: localizedString("social_workouts"))
+                    }
                 }
 
                 if !isMe {
                     Button {
                         Task { await toggleFollow() }
                     } label: {
-                        HStack {
+                        HStack(spacing: 8) {
                             if isFollowActionInProgress {
-                                ProgressView().tint(isFollowing ? PulseTheme.accent : .black)
+                                ProgressView().tint(isFollowing ? PulseTheme.accentOnCard : .black)
                             } else {
+                                Image(systemName: isFollowing ? "checkmark" : "person.badge.plus")
+                                    .font(.subheadline.weight(.bold))
                                 Text(localizedString(isFollowing ? "social_following_button" : "social_follow"))
                                     .font(.subheadline.weight(.bold))
                             }
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .foregroundStyle(isFollowing ? PulseTheme.accent : .black)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .foregroundStyle(isFollowing ? PulseTheme.accentOnCard : .black)
                         .background(
-                            isFollowing ? PulseTheme.accent.opacity(0.1) : PulseTheme.accent,
+                            isFollowing ? PulseTheme.accent.opacity(0.10) : PulseTheme.accent,
                             in: RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
                         )
+                        .overlay {
+                            if isFollowing {
+                                RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous)
+                                    .stroke(PulseTheme.accent.opacity(0.30), lineWidth: 1)
+                            }
+                        }
                     }
                     .buttonStyle(.plain)
                     .disabled(isFollowActionInProgress)
                 }
             }
         }
+    }
+
+    private func levelBadge(_ profile: SocialProfile) -> some View {
+        Text(localizedFormat("player_level_abbr_title_format", "\(profile.level)", profile.levelTitle))
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(PulseTheme.accentOnCard)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(PulseTheme.accent.opacity(0.11), in: Capsule())
+            .lineLimit(1)
+    }
+
+    private func xpLabel(_ xp: Int) -> some View {
+        Text("\(xp) XP")
+            .font(.caption.weight(.semibold).monospacedDigit())
+            .foregroundStyle(PulseTheme.secondaryText)
+            .lineLimit(1)
     }
 
     private func avatarCircle(data: Data?, username: String, size: CGFloat) -> some View {
@@ -219,99 +272,285 @@ struct SocialProfileDetailView: View {
     }
 
     private func statPill(value: String, label: String) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 3) {
             Text(value)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.title3.weight(.bold).monospacedDigit())
             Text(label)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(PulseTheme.secondaryText)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
     }
 
     // MARK: - Comparison ("you vs them")
+
+    private enum ComparisonOutcome {
+        case mine
+        case theirs
+        case tied
+    }
+
+    private struct ComparisonMetric: Identifiable {
+        let id: String
+        let icon: String
+        let color: Color
+        let title: String
+        let myValue: String
+        let theirValue: String
+        let outcome: ComparisonOutcome
+    }
 
     private func comparisonCard(_ profile: SocialProfile) -> some View {
         let xp = store.playerXP
         let lvl = GamificationEngine.playerLevel(for: xp)
         let myName = store.userProfile.socialUsername ?? localizedString("social_you")
-        let myAhead = xp > profile.totalXP
+        let myAhead = xp >= profile.totalXP
+        let metrics = [
+            ComparisonMetric(
+                id: "xp",
+                icon: "star.fill",
+                color: PulseTheme.accentOnCard,
+                title: "XP",
+                myValue: "\(xp)",
+                theirValue: "\(profile.totalXP)",
+                outcome: comparisonOutcome(xp, profile.totalXP)
+            ),
+            ComparisonMetric(
+                id: "level",
+                icon: "chart.bar.fill",
+                color: PulseTheme.accentOnCard,
+                title: localizedString("social_level"),
+                myValue: localizedFormat("player_level_abbr_format", "\(lvl.level)"),
+                theirValue: localizedFormat("player_level_abbr_format", "\(profile.level)"),
+                outcome: comparisonOutcome(lvl.level, profile.level)
+            ),
+            ComparisonMetric(
+                id: "sessions",
+                icon: "dumbbell.fill",
+                color: PulseTheme.ringStand,
+                title: localizedString("social_sessions"),
+                myValue: "\(store.workoutSessions.count)",
+                theirValue: "\(profile.totalSessions)",
+                outcome: comparisonOutcome(store.workoutSessions.count, profile.totalSessions)
+            ),
+            ComparisonMetric(
+                id: "volume",
+                icon: "scalemass.fill",
+                color: PulseTheme.accentOnCard,
+                title: localizedString("volume"),
+                myValue: volumeLabel(store.totalVolumeKg),
+                theirValue: volumeLabel(profile.totalVolumeKg),
+                outcome: comparisonOutcome(store.totalVolumeKg, profile.totalVolumeKg)
+            ),
+            ComparisonMetric(
+                id: "streak",
+                icon: "flame.fill",
+                color: PulseTheme.semanticWarning,
+                title: localizedString("social_streak"),
+                myValue: "\(store.streakDays)d",
+                theirValue: "\(profile.streakDays)d",
+                outcome: comparisonOutcome(store.streakDays, profile.streakDays)
+            )
+        ]
 
-        return PulseCard {
-            VStack(spacing: 16) {
+        return PulseCard(contentPadding: 0) {
+            VStack(spacing: 0) {
                 HStack(spacing: 10) {
-                    Image(systemName: myAhead ? "trophy.fill" : "figure.run")
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(myAhead ? PulseTheme.accent : PulseTheme.secondaryText)
+                    PulseIconBadge(
+                        systemImage: myAhead ? "trophy.fill" : "figure.run",
+                        tint: myAhead ? PulseTheme.accentOnCard : PulseTheme.secondaryText,
+                        size: 42
+                    )
                     VStack(alignment: .leading, spacing: 2) {
                         Text(localizedString(myAhead ? "social_you_ahead" : "social_they_ahead"))
-                            .font(.system(size: 16, weight: .black, design: .rounded))
-                            .foregroundStyle(myAhead ? PulseTheme.accent : PulseTheme.secondaryText)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(myAhead ? PulseTheme.accentOnCard : .primary)
                         Text(verbatim: "@\(myName) vs @\(profile.username)")
                             .font(.caption)
                             .foregroundStyle(PulseTheme.secondaryText)
+                            .lineLimit(1)
                     }
                     Spacer()
                     ShareLink(item: shareText(me: (name: myName, xp: xp), profile: profile)) {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(PulseTheme.accent)
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(PulseTheme.accentOnCard)
+                            .frame(width: 44, height: 44)
+                            .background(PulseTheme.grouped.opacity(0.7), in: Circle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(Text("share"))
                 }
+                .padding(16)
 
                 Divider()
 
-                HStack {
-                    Spacer()
-                    Text(verbatim: "@\(myName)")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(PulseTheme.accent)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    Text(verbatim: "@\(profile.username)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PulseTheme.secondaryText)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: 0) {
+                        ForEach(metrics) { metric in
+                            accessibleComparisonRow(metric, myName: myName, theirName: profile.username)
+                        }
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        comparisonColumnHeader(myName: myName, theirName: profile.username)
 
-                compRow(icon: "star.fill", color: PulseTheme.accent, title: "XP",
-                        myVal: "\(xp)", theirVal: "\(profile.totalXP)", myWins: xp >= profile.totalXP)
-                compRow(icon: "chart.bar.fill", color: PulseTheme.accent, title: localizedString("social_level"),
-                        myVal: localizedFormat("player_level_abbr_format", "\(lvl.level)"),
-                        theirVal: localizedFormat("player_level_abbr_format", "\(profile.level)"),
-                        myWins: lvl.level >= profile.level)
-                compRow(icon: "dumbbell.fill", color: PulseTheme.ringStand, title: localizedString("social_sessions"),
-                        myVal: "\(store.workoutSessions.count)", theirVal: "\(profile.totalSessions)",
-                        myWins: store.workoutSessions.count >= profile.totalSessions)
-                compRow(icon: "scalemass.fill", color: PulseTheme.accent, title: localizedString("volume"),
-                        myVal: volumeLabel(store.totalVolumeKg), theirVal: volumeLabel(profile.totalVolumeKg),
-                        myWins: store.totalVolumeKg >= profile.totalVolumeKg)
-                compRow(icon: "flame.fill", color: .orange, title: localizedString("social_streak"),
-                        myVal: "\(store.streakDays)d", theirVal: "\(profile.streakDays)d",
-                        myWins: store.streakDays >= profile.streakDays)
+                        ForEach(metrics) { metric in
+                            comparisonRow(metric, myName: myName, theirName: profile.username)
+                        }
+                    }
+                }
             }
         }
     }
 
-    private func compRow(icon: String, color: Color, title: String, myVal: String, theirVal: String, myWins: Bool) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(color)
-                .frame(width: 20)
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-            Spacer()
-            Text(myVal)
-                .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
-                .foregroundStyle(myWins ? PulseTheme.accent : .primary)
-                .frame(maxWidth: .infinity, alignment: .center)
-            Text(theirVal)
-                .font(.system(size: 14, weight: .semibold, design: .rounded).monospacedDigit())
-                .foregroundStyle(!myWins ? PulseTheme.accent : PulseTheme.secondaryText)
-                .frame(maxWidth: .infinity, alignment: .center)
+    private func comparisonColumnHeader(myName: String, theirName: String) -> some View {
+        HStack(spacing: 8) {
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .accessibilityHidden(true)
+            comparisonParticipantHeader(localizedString("social_you_label"), username: myName, emphasized: true)
+            comparisonParticipantHeader("@\(theirName)", username: nil, emphasized: false)
         }
-        .padding(.vertical, 3)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(PulseTheme.grouped.opacity(0.45))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(localizedString("social_you_label")): @\(myName), @\(theirName)")
+    }
+
+    private func comparisonParticipantHeader(_ title: String, username: String?, emphasized: Bool) -> some View {
+        VStack(spacing: 1) {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(emphasized ? PulseTheme.accentOnCard : .primary)
+                .lineLimit(1)
+            if let username {
+                Text(verbatim: "@\(username)")
+                    .font(.caption2)
+                    .foregroundStyle(PulseTheme.secondaryText)
+                    .lineLimit(1)
+            }
+        }
+        .frame(width: 84)
+    }
+
+    private func comparisonRow(_ metric: ComparisonMetric, myName: String, theirName: String) -> some View {
+        HStack(spacing: 8) {
+            Label {
+                Text(metric.title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            } icon: {
+                Image(systemName: metric.icon)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(metric.color)
+                    .frame(width: 20)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            comparisonValue(metric.myValue, isWinner: metric.outcome == .mine)
+            comparisonValue(metric.theirValue, isWinner: metric.outcome == .theirs)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .overlay(alignment: .bottom) { Divider().padding(.leading, 44) }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(metric.title)
+        .accessibilityValue(comparisonAccessibilityValue(metric, myName: myName, theirName: theirName))
+    }
+
+    private func accessibleComparisonRow(_ metric: ComparisonMetric, myName: String, theirName: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(metric.title, systemImage: metric.icon)
+                .font(.headline)
+                .foregroundStyle(metric.color)
+
+            HStack(spacing: 10) {
+                accessibleComparisonValue(
+                    participant: localizedString("social_you_label"),
+                    value: metric.myValue,
+                    isWinner: metric.outcome == .mine
+                )
+                accessibleComparisonValue(
+                    participant: "@\(theirName)",
+                    value: metric.theirValue,
+                    isWinner: metric.outcome == .theirs
+                )
+            }
+        }
+        .padding(12)
+        .overlay(alignment: .bottom) { Divider() }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(metric.title)
+        .accessibilityValue(comparisonAccessibilityValue(metric, myName: myName, theirName: theirName))
+    }
+
+    private func comparisonValue(_ value: String, isWinner: Bool) -> some View {
+        HStack(spacing: 4) {
+            if isWinner {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.caption2.weight(.bold))
+                    .accessibilityHidden(true)
+            }
+            Text(value)
+                .font(.subheadline.weight(isWinner ? .bold : .semibold).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .foregroundStyle(isWinner ? PulseTheme.accentOnCard : PulseTheme.secondaryText)
+        .frame(width: 84)
+        .frame(minHeight: 34)
+        .background(
+            isWinner ? PulseTheme.accent.opacity(0.11) : Color.clear,
+            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+        )
+    }
+
+    private func accessibleComparisonValue(participant: String, value: String, isWinner: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(participant)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PulseTheme.secondaryText)
+            HStack(spacing: 5) {
+                if isWinner {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption)
+                }
+                Text(value)
+                    .font(.headline.monospacedDigit())
+            }
+            .foregroundStyle(isWinner ? PulseTheme.accentOnCard : .primary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(
+            isWinner ? PulseTheme.accent.opacity(0.11) : PulseTheme.grouped.opacity(0.45),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+    }
+
+    private func comparisonAccessibilityValue(_ metric: ComparisonMetric, myName: String, theirName: String) -> String {
+        let leader: String
+        switch metric.outcome {
+        case .mine:
+            leader = localizedString("social_you_ahead")
+        case .theirs:
+            leader = localizedString("social_they_ahead")
+        case .tied:
+            leader = ""
+        }
+        return "@\(myName): \(metric.myValue). @\(theirName): \(metric.theirValue). \(leader)"
+    }
+
+    private func comparisonOutcome<T: Comparable>(_ mine: T, _ theirs: T) -> ComparisonOutcome {
+        if mine > theirs { return .mine }
+        if mine < theirs { return .theirs }
+        return .tied
     }
 
     private func shareText(me: (name: String, xp: Int), profile: SocialProfile) -> String {

@@ -64,7 +64,7 @@ struct CommunityCareCustomizeView: View {
                                 Text(String(localized: "community_care_find_friends"))
                                     .font(.subheadline.weight(.bold))
                             }
-                            .foregroundStyle(.white)
+                            .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                             .padding(.horizontal, 24)
                             .padding(.vertical, 12)
                             .background(PulseTheme.accent)

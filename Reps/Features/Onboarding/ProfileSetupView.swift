@@ -218,16 +218,21 @@ struct ProfileSetupView: View {
         .padding(.horizontal, PulseTheme.screenHorizontalPadding)
         .padding(.top, 8)
         .padding(.bottom, 8)
+        .background(PulseTheme.background.opacity(0.96))
     }
 
     private var bottomContentPadding: CGFloat {
         switch step {
         case .ready:
-            128
+            168
+        case .timeline:
+            // The graphical date picker extends below the fold. Reserve the
+            // full sticky action area so its final week remains reachable.
+            168
         case .baseline, .equipment:
-            120
+            144
         default:
-            82
+            112
         }
     }
 
@@ -719,11 +724,10 @@ private struct OnboardingHeroStepView: View {
                         startPoint: .leading,
                         endPoint: .trailing
                     ))
-                Text("\(Text(onboardingLocalizedString("onboarding_hero_meet")))\(brandText)\(Text(onboardingLocalizedString("onboarding_hero_partner")))")
+                Text("\(Text(onboardingLocalizedString("onboarding_hero_meet"))) \(brandText)")
                     .font(.system(size: 38, weight: .heavy))
                     .multilineTextAlignment(.center)
-                    .lineLimit(4)
-                    .minimumScaleFactor(0.76)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(onboardingLocalizedString("onboarding_hero_tagline"))
                     .font(.body.weight(.medium))

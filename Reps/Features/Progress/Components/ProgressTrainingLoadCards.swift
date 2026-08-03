@@ -123,9 +123,11 @@ struct ExerciseProgressRow: View {
       VStack(alignment: .leading, spacing: 3) {
         Text(exercise.name)
           .font(.headline)
-        Text(
-          "\(summary?.loggedDaysCount ?? 0) logged days · \(Int(summary?.totalVolumeKg ?? 0)) kg volume"
-        )
+        Text(localizedFormat(
+          "exercise_progress_summary_format",
+          summary?.loggedDaysCount ?? 0,
+          Int(summary?.totalVolumeKg ?? 0)
+        ))
         .font(.subheadline)
         .foregroundStyle(PulseTheme.secondaryText)
       }

@@ -36,7 +36,7 @@ struct CommunityCareAboutSheet: View {
                 HapticService.selection()
                 dismiss()
             } label: {
-                Text(String(localized: "okay_action", defaultValue: "Okay"))
+                Text(localizedString("okay_action"))
                     .font(.headline.weight(.bold))
                     .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
                     .frame(maxWidth: .infinity, minHeight: 52)

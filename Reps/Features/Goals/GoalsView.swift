@@ -240,15 +240,15 @@ struct GoalCard: View {
         Group {
             switch goal.status {
             case .achieved:
-                Text("goal_badge_achieved")
+                Text(localizedString("goal_badge_achieved"))
                     .foregroundStyle(PulseTheme.recovery)
                     .background(PulseTheme.recovery.opacity(0.12))
             case .overdue:
-                Text("goal_badge_overdue")
+                Text(localizedString("goal_badge_overdue"))
                     .foregroundStyle(PulseTheme.destructive)
                     .background(PulseTheme.destructive.opacity(0.12))
             case .active:
-                Text("goal_badge_active")
+                Text(localizedString("goal_badge_active"))
                     .foregroundStyle(PulseTheme.accent)
                     .background(PulseTheme.accent.opacity(0.10))
             }
@@ -318,24 +318,24 @@ struct GoalEditorView: View {
                     deleteSection
                 }
             }
-            .navigationTitle(isEditing ? "goal_edit_title" : "goal_new_title")
+            .navigationTitle(localizedString(isEditing ? "goal_edit_title" : "goal_new_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("cancel") { dismiss() }
+                    Button(localizedString("cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("save") { save() }
+                    Button(localizedString("save")) { save() }
                         .fontWeight(.semibold)
                         .disabled(!canSave)
                 }
             }
             .onAppear { loadExisting() }
-            .confirmationDialog("goal_delete_confirm_title", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-                Button("goal_delete_action", role: .destructive) { deleteGoal() }
-                Button("cancel", role: .cancel) {}
+            .confirmationDialog(localizedString("goal_delete_confirm_title"), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button(localizedString("goal_delete_action"), role: .destructive) { deleteGoal() }
+                Button(localizedString("cancel"), role: .cancel) {}
             } message: {
-                Text("goal_delete_confirm_message")
+                Text(localizedString("goal_delete_confirm_message"))
             }
         }
     }
@@ -377,7 +377,7 @@ struct GoalEditorView: View {
                 .buttonStyle(.plain)
             }
         } header: {
-            Text("goal_kind_label")
+            Text(localizedString("goal_kind_label"))
         }
     }
 
@@ -385,9 +385,9 @@ struct GoalEditorView: View {
 
     private var detailsSection: some View {
         Section {
-            TextField("goal_title_placeholder", text: $title)
+            TextField(localizedString("goal_title_placeholder"), text: $title)
         } header: {
-            Text("goal_title_label")
+            Text(localizedString("goal_title_label"))
         }
     }
 
@@ -396,7 +396,7 @@ struct GoalEditorView: View {
     private var valuesSection: some View {
         Section {
             HStack {
-                Text("goal_current_label")
+                Text(localizedString("goal_current_label"))
                     .foregroundStyle(PulseTheme.secondaryText)
                 Spacer()
                 TextField("0", text: $current)
@@ -405,7 +405,7 @@ struct GoalEditorView: View {
                     .onChange(of: current) { _, v in current = filterDecimal(v) }
             }
             HStack {
-                Text("goal_target_label")
+                Text(localizedString("goal_target_label"))
                     .foregroundStyle(PulseTheme.secondaryText)
                 Spacer()
                 TextField("0", text: $target)
@@ -414,7 +414,7 @@ struct GoalEditorView: View {
                     .onChange(of: target) { _, v in target = filterDecimal(v) }
             }
             HStack {
-                Text("goal_unit_label")
+                Text(localizedString("goal_unit_label"))
                     .foregroundStyle(PulseTheme.secondaryText)
                 Spacer()
                 TextField("kg", text: $unit)
@@ -422,7 +422,7 @@ struct GoalEditorView: View {
                     .frame(width: 140)
             }
         } header: {
-            Text("goal_values_label")
+            Text(localizedString("goal_values_label"))
         }
     }
 
@@ -431,20 +431,20 @@ struct GoalEditorView: View {
     private var deadlineSection: some View {
         Section {
             Toggle(isOn: $hasDeadline.animation()) {
-                Text("goal_set_deadline")
+                Text(localizedString("goal_set_deadline"))
             }
             if hasDeadline {
                 DatePicker(
-                    "goal_deadline_label",
+                    localizedString("goal_deadline_label"),
                     selection: $deadline,
                     in: Date.now...,
                     displayedComponents: .date
                 )
                 HStack {
-                    Text("goal_reason_label")
+                    Text(localizedString("goal_reason_label"))
                         .foregroundStyle(PulseTheme.secondaryText)
                     Spacer()
-                    TextField("goal_reason_placeholder", text: $reason)
+                    TextField(localizedString("goal_reason_placeholder"), text: $reason)
                         .multilineTextAlignment(.trailing)
                 }
             }
@@ -460,7 +460,7 @@ struct GoalEditorView: View {
             } label: {
                 HStack {
                     Spacer()
-                    Text("goal_delete_action")
+                    Text(localizedString("goal_delete_action"))
                     Spacer()
                 }
             }

@@ -515,6 +515,7 @@ struct SocialOnboardingView: View {
                     isSaving = false
                     dismiss()
                 }
+                await store.prepareSocialActivityNotifications()
             } catch {
                 await MainActor.run {
                     handleSaveError(error)

@@ -194,7 +194,7 @@ private struct AchievementUnlockCard: View {
 
             // Title strip
             VStack(spacing: 6) {
-                Text("ACHIEVEMENT UNLOCKED")
+                Text(localizedString("achievement_unlocked").uppercased())
                     .font(.system(size: 11, weight: .black, design: .rounded))
                     .tracking(2.0)
                     .foregroundStyle(PulseTheme.mediaText.opacity(0.55))

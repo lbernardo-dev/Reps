@@ -729,10 +729,10 @@ struct ProfileView: View {
 
                 if let metric = store.todayHealthMetric {
                     LazyVGrid(columns: profileToolColumns, spacing: 10) {
-                        HealthMiniMetric(title: "Pasos", value: "\(Int(metric.steps))", systemImage: TrackedMetric.steps.systemImage, tint: TrackedMetric.steps.tint)
-                        HealthMiniMetric(title: "Ejercicio", value: "\(Int(metric.exerciseMinutes ?? 0)) min", systemImage: TrackedMetric.exerciseMinutes.systemImage, tint: TrackedMetric.exerciseMinutes.tint)
-                        HealthMiniMetric(title: "Reposo", value: metric.restingHeartRate.map { "\(Int($0)) \(localizedString("lpm"))" } ?? "--", systemImage: TrackedMetric.restingHeartRate.systemImage, tint: TrackedMetric.restingHeartRate.tint)
-                        HealthMiniMetric(title: "HRV", value: metric.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--", systemImage: TrackedMetric.hrv.systemImage, tint: TrackedMetric.hrv.tint)
+                        HealthMiniMetric(title: localizedString("steps"), value: "\(Int(metric.steps))", systemImage: TrackedMetric.steps.systemImage, tint: TrackedMetric.steps.tint)
+                        HealthMiniMetric(title: localizedString("exercise"), value: "\(Int(metric.exerciseMinutes ?? 0)) min", systemImage: TrackedMetric.exerciseMinutes.systemImage, tint: TrackedMetric.exerciseMinutes.tint)
+                        HealthMiniMetric(title: localizedString("resting"), value: metric.restingHeartRate.map { "\(Int($0)) \(localizedString("lpm"))" } ?? "--", systemImage: TrackedMetric.restingHeartRate.systemImage, tint: TrackedMetric.restingHeartRate.tint)
+                        HealthMiniMetric(title: localizedString("hrv"), value: metric.heartRateVariabilityMS.map { "\(Int($0)) ms" } ?? "--", systemImage: TrackedMetric.hrv.systemImage, tint: TrackedMetric.hrv.tint)
                     }
                 }
 
@@ -815,7 +815,7 @@ struct ProfileView: View {
                     }
 
                     ProfileToolButton(
-                        title: "Cardio",
+                        title: localizedString("cardio"),
                         subtitle: "route_heart_rate_and_rpe",
                         systemImage: "figure.run",
                         color: PulseTheme.accent
@@ -982,7 +982,7 @@ struct ProfileView: View {
                     }
                 }
             ) {
-                ProfileToolSection(title: "Compartir progreso") {
+                ProfileToolSection(title: "share_progress") {
                     LazyVGrid(columns: profileToolColumns, spacing: 12) {
                         ProfileToolButton(
                             title: "CSV",
@@ -1173,7 +1173,7 @@ struct ProfileView: View {
                         }
 
                         ProfileToolButton(
-                            title: "Feedback",
+                            title: "feedback",
                             subtitle: "send_feedback",
                             systemImage: "bubble.left.and.text.bubble.right",
                             color: PulseTheme.accent
@@ -1909,7 +1909,7 @@ private struct SupportInfoScreen: View {
     var body: some View {
         StickyHeaderScaffold(
             title: title,
-            subtitle: "Soporte",
+            subtitle: localizedString("support"),
             backAction: onBack,
             accessory: {
                 Image(systemName: systemImage)
@@ -2580,7 +2580,7 @@ private extension UserProfile.MainGoal {
     var displayNameText: String {
         switch self {
         case .buildMuscle: localizedKey("gain_muscle")
-        case .bodyRecomposition: "Body recomposition"
+        case .bodyRecomposition: localizedKey("body_recomposition")
         case .loseFat: localizedKey("lose_fat")
         case .getStronger: localizedKey("more_strength")
         case .stayActive: localizedKey("stay_active")

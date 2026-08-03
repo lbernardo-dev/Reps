@@ -379,9 +379,23 @@ final class AppStore {
             await self.refreshICloudProEntitlement()
             if let username, socialEnabled, self.userProfile.socialCapabilitiesAllowed {
                 await SocialService.shared.pingActivity(myUsername: username)
+                if self.userProfile.socialNotificationsEnabled {
+                    await SocialService.shared.subscribeToSocialActivity(myUsername: username)
+                }
                 await self.flushPendingComments()
             }
         }
+    }
+
+    /// Installs CloudKit social subscriptions without requiring SocialHub to
+    /// have been opened first in the current installation.
+    func prepareSocialActivityNotifications() async {
+        guard userProfile.socialCapabilitiesAllowed,
+              userProfile.socialEnabled,
+              userProfile.socialNotificationsEnabled,
+              let username = userProfile.socialUsername,
+              !username.isEmpty else { return }
+        await SocialService.shared.subscribeToSocialActivity(myUsername: username)
     }
 
     func startBackgroundServicesIfNeeded() {
@@ -2416,7 +2430,7 @@ final class AppStore {
     private static func workoutDay(for payload: NativeWorkoutStartPayload) -> WorkoutDay {
         WorkoutDay(
             title: nameForActivityType(payload.activityType),
-            subtitle: "started_from_apple_watch",
+            subtitle: localizedString("started_from_apple_watch"),
             durationMinutes: 45,
             exercises: [],
             sessionType: sessionType(for: payload.activityType),

@@ -87,7 +87,7 @@ struct ProgressDashboardView: View {
   var body: some View {
     NavigationStack {
       StickyHeaderScaffold(
-        title: "summary",
+        title: localizedString("summary"),
         subtitle: currentDateSubtitle,
         accessory: {
             Button {
@@ -434,7 +434,7 @@ struct ProgressDashboardView: View {
                 ProgressToolTile(
                   title: "calculadora_1rm",
                   subtitle: "estimate_your_maximum_strength_and_load_zones",
-                  systemImage: "calculator.fill",
+                  systemImage: "function",
                   color: PulseTheme.accent
                 )
               }
@@ -887,7 +887,7 @@ struct ProgressDashboardView: View {
           if selectedSection == .general {
             PulseCard {
               VStack(alignment: .leading, spacing: 14) {
-                CardTitle("insights_accionables")
+                CardTitle("insights_actionable")
                 ForEach(Array(insightCards.enumerated()), id: \.element.id) { index, insight in
                   InsightRow(insight: insight)
                   if index < insightCards.count - 1 {

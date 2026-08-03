@@ -73,6 +73,7 @@ struct ActiveWorkoutView: View {
     @State private var showExpandedRouteMap = false
     @State private var showMoreTools = false
     @State private var showExerciseDetails = false
+    @State private var showMusicConnector = false
     @State private var setCompletionFeedback: SetCompletionFeedback?
 
     private var exerciseDrafts: [ExerciseSessionDraft] {
@@ -348,6 +349,13 @@ struct ActiveWorkoutView: View {
         .sheet(isPresented: $showProPreferences) {
             ProPreferencesView()
                 .repsSheetPresentation()
+        }
+        .sheet(isPresented: $showMusicConnector) {
+            MusicIntegrationSheet { playlist in
+                replaceActivePlaylist(with: playlist)
+                showMusicConnector = false
+            }
+            .repsSheetPresentation()
         }
         .sheet(isPresented: $showSessionFeedback) {
             NavigationStack {
@@ -1091,9 +1099,30 @@ struct ActiveWorkoutView: View {
         if let playlist = planPlaylist {
             PulseCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Label("Apple Music", systemImage: "music.note")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(PulseTheme.appleMusic)
+                    HStack(alignment: .center) {
+                        Label("Apple Music", systemImage: "music.note")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(PulseTheme.appleMusic)
+
+                        Spacer(minLength: 0)
+
+                        Button {
+                            HapticService.selection()
+                            showMusicConnector = true
+                        } label: {
+                            Image(systemName: "pencil")
+                                .font(.caption.weight(.bold))
+                                .frame(width: 32, height: 32)
+                                .foregroundStyle(PulseTheme.appleMusic)
+                                .background(PulseTheme.appleMusic.opacity(0.14), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(localizedString("edit_playlist"))
+                        .frame(
+                            width: PulseTheme.minTapTarget,
+                            height: PulseTheme.minTapTarget
+                        )
+                    }
 
                     HStack(spacing: 12) {
                         if let artwork = musicPlayer.currentSongArtwork {
@@ -1152,6 +1181,16 @@ struct ActiveWorkoutView: View {
                 }
             }
         }
+    }
+
+    private func replaceActivePlaylist(with playlist: PlanPlaylist) {
+        var updated = store.activePlan
+        if updated.playlists.isEmpty {
+            updated.playlists = [playlist]
+        } else {
+            updated.playlists[0] = playlist
+        }
+        store.updatePlan(updated)
     }
 
     private var batteryCard: some View {
@@ -1830,7 +1869,7 @@ struct ActiveWorkoutView: View {
                             showExerciseDetails.toggle()
                         }
                     } label: {
-                        Label(showExerciseDetails ? "Hide" : "Details", systemImage: showExerciseDetails ? "chevron.up" : "slider.horizontal.3")
+                        Label(showExerciseDetails ? localizedString("hide") : localizedString("details"), systemImage: showExerciseDetails ? "chevron.up" : "slider.horizontal.3")
                             .font(.subheadline.weight(.black))
                             .frame(width: 120, height: 48)
                             .foregroundStyle(PulseTheme.secondaryText)

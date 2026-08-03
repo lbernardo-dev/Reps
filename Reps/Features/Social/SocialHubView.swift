@@ -30,6 +30,7 @@ struct SocialHubView: View {
     @State private var didLoadInitialData = false
     @State private var searchTask: Task<Void, Never>?
     @State private var pendingInvites: [PendingInvite] = []
+    @State private var incomingInvites: [SocialProfile] = []
     @State private var toastMessage: String? = nil
     @State private var toastIsError: Bool = false
     @State private var profileToReport: SocialProfile? = nil
@@ -367,7 +368,7 @@ struct SocialHubView: View {
                     if store.hasProAccess {
                         profileOverviewMetric(
                             value: "+10%",
-                            label: "XP Boost",
+                            label: localizedString("social_xp_boost"),
                             systemImage: "sparkles",
                             color: PulseTheme.ringStand,
                             emphasized: true
@@ -1070,6 +1071,9 @@ struct SocialHubView: View {
             .clipShape(RoundedRectangle(cornerRadius: PulseTheme.compactRadius, style: .continuous))
 
             if searchText.isEmpty {
+                if !incomingInvites.isEmpty {
+                    incomingInvitationsSection
+                }
                 // Pending invitations
                 if !pendingInvites.isEmpty {
                     pendingInvitationsSection
@@ -1083,7 +1087,7 @@ struct SocialHubView: View {
                     suggestedSection
                 } else if isLoadingSuggested {
                     PulseCard { PulseSkeleton(height: 60) }
-                } else if recentSearches.isEmpty && pendingInvites.isEmpty {
+                } else if recentSearches.isEmpty && pendingInvites.isEmpty && incomingInvites.isEmpty {
                     PulseCard {
                         PulseEmptyState(
                             title: "social_find_friends",
@@ -1192,6 +1196,78 @@ struct SocialHubView: View {
     }
 
     // MARK: - Pending Invitations Section
+
+    private var incomingInvitationsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(localizedString("social_received_invitations"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PulseTheme.secondaryText)
+                Spacer()
+                Text("\(incomingInvites.count)")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(PulseTheme.accent)
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(PulseTheme.accent.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 4)
+
+            PulseCard {
+                VStack(spacing: 0) {
+                    ForEach(Array(incomingInvites.enumerated()), id: \.element.id) { index, profile in
+                        incomingInviteRow(profile)
+                        if index < incomingInvites.count - 1 { Divider() }
+                    }
+                }
+            }
+        }
+    }
+
+    private func incomingInviteRow(_ profile: SocialProfile) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                HapticService.selection()
+                selectedProfileUsername = profile.username
+            } label: {
+                HStack(spacing: 12) {
+                    avatarCircle(data: profile.avatarImageData, username: profile.username, isMe: false, size: 44)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(profile.displayName.isEmpty ? "@\(profile.username)" : profile.displayName)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        Text("@\(profile.username)")
+                            .font(.caption)
+                            .foregroundStyle(PulseTheme.secondaryText)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Button {
+                acceptIncomingInvite(profile)
+            } label: {
+                if followingInProgress.contains(profile.id) {
+                    ProgressView().tint(.black).scaleEffect(0.8)
+                        .frame(width: 86, height: 32)
+                } else {
+                    Text(localizedString("social_accept_invitation"))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 86, height: 32)
+                        .background(PulseTheme.accent)
+                        .clipShape(Capsule())
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(followingInProgress.contains(profile.id))
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
+    }
 
     private var pendingInvitationsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1548,9 +1624,22 @@ struct SocialHubView: View {
             let usernames = store.userProfile.socialFollowingUsernames
             async let followingTask = SocialService.shared.fetchFollowing(myFollowingUsernames: usernames)
             async let countTask = SocialService.shared.fetchFollowerCount(myUsername: store.userProfile.socialUsername ?? "")
-            let (f, count) = try await (followingTask, countTask)
+            async let followersTask: [SocialProfile] = (try? await SocialService.shared.fetchFollowerProfiles(
+                myUsername: store.userProfile.socialUsername ?? ""
+            )) ?? []
+            let (f, count, followerProfiles) = try await (followingTask, countTask, followersTask)
             following = f
             followerCount = count
+            let outgoing = Set(usernames.map { $0.lowercased() })
+            incomingInvites = followerProfiles.filter { !outgoing.contains($0.username.lowercased()) }
+
+            // A reciprocal follow is the receiver's acceptance. Clear the
+            // sender-side pending marker as soon as that relationship appears.
+            let mutualUsernames = Set(followerProfiles.map { $0.username.lowercased() })
+            if pendingInvites.contains(where: { mutualUsernames.contains($0.username.lowercased()) }) {
+                pendingInvites.removeAll { mutualUsernames.contains($0.username.lowercased()) }
+                savePendingInvites()
+            }
             Task.detached { [f] in await store.checkLeaderboardChanges(following: f) }
             saveLeaderboardToWidget(following: f)
         } catch {
@@ -1598,7 +1687,10 @@ struct SocialHubView: View {
                     isSearching = false
                 }
             } catch {
-                await MainActor.run { isSearching = false }
+                await MainActor.run {
+                    isSearching = false
+                    showToast(error.localizedDescription, isError: true)
+                }
             }
         }
     }
@@ -1663,6 +1755,35 @@ struct SocialHubView: View {
                 await MainActor.run {
                     showToast(error.localizedDescription, isError: true)
                 }
+            }
+            await MainActor.run { _ = followingInProgress.remove(profile.id) }
+        }
+    }
+
+    private func acceptIncomingInvite(_ profile: SocialProfile) {
+        guard let myUsername = store.userProfile.socialUsername else { return }
+        followingInProgress.insert(profile.id)
+        Task {
+            do {
+                try await SocialService.shared.follow(profile)
+                await MainActor.run {
+                    if !following.contains(where: { $0.id == profile.id }) {
+                        following.append(profile)
+                    }
+                    let normalized = profile.username.lowercased()
+                    if !store.userProfile.socialFollowingUsernames.contains(normalized) {
+                        store.userProfile.socialFollowingUsernames.append(normalized)
+                    }
+                    incomingInvites.removeAll { $0.id == profile.id }
+                    showToast(localizedFormat("social_invitation_accepted_format", profile.username))
+                }
+                let newList = store.userProfile.socialFollowingUsernames
+                await SocialService.shared.updateMyFollowingList(
+                    myUsername: myUsername,
+                    followingUsernames: newList
+                )
+            } catch {
+                await MainActor.run { showToast(error.localizedDescription, isError: true) }
             }
             await MainActor.run { _ = followingInProgress.remove(profile.id) }
         }

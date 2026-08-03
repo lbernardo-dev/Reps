@@ -1,3 +1,4 @@
+import AppIntents
 import CloudKit
 import Combine
 import RevenueCat
@@ -61,6 +62,11 @@ final class RepsApplicationDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         FirebaseBootstrap.configureIfNeeded()
         RevenueCatBootstrap.configureIfNeeded()
+        // Explicitly republish the static App Shortcut catalog on every launch.
+        // This repairs stale Shortcuts records left behind after an app update,
+        // which otherwise surface as "Couldn't find shortcut" before the
+        // AppIntent gets a chance to run.
+        RepsAppShortcuts.updateAppShortcutParameters()
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
         NotificationService.registerCategories()
         // Required for CloudKit subscription (silent) push delivery. This does
@@ -203,6 +209,10 @@ struct RepsApp: App {
                     await Task.yield()
                     store.startBackgroundServicesIfNeeded()
                     store.consumePendingAppShortcutRoute()
+
+                    Task {
+                        await store.prepareSocialActivityNotifications()
+                    }
 
                     if store.userProfile.onboardingCompleted,
                        store.userProfile.remindersEnabled {

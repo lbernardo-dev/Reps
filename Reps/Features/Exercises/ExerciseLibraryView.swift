@@ -569,7 +569,7 @@ struct ExerciseLibraryView: View {
             .safeAreaInset(edge: .top) {
                 PulseHeaderBar(
                     title: localizedString("exercise_library"),
-                    subtitleKey: "Browse and add movements",
+                    subtitleKey: "browse_and_add_movements",
                     backAction: isTabRoot ? nil : { dismiss() }
                 ) {
                     HStack(spacing: 6) {
