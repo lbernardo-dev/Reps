@@ -304,13 +304,16 @@ struct ProgressDashboardView: View {
       }
       .buttonStyle(.plain)
 
-      TodayMetricCard(
-        icon: TrackedMetric.sessions.systemImage,
-        color: TrackedMetric.sessions.tint,
-        title: "sessions",
-        value: "\(heroMetrics.sessionsThisWeek)",
-        detail: "\(weekTotalMinutes) min \(localizedString("week_label").lowercased())"
-      )
+      Button { handleMetricTap(.sessions) } label: {
+        TodayMetricCard(
+          icon: TrackedMetric.sessions.systemImage,
+          color: TrackedMetric.sessions.tint,
+          title: "sessions",
+          value: "\(heroMetrics.sessionsThisWeek)",
+          detail: "\(weekTotalMinutes) min \(localizedString("week_label").lowercased())"
+        )
+      }
+      .buttonStyle(.plain)
     }
   }
 
@@ -862,7 +865,7 @@ struct ProgressDashboardView: View {
                 PulseCard {
                   VStack(alignment: .leading, spacing: 14) {
                     CardTitle("volume_by_muscle_group")
-                    MetricDonutChart(
+                    MetricBarChart(
                       slices: muscleVolumeDonutSlices,
                       centerValue: formattedTotalMuscleVolume,
                       centerLabel: "total_volume",

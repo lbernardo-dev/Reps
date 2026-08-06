@@ -437,22 +437,19 @@ struct SettingsView: View {
                 ]
             )
         case .whatsNew:
-            SettingsInfoScreen(
-                title: "whats_new",
-                systemImage: "sparkles",
-                sections: [
-                    SettingsInfoSection(title: "training", rows: [
-                        "ready_routines_with_days_exercises_sets_rests_and_progression",
-                        "free_log_with_notes_photos_water_rpe_rir_tempo_and_rests",
-                        "final_summary_with_volume_records_and_visual_receipts"
-                    ]),
-                    SettingsInfoSection(title: "integrations", rows: [
-                        "apple_health_imports_metrics_and_saves_workouts_with_permission",
-                        "widgets_watch_and_live_activities_follow_session_outside_app",
-                        "apple_music_plays_playlists_during_workouts"
-                    ])
-                ]
-            )
+            StickyHeaderScaffold(
+                title: settingsDisplayText("whats_new"),
+                subtitle: "settings",
+                showsGlobalActions: false,
+                accessory: {
+                    HStack(spacing: 10) {
+                        SettingsBackHeaderButton()
+                        SettingsTodayHeaderButton()
+                    }
+                }
+            ) {
+                WhatsNewTimelineView()
+            }
         #if DEBUG && targetEnvironment(simulator)
         case .developerMenu:
             DeveloperMenuView()

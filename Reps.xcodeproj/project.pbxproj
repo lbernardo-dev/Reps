@@ -196,6 +196,7 @@
 		A84614946C19C7F8F4D93E80 /* RepsStartWorkoutIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B836CA603C18D31891F7C05D /* RepsStartWorkoutIntent.swift */; };
 		AAA169C25E42B20113ABE29A /* ProgressInsightCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EE59F3B756E904BCDD46735 /* ProgressInsightCards.swift */; };
 		AB060AEE9C8DA146B13BE710 /* WorkoutReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75F48E903FC027A25C691AD9 /* WorkoutReceiptView.swift */; };
+		0E19D7303AA0FCBEE6D62741 /* WhatsNewTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6437F944D7D051C7EFC005A5 /* WhatsNewTimeline.swift */; };
 		AC55B17F5521F73E2EF8A159 /* SmartProgressionAdvisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFD9F5578585D85B9F2794F3 /* SmartProgressionAdvisor.swift */; };
 		ACDC7479449EBF00793E0AFB /* CreateChallengeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC3840D58A6BB64084A3784 /* CreateChallengeView.swift */; };
 		AE021A196C0A488568831C19 /* 0089.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 4D673EF8285C6C7FF7F6B661 /* 0089.mp4 */; };
@@ -223,6 +224,7 @@
 		C2E79D22B1183C1EF66197F4 /* ActiveWorkoutSetListComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24ADEF725EBB565A7851092E /* ActiveWorkoutSetListComponents.swift */; };
 		C3B62F6987AC5BC09B37B15E /* ImportedWorkoutCompletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14B7695AC2726C1B6EAAA9C /* ImportedWorkoutCompletionView.swift */; };
 		C62CF23AA5D5F7BA45E5ECEB /* MetricDonutChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E32C43D45A7E3E330D94DFB /* MetricDonutChart.swift */; };
+		02B9D84E4F53B0E85043EFBF /* MetricBarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B99459CF012A0E0D34632B /* MetricBarChart.swift */; };
 		C647E740F4B4039A0C59E761 /* ProgressExecutiveCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = B09E9E304E3029F2065B384F /* ProgressExecutiveCards.swift */; };
 		C83E1AAE831ADA571410CCF7 /* AchievementEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09815E3E60DE5C7C1DCDE2CE /* AchievementEngine.swift */; };
 		CBEEF64AF9E4EF7F914D7A49 /* TimersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9133DB946FB1648980C9F29D /* TimersView.swift */; };
@@ -430,6 +432,7 @@
 		758BC64AFD9F0F51E80AFD3D /* OnboardingLocationCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingLocationCatalog.swift; sourceTree = "<group>"; };
 		75E0F9DB63A1911A237F6C06 /* 0066.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0066.mp4; sourceTree = "<group>"; };
 		75F48E903FC027A25C691AD9 /* WorkoutReceiptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutReceiptView.swift; sourceTree = "<group>"; };
+		6437F944D7D051C7EFC005A5 /* WhatsNewTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsNewTimeline.swift; sourceTree = "<group>"; };
 		78DDDBCF34EB59D79E8CA51B /* 0088.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0088.mp4; sourceTree = "<group>"; };
 		7BE57E858C8E45F0C1BC9218 /* SparklineTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineTile.swift; sourceTree = "<group>"; };
 		7DBDDBC7EE75CF493112E9D2 /* FreeWorkoutStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeWorkoutStartView.swift; sourceTree = "<group>"; };
@@ -451,6 +454,7 @@
 		8BA1565353516FCB4247FD1D /* Monetization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Monetization.swift; sourceTree = "<group>"; };
 		8C342BB467A26F0B6710BAA2 /* ProgressSummaryCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCards.swift; sourceTree = "<group>"; };
 		8E32C43D45A7E3E330D94DFB /* MetricDonutChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricDonutChart.swift; sourceTree = "<group>"; };
+		61B99459CF012A0E0D34632B /* MetricBarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricBarChart.swift; sourceTree = "<group>"; };
 		8F2C357C47CB1C20A4B6C99E /* 0071.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = 0071.mp4; sourceTree = "<group>"; };
 		9055371D6F3FC5EB8456BF60 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9133DB946FB1648980C9F29D /* TimersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimersView.swift; sourceTree = "<group>"; };
@@ -841,6 +845,7 @@
 				A3FCF6EE790F491B821C8D6C /* DomainTrendCharts.swift */,
 				58830BD021FA8637E0806784 /* HeroNumberView.swift */,
 				8E32C43D45A7E3E330D94DFB /* MetricDonutChart.swift */,
+				61B99459CF012A0E0D34632B /* MetricBarChart.swift */,
 				00E4DE477605DDB3727C3C90 /* PlanProjectionChart.swift */,
 				2E08952A6E458B119174F60E /* ReadinessGauge.swift */,
 				7BE57E858C8E45F0C1BC9218 /* SparklineTile.swift */,
@@ -1116,6 +1121,7 @@
 				EE7A352271B093AE9303829E /* RepsLoadingView.swift */,
 				8B208456C111D6D93E890FF9 /* SectionCustomization.swift */,
 				75F48E903FC027A25C691AD9 /* WorkoutReceiptView.swift */,
+				6437F944D7D051C7EFC005A5 /* WhatsNewTimeline.swift */,
 				7F4552CB0C6060A0A0471787 /* Charts */,
 				E6ED7CE85526C0CF2FDA03B7 /* Components */,
 			);
@@ -1457,6 +1463,7 @@
 				D09AF9307979AF4C40A987FB /* IntervalTimerEngine.swift in Sources */,
 				EE68B76DFBE62E1F88D8C226 /* IntervalTimerRunView.swift in Sources */,
 				C62CF23AA5D5F7BA45E5ECEB /* MetricDonutChart.swift in Sources */,
+				02B9D84E4F53B0E85043EFBF /* MetricBarChart.swift in Sources */,
 				2D2D7741590F155133751CA0 /* MetricEditorViews.swift in Sources */,
 				D152C877FED4836405B2FC3A /* MetricsDiagnosticsService.swift in Sources */,
 				78728E1A068FE15F3627D13B /* MetronomeView.swift in Sources */,
@@ -1555,6 +1562,7 @@
 				20CDD5893A7DADBC1E35B857 /* WorkoutLibraryView.swift in Sources */,
 				0B7D1C4DA8791ED76B29C228 /* WorkoutPostCard.swift in Sources */,
 				AB060AEE9C8DA146B13BE710 /* WorkoutReceiptView.swift in Sources */,
+				0E19D7303AA0FCBEE6D62741 /* WhatsNewTimeline.swift in Sources */,
 				67CBF2B94B8586D99C918832 /* WorkoutShareImageRenderer.swift in Sources */,
 				B244444DC91F7901D069A6E7 /* WorkoutShared.swift in Sources */,
 				75445A2E89349C6AC890831F /* WorkoutSummaryView.swift in Sources */,
@@ -1694,7 +1702,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 102202608031;
+				CURRENT_PROJECT_VERSION = 102202608061;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
@@ -1717,7 +1725,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION = YES;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1765,7 +1773,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 102202608031;
+				CURRENT_PROJECT_VERSION = 102202608061;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
@@ -1782,7 +1790,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZED_STRING_SWIFT_SYMBOLS_GENERATION = YES;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1823,8 +1831,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Reps/Reps.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = L2B56644F5;
 				INFOPLIST_FILE = Reps/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
@@ -1834,7 +1842,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness;
-				PROVISIONING_PROFILE_SPECIFIER = "";
+				PROVISIONING_PROFILE_SPECIFIER = "StreakRep App Store 20260806";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -1863,8 +1871,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = StreakRepFit2;
 				CODE_SIGN_ENTITLEMENTS = RepsWatch/RepsWatch.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = L2B56644F5;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RepsWatch/Info.plist;
@@ -1873,7 +1881,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.romerodev.repsfitness.watchkitapp;
-				PROVISIONING_PROFILE_SPECIFIER = "";
+				PROVISIONING_PROFILE_SPECIFIER = "StreakRep Watch App Store 20260710";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;

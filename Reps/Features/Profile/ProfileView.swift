@@ -682,7 +682,7 @@ struct ProfileView: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button(localizedString(store.health.isAuthorized ? "Actualizar" : "Conectar")) {
+                    Button(localizedString(store.health.isAuthorized ? "health_update_button" : "health_connect_button")) {
                         Task { await connectHealth() }
                     }
                     .buttonStyle(ProfileActionButtonStyle(color: PulseTheme.accent))
@@ -1362,28 +1362,20 @@ struct ProfileView: View {
     }
 
     private var roadmapInfoScreen: some View {
-        SupportInfoScreen(
-            title: "whats_new",
-            systemImage: "sparkles",
-            sections: [
-                SupportInfoSection(title: "training", rows: [
-                    "ready_routines_with_days_exercises_sets_rests_and_progression",
-                    "free_log_with_notes_photos_water_rpe_rir_tempo_and_rests",
-                    "final_summary_with_volume_records_and_visual_receipts"
-                ]),
-                SupportInfoSection(title: "integrations", rows: [
-                    "apple_health_imports_metrics_and_saves_workouts_with_permission",
-                    "widgets_watch_and_live_activities_follow_session_outside_app",
-                    "apple_music_plays_playlists_during_workouts"
-                ]),
-                SupportInfoSection(title: "progress", rows: [
-                    "analytics_by_exercise_muscle_load_streaks_and_training_battery",
-                    "json_backups_csv_export_and_shareable_cards",
-                    "gym_passes_and_visits_keep_accesses_handy"
-                ])
-            ]
+        StickyHeaderScaffold(
+            title: localizedString("whats_new"),
+            subtitle: localizedString("support"),
+            backAction: { activeDestination = nil },
+            accessory: {
+                Image(systemName: "sparkles")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(PulseTheme.onColor(PulseTheme.accent))
+                    .frame(width: 40, height: 40)
+                    .background(PulseTheme.accent)
+                    .clipShape(Circle())
+            }
         ) {
-            activeDestination = nil
+            WhatsNewTimelineView()
         }
     }
 
@@ -1396,10 +1388,10 @@ struct ProfileView: View {
 
     private var healthStatus: String {
         if !store.health.isAvailable {
-            return "No disponible"
+            return "health_status_unavailable"
         }
 
-        return store.health.isAuthorized ? "Conectado" : "Sin conectar"
+        return store.health.isAuthorized ? "health_status_connected" : "health_status_not_connected"
     }
 
     private var bmiLabel: String {
