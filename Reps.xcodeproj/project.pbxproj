@@ -1234,7 +1234,7 @@
 					};
 					0416157AB6A2DD4CDDAF81C0 = {
 						DevelopmentTeam = L2B56644F5;
-						SystemCapabilities = "[\"com.apple.WeatherKit\": [\"enabled\": 1], \"com.apple.Push\": [\"enabled\": 1], \"com.apple.InAppPurchase\": [\"enabled\": 1]]";
+						SystemCapabilities = "[\"com.apple.InAppPurchase\": [\"enabled\": 1], \"com.apple.Push\": [\"enabled\": 1], \"com.apple.WeatherKit\": [\"enabled\": 1]]";
 					};
 					4B274BECDF40555313A5737C = {
 						DevelopmentTeam = L2B56644F5;
@@ -1708,7 +1708,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 102202608062;
+				CURRENT_PROJECT_VERSION = 102202608063;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1775,7 +1775,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 102202608062;
+				CURRENT_PROJECT_VERSION = 102202608063;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = L2B56644F5;
 				ENABLE_NS_ASSERTIONS = NO;
